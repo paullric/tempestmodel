@@ -407,6 +407,13 @@ public:
 	///		NetCDF file that contains the set of physical constants.
 	///	</param>
 	void NcInputPhysicalConstants(NcFile * ncIn);
+
+#else
+public:
+	///	<summary>
+	///		Stub function to avoid .cpp has no symbols error.
+	///	</summary>
+	void Stub();
 #endif
 };
 
