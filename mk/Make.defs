@@ -21,9 +21,9 @@ system := $(shell uname)
 ifeq ($(system),Darwin)
   CC=mpic++
   F90=mpif90
-  FORTFLAGS= -O3
-  CFLAGS= -O3
-  LDFLAGS= -O3
+  FORTFLAGS+= -O3
+  CFLAGS+= -O3
+  LDFLAGS+= -O3
 
   # Check for BLAS
   ifdef USEBLAS
@@ -32,31 +32,18 @@ ifeq ($(system),Darwin)
   endif
 endif
 
-## Linux (nyx,flux)
+## Linux (agri)
 ifeq ($(system),Linux)
   CC=mpiCC
   F90=mpif90
-  FORTFLAGS = -O3
-  CFLAGS= -fPIC -O3
-  LDFLAGS= -fPIC -O3
+  FORTFLAGS+= -O3
+  CFLAGS+= -fPIC -O3
+  LDFLAGS+= -fPIC -O3
 
   # Check for BLAS
   ifdef USEBLAS
-  	CFLAGS+= -DUSEMKL
-	LDFILES+= -Wl,--start-group $(MKLROOT)/lib/intel64/libmkl_intel_lp64.a $(MKLROOT)/lib/intel64/libmkl_sequential.a $(MKLROOT)/lib/intel64/libmkl_core.a -Wl,--end-group -lpthread
-  endif
-endif
-
-## AIX (bluefire)
-ifeq ($(system),AIX)
-  CC=mpCC_r
-  CFLAGS= -O5
-  LDFLAGS= -O5
-
-  # Check for BLAS
-  ifdef USEBLAS
-    CFLAGS+= -DUSEESSL
-	LDFILES+= -lessl
+    CFLAGS+= -DUSEMKL
+    LDFILES+= -lpthread -llapack -lblas
   endif
 endif
 

@@ -1,21 +1,18 @@
 # TempestBase directory
 TEMPESTBASEDIR= ..
 
-# Library name
-LIBNAME= libhardcoreatm
-
 # Compile with BLAS libraries
 USEBLAS= true
-
-# Load system-specific defaults
-include $(TEMPESTBASEDIR)/mk/Make.defs
 
 # Library files to include
 CFLAGS+= -I$(TEMPESTBASEDIR)/include
 
-LDFILES= -ltempestbase -lhardcoreatm -lnetcdf -lnetcdf_c++ -lX11 -lpetsc
+LDFILES= -lhardcoreatm -ltempestbase -lnetcdf -lnetcdf_c++ -lX11 -lpetsc
 
 LDFLAGS+= -L$(TEMPESTBASEDIR)/lib -L$(NETCDF_LIBDIR) -L$(PETSC_LIBDIR) -L$(X11_LIBDIR)
+
+# Load system-specific defaults
+include $(TEMPESTBASEDIR)/mk/Make.defs
 
 ##
 ## Build instructions
