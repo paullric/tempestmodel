@@ -13,5 +13,6 @@ clean:
 	cd src/base; make clean
 	cd src/atm; make clean
 	cd test; make clean
+	rm -f include/*.h
 
 # DO NOT DELETE
