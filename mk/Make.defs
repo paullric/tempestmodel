@@ -1,0 +1,106 @@
+
+################################################################################
+## SYSTEM PATH DEFINITIONS
+
+# PetSc include directory
+PETSC_INCLUDEDIR= /usr/local/include
+PETSC_LIBDIR= /usr/local/lib
+
+# NETCDF directories
+NETCDF_INCLUDEDIR=/usr/local/include
+NETCDF_LIBDIR=/usr/local/lib
+
+# X11 lib directory
+X11_LIBDIR=/usr/X11/lib
+
+################################################################################
+## SYSTEM SPECIFIC COMPILATION FLAGS
+
+system := $(shell uname)
+## Darwin (MacOS)
+ifeq ($(system),Darwin)
+  CC=mpic++
+  F90=mpif90
+  FORTFLAGS= -O3
+  CFLAGS= -O3
+  LDFLAGS= -O3
+
+  # Check for BLAS
+  ifdef USEBLAS
+    CFLAGS+= -DUSEVECLIB
+  	LDFLAGS+= -framework vecLib
+  endif
+endif
+
+## Linux (nyx,flux)
+ifeq ($(system),Linux)
+  CC=mpiCC
+  F90=mpif90
+  FORTFLAGS = -O3
+  CFLAGS= -fPIC -O3
+  LDFLAGS= -fPIC -O3
+
+  # Check for BLAS
+  ifdef USEBLAS
+  	CFLAGS+= -DUSEMKL
+	LDFILES+= -Wl,--start-group $(MKLROOT)/lib/intel64/libmkl_intel_lp64.a $(MKLROOT)/lib/intel64/libmkl_sequential.a $(MKLROOT)/lib/intel64/libmkl_core.a -Wl,--end-group -lpthread
+  endif
+endif
+
+## AIX (bluefire)
+ifeq ($(system),AIX)
+  CC=mpCC_r
+  CFLAGS= -O5
+  LDFLAGS= -O5
+
+  # Check for BLAS
+  ifdef USEBLAS
+    CFLAGS+= -DUSEESSL
+	LDFILES+= -lessl
+  endif
+endif
+
+################################################################################
+#### DO NOT EDIT BELOW THIS LINE ###############################################
+################################################################################
+
+##
+## Compilation directories
+##
+DEPDIR=depend
+BUILDDIR=build
+
+##
+## Dependency file construction
+##
+DEPDIR=depend
+MAKEDEPEND=mkdir -p $(DEPDIR); \
+	echo "-- Generating dependencies for $<"; \
+	touch $(DEPDIR)/$*.P && makedepend -- $(CFLAGS) -- -f $(DEPDIR)/$*.P $< > /dev/null 2>&1; \
+	sed 's/\($*\)\.o[ :]*/$(BUILDDIR)\/\1.o $(DEPDIR)\/$*.d : /g' < $(DEPDIR)/$*.P > $(DEPDIR)/$*.d; \
+	  rm -f $(DEPDIR)/$*.P
+	#$(CC) -M $(CFLAGS) $< > $(DEPDIR)/$*.P; \
+
+##
+## Compilation rules
+##
+$(BUILDDIR)/%.o : %.cpp
+	@mkdir -p $(BUILDDIR)
+	$(CC) $(CFLAGS) -c -o $@ $<
+
+$(BUILDDIR)/%.o : %.f90
+	@mkdir -p $(BUILDDIR)
+	$(F90) $(FORTFLAGS) -c -o $@ $<
+
+##
+## Dependency generation
+##
+$(DEPDIR)/%.d : %.cpp
+	@$(MAKEDEPEND)
+$(DEPDIR)/%.d : %.f90
+	@$(MAKEDEPEND)
+
+################################################################################
+#### DO NOT EDIT ABOVE THIS LINE ###############################################
+################################################################################
+

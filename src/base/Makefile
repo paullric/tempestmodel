@@ -1,5 +1,5 @@
-# Library base directory
-LIBBASEDIR= ..
+# TempestBase directory
+TEMPESTBASEDIR= ../..
 
 # Library name
 LIBNAME= libtempestbase
@@ -8,8 +8,7 @@ LIBNAME= libtempestbase
 USEBLAS= true
 
 # Load system-specific defaults
-USEBLAS= true
-include $(LIBBASEDIR)/mk/Make.defs
+include $(TEMPESTBASEDIR)/mk/Make.defs
 
 # Files in this directory
 FILES= Preferences.cpp \
@@ -27,16 +26,17 @@ FILES= Preferences.cpp \
 ## Build instructions
 ##
 all: $(FILES:%.cpp=$(BUILDDIR)/%.o)
-	cp *.h $(LIBBASEDIR)/include
-	ar -cqs $(LIBBASEDIR)/lib/$(LIBNAME).a build/*.o
+	rsync --checksum *.h $(TEMPESTBASEDIR)/include
+	rm -f $(TEMPESTBASEDIR)/lib/$(LIBNAME).a
+	ar -cqs $(TEMPESTBASEDIR)/lib/$(LIBNAME).a build/*.o
 
 ##
 ## Clean
 ##
 clean:
-	rm -rf build
-	rm -rf depend
-	rm -rf lib
+	rm -f $(TEMPESTBASEDIR)/lib/$(LIBNAME).a
+	rm -rf $(DEPDIR)
+	rm -rf $(BUILDDIR)
 
 ##
 ## Include dependencies
