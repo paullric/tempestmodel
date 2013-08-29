@@ -37,7 +37,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 ///	<summary>
-///		Galewsky et al. (1994) Test case 2
+///		Galewsky et al. (2004)
 ///
 ///		Barotropic instability test case.
 ///	</summary>
