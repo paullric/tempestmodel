@@ -1,1 +1,4 @@
-# This file is a placeholder for an empty directory
+# Ignore everything in this directory
+*
+# Except this file
+!.gitignore
