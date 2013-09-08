@@ -12,7 +12,7 @@
 ///		source code and its documentation under the terms of the GNU General
 ///		Public License.  This software is provided "as is" without express
 ///		or implied warranty.
-///	</remarks>
+///	</remarks
 
 #include "OutputManagerReference.h"
 
@@ -41,7 +41,8 @@ OutputManagerReference::OutputManagerReference(
 	int nYReference,
 	bool fXNodal,
 	bool fYNodal,
-	bool fOutputVorticity
+	bool fOutputVorticity,
+	bool fOutputDivergence
 ) :
 	OutputManager(
 		grid,
@@ -49,7 +50,8 @@ OutputManagerReference::OutputManagerReference(
 		strOutputDir,
 		strOutputFormat),
 	m_pActiveNcOutput(NULL),
-	m_fOutputVorticity(fOutputVorticity)
+	m_fOutputVorticity(fOutputVorticity),
+	m_fOutputDivergence(fOutputDivergence)
 {
 	// Create the coordinate arrays
 	m_dXCoord.Initialize(nXReference);
@@ -217,11 +219,18 @@ void OutputManagerReference::InitializeNcOutput(
 					ncDouble, dimTime, dimLev, dimLat, dimLon));
 		}
 
-		// Vorticity variable
+		// Divergence variable
 		if (m_fOutputVorticity) {
 			m_varVorticity =
 				m_pActiveNcOutput->add_var(
 					"ZETA", ncDouble, dimTime, dimLev, dimLat, dimLon);
+		}
+
+		// Divergence variable
+		if (m_fOutputDivergence) {
+			m_varDivergence =
+				m_pActiveNcOutput->add_var(
+					"DELTA", ncDouble, dimTime, dimLev, dimLat, dimLon);
 		}
 
 		// Output longitudes and latitudes
@@ -308,16 +317,23 @@ void OutputManagerReference::Output(
 	}
 
 	// Perform Interpolate / Reduction on computed vorticity
-	if (m_fOutputVorticity) {
+	if (m_fOutputVorticity || m_fOutputDivergence) {
 		if (m_dataState.GetRows() < 2) {
 			_EXCEPTIONT("Insufficient components");
 		}
 
-		m_grid.ComputeVorticity(0);
+		m_grid.ComputeVorticityDivergence(0);
 
-		m_grid.ReduceInterpolate(
-			m_dAlpha, m_dBeta, m_iPanel,
-			DataType_Vorticity, m_dataVorticity);
+		if (m_fOutputVorticity) {
+			m_grid.ReduceInterpolate(
+				m_dAlpha, m_dBeta, m_iPanel,
+				DataType_Vorticity, m_dataVorticity);
+		}
+		if (m_fOutputDivergence) {
+			m_grid.ReduceInterpolate(
+				m_dAlpha, m_dBeta, m_iPanel,
+				DataType_Divergence, m_dataDivergence);
+		}
 	}
 
 	// Store state variable data
@@ -352,6 +368,17 @@ void OutputManagerReference::Output(
 				&(m_dataVorticity[0][0][0]),
 				1,
 				m_dataVorticity.GetColumns(),
+				m_dYCoord.GetRows(),
+				m_dXCoord.GetRows());
+		}
+
+		// Store divergence data
+		if (m_fOutputDivergence) {
+			m_varDivergence->set_cur(m_nOutputFileIx, 0, 0, 0);
+			m_varDivergence->put(
+				&(m_dataDivergence[0][0][0]),
+				1,
+				m_dataDivergence.GetColumns(),
 				m_dYCoord.GetRows(),
 				m_dXCoord.GetRows());
 		}

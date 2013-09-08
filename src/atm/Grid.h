@@ -165,9 +165,9 @@ public:
 	) const;
 
 	///	<summary>
-	///		Compute vorticity on the grid.
+	///		Compute vorticity and divergence on the grid.
 	///	</summary>
-	virtual void ComputeVorticity(
+	virtual void ComputeVorticityDivergence(
 		int iDataIndex
 	);
 

@@ -34,7 +34,8 @@ enum DataType {
 	DataType_Longitude,
 	DataType_Latitude,
 	DataType_Z,
-	DataType_Vorticity
+	DataType_Vorticity,
+	DataType_Divergence
 };
 
 ///////////////////////////////////////////////////////////////////////////////

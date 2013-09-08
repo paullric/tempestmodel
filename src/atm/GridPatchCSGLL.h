@@ -75,16 +75,18 @@ public:
 	///		Compute the radial component of the curl on the grid given two
 	///		contravariant vector fields.
 	///	</summary>
-	virtual void ComputeCurlR(
+	virtual void ComputeCurlAndDiv(
 		const GridData3D & dataUa,
 		const GridData3D & dataUb,
-		GridData3D & dataCurlUr
+		GridData3D & dataCurlUr,
+		GridData3D & dataDivU
 	) const;
 
 	///	<summary>
-	///		Compute vorticity on the grid.
+	///		Compute the divergence and vorticity of the vector velocity
+	///		on the grid.
 	///	</summary>
-	virtual void ComputeVorticity(
+	virtual void ComputeVorticityDivergence(
 		int iDataIndex
 	);
 

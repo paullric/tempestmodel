@@ -85,7 +85,7 @@ public:
 	///	<summary>
 	///		Compute vorticity on the grid.
 	///	</summary>
-	virtual void ComputeVorticity(
+	virtual void ComputeVorticityDivergence(
 		int iDataIndex
 	);
 

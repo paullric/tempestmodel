@@ -1070,6 +1070,51 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusion(
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+/*
+void HorizontalDynamicsFEM::ApplyVectorHyperdiffusion(
+	const GridData3D & dataUa,
+	const GridData3D & dataUb,
+	int iDataUpdate,
+	double dDeltaT,
+	bool fUseHyperdiffusionCoeff
+) {
+	// Get a copy of the grid
+	Grid * pGrid = m_model.GetGrid();
+
+	// Physical constants
+	const PhysicalConstants & phys = m_model.GetPhysicalConstants();
+
+	// Perform local update
+	for (int n = 0; n < pGrid->GetActivePatchCount(); n++) {
+		GridPatch * pPatch = pGrid->GetActivePatch(n);
+
+		const PatchBox & box = pPatch->GetPatchBox();
+
+		const DataMatrix3D<double> & dJacobian =
+			pPatch->GetJacobian();
+		const DataMatrix4D<double> & dContraMetricA =
+			pPatch->GetContraMetricA();
+		const DataMatrix4D<double> & dContraMetricB =
+			pPatch->GetContraMetricB();
+
+		GridData4D & dataInitial =
+			pPatch->GetDataState(iDataInitial, DataLocation_Node);
+
+		GridData4D & dataUpdate =
+			pPatch->GetDataState(iDataUpdate, DataLocation_Node);
+
+		// Element grid spacing
+		double dElementDeltaA =
+			  box.GetAEdge(box.GetHaloElements() + m_nHorizontalOrder)
+			- box.GetAEdge(box.GetHaloElements());
+
+		double dElementDeltaB =
+			  box.GetBEdge(box.GetHaloElements() + m_nHorizontalOrder)
+			- box.GetBEdge(box.GetHaloElements());
+	}
+}
+*/
+///////////////////////////////////////////////////////////////////////////////
 
 void HorizontalDynamicsFEM::StepAfterSubCycle(
 	int iDataInitial,

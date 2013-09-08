@@ -114,7 +114,7 @@ public:
 	///	<summary>
 	///		Compute vorticity on the grid.
 	///	</summary>
-	virtual void ComputeVorticity(
+	virtual void ComputeVorticityDivergence(
 		int iDataIndex
 	) {
 		_EXCEPTIONT("Unimplemented");
@@ -647,6 +647,20 @@ public:
 		return m_dataVorticity;
 	}
 
+	///	<summary>
+	///		Get the divergence data.
+	///	</summary>
+	GridData3D & GetDataDivergence() {
+		return m_dataDivergence;
+	}
+
+	///	<summary>
+	///		Get the vorticity data.
+	///	</summary>
+	const GridData3D & GetDataDivergence() const {
+		return m_dataDivergence;
+	}
+
 protected:
 	///	<summary>
 	///		Reference to parent grid.
@@ -792,6 +806,11 @@ protected:
 	///		Computed vorticity.
 	///	</summary>
 	GridData3D m_dataVorticity;
+
+	///	<summary>
+	///		Computed divergence.
+	///	</summary>
+	GridData3D m_dataDivergence;
 };
 
 ///////////////////////////////////////////////////////////////////////////////

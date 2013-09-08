@@ -427,6 +427,8 @@ void GridCSGLL::ApplyDSS(
 			nComponents = m_model.GetEquationSet().GetTracers();
 		} else if (eDataType == DataType_Vorticity) {
 			nComponents = 1;
+		} else if (eDataType == DataType_Divergence) {
+			nComponents = 1;
 		} else {
 			_EXCEPTIONT("Invalid DataType");
 		}
@@ -444,6 +446,8 @@ void GridCSGLL::ApplyDSS(
 					pPatch->GetDataTracers(iDataUpdate)[c];
 			} else if (eDataType == DataType_Vorticity) {
 				pDataUpdate = pPatch->GetDataVorticity();
+			} else if (eDataType == DataType_Divergence) {
+				pDataUpdate = pPatch->GetDataDivergence();
 			}
 
 			for (int k = 0; k < GetRElements(); k++) {
@@ -560,14 +564,15 @@ void GridCSGLL::ApplyDSS(
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void GridCSGLL::ComputeVorticity(
+void GridCSGLL::ComputeVorticityDivergence(
 	int iDataIndex
 ) {
 	// Compute vorticity on all grid patches
-	Grid::ComputeVorticity(iDataIndex);
+	Grid::ComputeVorticityDivergence(iDataIndex);
 
 	// Apply DSS
 	ApplyDSS(0, DataType_Vorticity);
+	ApplyDSS(0, DataType_Divergence);
 }
 
 ///////////////////////////////////////////////////////////////////////////////

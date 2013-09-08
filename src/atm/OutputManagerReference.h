@@ -42,7 +42,8 @@ public:
 		int nYReference,
 		bool fXNodal,
 		bool fYNodal,
-		bool fOutputVorticity = false
+		bool fOutputVorticity = false,
+		bool fOutputDivergence = false
 	);
 
 	///	<summary>
@@ -53,6 +54,16 @@ public:
 		bool fOutputVorticity = true
 	) {
 		m_fOutputVorticity = fOutputVorticity;
+	}
+
+	///	<summary>
+	///		Modify the flag which indicates whether divergence should be
+	///		computed and output.
+	///	</summary>
+	void OutputDivergence(
+		bool fOutputDivergence = true
+	) {
+		m_fOutputDivergence = fOutputDivergence;
 	}
 
 	///	<summary>
@@ -158,6 +169,21 @@ private:
 	///		Computed vorticity on the reference grid.
 	///	</summary>
 	DataMatrix3D<double> m_dataVorticity;
+
+	///	<summary>
+	///		Flag indicating whether divergence should be computed and output.
+	///	</summary>
+	bool m_fOutputDivergence;
+
+	///	<summary>
+	///		Divergence output variable.
+	///	</summary>
+	NcVar * m_varDivergence;
+
+	///	<summary>
+	///		Computed divergence on the reference grid.
+	///	</summary>
+	DataMatrix3D<double> m_dataDivergence;
 
 };
 

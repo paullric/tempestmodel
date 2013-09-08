@@ -758,10 +758,11 @@ void GridPatchCSGLL::EvaluateTestCase(
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void GridPatchCSGLL::ComputeCurlR(
+void GridPatchCSGLL::ComputeCurlAndDiv(
 	const GridData3D & dataUa,
 	const GridData3D & dataUb,
-	GridData3D & dataCurlUr
+	GridData3D & dataCurlUr,
+	GridData3D & dataDivU
 ) const {
 	// Parent grid
 	const GridCSGLL & gridCSGLL = dynamic_cast<const GridCSGLL &>(m_grid);
@@ -835,6 +836,9 @@ void GridPatchCSGLL::ComputeCurlR(
 				+ m_dataContraMetricA[k][iA+i][iB+j][1] * dCovDbUb
 				- m_dataContraMetricB[k][iA+i][iB+j][0] * dCovDaUa
 				- m_dataContraMetricB[k][iA+i][iB+j][1] * dCovDbUa);
+
+			// Compute the divergence at node
+			dataDivU[k][iA+i][iB+j] = dCovDaUa + dCovDbUb;
 		}
 		}
 	}
@@ -844,7 +848,7 @@ void GridPatchCSGLL::ComputeCurlR(
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void GridPatchCSGLL::ComputeVorticity(
+void GridPatchCSGLL::ComputeVorticityDivergence(
 	int iDataIndex
 ) {
 	// Physical constants
@@ -865,11 +869,12 @@ void GridPatchCSGLL::ComputeVorticity(
 	dataState.GetAsGridData3D(0, dataUa);
 	dataState.GetAsGridData3D(1, dataUb);
 
-	// Vorticity data
+	// Vorticity and divergence data
 	GridData3D & dataVorticity = GetDataVorticity();
+	GridData3D & dataDivergence = GetDataDivergence();
 
 	// Compute the radial component of the curl of the velocity field
-	ComputeCurlR(dataUa, dataUb, dataVorticity);
+	ComputeCurlAndDiv(dataUa, dataUb, dataVorticity, dataDivergence);
 
 /*
 	// Lagrangian differentiation coefficients element [0,1]
@@ -1195,6 +1200,8 @@ void GridPatchCSGLL::InterpolateData(
 			nComponents = m_datavecTracers[0].GetComponents();
 		} else if (eDataType == DataType_Vorticity) {
 			nComponents = 1;
+		} else if (eDataType == DataType_Divergence) {
+			nComponents = 1;
 		} else {
 			_EXCEPTIONT("Invalid DataType");
 		}
@@ -1208,6 +1215,8 @@ void GridPatchCSGLL::InterpolateData(
 				pData = (const double ***)(m_datavecTracers[0][c]);
 			} else if (eDataType == DataType_Vorticity) {
 				pData = (const double ***)(double ***)(m_dataVorticity);
+			} else if (eDataType == DataType_Divergence) {
+				pData = (const double ***)(double ***)(m_dataDivergence);
 			}
 
 			// Perform interpolation on all levels

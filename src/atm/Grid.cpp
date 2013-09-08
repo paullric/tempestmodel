@@ -536,12 +536,12 @@ void Grid::ConsolidateDataToRoot(
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void Grid::ComputeVorticity(
+void Grid::ComputeVorticityDivergence(
 	int iDataIndex
 ) {
 	// Loop over all grid patches
 	for (int n = 0; n < m_vecActiveGridPatches.size(); n++) {
-		m_vecActiveGridPatches[n]->ComputeVorticity(iDataIndex);
+		m_vecActiveGridPatches[n]->ComputeVorticityDivergence(iDataIndex);
 	}
 }
 
@@ -605,6 +605,12 @@ void Grid::ReduceInterpolate(
 			dAlpha.GetRows());
 
 	} else if (eDataType == DataType_Vorticity) {
+		dInterpData.Initialize(
+			1,
+			GetRElements(),
+			dAlpha.GetRows());
+
+	} else if (eDataType == DataType_Divergence) {
 		dInterpData.Initialize(
 			1,
 			GetRElements(),

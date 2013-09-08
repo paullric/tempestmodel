@@ -324,6 +324,16 @@ void GridPatch::InitializeDataLocal() {
 		m_box.GetATotalWidth(),
 		m_box.GetBTotalWidth(),
 		m_box.GetHaloElements());
+
+	// Divergence data
+	m_dataDivergence.Initialize(
+		DataType_Divergence,
+		DataLocation_Node,
+		m_grid.GetRElements(),
+		m_box.GetATotalWidth(),
+		m_box.GetBTotalWidth(),
+		m_box.GetHaloElements());
+
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -554,6 +564,11 @@ void GridPatch::Send(
 		m_connect.Pack(m_dataVorticity);
 		m_connect.Send();
 
+	// Vorticity data
+	} else if (eDataType == DataType_Divergence) {
+		m_connect.Pack(m_dataDivergence);
+		m_connect.Send();
+
 	// Invalid data
 	} else {
 		_EXCEPTIONT("Invalid DataType");
@@ -594,6 +609,13 @@ void GridPatch::Receive(
 		Neighbor * pNeighbor;
 		while ((pNeighbor = m_connect.WaitReceive()) != NULL) {
 			pNeighbor->Unpack(m_dataVorticity);
+		}
+
+	// Divergence data
+	} else if (eDataType == DataType_Divergence) {
+		Neighbor * pNeighbor;
+		while ((pNeighbor = m_connect.WaitReceive()) != NULL) {
+			pNeighbor->Unpack(m_dataDivergence);
 		}
 
 	// Invalid data
