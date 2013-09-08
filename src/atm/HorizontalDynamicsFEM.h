@@ -102,7 +102,7 @@ protected:
 	///	<summary>
 	///		Apply the 2nd-order hyperdiffusion operator.
 	///	</summary>
-	void ApplyHyperdiffusion(
+	void ApplyScalarHyperdiffusion(
 		int iDataInitial,
 		int iDataUpdate,
 		int iC,

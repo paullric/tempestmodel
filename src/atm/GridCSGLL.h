@@ -18,107 +18,6 @@
 #define _GRIDCSGLL_H_
 
 #include "Grid.h"
-#include "GridPatch.h"
-
-///////////////////////////////////////////////////////////////////////////////
-
-class GridCSGLL;
-
-///////////////////////////////////////////////////////////////////////////////
-
-///	<summary>
-///		A grid patch on the CubedSphere grid with degrees of freedom at
-///		Gauss-Lobatto-Legendre quadrature nodes.
-///	</summary>
-class GridPatchCSGLL : public GridPatch {
-
-public:
-	///	<summary>
-	///		Constructor.
-	///	</summary>
-	GridPatchCSGLL(
-		GridCSGLL & grid,
-		int ixPatch,
-		const PatchBox & box,
-		int nOrder,
-		int nVerticalOrder = 1
-	);
-
-public:
-	///	<summary>
-	///		Initialize the patch data.
-	///	</summary>
-	virtual void InitializeDataLocal();
-
-private:
-	///	<summary>
-	///		Initialize geometric source term coefficients and topographical
-	///		data from a TestCase.
-	///	</summary>
-	void EvaluateGeometricTerms(
-		const TestCase & test
-	);
-
-public:
-	///	<summary>
-	///		Initialize this grid from a TestCase.
-	///	</summary>
-	void EvaluateTestCase(
-		const TestCase & test,
-		double dTime = 0.0,
-		int iDataInstance = 0
-	);
-
-public:
-	///	<summary>
-	///		Compute vorticity on the grid.
-	///	</summary>
-	virtual void ComputeVorticity(
-		int iDataIndex
-	);
-
-public:
-	///	<summary>
-	///		Interpolate data vertically from Nodes to REdges.
-	///	</summary>
-	virtual void InterpolateNodeToREdge(
-		int iVar,
-		int iDataIndex
-	);
-
-	///	<summary>
-	///		Interpolate data vertically from REdges to Nodes.
-	///	</summary>
-	virtual void InterpolateREdgeToNode(
-		int iVar,
-		int iDataIndex
-	);
-
-public:
-	///	<summary>
-	///		Linearly interpolate data to the specified point.
-	///	</summary>
-	virtual void InterpolateData(
-		const DataVector<double> & dAlpha,
-		const DataVector<double> & dBeta,
-		const DataVector<int> & iPanel,
-		DataType eDataType,
-		DataMatrix3D<double> & dInterpData,
-		bool fIncludeReferenceState = true,
-		bool fConvertToPrimitive = true
-	);
-
-private:
-	///	<summary>
-	///		Order of accuracy of this patch.
-	///	</summary>
-	int m_nHorizontalOrder;
-
-	///	<summary>
-	///		Vertical order of accuracy of this patch.
-	///	</summary>
-	int m_nVerticalOrder;
-};
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -194,7 +93,7 @@ public:
 	///	<summary>
 	///		Get the order of accuracy of the method.
 	///	</summary>
-	int GetOrder() const {
+	int GetHorizontalOrder() const {
 		return m_nHorizontalOrder;
 	}
 
@@ -203,6 +102,14 @@ public:
 	///	</summary>
 	int GetVerticalOrder() const {
 		return m_nVerticalOrder;
+	}
+
+	///	<summary>
+	///		Get the derivatives of the basis functions at nodal points on the
+	///		horizontal reference element.
+	///	</summary>
+	const DataMatrix<double> & GetDxBasis1D() const {
+		return m_dDxBasis1D;
 	}
 
 	///	<summary>
@@ -229,6 +136,12 @@ protected:
 	///		Order of accuracy in the vertical.
 	///	</summary>
 	int m_nVerticalOrder;
+
+	///	<summary>
+	///		Derivatives of the basis functions at nodal points on the
+	///		horizontal reference element.
+	///	</summary>
+	DataMatrix<double> m_dDxBasis1D;
 
 	///	<summary>
 	///		Interpolation coefficients from levels to interfaces.

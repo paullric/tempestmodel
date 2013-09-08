@@ -20,6 +20,7 @@
 #include "DataMatrix4D.h"
 #include "DataType.h"
 #include "DataLocation.h"
+#include "GridData3D.h"
 
 #include <vector>
 
@@ -132,6 +133,23 @@ public:
 	///	</summary>
 	inline double*** operator[](int n) const {
 		return m_data[n];
+	}
+
+	///	<summary>
+	///		GridData3D accessor.
+	///	</summary>
+	inline void GetAsGridData3D(
+		int n,
+		GridData3D & data
+	) {
+		data.Attach(
+			m_eDataType,
+			m_eDataLocation,
+			GetRElements(),
+			GetAElements(),
+			GetBElements(),
+			m_nHaloElements,
+			m_data[n]);
 	}
 
 	///	<summary>

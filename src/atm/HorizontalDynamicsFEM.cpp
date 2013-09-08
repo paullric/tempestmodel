@@ -62,6 +62,7 @@ HorizontalDynamicsFEM::HorizontalDynamicsFEM(
 
 	// Derivatives of the 1D basis functions at each point on the reference
 	// element [0, 1]
+#pragma message "Pull this information from the Grid"
 	m_dDxBasis1D.Initialize(m_nHorizontalOrder, m_nHorizontalOrder);
 	m_dStiffness1D.Initialize(m_nHorizontalOrder, m_nHorizontalOrder);
 
@@ -904,7 +905,7 @@ void HorizontalDynamicsFEM::StepExplicit(
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void HorizontalDynamicsFEM::ApplyHyperdiffusion(
+void HorizontalDynamicsFEM::ApplyScalarHyperdiffusion(
 	int iDataInitial,
 	int iDataUpdate,
 	int iC,
@@ -1102,8 +1103,8 @@ void HorizontalDynamicsFEM::StepAfterSubCycle(
 	}
 
 	// Apply the fourth-order hyperdiffusion operator
-	ApplyHyperdiffusion(iDataInitial, 1, UIx, dDeltaT, false);
-	ApplyHyperdiffusion(iDataInitial, 1, VIx, dDeltaT, false);
+	ApplyScalarHyperdiffusion(iDataInitial, 1, UIx, dDeltaT, false);
+	ApplyScalarHyperdiffusion(iDataInitial, 1, VIx, dDeltaT, false);
 
 	// Apply Direct Stiffness Summation (DSS) procedure
 	pGridCSGLL->ApplyDSS(iDataUpdate);
@@ -1111,8 +1112,8 @@ void HorizontalDynamicsFEM::StepAfterSubCycle(
 	pGridCSGLL->ApplyDSS(1);
 
 	// Apply the fourth-order hyperdiffusion operator
-	ApplyHyperdiffusion(1, iDataUpdate, UIx, dDeltaT, true);
-	ApplyHyperdiffusion(1, iDataUpdate, VIx, dDeltaT, true);
+	ApplyScalarHyperdiffusion(1, iDataUpdate, UIx, dDeltaT, true);
+	ApplyScalarHyperdiffusion(1, iDataUpdate, VIx, dDeltaT, true);
 
 	// Apply Direct Stiffness Summation (DSS) procedure
 	pGridCSGLL->ApplyDSS(iDataUpdate);

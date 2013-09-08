@@ -41,6 +41,7 @@ class DataMatrix3D {
 		///		Constructor.
 		///	</summary>
 		DataMatrix3D() :
+			m_fAttached(false),
 			m_data(NULL)
 		{
 			m_sSize[0] = 0;
@@ -56,6 +57,7 @@ class DataMatrix3D {
 			unsigned int sColumns,
 			unsigned int sSubColumns
 		) :
+			m_fAttached(false),
 			m_data(NULL)
 		{
 			m_sSize[0] = 0;
@@ -68,17 +70,44 @@ class DataMatrix3D {
 		///	<summary>
 		///		Copy constructor.
 		///	</summary>
-		DataMatrix3D(const DataMatrix3D<DataType> & dm)
-			: m_data(NULL)
+		DataMatrix3D(
+			const DataMatrix3D<DataType> & dm,
+			bool fAttached = false
+		) :
+			m_fAttached(fAttached),
+			m_data(NULL)
 		{
-			Assign(dm);
+			if (fAttached) {
+				m_sSize[0] = dm.m_sSize[0];
+				m_sSize[1] = dm.m_sSize[1];
+				m_sSize[2] = dm.m_sSize[2];
+				m_data = dm.m_data;
+			} else {
+				Assign(dm);
+			}
+		}
+
+		///	<summary>
+		///		Attach constructor.
+		///	</summary>
+		DataMatrix3D(
+			int sRows,
+			int sColumns,
+			int sSubColumns,
+			double *** data
+		) {
+			m_fAttached = true;
+			m_sSize[0] = sRows;
+			m_sSize[1] = sColumns;
+			m_sSize[2] = sSubColumns;
+			m_data = data;
 		}
 
 		///	<summary>
 		///		Destructor.
 		///	</summary>
 		virtual ~DataMatrix3D() {
-			if (m_data != NULL) {
+			if (!m_fAttached && (m_data != NULL)) {
 				free(reinterpret_cast<void*>(m_data));
 			}
 		}
@@ -100,14 +129,15 @@ class DataMatrix3D {
 		///		Deallocate data for this object.
 		///	</summary>
 		void Deinitialize() {
-			if (m_data != NULL) {
+			if (!m_fAttached && (m_data != NULL)) {
 				free(reinterpret_cast<void*>(m_data));
 			}
 
-			m_data = NULL;
+			m_fAttached = false;
 			m_sSize[0] = 0;
 			m_sSize[1] = 0;
 			m_sSize[2] = 0;
+			m_data = NULL;
 		}
 
 		///	<summary>
@@ -194,6 +224,24 @@ class DataMatrix3D {
 			}
 		}
 
+		///	<summary>
+		///		Attach this DataMatrix3D to an existing array.
+		///	</summary>
+		void Attach(
+			int sRows,
+			int sColumns,
+			int sSubColumns,
+			double *** data
+		) {
+			Deinitialize();
+
+			m_fAttached = true;
+			m_sSize[0] = sRows;
+			m_sSize[1] = sColumns;
+			m_sSize[2] = sSubColumns;
+			m_data = data;
+		}
+
 	public:
 		///	<summary>
 		///		Assignment operator.
@@ -206,8 +254,20 @@ class DataMatrix3D {
 				return;
 			}
 
+			// If hooked only accept if sizes are correct
+			if (m_fAttached) {
+				if ((m_sSize[0] != dm.m_sSize[0]) ||
+					(m_sSize[1] != dm.m_sSize[1]) ||
+					(m_sSize[2] != dm.m_sSize[2])
+				) {
+					_EXCEPTIONT("Attached DataMatrix3D can only be assigned "
+						"from a matrix of equal size.");
+				}
+
 			// Allocate memory
-			Initialize(dm.m_sSize[0], dm.m_sSize[1], dm.m_sSize[2]);
+			} else {
+				Initialize(dm.m_sSize[0], dm.m_sSize[1], dm.m_sSize[2]);
+			}
 
 			// Copy data
 			unsigned int sRowPtrFootprint = m_sSize[0] * sizeof(DataType **);
@@ -316,6 +376,12 @@ class DataMatrix3D {
 		}
 
 	private:
+		///	<summary>
+		///		Flag indicating that this DataMatrix3D is attached to an
+		///		existing array.
+		///	</summary>
+		bool m_fAttached;
+
 		///	<summary>
 		///		The number of elements in each dimension of this matrix.
 		///	</summary>

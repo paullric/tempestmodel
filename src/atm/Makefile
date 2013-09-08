@@ -32,6 +32,7 @@ FILES= CubedSphereTrans.cpp \
        GridPatch.cpp \
        GridLonLat.cpp \
        GridCSGLL.cpp \
+       GridPatchCSGLL.cpp \
        Direction.cpp \
        GridData3D.cpp \
        GridData4D.cpp \

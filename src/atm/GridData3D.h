@@ -25,11 +25,16 @@
 
 ///////////////////////////////////////////////////////////////////////////////
 
+class GridData4D;
+
+///////////////////////////////////////////////////////////////////////////////
+
 ///	<summary>
 ///		3D data array storing variables in space.  This class
 ///		implements important arithmatic operations on the data.
 ///	</summary>
 class GridData3D {
+	friend class GridData4D;
 
 public:
 	///	<summary>
@@ -79,6 +84,21 @@ public:
 		m_eDataLocation = DataLocation_Default;
 		m_data.Deinitialize();
 	}
+
+private:
+	///	<summary>
+	///		Attach this GridData3D to an existing array.  This function is
+	///		typically called from GridData4D.
+	///	</summary>
+	void Attach(
+		DataType eDataType,
+		DataLocation eDataLocation,
+		int nRElements,
+		int nAElements,
+		int nBElements,
+		int nHaloElements,
+		double *** data
+	);
 
 public:
 	///	<summary>
@@ -131,6 +151,13 @@ public:
 	///	</summary>
 	inline double** operator[](int n) const {
 		return m_data[n];
+	}
+
+	///	<summary>
+	///		Conversion to nested array.
+	///	</summary>
+	inline operator double***() {
+		return (double ***)(m_data);
 	}
 
 	///	<summary>
@@ -208,14 +235,14 @@ protected:
 	bool m_fInitialized;
 
 	///	<summary>
-	///		Location of data.
-	///	</summary>
-	DataLocation m_eDataLocation;
-
-	///	<summary>
 	///		The type of data stored in this data object.
 	///	</summary>
 	DataType m_eDataType;
+
+	///	<summary>
+	///		Location of data.
+	///	</summary>
+	DataLocation m_eDataLocation;
 
 	///	<summary>
 	///		Number of halo elements in this data.

@@ -55,6 +55,27 @@ void GridData3D::Initialize(
 
 ///////////////////////////////////////////////////////////////////////////////
 
+void GridData3D::Attach(
+	DataType eDataType,
+	DataLocation eDataLocation,
+	int nRElements,
+	int nAElements,
+	int nBElements,
+	int nHaloElements,
+	double *** data
+) {
+	// Deinitialize existing data
+	Deinitialize();
+
+	m_fInitialized = true;
+	m_eDataLocation = eDataLocation;
+	m_eDataType = eDataType;
+	m_nHaloElements = nHaloElements;
+	m_data.Attach(nRElements, nAElements, nBElements, data);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
 void GridData3D::Scale(
 	double dFactor
 ) {
