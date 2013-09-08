@@ -443,7 +443,7 @@ void GridCSGLL::ApplyDSS(
 				pDataUpdate =
 					pPatch->GetDataTracers(iDataUpdate)[c];
 			} else if (eDataType == DataType_Vorticity) {
-				pDataUpdate = pPatch->GetDataVorticity()[0];
+				pDataUpdate = pPatch->GetDataVorticity();
 			}
 
 			for (int k = 0; k < GetRElements(); k++) {

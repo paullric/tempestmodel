@@ -141,7 +141,7 @@ public:
 	inline void GetAsGridData3D(
 		int n,
 		GridData3D & data
-	) {
+	) const {
 		data.Attach(
 			m_eDataType,
 			m_eDataLocation,

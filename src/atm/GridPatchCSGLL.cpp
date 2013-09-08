@@ -758,24 +758,88 @@ void GridPatchCSGLL::EvaluateTestCase(
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void GridPatchCSGLL::ComputeVorticity(
-	const GridData3D & dataField,
-	GridData3D & dataVorticity
+void GridPatchCSGLL::ComputeCurlR(
+	const GridData3D & dataUa,
+	const GridData3D & dataUb,
+	GridData3D & dataCurlUr
 ) const {
 	// Parent grid
 	const GridCSGLL & gridCSGLL = dynamic_cast<const GridCSGLL &>(m_grid);
 
-	// Derivatives of the field
-	DataMatrix<double> dDaField;
-	DataMatrix<double> dDbField;
-
-	dDaField.Initialize(m_nHorizontalOrder, m_nHorizontalOrder);
-	dDbField.Initialize(m_nHorizontalOrder, m_nHorizontalOrder);
-
 	// Compute derivatives of the field
 	const DataMatrix<double> & dDxBasis1D = gridCSGLL.GetDxBasis1D();
 
-	// 
+	// Element spacing
+	double dElementDeltaA =
+		  m_box.GetAEdge(m_box.GetHaloElements() + m_nHorizontalOrder)
+		- m_box.GetAEdge(m_box.GetHaloElements());
+
+	// Number of finite elements in each direction
+	int nAFiniteElements = m_box.GetAInteriorWidth() / m_nHorizontalOrder;
+	int nBFiniteElements = m_box.GetBInteriorWidth() / m_nHorizontalOrder;
+
+	// Loop over all elements in the box
+	for (int k = 0; k < gridCSGLL.GetRElements(); k++) {
+	for (int a = 0; a < nAFiniteElements; a++) {
+	for (int b = 0; b < nBFiniteElements; b++) {
+
+		// Index of lower-left corner node
+		int iA = a * m_nHorizontalOrder + m_box.GetHaloElements();
+		int iB = b * m_nHorizontalOrder + m_box.GetHaloElements();
+
+		for (int i = 0; i < m_nHorizontalOrder; i++) {
+		for (int j = 0; j < m_nHorizontalOrder; j++) {
+
+			// Pointwise field values
+			double dUa = dataUa[k][iA+i][iB+j];
+			double dUb = dataUb[k][iA+i][iB+j];
+
+			// Compute derivatives at each node
+			double dDaUa = 0.0;
+			double dDaUb = 0.0;
+			double dDbUa = 0.0;
+			double dDbUb = 0.0;
+
+			for (int s = 0; s < m_nHorizontalOrder; s++) {
+				dDaUa += dataUa[k][iA+s][iB+j] * dDxBasis1D[s][i];
+				dDaUb += dataUb[k][iA+s][iB+j] * dDxBasis1D[s][i];
+				dDbUa += dataUa[k][iA+i][iB+s] * dDxBasis1D[s][j];
+				dDbUb += dataUb[k][iA+i][iB+s] * dDxBasis1D[s][j];
+			}
+
+			dDaUa /= dElementDeltaA;
+			dDaUb /= dElementDeltaA;
+			dDbUa /= dElementDeltaA;
+			dDbUb /= dElementDeltaA;
+
+			// Compute covariant derivatives at node
+			double dCovDaUa = dDaUa
+				+ m_dataChristoffelA[k][iA+i][iB+j][0] * dUa
+				+ m_dataChristoffelA[k][iA+i][iB+j][1] * 0.5 * dUb;
+
+			double dCovDaUb = dDaUb
+				+ m_dataChristoffelB[k][iA+i][iB+j][0] * dUa
+				+ m_dataChristoffelB[k][iA+i][iB+j][1] * 0.5 * dUb;
+
+			double dCovDbUa = dDbUa
+				+ m_dataChristoffelA[k][iA+i][iB+j][1] * 0.5 * dUa
+				+ m_dataChristoffelA[k][iA+i][iB+j][2] * dUb;
+
+			double dCovDbUb = dDbUb
+				+ m_dataChristoffelB[k][iA+i][iB+j][1] * 0.5 * dUa
+				+ m_dataChristoffelB[k][iA+i][iB+j][2] * dUb;
+
+			// Compute curl at node
+			dataCurlUr[k][iA+i][iB+j] = m_dataJacobian[k][iA+i][iB+j] * (
+				+ m_dataContraMetricA[k][iA+i][iB+j][0] * dCovDaUb
+				+ m_dataContraMetricA[k][iA+i][iB+j][1] * dCovDbUb
+				- m_dataContraMetricB[k][iA+i][iB+j][0] * dCovDaUa
+				- m_dataContraMetricB[k][iA+i][iB+j][1] * dCovDbUa);
+		}
+		}
+	}
+	}
+	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -794,9 +858,20 @@ void GridPatchCSGLL::ComputeVorticity(
 			"Insufficient components for vorticity calculation");
 	}
 
-	// Vorticity data
-	GridData4D & dataVorticity = GetDataVorticity();
+	// Get the alpha and beta components of vorticity
+	GridData3D dataUa;
+	GridData3D dataUb;
 
+	dataState.GetAsGridData3D(0, dataUa);
+	dataState.GetAsGridData3D(1, dataUb);
+
+	// Vorticity data
+	GridData3D & dataVorticity = GetDataVorticity();
+
+	// Compute the radial component of the curl of the velocity field
+	ComputeCurlR(dataUa, dataUb, dataVorticity);
+
+/*
 	// Lagrangian differentiation coefficients element [0,1]
 	DataVector<double> dG;
 	DataVector<double> dW;
@@ -907,7 +982,7 @@ void GridPatchCSGLL::ComputeVorticity(
 			double dC = 1.0 / sqrt(1.0 + dX * dX);
 			double dD = 1.0 / sqrt(1.0 + dY * dY);
 
-			dataVorticity[0][k][iA][iB] = dDelta / phys.GetEarthRadius() * (
+			dataVorticity[k][iA][iB] = dDelta / phys.GetEarthRadius() * (
 				dX * dY * dC * dD * (dD * dDbUb - dC * dDaUa)
 				- dD * dDbUa + dC * dDaUb);
 		}
@@ -915,6 +990,7 @@ void GridPatchCSGLL::ComputeVorticity(
 	}
 	}
 	}
+*/
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1111,24 +1187,31 @@ void GridPatchCSGLL::InterpolateData(
 			dBInterpCoeffs,
 			dBeta[i]);
 
-		// Interpolate State data or Tracers data
-		if ((eDataType == DataType_State) ||
-			(eDataType == DataType_Tracers) ||
-			(eDataType == DataType_Vorticity)
-		) {
+		// Perform interpolation on all variables
+		int nComponents;
+		if (eDataType == DataType_State) {
+			nComponents = m_datavecStateNode[0].GetComponents();
+		} else if (eDataType == DataType_Tracers) {
+			nComponents = m_datavecTracers[0].GetComponents();
+		} else if (eDataType == DataType_Vorticity) {
+			nComponents = 1;
+		} else {
+			_EXCEPTIONT("Invalid DataType");
+		}
 
-			// Perform interpolation on all variables and levels
-			const GridData4D * pData;
+		for (int c = 0; c < nComponents; c++) {
+
+			const double *** pData;
 			if (eDataType == DataType_State) {
-				pData = &(m_datavecStateNode[0]);
+				pData = (const double ***)(m_datavecStateNode[0][c]);
 			} else if (eDataType == DataType_Tracers) {
-				pData = &(m_datavecTracers[0]);
-			} else {
-				pData = &(m_dataVorticity);
+				pData = (const double ***)(m_datavecTracers[0][c]);
+			} else if (eDataType == DataType_Vorticity) {
+				pData = (const double ***)(double ***)(m_dataVorticity);
 			}
 
-			for (int c = 0; c < pData->GetComponents(); c++) {
-			for (int k = 0; k < pData->GetRElements(); k++) {
+			// Perform interpolation on all levels
+			for (int k = 0; k < m_grid.GetRElements(); k++) {
 
 				dInterpData[c][k][i] = 0.0;
 
@@ -1137,7 +1220,7 @@ void GridPatchCSGLL::InterpolateData(
 					dInterpData[c][k][i] +=
 						  dAInterpCoeffs[m]
 						* dBInterpCoeffs[n]
-						* (*pData)[c][k][iA+m][iB+n];
+						* pData[k][iA+m][iB+n];
 				}
 				}
 
@@ -1155,29 +1238,25 @@ void GridPatchCSGLL::InterpolateData(
 					}
 				}
 			}
+		}
+
+		// Convert to primitive variables
+		if ((eDataType == DataType_State) && (fConvertToPrimitive)) {
+			for (int k = 0; k < m_grid.GetRElements(); k++) {
+				double dUalpha = phys.GetEarthRadius()
+					* dInterpData[0][k][i];
+				double dUbeta = phys.GetEarthRadius()
+					* dInterpData[1][k][i];
+
+				CubedSphereTrans::VecTransRLLFromABP(
+					tan(dAlpha[i]),
+					tan(dBeta[i]),
+					iPanel[i],
+					dUalpha,
+					dUbeta,
+					dInterpData[0][k][i],
+					dInterpData[1][k][i]);
 			}
-
-			// Convert to primitive variables
-			if ((eDataType == DataType_State) && (fConvertToPrimitive)) {
-				for (int k = 0; k < pData->GetRElements(); k++) {
-					double dUalpha = phys.GetEarthRadius()
-						* dInterpData[0][k][i];
-					double dUbeta = phys.GetEarthRadius()
-						* dInterpData[1][k][i];
-
-					CubedSphereTrans::VecTransRLLFromABP(
-						tan(dAlpha[i]),
-						tan(dBeta[i]),
-						iPanel[i],
-						dUalpha,
-						dUbeta,
-						dInterpData[0][k][i],
-						dInterpData[1][k][i]);
-				}
-			}
-
-		} else {
-			_EXCEPTIONT("Invalid DataType / Not implemented.");
 		}
 	}
 }

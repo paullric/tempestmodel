@@ -112,6 +112,13 @@ public:
 	///		Pack data into the send buffer.
 	///	</summary>
 	virtual void Pack(
+		const GridData3D & data
+	) = 0;
+
+	///	<summary>
+	///		Pack data into the send buffer.
+	///	</summary>
+	virtual void Pack(
 		const GridData4D & data
 	) = 0;
 
@@ -119,6 +126,13 @@ public:
 	///		Send data to other processors.
 	///	</summary>
 	virtual void Send() = 0;
+
+	///	<summary>
+	///		Receive data from other processors.
+	///	</summary>
+	virtual void Unpack(
+		GridData3D & data
+	) = 0;
 
 	///	<summary>
 	///		Receive data from other processors.
@@ -225,6 +239,13 @@ public:
 	///		Pack data into the send buffer.
 	///	</summary>
 	virtual void Pack(
+		const GridData3D & data
+	);
+
+	///	<summary>
+	///		Pack data into the send buffer.
+	///	</summary>
+	virtual void Pack(
 		const GridData4D & data
 	);
 
@@ -232,6 +253,13 @@ public:
 	///		Send data to other processors.
 	///	</summary>
 	virtual void Send();
+
+	///	<summary>
+	///		Unpack data from the receive buffer.
+	///	</summary>
+	void Unpack(
+		GridData3D & data
+	);
 
 	///	<summary>
 	///		Unpack data from the receive buffer.
@@ -279,6 +307,14 @@ public:
 	///		Pack data into the send buffer.
 	///	</summary>
 	virtual void Pack(
+		const GridData3D & data
+	) {
+	}
+
+	///	<summary>
+	///		Pack data into the send buffer.
+	///	</summary>
+	virtual void Pack(
 		const GridData4D & data
 	) {
 	}
@@ -287,6 +323,14 @@ public:
 	///		Send data to other processors.
 	///	</summary>
 	virtual void Send() {
+	}
+
+	///	<summary>
+	///		Unpack data from the receive buffer.
+	///	</summary>
+	void Unpack(
+		GridData3D & data
+	) {
 	}
 
 	///	<summary>
@@ -351,6 +395,13 @@ public:
 	///		Prepare for the exchange of data between processors.
 	///	</summary>
 	void PrepareExchange();
+
+	///	<summary>
+	///		Pack data into the send buffer in preparation for a send.
+	///	</summary>
+	void Pack(
+		const GridData3D & data
+	);
 
 	///	<summary>
 	///		Pack data into the send buffer in preparation for a send.

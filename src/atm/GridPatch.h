@@ -636,14 +636,14 @@ public:
 	///	<summary>
 	///		Get the vorticity data.
 	///	</summary>
-	GridData4D & GetDataVorticity() {
+	GridData3D & GetDataVorticity() {
 		return m_dataVorticity;
 	}
 
 	///	<summary>
 	///		Get the vorticity data.
 	///	</summary>
-	const GridData4D & GetDataVorticity() const {
+	const GridData3D & GetDataVorticity() const {
 		return m_dataVorticity;
 	}
 
@@ -791,7 +791,7 @@ protected:
 	///	<summary>
 	///		Computed vorticity.
 	///	</summary>
-	GridData4D m_dataVorticity;
+	GridData3D m_dataVorticity;
 };
 
 ///////////////////////////////////////////////////////////////////////////////

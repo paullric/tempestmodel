@@ -90,7 +90,7 @@ void ExteriorNeighbor::PrepareExchange() {
 ///////////////////////////////////////////////////////////////////////////////
 
 void ExteriorNeighbor::Pack(
-	const GridData4D & data
+	const GridData3D & data
 ) {
 	// Check matrix bounds
 	if (((m_dir == Direction_Right) || (m_dir == Direction_Left)) &&
@@ -119,18 +119,6 @@ void ExteriorNeighbor::Pack(
 	// Maximum index for radial elements
 	int nVarRElements;
 
-	// List of variable indices to send
-	// - exclude variables which are not-collocated with this data structure
-	std::vector<int> sendvars;
-	for (int c = 0; c < data.GetComponents(); c++) {
-		if (data.GetDataType() == DataType_State) {
-			if (grid.GetVarLocation(c) != data.GetDataLocation()) {
-				continue;
-			}
-		}
-		sendvars.push_back(c);
-	}
-
 	// Pack data to send right
 	if (m_dir == Direction_Right) {
 		ixBoundaryBegin = data.GetAElements() - 2 * data.GetHaloElements();
@@ -138,8 +126,7 @@ void ExteriorNeighbor::Pack(
 
 		// Check that sufficient data remains in send buffer
 		int nTotalValues =
-			  (int)(sendvars.size())
-			* data.GetRElements()
+			  data.GetRElements()
 			* (ixBoundaryEnd - ixBoundaryBegin)
 			* (m_ixNodeEnd - m_ixNodeBegin);
 
@@ -149,23 +136,19 @@ void ExteriorNeighbor::Pack(
 
 		// Pack the SendBuffer
 		if (m_fReverseDirection) {
-			for (int c = 0; c < ((int)sendvars.size()); c++) {
 			for (int k = 0; k < data.GetRElements(); k++) {
 			for (int i = ixBoundaryBegin; i < ixBoundaryEnd; i++) {
 			for (int j = m_ixNodeEnd-1; j >= m_ixNodeBegin; j--) {
-				m_vecSendBuffer[m_ixSendBuffer++] = data[sendvars[c]][k][i][j];
-			}
+				m_vecSendBuffer[m_ixSendBuffer++] = data[k][i][j];
 			}
 			}
 			}
 
 		} else {
-			for (int c = 0; c < ((int)sendvars.size()); c++) {
 			for (int k = 0; k < data.GetRElements(); k++) {
 			for (int i = ixBoundaryBegin; i < ixBoundaryEnd; i++) {
 			for (int j = m_ixNodeBegin; j < m_ixNodeEnd; j++) {
-				m_vecSendBuffer[m_ixSendBuffer++] = data[sendvars[c]][k][i][j];	
-			}
+				m_vecSendBuffer[m_ixSendBuffer++] = data[k][i][j];	
 			}
 			}
 			}
@@ -178,8 +161,7 @@ void ExteriorNeighbor::Pack(
 
 		// Check that sufficient data remains in send buffer
 		int nTotalValues =
-			  (int)(sendvars.size())
-			* data.GetRElements()
+			  data.GetRElements()
 			* (ixBoundaryEnd - ixBoundaryBegin)
 			* (m_ixNodeEnd - m_ixNodeBegin);
 
@@ -189,23 +171,19 @@ void ExteriorNeighbor::Pack(
 
 		// Pack the SendBuffer
 		if (m_fReverseDirection) {
-			for (int c = 0; c < ((int)sendvars.size()); c++) {
 			for (int k = 0; k < data.GetRElements(); k++) {
 			for (int j = ixBoundaryBegin; j < ixBoundaryEnd; j++) {
 			for (int i = m_ixNodeEnd-1; i >= m_ixNodeBegin; i--) {
-				m_vecSendBuffer[m_ixSendBuffer++] = data[sendvars[c]][k][i][j];
-			}
+				m_vecSendBuffer[m_ixSendBuffer++] = data[k][i][j];
 			}
 			}
 			}
 
 		} else {
-			for (int c = 0; c < ((int)sendvars.size()); c++) {
 			for (int k = 0; k < data.GetRElements(); k++) {
 			for (int j = ixBoundaryBegin; j < ixBoundaryEnd; j++) {
 			for (int i = m_ixNodeBegin; i < m_ixNodeEnd; i++) {
-				m_vecSendBuffer[m_ixSendBuffer++] = data[sendvars[c]][k][i][j];
-			}
+				m_vecSendBuffer[m_ixSendBuffer++] = data[k][i][j];
 			}
 			}
 			}
@@ -218,8 +196,7 @@ void ExteriorNeighbor::Pack(
 
 		// Check that sufficient data remains in send buffer
 		int nTotalValues =
-			  (int)(sendvars.size())
-			* data.GetRElements()
+			  data.GetRElements()
 			* (ixBoundaryEnd - ixBoundaryBegin)
 			* (m_ixNodeEnd - m_ixNodeBegin);
 
@@ -229,23 +206,19 @@ void ExteriorNeighbor::Pack(
 
 		// Pack the SendBuffer
 		if (m_fReverseDirection) {
-			for (int c = 0; c < ((int)sendvars.size()); c++) {
 			for (int k = 0; k < data.GetRElements(); k++) {
 			for (int i = ixBoundaryEnd-1; i >= ixBoundaryBegin; i--) {
 			for (int j = m_ixNodeEnd-1; j >= m_ixNodeBegin; j--) {
-				m_vecSendBuffer[m_ixSendBuffer++] = data[sendvars[c]][k][i][j];
-			}
+				m_vecSendBuffer[m_ixSendBuffer++] = data[k][i][j];
 			}
 			}
 			}
 
 		} else {
-			for (int c = 0; c < ((int)sendvars.size()); c++) {
 			for (int k = 0; k < data.GetRElements(); k++) {
 			for (int i = ixBoundaryEnd-1; i >= ixBoundaryBegin; i--) {
 			for (int j = m_ixNodeBegin; j < m_ixNodeEnd; j++) {
-				m_vecSendBuffer[m_ixSendBuffer++] = data[sendvars[c]][k][i][j];
-			}
+				m_vecSendBuffer[m_ixSendBuffer++] = data[k][i][j];
 			}
 			}
 			}
@@ -258,8 +231,7 @@ void ExteriorNeighbor::Pack(
 
 		// Check that sufficient data remains in send buffer
 		int nTotalValues =
-			  (int)(sendvars.size())
-			* data.GetRElements()
+			  data.GetRElements()
 			* (ixBoundaryEnd - ixBoundaryBegin)
 			* (m_ixNodeEnd - m_ixNodeBegin);
 
@@ -269,23 +241,19 @@ void ExteriorNeighbor::Pack(
 
 		// Pack the SendBuffer
 		if (m_fReverseDirection) {
-			for (int c = 0; c < ((int)sendvars.size()); c++) {
 			for (int k = 0; k < data.GetRElements(); k++) {
 			for (int j = ixBoundaryEnd-1; j >= ixBoundaryBegin; j--) {
 			for (int i = m_ixNodeEnd-1; i >= m_ixNodeBegin; i--) {
-				m_vecSendBuffer[m_ixSendBuffer++] = data[sendvars[c]][k][i][j];
-			}
+				m_vecSendBuffer[m_ixSendBuffer++] = data[k][i][j];
 			}
 			}
 			}
 
 		} else {
-			for (int c = 0; c < ((int)sendvars.size()); c++) {
 			for (int k = 0; k < data.GetRElements(); k++) {
 			for (int j = ixBoundaryEnd-1; j >= ixBoundaryBegin; j--) {
 			for (int i = m_ixNodeBegin; i < m_ixNodeEnd; i++) {
-				m_vecSendBuffer[m_ixSendBuffer++] = data[sendvars[c]][k][i][j];
-			}
+				m_vecSendBuffer[m_ixSendBuffer++] = data[k][i][j];
 			}
 			}
 			}
@@ -300,8 +268,7 @@ void ExteriorNeighbor::Pack(
  
 		// Check that sufficient data remains in send buffer
 		int nTotalValues =
-			  (int)(sendvars.size())
-			* data.GetRElements()
+			  data.GetRElements()
 			* (ixABoundaryEnd - ixABoundaryBegin)
 			* (ixBBoundaryEnd - ixBBoundaryBegin);
 
@@ -311,23 +278,19 @@ void ExteriorNeighbor::Pack(
 
 		// Pack the SendBuffer
 		if (m_fReverseDirection) {
-			for (int c = 0; c < ((int)sendvars.size()); c++) {
 			for (int k = 0; k < data.GetRElements(); k++) {
 			for (int i = ixABoundaryBegin; i < ixABoundaryEnd; i++) {
 			for (int j = ixBBoundaryBegin; j < ixBBoundaryEnd; j++) {
-				m_vecSendBuffer[m_ixSendBuffer++] = data[sendvars[c]][k][i][j];
-			}
+				m_vecSendBuffer[m_ixSendBuffer++] = data[k][i][j];
 			}
 			}
 			}
 
 		} else {
-			for (int c = 0; c < ((int)sendvars.size()); c++) {
 			for (int k = 0; k < data.GetRElements(); k++) {
 			for (int j = ixBBoundaryBegin; j < ixBBoundaryEnd; j++) {
 			for (int i = ixABoundaryBegin; i < ixABoundaryEnd; i++) {
-				m_vecSendBuffer[m_ixSendBuffer++] = data[sendvars[c]][k][i][j];
-			}
+				m_vecSendBuffer[m_ixSendBuffer++] = data[k][i][j];
 			}
 			}
 			}
@@ -342,8 +305,7 @@ void ExteriorNeighbor::Pack(
  
 		// Check that sufficient data remains in send buffer
 		int nTotalValues =
-			  (int)(sendvars.size())
-			* data.GetRElements()
+			  data.GetRElements()
 			* (ixABoundaryEnd - ixABoundaryBegin)
 			* (ixBBoundaryEnd - ixBBoundaryBegin);
 
@@ -353,23 +315,19 @@ void ExteriorNeighbor::Pack(
 
 		// Pack the SendBuffer
 		if (m_fReverseDirection) {
-			for (int c = 0; c < ((int)sendvars.size()); c++) {
 			for (int k = 0; k < data.GetRElements(); k++) {
 			for (int i = ixABoundaryEnd-1; i >= ixABoundaryBegin; i--) {
 			for (int j = ixBBoundaryBegin; j < ixBBoundaryEnd; j++) {
-				m_vecSendBuffer[m_ixSendBuffer++] = data[sendvars[c]][k][i][j];
-			}
+				m_vecSendBuffer[m_ixSendBuffer++] = data[k][i][j];
 			}
 			}
 			}
 
 		} else {
-			for (int c = 0; c < ((int)sendvars.size()); c++) {
 			for (int k = 0; k < data.GetRElements(); k++) {
 			for (int j = ixBBoundaryBegin; j < ixBBoundaryEnd; j++) {
 			for (int i = ixABoundaryEnd-1; i >= ixABoundaryBegin; i--) {
-				m_vecSendBuffer[m_ixSendBuffer++] = data[sendvars[c]][k][i][j];
-			}
+				m_vecSendBuffer[m_ixSendBuffer++] = data[k][i][j];
 			}
 			}
 			}
@@ -384,8 +342,7 @@ void ExteriorNeighbor::Pack(
  
 		// Check that sufficient data remains in send buffer
 		int nTotalValues =
-			  (int)(sendvars.size())
-			* data.GetRElements()
+			  data.GetRElements()
 			* (ixABoundaryEnd - ixABoundaryBegin)
 			* (ixBBoundaryEnd - ixBBoundaryBegin);
 
@@ -395,23 +352,19 @@ void ExteriorNeighbor::Pack(
 
 		// Pack the SendBuffer
 		if (m_fReverseDirection) {
-			for (int c = 0; c < ((int)sendvars.size()); c++) {
 			for (int k = 0; k < data.GetRElements(); k++) {
 			for (int i = ixABoundaryEnd-1; i >= ixABoundaryBegin; i--) {
 			for (int j = ixBBoundaryEnd-1; j >= ixBBoundaryBegin; j--) {
-				m_vecSendBuffer[m_ixSendBuffer++] = data[sendvars[c]][k][i][j];
-			}
+				m_vecSendBuffer[m_ixSendBuffer++] = data[k][i][j];
 			}
 			}
 			}
 
 		} else {
-			for (int c = 0; c < ((int)sendvars.size()); c++) {
 			for (int k = 0; k < data.GetRElements(); k++) {
 			for (int j = ixBBoundaryEnd-1; j >= ixBBoundaryBegin; j--) {
 			for (int i = ixABoundaryEnd-1; i >= ixABoundaryBegin; i--) {
-				m_vecSendBuffer[m_ixSendBuffer++] = data[sendvars[c]][k][i][j];
-			}
+				m_vecSendBuffer[m_ixSendBuffer++] = data[k][i][j];
 			}
 			}
 			}
@@ -426,8 +379,7 @@ void ExteriorNeighbor::Pack(
  
 		// Check that sufficient data remains in send buffer
 		int nTotalValues =
-			  (int)(sendvars.size())
-			* data.GetRElements()
+			  data.GetRElements()
 			* (ixABoundaryEnd - ixABoundaryBegin)
 			* (ixBBoundaryEnd - ixBBoundaryBegin);
 
@@ -437,23 +389,19 @@ void ExteriorNeighbor::Pack(
 
 		// Pack the SendBuffer
 		if (m_fReverseDirection) {
-			for (int c = 0; c < ((int)sendvars.size()); c++) {
 			for (int k = 0; k < data.GetRElements(); k++) {
 			for (int i = ixABoundaryBegin; i < ixABoundaryEnd; i++) {
 			for (int j = ixBBoundaryEnd-1; j >= ixBBoundaryBegin; j--) {
-				m_vecSendBuffer[m_ixSendBuffer++] = data[sendvars[c]][k][i][j];
-			}
+				m_vecSendBuffer[m_ixSendBuffer++] = data[k][i][j];
 			}
 			}
 			}
 
 		} else {
-			for (int c = 0; c < ((int)sendvars.size()); c++) {
 			for (int k = 0; k < data.GetRElements(); k++) {
 			for (int j = ixBBoundaryEnd-1; j >= ixBBoundaryBegin; j--) {
 			for (int i = ixABoundaryBegin; i < ixABoundaryEnd; i++) {
-				m_vecSendBuffer[m_ixSendBuffer++] = data[sendvars[c]][k][i][j];
-			}
+				m_vecSendBuffer[m_ixSendBuffer++] = data[k][i][j];
 			}
 			}
 			}
@@ -462,6 +410,38 @@ void ExteriorNeighbor::Pack(
 	// Invalid direction
 	} else {
 		_EXCEPTIONT("Invalid direction");
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void ExteriorNeighbor::Pack(
+	const GridData4D & data
+) {
+	// Model grid
+	const Grid & grid = m_pConnect->GetGridPatch().GetGrid();
+
+	// 3D Grid Data
+	GridData3D data3D;
+
+	// For state data exclude non-collacted data points
+	if (data.GetDataType() == DataType_State) {
+		// List of variable indices to send
+		// - exclude variables which are not-collocated with this data structure
+		for (int c = 0; c < data.GetComponents(); c++) {
+			if (grid.GetVarLocation(c) != data.GetDataLocation()) {
+				continue;
+			}
+			data.GetAsGridData3D(c, data3D);
+			Pack(data3D);
+		}
+
+	// Send everything
+	} else {
+		for (int c = 0; c < data.GetComponents(); c++) {
+			data.GetAsGridData3D(c, data3D);
+			Pack(data3D);
+		}
 	}
 }
 
@@ -499,7 +479,7 @@ void ExteriorNeighbor::Send() {
 ///////////////////////////////////////////////////////////////////////////////
 
 void ExteriorNeighbor::Unpack(
-	GridData4D & data
+	GridData3D & data
 ) {
 	// Check receive status
 	int fRecvWaiting;
@@ -522,23 +502,6 @@ void ExteriorNeighbor::Unpack(
 	int ixBBoundaryBegin;
 	int ixBBoundaryEnd;
 
-	// List of variable indices to receive
-	// - exclude variables which are not-collocated with this data structure
-	std::vector<int> recvvars;
-	for (int c = 0; c < data.GetComponents(); c++) {
-		if (data.GetDataType() == DataType_State) {
-			if (grid.GetVarLocation(c) != data.GetDataLocation()) {
-				continue;
-			}
-		}
-		recvvars.push_back(c);
-	}
-
-	// No variables to receive; return
-	if (recvvars.size() == 0) {
-		return;
-	}
-
 	// Unpack data from right
 	if (m_dir == Direction_Right) {
 		ixBoundaryBegin = data.GetAElements() - data.GetHaloElements();
@@ -546,8 +509,7 @@ void ExteriorNeighbor::Unpack(
 
 		// Check that sufficient data remains in send buffer
 		int nTotalValues =
-			  (int)(recvvars.size())
-			* data.GetRElements()
+			  data.GetRElements()
 			* (ixBoundaryEnd - ixBoundaryBegin)
 			* (m_ixNodeEnd - m_ixNodeBegin);
 
@@ -556,12 +518,10 @@ void ExteriorNeighbor::Unpack(
 		}
 
 		// Unpack data
-		for (int c = 0; c < (int)(recvvars.size()); c++) {
 		for (int k = 0; k < data.GetRElements(); k++) {
 		for (int i = ixBoundaryEnd-1; i >= ixBoundaryBegin; i--) {
 		for (int j = m_ixNodeBegin; j < m_ixNodeEnd; j++) {
-			data[recvvars[c]][k][i][j] = m_vecRecvBuffer[m_ixRecvBuffer++];
-		}
+			data[k][i][j] = m_vecRecvBuffer[m_ixRecvBuffer++];
 		}
 		}
 		}
@@ -573,8 +533,7 @@ void ExteriorNeighbor::Unpack(
 
 		// Check that sufficient data remains in send buffer
 		int nTotalValues =
-			  (int)(recvvars.size())
-			* data.GetRElements()
+			  data.GetRElements()
 			* (ixBoundaryEnd - ixBoundaryBegin)
 			* (m_ixNodeEnd - m_ixNodeBegin);
 
@@ -583,12 +542,10 @@ void ExteriorNeighbor::Unpack(
 		}
 
 		// Unpack data
-		for (int c = 0; c < (int)(recvvars.size()); c++) {
 		for (int k = 0; k < data.GetRElements(); k++) {
 		for (int j = ixBoundaryEnd-1; j >= ixBoundaryBegin; j--) {
 		for (int i = m_ixNodeBegin; i < m_ixNodeEnd; i++) {
-			data[recvvars[c]][k][i][j] = m_vecRecvBuffer[m_ixRecvBuffer++];
-		}
+			data[k][i][j] = m_vecRecvBuffer[m_ixRecvBuffer++];
 		}
 		}
 		}
@@ -600,8 +557,7 @@ void ExteriorNeighbor::Unpack(
 
 		// Check that sufficient data remains in send buffer
 		int nTotalValues =
-			  (int)(recvvars.size())
-			* data.GetRElements()
+			  data.GetRElements()
 			* (ixBoundaryEnd - ixBoundaryBegin)
 			* (m_ixNodeEnd - m_ixNodeBegin);
 
@@ -610,12 +566,10 @@ void ExteriorNeighbor::Unpack(
 		}
 
 		// Unpack data
-		for (int c = 0; c < (int)(recvvars.size()); c++) {
 		for (int k = 0; k < data.GetRElements(); k++) {
 		for (int i = ixBoundaryBegin; i < ixBoundaryEnd; i++) {
 		for (int j = m_ixNodeBegin; j < m_ixNodeEnd; j++) {
-			data[recvvars[c]][k][i][j] = m_vecRecvBuffer[m_ixRecvBuffer++];
-		}
+			data[k][i][j] = m_vecRecvBuffer[m_ixRecvBuffer++];
 		}
 		}
 		}
@@ -627,8 +581,7 @@ void ExteriorNeighbor::Unpack(
 
 		// Check that sufficient data remains in send buffer
 		int nTotalValues =
-			  (int)(recvvars.size())
-			* data.GetRElements()
+			  data.GetRElements()
 			* (ixBoundaryEnd - ixBoundaryBegin)
 			* (m_ixNodeEnd - m_ixNodeBegin);
 
@@ -637,12 +590,10 @@ void ExteriorNeighbor::Unpack(
 		}
 
 		// Unpack data
-		for (int c = 0; c < (int)(recvvars.size()); c++) {
 		for (int k = 0; k < data.GetRElements(); k++) {
 		for (int j = ixBoundaryBegin; j < ixBoundaryEnd; j++) {
 		for (int i = m_ixNodeBegin; i < m_ixNodeEnd; i++) {
-			data[recvvars[c]][k][i][j] = m_vecRecvBuffer[m_ixRecvBuffer++];
-		}
+			data[k][i][j] = m_vecRecvBuffer[m_ixRecvBuffer++];
 		}
 		}
 		}
@@ -656,18 +607,15 @@ void ExteriorNeighbor::Unpack(
 
 		// Check that sufficient data remains in send buffer
 		int nTotalValues =
-			  (int)(recvvars.size())
-			* data.GetRElements()
+			  data.GetRElements()
 			* (ixABoundaryEnd - ixABoundaryBegin)
 			* (ixBBoundaryEnd - ixBBoundaryBegin);
 
 		// Unpack data
-		for (int c = 0; c < (int)(recvvars.size()); c++) {
 		for (int k = 0; k < data.GetRElements(); k++) {
 		for (int j = ixBBoundaryEnd-1; j >= ixBBoundaryBegin; j--) {
 		for (int i = ixABoundaryEnd-1; i >= ixABoundaryBegin; i--) {
-			data[recvvars[c]][k][i][j] = m_vecRecvBuffer[m_ixRecvBuffer++];
-		}
+			data[k][i][j] = m_vecRecvBuffer[m_ixRecvBuffer++];
 		}
 		}
 		}
@@ -681,18 +629,15 @@ void ExteriorNeighbor::Unpack(
 
 		// Check that sufficient data remains in send buffer
 		int nTotalValues =
-			  (int)(recvvars.size())
-			* data.GetRElements()
+			  data.GetRElements()
 			* (ixABoundaryEnd - ixABoundaryBegin)
 			* (ixBBoundaryEnd - ixBBoundaryBegin);
 
 		// Unpack data
-		for (int c = 0; c < (int)(recvvars.size()); c++) {
 		for (int k = 0; k < data.GetRElements(); k++) {
 		for (int j = ixBBoundaryEnd-1; j >= ixBBoundaryBegin; j--) {
 		for (int i = ixABoundaryBegin; i < ixABoundaryEnd; i++) {
-			data[recvvars[c]][k][i][j] = m_vecRecvBuffer[m_ixRecvBuffer++];
-		}
+			data[k][i][j] = m_vecRecvBuffer[m_ixRecvBuffer++];
 		}
 		}
 		}
@@ -706,18 +651,15 @@ void ExteriorNeighbor::Unpack(
 
 		// Check that sufficient data remains in send buffer
 		int nTotalValues =
-			  (int)(recvvars.size())
-			* data.GetRElements()
+			  data.GetRElements()
 			* (ixABoundaryEnd - ixABoundaryBegin)
 			* (ixBBoundaryEnd - ixBBoundaryBegin);
 
 		// Unpack data
-		for (int c = 0; c < (int)(recvvars.size()); c++) {
 		for (int k = 0; k < data.GetRElements(); k++) {
 		for (int j = ixBBoundaryBegin; j < ixBBoundaryEnd; j++) {
 		for (int i = ixABoundaryBegin; i < ixABoundaryEnd; i++) {
-			data[recvvars[c]][k][i][j] = m_vecRecvBuffer[m_ixRecvBuffer++];
-		}
+			data[k][i][j] = m_vecRecvBuffer[m_ixRecvBuffer++];
 		}
 		}
 		}
@@ -731,18 +673,15 @@ void ExteriorNeighbor::Unpack(
 
 		// Check that sufficient data remains in send buffer
 		int nTotalValues =
-			  (int)(recvvars.size())
-			* data.GetRElements()
+			  data.GetRElements()
 			* (ixABoundaryEnd - ixABoundaryBegin)
 			* (ixBBoundaryEnd - ixBBoundaryBegin);
 
 		// Unpack data
-		for (int c = 0; c < (int)(recvvars.size()); c++) {
 		for (int k = 0; k < data.GetRElements(); k++) {
 		for (int j = ixBBoundaryBegin; j < ixBBoundaryEnd; j++) {
 		for (int i = ixABoundaryEnd-1; i >= ixABoundaryBegin; i--) {
-			data[recvvars[c]][k][i][j] = m_vecRecvBuffer[m_ixRecvBuffer++];
-		}
+			data[k][i][j] = m_vecRecvBuffer[m_ixRecvBuffer++];
 		}
 		}
 		}
@@ -750,6 +689,37 @@ void ExteriorNeighbor::Unpack(
 	// Invalid direction
 	} else {
 		_EXCEPTIONT("Invalid direction");
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void ExteriorNeighbor::Unpack(
+	GridData4D & data
+) {
+	// Model grid
+	const Grid & grid = m_pConnect->GetGridPatch().GetGrid();
+
+	// 3D data
+	GridData3D data3D;
+
+	// List of variable indices to receive
+	// - exclude variables which are not-collocated with this data structure
+	if (data.GetDataType() == DataType_State) {
+		for (int c = 0; c < data.GetComponents(); c++) {
+			if (grid.GetVarLocation(c) != data.GetDataLocation()) {
+				continue;
+			}
+			data.GetAsGridData3D(c, data3D);
+			Unpack(data3D);
+		}
+
+	// Unpack all variables
+	} else {
+		for (int c = 0; c < data.GetComponents(); c++) {
+			data.GetAsGridData3D(c, data3D);
+			Unpack(data3D);
+		}
 	}
 }
 
@@ -865,6 +835,17 @@ void Connectivity::PrepareExchange() {
 	// Prepare for asynchronous receives from each neighbor
 	for (int m = 0; m < m_vecExteriorNeighbors.size(); m++) {
 		m_vecExteriorNeighbors[m].PrepareExchange();
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void Connectivity::Pack(
+	const GridData3D & data
+) {
+	// Send data to exterior neighbors
+	for (int m = 0; m < m_vecExteriorNeighbors.size(); m++) {
+		m_vecExteriorNeighbors[m].Pack(data);
 	}
 }
 

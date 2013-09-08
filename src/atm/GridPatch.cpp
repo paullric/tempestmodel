@@ -320,7 +320,6 @@ void GridPatch::InitializeDataLocal() {
 	m_dataVorticity.Initialize(
 		DataType_Vorticity,
 		DataLocation_Node,
-		1,
 		m_grid.GetRElements(),
 		m_box.GetATotalWidth(),
 		m_box.GetBTotalWidth(),
