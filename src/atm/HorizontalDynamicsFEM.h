@@ -36,11 +36,21 @@ class HorizontalDynamicsFEM : public HorizontalDynamics {
 
 public:
 	///	<summary>
+	///		Type of HorizontalDynamics.
+	///	</summary>
+	enum Type {
+		SpectralElement,
+		DiscontinuousGalerkin
+	};
+
+public:
+	///	<summary>
 	///		Constructor.
 	///	</summary>
 	HorizontalDynamicsFEM(
 		Model & model,
 		int nHorizontalOrder,
+		Type eHorizontalDynamicsType = SpectralElement,
 		bool fUseHyperdiffusion = false
 	);
 
@@ -135,6 +145,11 @@ public:
 	);
 
 private:
+	///	<summary>
+	///		Type of dynamics to use.
+	///	</summary>
+	Type m_eHorizontalDynamicsType;
+
 	///	<summary>
 	///		Spatial order of accuracy.
 	///	</summary>

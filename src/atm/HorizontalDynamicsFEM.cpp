@@ -31,10 +31,12 @@
 HorizontalDynamicsFEM::HorizontalDynamicsFEM(
 	Model & model,
 	int nHorizontalOrder,
+	HorizontalDynamicsFEM::Type eHorizontalDynamicsType,
 	bool fUseHyperdiffusion
 ) :
 	HorizontalDynamics(model),
 	m_nHorizontalOrder(nHorizontalOrder),
+	m_eHorizontalDynamicsType(eHorizontalDynamicsType),
 	m_fUseHyperdiffusion(fUseHyperdiffusion),
 	m_dNuScalar(1.0e15),
 	m_dNuDiv(1.0e15),
@@ -81,91 +83,6 @@ HorizontalDynamicsFEM::HorizontalDynamicsFEM(
 			m_dStiffness1D[m][i] = m_dDxBasis1D[m][i] * dW[i] / dW[m];
 		}
 	}
-
-	// Generate hyperdiffusion matrix
-	GenerateHyperdiffusionMatrix();
-
-	m_dGradient.Initialize(
-		2,
-		m_nHorizontalOrder,
-		m_nHorizontalOrder);
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
-void HorizontalDynamicsFEM::GenerateHyperdiffusionMatrix() {
-/*
-	// Initialize the matrix
-	m_dHyperdiffusion.Initialize(
-		m_nHorizontalOrder * m_nHorizontalOrder,
-		m_nHorizontalOrder * m_nHorizontalOrder);
-
-	// Get quadrature points for Gauss-Lobatto quadrature
-	DataVector<double> dGX;
-	DataVector<double> dWX;
-
-	DataVector<double> dGY;
-	DataVector<double> dWY;
-
-	GaussLobattoQuadrature::GetPoints(m_nHorizontalOrder, dGX, dWX);
-	GaussLobattoQuadrature::GetPoints(m_nHorizontalOrder, dGY, dWY);
-
-	// Derivative matrix
-	// Element [i,j] stores the derivative of basis function j at point i
-	DataMatrix<double> dDxBasis;
-	DataMatrix<double> dDyBasis;
-
-	dDxBasis.Initialize(m_nHorizontalOrder, m_nHorizontalOrder);
-	dDyBasis.Initialize(m_nHorizontalOrder, m_nHorizontalOrder);
-
-	for (int i = 0; i < m_nHorizontalOrder; i++) {
-		PolynomialInterp::DiffLagrangianPolynomialCoeffs(
-			m_nHorizontalOrder, dGX, &(dDxBasis[i][0]), dGX[i]);
-		PolynomialInterp::DiffLagrangianPolynomialCoeffs(
-			m_nHorizontalOrder, dGY, &(dDyBasis[i][0]), dGY[i]);
-	}
-
-	// Loop through each element of the diffusion matrix and integrate
-	for (int n = 0; n < m_nHorizontalOrder; n++) {
-	for (int m = 0; m < m_nHorizontalOrder; m++) {
-		int nbasis = m * m_nHorizontalOrder + n;
-
-		for (int s = 0; s < m_nHorizontalOrder; s++) {
-		for (int t = 0; t < m_nHorizontalOrder; t++) {
-			int mbasis = t * m_nHorizontalOrder + s;
-
-			if (m == t) {
-				for (int p = 0; p < m_nHorizontalOrder; p++) {
-					m_dHyperdiffusion[nbasis][mbasis] +=
-						dWX[p] * dWY[m] * dDxBasis[p][n] * dDxBasis[p][s];
-				}
-			}
-			if (n == s) {
-				for (int q = 0; q < m_nHorizontalOrder; q++) {
-					m_dHyperdiffusion[nbasis][mbasis] +=
-						dWX[n] * dWY[q] * dDyBasis[q][m] * dDyBasis[q][t];
-				}
-			}
-		}
-		}
-	}
-	}
-
-	// Multiply by inverse lumped mass matrix
-	for (int n = 0; n < m_nHorizontalOrder; n++) {
-	for (int m = 0; m < m_nHorizontalOrder; m++) {
-		int nbasis = m * m_nHorizontalOrder + n;
-
-		for (int s = 0; s < m_nHorizontalOrder; s++) {
-		for (int t = 0; t < m_nHorizontalOrder; t++) {
-			int mbasis = t * m_nHorizontalOrder + s;
-
-			m_dHyperdiffusion[nbasis][mbasis] *= 1.0 / (dWX[n] * dWY[m]);
-		}
-		}
-	}
-	}
-*/
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -974,7 +891,7 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusion(
 
 			int iAElement = a * m_nHorizontalOrder + box.GetHaloElements();
 			int iBElement = b * m_nHorizontalOrder + box.GetHaloElements();
-
+/*
 			// Calculate the gradient within each element
 			m_dGradient.Zero();
 
@@ -1043,26 +960,7 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusion(
 
 				dataUpdate[iC][k][iA][iB] +=
 					dCoeff * (dDaGradient + dDbGradient) / dJacobian[k][iA][iB];
-/*
-				if ((n == 0) && (a == 0) && (b == 0)) {
-					printf("%1.10e %1.10e\n", dCoeff, (dDaGradient + dDbGradient) / dJacobian[k][iA][iB]);
-				}
-*/
 			}
-			}
-/*
-			if (dCoeff != 1.0) {
-			printf("%1.10e %1.10e\n", dElementDeltaA, dElementDeltaB);
-			for (int i = 0; i < m_nHorizontalOrder; i++) {
-			for (int j = 0; j < m_nHorizontalOrder; j++) {
-				int iA = a * m_nHorizontalOrder + i + box.GetHaloElements();
-				int iB = b * m_nHorizontalOrder + j + box.GetHaloElements();
-
-				//printf("%1.10e %1.10e\n", box.GetANode(iA), box.GetBNode(iB));
-				printf("[%1.10e, %1.10e],\n", dataInitial[iC][k][iA][iB], dataUpdate[iC][k][iA][iB]);
-			}
-			}
-			_EXCEPTION();
 			}
 */
 		}

@@ -16,6 +16,7 @@
 
 #include "CommandLine.h"
 #include "Announce.h"
+#include "STLStringHelper.h"
 
 #include "Model.h"
 #include "TimestepSchemeARK4.h"
@@ -330,6 +331,9 @@ try {
 	// Output time
 	double dOutputDeltaT;
 
+	// Numerical method
+	std::string strHorizontalDynamics;
+
 	// Use hyperdiffusion
 	bool fUseHyperviscosity;
 
@@ -346,6 +350,7 @@ try {
 		CommandLineDouble(params.m_dDeltaT, "dt", 200.0);
 		CommandLineDouble(params.m_dEndTime, "endtime", 200.0);//86400.0 * 5.0);
 		CommandLineDouble(dOutputDeltaT, "outputtime", 86400.0);
+		CommandLineStringD(strHorizontalDynamics, "method", "SE", "(SE | DG)");
 		CommandLineBool(fUseHyperviscosity, "hypervis");
 
 		ParseCommandLine(argc, argv);
@@ -387,7 +392,18 @@ try {
 	AnnounceEndBlock("Done");
 
 	// Set the horizontal dynamics
-	HorizontalDynamicsFEM hdyn(model, nOrder, fUseHyperviscosity);
+	HorizontalDynamicsFEM::Type eHorizontalDynamicsType;
+	STLStringHelper::ToLower(strHorizontalDynamics);
+	if (strHorizontalDynamics == "se") {
+		eHorizontalDynamicsType = HorizontalDynamicsFEM::SpectralElement;
+	} else if (strHorizontalDynamics == "dg") {
+		eHorizontalDynamicsType = HorizontalDynamicsFEM::DiscontinuousGalerkin;
+	} else {
+		_EXCEPTIONT("Invalid method: Expected \"SE\" or \"DG\"");
+	}
+
+	HorizontalDynamicsFEM hdyn(
+		model, nOrder, eHorizontalDynamicsType, fUseHyperviscosity);
 	AnnounceStartBlock("Initializing horizontal dynamics");
 	model.SetHorizontalDynamics(&hdyn);
 	AnnounceEndBlock("Done");
