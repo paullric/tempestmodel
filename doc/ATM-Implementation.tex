@@ -1,0 +1,167 @@
+\documentclass{article}
+
+\makeatletter
+\renewcommand\section{\@startsection
+  {section}{2}{0mm}%name, level, indent
+  {-\baselineskip}%             beforeskip
+  {0.5\baselineskip}%            afterskip
+  {\normalfont\Huge\bfseries}}% style
+\makeatother
+
+\usepackage{amsmath}
+\usepackage{graphicx}
+\usepackage{multicol}
+
+\oddsidemargin 0cm
+\evensidemargin 0cm
+
+\textwidth 16.5cm
+\topmargin -2.0cm
+\parindent 0cm
+\textheight 24cm
+\parskip 0.5cm
+
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+%\fancyhead[L]{AOSS Reference Sheet}
+%\fancyhead[CH]{test}
+\fancyfoot[C]{Page \thepage}
+                                 
+\newcommand{\vb}{\mathbf}
+\newcommand{\vg}{\boldsymbol}
+\newcommand{\mat}{\mathsf}
+\newcommand{\diff}[2]{\frac{d #1}{d #2}}
+\newcommand{\diffsq}[2]{\frac{d^2 #1}{{d #2}^2}}
+\newcommand{\pdiff}[2]{\frac{\partial #1}{\partial #2}}
+\newcommand{\pdiffsq}[2]{\frac{\partial^2 #1}{{\partial #2}^2}}
+\newcommand{\topic}{\textbf}
+\newcommand{\arccot}{\mathrm{arccot}}
+\newcommand{\arcsinh}{\mathrm{arcsinh}}
+\newcommand{\arccosh}{\mathrm{arccosh}}
+\newcommand{\arctanh}{\mathrm{arctanh}}
+
+\title{\Huge \textbf{HARDCore: The High-Order Adaptively Refined Dynamical Core}}
+\author{\Large Paul Ullrich}
+\date{September 9th, 2013}
+
+\begin{document}
+
+\section{Tensor-Product Basis}
+
+The tensor-product basis is
+\begin{equation} \label{eq:TensorProductBasis}
+\phi_{(i,j)}(\alpha, \beta) = \tilde{\phi}_{(i)}(\alpha) \tilde{\phi}_{(j)}(\beta),
+\end{equation} where $\tilde{\phi}_{(i)}(x)$ denotes the usual 1D GLL basis function at node $i \in (0, \ldots, n_p)$.  For vector fields, the components of the covariant vector field are given by the tensor-product basis (\ref{eq:TensorProductBasis}).
+
+\section{Hyperviscosity}
+
+\subsection{Vector Hyperviscosity}
+
+Fourth-order vector hyperviscosity is implemented using a two stage procedure:
+\begin{align}
+\vb{f} &= - \mathcal{H}(1,1) \vb{u}^n, \\
+\vb{u}^{n+1} &= \vb{u}^n + \Delta t \mathcal{H}(\nu_d, \nu_v) \vb{f}.
+\end{align}  The hyperdiffusion operator is defined implicitly via
+\begin{align}
+\vb{f} = \mathcal{H}(\nu_d, \nu_v) \vb{u^n} \quad \Longleftrightarrow \quad \iint \vb{f} \cdot \vg{\phi} dA = \iint \nu_d (\nabla \cdot \vg{\phi}) (\nabla \cdot \vb{u}^n) + \nu_v (\nabla \times \vg{\phi})^r (\nabla \times \vb{u}^n)_r dA,
+\end{align} where $dA = J d\alpha d\beta$ and
+\begin{align}
+(\nabla \cdot \vg{\phi}) &= g^{p q} \nabla_p \phi_q = \frac{1}{J} \pdiff{}{\alpha} \left( J g^{\alpha \alpha} \phi_\alpha + J g^{\alpha \beta} \phi_\beta \right) + \frac{1}{J} \pdiff{}{\beta} \left( J g^{\beta \alpha} \phi_\alpha + J g^{\beta \beta} \phi_\beta \right), \\
+%(\nabla \cdot \vg{\phi}) &= g^{p q} \nabla_p \phi_q \\
+%&= g^{\alpha \alpha} \nabla_\alpha \phi_\alpha + g^{\beta \alpha} \nabla_\beta \phi_\alpha + g^{\alpha \beta} \nabla_\alpha \phi_\beta + g^{\beta \beta} \nabla_\beta \phi_\beta \\
+%&= g^{\alpha \alpha} \left[ \pdiff{\phi_\alpha}{\alpha} - \Gamma^{\alpha}_{\ \alpha \alpha} \phi_\alpha - \Gamma^{\beta}_{\ \alpha \alpha} \phi_\beta \right] \\
+(\nabla \times \vg{\phi})^r &= \epsilon^{r p q} \nabla_p \phi_q = \epsilon^{r p q} \left[ \pdiff{\phi_q}{x^p} - \Gamma^{k}_{\ p q} \phi_k \right] = \frac{1}{J} \left[ \pdiff{\phi_\beta}{\alpha} - \pdiff{\phi_\alpha}{\beta} \right].
+\end{align}
+
+Here we assume that $(\nabla \cdot \vb{u})$ and $(\nabla \times \vb{u})_r$ (covariant radial component of curl) have already been computed.
+
+\subsubsection{Vector basis with zero $\beta$ component}
+
+If $\phi_{(i,j) \alpha} = \tilde{\phi}_{(i)}(\alpha) \tilde{\phi}_{(j)}(\beta)$ and $\phi_{(i,j) \beta} = 0$ then
+\begin{align} \label{eq:VecHyperviscosityZeroBetaLHS}
+\iint \vb{f} \cdot \vb{\phi} dA = \iint f^\alpha \tilde{\phi}_{(i)}(\alpha) \tilde{\phi}_{(j)}(\beta) dA = f^\alpha_{(i,j)} w_i w_j J \Delta \alpha \Delta \beta
+\end{align}
+
+The divergent term is defined by
+\begin{align}
+(\nabla \cdot \vg{\phi}_{(i,j)}) &= \frac{1}{J} \pdiff{}{\alpha} \left( J g^{\alpha \alpha} \phi_{(i,j)\alpha} \right) + \frac{1}{J} \pdiff{}{\beta} \left( J g^{\beta \alpha} \phi_{(i,j)\alpha} \right) \\
+%&= \phi_{(i,j)\alpha} \left[ \frac{1}{J} \pdiff{}{\alpha}\left( J g^{\alpha \alpha} \right) + \frac{1}{J} \pdiff{}{\beta}\left( J g^{\beta \alpha} \right) \right] + g^{\alpha \alpha} \pdiff{\phi_{(i,j)\alpha}}{\alpha} + g^{\beta \alpha} \pdiff{\phi_{(i,j)\beta}}{\beta}
+&= \frac{\tilde{\phi}_{(j)}(\beta)}{J} \pdiff{}{\alpha} \left( J g^{\alpha \alpha} \tilde{\phi}_{(i)}(\alpha) \right)  + \frac{\tilde{\phi}_{(i)}(\alpha)}{J} \pdiff{}{\beta} \left( J g^{\beta \alpha} \tilde{\phi}_{(j)}(\beta) \right),
+\end{align} and
+\begin{align}
+& \iint (\nabla \cdot \vg{\phi}_{(i,j)}) (\nabla \cdot \vb{u}) dA \nonumber \\
+%& \qquad = \Delta \alpha \Delta \beta \sum_{m=0}^{n_p-1} \sum_{n=0}^{n_p-1} \left\{ \tilde{\phi}_{(i)}(\alpha_m) \tilde{\phi}_{(j)}(\beta_n) \left[ \frac{1}{J} \pdiff{}{\alpha}\left( J g^{\alpha \alpha} \right) + \frac{1}{J} \pdiff{}{\beta}\left( J g^{\beta \alpha} \right) \right] \right. \nonumber \\
+%& \qquad \qquad \left. + g^{\alpha \alpha} \tilde{\phi}_{(j)}(\beta_n) \pdiff{\tilde{\phi}_{(i)}}{\alpha} + \tilde{\phi}_{(i)}(\alpha_m) g^{\beta \alpha} \pdiff{\tilde{\phi}_{(j)}}{\beta} \right\} (\nabla \cdot \vb{u}) J w_m w_n \\
+%& \qquad = \Delta \alpha \Delta \beta w_i w_j \left. \left[ \pdiff{}{\alpha}\left( J g^{\alpha \alpha} \right) + \pdiff{}{\beta}\left( J g^{\beta \alpha} \right) \right] (\nabla \cdot \vb{u}) \right\vert_{\alpha = \alpha_i, \beta = \beta_j} \nonumber \\
+%& \qquad \qquad + \Delta \alpha \Delta \beta w_j \sum_{m = 0}^{n_p-1} \left. J g^{\alpha \alpha} \pdiff{\tilde{\phi}_{(i)}}{\alpha} (\nabla \cdot \vb{u}) w_m \right\vert_{\alpha = \alpha_m, \beta = \beta_j} \nonumber \\
+%& \qquad \qquad + \Delta \alpha \Delta \beta w_i \sum_{n = 0}^{n_p-1} \left. J g^{\beta \alpha} \pdiff{\tilde{\phi}_{(j)}}{\beta} (\nabla \cdot \vb{u}) w_n \right\vert_{\alpha = \alpha_i, \beta = \beta_n}
+& \qquad = \Delta \alpha \Delta \beta \sum_{m=0}^{n_p-1} \sum_{n=0}^{n_p-1} \left[ \frac{\tilde{\phi}_{(j)}(\beta_n)}{J} \pdiff{}{\alpha} \left( J g^{\alpha \alpha} \tilde{\phi}_{(i)}(\alpha) \right)  + \frac{\tilde{\phi}_{(i)}(\alpha_m)}{J} \pdiff{}{\beta} \left( J g^{\beta \alpha} \tilde{\phi}_{(j)}(\beta) \right) \right] (\nabla \cdot \vb{u}) J w_m w_n \\
+& \qquad = \Delta \alpha \Delta \beta w_j \sum_{m = 0}^{n_p-1} \left. \pdiff{}{\alpha} \left( J g^{\alpha \alpha} \tilde{\phi}_{(i)}(\alpha) \right) (\nabla \cdot \vb{u}) w_m \right\vert_{\alpha = \alpha_m, \beta = \beta_j} \nonumber \\
+& \qquad \qquad + \Delta \alpha \Delta \beta w_i \sum_{n = 0}^{n_p-1} \left. \pdiff{}{\beta} \left( J g^{\beta \alpha} \tilde{\phi}_{(j)}(\beta) \right) (\nabla \cdot \vb{u}) w_n \right\vert_{\alpha = \alpha_i, \beta = \beta_n} \\
+& \qquad = \Delta \alpha \Delta \beta w_j \sum_{m = 0}^{n_p-1} \left. J g^{\alpha \alpha} \pdiff{\tilde{\phi}_{(i)}}{\alpha} (\nabla \cdot \vb{u}) w_m \right\vert_{\alpha = \alpha_m, \beta = \beta_j} \nonumber \\
+& \qquad \qquad + \Delta \alpha \Delta \beta w_i \sum_{n = 0}^{n_p-1} \left. J g^{\beta \alpha} \pdiff{\tilde{\phi}_{(j)}}{\beta} (\nabla \cdot \vb{u}) w_n \right\vert_{\alpha = \alpha_i, \beta = \beta_n} \label{eq:VecHyperviscosityZeroBetaDiv}
+\end{align}
+
+Further, the vortical term is defined by
+\begin{align}
+(\nabla \times \vg{\phi}_{(i,j)})^r &= - \frac{1}{J} \pdiff{\phi_{(i,j) \alpha}}{\beta} = - \frac{\tilde{\phi}_{(i)}}{J} \pdiff{\tilde{\phi}_{(j)}}{\beta}
+\end{align} and so
+\begin{align}
+& \iint (\nabla \times \vg{\phi}_{(i,j)})^r (\nabla \times \vb{u})_r dA \nonumber \\
+& \qquad = \Delta \alpha \Delta \beta \sum_{m=0}^{n_p-1} \sum_{n=0}^{n_p-1} \left. \left[- \frac{\tilde{\phi}_{(i)}(\alpha_m)}{J} \pdiff{\tilde{\phi}_{(j)}}{\beta} \right] (\nabla \times \vb{u})_r J w_m w_n \right\vert_{\alpha = \alpha_m, \beta = \beta_n} \\
+& \qquad = - \Delta \alpha \Delta \beta w_i \sum_{n=0}^{n_p-1} \left. \pdiff{\tilde{\phi}_{(j)}}{\beta} (\nabla \times \vb{u})_r w_n \right\vert_{\alpha = \alpha_i, \beta = \beta_n} \label{eq:VecHyperviscosityZeroBetaCurl}
+\end{align}
+
+Combining (\ref{eq:VecHyperviscosityZeroBetaLHS}), (\ref{eq:VecHyperviscosityZeroBetaDiv}) and (\ref{eq:VecHyperviscosityZeroBetaCurl}) then gives
+\begin{align}
+f^\alpha_{(i,j)} &= \frac{\nu_d}{J(\alpha_i, \beta_j) w_i} \sum_{m = 0}^{n_p-1} \left. J g^{\alpha \alpha} \pdiff{\tilde{\phi}_{(i)}}{\alpha} (\nabla \cdot \vb{u}) w_m \right\vert_{\alpha = \alpha_m, \beta = \beta_j} \nonumber \\
+& \qquad + \frac{\nu_d}{J(\alpha_i, \beta_j) w_j} \sum_{n = 0}^{n_p-1} \left. J g^{\beta \alpha} \pdiff{\tilde{\phi}_{(j)}}{\beta} (\nabla \cdot \vb{u}) w_n \right\vert_{\alpha = \alpha_i, \beta = \beta_n} \nonumber \\
+& \qquad - \frac{\nu_v}{J(\alpha_i, \beta_j) w_j} \sum_{n=0}^{n_p-1} \left. \pdiff{\tilde{\phi}_{(j)}}{\beta} (\nabla \times \vb{u})_r w_n \right\vert_{\alpha = \alpha_i, \beta = \beta_n}
+\end{align}
+
+\subsubsection{Vector basis with zero $\alpha$ component}
+
+If $\phi_{(i,j) \alpha} = 0$ and $\phi_{(i,j) \beta} = \tilde{\phi}_{(j)}(\alpha) \tilde{\phi}_{(j)}(\beta)$ then
+\begin{align} \label{eq:VecHyperviscosityZeroAlphaLHS}
+\iint \vb{f} \cdot \vb{\phi} dA = \iint f^\beta \tilde{\phi}_{(i)}(\alpha) \tilde{\phi}_{(j)}(\beta) dA = f^\beta_{(i,j)} w_i w_j J \Delta \alpha \Delta \beta
+\end{align}
+
+The divergent term is defined by
+\begin{align}
+(\nabla \cdot \vg{\phi}_{(i,j)}) &= \frac{1}{J} \pdiff{}{\alpha} \left( J g^{\alpha \beta} \phi_{(i,j) \beta} \right) + \frac{1}{J} \pdiff{}{\beta} \left( J g^{\beta \beta} \phi_{(i,j) \beta} \right) \\
+%&= \phi_{(i,j) \beta} \left[ \frac{1}{J} \pdiff{}{\alpha} \left( J g^{\alpha \beta} \right) + \frac{1}{J} \pdiff{}{\beta} \left( J g^{\beta \beta} \right) \right] + g^{\alpha \beta} \pdiff{\phi_{(i,j) \beta}}{\alpha} + g^{\beta \beta} \pdiff{\phi_{(i,j) \beta}}{\beta}
+&= \frac{\tilde{\phi}_{(j)}(\beta)}{J} \pdiff{}{\alpha} \left( J g^{\alpha \beta} \tilde{\phi}_{(i)} \right) + \frac{\tilde{\phi}_{(i)}(\alpha)}{J} \pdiff{}{\beta} \left( J g^{\beta \beta} \tilde{\phi}_{(j)} \right),
+\end{align} and
+\begin{align}
+& \iint (\nabla \cdot \vg{\phi}_{(i,j)}) (\nabla \cdot \vb{u}) dA \nonumber \\
+%& \qquad = \Delta \alpha \Delta \beta \sum_{m=0}^{n_p-1} \sum_{n=0}^{n_p-1} \left\{ \tilde{\phi}_{(i)} \tilde{\phi}_{(j)} \left[ \frac{1}{J} \pdiff{}{\alpha} \left( J g^{\alpha \beta} \right) + \frac{1}{J} \pdiff{}{\beta} \left( J g^{\beta \beta} \right) \right] \right. \nonumber \\
+%& \qquad \qquad \left. + \tilde{\phi}_{(j)} g^{\alpha \beta} \pdiff{\tilde{\phi}_{(i)}}{\alpha} + \tilde{\phi}_{(i)} g^{\beta \beta} \pdiff{\tilde{\phi}_{(j)}}{\beta} \right\} (\nabla \cdot \vb{u}) J w_m w_n \\
+%& \qquad = \Delta \alpha \Delta \beta w_i w_j \left. \left[ \frac{1}{J} \pdiff{}{\alpha} \left( J g^{\alpha \beta} \right) + \frac{1}{J} \pdiff{}{\beta} \left( J g^{\beta \beta} \right) \right] (\nabla \cdot \vb{u}) \right\vert_{\alpha = \alpha_i, \beta = \beta_j} \nonumber \\
+%& \qquad \qquad + \Delta \alpha \Delta \beta w_j \sum_{m = 0}^{n_p-1} \left. J g^{\alpha \beta} \pdiff{\tilde{\phi}_{(i)}}{\alpha} (\nabla \cdot \vb{u}) w_m \right\vert_{\alpha = \alpha_m, \beta = \beta_j} \nonumber \\
+%& \qquad \qquad + \Delta \alpha \Delta \beta w_i \sum_{n = 0}^{n_p-1} \left. J g^{\beta \beta} \pdiff{\tilde{\phi}_{(j)}}{\beta} (\nabla \cdot \vb{u}) w_n \right\vert_{\alpha = \alpha_i, \beta = \beta_n}
+& \qquad = \Delta \alpha \Delta \beta \sum_{m=0}^{n_p-1} \sum_{n=0}^{n_p-1} \left[ \frac{\tilde{\phi}_{(j)}(\beta_n)}{J} \pdiff{}{\alpha} \left( J g^{\alpha \beta} \tilde{\phi}_{(i)} \right) + \frac{\tilde{\phi}_{(i)}(\alpha_m)}{J} \pdiff{}{\beta} \left( J g^{\beta \beta} \tilde{\phi}_{(j)} \right) \right] (\nabla \cdot \vb{u}) J w_m w_n \\
+& \qquad = \Delta \alpha \Delta \beta w_j \sum_{m=0}^{n_p-1} \left. \pdiff{}{\alpha} \left( J g^{\alpha \beta} \tilde{\phi}_{(i)}(\alpha) \right) (\nabla \cdot \vb{u}) w_m \right\vert_{\alpha = \alpha_m, \beta = \beta_j} \nonumber \\
+& \qquad \qquad + \Delta \alpha \Delta \beta w_i \sum_{n=0}^{n_p-1} \left. \pdiff{}{\beta} \left( J g^{\beta \beta} \tilde{\phi}_{(j)}(\beta) \right) (\nabla \cdot \vb{u}) w_n \right\vert_{\alpha = \alpha_i, \beta = \beta_n} \\
+& \qquad = \Delta \alpha \Delta \beta w_j \sum_{m=0}^{n_p-1} \left. J g^{\alpha \beta} \pdiff{\tilde{\phi}_{(i)}}{\alpha} (\nabla \cdot \vb{u}) w_m \right\vert_{\alpha = \alpha_m, \beta = \beta_j} \nonumber \\
+& \qquad \qquad + \Delta \alpha \Delta \beta w_i \sum_{n=0}^{n_p-1} \left. J g^{\beta \beta} \pdiff{\tilde{\phi}_{(j)}}{\beta} (\nabla \cdot \vb{u}) w_n \right\vert_{\alpha = \alpha_i, \beta = \beta_n} \label{eq:VecHyperviscosityZeroAlphaDiv}
+\end{align}
+
+Further, the vortical term is defined by
+\begin{align}
+(\nabla \times \vg{\phi}_{(i,j)})^r &= \frac{1}{J} \pdiff{\phi_{(i,j) \beta}}{\alpha} = \frac{\tilde{\phi}_{(j)}}{J} \pdiff{\tilde{\phi}_{(i)}}{\alpha}
+\end{align} and so
+\begin{align}
+& \iint (\nabla \times \vg{\phi}_{(i,j)})^r (\nabla \times \vb{u})_r dA \nonumber \\
+& \qquad = \Delta \alpha \Delta \beta \sum_{m=0}^{n_p-1} \sum_{n=0}^{n_p-1} \left. \left[\frac{\tilde{\phi}_{(j)}(\beta_n)}{J} \pdiff{\tilde{\phi}_{(i)}}{\alpha}\right] (\nabla \times \vb{u})_r J w_m w_n \right\vert_{\alpha = \alpha_m, \beta = \beta_n} \\
+& \qquad = \Delta \alpha \Delta \beta w_j \sum_{m=0}^{n_p-1} \left. \pdiff{\tilde{\phi}_{(i)}}{\alpha} (\nabla \times \vb{u})_r w_m \right\vert_{\alpha = \alpha_m, \beta = \beta_j} \label{eq:VecHyperviscosityZeroAlphaCurl}
+\end{align}
+
+Combining (\ref{eq:VecHyperviscosityZeroAlphaLHS}), (\ref{eq:VecHyperviscosityZeroAlphaDiv}) and (\ref{eq:VecHyperviscosityZeroAlphaCurl}) then gives
+\begin{align}
+f^{\beta}_{(i,j)} &= \frac{\nu_d}{J(\alpha_i, \beta_j) w_i} \sum_{m=0}^{n_p-1} \left. J g^{\alpha \beta} \pdiff{\tilde{\phi}_{(i)}}{\alpha} (\nabla \cdot \vb{u}) w_m \right\vert_{\alpha = \alpha_m, \beta = \beta_j} \nonumber \\
+& \qquad + \frac{\nu_d}{J(\alpha_i, \beta_j) w_j} \sum_{n=0}^{n_p-1} \left. J g^{\beta \beta} \pdiff{\tilde{\phi}_{(j)}}{\beta} (\nabla \cdot \vb{u}) w_n \right\vert_{\alpha = \alpha_i, \beta = \beta_n} \nonumber \\
+& \qquad + \frac{\nu_v}{J(\alpha_i, \beta_j) w_i} \sum_{m=0}^{n_p-1} \left. \pdiff{\tilde{\phi}_{(i)}}{\alpha} (\nabla \times \vb{u})_r w_m \right\vert_{\alpha = \alpha_m, \beta = \beta_j}
+\end{align}
+
+\end{document}

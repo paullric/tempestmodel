@@ -211,6 +211,9 @@ try {
 	// Output time
 	double dOutputDeltaT;
 
+	// Hyperviscosity
+	bool fUseHyperviscosity;
+
 	// Model parameters
 	ModelParameters params;
 
@@ -227,6 +230,7 @@ try {
 		CommandLineDouble(params.m_dDeltaT, "dt", 200.0);
 		CommandLineDouble(params.m_dEndTime, "endtime", 200.0);//86400.0 * 5.0);
 		CommandLineDouble(dOutputDeltaT, "outputtime", 86400.0);
+		CommandLineBool(fUseHyperviscosity, "hypervis");
 
 		ParseCommandLine(argc, argv);
 	EndCommandLine(argv)
@@ -267,7 +271,7 @@ try {
 	AnnounceEndBlock("Done");
 
 	// Set the horizontal dynamics
-	HorizontalDynamicsFEM hdyn(model, nOrder);
+	HorizontalDynamicsFEM hdyn(model, nOrder, fUseHyperviscosity);
 	AnnounceStartBlock("Initializing horizontal dynamics");
 	model.SetHorizontalDynamics(&hdyn);
 	AnnounceEndBlock("Done");
@@ -293,7 +297,7 @@ try {
 	AnnounceStartBlock("Creating reference output manager");
 	OutputManagerReference outmanRef(
 		grid, dOutputDeltaT, strOutputDir, strOutputPrefix,
-		720, 360, false, false);
+		720, 360, false, false, true, true);
 	model.AttachOutputManager(&outmanRef);
 
 	outmanRef.InitializeNcOutput("ref.nc");

@@ -111,7 +111,7 @@ void TimestepSchemeARK4::Step(
 	pHorizontalDynamics->StepAfterSubCycle(4, 0, dTime, dDeltaT);
 
 	// Vertical timestep
-	pVerticalDynamics->StepImplicit(0, 0, dTime, dHalfDeltaT);
+	//pVerticalDynamics->StepImplicit(0, 0, dTime, dHalfDeltaT);
 
 	//pGrid->CopyData(0, 1, DataType_State);
 	//pVerticalDynamics->StepExplicit(0, 1, dTime, dDeltaT);

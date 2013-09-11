@@ -233,6 +233,14 @@ public:
 	);
 
 	///	<summary>
+	///		Set the state to zero.
+	///	</summary>
+	void ZeroData(
+		int ixData,
+		DataType eDataType
+	);
+
+	///	<summary>
 	///		Add the reference state to the specified state data index.
 	///	</summary>
 	void AddReferenceState(

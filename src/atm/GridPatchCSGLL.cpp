@@ -760,9 +760,7 @@ void GridPatchCSGLL::EvaluateTestCase(
 
 void GridPatchCSGLL::ComputeCurlAndDiv(
 	const GridData3D & dataUa,
-	const GridData3D & dataUb,
-	GridData3D & dataCurlUr,
-	GridData3D & dataDivU
+	const GridData3D & dataUb
 ) const {
 	// Parent grid
 	const GridCSGLL & gridCSGLL = dynamic_cast<const GridCSGLL &>(m_grid);
@@ -831,14 +829,14 @@ void GridPatchCSGLL::ComputeCurlAndDiv(
 				+ m_dataChristoffelB[k][iA+i][iB+j][2] * dUb;
 
 			// Compute curl at node
-			dataCurlUr[k][iA+i][iB+j] = m_dataJacobian[k][iA+i][iB+j] * (
+			m_dataVorticity[k][iA+i][iB+j] = m_dataJacobian[k][iA+i][iB+j] * (
 				+ m_dataContraMetricA[k][iA+i][iB+j][0] * dCovDaUb
 				+ m_dataContraMetricA[k][iA+i][iB+j][1] * dCovDbUb
 				- m_dataContraMetricB[k][iA+i][iB+j][0] * dCovDaUa
 				- m_dataContraMetricB[k][iA+i][iB+j][1] * dCovDbUa);
 
 			// Compute the divergence at node
-			dataDivU[k][iA+i][iB+j] = dCovDaUa + dCovDbUb;
+			m_dataDivergence[k][iA+i][iB+j] = dCovDaUa + dCovDbUb;
 		}
 		}
 	}
@@ -869,12 +867,8 @@ void GridPatchCSGLL::ComputeVorticityDivergence(
 	dataState.GetAsGridData3D(0, dataUa);
 	dataState.GetAsGridData3D(1, dataUb);
 
-	// Vorticity and divergence data
-	GridData3D & dataVorticity = GetDataVorticity();
-	GridData3D & dataDivergence = GetDataDivergence();
-
 	// Compute the radial component of the curl of the velocity field
-	ComputeCurlAndDiv(dataUa, dataUb, dataVorticity, dataDivergence);
+	ComputeCurlAndDiv(dataUa, dataUb);
 
 /*
 	// Lagrangian differentiation coefficients element [0,1]

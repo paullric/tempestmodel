@@ -331,7 +331,7 @@ try {
 	double dOutputDeltaT;
 
 	// Use hyperdiffusion
-	bool fUseHyperdiffusion;
+	bool fUseHyperviscosity;
 
 	// Model parameters
 	ModelParameters params;
@@ -346,7 +346,7 @@ try {
 		CommandLineDouble(params.m_dDeltaT, "dt", 200.0);
 		CommandLineDouble(params.m_dEndTime, "endtime", 200.0);//86400.0 * 5.0);
 		CommandLineDouble(dOutputDeltaT, "outputtime", 86400.0);
-		CommandLineBool(fUseHyperdiffusion, "hyperdiffusion");
+		CommandLineBool(fUseHyperviscosity, "hypervis");
 
 		ParseCommandLine(argc, argv);
 	EndCommandLine(argv)
@@ -387,7 +387,7 @@ try {
 	AnnounceEndBlock("Done");
 
 	// Set the horizontal dynamics
-	HorizontalDynamicsFEM hdyn(model, nOrder, fUseHyperdiffusion);
+	HorizontalDynamicsFEM hdyn(model, nOrder, fUseHyperviscosity);
 	AnnounceStartBlock("Initializing horizontal dynamics");
 	model.SetHorizontalDynamics(&hdyn);
 	AnnounceEndBlock("Done");

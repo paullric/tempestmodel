@@ -36,7 +36,9 @@ HorizontalDynamicsFEM::HorizontalDynamicsFEM(
 	HorizontalDynamics(model),
 	m_nHorizontalOrder(nHorizontalOrder),
 	m_fUseHyperdiffusion(fUseHyperdiffusion),
-	m_dHyperdiffusionCoeff(1.0e15)
+	m_dNuScalar(1.0e15),
+	m_dNuDiv(1.0e15),
+	m_dNuVort(1.0e15)
 {
 	// Initialize the alpha and beta fluxes
 	m_dAlphaFlux.Initialize(
@@ -76,9 +78,7 @@ HorizontalDynamicsFEM::HorizontalDynamicsFEM(
 		for (int m = 0; m < m_nHorizontalOrder; m++) {
 			m_dDxBasis1D[m][i] = 2.0 * dCoeffs[m];
 
-#ifndef DIFFERENTIAL_FORM
 			m_dStiffness1D[m][i] = m_dDxBasis1D[m][i] * dW[i] / dW[m];
-#endif
 		}
 	}
 
@@ -94,6 +94,7 @@ HorizontalDynamicsFEM::HorizontalDynamicsFEM(
 ///////////////////////////////////////////////////////////////////////////////
 
 void HorizontalDynamicsFEM::GenerateHyperdiffusionMatrix() {
+/*
 	// Initialize the matrix
 	m_dHyperdiffusion.Initialize(
 		m_nHorizontalOrder * m_nHorizontalOrder,
@@ -164,6 +165,7 @@ void HorizontalDynamicsFEM::GenerateHyperdiffusionMatrix() {
 		}
 	}
 	}
+*/
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -953,7 +955,7 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusion(
 			const double dElementRefDeltaA = 0.5 * M_PI / 30.0;
 
 			dCoeff =
-				- dDeltaT * m_dHyperdiffusionCoeff
+				- dDeltaT * m_dNuScalar
 					* pow(dElementDeltaA / dElementRefDeltaA, 3.2);
 		} else {
 			dCoeff = 1.0;
@@ -970,6 +972,9 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusion(
 		for (int a = 0; a < nAElements; a++) {
 		for (int b = 0; b < nBElements; b++) {
 
+			int iAElement = a * m_nHorizontalOrder + box.GetHaloElements();
+			int iBElement = b * m_nHorizontalOrder + box.GetHaloElements();
+
 			// Calculate the gradient within each element
 			m_dGradient.Zero();
 
@@ -977,11 +982,8 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusion(
 			for (int i = 0; i < m_nHorizontalOrder; i++) {
 			for (int j = 0; j < m_nHorizontalOrder; j++) {
 
-				int iA = a * m_nHorizontalOrder + i + box.GetHaloElements();
-				int iB = b * m_nHorizontalOrder + j + box.GetHaloElements();
-
-				int iAElement = a * m_nHorizontalOrder + box.GetHaloElements();
-				int iBElement = b * m_nHorizontalOrder + box.GetHaloElements();
+				int iA = iAElement + i;
+				int iB = iBElement + j;
 
 				// Calculate pointwise derivatives
 				double dDaPhi = 0.0;
@@ -1070,21 +1072,26 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusion(
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-/*
+
 void HorizontalDynamicsFEM::ApplyVectorHyperdiffusion(
-	const GridData3D & dataUa,
-	const GridData3D & dataUb,
+	int iDataInitial,
 	int iDataUpdate,
 	double dDeltaT,
-	bool fUseHyperdiffusionCoeff
+	double dNuDiv,
+	double dNuVort,
+	bool fScaleNuLocally
 ) {
+	// Variable indices
+	const int UIx = 0;
+	const int VIx = 1;
+
 	// Get a copy of the grid
 	Grid * pGrid = m_model.GetGrid();
 
 	// Physical constants
 	const PhysicalConstants & phys = m_model.GetPhysicalConstants();
 
-	// Perform local update
+	// Loop over all patches
 	for (int n = 0; n < pGrid->GetActivePatchCount(); n++) {
 		GridPatch * pPatch = pGrid->GetActivePatch(n);
 
@@ -1111,9 +1118,122 @@ void HorizontalDynamicsFEM::ApplyVectorHyperdiffusion(
 		double dElementDeltaB =
 			  box.GetBEdge(box.GetHaloElements() + m_nHorizontalOrder)
 			- box.GetBEdge(box.GetHaloElements());
+
+		// Compute curl and divergence of U on the grid
+		GridData3D dataUa;
+		GridData3D dataUb;
+
+		dataInitial.GetAsGridData3D(UIx, dataUa);
+		dataInitial.GetAsGridData3D(VIx, dataUb);
+
+		pPatch->ComputeCurlAndDiv(dataUa, dataUb);
+
+		// Get curl and divergence
+		const GridData3D & dataCurl = pPatch->GetDataVorticity();
+		const GridData3D & dataDiv  = pPatch->GetDataDivergence();
+
+		// Compute new hyperviscosity coefficient
+		double dLocalNuDiv  = dNuDiv;
+		double dLocalNuVort = dNuVort;
+
+		if (fScaleNuLocally) {
+			dLocalNuDiv =
+				dLocalNuDiv  * pow(dElementDeltaA / (0.5 * M_PI / 30.0), 3.2);
+			dLocalNuVort =
+				dLocalNuVort * pow(dElementDeltaA / (0.5 * M_PI / 30.0), 3.2);
+		}
+
+		// Number of finite elements
+		int nAElements =
+			box.GetAInteriorWidth() / m_nHorizontalOrder;
+		int nBElements =
+			box.GetBInteriorWidth() / m_nHorizontalOrder;
+
+		// Loop over all finite elements
+		for (int k = 0; k < pGrid->GetRElements(); k++) {
+		for (int a = 0; a < nAElements; a++) {
+		for (int b = 0; b < nBElements; b++) {
+
+			int iAElement = a * m_nHorizontalOrder + box.GetHaloElements();
+			int iBElement = b * m_nHorizontalOrder + box.GetHaloElements();
+
+			// Pointwise update of horizontal velocities
+			for (int i = 0; i < m_nHorizontalOrder; i++) {
+			for (int j = 0; j < m_nHorizontalOrder; j++) {
+
+				int iA = iAElement + i;
+				int iB = iBElement + j;
+
+				// Compute hyperviscosity sums
+				double dAlphaDivTermA = 0.0;
+				double dAlphaDivTermB = 0.0;
+				double dAlphaCurlTerm = 0.0;
+
+				double dBetaDivTermA = 0.0;
+				double dBetaDivTermB = 0.0;
+				double dBetaCurlTerm = 0.0;
+
+				for (int s = 0; s < m_nHorizontalOrder; s++) {
+					double dAlphaDiv =
+						dJacobian[k][iAElement+s][iB]
+						* m_dStiffness1D[i][s]
+						* dataDiv[k][iAElement+s][iB];
+
+					double dBetaDiv =
+						dJacobian[k][iA][iBElement+s]
+						* m_dStiffness1D[j][s]
+						* dataDiv[k][iA][iBElement+s];
+
+					dAlphaDivTermA +=
+						dAlphaDiv * dContraMetricA[k][iAElement+s][iB][0];
+					dAlphaDivTermB +=
+						dBetaDiv  * dContraMetricB[k][iA][iBElement+s][0];
+
+					dAlphaCurlTerm +=
+						m_dStiffness1D[j][s]
+						* dataCurl[k][iA][iBElement+s];
+
+					dBetaDivTermA +=
+						dAlphaDiv * dContraMetricA[k][iAElement+s][iB][1];
+					dBetaDivTermB +=
+						dBetaDiv  * dContraMetricB[k][iA][iBElement+s][1];
+
+					dBetaCurlTerm +=
+						m_dStiffness1D[i][s]
+						* dataCurl[k][iAElement+s][iB];
+				}
+
+				dAlphaDivTermA /= dElementDeltaA;
+				dAlphaDivTermB /= dElementDeltaB;
+				dAlphaCurlTerm /= dElementDeltaB;
+
+				dBetaDivTermA /= dElementDeltaA;
+				dBetaDivTermB /= dElementDeltaB;
+				dBetaCurlTerm /= dElementDeltaA;
+
+				// Apply update
+				double dInvJacobian = 1.0 / dJacobian[k][iA][iB];
+
+				dataUpdate[UIx][k][iA][iB] += dDeltaT * dInvJacobian * (
+					+ dLocalNuDiv * (
+						+ dAlphaDivTermA
+						+ dAlphaDivTermB)
+					- dLocalNuVort * dAlphaCurlTerm);
+
+				dataUpdate[VIx][k][iA][iB] += dDeltaT * dInvJacobian * (
+					+ dLocalNuDiv * (
+						+ dBetaDivTermA
+						+ dBetaDivTermB)
+					+ dLocalNuVort * dBetaCurlTerm);
+
+			}
+			}
+		}
+		}
+		}
 	}
 }
-*/
+
 ///////////////////////////////////////////////////////////////////////////////
 
 void HorizontalDynamicsFEM::StepAfterSubCycle(
@@ -1129,9 +1249,25 @@ void HorizontalDynamicsFEM::StepAfterSubCycle(
 
 #pragma message "Altering the horizontal velocities should also modify the vertical velocities"
 
-	// Get a copy of the grid
+	// Apply Direct Stiffness Summation (DSS) procedure
 	GridCSGLL * pGridCSGLL = dynamic_cast<GridCSGLL*>(m_model.GetGrid());
 
+	// Zero the target state data
+	pGridCSGLL->ZeroData(1, DataType_State);
+
+	// Apply vector Laplacian (first application)
+	ApplyVectorHyperdiffusion(0, 1, 1.0, 1.0, 1.0, false);
+
+	pGridCSGLL->ApplyDSS(1);
+
+	//pGridCSGLL->CopyData(1, 0, DataType_State);
+
+	// Apply vector Laplacian (second application)
+	ApplyVectorHyperdiffusion(1, 0, -dDeltaT, m_dNuDiv, m_dNuVort, true);
+
+	pGridCSGLL->ApplyDSS(0);
+
+/*
 	// Variable indices
 	const int UIx = 0;
 	const int VIx = 1;
@@ -1162,6 +1298,7 @@ void HorizontalDynamicsFEM::StepAfterSubCycle(
 
 	// Apply Direct Stiffness Summation (DSS) procedure
 	pGridCSGLL->ApplyDSS(iDataUpdate);
+*/
 }
 
 ///////////////////////////////////////////////////////////////////////////////

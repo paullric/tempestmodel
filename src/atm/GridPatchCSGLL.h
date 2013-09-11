@@ -77,9 +77,7 @@ public:
 	///	</summary>
 	virtual void ComputeCurlAndDiv(
 		const GridData3D & dataUa,
-		const GridData3D & dataUb,
-		GridData3D & dataCurlUr,
-		GridData3D & dataDivU
+		const GridData3D & dataUb
 	) const;
 
 	///	<summary>

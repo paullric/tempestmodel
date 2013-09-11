@@ -739,6 +739,18 @@ void Grid::LinearCombineData(
 
 ///////////////////////////////////////////////////////////////////////////////
 
+void Grid::ZeroData(
+	int ixData,
+	DataType eDataType
+) {
+	// Loop over all grid patches
+	for (int n = 0; n < m_vecActiveGridPatches.size(); n++) {
+		m_vecActiveGridPatches[n]->ZeroData(ixData, eDataType);
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
 void Grid::AddReferenceState(
 	int ix
 ) {

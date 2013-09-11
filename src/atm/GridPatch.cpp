@@ -737,6 +737,35 @@ void GridPatch::LinearCombineData(
 
 ///////////////////////////////////////////////////////////////////////////////
 
+void GridPatch::ZeroData(
+	int ixData,
+	DataType eDataType
+) {
+	// Check bounds on ixDest for State data
+	if (eDataType == DataType_State) {
+		if ((ixData < 0) || (ixData >= m_datavecStateNode.size())) {
+			_EXCEPTIONT("Invalid ixData index in LinearCombineData.");
+		}
+
+		m_datavecStateNode [ixData].Zero();
+		m_datavecStateREdge[ixData].Zero();
+
+	// Check bounds on ixDest for Tracers data
+	} else if (eDataType == DataType_Tracers) {
+		if ((ixData < 0) || (ixData >= m_datavecTracers.size())) {
+			_EXCEPTIONT("Invalid ixData index in LinearCombineData.");
+		}
+
+		m_datavecTracers[ixData].Zero();
+
+	// Invalid datatype; only State or Tracers expected
+	} else {
+		_EXCEPTIONT("Invalid DataType specified for LinearCombineData.");
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
 void GridPatch::InterpolateNodeToREdge(
 	int iVar,
 	int iDataIndex

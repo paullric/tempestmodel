@@ -24,6 +24,7 @@
 
 ///////////////////////////////////////////////////////////////////////////////
 
+class GridData3D;
 class GridData4D;
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -100,7 +101,7 @@ public:
 
 protected:
 	///	<summary>
-	///		Apply the 2nd-order hyperdiffusion operator.
+	///		Apply the scalar Laplacian operator.
 	///	</summary>
 	void ApplyScalarHyperdiffusion(
 		int iDataInitial,
@@ -108,6 +109,18 @@ protected:
 		int iC,
 		double dDeltaT,
 		bool fUseHyperdiffusionCoeff
+	);
+
+	///	<summary>
+	///		Apply the vector Laplacian operator.
+	///	</summary>
+	void ApplyVectorHyperdiffusion(
+		int iDataInitial,
+		int iDataUpdate,
+		double dDeltaT,
+		double dNuDiff,
+		double dNuVort,
+		bool fScaleNuLocally
 	);
 
 public:
@@ -185,19 +198,25 @@ private:
 	bool m_fUseHyperdiffusion;
 
 	///	<summary>
-	///		Scalar hyperdiffusion matrix.
-	///	</summary>
-	DataMatrix<double> m_dHyperdiffusion;
-
-	///	<summary>
 	///		Nodal pointwise gradient.
 	///	</summary>
 	DataMatrix3D<double> m_dGradient;
 
 	///	<summary>
-	///		Global hyperdiffusion coefficient.
+	///		Scalar hyperviscosity coefficient (at 1 degree resolution).
 	///	</summary>
-	double m_dHyperdiffusionCoeff;
+	double m_dNuScalar;
+
+	///	<summary>
+	///		Divergent hyperviscosity coefficient (at 1 degree resolution).
+	///	</summary>
+	double m_dNuDiv;
+
+	///	<summary>
+	///		Vortical hyperviscosity coefficient (at 1 degree resolution).
+	///	</summary>
+	double m_dNuVort;
+
 };
 
 ///////////////////////////////////////////////////////////////////////////////

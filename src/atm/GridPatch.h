@@ -112,6 +112,17 @@ public:
 
 public:
 	///	<summary>
+	///		Compute the radial component of the curl on the grid given two
+	///		contravariant vector fields.
+	///	</summary>
+	virtual void ComputeCurlAndDiv(
+		const GridData3D & dataUa,
+		const GridData3D & dataUb
+	) const {
+		_EXCEPTIONT("Unimplemented");
+	}
+
+	///	<summary>
 	///		Compute vorticity on the grid.
 	///	</summary>
 	virtual void ComputeVorticityDivergence(
@@ -169,6 +180,14 @@ public:
 	void LinearCombineData(
 		const DataVector<double> & dCoeff,
 		int ixDest,
+		DataType eDataType
+	);
+
+	///	<summary>
+	///		Zero the data at the specified index.
+	///	</summary>
+	void ZeroData(
+		int ixData,
 		DataType eDataType
 	);
 
