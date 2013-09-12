@@ -54,14 +54,27 @@ The tensor-product basis is
 \phi_{(i,j)}(\alpha, \beta) = \tilde{\phi}_{(i)}(\alpha) \tilde{\phi}_{(j)}(\beta),
 \end{equation} where $\tilde{\phi}_{(i)}(x)$ denotes the usual 1D GLL basis function at node $i \in (0, \ldots, n_p)$.  For vector fields, the components of the covariant vector field are given by the tensor-product basis (\ref{eq:TensorProductBasis}).
 
+\section{Hydrodynamics}
+
+The system of equations describing the hydrodynamic system is as follows:
+\begin{align}
+\pdiff{\rho}{t} + \frac{1}{J} \pdiff{}{\alpha} (J \rho u^\alpha) + \frac{1}{J} \pdiff{}{\beta} (J \rho u^\beta) &= - \frac{1}{J} \pdiff{}{\xi} (J \rho u^\xi), \\
+\pdiff{\vb{u}^\alpha}{t} + u^\alpha \nabla_\alpha u^\alpha + u^\beta \nabla_\beta u^\alpha + u^\xi \nabla_\xi u^\alpha + \frac{1}{\rho} \nabla^\alpha p + \frac{f}{J} u^\beta &= 0, \\
+\pdiff{\vb{u}^\beta}{t} + u^\alpha \nabla_\alpha u^\beta + u^\beta \nabla_\beta u^\beta + u^\xi \nabla_\xi u^\beta + \frac{1}{\rho} \nabla^\beta p - \frac{f}{J} u^\alpha &= 0,
+\end{align}
+
+\subsection{Spectral Element}
+
+\subsection{Flux Reconstruction / Discontinuous Galerkin}
+
 \section{Hyperviscosity}
 
 \subsection{Vector Hyperviscosity}
 
 Fourth-order vector hyperviscosity is implemented using a two stage procedure:
 \begin{align}
-\vb{f} &= - \mathcal{H}(1,1) \vb{u}^n, \\
-\vb{u}^{n+1} &= \vb{u}^n + \Delta t \mathcal{H}(\nu_d, \nu_v) \vb{f}.
+\vb{f} &= \mathcal{H}(1,1) \vb{u}^n, \\
+\vb{u}^{n+1} &= \vb{u}^n - \Delta t \mathcal{H}(\nu_d, \nu_v) \vb{f}.
 \end{align}  The hyperdiffusion operator is defined implicitly via
 \begin{align}
 \vb{f} = \mathcal{H}(\nu_d, \nu_v) \vb{u^n} \quad \Longleftrightarrow \quad \iint \vb{f} \cdot \vg{\phi} dA = \iint \nu_d (\nabla \cdot \vg{\phi}) (\nabla \cdot \vb{u}^n) + \nu_v (\nabla \times \vg{\phi})^r (\nabla \times \vb{u}^n)_r dA,
