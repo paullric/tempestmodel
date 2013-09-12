@@ -418,6 +418,7 @@ void HorizontalDynamicsFEM::ElementFluxesShallowWater(
 		int ixBottomPanel =
 			pPatch->GetNeighborPanel(Direction_Bottom);
 
+#pragma message "Move post-processing step to Grid"
 		// Post-process velocities across right edge
 		if (ixRightPanel != box.GetPanel()) {
 			int i;
@@ -506,6 +507,11 @@ void HorizontalDynamicsFEM::ElementFluxesShallowWater(
 			}
 		}
 
+		// Flux reconstruction update coefficient
+		double dUpdateDeriv =
+			  dDeltaT * m_dFluxDeriv1D[m_nHorizontalOrder-1]
+			/ dElementDeltaA;
+
 		// Loop over edges of constant alpha
 		for (int k = 0; k < pGrid->GetRElements(); k++) {
 		for (int a = 0; a <= nAElements; a++) {
@@ -532,15 +538,44 @@ void HorizontalDynamicsFEM::ElementFluxesShallowWater(
 				_EXCEPTIONT("Not implemented.");
 #else
 				dataUpdateNode[HIx][k][i-1][j] -=
-					  dDeltaT
-					* m_dFluxDeriv1D[m_nHorizontalOrder-1]
-					* dHF / dElementDeltaA;
+					  dUpdateDeriv * dHF;
 
 				dataUpdateNode[HIx][k][i][j] +=
-					  dDeltaT
-					* m_dFluxDeriv1D[m_nHorizontalOrder-1]
-					* dHF / dElementDeltaA;
+					  dUpdateDeriv * dHF;
 #endif
+
+				// Nodal pressure
+				double dUa = 0.5 * (dUaL + dUaR);
+				double dUb = 0.5 * (dUbL + dUbR);
+
+				double dPL = phys.GetG() * dHL;
+				double dPR = phys.GetG() * dHR;
+				double dP  = 0.5 * (dPL + dPR);
+
+				// Calculate modified derivatives in alpha
+				dataUpdateNode[UIx][k][i-1][j] -=
+					dUpdateDeriv * dUaL * (dUa - dUaL);
+
+				dataUpdateNode[UIx][k][i][j] +=
+					dUpdateDeriv * dUaR * (dUa - dUaR);
+
+				dataUpdateNode[UIx][k][i-1][j] -=
+					dUpdateDeriv * dContraMetricA[k][i-1][j][0] * (dP - dPL);
+
+				dataUpdateNode[UIx][k][i][j] +=
+					dUpdateDeriv * dContraMetricA[k][i][j][0] * (dP - dPR);
+
+				dataUpdateNode[VIx][k][i-1][j] -=
+					dUpdateDeriv * dUaL * (dUb - dUbL);
+
+				dataUpdateNode[VIx][k][i][j] +=
+					dUpdateDeriv * dUaR * (dUb - dUbR);
+
+				dataUpdateNode[VIx][k][i-1][j] -=
+					dUpdateDeriv * dContraMetricB[k][i-1][j][0] * (dP - dPL);
+
+				dataUpdateNode[VIx][k][i][j] +=
+					dUpdateDeriv * dContraMetricB[k][i][j][0] * (dP - dPR);
 			}
 		}
 		}
@@ -571,15 +606,44 @@ void HorizontalDynamicsFEM::ElementFluxesShallowWater(
 				_EXCEPTIONT("Not implemented.");
 #else
 				dataUpdateNode[HIx][k][i][j-1] -=
-					  dDeltaT
-					* m_dFluxDeriv1D[m_nHorizontalOrder-1]
-					* dHF / dElementDeltaB;
+					  dUpdateDeriv * dHF;
 
 				dataUpdateNode[HIx][k][i][j] +=
-					  dDeltaT
-					* m_dFluxDeriv1D[m_nHorizontalOrder-1]
-					* dHF / dElementDeltaB;
+					  dUpdateDeriv * dHF;
 #endif
+
+				// Nodal pressure
+				double dUa = 0.5 * (dUaL + dUaR);
+				double dUb = 0.5 * (dUbL + dUbR);
+
+				double dPL = phys.GetG() * dHL;
+				double dPR = phys.GetG() * dHR;
+				double dP  = 0.5 * (dPL + dPR);
+
+				// Calculate modified derivatives in beta
+				dataUpdateNode[UIx][k][i][j-1] -=
+					dUpdateDeriv * dUbL * (dUa - dUaL);
+
+				dataUpdateNode[UIx][k][i][j] +=
+					dUpdateDeriv * dUbR * (dUa - dUaR);
+
+				dataUpdateNode[UIx][k][i][j-1] -=
+					dUpdateDeriv * dContraMetricA[k][i][j-1][1] * (dP - dPL);
+
+				dataUpdateNode[UIx][k][i][j] +=
+					dUpdateDeriv * dContraMetricA[k][i][j][1] * (dP - dPR);
+
+				dataUpdateNode[VIx][k][i][j-1] -=
+					dUpdateDeriv * dUbL * (dUb - dUbL);
+
+				dataUpdateNode[VIx][k][i][j] +=
+					dUpdateDeriv * dUbR * (dUb - dUbR);
+
+				dataUpdateNode[VIx][k][i][j-1] -=
+					dUpdateDeriv * dContraMetricB[k][i][j-1][1] * (dP - dPL);
+
+				dataUpdateNode[VIx][k][i][j] +=
+					dUpdateDeriv * dContraMetricB[k][i][j][1] * (dP - dPR);
 			}
 		}
 		}
@@ -848,7 +912,7 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 				// Apply update to horizontal velocity on model levels
 				dataUpdateNode[UIx][k][iA][iB] += dDeltaT * dLocalUpdateUa;
 				dataUpdateNode[VIx][k][iA][iB] += dDeltaT * dLocalUpdateUb;
-
+				
 				// Update density on model levels
 				dataUpdateNode[RIx][k][iA][iB] +=
 					(dCourantA * dLocalUpdateRhoA
