@@ -78,9 +78,10 @@ protected:
 */
 public:
 	///	<summary>
-	///		Perform one Forward Euler step for the shallow water equations.
+	///		Perform one Forward Euler step for the interior terms of the
+	///		shallow water equations.
 	///	</summary>
-	virtual void StepShallowWater(
+	void StepShallowWater(
 		int iDataInitial,
 		int iDataUpdate,
 		double dTime,
@@ -88,10 +89,21 @@ public:
 	);
 
 	///	<summary>
-	///		Perform one horizontal Forward Euler step for the
-	///		non-hydrostatic primitive equations.
+	///		Perform one Forward Euler step for the element fluxes of the
+	///		shallow water equations.
 	///	</summary>
-	virtual void StepNonhydrostaticPrimitive(
+	void ElementFluxesShallowWater(
+		int iDataInitial,
+		int iDataUpdate,
+		double dTime,
+		double dDeltaT
+	);
+
+	///	<summary>
+	///		Perform one horizontal Forward Euler step for the interior terms of
+	///		the non-hydrostatic primitive equations.
+	///	</summary>
+	void StepNonhydrostaticPrimitive(
 		int iDataInitial,
 		int iDataUpdate,
 		double dTime,
@@ -175,6 +187,12 @@ private:
 	///		Components of the stiffness matrix.
 	///	</summary>
 	DataMatrix<double> m_dStiffness1D;
+
+	///	<summary>
+	///		Derivatives of the flux reconstruction function (used by
+	///		discontinuous Galerkin dynamics).
+	///	</summary>
+	DataVector<double> m_dFluxDeriv1D;
 
 	///	<summary>
 	///		Nodal weights in the reference element.

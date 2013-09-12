@@ -17,6 +17,7 @@
 #include "VerticalDynamicsFEM.h"
 #include "GaussQuadrature.h"
 #include "GaussLobattoQuadrature.h"
+#include "FluxReconstructionFunction.h"
 
 #include "Model.h"
 #include "Grid.h"
@@ -243,7 +244,7 @@ void VerticalDynamicsFEM::Initialize() {
 			m_dDiffNodeToREdge[n][m] /= dElementDeltaXi;
 		}
 	}
-
+/*
 	// Compute edge reconstruction function (DG type)
 	const int nType = 1;
 
@@ -330,8 +331,21 @@ void VerticalDynamicsFEM::Initialize() {
 		}
 		m_dDiffReconsPolyREdge[n] *= 2.0 / dElementDeltaXi;
 	}
+*/
+#pragma message "UNTESTED"
+	// Get derivatives of flux reconstruction function and scale to the
+	// element [0, dElementDeltaXi]
+	FluxReconstructionFunction::GetDerivatives(
+		1, m_nVerticalOrder, dG, m_dDiffReconsPolyNode);
+	FluxReconstructionFunction::GetDerivatives(
+		1, m_nVerticalOrder, dG, m_dDiffReconsPolyREdge);
 
-	// Compute Exner reference profile
+	for (int n = 0; n < m_dDiffReconsPolyNode.GetRows(); n++) {
+		m_dDiffReconsPolyNode[n] /= dElementDeltaXi;
+	}
+	for (int n = 0; n < m_dDiffReconsPolyREdge.GetRows(); n++) {
+		m_dDiffReconsPolyREdge[n] /= dElementDeltaXi;
+	}
 
 	// Perform local update
 	for (int n = 0; n < pGrid->GetActivePatchCount(); n++) {

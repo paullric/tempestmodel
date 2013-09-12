@@ -21,6 +21,7 @@
 #include "GaussLobattoQuadrature.h"
 #include "PolynomialInterp.h"
 #include "CubedSphereTrans.h"
+#include "FluxReconstructionFunction.h"
 
 #include "GridCSGLL.h"
 
@@ -59,7 +60,7 @@ HorizontalDynamicsFEM::HorizontalDynamicsFEM(
 	DataVector<double> dG;
 	DataVector<double> dW;
 
-	GaussLobattoQuadrature::GetPoints(m_nHorizontalOrder, dG, dW);
+	GaussLobattoQuadrature::GetPoints(m_nHorizontalOrder, 0.0, 1.0, dG, dW);
 
 	// Store the nodal weights in the reference element
 	m_dGLLWeight = dW;
@@ -78,11 +79,16 @@ HorizontalDynamicsFEM::HorizontalDynamicsFEM(
 			m_nHorizontalOrder, dG, dCoeffs, dG[i]);
 
 		for (int m = 0; m < m_nHorizontalOrder; m++) {
-			m_dDxBasis1D[m][i] = 2.0 * dCoeffs[m];
+			m_dDxBasis1D[m][i] = dCoeffs[m];
 
 			m_dStiffness1D[m][i] = m_dDxBasis1D[m][i] * dW[i] / dW[m];
 		}
 	}
+
+	// Get the derivatives of the flux reconstruction function
+	m_dFluxDeriv1D.Initialize(m_nHorizontalOrder);
+	FluxReconstructionFunction::GetDerivatives(
+		2, m_nHorizontalOrder, dG, m_dFluxDeriv1D);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -144,16 +150,17 @@ void HorizontalDynamicsFEM::StepShallowWater(
 		double dCourantA = dDeltaT / dElementDeltaA;
 		double dCourantB = dDeltaT / dElementDeltaB;
 
-		// Calculate pointwise fluxes
-		int nAElements =
-			pPatch->GetPatchBox().GetAInteriorWidth() / m_nHorizontalOrder;
-		int nBElements =
-			pPatch->GetPatchBox().GetBInteriorWidth() / m_nHorizontalOrder;
+		// Check interior domain size
+		int nAPatchInteriorWidth = pPatch->GetPatchBox().GetAInteriorWidth();
+		int nBPatchInteriorWidth = pPatch->GetPatchBox().GetBInteriorWidth();
 
-		if ((pPatch->GetPatchBox().GetAInteriorWidth() % m_nHorizontalOrder) != 0) {
+		int nAElements = nAPatchInteriorWidth / m_nHorizontalOrder;
+		int nBElements = nBPatchInteriorWidth / m_nHorizontalOrder;
+
+		if ((nAPatchInteriorWidth % m_nHorizontalOrder) != 0) {
 			_EXCEPTIONT("Logic Error: Invalid PatchBox alpha spacing");
 		}
-		if ((pPatch->GetPatchBox().GetBInteriorWidth() % m_nHorizontalOrder) != 0) {
+		if ((nBPatchInteriorWidth % m_nHorizontalOrder) != 0) {
 			_EXCEPTIONT("Logic Error: Invalid PatchBox beta spacing");
 		}
 
@@ -321,6 +328,259 @@ void HorizontalDynamicsFEM::StepShallowWater(
 			}
 			}
 		}
+		}
+		}
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void HorizontalDynamicsFEM::ElementFluxesShallowWater(
+	int iDataInitial,
+	int iDataUpdate,
+	double dTime,
+	double dDeltaT
+) {
+	// Get a copy of the grid
+	Grid * pGrid = m_model.GetGrid();
+
+	// Physical constants
+	const PhysicalConstants & phys = m_model.GetPhysicalConstants();
+
+	// Indices of EquationSet variables
+	const int UIx = 0;
+	const int VIx = 1;
+	const int HIx = 2;
+
+	// Perform a global exchange
+	pGrid->Exchange(DataType_State, iDataInitial);
+
+	// Perform local update
+	for (int n = 0; n < pGrid->GetActivePatchCount(); n++) {
+		GridPatch * pPatch = pGrid->GetActivePatch(n);
+
+		const PatchBox & box = pPatch->GetPatchBox();
+
+		const DataMatrix3D<double> & dJacobian =
+			pPatch->GetJacobian();
+		const DataMatrix4D<double> & dContraMetricA =
+			pPatch->GetContraMetricA();
+		const DataMatrix4D<double> & dContraMetricB =
+			pPatch->GetContraMetricB();
+
+		// Data
+		GridData4D & dataInitialNode =
+			pPatch->GetDataState(iDataInitial, DataLocation_Node);
+
+		GridData4D & dataUpdateNode =
+			pPatch->GetDataState(iDataUpdate, DataLocation_Node);
+
+		GridData4D & dataInitialREdge =
+			pPatch->GetDataState(iDataInitial, DataLocation_REdge);
+
+		GridData4D & dataUpdateREdge =
+			pPatch->GetDataState(iDataUpdate, DataLocation_REdge);
+
+		// Element grid spacing
+		double dElementDeltaA =
+			  box.GetAEdge(box.GetHaloElements() + m_nHorizontalOrder)
+			- box.GetAEdge(box.GetHaloElements());
+
+		double dElementDeltaB =
+			  box.GetBEdge(box.GetHaloElements() + m_nHorizontalOrder)
+			- box.GetBEdge(box.GetHaloElements());
+
+		// Time over grid spacing ratio
+		double dCourantA = dDeltaT / dElementDeltaA;
+		double dCourantB = dDeltaT / dElementDeltaB;
+
+		// Check interior domain size
+		int nAPatchInteriorWidth = pPatch->GetPatchBox().GetAInteriorWidth();
+		int nBPatchInteriorWidth = pPatch->GetPatchBox().GetBInteriorWidth();
+
+		int nAElements = nAPatchInteriorWidth / m_nHorizontalOrder;
+		int nBElements = nBPatchInteriorWidth / m_nHorizontalOrder;
+
+		if ((nAPatchInteriorWidth % m_nHorizontalOrder) != 0) {
+			_EXCEPTIONT("Logic Error: Invalid PatchBox alpha spacing");
+		}
+		if ((nBPatchInteriorWidth % m_nHorizontalOrder) != 0) {
+			_EXCEPTIONT("Logic Error: Invalid PatchBox beta spacing");
+		}
+
+		// Post-process velocities from exchange
+		int ixRightPanel =
+			pPatch->GetNeighborPanel(Direction_Right);
+		int ixTopPanel =
+			pPatch->GetNeighborPanel(Direction_Top);
+		int ixLeftPanel =
+			pPatch->GetNeighborPanel(Direction_Left);
+		int ixBottomPanel =
+			pPatch->GetNeighborPanel(Direction_Bottom);
+
+		// Post-process velocities across right edge
+		if (ixRightPanel != box.GetPanel()) {
+			int i;
+			int j;
+
+			int jBegin = box.GetBInteriorBegin()-1;
+			int jEnd = box.GetBInteriorEnd()+1;
+
+			i = box.GetAInteriorEnd();
+			for (int k = 0; k < pGrid->GetRElements(); k++) {
+			for (j = jBegin; j < jEnd; j++) {
+				CubedSphereTrans::VecPanelTrans(
+					ixRightPanel,
+					box.GetPanel(),
+					dataInitialNode[UIx][k][i][j],
+					dataInitialNode[VIx][k][i][j],
+					tan(box.GetANode(i)),
+					tan(box.GetBNode(j)));
+			}
+			}
+		}
+
+		// Post-process velocities across top edge
+		if (ixTopPanel != box.GetPanel()) {
+			int i;
+			int j;
+
+			int iBegin = box.GetAInteriorBegin()-1;
+			int iEnd = box.GetAInteriorEnd()+1;
+
+			j = box.GetBInteriorEnd();
+			for (int k = 0; k < pGrid->GetRElements(); k++) {
+			for (i = iBegin; i < iEnd; i++) {
+				CubedSphereTrans::VecPanelTrans(
+					ixTopPanel,
+					box.GetPanel(),
+					dataInitialNode[UIx][k][i][j],
+					dataInitialNode[VIx][k][i][j],
+					tan(box.GetANode(i)),
+					tan(box.GetBNode(j)));
+			}
+			}
+		}
+
+		// Post-process velocities across left edge
+		if (ixLeftPanel != box.GetPanel()) {
+			int i;
+			int j;
+
+			int jBegin = box.GetBInteriorBegin()-1;
+			int jEnd = box.GetBInteriorEnd()+1;
+
+			i = box.GetAInteriorBegin()-1;
+			for (int k = 0; k < pGrid->GetRElements(); k++) {
+			for (j = jBegin; j < jEnd; j++) {
+				CubedSphereTrans::VecPanelTrans(
+					ixLeftPanel,
+					box.GetPanel(),
+					dataInitialNode[UIx][k][i][j],
+					dataInitialNode[VIx][k][i][j],
+					tan(box.GetANode(i)),
+					tan(box.GetBNode(j)));
+			}
+			}
+		}
+
+		// Post-process velocities across bottom edge
+		if (ixBottomPanel != box.GetPanel()) {
+			int i;
+			int j;
+
+			int iBegin = box.GetAInteriorBegin()-1;
+			int iEnd = box.GetAInteriorEnd()+1;
+
+			j = box.GetBInteriorBegin()-1;
+			for (int k = 0; k < pGrid->GetRElements(); k++) {
+			for (i = iBegin; i < iEnd; i++) {
+				CubedSphereTrans::VecPanelTrans(
+					ixBottomPanel,
+					box.GetPanel(),
+					dataInitialNode[UIx][k][i][j],
+					dataInitialNode[VIx][k][i][j],
+					tan(box.GetANode(i)),
+					tan(box.GetBNode(j)));
+			}
+			}
+		}
+
+		// Loop over edges of constant alpha
+		for (int k = 0; k < pGrid->GetRElements(); k++) {
+		for (int a = 0; a <= nAElements; a++) {
+
+			int i = box.GetAInteriorBegin() + a * m_nHorizontalOrder;
+			int j = box.GetBInteriorBegin();
+			for (; j < box.GetBInteriorEnd(); j++) {
+
+				double dUaL = dataInitialNode[UIx][k][i-1][j];
+				double dUbL = dataInitialNode[VIx][k][i-1][j];
+				double dHL  = dataInitialNode[HIx][k][i-1][j];
+
+				double dUaR = dataInitialNode[UIx][k][i][j];
+				double dUbR = dataInitialNode[VIx][k][i][j];
+				double dHR  = dataInitialNode[HIx][k][i][j];
+
+				// Calculate pointwise height flux
+				double dHFL = dHL * dUaL;
+				double dHFR = dHR * dUaR;
+
+				double dHF = 0.5 * (dHFL + dHFR);
+
+#ifdef DIFFERENTIAL_FORM 
+				_EXCEPTIONT("Not implemented.");
+#else
+				dataUpdateNode[HIx][k][i-1][j] -=
+					  dDeltaT
+					* m_dFluxDeriv1D[m_nHorizontalOrder-1]
+					* dHF / dElementDeltaA;
+
+				dataUpdateNode[HIx][k][i][j] +=
+					  dDeltaT
+					* m_dFluxDeriv1D[m_nHorizontalOrder-1]
+					* dHF / dElementDeltaA;
+#endif
+			}
+		}
+		}
+
+		// Loop over edges of constant beta
+		for (int k = 0; k < pGrid->GetRElements(); k++) {
+		for (int b = 0; b <= nBElements; b++) {
+
+			int i = box.GetAInteriorBegin();
+			int j = box.GetBInteriorBegin() + b * m_nHorizontalOrder;
+			for (; i < box.GetBInteriorEnd(); i++) {
+
+				double dUaL = dataInitialNode[UIx][k][i][j-1];
+				double dUbL = dataInitialNode[VIx][k][i][j-1];
+				double dHL  = dataInitialNode[HIx][k][i][j-1];
+
+				double dUaR = dataInitialNode[UIx][k][i][j];
+				double dUbR = dataInitialNode[VIx][k][i][j];
+				double dHR  = dataInitialNode[HIx][k][i][j];
+
+				// Calculate pointwise height flux
+				double dHFL = dHL * dUbL;
+				double dHFR = dHR * dUbR;
+
+				double dHF = 0.5 * (dHFL + dHFR);
+
+#ifdef DIFFERENTIAL_FORM 
+				_EXCEPTIONT("Not implemented.");
+#else
+				dataUpdateNode[HIx][k][i][j-1] -=
+					  dDeltaT
+					* m_dFluxDeriv1D[m_nHorizontalOrder-1]
+					* dHF / dElementDeltaB;
+
+				dataUpdateNode[HIx][k][i][j] +=
+					  dDeltaT
+					* m_dFluxDeriv1D[m_nHorizontalOrder-1]
+					* dHF / dElementDeltaB;
+#endif
+			}
 		}
 		}
 	}
@@ -757,6 +1017,10 @@ void HorizontalDynamicsFEM::StepExplicit(
 	} else if (eqn.GetType() == EquationSet::ShallowWaterEquations) {
 		StepShallowWater(iDataInitial, iDataUpdate, dTime, dDeltaT);
 
+		if (m_eHorizontalDynamicsType == DiscontinuousGalerkin) {
+			ElementFluxesShallowWater(iDataInitial, iDataUpdate, dTime, dDeltaT);
+		}
+
 	// Invalid EquationSet
 	} else {
 		_EXCEPTIONT("Invalid EquationSet");
@@ -764,8 +1028,9 @@ void HorizontalDynamicsFEM::StepExplicit(
 
 	// Apply Direct Stiffness Summation (DSS) procedure
 	GridCSGLL * pGridCSGLL = dynamic_cast<GridCSGLL*>(m_model.GetGrid());
-	pGridCSGLL->ApplyDSS(iDataUpdate);
-
+	if (m_eHorizontalDynamicsType == SpectralElement) {
+		pGridCSGLL->ApplyDSS(iDataUpdate);
+	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////
