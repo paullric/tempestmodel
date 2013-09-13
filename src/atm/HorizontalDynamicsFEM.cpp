@@ -912,7 +912,7 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 				// Apply update to horizontal velocity on model levels
 				dataUpdateNode[UIx][k][iA][iB] += dDeltaT * dLocalUpdateUa;
 				dataUpdateNode[VIx][k][iA][iB] += dDeltaT * dLocalUpdateUb;
-				
+
 				// Update density on model levels
 				dataUpdateNode[RIx][k][iA][iB] +=
 					(dCourantA * dLocalUpdateRhoA
