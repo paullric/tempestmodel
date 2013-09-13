@@ -47,29 +47,146 @@
 
 \begin{document}
 
-\section{Tensor-Product Basis}
+\section{Geometry}
+
+\subsection{Terrain-Following Cartesian Geometry}
+
+For a given vertical coordinate transform $Z = Z(\alpha, \beta, \xi)$.  For example, Gal-Chen and Somerville (1975) coordinates:
+\begin{equation}
+Z(\alpha, \beta, \xi) = \xi \left[ z_{top} - z_s(\alpha, \beta) \right] + z_s(\alpha, \beta).
+\end{equation}
+
+\begin{equation}
+g_{ij} = \left( \begin{array}{ccc} 1 & 0 & 0 \\[2.0ex] 0 & 1 & 0 \\[2.0ex] 0 & 0 & 0 \end{array} \right) + \left( \begin{array}{c} \pdiff{Z}{\alpha} \\[2.0ex] \pdiff{Z}{\beta} \\[2.0ex] \pdiff{Z}{\xi} \end{array} \right) \left( \begin{array}{ccc} \pdiff{Z}{\alpha} & \pdiff{Z}{\beta} & \pdiff{Z}{\xi} \end{array} \right)
+\end{equation}
+\begin{equation}
+J = \left( \pdiff{Z}{\xi} \right)
+\end{equation}
+\begin{equation}
+g^{ij} = \left( \begin{array}{ccc} 1 & 0 & - \left( \pdiff{Z}{\xi} \right)^{-1} \left( \pdiff{Z}{\alpha} \right) \\[2.0ex] 0 & 1 & - \left( \pdiff{Z}{\xi} \right)^{-1} \left( \pdiff{Z}{\beta} \right) \\[2.0ex] - \left( \pdiff{Z}{\xi} \right)^{-1} \left( \pdiff{Z}{\alpha} \right) & - \left( \pdiff{Z}{\xi} \right)^{-1} \left( \pdiff{Z}{\beta} \right) & \left( \pdiff{Z}{\xi} \right)^{-2} \left[ 1 + \left( \pdiff{Z}{\alpha} \right)^2 + \left( \pdiff{Z}{\beta} \right)^2 \right] \end{array} \right)
+\end{equation}
+\begin{align}
+\Gamma^{\alpha}_{\ i j} &= \vb{0}, & \Gamma^{\beta}_{\ i j} &= \vb{0}, & \Gamma^{\xi}_{\ i j} = \left( \pdiff{Z}{\xi} \right)^{-1} \left( \begin{array}{ccc} \frac{\partial^2 Z}{\partial \alpha^2} & \frac{\partial^2 Z}{\partial \alpha \partial \beta} & \frac{\partial^2 Z}{\partial \alpha \partial \xi} \\[2.0ex] \frac{\partial^2 Z}{\partial \alpha \partial \beta} & \frac{\partial^2 Z}{\partial \beta^2} & \frac{\partial^2 Z}{\partial \xi \partial \beta} \\[2.0ex] \frac{\partial^2 Z}{\partial \xi \partial \alpha} & \frac{\partial^2 Z}{\partial \xi \partial \beta} & \frac{\partial^2 Z}{\partial \xi^2} \end{array} \right) 
+\end{align}
+
+\subsection{Terrain-Following Cubed-Sphere Geometry}
+
+For a given vertical coordinate transform $r = R(\alpha, \beta, \xi)$.  For example, Gal-Chen and Somerville (1975) coordinates:
+\begin{equation}
+R(\alpha, \beta, \xi) = \xi \left[ z_{top} - z_s(\alpha, \beta) \right] + a + z_s(\alpha, \beta).
+\end{equation}
+
+\begin{equation}
+g_{ij} = \frac{a^2 (1+X^2) (1+Y^2)}{\delta^4} \left( \begin{array}{ccc} 1+X^2 & - X Y & 0 \\[2.0ex] - X Y & 1+Y^2 & 0 \\[2.0ex] 0 & 0 & 0 \end{array} \right) + \left( \begin{array}{c} \pdiff{R}{\alpha} \\[2.0ex] \pdiff{R}{\beta} \\[2.0ex] \pdiff{R}{\xi} \end{array} \right) \left( \begin{array}{ccc} \pdiff{R}{\alpha} & \pdiff{R}{\beta} & \pdiff{R}{\xi} \end{array} \right)
+\end{equation}
+
+\begin{equation}
+J = \frac{1}{\delta^3} \left( \pdiff{R}{\xi} \right) a^2 (1+X^2) (1+Y^2)
+\end{equation}
+
+\begin{equation}
+g^{ij} = \frac{\delta^2}{a^2 (1+X^2) (1+Y^2)} \left( \begin{array}{ccc} 1+Y^2 & X Y & 0 \\[2.0ex] X Y & 1+X^2 & 0 \\[2.0ex] 0 & 0 & 0 \end{array} \right) + \tilde{g}^{ij},
+\end{equation}
+\begin{align}
+\tilde{g}^{\alpha \alpha} &= 0 \\
+\tilde{g}^{\alpha \beta} &= 0 \\
+\tilde{g}^{\beta \beta} &= 0 \\
+\tilde{g}^{\alpha \xi} &= - \frac{\delta^2}{a^2 (1+X^2) (1+Y^2)} \left( \pdiff{R}{\xi} \right)^{-1} \left[ (1+Y^2) \left( \pdiff{R}{\alpha} \right) + X Y \left( \pdiff{R}{\beta} \right) \right] \\
+\tilde{g}^{\beta \xi} &= - \frac{\delta^2}{a^2 (1+X^2) (1+Y^2)} \left( \pdiff{R}{\xi} \right)^{-1} \left[ X Y \left( \pdiff{R}{\alpha} \right) + (1+X^2) \left( \pdiff{R}{\beta} \right) \right] \\
+\tilde{g}^{\xi \xi} &= \left( \pdiff{R}{\xi} \right)^{-2} + \frac{\delta^2}{a^2 (1+X^2) (1+Y^2)} \left( \pdiff{R}{\xi} \right)^{-2} \left[ (1+Y^2) \left( \pdiff{R}{\alpha} \right)^2 + 2 X Y \left( \pdiff{R}{\alpha} \right) \left( \pdiff{R}{\beta} \right) + (1+X^2) \left( \pdiff{R}{\beta} \right)^2 \right]
+\end{align}
+
+\begin{equation}
+\Gamma^{\alpha}_{\ i j} = \left( \begin{array}{ccc} \displaystyle \frac{2 X Y^2}{\delta^2} & \displaystyle - \frac{Y (1+Y^2)}{\delta^2} & 0 \\[2.0ex] \displaystyle - \frac{Y (1+Y^2)}{\delta^2} & 0 & 0 \\[2.0ex] 0 & 0 & 0 \end{array} \right) \qquad \Gamma^{\beta}_{\ i j} = \left( \begin{array}{ccc} \displaystyle 0 & \displaystyle - \frac{X (1+X^2)}{\delta^2} & 0 \\[2.0ex] \displaystyle - \frac{X (1+X^2)}{\delta^2} & \displaystyle \frac{2 X^2 Y}{\delta^2} & 0 \\[2.0ex] 0 & 0 & 0 \end{array} \right)
+\end{equation}
+
+\begin{equation}
+\Gamma^{\xi}_{\ i j} = \left( \pdiff{R}{\xi} \right)^{-1} \left( \begin{array}{ccc} \displaystyle - \frac{2 X Y^2}{\delta^2} \left( \pdiff{R}{\alpha} \right) + \left( \frac{\partial^2 R}{\partial \alpha^2} \right) & \displaystyle \frac{Y (1+Y^2)}{\delta^2} \left( \pdiff{R}{\alpha} \right) + \frac{X (1+X^2)}{\delta^2} \left( \pdiff{R}{\beta} \right) + \left( \frac{\partial^2 R}{\partial \alpha \partial \beta} \right) & \displaystyle \left( \frac{\partial^2 R}{\partial \alpha \partial \xi} \right) \\[4.0ex] \cdots & \displaystyle - \frac{2 X^2 Y}{\delta^2} \left( \pdiff{R}{\beta} \right) + \left( \frac{\partial^2 R}{\partial \beta^2} \right) & \displaystyle \left( \frac{\partial^2 R}{\partial \beta \partial \xi} \right) \\[4.0ex] \cdots & \cdots & \displaystyle \left( \frac{\partial^2 R}{\partial \xi^2} \right)  \end{array} \right)
+\end{equation}
+
+\section{Hydrodynamics}
+
+The system of equations describing the hydrodynamic system in arbitrary geometry is as follows:
+\begin{align}
+\pdiff{u^\alpha}{t} + u^\alpha \nabla_\alpha u^\alpha + u^\beta \nabla_\beta u^\alpha + u^\xi \nabla_\xi u^\alpha + \frac{1}{\rho} \nabla^\alpha p + f g^{\alpha j} \epsilon_{j \xi k} u^k &= 0 \\
+\pdiff{u^\beta}{t} + u^\alpha \nabla_\alpha u^\beta + u^\beta \nabla_\beta u^\beta + u^\xi \nabla_\xi u^\beta + \frac{1}{\rho} \nabla^\beta p + f g^{\beta j} \epsilon_{j \xi k} u^k &= 0 \\
+\pdiff{\theta}{t} + u^\alpha \pdiff{\theta}{\alpha} + u^\beta \pdiff{\theta}{\beta} &= - u^\xi \pdiff{\theta}{\xi} \\
+\pdiff{u^\xi}{t} + u^\alpha \nabla_\alpha u^\xi + u^\beta \nabla_\beta u^\xi + u^\xi \nabla_\xi u^\xi &= - \frac{1}{\rho} \nabla^\xi p \\
+\pdiff{\rho}{t} + \frac{1}{J} \pdiff{}{\alpha} (J \rho u^\alpha) + \frac{1}{J} \pdiff{}{\beta} (J \rho u^\beta) &= - \frac{1}{J} \pdiff{}{\xi} (J \rho u^\xi)
+\end{align}
+Advection and geometry:
+\begin{align}
+u^\alpha \nabla_\alpha u^k &= u^\alpha \left[ \pdiff{u^k}{\alpha} + \Gamma^k_{\ \alpha \alpha} u^\alpha + \Gamma^k_{\ \alpha \beta} u^\beta + \Gamma^k_{\ \alpha \xi} u^\xi \right] \\
+u^\beta \nabla_\beta u^k &= u^\beta \left[ \pdiff{u^k}{\beta} + \Gamma^k_{\ \beta \alpha} u^\alpha + \Gamma^k_{\ \beta \beta} u^\beta + \Gamma^k_{\ \beta \xi} u^\xi \right] \\
+u^\xi \nabla_\xi u^k &= u^\beta \left[ \pdiff{u^k}{\xi} + \Gamma^k_{\ \xi \alpha} u^\alpha + \Gamma^k_{\ \xi \beta} u^\beta + \Gamma^k_{\ \xi \xi} u^\xi \right]
+\end{align}
+Pressure gradient:
+\begin{align}
+\nabla^k p &= g^{k \alpha} \pdiff{p}{\alpha} + g^{k \beta} \pdiff{p}{\beta} + g^{k \xi} \pdiff{p}{\xi}
+\end{align}
+Coriolis Force:
+\begin{align}
+f g^{\alpha j} \epsilon_{j \xi k} u^k &= - f g^{\alpha \alpha} J u^\beta + f g^{\alpha \beta} J u^\alpha \\
+f g^{\beta j} \epsilon_{j \xi k} u^k &= - f g^{\beta \alpha} J u^\beta + f g^{\beta \beta} J u^\alpha
+\end{align}
+
+\section{Horizontal Discretization}
+
+\subsection{Tensor Product Basis}
 
 The tensor-product basis is
 \begin{equation} \label{eq:TensorProductBasis}
 \phi_{(i,j)}(\alpha, \beta) = \tilde{\phi}_{(i)}(\alpha) \tilde{\phi}_{(j)}(\beta),
 \end{equation} where $\tilde{\phi}_{(i)}(x)$ denotes the usual 1D GLL basis function at node $i \in (0, \ldots, n_p)$.  For vector fields, the components of the covariant vector field are given by the tensor-product basis (\ref{eq:TensorProductBasis}).
 
-\section{Hydrodynamics}
+\subsection{Spectral Element (Scalar Variational Form)}
 
-The system of equations describing the hydrodynamic system is as follows:
+Consider a scalar conservation law of the form
+\begin{equation}
+\pdiff{\psi}{t} + \nabla \cdot \vb{F} = S,
+\end{equation} with $\vb{F} = F^\alpha \vb{g}_\alpha + F^\beta \vb{g}_\beta$.  Multiplying by the tensor-product basis $\phi_{(p,q)}(\alpha, \beta)$ and integrating over the whole domain yields
+\begin{equation} \label{eq:SEMethodDerivation1}
+\iint \pdiff{\psi}{t} \phi_{(i,j)} dA = - \iint (\nabla \cdot \vb{F}) \phi_{(i,j)} dA + \iint S \phi_{(i,j)} dA,
+\end{equation} where $dA = J d\alpha d\beta$.  Applying integration by parts and using periodicity of the domain then leads to the weak form
+\begin{equation}
+\iint \pdiff{\psi}{t} \phi_{(i,j)} dA = \iint \nabla \phi_{(i,j)} \cdot \vb{F} dA + \iint S \phi_{(i,j)} dA.
+\end{equation}  Further expanding $\psi$ in terms of the horizontal basis functions as
+\begin{equation}
+\psi(t, \alpha, \beta) = \sum_{(s,t)} \psi_{(s,t)}(t) \phi_{(s,t)}(\alpha, \beta)
+\end{equation} leads to
+\begin{equation}
+\sum_{(s,t)} \pdiff{\psi_{(s,t)}}{t} \iint \phi_{(s,t)} \phi_{(i,j)} dA = \iint \nabla \phi_{(i,j)} \cdot \vb{F} dA + \iint S \phi_{(i,j)} dA.
+\end{equation}  Here the vertical dependence of $\psi$ is implicit.  For simplicity we now restrict our domain to a single spectral element (since the DSS procedure will later be used to account for inter-element exchange).  Approximate integration is now applied,
+\begin{equation}
+\iint f(\alpha, \beta) dA = \Delta \alpha \Delta \beta \sum_{p = 0}^{n_p-1} \sum_{q = 0}^{n_p-1} f(\alpha_p, \beta_q) w_p w_q,
+\end{equation} where $w_i$ are the nodal weights of the GLL nodes on the reference element $[0,1]$.  Consequently,
 \begin{align}
-\pdiff{\rho}{t} + \frac{1}{J} \pdiff{}{\alpha} (J \rho u^\alpha) + \frac{1}{J} \pdiff{}{\beta} (J \rho u^\beta) &= - \frac{1}{J} \pdiff{}{\xi} (J \rho u^\xi), \\
-\pdiff{\vb{u}^\alpha}{t} + u^\alpha \nabla_\alpha u^\alpha + u^\beta \nabla_\beta u^\alpha + u^\xi \nabla_\xi u^\alpha + \frac{1}{\rho} \nabla^\alpha p + \frac{f}{J} u^\beta &= 0, \\
-\pdiff{\vb{u}^\beta}{t} + u^\alpha \nabla_\alpha u^\beta + u^\beta \nabla_\beta u^\beta + u^\xi \nabla_\xi u^\beta + \frac{1}{\rho} \nabla^\beta p - \frac{f}{J} u^\alpha &= 0,
+\label{eq:SEMethodExpansion1} \iint \pdiff{\psi}{t} \phi_{(i,j)} dA &= \Delta \alpha \Delta \beta \pdiff{\psi_{(i,j)}}{t} w_i w_j J(\alpha_i, \beta_j), \\
+\label{eq:SEMethodExpansion2} \iint \nabla \phi_{(i,j)} \cdot \vb{F} dA &= \Delta \alpha \Delta \beta w_j \sum_{p = 0}^{n_p-1} \left. \diff{\tilde{\phi}_{(i)}}{\alpha} F^\alpha w_p J \right\vert_{\alpha = \alpha_p, \beta = \beta_j} + \Delta \alpha \Delta \beta w_i \sum_{q = 0}^{n_p-1} \left. \diff{\tilde{\phi}_{(j)}}{\beta} F^\beta w_q J \right\vert_{\alpha = \alpha_i, \beta = \beta_q}, \\
+\label{eq:SEMethodExpansion3} \iint S \phi_{(i,j)} dA &= \Delta \alpha \Delta \beta S(\alpha_i, \beta_j) w_i w_j J(\alpha_i, \beta_j).
+\end{align}  Substituting (\ref{eq:SEMethodExpansion1})-(\ref{eq:SEMethodExpansion3}) into (\ref{eq:SEMethodDerivation1}) gives the spectral element semi-discretization
+\begin{align}
+\pdiff{\psi_{(i,j)}}{t} &= \frac{1}{w_i J(\alpha_i, \beta_j)} \sum_{p = 0}^{n_p-1} \left. \diff{\tilde{\phi}_{(i)}}{\alpha} F^\alpha w_p J \right\vert_{\alpha = \alpha_p, \beta = \beta_j} \nonumber \\
+& \qquad + \frac{1}{w_j J(\alpha_i, \beta_j)} \sum_{q = 0}^{n_p-1} \left. \diff{\tilde{\phi}_{(j)}}{\beta} F^\beta w_q J \right\vert_{\alpha = \alpha_i, \beta = \beta_q} + S(\alpha_i, \beta_j)
 \end{align}
 
-\subsection{Spectral Element}
+\subsection{Spectral Element (Differential Form)}
+
+The spectral element method can also be derived in differential form by noting that basis functions can be interpreted as components of an interpolating polynomial.  For an arbitrary function $f(\alpha, \beta)$ defined on element nodes we have
+\begin{align}
+\left. \pdiff{f}{\alpha} \right\vert_{\alpha = \alpha_i, \beta = \beta_j} &= \sum_{p=0}^{n_p-1} \left. \diff{\tilde{\phi}_{(p)}}{\alpha} \right\vert_{\alpha = \alpha_i} f(\alpha_p, \beta_j), \\
+\left. \pdiff{f}{\beta} \right\vert_{\alpha = \alpha_i, \beta = \beta_j} &= \sum_{q=0}^{n_p-1} \left. \diff{\tilde{\phi}_{(q)}}{\beta} \right\vert_{\beta = \beta_j} f(\alpha_i, \beta_q).
+\end{align}
 
 \subsection{Flux Reconstruction / Discontinuous Galerkin}
 
 \section{Hyperviscosity}
 
-\subsection{Vector Hyperviscosity}
+Hyperviscosity is formulated in variational form.
+
+\subsection{Fourth-Order Scalar Hyperviscosity}
+
+\subsection{Fourth-Order Vector Hyperviscosity}
 
 Fourth-order vector hyperviscosity is implemented using a two stage procedure:
 \begin{align}
@@ -105,32 +222,32 @@ The divergent term is defined by
 \begin{align}
 & \iint (\nabla \cdot \vg{\phi}_{(i,j)}) (\nabla \cdot \vb{u}) dA \nonumber \\
 %& \qquad = \Delta \alpha \Delta \beta \sum_{m=0}^{n_p-1} \sum_{n=0}^{n_p-1} \left\{ \tilde{\phi}_{(i)}(\alpha_m) \tilde{\phi}_{(j)}(\beta_n) \left[ \frac{1}{J} \pdiff{}{\alpha}\left( J g^{\alpha \alpha} \right) + \frac{1}{J} \pdiff{}{\beta}\left( J g^{\beta \alpha} \right) \right] \right. \nonumber \\
-%& \qquad \qquad \left. + g^{\alpha \alpha} \tilde{\phi}_{(j)}(\beta_n) \pdiff{\tilde{\phi}_{(i)}}{\alpha} + \tilde{\phi}_{(i)}(\alpha_m) g^{\beta \alpha} \pdiff{\tilde{\phi}_{(j)}}{\beta} \right\} (\nabla \cdot \vb{u}) J w_m w_n \\
+%& \qquad \qquad \left. + g^{\alpha \alpha} \tilde{\phi}_{(j)}(\beta_n) \diff{\tilde{\phi}_{(i)}}{\alpha} + \tilde{\phi}_{(i)}(\alpha_m) g^{\beta \alpha} \diff{\tilde{\phi}_{(j)}}{\beta} \right\} (\nabla \cdot \vb{u}) J w_m w_n \\
 %& \qquad = \Delta \alpha \Delta \beta w_i w_j \left. \left[ \pdiff{}{\alpha}\left( J g^{\alpha \alpha} \right) + \pdiff{}{\beta}\left( J g^{\beta \alpha} \right) \right] (\nabla \cdot \vb{u}) \right\vert_{\alpha = \alpha_i, \beta = \beta_j} \nonumber \\
-%& \qquad \qquad + \Delta \alpha \Delta \beta w_j \sum_{m = 0}^{n_p-1} \left. J g^{\alpha \alpha} \pdiff{\tilde{\phi}_{(i)}}{\alpha} (\nabla \cdot \vb{u}) w_m \right\vert_{\alpha = \alpha_m, \beta = \beta_j} \nonumber \\
-%& \qquad \qquad + \Delta \alpha \Delta \beta w_i \sum_{n = 0}^{n_p-1} \left. J g^{\beta \alpha} \pdiff{\tilde{\phi}_{(j)}}{\beta} (\nabla \cdot \vb{u}) w_n \right\vert_{\alpha = \alpha_i, \beta = \beta_n}
+%& \qquad \qquad + \Delta \alpha \Delta \beta w_j \sum_{m = 0}^{n_p-1} \left. J g^{\alpha \alpha} \diff{\tilde{\phi}_{(i)}}{\alpha} (\nabla \cdot \vb{u}) w_m \right\vert_{\alpha = \alpha_m, \beta = \beta_j} \nonumber \\
+%& \qquad \qquad + \Delta \alpha \Delta \beta w_i \sum_{n = 0}^{n_p-1} \left. J g^{\beta \alpha} \diff{\tilde{\phi}_{(j)}}{\beta} (\nabla \cdot \vb{u}) w_n \right\vert_{\alpha = \alpha_i, \beta = \beta_n}
 & \qquad = \Delta \alpha \Delta \beta \sum_{m=0}^{n_p-1} \sum_{n=0}^{n_p-1} \left[ \frac{\tilde{\phi}_{(j)}(\beta_n)}{J} \pdiff{}{\alpha} \left( J g^{\alpha \alpha} \tilde{\phi}_{(i)}(\alpha) \right)  + \frac{\tilde{\phi}_{(i)}(\alpha_m)}{J} \pdiff{}{\beta} \left( J g^{\beta \alpha} \tilde{\phi}_{(j)}(\beta) \right) \right] (\nabla \cdot \vb{u}) J w_m w_n \\
 & \qquad = \Delta \alpha \Delta \beta w_j \sum_{m = 0}^{n_p-1} \left. \pdiff{}{\alpha} \left( J g^{\alpha \alpha} \tilde{\phi}_{(i)}(\alpha) \right) (\nabla \cdot \vb{u}) w_m \right\vert_{\alpha = \alpha_m, \beta = \beta_j} \nonumber \\
 & \qquad \qquad + \Delta \alpha \Delta \beta w_i \sum_{n = 0}^{n_p-1} \left. \pdiff{}{\beta} \left( J g^{\beta \alpha} \tilde{\phi}_{(j)}(\beta) \right) (\nabla \cdot \vb{u}) w_n \right\vert_{\alpha = \alpha_i, \beta = \beta_n} \\
-& \qquad = \Delta \alpha \Delta \beta w_j \sum_{m = 0}^{n_p-1} \left. J g^{\alpha \alpha} \pdiff{\tilde{\phi}_{(i)}}{\alpha} (\nabla \cdot \vb{u}) w_m \right\vert_{\alpha = \alpha_m, \beta = \beta_j} \nonumber \\
-& \qquad \qquad + \Delta \alpha \Delta \beta w_i \sum_{n = 0}^{n_p-1} \left. J g^{\beta \alpha} \pdiff{\tilde{\phi}_{(j)}}{\beta} (\nabla \cdot \vb{u}) w_n \right\vert_{\alpha = \alpha_i, \beta = \beta_n} \label{eq:VecHyperviscosityZeroBetaDiv}
+& \qquad = \Delta \alpha \Delta \beta w_j \sum_{m = 0}^{n_p-1} \left. J g^{\alpha \alpha} \diff{\tilde{\phi}_{(i)}}{\alpha} (\nabla \cdot \vb{u}) w_m \right\vert_{\alpha = \alpha_m, \beta = \beta_j} \nonumber \\
+& \qquad \qquad + \Delta \alpha \Delta \beta w_i \sum_{n = 0}^{n_p-1} \left. J g^{\beta \alpha} \diff{\tilde{\phi}_{(j)}}{\beta} (\nabla \cdot \vb{u}) w_n \right\vert_{\alpha = \alpha_i, \beta = \beta_n} \label{eq:VecHyperviscosityZeroBetaDiv}
 \end{align}
 
 Further, the vortical term is defined by
 \begin{align}
-(\nabla \times \vg{\phi}_{(i,j)})^r &= - \frac{1}{J} \pdiff{\phi_{(i,j) \alpha}}{\beta} = - \frac{\tilde{\phi}_{(i)}}{J} \pdiff{\tilde{\phi}_{(j)}}{\beta}
+(\nabla \times \vg{\phi}_{(i,j)})^r &= - \frac{1}{J} \pdiff{\phi_{(i,j) \alpha}}{\beta} = - \frac{\tilde{\phi}_{(i)}}{J} \diff{\tilde{\phi}_{(j)}}{\beta}
 \end{align} and so
 \begin{align}
 & \iint (\nabla \times \vg{\phi}_{(i,j)})^r (\nabla \times \vb{u})_r dA \nonumber \\
-& \qquad = \Delta \alpha \Delta \beta \sum_{m=0}^{n_p-1} \sum_{n=0}^{n_p-1} \left. \left[- \frac{\tilde{\phi}_{(i)}(\alpha_m)}{J} \pdiff{\tilde{\phi}_{(j)}}{\beta} \right] (\nabla \times \vb{u})_r J w_m w_n \right\vert_{\alpha = \alpha_m, \beta = \beta_n} \\
-& \qquad = - \Delta \alpha \Delta \beta w_i \sum_{n=0}^{n_p-1} \left. \pdiff{\tilde{\phi}_{(j)}}{\beta} (\nabla \times \vb{u})_r w_n \right\vert_{\alpha = \alpha_i, \beta = \beta_n} \label{eq:VecHyperviscosityZeroBetaCurl}
+& \qquad = \Delta \alpha \Delta \beta \sum_{m=0}^{n_p-1} \sum_{n=0}^{n_p-1} \left. \left[- \frac{\tilde{\phi}_{(i)}(\alpha_m)}{J} \diff{\tilde{\phi}_{(j)}}{\beta} \right] (\nabla \times \vb{u})_r J w_m w_n \right\vert_{\alpha = \alpha_m, \beta = \beta_n} \\
+& \qquad = - \Delta \alpha \Delta \beta w_i \sum_{n=0}^{n_p-1} \left. \diff{\tilde{\phi}_{(j)}}{\beta} (\nabla \times \vb{u})_r w_n \right\vert_{\alpha = \alpha_i, \beta = \beta_n} \label{eq:VecHyperviscosityZeroBetaCurl}
 \end{align}
 
 Combining (\ref{eq:VecHyperviscosityZeroBetaLHS}), (\ref{eq:VecHyperviscosityZeroBetaDiv}) and (\ref{eq:VecHyperviscosityZeroBetaCurl}) then gives
 \begin{align}
-f^\alpha_{(i,j)} &= \frac{\nu_d}{J(\alpha_i, \beta_j) w_i} \sum_{m = 0}^{n_p-1} \left. J g^{\alpha \alpha} \pdiff{\tilde{\phi}_{(i)}}{\alpha} (\nabla \cdot \vb{u}) w_m \right\vert_{\alpha = \alpha_m, \beta = \beta_j} \nonumber \\
-& \qquad + \frac{\nu_d}{J(\alpha_i, \beta_j) w_j} \sum_{n = 0}^{n_p-1} \left. J g^{\beta \alpha} \pdiff{\tilde{\phi}_{(j)}}{\beta} (\nabla \cdot \vb{u}) w_n \right\vert_{\alpha = \alpha_i, \beta = \beta_n} \nonumber \\
-& \qquad - \frac{\nu_v}{J(\alpha_i, \beta_j) w_j} \sum_{n=0}^{n_p-1} \left. \pdiff{\tilde{\phi}_{(j)}}{\beta} (\nabla \times \vb{u})_r w_n \right\vert_{\alpha = \alpha_i, \beta = \beta_n}
+f^\alpha_{(i,j)} &= \frac{\nu_d}{J(\alpha_i, \beta_j) w_i} \sum_{m = 0}^{n_p-1} \left. J g^{\alpha \alpha} \diff{\tilde{\phi}_{(i)}}{\alpha} (\nabla \cdot \vb{u}) w_m \right\vert_{\alpha = \alpha_m, \beta = \beta_j} \nonumber \\
+& \qquad + \frac{\nu_d}{J(\alpha_i, \beta_j) w_j} \sum_{n = 0}^{n_p-1} \left. J g^{\beta \alpha} \diff{\tilde{\phi}_{(j)}}{\beta} (\nabla \cdot \vb{u}) w_n \right\vert_{\alpha = \alpha_i, \beta = \beta_n} \nonumber \\
+& \qquad - \frac{\nu_v}{J(\alpha_i, \beta_j) w_j} \sum_{n=0}^{n_p-1} \left. \diff{\tilde{\phi}_{(j)}}{\beta} (\nabla \times \vb{u})_r w_n \right\vert_{\alpha = \alpha_i, \beta = \beta_n}
 \end{align}
 
 \subsubsection{Vector basis with zero $\alpha$ component}
@@ -149,32 +266,32 @@ The divergent term is defined by
 \begin{align}
 & \iint (\nabla \cdot \vg{\phi}_{(i,j)}) (\nabla \cdot \vb{u}) dA \nonumber \\
 %& \qquad = \Delta \alpha \Delta \beta \sum_{m=0}^{n_p-1} \sum_{n=0}^{n_p-1} \left\{ \tilde{\phi}_{(i)} \tilde{\phi}_{(j)} \left[ \frac{1}{J} \pdiff{}{\alpha} \left( J g^{\alpha \beta} \right) + \frac{1}{J} \pdiff{}{\beta} \left( J g^{\beta \beta} \right) \right] \right. \nonumber \\
-%& \qquad \qquad \left. + \tilde{\phi}_{(j)} g^{\alpha \beta} \pdiff{\tilde{\phi}_{(i)}}{\alpha} + \tilde{\phi}_{(i)} g^{\beta \beta} \pdiff{\tilde{\phi}_{(j)}}{\beta} \right\} (\nabla \cdot \vb{u}) J w_m w_n \\
+%& \qquad \qquad \left. + \tilde{\phi}_{(j)} g^{\alpha \beta} \diff{\tilde{\phi}_{(i)}}{\alpha} + \tilde{\phi}_{(i)} g^{\beta \beta} \diff{\tilde{\phi}_{(j)}}{\beta} \right\} (\nabla \cdot \vb{u}) J w_m w_n \\
 %& \qquad = \Delta \alpha \Delta \beta w_i w_j \left. \left[ \frac{1}{J} \pdiff{}{\alpha} \left( J g^{\alpha \beta} \right) + \frac{1}{J} \pdiff{}{\beta} \left( J g^{\beta \beta} \right) \right] (\nabla \cdot \vb{u}) \right\vert_{\alpha = \alpha_i, \beta = \beta_j} \nonumber \\
-%& \qquad \qquad + \Delta \alpha \Delta \beta w_j \sum_{m = 0}^{n_p-1} \left. J g^{\alpha \beta} \pdiff{\tilde{\phi}_{(i)}}{\alpha} (\nabla \cdot \vb{u}) w_m \right\vert_{\alpha = \alpha_m, \beta = \beta_j} \nonumber \\
-%& \qquad \qquad + \Delta \alpha \Delta \beta w_i \sum_{n = 0}^{n_p-1} \left. J g^{\beta \beta} \pdiff{\tilde{\phi}_{(j)}}{\beta} (\nabla \cdot \vb{u}) w_n \right\vert_{\alpha = \alpha_i, \beta = \beta_n}
+%& \qquad \qquad + \Delta \alpha \Delta \beta w_j \sum_{m = 0}^{n_p-1} \left. J g^{\alpha \beta} \diff{\tilde{\phi}_{(i)}}{\alpha} (\nabla \cdot \vb{u}) w_m \right\vert_{\alpha = \alpha_m, \beta = \beta_j} \nonumber \\
+%& \qquad \qquad + \Delta \alpha \Delta \beta w_i \sum_{n = 0}^{n_p-1} \left. J g^{\beta \beta} \diff{\tilde{\phi}_{(j)}}{\beta} (\nabla \cdot \vb{u}) w_n \right\vert_{\alpha = \alpha_i, \beta = \beta_n}
 & \qquad = \Delta \alpha \Delta \beta \sum_{m=0}^{n_p-1} \sum_{n=0}^{n_p-1} \left[ \frac{\tilde{\phi}_{(j)}(\beta_n)}{J} \pdiff{}{\alpha} \left( J g^{\alpha \beta} \tilde{\phi}_{(i)} \right) + \frac{\tilde{\phi}_{(i)}(\alpha_m)}{J} \pdiff{}{\beta} \left( J g^{\beta \beta} \tilde{\phi}_{(j)} \right) \right] (\nabla \cdot \vb{u}) J w_m w_n \\
 & \qquad = \Delta \alpha \Delta \beta w_j \sum_{m=0}^{n_p-1} \left. \pdiff{}{\alpha} \left( J g^{\alpha \beta} \tilde{\phi}_{(i)}(\alpha) \right) (\nabla \cdot \vb{u}) w_m \right\vert_{\alpha = \alpha_m, \beta = \beta_j} \nonumber \\
 & \qquad \qquad + \Delta \alpha \Delta \beta w_i \sum_{n=0}^{n_p-1} \left. \pdiff{}{\beta} \left( J g^{\beta \beta} \tilde{\phi}_{(j)}(\beta) \right) (\nabla \cdot \vb{u}) w_n \right\vert_{\alpha = \alpha_i, \beta = \beta_n} \\
-& \qquad = \Delta \alpha \Delta \beta w_j \sum_{m=0}^{n_p-1} \left. J g^{\alpha \beta} \pdiff{\tilde{\phi}_{(i)}}{\alpha} (\nabla \cdot \vb{u}) w_m \right\vert_{\alpha = \alpha_m, \beta = \beta_j} \nonumber \\
-& \qquad \qquad + \Delta \alpha \Delta \beta w_i \sum_{n=0}^{n_p-1} \left. J g^{\beta \beta} \pdiff{\tilde{\phi}_{(j)}}{\beta} (\nabla \cdot \vb{u}) w_n \right\vert_{\alpha = \alpha_i, \beta = \beta_n} \label{eq:VecHyperviscosityZeroAlphaDiv}
+& \qquad = \Delta \alpha \Delta \beta w_j \sum_{m=0}^{n_p-1} \left. J g^{\alpha \beta} \diff{\tilde{\phi}_{(i)}}{\alpha} (\nabla \cdot \vb{u}) w_m \right\vert_{\alpha = \alpha_m, \beta = \beta_j} \nonumber \\
+& \qquad \qquad + \Delta \alpha \Delta \beta w_i \sum_{n=0}^{n_p-1} \left. J g^{\beta \beta} \diff{\tilde{\phi}_{(j)}}{\beta} (\nabla \cdot \vb{u}) w_n \right\vert_{\alpha = \alpha_i, \beta = \beta_n} \label{eq:VecHyperviscosityZeroAlphaDiv}
 \end{align}
 
 Further, the vortical term is defined by
 \begin{align}
-(\nabla \times \vg{\phi}_{(i,j)})^r &= \frac{1}{J} \pdiff{\phi_{(i,j) \beta}}{\alpha} = \frac{\tilde{\phi}_{(j)}}{J} \pdiff{\tilde{\phi}_{(i)}}{\alpha}
+(\nabla \times \vg{\phi}_{(i,j)})^r &= \frac{1}{J} \pdiff{\phi_{(i,j) \beta}}{\alpha} = \frac{\tilde{\phi}_{(j)}}{J} \diff{\tilde{\phi}_{(i)}}{\alpha}
 \end{align} and so
 \begin{align}
 & \iint (\nabla \times \vg{\phi}_{(i,j)})^r (\nabla \times \vb{u})_r dA \nonumber \\
-& \qquad = \Delta \alpha \Delta \beta \sum_{m=0}^{n_p-1} \sum_{n=0}^{n_p-1} \left. \left[\frac{\tilde{\phi}_{(j)}(\beta_n)}{J} \pdiff{\tilde{\phi}_{(i)}}{\alpha}\right] (\nabla \times \vb{u})_r J w_m w_n \right\vert_{\alpha = \alpha_m, \beta = \beta_n} \\
-& \qquad = \Delta \alpha \Delta \beta w_j \sum_{m=0}^{n_p-1} \left. \pdiff{\tilde{\phi}_{(i)}}{\alpha} (\nabla \times \vb{u})_r w_m \right\vert_{\alpha = \alpha_m, \beta = \beta_j} \label{eq:VecHyperviscosityZeroAlphaCurl}
+& \qquad = \Delta \alpha \Delta \beta \sum_{m=0}^{n_p-1} \sum_{n=0}^{n_p-1} \left. \left[\frac{\tilde{\phi}_{(j)}(\beta_n)}{J} \diff{\tilde{\phi}_{(i)}}{\alpha}\right] (\nabla \times \vb{u})_r J w_m w_n \right\vert_{\alpha = \alpha_m, \beta = \beta_n} \\
+& \qquad = \Delta \alpha \Delta \beta w_j \sum_{m=0}^{n_p-1} \left. \diff{\tilde{\phi}_{(i)}}{\alpha} (\nabla \times \vb{u})_r w_m \right\vert_{\alpha = \alpha_m, \beta = \beta_j} \label{eq:VecHyperviscosityZeroAlphaCurl}
 \end{align}
 
 Combining (\ref{eq:VecHyperviscosityZeroAlphaLHS}), (\ref{eq:VecHyperviscosityZeroAlphaDiv}) and (\ref{eq:VecHyperviscosityZeroAlphaCurl}) then gives
 \begin{align}
-f^{\beta}_{(i,j)} &= \frac{\nu_d}{J(\alpha_i, \beta_j) w_i} \sum_{m=0}^{n_p-1} \left. J g^{\alpha \beta} \pdiff{\tilde{\phi}_{(i)}}{\alpha} (\nabla \cdot \vb{u}) w_m \right\vert_{\alpha = \alpha_m, \beta = \beta_j} \nonumber \\
-& \qquad + \frac{\nu_d}{J(\alpha_i, \beta_j) w_j} \sum_{n=0}^{n_p-1} \left. J g^{\beta \beta} \pdiff{\tilde{\phi}_{(j)}}{\beta} (\nabla \cdot \vb{u}) w_n \right\vert_{\alpha = \alpha_i, \beta = \beta_n} \nonumber \\
-& \qquad + \frac{\nu_v}{J(\alpha_i, \beta_j) w_i} \sum_{m=0}^{n_p-1} \left. \pdiff{\tilde{\phi}_{(i)}}{\alpha} (\nabla \times \vb{u})_r w_m \right\vert_{\alpha = \alpha_m, \beta = \beta_j}
+f^{\beta}_{(i,j)} &= \frac{\nu_d}{J(\alpha_i, \beta_j) w_i} \sum_{m=0}^{n_p-1} \left. J g^{\alpha \beta} \diff{\tilde{\phi}_{(i)}}{\alpha} (\nabla \cdot \vb{u}) w_m \right\vert_{\alpha = \alpha_m, \beta = \beta_j} \nonumber \\
+& \qquad + \frac{\nu_d}{J(\alpha_i, \beta_j) w_j} \sum_{n=0}^{n_p-1} \left. J g^{\beta \beta} \diff{\tilde{\phi}_{(j)}}{\beta} (\nabla \cdot \vb{u}) w_n \right\vert_{\alpha = \alpha_i, \beta = \beta_n} \nonumber \\
+& \qquad + \frac{\nu_v}{J(\alpha_i, \beta_j) w_i} \sum_{m=0}^{n_p-1} \left. \diff{\tilde{\phi}_{(i)}}{\alpha} (\nabla \times \vb{u})_r w_m \right\vert_{\alpha = \alpha_m, \beta = \beta_j}
 \end{align}
 
 \end{document}
