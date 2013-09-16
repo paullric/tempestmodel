@@ -347,7 +347,7 @@ void VerticalDynamicsFEM::Initialize() {
 		m_dDiffReconsPolyREdge[n] /= dElementDeltaXi;
 	}
 
-	// Perform local update
+	// Calculate Exner pressure reference profile
 	for (int n = 0; n < pGrid->GetActivePatchCount(); n++) {
 		GridPatch * pPatch = pGrid->GetActivePatch(n);
 
@@ -1098,13 +1098,14 @@ void VerticalDynamicsFEM::StepImplicit(
 					m_dSoln.GetRows(),
 					1.0e-10);
 /*
-            {
+            if (fabs(m_dSoln[10]) < 1.5e-5) {
+				printf("%i %i %i\n", n, iA, iB);
                 DataVector<double> dEval;
                 dEval.Initialize(m_dColumnState.GetRows());
                 Evaluate(m_dSoln, dEval);
 
-                for (int n = 0; n < dEval.GetRows(); n++) {
-                    printf("%1.5e %1.5e %1.5e\n", dEval[n], m_dSoln[n], m_dColumnState[n]);
+                for (int p = 0; p < dEval.GetRows(); p++) {
+                    printf("%1.5e %1.5e %1.5e\n", dEval[p], m_dSoln[p], m_dColumnState[p]);
                 }
                 _EXCEPTION();
             }
@@ -1146,36 +1147,47 @@ void VerticalDynamicsFEM::StepImplicit(
 		}
 		}
 
-		// Copy over new state on shared nodes
+		// Copy over new state on shared nodes (edges of constant alpha)
 		for (int a = 1; a < nAElements; a++) {
 			int iA = box.GetAInteriorBegin() + a * m_nHorizontalOrder - 1;
 
 			for (int b = 0; b < nBElements; b++) {
-			for (int j = 0; j < m_nHorizontalOrder-1; j++) {
 
-				int iB = box.GetBInteriorBegin() + b * m_nHorizontalOrder + j;
-
-				for (int k = 0; k < pGrid->GetRElements(); k++) {
-					dataUpdateNode[TIx][k][iA][iB]
-						= dataUpdateNode[TIx][k][iA+1][iB];
-					dataUpdateNode[WIx][k][iA][iB]
-						= dataUpdateNode[WIx][k][iA+1][iB];
-					dataUpdateNode[RIx][k][iA][iB]
-						= dataUpdateNode[RIx][k][iA+1][iB];
+				// Top element contains more information
+				int jEnd;
+				if (b == nBElements-1) {
+					jEnd = m_nHorizontalOrder;
+				} else {
+					jEnd = m_nHorizontalOrder-1;
 				}
 
-				for (int k = 0; k <= pGrid->GetRElements(); k++) {
-					dataUpdateREdge[TIx][k][iA][iB]
-						= dataUpdateREdge[TIx][k][iA+1][iB];
-					dataUpdateREdge[WIx][k][iA][iB]
-						= dataUpdateREdge[WIx][k][iA+1][iB];
-					dataUpdateREdge[RIx][k][iA][iB]
-						= dataUpdateREdge[RIx][k][iA+1][iB];
+				// Loop along edges of constant alpha
+				for (int j = 0; j < jEnd; j++) {
+
+					int iB = box.GetBInteriorBegin() + b * m_nHorizontalOrder + j;
+
+					for (int k = 0; k < pGrid->GetRElements(); k++) {
+						dataUpdateNode[TIx][k][iA][iB]
+							= dataUpdateNode[TIx][k][iA+1][iB];
+						dataUpdateNode[WIx][k][iA][iB]
+							= dataUpdateNode[WIx][k][iA+1][iB];
+						dataUpdateNode[RIx][k][iA][iB]
+							= dataUpdateNode[RIx][k][iA+1][iB];
+					}
+
+					for (int k = 0; k <= pGrid->GetRElements(); k++) {
+						dataUpdateREdge[TIx][k][iA][iB]
+							= dataUpdateREdge[TIx][k][iA+1][iB];
+						dataUpdateREdge[WIx][k][iA][iB]
+							= dataUpdateREdge[WIx][k][iA+1][iB];
+						dataUpdateREdge[RIx][k][iA][iB]
+							= dataUpdateREdge[RIx][k][iA+1][iB];
+					}
 				}
-			}
 			}
 		}
 
+		// Copy over new state on shared nodes (edges of constant beta)
 		for (int b = 1; b < nBElements; b++) {
 		for (int i = box.GetAInteriorBegin(); i < box.GetAInteriorEnd(); i++) {
 			int iB = box.GetBInteriorBegin() + b * m_nHorizontalOrder - 1;
