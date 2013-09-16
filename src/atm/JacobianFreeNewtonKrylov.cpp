@@ -290,7 +290,7 @@ double JacobianFreeNewtonKrylov::PerformJFNK_NewtonStep(
 		// y = H(1:m,1:m) \ s(1:m);
 		m_dY = m_dS;
 
-		iInfo = LAPACK::DTPSV('U', 'N', 'N', m_nIterPerRestart+1, m_dH, m_dY);
+		iInfo = LAPACK::DTPSV('U', 'N', 'N', m_nIterPerRestart, m_dH, m_dY);
 		if (iInfo != 0) {
 			_EXCEPTION1(
 				"LAPACK error (%d)  No matrix solution found.", iInfo);

@@ -1097,18 +1097,18 @@ void VerticalDynamicsFEM::StepImplicit(
 					m_dSoln,
 					m_dSoln.GetRows(),
 					1.0e-10);
-/*
-            {
+
+			if (!(m_dSoln[0] == m_dSoln[0])) {
                 DataVector<double> dEval;
                 dEval.Initialize(m_dColumnState.GetRows());
                 Evaluate(m_dSoln, dEval);
 
                 for (int p = 0; p < dEval.GetRows(); p++) {
-                    printf("%1.5e %1.5e %1.5e\n", dEval[p], m_dSoln[p], m_dColumnState[p]);
+                    printf("%1.15e %1.15e %1.15e\n", dEval[p], m_dSoln[p], m_dColumnState[p]);
                 }
-                _EXCEPTION();
+                _EXCEPTIONT("Inversion failure");
             }
-*/
+
 #endif
 
 			// Apply updated state

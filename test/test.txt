@@ -1,0 +1,45 @@
+Parameters:
+  --output_dir <string> ["out"] 
+  --output_prefix <string> ["out"] 
+  --resolution <integer> [20] 
+  --levels <integer> [10] 
+  --order <integer> [4] 
+  --vertorder <integer> [1] 
+  --ztop <double> [10000.000000] 
+  --alpha <double> [0.000000] 
+  --with_tracer <bool> [false] 
+  --deep_atmosphere <bool> [false] 
+  --pert <string> ["None"] (None | Exp | Sfn)
+  --dt <double> [200.000000] 
+  --endtime <double> [400.000000] 
+  --outputtime <double> [200.000000] 
+  --method <string> ["SE"] (SE | DG)
+  --hypervis <bool> [false] 
+-- INITIALIZATION ------------------------------------------
+Creating model.. Done
+Initializing parameters.. Done
+Initializing timestep scheme.. Done
+Initializing horizontal dynamics.. Done
+Initializing vertical dynamics.. Done
+Initializing grid.. Done
+Initializing data.. Done
+Creating reference output manager.. Done
+Creating checksum output manager.. Done
+-- SIMULATION ----------------------------------------------
+Output (0): 0.000000 (Initial)
+Output (0): 0.000000 (Initial)
+..Checksum (U): 5.248238438337705e+12
+..Checksum (V): 1.073163002729416e-05
+..Checksum (Theta): 1.587514689493130e+21
+..Checksum (W): 0.000000000000000e+00
+..Checksum (Rho): 3.814258923482990e+18
+Time 0.00000e+00
+Output (1): 200.000000
+Output (1): 200.000000
+..Checksum (U): 5.249984463863297e+12
+..Checksum (V): -7.088484242558479e-03
+..Checksum (Theta): 1.587370659952084e+21
+..Checksum (W): 6.072710344028758e+12
+..Checksum (Rho): 3.814258923482546e+18
+Time 2.00000e+02
+EXCEPTION (VerticalDynamicsFEM.cpp, Line 1224) General exception
