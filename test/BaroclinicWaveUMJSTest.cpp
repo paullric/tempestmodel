@@ -49,6 +49,17 @@ class BaroclinicWaveUMJSTest : public TestCase {
 
 public:
 	///	<summary>
+	///		Perturbation type.
+	///	</summary>
+	enum PerturbationType {
+		PerturbationType_Default = 0,
+		PerturbationType_None = PerturbationType_Default,
+		PerturbationType_Exp = 1,
+		PerturbationType_StreamFn = 2,
+	};
+
+public:
+	///	<summary>
 	///		Model scaling parameter
 	///	</summary>
 	static const double ParamEarthRadiusScaling = 1.0;
@@ -139,6 +150,11 @@ protected:
 	///	</summary>
 	double m_dZtop;
 
+	///	<summary>
+	///		Type of perturbation.
+	///	</summary>
+	PerturbationType m_ePerturbationType;
+
 public:
 	///	<summary>
 	///		Constructor.
@@ -147,12 +163,14 @@ public:
 		double dAlpha,
 		bool fDeepAtmosphere,
 		bool fTracerOn,
-		double dZtop
+		double dZtop,
+		PerturbationType ePerturbationType = PerturbationType_None
 	) :
 		m_dAlpha(dAlpha),
 		m_fDeepAtmosphere(fDeepAtmosphere),
 		m_fTracerOn(fTracerOn),
-		m_dZtop(dZtop)
+		m_dZtop(dZtop),
+		m_ePerturbationType(ePerturbationType)
 	{ }
 
 public:
@@ -196,6 +214,113 @@ public:
 		double dLat
 	) const {
 		return (0.0);
+	}
+
+	///	<summary>
+	///		Evaluate the stream function perturbation at the given point (in
+	///		latitude-longitude coordinates).
+	///	</summary>
+	double EvaluateStreamFunction(
+		double dZ,
+		double dLon,
+		double dLat
+	) const {
+		// Verify that the stream function perturbation is being used
+		if (m_ePerturbationType != PerturbationType_StreamFn) {
+			_EXCEPTION();
+		}
+
+		// Calculate great circle distance
+		double dGreatCircleR =
+			acos(sin(ParamPertLat) * sin(dLat)
+				+ cos(ParamPertLat) * cos(dLat) * cos(dLon - ParamPertLon));
+
+		dGreatCircleR /= ParamPertR;
+
+		// Tapered perturbation with height
+		double dPertTaper = 0.0;
+		if (dZ < ParamPertZ) {
+			dPertTaper = 1.0
+				- 3.0 * dZ * dZ / (ParamPertZ * ParamPertZ)
+				+ 2.0 * dZ * dZ * dZ / (ParamPertZ * ParamPertZ * ParamPertZ);
+		} else {
+			dPertTaper = 0.0;
+		}
+
+		// Calculate stream function
+		double dCosPert;
+		if (dGreatCircleR < 1.0) {
+			dCosPert = cos(0.5 * M_PI * dGreatCircleR);
+		} else {
+			dCosPert = 0.0;
+		}
+
+		return (- ParamU0 * ParamPertR * dPertTaper
+			* dCosPert * dCosPert * dCosPert * dCosPert);
+	}
+
+	///	<summary>
+	///		Evaluate the pointwise perturbation at the given point.
+	///	</summary>
+	void EvaluatePointwisePerturbation(
+		const PhysicalConstants & phys,
+		double dZ,
+		double dLon,
+		double dLat,
+		double & dUlon,
+		double & dUlat
+	) const {
+
+		// A small value for numerical derivatives
+		const double Epsilon = 1.0e-5;
+
+		// No perturbation
+		if (m_ePerturbationType == PerturbationType_None) {
+			dUlon = 0.0;
+			dUlat = 0.0;
+		}
+
+		// Exponential perturbation
+		if (m_ePerturbationType == PerturbationType_Exp) {
+			// Calculate great circle distance
+			double dGreatCircleR =
+				acos(sin(ParamPertLat) * sin(dLat)
+					+ cos(ParamPertLat) * cos(dLat) * cos(dLon - ParamPertLon));
+
+			dGreatCircleR /= ParamPertExpR;
+
+	  	 	// Tapered perturbation with height
+   			double dPertTaper = 0.0;
+			if (dZ < ParamPertZ) {
+				dPertTaper = 1.0
+ 					- 3.0 * dZ * dZ / (ParamPertZ * ParamPertZ)
+					+ 2.0 * dZ * dZ * dZ / (ParamPertZ * ParamPertZ * ParamPertZ);
+			} else {
+				dPertTaper = 0.0;
+			}
+
+			// Apply perturbation in zonal velocity
+			if (dGreatCircleR < 1.0) {
+				dUlon = ParamUp * dPertTaper
+					* exp(- dGreatCircleR * dGreatCircleR);
+			} else {
+				dUlon = 0.0;
+			}
+
+			dUlat = 0.0;
+		}
+
+		// Stream function perturbation
+		if (m_ePerturbationType == PerturbationType_StreamFn) {
+			// Evaluate the perturbation in zonal velocity
+			dUlon = - 1.0 / (2.0 * Epsilon) * (
+				  EvaluateStreamFunction(dZ, dLon, dLat + Epsilon)
+				- EvaluateStreamFunction(dZ, dLon, dLat - Epsilon));
+
+			dUlat = 1.0 / (2.0 * Epsilon * cos(dLat)) * (
+				  EvaluateStreamFunction(dZ, dLon + Epsilon, dLat)
+				- EvaluateStreamFunction(dZ, dLon - Epsilon, dLat));
+		}
 	}
 
 	///	<summary>
@@ -395,9 +520,22 @@ public:
 		double dUlon = - dOmegaRCosLat +
 			sqrt(dOmegaRCosLat * dOmegaRCosLat + dRCosLat * dBigU);
 
+		double dUlat = 0.0;
+
+		// Calculate velocity perturbation
+		double dUlonPert;
+		double dUlatPert;
+
+		EvaluatePointwisePerturbation(
+			phys, dZ, dLon, dLat,
+			dUlonPert, dUlatPert);
+
+		dUlon += dUlonPert;
+		dUlat += dUlatPert;
+
 		// Store the state
 		dState[0] = dUlon;
-		dState[1] = 0.0;
+		dState[1] = dUlat;
 		dState[2] = phys.RhoThetaFromPressure(dPressure) / dRho;
 		dState[3] = 0.0;
 		dState[4] = dRho;
@@ -448,6 +586,9 @@ try {
 	// Deep atmosphere flag
 	bool fDeepAtmosphere;
 
+	// Perturbation type
+	std::string strPerturbationType;
+
 	// Output time
 	double dOutputDeltaT;
 
@@ -472,6 +613,8 @@ try {
 		CommandLineDouble(dAlpha, "alpha", 0.0);
 		CommandLineBool(fTracersOn, "with_tracer");
 		CommandLineBool(fDeepAtmosphere, "deep_atmosphere");
+		CommandLineStringD(strPerturbationType, "pert",
+			"None", "(None | Exp | Sfn)");
 		CommandLineDouble(params.m_dDeltaT, "dt", 200.0);
 		CommandLineDouble(params.m_dEndTime, "endtime", 200.0);
 		CommandLineDouble(dOutputDeltaT, "outputtime", 86400.0);
@@ -536,7 +679,21 @@ try {
 	AnnounceEndBlock("Done");
 
 	// Set the test case for the model
-	BaroclinicWaveUMJSTest test(dAlpha, fDeepAtmosphere, fTracersOn, dZtop);
+	BaroclinicWaveUMJSTest::PerturbationType ePerturbationType;
+	STLStringHelper::ToLower(strPerturbationType);
+	if (strPerturbationType == "none") {
+		ePerturbationType = BaroclinicWaveUMJSTest::PerturbationType_None;
+	} else if (strPerturbationType == "exp") {
+		ePerturbationType = BaroclinicWaveUMJSTest::PerturbationType_Exp;
+	} else if (strPerturbationType == "sfn") {
+		ePerturbationType = BaroclinicWaveUMJSTest::PerturbationType_StreamFn;
+	} else {
+		_EXCEPTIONT("Invalid perturbation type:"
+			" Expected \"None\", \"Exp\" or \"SFn\"");
+	}
+
+	BaroclinicWaveUMJSTest test(
+		dAlpha, fDeepAtmosphere, fTracersOn, dZtop, ePerturbationType);
 	AnnounceStartBlock("Initializing data");
 	model.SetTestCase(&test);
 	AnnounceEndBlock("Done");
