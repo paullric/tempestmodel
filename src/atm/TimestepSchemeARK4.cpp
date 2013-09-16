@@ -78,7 +78,7 @@ void TimestepSchemeARK4::Step(
 	double dHalfDeltaT = 0.5 * dDeltaT;
 
 	// Vertical timestep
-	//pVerticalDynamics->StepImplicit(0, 0, dTime, 0.5 * dDeltaT);
+	pVerticalDynamics->StepImplicit(0, 0, dTime, dHalfDeltaT);
 
 	// Explicit RK4
 	pGrid->CopyData(0, 1, DataType_State);
@@ -100,7 +100,7 @@ void TimestepSchemeARK4::Step(
 	dRK4Combination[2] = + 2.0 / 3.0;
 	dRK4Combination[3] = + 1.0 / 3.0;
 	pGrid->LinearCombineData(dRK4Combination, 4, DataType_State);
-	
+
 	pHorizontalDynamics->StepExplicit(
 		3, 4, dTime + dDeltaT / 6.0, dDeltaT / 6.0);
 	pVerticalDynamics->StepExplicit(
@@ -111,7 +111,7 @@ void TimestepSchemeARK4::Step(
 	pHorizontalDynamics->StepAfterSubCycle(4, 0, dTime, dDeltaT);
 
 	// Vertical timestep
-	//pVerticalDynamics->StepImplicit(0, 0, dTime, dHalfDeltaT);
+	pVerticalDynamics->StepImplicit(0, 0, dTime, dHalfDeltaT);
 
 	//pGrid->CopyData(0, 1, DataType_State);
 	//pVerticalDynamics->StepExplicit(0, 1, dTime, dDeltaT);
