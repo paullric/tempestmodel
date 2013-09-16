@@ -332,13 +332,13 @@ void VerticalDynamicsFEM::Initialize() {
 		m_dDiffReconsPolyREdge[n] *= 2.0 / dElementDeltaXi;
 	}
 */
-#pragma message "UNTESTED"
+
 	// Get derivatives of flux reconstruction function and scale to the
 	// element [0, dElementDeltaXi]
 	FluxReconstructionFunction::GetDerivatives(
 		1, m_nVerticalOrder, dG, m_dDiffReconsPolyNode);
 	FluxReconstructionFunction::GetDerivatives(
-		1, m_nVerticalOrder, dG, m_dDiffReconsPolyREdge);
+		1, m_nVerticalOrder, dGL, m_dDiffReconsPolyREdge);
 
 	for (int n = 0; n < m_dDiffReconsPolyNode.GetRows(); n++) {
 		m_dDiffReconsPolyNode[n] /= dElementDeltaXi;
@@ -1098,8 +1098,7 @@ void VerticalDynamicsFEM::StepImplicit(
 					m_dSoln.GetRows(),
 					1.0e-10);
 /*
-            if (fabs(m_dSoln[10]) < 1.5e-5) {
-				printf("%i %i %i\n", n, iA, iB);
+            {
                 DataVector<double> dEval;
                 dEval.Initialize(m_dColumnState.GetRows());
                 Evaluate(m_dSoln, dEval);
