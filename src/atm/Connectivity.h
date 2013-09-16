@@ -470,7 +470,7 @@ private:
 	///	<summary>
 	///		Vector of interior boundary indices.
 	///	</summary>
-	InteriorNeighborVector m_vecNestedNeighbors;
+	////InteriorNeighborVector m_vecNestedNeighbors;
 
 	///	<summary>
 	///		Array indicating the panel in the specified direction.

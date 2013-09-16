@@ -463,6 +463,10 @@ void ExteriorNeighbor::Send() {
 	}
 */
 	// Tag
+	if (m_ixNeighbor >= (2 << 12)) {
+		_EXCEPTIONT("Maximum neighbor index exceeded.");
+	}
+
 	int nTag = (ixPatch << 16) + (m_ixNeighbor << 4) + (int)(m_dirOpposite);
 
 #pragma message "Move MPI_TAG processing to Connectivity"
@@ -820,12 +824,13 @@ void Connectivity::InitializeBuffers(
 		m_vecExteriorNeighbors[m].InitializeBuffers(
 			nRElements, nHaloElements, nVariables);
 	}
-
+/*
 	// Initialize interior neighbor buffers
 	for (int m = 0; m < m_vecNestedNeighbors.size(); m++) {
 		m_vecNestedNeighbors[m].InitializeBuffers(
 			nRElements, nHaloElements, nVariables);
 	}
+*/
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -897,7 +902,7 @@ Neighbor * Connectivity::WaitReceive() {
 ///////////////////////////////////////////////////////////////////////////////
 
 int Connectivity::GetExpectedMessageCount() const {
-	return (int)(m_vecExteriorNeighbors.size() + m_vecNestedNeighbors.size());
+	return (int)(m_vecExteriorNeighbors.size());// + m_vecNestedNeighbors.size());
 }
 
 ///////////////////////////////////////////////////////////////////////////////

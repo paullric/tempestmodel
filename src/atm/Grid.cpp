@@ -226,6 +226,9 @@ void Grid::Exchange(
 	DataType eDataType,
 	int iDataIndex
 ) {
+	// Verify all processors are prepared to exchange
+	MPI_Barrier(MPI_COMM_WORLD);
+
 	// Set up asynchronous recvs
 	for (int n = 0; n < m_vecActiveGridPatches.size(); n++) {
 		m_vecActiveGridPatches[n]->PrepareExchange();

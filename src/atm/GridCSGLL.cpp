@@ -137,15 +137,23 @@ void GridCSGLL::Initialize() {
 
 		PatchBox boxMaster(
 			n, 0, m_model.GetHaloElements(),
-			m_nHorizontalOrder * iBoxBegin[i], m_nHorizontalOrder * iBoxBegin[i+1],
-			m_nHorizontalOrder * iBoxBegin[j], m_nHorizontalOrder * iBoxBegin[j+1],
+			m_nHorizontalOrder * iBoxBegin[i],
+			m_nHorizontalOrder * iBoxBegin[i+1],
+			m_nHorizontalOrder * iBoxBegin[j],
+			m_nHorizontalOrder * iBoxBegin[j+1],
 			glspacing,
 			glspacing);
+
+		int ixPatch = n * nProcsPerPanel + i * nProcsPerDirection + j;
 
 		pPatches.push_back(
 			AddPatch(
 				new GridPatchCSGLL(
-					(*this), n, boxMaster, m_nHorizontalOrder, m_nVerticalOrder)));
+					(*this),
+					ixPatch,
+					boxMaster,
+					m_nHorizontalOrder,
+					m_nVerticalOrder)));
 	}
 	}
 	}
@@ -190,7 +198,7 @@ void GridCSGLL::Initialize() {
 			}
 
 			iDestN =
-				iDestPanel * nProcsPerDirection * nProcsPerDirection
+				iDestPanel * nProcsPerPanel
 				+ iDestI * nProcsPerDirection
 				+ iDestJ;
 
