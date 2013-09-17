@@ -445,10 +445,16 @@ void GridCSGLL::ApplyDSS(
 		for (int c = 0; c < nComponents; c++) {
 
 			// Obtain the array of working data
+			int nRElements = GetRElements();
 			double *** pDataUpdate;
 			if (eDataType == DataType_State) {
 				pDataUpdate =
 					pPatch->GetDataState(iDataUpdate, GetVarLocation(c))[c];
+
+				if (GetVarLocation(c) == DataLocation_REdge) {
+					nRElements++;
+				}
+
 			} else if (eDataType == DataType_Tracers) {
 				pDataUpdate =
 					pPatch->GetDataTracers(iDataUpdate)[c];
@@ -458,7 +464,7 @@ void GridCSGLL::ApplyDSS(
 				pDataUpdate = pPatch->GetDataDivergence();
 			}
 
-			for (int k = 0; k < GetRElements(); k++) {
+			for (int k = 0; k < nRElements; k++) {
 
 				// Average in the alpha direction
 				for (int a = 0; a <= nAElements; a++) {
