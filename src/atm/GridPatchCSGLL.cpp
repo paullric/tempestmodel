@@ -339,7 +339,7 @@ void GridPatchCSGLL::EvaluateGeometricTerms(
 		- m_box.GetBEdge(m_box.GetHaloElements());
 
 #pragma message "Implement rectangular grid elements"
-	if (dElementDeltaA != dElementDeltaB) {
+	if (fabs(dElementDeltaA - dElementDeltaB) > 1.0e-12) {
 		_EXCEPTIONT("Not implemented.");
 	}
 
