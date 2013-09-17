@@ -151,6 +151,12 @@ protected:
 	double m_dZtop;
 
 	///	<summary>
+	///		Flag indicating that the reference profile should be used
+	///		(otherwise GetReferenceState returns 0);
+	///	</summary>
+	bool m_fNoReferenceState;
+
+	///	<summary>
 	///		Type of perturbation.
 	///	</summary>
 	PerturbationType m_ePerturbationType;
@@ -164,12 +170,14 @@ public:
 		bool fDeepAtmosphere,
 		bool fTracerOn,
 		double dZtop,
+		bool fNoReferenceState,
 		PerturbationType ePerturbationType = PerturbationType_None
 	) :
 		m_dAlpha(dAlpha),
 		m_fDeepAtmosphere(fDeepAtmosphere),
 		m_fTracerOn(fTracerOn),
 		m_dZtop(dZtop),
+		m_fNoReferenceState(fNoReferenceState),
 		m_ePerturbationType(ePerturbationType)
 	{ }
 
@@ -192,7 +200,7 @@ public:
 	///		Flag indicating that a reference state is available.
 	///	</summary>
 	virtual bool HasReferenceState() const {
-		return false;
+		return !m_fNoReferenceState;
 	}
 
 	///	<summary>
@@ -586,6 +594,9 @@ try {
 	// Deep atmosphere flag
 	bool fDeepAtmosphere;
 
+	// Use reference state flag
+	bool fNoReferenceState;
+
 	// Perturbation type
 	std::string strPerturbationType;
 
@@ -611,6 +622,7 @@ try {
 		CommandLineInt(nVerticalOrder, "vertorder", 1);
 		CommandLineDouble(dZtop, "ztop", 10000.0);
 		CommandLineDouble(dAlpha, "alpha", 0.0);
+		CommandLineBool(fNoReferenceState, "norefstate");
 		CommandLineBool(fTracersOn, "with_tracer");
 		CommandLineBool(fDeepAtmosphere, "deep_atmosphere");
 		CommandLineStringD(strPerturbationType, "pert",
@@ -693,7 +705,13 @@ try {
 	}
 
 	BaroclinicWaveUMJSTest test(
-		dAlpha, fDeepAtmosphere, fTracersOn, dZtop, ePerturbationType);
+		dAlpha,
+		fDeepAtmosphere,
+		fTracersOn,
+		dZtop,
+		fNoReferenceState,
+		ePerturbationType);
+
 	AnnounceStartBlock("Initializing data");
 	model.SetTestCase(&test);
 	AnnounceEndBlock("Done");
