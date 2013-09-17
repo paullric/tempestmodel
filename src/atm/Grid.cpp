@@ -21,6 +21,7 @@
 
 #include "Exception.h"
 
+#include <cfloat>
 #include <cmath>
 
 #include "mpi.h"
@@ -623,6 +624,15 @@ void Grid::ReduceInterpolate(
 		_EXCEPTIONT("Invalid DataType / Not implemented.");
 	}
 
+	// Set value of interp data
+	for (int i = 0; i < dInterpData.GetRows(); i++) {
+	for (int j = 0; j < dInterpData.GetColumns(); j++) {
+	for (int k = 0; k < dInterpData.GetSubColumns(); k++) {
+		dInterpData[i][j][k] = -DBL_MAX;
+	}
+	}
+	}
+
 	// Interpolate state data
 	for (int n = 0; n < m_vecActiveGridPatches.size(); n++) {
 		m_vecActiveGridPatches[n]->InterpolateData(
@@ -645,7 +655,7 @@ void Grid::ReduceInterpolate(
 				* dInterpData.GetColumns()
 				* dInterpData.GetSubColumns(),
 			MPI_DOUBLE,
-			MPI_SUM,
+			MPI_MAX,
 			0,
 			MPI_COMM_WORLD);
 
@@ -657,7 +667,7 @@ void Grid::ReduceInterpolate(
 				* dInterpData.GetColumns()
 				* dInterpData.GetSubColumns(),
 			MPI_DOUBLE,
-			MPI_SUM,
+			MPI_MAX,
 			0,
 			MPI_COMM_WORLD);
 	}

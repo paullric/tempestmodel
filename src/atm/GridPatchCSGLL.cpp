@@ -338,11 +338,6 @@ void GridPatchCSGLL::EvaluateGeometricTerms(
 		  m_box.GetBEdge(m_box.GetHaloElements() + m_nHorizontalOrder)
 		- m_box.GetBEdge(m_box.GetHaloElements());
 
-#pragma message "Implement rectangular grid elements"
-	if (dElementDeltaA != dElementDeltaB) {
-		_EXCEPTIONT("Not implemented.");
-	}
-
 	// Vertical grid spacing
 	double dElementDeltaXi =
 		  m_grid.GetREtaInterface(m_nVerticalOrder)

@@ -1096,7 +1096,7 @@ void VerticalDynamicsFEM::StepImplicit(
 				//PerformBICGSTAB_NewtonStep_Safe(
 					m_dSoln,
 					m_dSoln.GetRows(),
-					1.0e-10);
+					1.0e-8);
 
 			if (!(m_dSoln[0] == m_dSoln[0])) {
                 DataVector<double> dEval;
