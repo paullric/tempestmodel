@@ -1144,6 +1144,8 @@ public:
 				}
 			}
 		}
+
+		_EXCEPTIONT("Inconsistent parameters");
 	}
 
 	///	<summary>
