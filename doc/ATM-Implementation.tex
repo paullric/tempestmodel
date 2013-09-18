@@ -186,6 +186,35 @@ Hyperviscosity is formulated in variational form.
 
 \subsection{Fourth-Order Scalar Hyperviscosity}
 
+Fourth-order scalar hyperviscosity is implemented using a two stage procedure:
+\begin{align}
+f &= \mathcal{H}(1) \psi^n, \\
+\psi^{n+1} &= \psi^n - \Delta t \mathcal{H}(\nu) f.
+\end{align}  The hyperdiffusion operator is defined implicitly via
+\begin{align}
+f = \mathcal{H}(\nu) \psi \quad \Longleftrightarrow \quad \iint f \phi_{(i,j)} dA = \nu \iint \nabla \phi_{(i,j)} \cdot \nabla \psi dA,
+\end{align} where $dA = J d\alpha d\beta$.  Here
+\begin{align}
+\iint f \phi_{(i,j)} dA = \iint f \tilde{\phi}_{(i)}(\alpha) \tilde{\phi}_{(j)}(\beta) dA = f_{(i,j)} w_i w_j J \Delta \alpha \Delta \beta,
+\end{align} and
+\begin{align}
+\iint \nabla \phi_{(i,j)} \cdot \nabla \psi dA &= \iint g^{pq} \nabla_p \phi \nabla_q \psi dA, \\
+&= \iint \pdiff{\phi_{(i,j)}}{\alpha} \left[ g^{\alpha \alpha} \pdiff{\psi}{\alpha} + g^{\alpha \beta} \pdiff{\psi}{\beta} \right] + \pdiff{\phi_{(i,j)}}{\beta} \left[ g^{\beta \alpha} \pdiff{\psi}{\alpha} + g^{\beta \beta} \pdiff{\psi}{\beta} \right] dA, \\
+&= \Delta \alpha \Delta \beta \sum_{m=0}^{n_p-1} \sum_{n=0}^{n_p-1} \tilde{\phi}_{(j)} \pdiff{\tilde{\phi}_{(i)}}{\alpha} \left. \left[ g^{\alpha \alpha} \pdiff{\psi}{\alpha} + g^{\alpha \beta} \pdiff{\psi}{\beta} \right] J w_m w_n \right\vert_{\alpha = \alpha_m, \beta = \beta_n} \nonumber \\
+& \qquad + \Delta \alpha \Delta \beta \sum_{m=0}^{n_p-1} \sum_{n=0}^{n_p-1} \tilde{\phi}_{(i)} \pdiff{\tilde{\phi}_{(j)}}{\beta} \left. \left[ g^{\beta \alpha} \pdiff{\psi}{\alpha} + g^{\beta \beta} \pdiff{\psi}{\beta} \right] J w_m w_n \right\vert_{\alpha = \alpha_m, \beta = \beta_n} \\
+&= \Delta \alpha \Delta \beta w_j \sum_{m=0}^{n_p-1} \pdiff{\tilde{\phi}_{(i)}}{\alpha} \left. \left[ g^{\alpha \alpha} \pdiff{\psi}{\alpha} + g^{\alpha \beta} \pdiff{\psi}{\beta} \right] J w_m \right\vert_{\alpha = \alpha_m, \beta = \beta_j} \nonumber \\
+& \qquad + \Delta \alpha \Delta \beta w_i \sum_{n=0}^{n_p-1} \pdiff{\tilde{\phi}_{(j)}}{\beta} \left. \left[ g^{\beta \alpha} \pdiff{\psi}{\alpha} + g^{\beta \beta} \pdiff{\psi}{\beta} \right] J w_n \right\vert_{\alpha = \alpha_i, \beta = \beta_n}
+\end{align}  In combination,
+\begin{align}
+f_{(i,j)} &= \frac{1}{w_i J(\alpha_i, \beta_j)} \sum_{m=0}^{n_p-1} \pdiff{\tilde{\phi}_{(i)}}{\alpha} \left. \left[ g^{\alpha \alpha} \pdiff{\psi}{\alpha} + g^{\alpha \beta} \pdiff{\psi}{\beta} \right] J w_m \right\vert_{\alpha = \alpha_m, \beta = \beta_j} \nonumber \\
+& \qquad + \frac{1}{w_j J(\alpha_i, \beta_j)} \sum_{n=0}^{n_p-1} \pdiff{\tilde{\phi}_{(j)}}{\beta} \left. \left[ g^{\beta \alpha} \pdiff{\psi}{\alpha} + g^{\beta \beta} \pdiff{\psi}{\beta} \right] J w_n \right\vert_{\alpha = \alpha_i, \beta = \beta_n}
+\end{align}  The derivatives of the scalar field $\psi$ are obtained in the usual manner,
+\begin{align}
+\left. \pdiff{\psi}{\alpha} \right\vert_{\alpha = \alpha_i, \beta = \beta_j} &= \sum_{m=0}^{n_p-1} \left. \psi_{(m,j)} \pdiff{\tilde{\phi}_{(m)}}{\alpha} \right\vert_{\alpha = \alpha_m, \beta = \beta_j} \\
+\left. \pdiff{\psi}{\beta} \right\vert_{\alpha = \alpha_i, \beta = \beta_j} &= \sum_{n=0}^{n_p-1} \left. \psi_{(i,n)} \pdiff{\tilde{\phi}_{(n)}}{\beta} \right\vert_{\alpha = \alpha_i, \beta = \beta_n} \\
+\end{align}
+
+
 \subsection{Fourth-Order Vector Hyperviscosity}
 
 Fourth-order vector hyperviscosity is implemented using a two stage procedure:
