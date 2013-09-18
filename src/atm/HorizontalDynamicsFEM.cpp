@@ -1156,15 +1156,21 @@ void HorizontalDynamicsFEM::StepExplicit(
 void HorizontalDynamicsFEM::ApplyScalarHyperdiffusion(
 	int iDataInitial,
 	int iDataUpdate,
-	int iC,
 	double dDeltaT,
-	bool fUseHyperdiffusionCoeff
+	double dNu,
+	bool fScaleNuLocally
 ) {
 	// Get a copy of the grid
 	Grid * pGrid = m_model.GetGrid();
 
 	// Physical constants
 	const PhysicalConstants & phys = m_model.GetPhysicalConstants();
+
+	// Components of the gradient at each point
+	DataMatrix<double> dJGradientA;
+	dJGradientA.Initialize(m_nHorizontalOrder, m_nHorizontalOrder);
+	DataMatrix<double> dJGradientB;
+	dJGradientB.Initialize(m_nHorizontalOrder, m_nHorizontalOrder);
 
 	// Perform local update
 	for (int n = 0; n < pGrid->GetActivePatchCount(); n++) {
@@ -1179,11 +1185,18 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusion(
 		const DataMatrix4D<double> & dContraMetricB =
 			pPatch->GetContraMetricB();
 
-		GridData4D & dataInitial =
+		// Grid data
+		GridData4D & dataInitialNode =
 			pPatch->GetDataState(iDataInitial, DataLocation_Node);
 
-		GridData4D & dataUpdate =
+		GridData4D & dataInitialREdge =
+			pPatch->GetDataState(iDataInitial, DataLocation_REdge);
+
+		GridData4D & dataUpdateNode =
 			pPatch->GetDataState(iDataUpdate, DataLocation_Node);
+
+		GridData4D & dataUpdateREdge =
+			pPatch->GetDataState(iDataUpdate, DataLocation_REdge);
 
 		// Element grid spacing
 		double dElementDeltaA =
@@ -1194,73 +1207,117 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusion(
 			  box.GetBEdge(box.GetHaloElements() + m_nHorizontalOrder)
 			- box.GetBEdge(box.GetHaloElements());
 
-		// Calculate local hyperdiffusion coefficient
-		double dCoeff;
-
-		if (fUseHyperdiffusionCoeff) {
-			const double dElementRefDeltaA = 0.5 * M_PI / 30.0;
-
-			dCoeff =
-				- dDeltaT * m_dNuScalar
-					* pow(dElementDeltaA / dElementRefDeltaA, 3.2);
-		} else {
-			dCoeff = 1.0;
-		}
-
 		// Number of finite elements
 		int nAElements =
 			box.GetAInteriorWidth() / m_nHorizontalOrder;
 		int nBElements =
 			box.GetBInteriorWidth() / m_nHorizontalOrder;
 
-		// Loop over all finite elements
-		for (int k = 0; k < dataInitial.GetRElements(); k++) {
-		for (int a = 0; a < nAElements; a++) {
-		for (int b = 0; b < nBElements; b++) {
+		// Compute new hyperviscosity coefficient
+		double dLocalNu  = dNu;
 
-			int iAElement = a * m_nHorizontalOrder + box.GetHaloElements();
-			int iBElement = b * m_nHorizontalOrder + box.GetHaloElements();
-/*
-			// Calculate the gradient within each element
-			m_dGradient.Zero();
+#pragma message "Use a reference length scale from the grid"
+		if (fScaleNuLocally) {
+			dLocalNu *= pow(dElementDeltaA / (0.5 * M_PI / 30.0), 3.2);
+		}
 
-			// Pointwise update of horizontal velocities
-			for (int i = 0; i < m_nHorizontalOrder; i++) {
-			for (int j = 0; j < m_nHorizontalOrder; j++) {
+		// Loop over all components
+		int nComponents = m_model.GetEquationSet().GetComponents();
+		for (int c = 2; c < nComponents; c++) {
 
-				int iA = iAElement + i;
-				int iB = iBElement + j;
+			int nRElements;
 
-				// Calculate pointwise derivatives
-				double dDaPhi = 0.0;
-				double dDbPhi = 0.0;
+			double *** pDataInitial;
+			double *** pDataUpdate;
+			if (pGrid->GetVarLocation(c) == DataLocation_Node) {
+				pDataInitial = dataInitialNode[c];
+				pDataUpdate  = dataUpdateNode[c];
+				nRElements = dataInitialNode.GetRElements();
 
-				for (int s = 0; s < m_nHorizontalOrder; s++) {
-					dDaPhi +=
-						dataInitial[iC][k][iAElement+s][iB]
-						* m_dDxBasis1D[s][i];
+			} else if (pGrid->GetVarLocation(c) == DataLocation_REdge) {
+				pDataInitial = dataInitialREdge[c];
+				pDataUpdate  = dataUpdateREdge[c];
+				nRElements = dataInitialREdge.GetRElements();
 
-					dDbPhi +=
-						dataInitial[iC][k][iA][iBElement+s]
-						* m_dDxBasis1D[s][j];
+			} else {
+				_EXCEPTIONT("UNIMPLEMENTED");
+			}
+
+			// Loop over all finite elements
+			for (int k = 0; k < nRElements; k++) {
+			for (int a = 0; a < nAElements; a++) {
+			for (int b = 0; b < nBElements; b++) {
+
+				int iAElement = a * m_nHorizontalOrder + box.GetHaloElements();
+				int iBElement = b * m_nHorizontalOrder + box.GetHaloElements();
+
+				// Calculate the pointwise gradient of the scalar field
+				for (int i = 0; i < m_nHorizontalOrder; i++) {
+				for (int j = 0; j < m_nHorizontalOrder; j++) {
+					int iA = iAElement + i;
+					int iB = iBElement + j;
+
+					double dDaPsi = 0.0;
+					double dDbPsi = 0.0;
+					for (int s = 0; s < m_nHorizontalOrder; s++) {
+						dDaPsi +=
+							pDataInitial[k][iAElement+s][iB]
+							* m_dDxBasis1D[s][i];
+
+						dDbPsi +=
+							pDataInitial[k][iA][iBElement+s]
+							* m_dDxBasis1D[s][j];
+					}
+
+					dDaPsi /= dElementDeltaA;
+					dDbPsi /= dElementDeltaB;
+
+					dJGradientA[i][j] = dJacobian[k][iA][iB] * (
+						+ dContraMetricA[k][iA][iB][0] * dDaPsi
+						+ dContraMetricA[k][iA][iB][1] * dDbPsi);
+
+					dJGradientB[i][j] = dJacobian[k][iA][iB] * (
+						+ dContraMetricB[k][iA][iB][0] * dDaPsi
+						+ dContraMetricB[k][iA][iB][1] * dDbPsi);
+				}
 				}
 
-				dDaPhi /= dElementDeltaA;
-				dDbPhi /= dElementDeltaB;
+				// Pointwise updates
+				for (int i = 0; i < m_nHorizontalOrder; i++) {
+				for (int j = 0; j < m_nHorizontalOrder; j++) {
+					int iA = iAElement + i;
+					int iB = iBElement + j;
 
-				//printf("%1.10e %1.10e\n", dDaPhi, dDbPhi);
+					// Compute integral term
+					double dUpdateA = 0.0;
+					double dUpdateB = 0.0;
 
-				// Compute gradient terms
-				m_dGradient[0][i][j] = dJacobian[k][iA][iB] * (
-					+ dContraMetricA[k][iA][iB][0] * dDaPhi
-					+ dContraMetricA[k][iA][iB][1] * dDbPhi);
+					for (int s = 0; s < m_nHorizontalOrder; s++) {
+						dUpdateA +=
+							dJGradientA[s][j]
+							* m_dStiffness1D[i][s];
 
-				m_dGradient[1][i][j] = dJacobian[k][iA][iB] * (
-					+ dContraMetricB[k][iA][iB][0] * dDaPhi
-					+ dContraMetricB[k][iA][iB][1] * dDbPhi);
+						dUpdateB +=
+							dJGradientB[i][s]
+							* m_dStiffness1D[j][s];
+					}
+
+					dUpdateA /= dElementDeltaA;
+					dUpdateB /= dElementDeltaB;
+
+					// Apply update
+					double dInvJacobian = 1.0 / dJacobian[k][iA][iB];
+
+					pDataUpdate[k][iA][iB] +=
+						dDeltaT * dInvJacobian * dLocalNu
+							* (dUpdateA + dUpdateB);
+				}
+				}
 			}
 			}
-
+			}
+		}
+/*
 			// Pointwise fluxes within spectral element
 			for (int i = 0; i < m_nHorizontalOrder; i++) {
 			for (int j = 0; j < m_nHorizontalOrder; j++) {
@@ -1291,10 +1348,11 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusion(
 					dCoeff * (dDaGradient + dDbGradient) / dJacobian[k][iA][iB];
 			}
 			}
+
+		}
+		}
+		}
 */
-		}
-		}
-		}
 	}
 }
 
@@ -1363,6 +1421,7 @@ void HorizontalDynamicsFEM::ApplyVectorHyperdiffusion(
 		double dLocalNuDiv  = dNuDiv;
 		double dLocalNuVort = dNuVort;
 
+#pragma message "Use a reference length scale from the grid"
 		if (fScaleNuLocally) {
 			dLocalNuDiv =
 				dLocalNuDiv  * pow(dElementDeltaA / (0.5 * M_PI / 30.0), 3.2);
@@ -1483,6 +1542,7 @@ void HorizontalDynamicsFEM::StepAfterSubCycle(
 	pGridCSGLL->ZeroData(1, DataType_State);
 
 	// Apply vector Laplacian (first application)
+	ApplyScalarHyperdiffusion(0, 1, 1.0, 1.0, false);
 	ApplyVectorHyperdiffusion(0, 1, 1.0, 1.0, 1.0, false);
 
 	pGridCSGLL->ApplyDSS(1);
@@ -1490,6 +1550,7 @@ void HorizontalDynamicsFEM::StepAfterSubCycle(
 	//pGridCSGLL->CopyData(1, 0, DataType_State);
 
 	// Apply vector Laplacian (second application)
+	ApplyScalarHyperdiffusion(1, 0, -dDeltaT, m_dNuScalar, true);
 	ApplyVectorHyperdiffusion(1, 0, -dDeltaT, m_dNuDiv, m_dNuVort, true);
 
 	pGridCSGLL->ApplyDSS(0);

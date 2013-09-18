@@ -128,9 +128,9 @@ protected:
 	void ApplyScalarHyperdiffusion(
 		int iDataInitial,
 		int iDataUpdate,
-		int iC,
 		double dDeltaT,
-		bool fUseHyperdiffusionCoeff
+		double dNu,
+		bool fScaleNuLocally
 	);
 
 	///	<summary>

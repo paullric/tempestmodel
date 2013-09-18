@@ -720,7 +720,7 @@ try {
 	AnnounceStartBlock("Creating reference output manager");
 	OutputManagerReference outmanRef(
 		grid, dOutputDeltaT, strOutputDir, strOutputPrefix,
-		360, 180, false, false);
+		360, 180, false, false, true, true);
 	model.AttachOutputManager(&outmanRef);
 
 	outmanRef.InitializeNcOutput("ref.nc");
