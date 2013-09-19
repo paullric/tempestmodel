@@ -50,17 +50,6 @@ public:
 
 public:
 	///	<summary>
-	///		Perform one time step after all sub-cycles are complete.
-	///	</summary>
-	virtual void StepAfterSubCycle(
-		int iDataInitial,
-		int iDataUpdate,
-		double dTime,
-		double dDeltaT
-	) {
-	}
-
-	///	<summary>
 	///		Perform one explicit time step of sub-cycle frequency.
 	///	</summary>
 	virtual void StepExplicit(
@@ -77,6 +66,18 @@ public:
 	virtual void StepImplicit(
 		int iDataInitial,
 		int iDataUpdate,
+		double dTime,
+		double dDeltaT
+	) {
+	}
+
+	///	<summary>
+	///		Perform one time step after all sub-cycles are complete.
+	///	</summary>
+	virtual void StepAfterSubCycle(
+		int iDataInitial,
+		int iDataUpdate,
+		int iDataWorking,
 		double dTime,
 		double dDeltaT
 	) {

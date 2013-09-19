@@ -97,7 +97,7 @@ public:
 	///	<summary>
 	///		Stream function perturbation wind parameter
 	///	</summary>
-	static const double ParamU0 = 0.5;
+	static const double ParamU0 = -0.5;
 
 	///	<summary>
 	///		Stream function perturbation radius (Earth radii)
@@ -233,6 +233,7 @@ public:
 		double dLon,
 		double dLat
 	) const {
+
 		// Verify that the stream function perturbation is being used
 		if (m_ePerturbationType != PerturbationType_StreamFn) {
 			_EXCEPTION();
@@ -263,8 +264,11 @@ public:
 			dCosPert = 0.0;
 		}
 
-		return (- ParamU0 * ParamPertR * dPertTaper
-			* dCosPert * dCosPert * dCosPert * dCosPert);
+		double dStreamFn =
+			ParamU0 * ParamPertR * dPertTaper
+				* dCosPert * dCosPert * dCosPert * dCosPert;
+
+		return dStreamFn;
 	}
 
 	///	<summary>

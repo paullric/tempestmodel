@@ -152,6 +152,7 @@ public:
 	virtual void StepAfterSubCycle(
 		int iDataInitial,
 		int iDataUpdate,
+		int iDataWorking,
 		double dTime,
 		double dDeltaT
 	);

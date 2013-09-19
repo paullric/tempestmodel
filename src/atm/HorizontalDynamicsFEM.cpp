@@ -1525,6 +1525,7 @@ void HorizontalDynamicsFEM::ApplyVectorHyperdiffusion(
 void HorizontalDynamicsFEM::StepAfterSubCycle(
 	int iDataInitial,
 	int iDataUpdate,
+	int iDataWorking,
 	double dTime,
 	double dDeltaT
 ) {
@@ -1533,25 +1534,32 @@ void HorizontalDynamicsFEM::StepAfterSubCycle(
 		return;
 	}
 
+	// Check indices
+	if (iDataInitial == iDataWorking) {
+	}
+
 #pragma message "Altering the horizontal velocities should also modify the vertical velocities"
 
 	// Apply Direct Stiffness Summation (DSS) procedure
 	GridCSGLL * pGridCSGLL = dynamic_cast<GridCSGLL*>(m_model.GetGrid());
 
-	// Zero the target state data
-	pGridCSGLL->ZeroData(1, DataType_State);
-
 	// Apply vector Laplacian (first application)
-	ApplyScalarHyperdiffusion(0, 1, 1.0, 1.0, false);
-	ApplyVectorHyperdiffusion(0, 1, 1.0, 1.0, 1.0, false);
+	pGridCSGLL->ZeroData(iDataWorking, DataType_State);
 
-	pGridCSGLL->ApplyDSS(1);
+	ApplyScalarHyperdiffusion(
+		iDataInitial, iDataWorking, 1.0, 1.0, false);
+	ApplyVectorHyperdiffusion(
+		iDataInitial, iDataWorking, 1.0, 1.0, 1.0, false);
+
+	pGridCSGLL->ApplyDSS(iDataWorking);
 
 	// Apply vector Laplacian (second application)
-	ApplyScalarHyperdiffusion(1, 0, -dDeltaT, m_dNuScalar, true);
-	ApplyVectorHyperdiffusion(1, 0, -dDeltaT, m_dNuDiv, m_dNuVort, true);
+	ApplyScalarHyperdiffusion(
+		iDataWorking, iDataUpdate, -dDeltaT, m_dNuScalar, true);
+	ApplyVectorHyperdiffusion(
+		iDataWorking, iDataUpdate, -dDeltaT, m_dNuDiv, m_dNuVort, true);
 
-	pGridCSGLL->ApplyDSS(0);
+	pGridCSGLL->ApplyDSS(iDataUpdate);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
