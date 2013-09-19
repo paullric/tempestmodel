@@ -98,6 +98,22 @@ void GridPatch::InitializeDataLocal() {
 	// Set the processor
 	MPI_Comm_rank(MPI_COMM_WORLD, &m_iProcessor);
 
+	// Jacobian at each node (2D)
+	m_dataJacobian2D.Initialize(
+		m_box.GetATotalWidth(),
+		m_box.GetBTotalWidth());
+
+	// Contravariant metric (2D) components at each node
+	m_dataContraMetric2DA.Initialize(
+		m_box.GetATotalWidth(),
+		m_box.GetBTotalWidth(),
+		2);
+
+	m_dataContraMetric2DB.Initialize(
+		m_box.GetATotalWidth(),
+		m_box.GetBTotalWidth(),
+		2);
+
 	// Jacobian at each node
 	m_dataJacobian.Initialize(
 		m_grid.GetRElements(),
@@ -119,16 +135,14 @@ void GridPatch::InitializeDataLocal() {
 
 	// Christoffel symbol components at each node
 	m_dataChristoffelA.Initialize(
-		m_grid.GetRElements(),
 		m_box.GetATotalWidth(),
 		m_box.GetBTotalWidth(),
-		6);
+		3);
 
 	m_dataChristoffelB.Initialize(
-		m_grid.GetRElements(),
 		m_box.GetATotalWidth(),
 		m_box.GetBTotalWidth(),
-		6);
+		3);
 
 	// Vertical metric components on nodes or interfaces
 #pragma message "This should pull from EquationSet by name"

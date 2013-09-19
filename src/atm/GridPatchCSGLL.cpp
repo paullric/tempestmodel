@@ -407,6 +407,42 @@ void GridPatchCSGLL::EvaluateGeometricTerms(
 			- dTopography[0][2] + dTopography[0][0])
 				/ (dEpsilon * dEpsilon);
 
+		// Initialize 2D Jacobian
+		m_dataJacobian2D[i][j] =
+			(1.0 + dX * dX) * (1.0 + dY * dY) / (dDelta * dDelta * dDelta);
+
+		m_dataJacobian2D[i][j] *=
+			  phys.GetEarthRadius()
+			* phys.GetEarthRadius();
+
+		// Initialize 2D contravariant metric
+		double dContraMetricScale = 
+			dDelta2 / (1.0 + dX * dX) / (1.0 + dY * dY)
+			/ (phys.GetEarthRadius() * phys.GetEarthRadius());
+
+		m_dataContraMetric2DA[i][j][0] =
+			dContraMetricScale * (1.0 + dY * dY);
+		m_dataContraMetric2DA[i][j][1] =
+			dContraMetricScale * dX * dY;
+
+		m_dataContraMetric2DB[i][j][0] =
+			dContraMetricScale * dX * dY;
+		m_dataContraMetric2DB[i][j][1] =
+			dContraMetricScale * (1.0 + dX * dX);
+
+		// Christoffel symbol components at each node
+		// (off-diagonal element are doubled due to symmetry)
+		m_dataChristoffelA[i][j][0] =
+			2.0 * dX * dY * dY / dDelta2;
+		m_dataChristoffelA[i][j][1] =
+			- 2.0 * dY * (1.0 + dY * dY) / dDelta2;
+		m_dataChristoffelA[i][j][2] = 0.0;
+		m_dataChristoffelB[i][j][0] = 0.0;
+		m_dataChristoffelB[i][j][1] =
+			- 2.0 * dX * (1.0 + dX * dX) / dDelta2;
+		m_dataChristoffelB[i][j][2] =
+			2.0 * dX * dX * dY / dDelta2;
+
 		// Vertical coordinate transform and its derivatives
 		for (int k = 0; k < m_grid.GetRElements(); k++) {
 
@@ -425,14 +461,9 @@ void GridPatchCSGLL::EvaluateGeometricTerms(
 			double dDbxR = - dDbZs;
 			double dDxxR = 0.0;
 
-			// Calculate pointwise Jacobian
-			m_dataJacobian[k][i][j] =
-				(1.0 + dX * dX) * (1.0 + dY * dY) / (dDelta * dDelta * dDelta);
-
 #pragma message "Why does the Jacobian not include the DxR term? -- its inclusion shouldn't mess up the Coriolis force"
-			m_dataJacobian[k][i][j] *=
-				  phys.GetEarthRadius()
-				* phys.GetEarthRadius();
+			// Calculate pointwise Jacobian
+			m_dataJacobian[k][i][j] = m_dataJacobian2D[i][j];
 
 			// Element area associated with each model level GLL node
 			m_dataElementArea[k][i][j] =
@@ -442,20 +473,12 @@ void GridPatchCSGLL::EvaluateGeometricTerms(
 				* dWNode[kx] * dElementDeltaXi * dDxR;
 
 			// Contravariant metric components
-			double dContraMetricScale = 
-				dDelta2 / (1.0 + dX * dX) / (1.0 + dY * dY)
-				/ (phys.GetEarthRadius() * phys.GetEarthRadius());
-
-			m_dataContraMetricA[k][i][j][0] =
-				dContraMetricScale * (1.0 + dY * dY);
-			m_dataContraMetricA[k][i][j][1] =
-				dContraMetricScale * dX * dY;
+			m_dataContraMetricA[k][i][j][0] = m_dataContraMetric2DA[i][j][0];
+			m_dataContraMetricA[k][i][j][1] = m_dataContraMetric2DA[i][j][1];
 			m_dataContraMetricA[k][i][j][2] = 0.0;
 
-			m_dataContraMetricB[k][i][j][0] =
-				dContraMetricScale * dX * dY;
-			m_dataContraMetricB[k][i][j][1] =
-				dContraMetricScale * (1.0 + dX * dX);
+			m_dataContraMetricB[k][i][j][0] = m_dataContraMetric2DB[i][j][0];
+			m_dataContraMetricB[k][i][j][1] = m_dataContraMetric2DB[i][j][1];
 			m_dataContraMetricB[k][i][j][2] = 0.0;
 
 			m_dataContraMetricXi[k][i][j][0] = 
@@ -470,19 +493,6 @@ void GridPatchCSGLL::EvaluateGeometricTerms(
 						* (  (1.0 + dY * dY) * dDaR * dDaR
 						   + 2.0 * dX * dY * dDaR * dDbR
 						   + (1.0 + dX * dX) * dDbR * dDbR));
-
-			// Christoffel symbol components at each node
-			// (off-diagonal element are doubled due to symmetry)
-			m_dataChristoffelA[k][i][j][0] =
-				2.0 * dX * dY * dY / dDelta2;
-			m_dataChristoffelA[k][i][j][1] =
-				- 2.0 * dY * (1.0 + dY * dY) / dDelta2;
-			m_dataChristoffelA[k][i][j][2] = 0.0;
-			m_dataChristoffelB[k][i][j][0] = 0.0;
-			m_dataChristoffelB[k][i][j][1] =
-				- 2.0 * dX * (1.0 + dX * dX) / dDelta2;
-			m_dataChristoffelB[k][i][j][2] =
-				2.0 * dX * dX * dY / dDelta2;
 
 			// Vertical Christoffel symbol components
 			m_dataChristoffelXi[k][i][j][0] =
@@ -813,27 +823,27 @@ void GridPatchCSGLL::ComputeCurlAndDiv(
 
 			// Compute covariant derivatives at node
 			double dCovDaUa = dDaUa
-				+ m_dataChristoffelA[k][iA+i][iB+j][0] * dUa
-				+ m_dataChristoffelA[k][iA+i][iB+j][1] * 0.5 * dUb;
+				+ m_dataChristoffelA[iA+i][iB+j][0] * dUa
+				+ m_dataChristoffelA[iA+i][iB+j][1] * 0.5 * dUb;
 
 			double dCovDaUb = dDaUb
-				+ m_dataChristoffelB[k][iA+i][iB+j][0] * dUa
-				+ m_dataChristoffelB[k][iA+i][iB+j][1] * 0.5 * dUb;
+				+ m_dataChristoffelB[iA+i][iB+j][0] * dUa
+				+ m_dataChristoffelB[iA+i][iB+j][1] * 0.5 * dUb;
 
 			double dCovDbUa = dDbUa
-				+ m_dataChristoffelA[k][iA+i][iB+j][1] * 0.5 * dUa
-				+ m_dataChristoffelA[k][iA+i][iB+j][2] * dUb;
+				+ m_dataChristoffelA[iA+i][iB+j][1] * 0.5 * dUa
+				+ m_dataChristoffelA[iA+i][iB+j][2] * dUb;
 
 			double dCovDbUb = dDbUb
-				+ m_dataChristoffelB[k][iA+i][iB+j][1] * 0.5 * dUa
-				+ m_dataChristoffelB[k][iA+i][iB+j][2] * dUb;
+				+ m_dataChristoffelB[iA+i][iB+j][1] * 0.5 * dUa
+				+ m_dataChristoffelB[iA+i][iB+j][2] * dUb;
 
 			// Compute curl at node
-			m_dataVorticity[k][iA+i][iB+j] = m_dataJacobian[k][iA+i][iB+j] * (
-				+ m_dataContraMetricA[k][iA+i][iB+j][0] * dCovDaUb
-				+ m_dataContraMetricA[k][iA+i][iB+j][1] * dCovDbUb
-				- m_dataContraMetricB[k][iA+i][iB+j][0] * dCovDaUa
-				- m_dataContraMetricB[k][iA+i][iB+j][1] * dCovDbUa);
+			m_dataVorticity[k][iA+i][iB+j] = m_dataJacobian2D[iA+i][iB+j] * (
+				+ m_dataContraMetric2DA[iA+i][iB+j][0] * dCovDaUb
+				+ m_dataContraMetric2DA[iA+i][iB+j][1] * dCovDbUb
+				- m_dataContraMetric2DB[iA+i][iB+j][0] * dCovDaUa
+				- m_dataContraMetric2DB[iA+i][iB+j][1] * dCovDbUa);
 
 			// Compute the divergence at node
 			m_dataDivergence[k][iA+i][iB+j] = dCovDaUa + dCovDbUb;
@@ -869,127 +879,6 @@ void GridPatchCSGLL::ComputeVorticityDivergence(
 
 	// Compute the radial component of the curl of the velocity field
 	ComputeCurlAndDiv(dataUa, dataUb);
-
-/*
-	// Lagrangian differentiation coefficients element [0,1]
-	DataVector<double> dG;
-	DataVector<double> dW;
-
-	GaussLobattoQuadrature::GetPoints(m_nHorizontalOrder, dG, dW);
-
-	DataMatrix<double> dDiffCoeff;
-	dDiffCoeff.Initialize(m_nHorizontalOrder, m_nHorizontalOrder);
-
-	for (int i = 0; i < m_nHorizontalOrder; i++) {
-		PolynomialInterp::DiffLagrangianPolynomialCoeffs(
-			m_nHorizontalOrder, dG, dDiffCoeff[i], dG[i]);
-	}
-
-	// Number of finite elements in each direction
-	int nAFiniteElements = m_box.GetAInteriorWidth() / m_nHorizontalOrder;
-	int nBFiniteElements = m_box.GetBInteriorWidth() / m_nHorizontalOrder;
-
-	// Loop over all elements in the box
-	for (int k = 0; k < dataState.GetRElements(); k++) {
-	for (int a = 0; a < nAFiniteElements; a++) {
-	for (int b = 0; b < nBFiniteElements; b++) {
-	
-		for (int i = 0; i < m_nHorizontalOrder; i++) {
-		for (int j = 0; j < m_nHorizontalOrder; j++) {
-
-			// Sub-element index
-			int iElementA = m_box.GetAInteriorBegin() + a * m_nHorizontalOrder;
-			int iElementB = m_box.GetBInteriorBegin() + b * m_nHorizontalOrder;
-
-			int iA = iElementA + i;
-			int iB = iElementB + j;
-
-			// Calculate pointwise derivatives
-			double dDaUa = 0.0;
-			double dDbUa = 0.0;
-			double dDaUb = 0.0;
-			double dDbUb = 0.0;
-
-			for (int s = 0; s < m_nHorizontalOrder; s++) {
-				double dPtX = tan(m_box.GetAEdge(iElementA + s));
-				double dPtY = tan(m_box.GetBEdge(iB));
-
-				double dPtDelta2 = (1.0 + dPtX * dPtX + dPtY * dPtY);
-
-				// Conversion factors to the unit basis
-				double dStretchA =
-					phys.GetEarthRadius()
-					* (1.0 + dPtX * dPtX)
-					* sqrt(1.0 + dPtY * dPtY)
-					/ dPtDelta2;
-
-				double dStretchB =
-					phys.GetEarthRadius()
-					* sqrt(1.0 + dPtX * dPtX)
-					* (1.0 + dPtY * dPtY)
-					/ dPtDelta2;
-
-				dDaUa +=
-					  dDiffCoeff[i][s]
-					* dataState[0][k][iElementA + s][iB]
-					* dStretchA;
-
-				dDaUb +=
-					  dDiffCoeff[i][s]
-					* dataState[1][k][iElementA + s][iB]
-					* dStretchB;
-			}
-
-			for (int s = 0; s < m_nHorizontalOrder; s++) {
-				double dPtX = tan(m_box.GetAEdge(iA));
-				double dPtY = tan(m_box.GetBEdge(iElementB + s));
-
-				double dPtDelta2 = (1.0 + dPtX * dPtX + dPtY * dPtY);
-
-				// Conversion factors to the unit basis
-				double dStretchA =
-					phys.GetEarthRadius()
-					* (1.0 + dPtX * dPtX)
-					* sqrt(1.0 + dPtY * dPtY)
-					/ dPtDelta2;
-
-				double dStretchB =
-					phys.GetEarthRadius()
-					* sqrt(1.0 + dPtX * dPtX)
-					* (1.0 + dPtY * dPtY)
-					/ dPtDelta2;
-
-				dDbUa +=
-					  dDiffCoeff[j][s]
-					* dataState[0][k][iA][iElementB + s]
-					* dStretchA;
-
-				dDbUb +=
-					  dDiffCoeff[j][s]
-					* dataState[1][k][iA][iElementB + s]
-					* dStretchB;
-			}
-
-			// Compute vorticity
-			double dAlpha = m_box.GetANode(iA);
-			double dBeta  = m_box.GetBNode(iB);
-
-			double dX = tan(dAlpha);
-			double dY = tan(dBeta);
-
-			double dDelta = sqrt(1.0 + dX * dX + dY * dY);
-			double dC = 1.0 / sqrt(1.0 + dX * dX);
-			double dD = 1.0 / sqrt(1.0 + dY * dY);
-
-			dataVorticity[k][iA][iB] = dDelta / phys.GetEarthRadius() * (
-				dX * dY * dC * dD * (dD * dDbUb - dC * dDaUa)
-				- dD * dDbUa + dC * dDaUb);
-		}
-		}
-	}
-	}
-	}
-*/
 }
 
 ///////////////////////////////////////////////////////////////////////////////

@@ -123,9 +123,9 @@ void HorizontalDynamicsFEM::StepShallowWater(
 			pPatch->GetContraMetricA();
 		const DataMatrix4D<double> & dContraMetricB =
 			pPatch->GetContraMetricB();
-		const DataMatrix4D<double> & dChristoffelA =
+		const DataMatrix3D<double> & dChristoffelA =
 			pPatch->GetChristoffelA();
-		const DataMatrix4D<double> & dChristoffelB =
+		const DataMatrix3D<double> & dChristoffelB =
 			pPatch->GetChristoffelB();
 		const DataMatrix<double> & dLatitude =
 			pPatch->GetLatitude();
@@ -286,14 +286,14 @@ void HorizontalDynamicsFEM::StepShallowWater(
 
 				// Curvature terms
 				dLocalUpdateUa -= 
-						+ dChristoffelA[k][iA][iB][0] * dUa * dUa
-						+ dChristoffelA[k][iA][iB][1] * dUa * dUb
-						+ dChristoffelA[k][iA][iB][2] * dUb * dUb;
+						+ dChristoffelA[iA][iB][0] * dUa * dUa
+						+ dChristoffelA[iA][iB][1] * dUa * dUb
+						+ dChristoffelA[iA][iB][2] * dUb * dUb;
 
 				dLocalUpdateUb -=
-						+ dChristoffelB[k][iA][iB][0] * dUa * dUa
-						+ dChristoffelB[k][iA][iB][1] * dUa * dUb
-						+ dChristoffelB[k][iA][iB][2] * dUb * dUb;
+						+ dChristoffelB[iA][iB][0] * dUa * dUa
+						+ dChristoffelB[iA][iB][1] * dUa * dUb
+						+ dChristoffelB[iA][iB][2] * dUb * dUb;
 
 				// Pressure derivatives
 				dLocalUpdateUa -=
@@ -685,9 +685,9 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 			pPatch->GetContraMetricB();
 		const DataMatrix4D<double> & dContraMetricXi =
 			pPatch->GetContraMetricXi();
-		const DataMatrix4D<double> & dChristoffelA =
+		const DataMatrix3D<double> & dChristoffelA =
 			pPatch->GetChristoffelA();
-		const DataMatrix4D<double> & dChristoffelB =
+		const DataMatrix3D<double> & dChristoffelB =
 			pPatch->GetChristoffelB();
 		const DataMatrix4D<double> & dChristoffelXi =
 			pPatch->GetChristoffelXi();
@@ -876,14 +876,14 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 
 				// Curvature terms
 				dLocalUpdateUa -= 
-						+ dChristoffelA[k][iA][iB][0] * dUa * dUa
-						+ dChristoffelA[k][iA][iB][1] * dUa * dUb
-						+ dChristoffelA[k][iA][iB][2] * dUb * dUb;
+						+ dChristoffelA[iA][iB][0] * dUa * dUa
+						+ dChristoffelA[iA][iB][1] * dUa * dUb
+						+ dChristoffelA[iA][iB][2] * dUb * dUb;
 
 				dLocalUpdateUb -=
-						+ dChristoffelB[k][iA][iB][0] * dUa * dUa
-						+ dChristoffelB[k][iA][iB][1] * dUa * dUb
-						+ dChristoffelB[k][iA][iB][2] * dUb * dUb;
+						+ dChristoffelB[iA][iB][0] * dUa * dUa
+						+ dChristoffelB[iA][iB][1] * dUa * dUb
+						+ dChristoffelB[iA][iB][2] * dUb * dUb;
 
 				// Pressure derivatives
 				dLocalUpdateUa -=
@@ -1178,12 +1178,12 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusion(
 
 		const PatchBox & box = pPatch->GetPatchBox();
 
-		const DataMatrix3D<double> & dJacobian =
-			pPatch->GetJacobian();
-		const DataMatrix4D<double> & dContraMetricA =
-			pPatch->GetContraMetricA();
-		const DataMatrix4D<double> & dContraMetricB =
-			pPatch->GetContraMetricB();
+		const DataMatrix<double> & dJacobian =
+			pPatch->GetJacobian2D();
+		const DataMatrix3D<double> & dContraMetricA =
+			pPatch->GetContraMetric2DA();
+		const DataMatrix3D<double> & dContraMetricB =
+			pPatch->GetContraMetric2DB();
 
 		// Grid data
 		GridData4D & dataInitialNode =
@@ -1272,13 +1272,13 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusion(
 					dDaPsi /= dElementDeltaA;
 					dDbPsi /= dElementDeltaB;
 
-					dJGradientA[i][j] = dJacobian[k][iA][iB] * (
-						+ dContraMetricA[k][iA][iB][0] * dDaPsi
-						+ dContraMetricA[k][iA][iB][1] * dDbPsi);
+					dJGradientA[i][j] = dJacobian[iA][iB] * (
+						+ dContraMetricA[iA][iB][0] * dDaPsi
+						+ dContraMetricA[iA][iB][1] * dDbPsi);
 
-					dJGradientB[i][j] = dJacobian[k][iA][iB] * (
-						+ dContraMetricB[k][iA][iB][0] * dDaPsi
-						+ dContraMetricB[k][iA][iB][1] * dDbPsi);
+					dJGradientB[i][j] = dJacobian[iA][iB] * (
+						+ dContraMetricB[iA][iB][0] * dDaPsi
+						+ dContraMetricB[iA][iB][1] * dDbPsi);
 				}
 				}
 
@@ -1306,7 +1306,7 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusion(
 					dUpdateB /= dElementDeltaB;
 
 					// Apply update
-					double dInvJacobian = 1.0 / dJacobian[k][iA][iB];
+					double dInvJacobian = 1.0 / dJacobian[iA][iB];
 
 					pDataUpdate[k][iA][iB] +=
 						dDeltaT * dInvJacobian * dLocalNu
@@ -1382,12 +1382,12 @@ void HorizontalDynamicsFEM::ApplyVectorHyperdiffusion(
 
 		const PatchBox & box = pPatch->GetPatchBox();
 
-		const DataMatrix3D<double> & dJacobian =
-			pPatch->GetJacobian();
-		const DataMatrix4D<double> & dContraMetricA =
-			pPatch->GetContraMetricA();
-		const DataMatrix4D<double> & dContraMetricB =
-			pPatch->GetContraMetricB();
+		const DataMatrix<double> & dJacobian =
+			pPatch->GetJacobian2D();
+		const DataMatrix3D<double> & dContraMetricA =
+			pPatch->GetContraMetric2DA();
+		const DataMatrix3D<double> & dContraMetricB =
+			pPatch->GetContraMetric2DB();
 
 		GridData4D & dataInitial =
 			pPatch->GetDataState(iDataInitial, DataLocation_Node);
@@ -1461,28 +1461,28 @@ void HorizontalDynamicsFEM::ApplyVectorHyperdiffusion(
 
 				for (int s = 0; s < m_nHorizontalOrder; s++) {
 					double dAlphaDiv =
-						dJacobian[k][iAElement+s][iB]
+						dJacobian[iAElement+s][iB]
 						* m_dStiffness1D[i][s]
 						* dataDiv[k][iAElement+s][iB];
 
 					double dBetaDiv =
-						dJacobian[k][iA][iBElement+s]
+						dJacobian[iA][iBElement+s]
 						* m_dStiffness1D[j][s]
 						* dataDiv[k][iA][iBElement+s];
 
 					dAlphaDivTermA +=
-						dAlphaDiv * dContraMetricA[k][iAElement+s][iB][0];
+						dAlphaDiv * dContraMetricA[iAElement+s][iB][0];
 					dAlphaDivTermB +=
-						dBetaDiv  * dContraMetricB[k][iA][iBElement+s][0];
+						dBetaDiv  * dContraMetricB[iA][iBElement+s][0];
 
 					dAlphaCurlTerm +=
 						m_dStiffness1D[j][s]
 						* dataCurl[k][iA][iBElement+s];
 
 					dBetaDivTermA +=
-						dAlphaDiv * dContraMetricA[k][iAElement+s][iB][1];
+						dAlphaDiv * dContraMetricA[iAElement+s][iB][1];
 					dBetaDivTermB +=
-						dBetaDiv  * dContraMetricB[k][iA][iBElement+s][1];
+						dBetaDiv  * dContraMetricB[iA][iBElement+s][1];
 
 					dBetaCurlTerm +=
 						m_dStiffness1D[i][s]
@@ -1498,7 +1498,7 @@ void HorizontalDynamicsFEM::ApplyVectorHyperdiffusion(
 				dBetaCurlTerm /= dElementDeltaA;
 
 				// Apply update
-				double dInvJacobian = 1.0 / dJacobian[k][iA][iB];
+				double dInvJacobian = 1.0 / dJacobian[iA][iB];
 
 				dataUpdate[UIx][k][iA][iB] += dDeltaT * dInvJacobian * (
 					+ dLocalNuDiv * (
@@ -1547,46 +1547,11 @@ void HorizontalDynamicsFEM::StepAfterSubCycle(
 
 	pGridCSGLL->ApplyDSS(1);
 
-	//pGridCSGLL->CopyData(1, 0, DataType_State);
-
 	// Apply vector Laplacian (second application)
 	ApplyScalarHyperdiffusion(1, 0, -dDeltaT, m_dNuScalar, true);
 	ApplyVectorHyperdiffusion(1, 0, -dDeltaT, m_dNuDiv, m_dNuVort, true);
 
 	pGridCSGLL->ApplyDSS(0);
-
-/*
-	// Variable indices
-	const int UIx = 0;
-	const int VIx = 1;
-	const int HIx = 2;
-
-	// Perform local update
-	for (int n = 0; n < pGridCSGLL->GetActivePatchCount(); n++) {
-		GridPatch * pPatch = pGridCSGLL->GetActivePatch(n);
-
-		GridData4D & dataInitial =
-			pPatch->GetDataState(1, DataLocation_Node);
-
-		dataInitial.Zero();
-	}
-
-	// Apply the fourth-order hyperdiffusion operator
-	ApplyScalarHyperdiffusion(iDataInitial, 1, UIx, dDeltaT, false);
-	ApplyScalarHyperdiffusion(iDataInitial, 1, VIx, dDeltaT, false);
-
-	// Apply Direct Stiffness Summation (DSS) procedure
-	pGridCSGLL->ApplyDSS(iDataUpdate);
-
-	pGridCSGLL->ApplyDSS(1);
-
-	// Apply the fourth-order hyperdiffusion operator
-	ApplyScalarHyperdiffusion(1, iDataUpdate, UIx, dDeltaT, true);
-	ApplyScalarHyperdiffusion(1, iDataUpdate, VIx, dDeltaT, true);
-
-	// Apply Direct Stiffness Summation (DSS) procedure
-	pGridCSGLL->ApplyDSS(iDataUpdate);
-*/
 }
 
 ///////////////////////////////////////////////////////////////////////////////

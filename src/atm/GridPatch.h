@@ -287,6 +287,39 @@ public:
 	}
 
 	///	<summary>
+	///		Get the 2D Jacobian matrix.
+	///	</summary>
+	const DataMatrix<double> & GetJacobian2D() const {
+		if (!m_fContainsData) {
+			_EXCEPTIONT("Stub patch does not store data.");
+		}
+
+		return m_dataJacobian2D;
+	}
+
+	///	<summary>
+	///		Get the  components of the contravariant metric (alpha)
+	///	</summary>
+	const DataMatrix3D<double> & GetContraMetric2DA() const {
+		if (!m_fContainsData) {
+			_EXCEPTIONT("Stub patch does not store data.");
+		}
+
+		return m_dataContraMetric2DA;
+	}
+
+	///	<summary>
+	///		Get the  components of the contravariant metric (beta)
+	///	</summary>
+	const DataMatrix3D<double> & GetContraMetric2DB() const {
+		if (!m_fContainsData) {
+			_EXCEPTIONT("Stub patch does not store data.");
+		}
+
+		return m_dataContraMetric2DB;
+	}
+
+	///	<summary>
 	///		Get the nodal Jacobian matrix.
 	///	</summary>
 	const DataMatrix3D<double> & GetJacobian() const {
@@ -333,7 +366,7 @@ public:
 	///	<summary>
 	///		Get the nodal components of the Christoffel alpha symbols.
 	///	</summary>
-	const DataMatrix4D<double> & GetChristoffelA() const {
+	const DataMatrix3D<double> & GetChristoffelA() const {
 		if (!m_fContainsData) {
 			_EXCEPTIONT("Stub patch does not store data.");
 		}
@@ -344,7 +377,7 @@ public:
 	///	<summary>
 	///		Get the nodal components of the Christoffel beta symbols.
 	///	</summary>
-	const DataMatrix4D<double> & GetChristoffelB() const {
+	const DataMatrix3D<double> & GetChristoffelB() const {
 		if (!m_fContainsData) {
 			_EXCEPTIONT("Stub patch does not store data.");
 		}
@@ -717,6 +750,21 @@ protected:
 	bool m_fContainsData;
 
 	///	<summary>
+	///		2D Jacobian at each node.
+	///	</summary>
+	DataMatrix<double> m_dataJacobian2D;
+
+	///	<summary>
+	///		2D Contravariant metric (alpha) components.
+	///	</summary>
+	DataMatrix3D<double> m_dataContraMetric2DA;
+
+	///	<summary>
+	///		2D Contravariant metric (beta) components.
+	///	</summary>
+	DataMatrix3D<double> m_dataContraMetric2DB;
+
+	///	<summary>
 	///		Jacobian at each node.
 	///	</summary>
 	DataMatrix3D<double> m_dataJacobian;
@@ -739,12 +787,12 @@ protected:
 	///	<summary>
 	///		Christoffel symbol (alpha) components at each node.
 	///	</summary>
-	DataMatrix4D<double> m_dataChristoffelA;
+	DataMatrix3D<double> m_dataChristoffelA;
 
 	///	<summary>
 	///		Christoffel symbol (beta) components at each node.
 	///	</summary>
-	DataMatrix4D<double> m_dataChristoffelB;
+	DataMatrix3D<double> m_dataChristoffelB;
 
 	///	<summary>
 	///		Christoffel symbol (xi) components at each node.
