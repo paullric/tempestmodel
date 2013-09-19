@@ -607,7 +607,7 @@ try {
 	std::string strHorizontalDynamics;
 
 	// Use hyperdiffusion
-	bool fUseHyperviscosity;
+	bool fNoHyperviscosity;
 
 	// Model parameters
 	ModelParameters params;
@@ -631,7 +631,7 @@ try {
 		CommandLineDouble(params.m_dEndTime, "endtime", 200.0);
 		CommandLineDouble(dOutputDeltaT, "outputtime", 86400.0);
 		CommandLineStringD(strHorizontalDynamics, "method", "SE", "(SE | DG)");
-		CommandLineBool(fUseHyperviscosity, "hypervis");
+		CommandLineBool(fNoHyperviscosity, "nohypervis");
 
 		ParseCommandLine(argc, argv);
 	EndCommandLine(argv)
@@ -666,7 +666,7 @@ try {
 	}
 
 	HorizontalDynamicsFEM hdyn(
-		model, nHorizontalOrder, eHorizontalDynamicsType, fUseHyperviscosity);
+		model, nHorizontalOrder, eHorizontalDynamicsType, fNoHyperviscosity);
 	AnnounceStartBlock("Initializing horizontal dynamics");
 	model.SetHorizontalDynamics(&hdyn);
 	AnnounceEndBlock("Done");

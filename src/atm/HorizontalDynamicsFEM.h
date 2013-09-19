@@ -51,7 +51,7 @@ public:
 		Model & model,
 		int nHorizontalOrder,
 		Type eHorizontalDynamicsType = SpectralElement,
-		bool fUseHyperdiffusion = false
+		bool fNoHyperdiffusion = false
 	);
 
 public:
@@ -228,7 +228,7 @@ private:
 	///	<summary>
 	///		Flag indicating whether or not hyperdiffusion should be used.
 	///	</summary>
-	bool m_fUseHyperdiffusion;
+	bool m_fNoHyperdiffusion;
 
 	///	<summary>
 	///		Nodal pointwise gradient.

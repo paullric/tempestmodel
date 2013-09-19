@@ -33,12 +33,12 @@ HorizontalDynamicsFEM::HorizontalDynamicsFEM(
 	Model & model,
 	int nHorizontalOrder,
 	HorizontalDynamicsFEM::Type eHorizontalDynamicsType,
-	bool fUseHyperdiffusion
+	bool fNoHyperdiffusion
 ) :
 	HorizontalDynamics(model),
 	m_nHorizontalOrder(nHorizontalOrder),
 	m_eHorizontalDynamicsType(eHorizontalDynamicsType),
-	m_fUseHyperdiffusion(fUseHyperdiffusion),
+	m_fNoHyperdiffusion(fNoHyperdiffusion),
 	m_dNuScalar(1.0e15),
 	m_dNuDiv(1.0e15),
 	m_dNuVort(1.0e15)
@@ -1529,7 +1529,7 @@ void HorizontalDynamicsFEM::StepAfterSubCycle(
 	double dDeltaT
 ) {
 	// Only proceed if hyperdiffusion is applied
-	if (!m_fUseHyperdiffusion) {
+	if (m_fNoHyperdiffusion) {
 		return;
 	}
 
