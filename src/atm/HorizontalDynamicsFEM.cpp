@@ -2,7 +2,7 @@
 ///
 ///	\file    HorizontalDynamicsFEM.cpp
 ///	\author  Paul Ullrich
-///	\version June 18, 2013
+///	\version September 19, 2013
 ///
 ///	<remarks>
 ///		Copyright 2000-2010 Paul Ullrich
@@ -19,7 +19,6 @@
 #include "Model.h"
 #include "Grid.h"
 #include "GaussLobattoQuadrature.h"
-#include "PolynomialInterp.h"
 #include "FluxReconstructionFunction.h"
 
 #include "GridGLL.h"
@@ -107,6 +106,8 @@ void HorizontalDynamicsFEM::StepShallowWater(
 			pPatch->GetChristoffelB();
 		const DataMatrix<double> & dLatitude =
 			pPatch->GetLatitude();
+		const DataMatrix<double> & dCoriolisF =
+			pPatch->GetCoriolisF();
 
 		// Data
 		const GridData4D & dataInitialNode =
@@ -289,15 +290,13 @@ void HorizontalDynamicsFEM::StepShallowWater(
 						+ dContraMetricB[k][iA][iB][1] * dDbP;
 
 				// Coriolis forces
-				double dF = 2.0 * phys.GetOmega() * sin(dLatitude[iA][iB]);
-
 				dLocalUpdateUa -=
-					dF * dJacobian[k][iA][iB] * (
+					dCoriolisF[iA][iB] * dJacobian[k][iA][iB] * (
 						+ dContraMetricA[k][iA][iB][1] * dUa
 						- dContraMetricA[k][iA][iB][0] * dUb);
 
 				dLocalUpdateUb -=
-					dF * dJacobian[k][iA][iB] * (
+					dCoriolisF[iA][iB] * dJacobian[k][iA][iB] * (
 						+ dContraMetricB[k][iA][iB][1] * dUa
 						- dContraMetricB[k][iA][iB][0] * dUb);
 
@@ -579,6 +578,8 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 			pPatch->GetChristoffelXi();
 		const DataMatrix<double> & dLatitude =
 			pPatch->GetLatitude();
+		const DataMatrix<double> & dCoriolisF =
+			pPatch->GetCoriolisF();
 
 		// Data
 		GridData4D & dataInitialNode =
@@ -786,15 +787,13 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 
 #pragma message "Move F calculation to grid"
 				// Coriolis forces
-				double dF = 2.0 * phys.GetOmega() * sin(dLatitude[iA][iB]);
-
 				dLocalUpdateUa -=
-					dF * dJacobian[k][iA][iB] * (
+					dCoriolisF[iA][iB] * dJacobian[k][iA][iB] * (
 						+ dContraMetricA[k][iA][iB][1] * dUa
 						- dContraMetricA[k][iA][iB][0] * dUb);
 
 				dLocalUpdateUb -=
-					dF * dJacobian[k][iA][iB] * (
+					dCoriolisF[iA][iB] * dJacobian[k][iA][iB] * (
 						+ dContraMetricB[k][iA][iB][1] * dUa
 						- dContraMetricB[k][iA][iB][0] * dUb);
 

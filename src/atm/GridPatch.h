@@ -452,6 +452,17 @@ public:
 	}
 
 	///	<summary>
+	///		Get the nodal Coriolis parameter.
+	///	</summary>
+	const DataMatrix<double> & GetCoriolisF() const {
+		if (!m_fContainsData) {
+			_EXCEPTIONT("Stub patch does not store data.");
+		}
+
+		return m_dataCoriolisF;
+	}
+
+	///	<summary>
 	///		Get the radial coordinate matrix on model levels.
 	///	</summary>
 	const DataMatrix3D<double> & GetZLevels() const {
@@ -823,6 +834,11 @@ protected:
 	///		Latitude at each node.
 	///	</summary>
 	DataMatrix<double> m_dataLat;
+
+	///	<summary>
+	///		Coriolis parameter at each node.
+	///	</summary>
+	DataMatrix<double> m_dataCoriolisF;
 
 	///	<summary>
 	///		Altitude at each level.
