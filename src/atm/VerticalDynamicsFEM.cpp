@@ -288,7 +288,7 @@ void VerticalDynamicsFEM::Initialize() {
 		for (int i = box.GetAInteriorBegin(); i < box.GetAInteriorEnd(); i++) {
 		for (int j = box.GetBInteriorBegin(); j < box.GetBInteriorEnd(); j++) {
 
-			// Initialize Exner pressure at model levels
+			// Initialize reference Exner pressure at model levels
 			for (int k = 0; k < nRElements; k++) {
 				dataExnerNode[k][i][j] =
 					phys.GetCp() * exp(phys.GetR() / phys.GetCv()
@@ -299,7 +299,7 @@ void VerticalDynamicsFEM::Initialize() {
 				m_dExnerRefNode[k] = dataExnerNode[k][i][j];
 			}
 
-			// Initialize Exner pressure at model interfaces
+			// Initialize reference Exner pressure at model interfaces
 			for (int k = 0; k <= nRElements; k++) {
 				dataExnerREdge[k][i][j] =
 					phys.GetCp() * exp(phys.GetR() / phys.GetCv()
@@ -310,20 +310,39 @@ void VerticalDynamicsFEM::Initialize() {
 				m_dExnerRefREdge[k] = dataExnerREdge[k][i][j];
 			}
 
-#pragma message "Compute Exner pressure derivatives in accordance with staggering of W and rho"
-			// Differentiate Exner pressure on model levels
-			DifferentiateNodeToNode(
-				m_dExnerRefNode,
-				m_dDiffExnerRefNode);
+			// Differentiate the reference Exner pressure
+			if ((pGrid->GetVarLocation(RIx) == DataLocation_Node) &&
+				(pGrid->GetVarLocation(WIx) == DataLocation_Node)
+			) {
+				DifferentiateNodeToNode(
+					m_dExnerRefNode,
+					m_dDiffExnerRefNode);
 
+				DifferentiateREdgeToREdge(
+					m_dExnerRefREdge,
+					m_dDiffExnerRefREdge);
+
+			} else if (
+				(pGrid->GetVarLocation(RIx) == DataLocation_Node) &&
+				(pGrid->GetVarLocation(WIx) == DataLocation_REdge)
+			) {
+				DifferentiateNodeToNode(
+					m_dExnerRefNode,
+					m_dDiffExnerRefNode);
+
+				DifferentiateNodeToREdge(
+					m_dExnerRefREdge,
+					m_dDiffExnerRefREdge);
+
+			} else {
+				_EXCEPTIONT("Invalid variable staggering"
+					" (possibly UNIMPLEMENTED)");
+			}
+
+			// Store derivatives at this point
 			for (int k = 0; k < nRElements; k++) {
 				dataDiffExnerNode[k][i][j] = m_dDiffExnerRefNode[k];
 			}
-
-			// Differentiate Exner pressure on model interfaces
-			DifferentiateREdgeToREdge(
-				m_dExnerRefREdge,
-				m_dDiffExnerRefREdge);
 
 			for (int k = 0; k <= nRElements; k++) {
 				dataDiffExnerREdge[k][i][j] = m_dDiffExnerRefREdge[k];
