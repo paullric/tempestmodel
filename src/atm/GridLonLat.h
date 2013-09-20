@@ -73,14 +73,6 @@ public:
 		int nRefinementRatio,
 		int nRElements
 	);
-
-public:
-	///	<summary>
-	///		Get the type of grid.
-	///	</summary>
-	virtual Grid::Type GetType() const {
-		return Grid::LongitudeLatitudeGrid;
-	}
 };
 
 ///////////////////////////////////////////////////////////////////////////////

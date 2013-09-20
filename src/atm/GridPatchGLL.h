@@ -1,0 +1,92 @@
+///////////////////////////////////////////////////////////////////////////////
+///
+///	\file    GridPatchGLL.h
+///	\author  Paul Ullrich
+///	\version September 19, 2013
+///
+///	<remarks>
+///		Copyright 2000-2010 Paul Ullrich
+///
+///		This file is distributed as part of the Tempest source code package.
+///		Permission is granted to use, copy, modify and distribute this
+///		source code and its documentation under the terms of the GNU General
+///		Public License.  This software is provided "as is" without express
+///		or implied warranty.
+///	</remarks>
+
+#ifndef _GRIDPATCHGLL_H_
+#define _GRIDPATCHGLL_H_
+
+#include "GridPatch.h"
+
+///////////////////////////////////////////////////////////////////////////////
+
+///	<summary>
+///		A grid patch with degrees of freedom at Gauss-Lobatto-Legendre
+///		quadrature nodes.
+///	</summary>
+class GridPatchGLL : public GridPatch {
+
+public:
+	///	<summary>
+	///		Constructor.
+	///	</summary>
+	GridPatchGLL(
+		Grid & grid,
+		int ixPatch,
+		const PatchBox & box,
+		int nHorizontalOrder,
+		int nVerticalOrder = 1
+	);
+
+public:
+	///	<summary>
+	///		Transform vectors received from other panels to this panel's
+	///		coordinate system.
+	///	</summary>
+	virtual void TransformHaloVelocities(
+		int iDataUpdate
+	) {
+	}
+
+public:
+	///	<summary>
+	///		Get the element grid spacing in the alpha direction.
+	///	</summary>
+	double GetElementDeltaA() const {
+		return m_dElementDeltaA;
+	}
+
+	///	<summary>
+	///		Get the element grid spacing in the beta direction.
+	///	</summary>
+	double GetElementDeltaB() const {
+		return m_dElementDeltaB;
+	}
+
+protected:
+	///	<summary>
+	///		Order of accuracy of this patch.
+	///	</summary>
+	int m_nHorizontalOrder;
+
+	///	<summary>
+	///		Vertical order of accuracy of this patch.
+	///	</summary>
+	int m_nVerticalOrder;
+
+	///	<summary>
+	///		Element grid spacing in the alpha direction.
+	///	</summary>
+	double m_dElementDeltaA;
+
+	///	<summary>
+	///		Element grid spacing in the beta direction.
+	///	</summary>
+	double m_dElementDeltaB;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+
+#endif
+

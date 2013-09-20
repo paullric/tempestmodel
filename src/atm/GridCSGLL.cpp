@@ -2,7 +2,7 @@
 ///
 ///	\file    GridCSGLL.cpp
 ///	\author  Paul Ullrich
-///	\version February 25, 2013
+///	\version September 19, 2013
 ///
 ///	<remarks>
 ///		Copyright 2000-2010 Paul Ullrich
@@ -37,42 +37,21 @@ GridCSGLL::GridCSGLL(
 	const Model & model,
 	int nBaseResolution,
 	int nRefinementRatio,
-	int nOrder,
+	int nHorizontalOrder,
 	int nVerticalOrder,
 	int nRElements
 ) :
 	// Call up the stack
-	Grid::Grid(
+	GridGLL::GridGLL(
 		model,
 		nBaseResolution,
-		nBaseResolution,
 		nRefinementRatio,
-		nRElements),
-	m_nHorizontalOrder(nOrder),
-	m_nVerticalOrder(nVerticalOrder)
+		nHorizontalOrder,
+		nVerticalOrder,
+		nRElements)
 {
-
-	// Get quadrature points for Gauss-Lobatto quadrature
-	DataVector<double> dG;
-	DataVector<double> dW;
-
-	GaussLobattoQuadrature::GetPoints(m_nHorizontalOrder, dG, dW);
-
-	// Derivatives of the 1D basis functions at each point on the reference
-	// element [0, 1]
-	m_dDxBasis1D.Initialize(m_nHorizontalOrder, m_nHorizontalOrder);
-
-	DataVector<double> dCoeffs;
-	dCoeffs.Initialize(m_nHorizontalOrder);
-
-	for (int i = 0; i < m_nHorizontalOrder; i++) {
-		PolynomialInterp::DiffLagrangianPolynomialCoeffs(
-			m_nHorizontalOrder, dG, dCoeffs, dG[i]);
-
-		for (int m = 0; m < m_nHorizontalOrder; m++) {
-			m_dDxBasis1D[m][i] = 2.0 * dCoeffs[m];
-		}
-	}
+	// Set the reference length scale
+	m_dReferenceLength = 0.5 * M_PI / 30.0;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -287,7 +266,8 @@ void GridCSGLL::ApplyDSS(
 	// Post-process velocities across panel edges and
 	// perform direct stiffness summation (DSS)
 	for (int n = 0; n < GetActivePatchCount(); n++) {
-		GridPatch * pPatch = GetActivePatch(n);
+		GridPatchCSGLL * pPatch =
+			dynamic_cast<GridPatchCSGLL*>(GetActivePatch(n));
 
 		const PatchBox & box = pPatch->GetPatchBox();
 
@@ -305,6 +285,12 @@ void GridCSGLL::ApplyDSS(
 			_EXCEPTIONT("Logic Error: Invalid PatchBox beta spacing");
 		}
 
+		// Apply panel transforms to velocity data
+		if (eDataType == DataType_State) {
+			pPatch->TransformHaloVelocities(iDataUpdate);
+		}
+
+		// Panels in each coordinate direction
 		int ixRightPanel =
 			pPatch->GetNeighborPanel(Direction_Right);
 		int ixTopPanel =
@@ -322,110 +308,6 @@ void GridCSGLL::ApplyDSS(
 			pPatch->GetNeighborPanel(Direction_BottomLeft);
 		int ixBottomRightPanel =
 			pPatch->GetNeighborPanel(Direction_BottomRight);
-
-		// Apply panel transforms to velocity data
-		if (eDataType == DataType_State) {
-
-			// Indices of velocities
-			const int UIx = 0;
-			const int VIx = 1;
-
-			// Velocity data
-			GridData4D * pDataVelocity =
-				&(pPatch->GetDataState(iDataUpdate, GetVarLocation(UIx)));
-
-			if (pDataVelocity->GetComponents() < 2) {
-				_EXCEPTIONT("Invalid number of components.");
-			}
-
-			// Post-process velocities across right edge
-			if (ixRightPanel != box.GetPanel()) {
-				int i;
-				int j;
-
-				int jBegin = box.GetBInteriorBegin()-1;
-				int jEnd = box.GetBInteriorEnd()+1;
-
-				i = box.GetAInteriorEnd();
-				for (int k = 0; k < pDataVelocity->GetRElements(); k++) {
-				for (j = jBegin; j < jEnd; j++) {
-					CubedSphereTrans::VecPanelTrans(
-						ixRightPanel,
-						box.GetPanel(),
-						(*pDataVelocity)[0][k][i][j],
-						(*pDataVelocity)[1][k][i][j],
-						tan(box.GetANode(i)),
-						tan(box.GetBNode(j)));
-				}
-				}
-			}
-
-			// Post-process velocities across top edge
-			if (ixTopPanel != box.GetPanel()) {
-				int i;
-				int j;
-
-				int iBegin = box.GetAInteriorBegin()-1;
-				int iEnd = box.GetAInteriorEnd()+1;
-
-				j = box.GetBInteriorEnd();
-				for (int k = 0; k < pDataVelocity->GetRElements(); k++) {
-				for (i = iBegin; i < iEnd; i++) {
-					CubedSphereTrans::VecPanelTrans(
-						ixTopPanel,
-						box.GetPanel(),
-						(*pDataVelocity)[0][k][i][j],
-						(*pDataVelocity)[1][k][i][j],
-						tan(box.GetANode(i)),
-						tan(box.GetBNode(j)));
-				}
-				}
-			}
-
-			// Post-process velocities across left edge
-			if (ixLeftPanel != box.GetPanel()) {
-				int i;
-				int j;
-
-				int jBegin = box.GetBInteriorBegin()-1;
-				int jEnd = box.GetBInteriorEnd()+1;
-
-				i = box.GetAInteriorBegin()-1;
-				for (int k = 0; k < pDataVelocity->GetRElements(); k++) {
-				for (j = jBegin; j < jEnd; j++) {
-					CubedSphereTrans::VecPanelTrans(
-						ixLeftPanel,
-						box.GetPanel(),
-						(*pDataVelocity)[0][k][i][j],
-						(*pDataVelocity)[1][k][i][j],
-						tan(box.GetANode(i)),
-						tan(box.GetBNode(j)));
-				}
-				}
-			}
-
-			// Post-process velocities across bottom edge
-			if (ixBottomPanel != box.GetPanel()) {
-				int i;
-				int j;
-
-				int iBegin = box.GetAInteriorBegin()-1;
-				int iEnd = box.GetAInteriorEnd()+1;
-
-				j = box.GetBInteriorBegin()-1;
-				for (int k = 0; k < pDataVelocity->GetRElements(); k++) {
-				for (i = iBegin; i < iEnd; i++) {
-					CubedSphereTrans::VecPanelTrans(
-						ixBottomPanel,
-						box.GetPanel(),
-						(*pDataVelocity)[0][k][i][j],
-						(*pDataVelocity)[1][k][i][j],
-						tan(box.GetANode(i)),
-						tan(box.GetBNode(j)));
-				}
-				}
-			}
-		}
 
 		// Loop through all components associated with this DataType
 		int nComponents;
@@ -574,19 +456,6 @@ void GridCSGLL::ApplyDSS(
 			}
 		}
 	}
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
-void GridCSGLL::ComputeVorticityDivergence(
-	int iDataIndex
-) {
-	// Compute vorticity on all grid patches
-	Grid::ComputeVorticityDivergence(iDataIndex);
-
-	// Apply DSS
-	ApplyDSS(0, DataType_Vorticity);
-	ApplyDSS(0, DataType_Divergence);
 }
 
 ///////////////////////////////////////////////////////////////////////////////

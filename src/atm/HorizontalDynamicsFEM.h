@@ -178,6 +178,7 @@ private:
 	///	</summary>
 	TimeIntegrator m_eTimeIntegrator;
 */
+/*
 	///	<summary>
 	///		Derivatives of the basis functions at nodal points on the
 	///		reference element.
@@ -188,17 +189,12 @@ private:
 	///		Components of the stiffness matrix.
 	///	</summary>
 	DataMatrix<double> m_dStiffness1D;
-
+*/
 	///	<summary>
 	///		Derivatives of the flux reconstruction function (used by
 	///		discontinuous Galerkin dynamics).
 	///	</summary>
 	DataVector<double> m_dFluxDeriv1D;
-
-	///	<summary>
-	///		Nodal weights in the reference element.
-	///	</summary>
-	DataVector<double> m_dGLLWeight;
 
 	///	<summary>
 	///		Nodal alpha fluxes.

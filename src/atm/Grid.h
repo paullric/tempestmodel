@@ -43,16 +43,6 @@ friend class Model;
 
 public:
 	///	<summary>
-	///		Grid type.
-	///	</summary>
-	enum Type {
-		CubedSphereFiniteVolumeGrid,
-		CubedSphereGLLGrid,
-		LongitudeLatitudeGrid,
-	};
-
-public:
-	///	<summary>
 	///		Constructor.
 	///	</summary>
 	Grid(
@@ -261,11 +251,6 @@ public:
 
 public:
 	///	<summary>
-	///		Get the type of grid.
-	///	</summary>
-	virtual Type GetType() const = 0;
-
-	///	<summary>
 	///		Get a reference to the model.
 	///	</summary>
 	const Model & GetModel() const {
@@ -291,6 +276,13 @@ public:
 	///	</summary>
 	int GetRefinementRatio() const {
 		return m_nRefinementRatio;
+	}
+
+	///	<summary>
+	///		Get the reference length scale.
+	///	</summary>
+	double GetReferenceLength() const {
+		return m_dReferenceLength;
 	}
 
 	///	<summary>
@@ -449,6 +441,11 @@ protected:
 	///		Refinement ratio.
 	///	</summary>
 	int m_nRefinementRatio;
+
+	///	<summary>
+	///		Reference length scale.
+	///	</summary>
+	double m_dReferenceLength;
 
 protected:
 	///	<summary>

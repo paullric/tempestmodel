@@ -18,7 +18,7 @@
 #define _GRIDPATCHCSGLL_H_
 
 #include "Grid.h"
-#include "GridPatch.h"
+#include "GridPatchGLL.h"
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -31,7 +31,7 @@ class GridData3D;
 ///		A grid patch on the CubedSphere grid with degrees of freedom at
 ///		Gauss-Lobatto-Legendre quadrature nodes.
 ///	</summary>
-class GridPatchCSGLL : public GridPatch {
+class GridPatchCSGLL : public GridPatchGLL {
 
 public:
 	///	<summary>
@@ -41,7 +41,7 @@ public:
 		GridCSGLL & grid,
 		int ixPatch,
 		const PatchBox & box,
-		int nOrder,
+		int nHorizontalOrder,
 		int nVerticalOrder = 1
 	);
 
@@ -107,6 +107,15 @@ public:
 
 public:
 	///	<summary>
+	///		Transform vectors received from other panels to this panel's
+	///		coordinate system.
+	///	</summary>
+	virtual void TransformHaloVelocities(
+		int iDataUpdate
+	);
+
+public:
+	///	<summary>
 	///		Linearly interpolate data to the specified point.
 	///	</summary>
 	virtual void InterpolateData(
@@ -119,16 +128,6 @@ public:
 		bool fConvertToPrimitive = true
 	);
 
-private:
-	///	<summary>
-	///		Order of accuracy of this patch.
-	///	</summary>
-	int m_nHorizontalOrder;
-
-	///	<summary>
-	///		Vertical order of accuracy of this patch.
-	///	</summary>
-	int m_nVerticalOrder;
 };
 
 ///////////////////////////////////////////////////////////////////////////////

@@ -40,6 +40,7 @@ Grid::Grid(
 	m_nABaseResolution(nABaseResolution),
 	m_nBBaseResolution(nBBaseResolution),
 	m_nRefinementRatio(nRefinementRatio),
+	m_dReferenceLength(1.0),
 	m_nRElements(nRElements),
 	m_dZtop(1.0)
 {

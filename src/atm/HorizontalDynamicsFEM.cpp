@@ -20,10 +20,10 @@
 #include "Grid.h"
 #include "GaussLobattoQuadrature.h"
 #include "PolynomialInterp.h"
-#include "CubedSphereTrans.h"
 #include "FluxReconstructionFunction.h"
 
-#include "GridCSGLL.h"
+#include "GridGLL.h"
+#include "GridPatchGLL.h"
 
 //#define DIFFERENTIAL_FORM
 
@@ -62,29 +62,6 @@ HorizontalDynamicsFEM::HorizontalDynamicsFEM(
 
 	GaussLobattoQuadrature::GetPoints(m_nHorizontalOrder, 0.0, 1.0, dG, dW);
 
-	// Store the nodal weights in the reference element
-	m_dGLLWeight = dW;
-
-	// Derivatives of the 1D basis functions at each point on the reference
-	// element [0, 1]
-#pragma message "Pull this information from the Grid"
-	m_dDxBasis1D.Initialize(m_nHorizontalOrder, m_nHorizontalOrder);
-	m_dStiffness1D.Initialize(m_nHorizontalOrder, m_nHorizontalOrder);
-
-	DataVector<double> dCoeffs;
-	dCoeffs.Initialize(m_nHorizontalOrder);
-
-	for (int i = 0; i < m_nHorizontalOrder; i++) {
-		PolynomialInterp::DiffLagrangianPolynomialCoeffs(
-			m_nHorizontalOrder, dG, dCoeffs, dG[i]);
-
-		for (int m = 0; m < m_nHorizontalOrder; m++) {
-			m_dDxBasis1D[m][i] = dCoeffs[m];
-
-			m_dStiffness1D[m][i] = m_dDxBasis1D[m][i] * dW[i] / dW[m];
-		}
-	}
-
 	// Get the derivatives of the flux reconstruction function
 	m_dFluxDeriv1D.Initialize(m_nHorizontalOrder);
 	FluxReconstructionFunction::GetDerivatives(
@@ -100,8 +77,8 @@ void HorizontalDynamicsFEM::StepShallowWater(
 	double dDeltaT
 ) {
 
-	// Get a copy of the grid
-	Grid * pGrid = m_model.GetGrid();
+	// Get a copy of the GLL grid
+	GridGLL * pGrid = dynamic_cast<GridGLL*>(m_model.GetGrid());
 
 	// Physical constants
 	const PhysicalConstants & phys = m_model.GetPhysicalConstants();
@@ -113,7 +90,8 @@ void HorizontalDynamicsFEM::StepShallowWater(
 
 	// Perform local update
 	for (int n = 0; n < pGrid->GetActivePatchCount(); n++) {
-		GridPatch * pPatch = pGrid->GetActivePatch(n);
+		GridPatchGLL * pPatch =
+			dynamic_cast<GridPatchGLL*>(pGrid->GetActivePatch(n));
 
 		const PatchBox & box = pPatch->GetPatchBox();
 
@@ -137,14 +115,12 @@ void HorizontalDynamicsFEM::StepShallowWater(
 		GridData4D & dataUpdateNode =
 			pPatch->GetDataState(iDataUpdate, DataLocation_Node);
 
-		// Element grid spacing
-		double dElementDeltaA =
-			  box.GetAEdge(box.GetHaloElements() + m_nHorizontalOrder)
-			- box.GetAEdge(box.GetHaloElements());
+		// Element grid spacing and derivative coefficients
+		const double dElementDeltaA = pPatch->GetElementDeltaA();
+		const double dElementDeltaB = pPatch->GetElementDeltaB();
 
-		double dElementDeltaB =
-			  box.GetBEdge(box.GetHaloElements() + m_nHorizontalOrder)
-			- box.GetBEdge(box.GetHaloElements());
+		const DataMatrix<double> & dDxBasis1D = pGrid->GetDxBasis1D();
+		const DataMatrix<double> & dStiffness1D = pGrid->GetStiffness1D();
 
 		// Time over grid spacing ratio
 		double dCourantA = dDeltaT / dElementDeltaA;
@@ -221,50 +197,58 @@ void HorizontalDynamicsFEM::StepShallowWater(
 				for (int s = 0; s < m_nHorizontalOrder; s++) {
 #ifdef DIFFERENTIAL_FORM
 					// Update density: Differential formulation
-					dLocalUpdateHa -= m_dAlphaFlux[s][j] * m_dDxBasis1D[s][i];
+					dLocalUpdateHa -=
+						m_dAlphaFlux[s][j]
+						* dDxBasis1D[s][i];
 #else
 					// Update density: Variational formulation
-					dLocalUpdateHa += m_dAlphaFlux[s][j] * m_dStiffness1D[i][s];
+					dLocalUpdateHa +=
+						m_dAlphaFlux[s][j]
+						* dStiffness1D[i][s];
 #endif
 					// Derivative of alpha velocity with respect to alpha
 					dDaUa +=
 						dataInitialNode[UIx][k][iAElement+s][iB]
-						* m_dDxBasis1D[s][i];
+						* dDxBasis1D[s][i];
 
 					// Derivative of beta velocity with respect to alpha
 					dDaUb +=
 						dataInitialNode[VIx][k][iAElement+s][iB]
-						* m_dDxBasis1D[s][i];
+						* dDxBasis1D[s][i];
 
 					// Derivative of pressure with respect to alpha
 					dDaP +=
 						m_dPressure[s][j]
-						* m_dDxBasis1D[s][i];
+						* dDxBasis1D[s][i];
 				}
 
 				double dLocalUpdateHb = 0.0;
 				for (int s = 0; s < m_nHorizontalOrder; s++) {
 #ifdef DIFFERENTIAL_FORM
 					// Update density: Differential formulation
-					dLocalUpdateHb -= m_dBetaFlux[i][s] * m_dDxBasis1D[s][j];
+					dLocalUpdateHb -=
+						m_dBetaFlux[i][s]
+						* dDxBasis1D[s][j];
 #else
 					// Update density: Variational formulation
-					dLocalUpdateHb += m_dBetaFlux[i][s] * m_dStiffness1D[j][s];
+					dLocalUpdateHb +=
+						m_dBetaFlux[i][s]
+						* dStiffness1D[j][s];
 #endif
 					// Derivative of alpha velocity with respect to beta
 					dDbUa +=
 						dataInitialNode[UIx][k][iA][iBElement+s]
-						* m_dDxBasis1D[s][j];
+						* dDxBasis1D[s][j];
 
 					// Derivative of beta velocity with respect to beta
 					dDbUb +=
 						dataInitialNode[VIx][k][iA][iBElement+s]
-						* m_dDxBasis1D[s][j];
+						* dDxBasis1D[s][j];
 
 					// Derivative of pressure with respect to beta
 					dDbP +=
 						m_dPressure[i][s]
-						* m_dDxBasis1D[s][j];
+						* dDxBasis1D[s][j];
 				}
 
 				// Scale derivatives
@@ -341,8 +325,8 @@ void HorizontalDynamicsFEM::ElementFluxesShallowWater(
 	double dTime,
 	double dDeltaT
 ) {
-	// Get a copy of the grid
-	Grid * pGrid = m_model.GetGrid();
+	// Get a copy of the GLL grid
+	GridGLL * pGrid = dynamic_cast<GridGLL*>(m_model.GetGrid());
 
 	// Physical constants
 	const PhysicalConstants & phys = m_model.GetPhysicalConstants();
@@ -357,7 +341,8 @@ void HorizontalDynamicsFEM::ElementFluxesShallowWater(
 
 	// Perform local update
 	for (int n = 0; n < pGrid->GetActivePatchCount(); n++) {
-		GridPatch * pPatch = pGrid->GetActivePatch(n);
+		GridPatchGLL * pPatch =
+			dynamic_cast<GridPatchGLL*>(pGrid->GetActivePatch(n));
 
 		const PatchBox & box = pPatch->GetPatchBox();
 
@@ -381,14 +366,9 @@ void HorizontalDynamicsFEM::ElementFluxesShallowWater(
 		GridData4D & dataUpdateREdge =
 			pPatch->GetDataState(iDataUpdate, DataLocation_REdge);
 
-		// Element grid spacing
-		double dElementDeltaA =
-			  box.GetAEdge(box.GetHaloElements() + m_nHorizontalOrder)
-			- box.GetAEdge(box.GetHaloElements());
-
-		double dElementDeltaB =
-			  box.GetBEdge(box.GetHaloElements() + m_nHorizontalOrder)
-			- box.GetBEdge(box.GetHaloElements());
+		// Element grid spacing and derivative coefficients
+		const double dElementDeltaA = pPatch->GetElementDeltaA();
+		const double dElementDeltaB = pPatch->GetElementDeltaB();
 
 		// Time over grid spacing ratio
 		double dCourantA = dDeltaT / dElementDeltaA;
@@ -408,108 +388,13 @@ void HorizontalDynamicsFEM::ElementFluxesShallowWater(
 			_EXCEPTIONT("Logic Error: Invalid PatchBox beta spacing");
 		}
 
-		// Post-process velocities from exchange
-		int ixRightPanel =
-			pPatch->GetNeighborPanel(Direction_Right);
-		int ixTopPanel =
-			pPatch->GetNeighborPanel(Direction_Top);
-		int ixLeftPanel =
-			pPatch->GetNeighborPanel(Direction_Left);
-		int ixBottomPanel =
-			pPatch->GetNeighborPanel(Direction_Bottom);
-
-#pragma message "Move post-processing step to Grid"
-		// Post-process velocities across right edge
-		if (ixRightPanel != box.GetPanel()) {
-			int i;
-			int j;
-
-			int jBegin = box.GetBInteriorBegin()-1;
-			int jEnd = box.GetBInteriorEnd()+1;
-
-			i = box.GetAInteriorEnd();
-			for (int k = 0; k < pGrid->GetRElements(); k++) {
-			for (j = jBegin; j < jEnd; j++) {
-				CubedSphereTrans::VecPanelTrans(
-					ixRightPanel,
-					box.GetPanel(),
-					dataInitialNode[UIx][k][i][j],
-					dataInitialNode[VIx][k][i][j],
-					tan(box.GetANode(i)),
-					tan(box.GetBNode(j)));
-			}
-			}
-		}
-
-		// Post-process velocities across top edge
-		if (ixTopPanel != box.GetPanel()) {
-			int i;
-			int j;
-
-			int iBegin = box.GetAInteriorBegin()-1;
-			int iEnd = box.GetAInteriorEnd()+1;
-
-			j = box.GetBInteriorEnd();
-			for (int k = 0; k < pGrid->GetRElements(); k++) {
-			for (i = iBegin; i < iEnd; i++) {
-				CubedSphereTrans::VecPanelTrans(
-					ixTopPanel,
-					box.GetPanel(),
-					dataInitialNode[UIx][k][i][j],
-					dataInitialNode[VIx][k][i][j],
-					tan(box.GetANode(i)),
-					tan(box.GetBNode(j)));
-			}
-			}
-		}
-
-		// Post-process velocities across left edge
-		if (ixLeftPanel != box.GetPanel()) {
-			int i;
-			int j;
-
-			int jBegin = box.GetBInteriorBegin()-1;
-			int jEnd = box.GetBInteriorEnd()+1;
-
-			i = box.GetAInteriorBegin()-1;
-			for (int k = 0; k < pGrid->GetRElements(); k++) {
-			for (j = jBegin; j < jEnd; j++) {
-				CubedSphereTrans::VecPanelTrans(
-					ixLeftPanel,
-					box.GetPanel(),
-					dataInitialNode[UIx][k][i][j],
-					dataInitialNode[VIx][k][i][j],
-					tan(box.GetANode(i)),
-					tan(box.GetBNode(j)));
-			}
-			}
-		}
-
-		// Post-process velocities across bottom edge
-		if (ixBottomPanel != box.GetPanel()) {
-			int i;
-			int j;
-
-			int iBegin = box.GetAInteriorBegin()-1;
-			int iEnd = box.GetAInteriorEnd()+1;
-
-			j = box.GetBInteriorBegin()-1;
-			for (int k = 0; k < pGrid->GetRElements(); k++) {
-			for (i = iBegin; i < iEnd; i++) {
-				CubedSphereTrans::VecPanelTrans(
-					ixBottomPanel,
-					box.GetPanel(),
-					dataInitialNode[UIx][k][i][j],
-					dataInitialNode[VIx][k][i][j],
-					tan(box.GetANode(i)),
-					tan(box.GetBNode(j)));
-			}
-			}
-		}
+		// Post-process velocities received during exchange
+		pPatch->TransformHaloVelocities(iDataInitial);
 
 		// Flux reconstruction update coefficient
 		double dUpdateDeriv =
-			  dDeltaT * m_dFluxDeriv1D[m_nHorizontalOrder-1]
+			  dDeltaT
+			* m_dFluxDeriv1D[m_nHorizontalOrder-1]
 			/ dElementDeltaA;
 
 		// Loop over edges of constant alpha
@@ -658,8 +543,8 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 	double dTime,
 	double dDeltaT
 ) {
-	// Get a copy of the grid
-	Grid * pGrid = m_model.GetGrid();
+	// Get a copy of the GLL grid
+	GridGLL * pGrid = dynamic_cast<GridGLL*>(m_model.GetGrid());
 
 	// Physical constants
 	const PhysicalConstants & phys = m_model.GetPhysicalConstants();
@@ -673,7 +558,8 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 
 	// Perform local update
 	for (int n = 0; n < pGrid->GetActivePatchCount(); n++) {
-		GridPatch * pPatch = pGrid->GetActivePatch(n);
+		GridPatchGLL * pPatch =
+			dynamic_cast<GridPatchGLL*>(pGrid->GetActivePatch(n));
 
 		const PatchBox & box = pPatch->GetPatchBox();
 
@@ -720,14 +606,12 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 			}
 		}
 
-		// Element grid spacing
-		double dElementDeltaA =
-			  box.GetAEdge(box.GetHaloElements() + m_nHorizontalOrder)
-			- box.GetAEdge(box.GetHaloElements());
+		// Element grid spacing and derivative coefficients
+		const double dElementDeltaA = pPatch->GetElementDeltaA();
+		const double dElementDeltaB = pPatch->GetElementDeltaB();
 
-		double dElementDeltaB =
-			  box.GetBEdge(box.GetHaloElements() + m_nHorizontalOrder)
-			- box.GetBEdge(box.GetHaloElements());
+		const DataMatrix<double> & dDxBasis1D = pGrid->GetDxBasis1D();
+		const DataMatrix<double> & dStiffness1D = pGrid->GetStiffness1D();
 
 		// Time over grid spacing ratio
 		double dCourantA = dDeltaT / dElementDeltaA;
@@ -807,26 +691,28 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 #ifdef DIFFERENTIAL_FORM
 					// Update density: Differential formulation
 					dLocalUpdateRhoA -=
-						m_dAlphaFlux[s][j] * m_dDxBasis1D[s][i];
+						m_dAlphaFlux[s][j]
+						* dDxBasis1D[s][i];
 #else
 					// Update density: Variational formulation
 					dLocalUpdateRhoA +=
-						m_dAlphaFlux[s][j] * m_dStiffness1D[i][s];
+						m_dAlphaFlux[s][j]
+						* dStiffness1D[i][s];
 #endif
 					// Derivative of alpha velocity with respect to alpha
 					dDaUa +=
 						dataInitialNode[UIx][k][iAElement+s][iB]
-						* m_dDxBasis1D[s][i];
+						* dDxBasis1D[s][i];
 
 					// Derivative of beta velocity with respect to alpha
 					dDaUb +=
 						dataInitialNode[VIx][k][iAElement+s][iB]
-						* m_dDxBasis1D[s][i];
+						* dDxBasis1D[s][i];
 
 					// Derivative of pressure with respect to alpha
 					dDaP +=
 						m_dPressure[s][j]
-						* m_dDxBasis1D[s][i];
+						* dDxBasis1D[s][i];
 				}
 
 				// Calculate derivatives in the beta direction
@@ -835,26 +721,28 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 #ifdef DIFFERENTIAL_FORM
 					// Update density: Differential formulation
 					dLocalUpdateRhoB -=
-						m_dBetaFlux[i][s] * m_dDxBasis1D[s][j];
+						m_dBetaFlux[i][s]
+						* dDxBasis1D[s][j];
 #else
 					// Update density: Variational formulation
 					dLocalUpdateRhoB +=
-						m_dBetaFlux[i][s] * m_dStiffness1D[j][s];
+						m_dBetaFlux[i][s]
+						* dStiffness1D[j][s];
 #endif
 					// Derivative of alpha velocity with respect to beta
 					dDbUa +=
 						dataInitialNode[UIx][k][iA][iBElement+s]
-						* m_dDxBasis1D[s][j];
+						* dDxBasis1D[s][j];
 
 					// Derivative of beta velocity with respect to beta
 					dDbUb +=
 						dataInitialNode[VIx][k][iA][iBElement+s]
-						* m_dDxBasis1D[s][j];
+						* dDxBasis1D[s][j];
 
 					// Derivative of pressure with respect to beta
 					dDbP +=
 						m_dPressure[i][s]
-						* m_dDxBasis1D[s][j];
+						* dDxBasis1D[s][j];
 				}
 
 				// Scale derivatives
@@ -896,6 +784,7 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 						+ dContraMetricB[k][iA][iB][1] * dDbP)
 							/ dataInitialNode[RIx][k][iA][iB];
 
+#pragma message "Move F calculation to grid"
 				// Coriolis forces
 				double dF = 2.0 * phys.GetOmega() * sin(dLatitude[iA][iB]);
 
@@ -928,12 +817,12 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 						// Derivative of xi velocity with respect to alpha
 						dDaUx +=
 							dataInitialNode[WIx][k][iAElement+s][iB]
-							* m_dDxBasis1D[s][i];
+							* dDxBasis1D[s][i];
 
 						// Derivative of xi velocity with respect to beta
 						dDbUx +=
 							dataInitialNode[WIx][k][iA][iBElement+s]
-							* m_dDxBasis1D[s][j];
+							* dDxBasis1D[s][j];
 					}
 
 					// Scale derivatives
@@ -954,12 +843,12 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 						// Derivative of theta with respect to alpha
 						dDaTheta +=
 							dataInitialNode[TIx][k][iAElement+s][iB]
-							* m_dDxBasis1D[s][i];
+							* dDxBasis1D[s][i];
 
 						// Derivative of theta with respect to beta
 						dDbTheta +=
 							dataInitialNode[TIx][k][iA][iBElement+s]
-							* m_dDxBasis1D[s][j];
+							* dDxBasis1D[s][j];
 					}
 
 					// Scale derivatives
@@ -1003,12 +892,12 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 						// Derivative of xi velocity with respect to alpha
 						dDaUx +=
 							dataInitialREdge[WIx][k][iAElement+s][iB]
-							* m_dDxBasis1D[s][i];
+							* dDxBasis1D[s][i];
 
 						// Derivative of xi velocity with respect to beta
 						dDbUx +=
 							dataInitialREdge[WIx][k][iA][iBElement+s]
-							* m_dDxBasis1D[s][j];
+							* dDxBasis1D[s][j];
 					}
 
 					// Scale derivatives
@@ -1032,12 +921,12 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 						// Derivative of theta with respect to alpha
 						dDaTheta +=
 							dataInitialREdge[TIx][k][iAElement+s][iB]
-							* m_dDxBasis1D[s][i];
+							* dDxBasis1D[s][i];
 
 						// Derivative of theta with respect to beta
 						dDbTheta +=
 							dataInitialREdge[TIx][k][iA][iBElement+s]
-							* m_dDxBasis1D[s][j];
+							* dDxBasis1D[s][j];
 					}
 
 					// Scale derivatives
@@ -1091,9 +980,9 @@ void HorizontalDynamicsFEM::StepExplicit(
 	}
 
 	// Apply Direct Stiffness Summation (DSS) procedure
-	GridCSGLL * pGridCSGLL = dynamic_cast<GridCSGLL*>(m_model.GetGrid());
 	if (m_eHorizontalDynamicsType == SpectralElement) {
-		pGridCSGLL->ApplyDSS(iDataUpdate);
+		GridGLL * pGrid = dynamic_cast<GridGLL*>(m_model.GetGrid());
+		pGrid->ApplyDSS(iDataUpdate);
 	}
 }
 
@@ -1160,8 +1049,8 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusion(
 	double dNu,
 	bool fScaleNuLocally
 ) {
-	// Get a copy of the grid
-	Grid * pGrid = m_model.GetGrid();
+	// Get a copy of the GLL grid
+	GridGLL * pGrid = dynamic_cast<GridGLL*>(m_model.GetGrid());
 
 	// Physical constants
 	const PhysicalConstants & phys = m_model.GetPhysicalConstants();
@@ -1174,7 +1063,8 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusion(
 
 	// Perform local update
 	for (int n = 0; n < pGrid->GetActivePatchCount(); n++) {
-		GridPatch * pPatch = pGrid->GetActivePatch(n);
+		GridPatchGLL * pPatch =
+			dynamic_cast<GridPatchGLL*>(pGrid->GetActivePatch(n));
 
 		const PatchBox & box = pPatch->GetPatchBox();
 
@@ -1198,14 +1088,12 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusion(
 		GridData4D & dataUpdateREdge =
 			pPatch->GetDataState(iDataUpdate, DataLocation_REdge);
 
-		// Element grid spacing
-		double dElementDeltaA =
-			  box.GetAEdge(box.GetHaloElements() + m_nHorizontalOrder)
-			- box.GetAEdge(box.GetHaloElements());
+		// Element grid spacing and derivative coefficients
+		const double dElementDeltaA = pPatch->GetElementDeltaA();
+		const double dElementDeltaB = pPatch->GetElementDeltaB();
 
-		double dElementDeltaB =
-			  box.GetBEdge(box.GetHaloElements() + m_nHorizontalOrder)
-			- box.GetBEdge(box.GetHaloElements());
+		const DataMatrix<double> & dDxBasis1D = pGrid->GetDxBasis1D();
+		const DataMatrix<double> & dStiffness1D = pGrid->GetStiffness1D();
 
 		// Number of finite elements
 		int nAElements =
@@ -1216,9 +1104,9 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusion(
 		// Compute new hyperviscosity coefficient
 		double dLocalNu  = dNu;
 
-#pragma message "Use a reference length scale from the grid"
 		if (fScaleNuLocally) {
-			dLocalNu *= pow(dElementDeltaA / (0.5 * M_PI / 30.0), 3.2);
+			double dReferenceLength = pGrid->GetReferenceLength();
+			dLocalNu *= pow(dElementDeltaA / dReferenceLength, 3.2);
 		}
 
 		// Loop over all components
@@ -1262,11 +1150,11 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusion(
 					for (int s = 0; s < m_nHorizontalOrder; s++) {
 						dDaPsi +=
 							pDataInitial[k][iAElement+s][iB]
-							* m_dDxBasis1D[s][i];
+							* dDxBasis1D[s][i];
 
 						dDbPsi +=
 							pDataInitial[k][iA][iBElement+s]
-							* m_dDxBasis1D[s][j];
+							* dDxBasis1D[s][j];
 					}
 
 					dDaPsi /= dElementDeltaA;
@@ -1295,11 +1183,11 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusion(
 					for (int s = 0; s < m_nHorizontalOrder; s++) {
 						dUpdateA +=
 							dJGradientA[s][j]
-							* m_dStiffness1D[i][s];
+							* dStiffness1D[i][s];
 
 						dUpdateB +=
 							dJGradientB[i][s]
-							* m_dStiffness1D[j][s];
+							* dStiffness1D[j][s];
 					}
 
 					dUpdateA /= dElementDeltaA;
@@ -1370,15 +1258,16 @@ void HorizontalDynamicsFEM::ApplyVectorHyperdiffusion(
 	const int UIx = 0;
 	const int VIx = 1;
 
-	// Get a copy of the grid
-	Grid * pGrid = m_model.GetGrid();
+	// Get a copy of the GLL grid
+	GridGLL * pGrid = dynamic_cast<GridGLL*>(m_model.GetGrid());
 
 	// Physical constants
 	const PhysicalConstants & phys = m_model.GetPhysicalConstants();
 
 	// Loop over all patches
 	for (int n = 0; n < pGrid->GetActivePatchCount(); n++) {
-		GridPatch * pPatch = pGrid->GetActivePatch(n);
+		GridPatchGLL * pPatch =
+			dynamic_cast<GridPatchGLL*>(pGrid->GetActivePatch(n));
 
 		const PatchBox & box = pPatch->GetPatchBox();
 
@@ -1395,14 +1284,12 @@ void HorizontalDynamicsFEM::ApplyVectorHyperdiffusion(
 		GridData4D & dataUpdate =
 			pPatch->GetDataState(iDataUpdate, DataLocation_Node);
 
-		// Element grid spacing
-		double dElementDeltaA =
-			  box.GetAEdge(box.GetHaloElements() + m_nHorizontalOrder)
-			- box.GetAEdge(box.GetHaloElements());
+		// Element grid spacing and derivative coefficients
+		const double dElementDeltaA = pPatch->GetElementDeltaA();
+		const double dElementDeltaB = pPatch->GetElementDeltaB();
 
-		double dElementDeltaB =
-			  box.GetBEdge(box.GetHaloElements() + m_nHorizontalOrder)
-			- box.GetBEdge(box.GetHaloElements());
+		const DataMatrix<double> & dDxBasis1D = pGrid->GetDxBasis1D();
+		const DataMatrix<double> & dStiffness1D = pGrid->GetStiffness1D();
 
 		// Compute curl and divergence of U on the grid
 		GridData3D dataUa;
@@ -1421,19 +1308,17 @@ void HorizontalDynamicsFEM::ApplyVectorHyperdiffusion(
 		double dLocalNuDiv  = dNuDiv;
 		double dLocalNuVort = dNuVort;
 
-#pragma message "Use a reference length scale from the grid"
 		if (fScaleNuLocally) {
+			double dReferenceLength = pGrid->GetReferenceLength();
 			dLocalNuDiv =
-				dLocalNuDiv  * pow(dElementDeltaA / (0.5 * M_PI / 30.0), 3.2);
+				dLocalNuDiv  * pow(dElementDeltaA / dReferenceLength, 3.2);
 			dLocalNuVort =
-				dLocalNuVort * pow(dElementDeltaA / (0.5 * M_PI / 30.0), 3.2);
+				dLocalNuVort * pow(dElementDeltaA / dReferenceLength, 3.2);
 		}
 
 		// Number of finite elements
-		int nAElements =
-			box.GetAInteriorWidth() / m_nHorizontalOrder;
-		int nBElements =
-			box.GetBInteriorWidth() / m_nHorizontalOrder;
+		int nAElements = box.GetAInteriorWidth() / m_nHorizontalOrder;
+		int nBElements = box.GetBInteriorWidth() / m_nHorizontalOrder;
 
 		// Loop over all finite elements
 		for (int k = 0; k < pGrid->GetRElements(); k++) {
@@ -1462,12 +1347,12 @@ void HorizontalDynamicsFEM::ApplyVectorHyperdiffusion(
 				for (int s = 0; s < m_nHorizontalOrder; s++) {
 					double dAlphaDiv =
 						dJacobian[iAElement+s][iB]
-						* m_dStiffness1D[i][s]
+						* dStiffness1D[i][s]
 						* dataDiv[k][iAElement+s][iB];
 
 					double dBetaDiv =
 						dJacobian[iA][iBElement+s]
-						* m_dStiffness1D[j][s]
+						* dStiffness1D[j][s]
 						* dataDiv[k][iA][iBElement+s];
 
 					dAlphaDivTermA +=
@@ -1476,7 +1361,7 @@ void HorizontalDynamicsFEM::ApplyVectorHyperdiffusion(
 						dBetaDiv  * dContraMetricB[iA][iBElement+s][0];
 
 					dAlphaCurlTerm +=
-						m_dStiffness1D[j][s]
+						dStiffness1D[j][s]
 						* dataCurl[k][iA][iBElement+s];
 
 					dBetaDivTermA +=
@@ -1485,7 +1370,7 @@ void HorizontalDynamicsFEM::ApplyVectorHyperdiffusion(
 						dBetaDiv  * dContraMetricB[iA][iBElement+s][1];
 
 					dBetaCurlTerm +=
-						m_dStiffness1D[i][s]
+						dStiffness1D[i][s]
 						* dataCurl[k][iAElement+s][iB];
 				}
 
@@ -1536,22 +1421,28 @@ void HorizontalDynamicsFEM::StepAfterSubCycle(
 
 	// Check indices
 	if (iDataInitial == iDataWorking) {
+		_EXCEPTIONT("Invalid indices "
+			"-- initial and working data must be distinct");
+	}
+	if (iDataUpdate == iDataWorking) {
+		_EXCEPTIONT("Invalid indices "
+			"-- working and update data must be distinct");
 	}
 
 #pragma message "Altering the horizontal velocities should also modify the vertical velocities"
 
 	// Apply Direct Stiffness Summation (DSS) procedure
-	GridCSGLL * pGridCSGLL = dynamic_cast<GridCSGLL*>(m_model.GetGrid());
+	GridGLL * pGrid = dynamic_cast<GridGLL*>(m_model.GetGrid());
 
 	// Apply vector Laplacian (first application)
-	pGridCSGLL->ZeroData(iDataWorking, DataType_State);
+	pGrid->ZeroData(iDataWorking, DataType_State);
 
 	ApplyScalarHyperdiffusion(
 		iDataInitial, iDataWorking, 1.0, 1.0, false);
 	ApplyVectorHyperdiffusion(
 		iDataInitial, iDataWorking, 1.0, 1.0, 1.0, false);
 
-	pGridCSGLL->ApplyDSS(iDataWorking);
+	pGrid->ApplyDSS(iDataWorking);
 
 	// Apply vector Laplacian (second application)
 	ApplyScalarHyperdiffusion(
@@ -1559,7 +1450,7 @@ void HorizontalDynamicsFEM::StepAfterSubCycle(
 	ApplyVectorHyperdiffusion(
 		iDataWorking, iDataUpdate, -dDeltaT, m_dNuDiv, m_dNuVort, true);
 
-	pGridCSGLL->ApplyDSS(iDataUpdate);
+	pGrid->ApplyDSS(iDataUpdate);
 }
 
 ///////////////////////////////////////////////////////////////////////////////

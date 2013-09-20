@@ -37,26 +37,16 @@ GridPatchCSGLL::GridPatchCSGLL(
 	GridCSGLL & grid,
 	int ixPatch,
 	const PatchBox & box,
-	int nOrder,
+	int nHorizontalOrder,
 	int nVerticalOrder
 ) :
-	GridPatch(grid, ixPatch, box),
-	m_nHorizontalOrder(nOrder),
-	m_nVerticalOrder(nVerticalOrder)
+	GridPatchGLL(
+		grid,
+		ixPatch,
+		box,
+		nHorizontalOrder,
+		nVerticalOrder)
 {
-	// Verify that box boundaries are aligned with elements
-	if (((box.GetAGlobalInteriorBegin() % nOrder) != 0) ||
-		((box.GetAGlobalInteriorEnd()   % nOrder) != 0) ||
-		((box.GetBGlobalInteriorBegin() % nOrder) != 0) ||
-		((box.GetBGlobalInteriorEnd()   % nOrder) != 0)
-	) {
-		_EXCEPTION4(
-			"CSGLL grid patch must be aligned with elements: %i %i %i %i",
-			box.GetAGlobalInteriorBegin(),
-			box.GetAGlobalInteriorEnd(),
-			box.GetBGlobalInteriorBegin(),
-			box.GetBGlobalInteriorEnd());
-	}
 
 	// Get panels in each coordinate direction
 	if (grid.GetABaseResolution() != grid.GetBBaseResolution()) {
@@ -1149,6 +1139,123 @@ void GridPatchCSGLL::InterpolateData(
 					dInterpData[0][k][i],
 					dInterpData[1][k][i]);
 			}
+		}
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void GridPatchCSGLL::TransformHaloVelocities(
+	int iDataUpdate
+) {
+	// Indices of velocities
+	const int UIx = 0;
+	const int VIx = 1;
+
+	// Velocity data
+	GridData4D * pDataVelocity =
+		&(GetDataState(iDataUpdate, m_grid.GetVarLocation(UIx)));
+
+	if (pDataVelocity->GetComponents() < 2) {
+		_EXCEPTIONT("Invalid number of components.");
+	}
+
+	// Panels in each coordinate direction
+	int ixRightPanel  = GetNeighborPanel(Direction_Right);
+	int ixTopPanel    = GetNeighborPanel(Direction_Top);
+	int ixLeftPanel   = GetNeighborPanel(Direction_Left);
+	int ixBottomPanel = GetNeighborPanel(Direction_Bottom);
+
+	int ixTopRightPanel    = GetNeighborPanel(Direction_TopRight);
+	int ixTopLeftPanel     = GetNeighborPanel(Direction_TopLeft);
+	int ixBottomLeftPanel  = GetNeighborPanel(Direction_BottomLeft);
+	int ixBottomRightPanel = GetNeighborPanel(Direction_BottomRight);
+
+	// Post-process velocities across right edge
+	if (ixRightPanel != m_box.GetPanel()) {
+		int i;
+		int j;
+
+		int jBegin = m_box.GetBInteriorBegin()-1;
+		int jEnd = m_box.GetBInteriorEnd()+1;
+
+		i = m_box.GetAInteriorEnd();
+		for (int k = 0; k < pDataVelocity->GetRElements(); k++) {
+		for (j = jBegin; j < jEnd; j++) {
+			CubedSphereTrans::VecPanelTrans(
+				ixRightPanel,
+				m_box.GetPanel(),
+				(*pDataVelocity)[0][k][i][j],
+				(*pDataVelocity)[1][k][i][j],
+				tan(m_box.GetANode(i)),
+				tan(m_box.GetBNode(j)));
+		}
+		}
+	}
+
+	// Post-process velocities across top edge
+	if (ixTopPanel != m_box.GetPanel()) {
+		int i;
+		int j;
+
+		int iBegin = m_box.GetAInteriorBegin()-1;
+		int iEnd = m_box.GetAInteriorEnd()+1;
+
+		j = m_box.GetBInteriorEnd();
+		for (int k = 0; k < pDataVelocity->GetRElements(); k++) {
+		for (i = iBegin; i < iEnd; i++) {
+			CubedSphereTrans::VecPanelTrans(
+				ixTopPanel,
+				m_box.GetPanel(),
+				(*pDataVelocity)[0][k][i][j],
+				(*pDataVelocity)[1][k][i][j],
+				tan(m_box.GetANode(i)),
+				tan(m_box.GetBNode(j)));
+		}
+		}
+	}
+
+	// Post-process velocities across left edge
+	if (ixLeftPanel != m_box.GetPanel()) {
+		int i;
+		int j;
+
+		int jBegin = m_box.GetBInteriorBegin()-1;
+		int jEnd = m_box.GetBInteriorEnd()+1;
+
+		i = m_box.GetAInteriorBegin()-1;
+		for (int k = 0; k < pDataVelocity->GetRElements(); k++) {
+		for (j = jBegin; j < jEnd; j++) {
+			CubedSphereTrans::VecPanelTrans(
+				ixLeftPanel,
+				m_box.GetPanel(),
+				(*pDataVelocity)[0][k][i][j],
+				(*pDataVelocity)[1][k][i][j],
+				tan(m_box.GetANode(i)),
+				tan(m_box.GetBNode(j)));
+		}
+		}
+	}
+
+	// Post-process velocities across bottom edge
+	if (ixBottomPanel != m_box.GetPanel()) {
+		int i;
+		int j;
+
+		int iBegin = m_box.GetAInteriorBegin()-1;
+		int iEnd = m_box.GetAInteriorEnd()+1;
+
+		j = m_box.GetBInteriorBegin()-1;
+		for (int k = 0; k < pDataVelocity->GetRElements(); k++) {
+		for (i = iBegin; i < iEnd; i++) {
+			CubedSphereTrans::VecPanelTrans(
+				ixBottomPanel,
+				m_box.GetPanel(),
+				(*pDataVelocity)[0][k][i][j],
+				(*pDataVelocity)[1][k][i][j],
+				tan(m_box.GetANode(i)),
+				tan(m_box.GetBNode(j)));
+		}
 		}
 	}
 }
