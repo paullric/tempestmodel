@@ -785,7 +785,6 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 						+ dContraMetricB[k][iA][iB][1] * dDbP)
 							/ dataInitialNode[RIx][k][iA][iB];
 
-#pragma message "Move F calculation to grid"
 				// Coriolis forces
 				dLocalUpdateUa -=
 					dCoriolisF[iA][iB] * dJacobian[k][iA][iB] * (
