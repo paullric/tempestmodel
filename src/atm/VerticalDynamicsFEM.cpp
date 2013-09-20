@@ -310,6 +310,7 @@ void VerticalDynamicsFEM::Initialize() {
 				m_dExnerRefREdge[k] = dataExnerREdge[k][i][j];
 			}
 
+#pragma message "Compute Exner pressure derivatives in accordance with staggering of W and rho"
 			// Differentiate Exner pressure on model levels
 			DifferentiateNodeToNode(
 				m_dExnerRefNode,
@@ -945,18 +946,15 @@ void VerticalDynamicsFEM::StepImplicit(
 				m_dStateRefREdge[TIx][k] = dataRefREdge[TIx][k][iA][iB];
 			}
 
-			// Build the Exner pressure reference along with the density
-			if (pGrid->GetVarLocation(RIx) == DataLocation_Node) {
-				for (int k = 0; k < pGrid->GetRElements(); k++) {
-					m_dExnerRefNode[k] = dataExnerNode[k][iA][iB];
-					m_dDiffExnerRefNode[k] = dataDiffExnerNode[k][iA][iB];
-				}
+			// Build the Exner pressure reference
+			for (int k = 0; k < pGrid->GetRElements(); k++) {
+				m_dExnerRefNode[k] = dataExnerNode[k][iA][iB];
+				m_dDiffExnerRefNode[k] = dataDiffExnerNode[k][iA][iB];
+			}
 
-			} else {
-				for (int k = 0; k <= pGrid->GetRElements(); k++) {
-					m_dExnerRefREdge[k] = dataExnerREdge[k][iA][iB];
-					m_dDiffExnerRefREdge[k] = dataDiffExnerREdge[k][iA][iB];
-				}
+			for (int k = 0; k <= pGrid->GetRElements(); k++) {
+				m_dExnerRefREdge[k] = dataExnerREdge[k][iA][iB];
+				m_dDiffExnerRefREdge[k] = dataDiffExnerREdge[k][iA][iB];
 			}
 
 #ifdef USE_PETSC
@@ -1480,11 +1478,11 @@ void VerticalDynamicsFEM::EvaluateMixed(
 		DifferentiateNodeToREdge(
 			m_dExnerPertNode,
 			m_dDiffExnerPertREdge);
-
+/*
 		DifferentiateNodeToREdge(
 			m_dExnerRefNode,
 			m_dDiffExnerRefREdge);
-
+*/
 		// Compute update to W
 		for (int k = 1; k < nRElements; k++) {
 			double dTheta = m_dStateREdge[TIx][k];
@@ -1513,11 +1511,11 @@ void VerticalDynamicsFEM::EvaluateMixed(
 		DifferentiateNodeToNode(
 			m_dExnerPertNode,
 			m_dDiffExnerPertNode);
-
+/*
 		DifferentiateNodeToNode(
 			m_dExnerRefNode,
 			m_dDiffExnerRefNode);
-
+*/
 		// Compute update to W
 		for (int k = 0; k < nRElements; k++) {
 			double dTheta = m_dStateNode[TIx][k];
