@@ -44,6 +44,17 @@ class BaroclinicWaveJWTest : public TestCase {
 
 public:
 	///	<summary>
+	///		Perturbation type.
+	///	</summary>
+	enum PerturbationType {
+		PerturbationType_Default = 0,
+		PerturbationType_None = PerturbationType_Default,
+		PerturbationType_Exp = 1,
+		PerturbationType_StreamFn = 2,
+	};
+
+public:
+	///	<summary>
 	///		Auxiliary eta.
 	///	</summary>
 	static const double ParamEta0 = 0.252;
@@ -73,6 +84,26 @@ public:
 	///	</summary>
 	static const double ParamU0 = 35.0;
 
+	///	<summary>
+	///		Zonal wind perturbation (m / s)
+	///	</summary>
+	static const double ParamUp = 1.0;
+
+	///	<summary>
+	///		Perturbation longitude center (radians)
+	///	</summary>
+	static const double ParamPertLon = M_PI / 9.0;
+
+	///	<summary>
+	///		Perturbation latitude center (radians)
+	///	</summary>
+	static const double ParamPertLat = 2.0 * M_PI / 9.0;
+
+	///	<summary>
+	///		Perturbation radius (Earth radii)
+	///	</summary>
+	static const double ParamPertR = 0.1;
+
 protected:
 	///	<summary>
 	///		Alpha parameter.
@@ -94,6 +125,11 @@ protected:
 	///	</summary>
 	bool m_fNoReferenceState;
 
+	///	<summary>
+	///		Type of perturbation.
+	///	</summary>
+	PerturbationType m_ePerturbationType;
+
 public:
 	///	<summary>
 	///		Constructor.
@@ -102,12 +138,14 @@ public:
 		double dAlpha,
 		bool fTracerOn,
 		double dZtop,
-		bool fNoReferenceState
+		bool fNoReferenceState,
+		PerturbationType ePerturbationType = PerturbationType_None
 	) :
 		m_dAlpha(dAlpha),
 		m_fTracerOn(fTracerOn),
 		m_dZtop(dZtop),
-		m_fNoReferenceState(fNoReferenceState)
+		m_fNoReferenceState(fNoReferenceState),
+		m_ePerturbationType(ePerturbationType)
 	{ }
 
 public:
@@ -375,6 +413,19 @@ public:
 
 		// Evaluate the reference state at this point
 		EvaluateReferenceState(phys, dZ, dLon, dLat, dState);
+
+		// Add perturbation in zonal velocity
+		if (m_ePerturbationType == PerturbationType_Exp) {
+			double dGreatCircleR =
+				acos(sin(ParamPertLat) * sin(dLat)
+					+ cos(ParamPertLat) * cos(dLat) * cos(dLon - ParamPertLon));
+
+			dGreatCircleR /= ParamPertR;
+
+			if (dGreatCircleR < 1.0) {
+				dState[0] += ParamUp * exp( - dGreatCircleR * dGreatCircleR);
+			}
+		}
 	}
 
 };
@@ -414,6 +465,9 @@ try {
 	// Use reference state flag
 	bool fNoReferenceState;
 
+	// Perturbation type
+	std::string strPerturbationType;
+
 	// Include tracer field
 	bool fTracersOn;
 
@@ -441,6 +495,8 @@ try {
 		CommandLineDouble(dAlpha, "alpha", 0.0);
 		CommandLineBool(fNoReferenceState, "norefstate");
 		CommandLineBool(fTracersOn, "with_tracer");
+		CommandLineStringD(strPerturbationType, "pert",
+			"None", "(None | Exp)");
 		CommandLineDouble(params.m_dDeltaT, "dt", 200.0);
 		CommandLineDouble(params.m_dEndTime, "endtime", 200.0);
 		CommandLineDouble(dOutputDeltaT, "outputtime", 21600.0);
@@ -505,11 +561,23 @@ try {
 	AnnounceEndBlock("Done");
 
 	// Set the test case for the model
+	BaroclinicWaveJWTest::PerturbationType ePerturbationType;
+	STLStringHelper::ToLower(strPerturbationType);
+	if (strPerturbationType == "none") {
+		ePerturbationType = BaroclinicWaveJWTest::PerturbationType_None;
+	} else if (strPerturbationType == "exp") {
+		ePerturbationType = BaroclinicWaveJWTest::PerturbationType_Exp;
+	} else {
+		_EXCEPTIONT("Invalid perturbation type:"
+			" Expected \"None\" or \"Exp\"");
+	}
+
 	BaroclinicWaveJWTest test(
 		dAlpha,
 		fTracersOn,
 		dZtop,
-		fNoReferenceState);
+		fNoReferenceState,
+		ePerturbationType);
 
 	AnnounceStartBlock("Initializing data");
 	model.SetTestCase(&test);
