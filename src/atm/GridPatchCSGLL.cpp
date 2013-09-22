@@ -456,25 +456,28 @@ void GridPatchCSGLL::EvaluateGeometricTerms(
 			double dDbxR = - dDbZs;
 			double dDxxR = 0.0;
 
-#pragma message "Why does the Jacobian not include the DxR term? -- its inclusion shouldn't mess up the Coriolis force"
 			// Calculate pointwise Jacobian
-			m_dataJacobian[k][i][j] = m_dataJacobian2D[i][j];
+			m_dataJacobian[k][i][j] = dDxR * m_dataJacobian2D[i][j];
 
 			// Element area associated with each model level GLL node
 			m_dataElementArea[k][i][j] =
 				m_dataJacobian[k][i][j]
 				* dWL[ix] * dElementDeltaA
 				* dWL[jx] * dElementDeltaB
-				* dWNode[kx] * dElementDeltaXi * dDxR;
+				* dWNode[kx] * dElementDeltaXi;
 
 			// Contravariant metric components
 			m_dataContraMetricA[k][i][j][0] = m_dataContraMetric2DA[i][j][0];
 			m_dataContraMetricA[k][i][j][1] = m_dataContraMetric2DA[i][j][1];
-			m_dataContraMetricA[k][i][j][2] = 0.0;
+			m_dataContraMetricA[k][i][j][2] =
+				- dContraMetricScale / dDxR * (
+					(1.0 + dY * dY) * dDaR + dX * dY * dDbR);
 
 			m_dataContraMetricB[k][i][j][0] = m_dataContraMetric2DB[i][j][0];
 			m_dataContraMetricB[k][i][j][1] = m_dataContraMetric2DB[i][j][1];
-			m_dataContraMetricB[k][i][j][2] = 0.0;
+			m_dataContraMetricB[k][i][j][2] =
+				- dContraMetricScale / dDxR * (
+					dX * dY * dDaR + (1.0 + dX * dX) * dDbR);
 
 			m_dataContraMetricXi[k][i][j][0] = 
 				- dContraMetricScale / dDxR
@@ -527,7 +530,8 @@ void GridPatchCSGLL::EvaluateGeometricTerms(
 				(1.0 + dX * dX) * (1.0 + dY * dY) / (dDelta * dDelta * dDelta);
 
 			dJacobian *=
-				  phys.GetEarthRadius()
+				dDxR
+				* phys.GetEarthRadius()
 				* phys.GetEarthRadius();
 
 			// Element area associated with each model interface GLL node
@@ -535,7 +539,7 @@ void GridPatchCSGLL::EvaluateGeometricTerms(
 				dJacobian
 				* dWL[ix] * dElementDeltaA
 				* dWL[jx] * dElementDeltaB
-				* dWREdge[kx] * dElementDeltaXi * dDxR;
+				* dWREdge[kx] * dElementDeltaXi;
 
 			if ((k != 0) && (k != m_grid.GetRElements()) && (kx == 0)) {
 				m_dataElementAreaREdge[k][i][j] *= 2.0;

@@ -151,8 +151,7 @@ protected:
 	double m_dZtop;
 
 	///	<summary>
-	///		Flag indicating that the reference profile should be used
-	///		(otherwise GetReferenceState returns 0);
+	///		Flag indicating that the reference profile should be used.
 	///	</summary>
 	bool m_fNoReferenceState;
 
@@ -633,7 +632,7 @@ try {
 			"None", "(None | Exp | Sfn)");
 		CommandLineDouble(params.m_dDeltaT, "dt", 200.0);
 		CommandLineDouble(params.m_dEndTime, "endtime", 200.0);
-		CommandLineDouble(dOutputDeltaT, "outputtime", 86400.0);
+		CommandLineDouble(dOutputDeltaT, "outputtime", 21600.0);
 		CommandLineStringD(strHorizontalDynamics, "method", "SE", "(SE | DG)");
 		CommandLineBool(fNoHyperviscosity, "nohypervis");
 

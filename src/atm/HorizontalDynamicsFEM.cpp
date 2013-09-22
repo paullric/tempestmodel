@@ -580,6 +580,10 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 			pPatch->GetLatitude();
 		const DataMatrix<double> & dCoriolisF =
 			pPatch->GetCoriolisF();
+		const DataMatrix<double> & dTopography =
+			pPatch->GetTopography();
+
+		const double dZtop = pGrid->GetZtop();
 
 		// Data
 		GridData4D & dataInitialNode =
@@ -683,8 +687,8 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 				double dDbP = 0.0;
 
 				// Aliases for alpha and beta velocities
-				double dUa = dataInitialNode[UIx][k][iA][iB];
-				double dUb = dataInitialNode[VIx][k][iA][iB];
+				const double dUa = dataInitialNode[UIx][k][iA][iB];
+				const double dUb = dataInitialNode[VIx][k][iA][iB];
 
 				// Calculate derivatives in the alpha direction
 				double dLocalUpdateRhoA = 0.0;
@@ -775,6 +779,7 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 						+ dChristoffelB[iA][iB][2] * dUb * dUb;
 
 				// Pressure derivatives
+#pragma message "What about metric terms affected by vertical pressure derivative?"
 				dLocalUpdateUa -=
 						( dContraMetricA[k][iA][iB][0] * dDaP
 						+ dContraMetricA[k][iA][iB][1] * dDbP)
@@ -786,13 +791,19 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 							/ dataInitialNode[RIx][k][iA][iB];
 
 				// Coriolis forces
+				double dDomainHeight = dZtop - dTopography[iA][iB];
+
 				dLocalUpdateUa -=
-					dCoriolisF[iA][iB] * dJacobian[k][iA][iB] * (
+					dCoriolisF[iA][iB]
+					* dJacobian[k][iA][iB]
+					/ dDomainHeight * (
 						+ dContraMetricA[k][iA][iB][1] * dUa
 						- dContraMetricA[k][iA][iB][0] * dUb);
 
 				dLocalUpdateUb -=
-					dCoriolisF[iA][iB] * dJacobian[k][iA][iB] * (
+					dCoriolisF[iA][iB]
+					* dJacobian[k][iA][iB]
+					/ dDomainHeight * (
 						+ dContraMetricB[k][iA][iB][1] * dUa
 						- dContraMetricB[k][iA][iB][0] * dUb);
 
@@ -808,6 +819,8 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 
 				// Update the vertical velocity (on model levels)
 				if (pGrid->GetVarLocation(WIx) == DataLocation_Node) {
+					const double dUx = dataInitialNode[WIx][k][iA][iB];
+
 					double dDaUx = 0.0;
 					double dDbUx = 0.0;
 
@@ -830,6 +843,19 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 					// Update vertical velocity
 					dataUpdateNode[WIx][k][iA][iB] -=
 						dDeltaT * (dUa * dDaUx + dUb * dDbUx);
+
+					// Curvature terms
+					double dCurvatureXi =
+						+ dChristoffelXi[k][iA][iB][0] * dUa * dUa
+						+ dChristoffelXi[k][iA][iB][1] * dUa * dUb
+						+ dChristoffelXi[k][iA][iB][2] * dUa * dUx
+						+ dChristoffelXi[k][iA][iB][3] * dUb * dUb
+						+ dChristoffelXi[k][iA][iB][4] * dUb * dUx
+						+ dChristoffelXi[k][iA][iB][5] * dUx * dUx;
+
+					dataUpdateNode[WIx][k][iA][iB] -=
+						dDeltaT * dCurvatureXi;
+
 				}
 
 				// Update the potential temperature (on model levels)
@@ -883,8 +909,9 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 					double dDaUx = 0.0;
 					double dDbUx = 0.0;
 
-					double dUaREdge = dataInitialREdge[UIx][k][iA][iB];
-					double dUbREdge = dataInitialREdge[VIx][k][iA][iB];
+					const double dUaREdge = dataInitialREdge[UIx][k][iA][iB];
+					const double dUbREdge = dataInitialREdge[VIx][k][iA][iB];
+					const double dUxREdge = dataInitialREdge[WIx][k][iA][iB];
 
 					for (int s = 0; s < m_nHorizontalOrder; s++) {
 						// Derivative of xi velocity with respect to alpha
@@ -905,6 +932,18 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 					// Update vertical velocity
 					dataUpdateNode[WIx][k][iA][iB] -=
 						dDeltaT * (dUaREdge * dDaUx + dUbREdge * dDbUx);
+
+					// Curvature terms
+					double dCurvatureXi =
+						+ dChristoffelXi[k][iA][iB][0] * dUaREdge * dUaREdge
+						+ dChristoffelXi[k][iA][iB][1] * dUaREdge * dUbREdge
+						+ dChristoffelXi[k][iA][iB][2] * dUaREdge * dUxREdge
+						+ dChristoffelXi[k][iA][iB][3] * dUbREdge * dUbREdge
+						+ dChristoffelXi[k][iA][iB][4] * dUbREdge * dUxREdge
+						+ dChristoffelXi[k][iA][iB][5] * dUxREdge * dUxREdge;
+
+					dataUpdateNode[WIx][k][iA][iB] -=
+						dDeltaT * dCurvatureXi;
 				}
 
 				// Update the potential temperature (on model interfaces)
@@ -912,8 +951,8 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 					double dDaTheta = 0.0;
 					double dDbTheta = 0.0;
 
-					double dUaREdge = dataInitialREdge[UIx][k][iA][iB];
-					double dUbREdge = dataInitialREdge[VIx][k][iA][iB];
+					const double dUaREdge = dataInitialREdge[UIx][k][iA][iB];
+					const double dUbREdge = dataInitialREdge[VIx][k][iA][iB];
 
 					for (int s = 0; s < m_nHorizontalOrder; s++) {
 						// Derivative of theta with respect to alpha
@@ -1072,6 +1111,10 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusion(
 			pPatch->GetContraMetric2DA();
 		const DataMatrix3D<double> & dContraMetricB =
 			pPatch->GetContraMetric2DB();
+		const DataMatrix<double> & dTopography =
+			pPatch->GetTopography();
+
+		const double dZtop = pGrid->GetZtop();
 
 		// Grid data
 		GridData4D & dataInitialNode =
@@ -1158,11 +1201,14 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusion(
 					dDaPsi /= dElementDeltaA;
 					dDbPsi /= dElementDeltaB;
 
-					dJGradientA[i][j] = dJacobian[iA][iB] * (
+#pragma message "There should probably be a better method than using DomainHeight"
+					double dDomainHeight = dZtop - dTopography[iA][iB];
+
+					dJGradientA[i][j] = dJacobian[iA][iB] * dDomainHeight * (
 						+ dContraMetricA[iA][iB][0] * dDaPsi
 						+ dContraMetricA[iA][iB][1] * dDbPsi);
 
-					dJGradientB[i][j] = dJacobian[iA][iB] * (
+					dJGradientB[i][j] = dJacobian[iA][iB] * dDomainHeight * (
 						+ dContraMetricB[iA][iB][0] * dDaPsi
 						+ dContraMetricB[iA][iB][1] * dDbPsi);
 				}
@@ -1192,7 +1238,10 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusion(
 					dUpdateB /= dElementDeltaB;
 
 					// Apply update
-					double dInvJacobian = 1.0 / dJacobian[iA][iB];
+					double dDomainHeight = dZtop - dTopography[iA][iB];
+
+					double dInvJacobian =
+						1.0 / (dJacobian[iA][iB] * dDomainHeight);
 
 					pDataUpdate[k][iA][iB] +=
 						dDeltaT * dInvJacobian * dLocalNu
