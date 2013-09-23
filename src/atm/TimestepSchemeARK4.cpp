@@ -87,7 +87,7 @@ void TimestepSchemeARK4::Step(
 		dCarryoverCombination[1] = 1.0;
 		pGrid->LinearCombineData(dCarryoverCombination, 0, DataType_State);
 	}
-
+/*
 	// Explicit RK4
 	pGrid->CopyData(0, 1, DataType_State);
 	pHorizontalDynamics->StepExplicit(0, 1, dTime, dHalfDeltaT);
@@ -113,6 +113,34 @@ void TimestepSchemeARK4::Step(
 		3, 4, dTime + dDeltaT / 6.0, dDeltaT / 6.0);
 	pVerticalDynamics->StepExplicit(
 		3, 4, dTime + dDeltaT / 6.0, dDeltaT / 6.0);
+*/
+
+	// SSP RK3
+	pGrid->CopyData(0, 1, DataType_State);
+	pHorizontalDynamics->StepExplicit(0, 1, dTime, dDeltaT);
+	pVerticalDynamics->StepExplicit(0, 1, dTime, dDeltaT);
+
+	DataVector<double> dSSPRK3CombinationA;
+	dSSPRK3CombinationA.Initialize(3);
+	dSSPRK3CombinationA[0] = 3.0 / 4.0;
+	dSSPRK3CombinationA[1] = 1.0 / 4.0;
+	dSSPRK3CombinationA[2] = 0.0;
+	pGrid->LinearCombineData(dSSPRK3CombinationA, 2, DataType_State);
+	pHorizontalDynamics->StepExplicit(1, 2, dTime + dDeltaT, 0.25 * dDeltaT);
+	pVerticalDynamics->StepExplicit(1, 2, dTime + dDeltaT, 0.25 * dDeltaT);
+
+	DataVector<double> dSSPRK3CombinationB;
+	dSSPRK3CombinationB.Initialize(5);
+	dSSPRK3CombinationB[0] = 1.0 / 3.0;
+	dSSPRK3CombinationB[1] = 0.0;
+	dSSPRK3CombinationB[2] = 2.0 / 3.0;
+	dSSPRK3CombinationB[3] = 0.0;
+	dSSPRK3CombinationB[4] = 0.0;
+	pGrid->LinearCombineData(dSSPRK3CombinationB, 4, DataType_State);
+	pHorizontalDynamics->StepExplicit(
+		2, 4, dTime + 0.5 * dDeltaT, (2.0/3.0) * dDeltaT);
+	pVerticalDynamics->StepExplicit(
+		2, 4, dTime + 0.5 * dDeltaT, (2.0/3.0) * dDeltaT);
 
 	// Apply hyperdiffusion
 	pGrid->CopyData(4, 1, DataType_State);

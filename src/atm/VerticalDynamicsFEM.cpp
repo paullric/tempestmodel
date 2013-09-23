@@ -1111,6 +1111,7 @@ void VerticalDynamicsFEM::StepImplicit(
 					m_dStateAuxDiff);
 			}
 
+#pragma message "This should use the Exner pressure formulation"
 			// Apply vertical pressure gradient term to horizontal velocities
 			for (int k = 0; k < pGrid->GetRElements(); k++) {
 				double dUpdateGradP =

@@ -856,6 +856,9 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 					dataUpdateNode[WIx][k][iA][iB] -=
 						dDeltaT * dCurvatureXi;
 
+#pragma message "MISSING"
+					// Horizontal pressure derivatives applied to W velocity
+
 				}
 
 				// Update the potential temperature (on model levels)
@@ -879,7 +882,7 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 					dDaTheta /= dElementDeltaA;
 					dDbTheta /= dElementDeltaA;
 
-					// Update vertical velocity
+					// Update potential temperature
 					dataUpdateNode[TIx][k][iA][iB] -=
 						dDeltaT * (dUa * dDaTheta + dUb * dDbTheta);
 				}
@@ -930,7 +933,7 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 					dDbUx /= dElementDeltaA;
 
 					// Update vertical velocity
-					dataUpdateNode[WIx][k][iA][iB] -=
+					dataUpdateREdge[WIx][k][iA][iB] -=
 						dDeltaT * (dUaREdge * dDaUx + dUbREdge * dDbUx);
 
 					// Curvature terms
@@ -942,8 +945,12 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 						+ dChristoffelXi[k][iA][iB][4] * dUbREdge * dUxREdge
 						+ dChristoffelXi[k][iA][iB][5] * dUxREdge * dUxREdge;
 
-					dataUpdateNode[WIx][k][iA][iB] -=
+					dataUpdateREdge[WIx][k][iA][iB] -=
 						dDeltaT * dCurvatureXi;
+
+#pragma message "MISSING"
+					// Horizontal pressure derivatives applied to W velocity
+
 				}
 
 				// Update the potential temperature (on model interfaces)
