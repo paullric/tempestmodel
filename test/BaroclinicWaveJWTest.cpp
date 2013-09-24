@@ -21,7 +21,7 @@
 #include "Model.h"
 #include "TimestepSchemeARK4.h"
 #include "HorizontalDynamicsFEM.h"
-#include "VerticalDynamicsStub.h"
+#include "VerticalDynamicsFEM.h"
 
 #include "PhysicalConstants.h"
 #include "TestCase.h"
@@ -41,6 +41,17 @@
 ///		Jablonowski and Williamson (2006) Baroclinic wave test
 ///	</summary>
 class BaroclinicWaveJWTest : public TestCase {
+
+public:
+	///	<summary>
+	///		Perturbation type.
+	///	</summary>
+	enum PerturbationType {
+		PerturbationType_Default = 0,
+		PerturbationType_None = PerturbationType_Default,
+		PerturbationType_Exp = 1,
+		PerturbationType_StreamFn = 2,
+	};
 
 public:
 	///	<summary>
@@ -73,6 +84,26 @@ public:
 	///	</summary>
 	static const double ParamU0 = 35.0;
 
+	///	<summary>
+	///		Zonal wind perturbation (m / s)
+	///	</summary>
+	static const double ParamUp = 1.0;
+
+	///	<summary>
+	///		Perturbation longitude center (radians)
+	///	</summary>
+	static const double ParamPertLon = M_PI / 9.0;
+
+	///	<summary>
+	///		Perturbation latitude center (radians)
+	///	</summary>
+	static const double ParamPertLat = 2.0 * M_PI / 9.0;
+
+	///	<summary>
+	///		Perturbation radius (Earth radii)
+	///	</summary>
+	static const double ParamPertR = 0.1;
+
 protected:
 	///	<summary>
 	///		Alpha parameter.
@@ -84,16 +115,37 @@ protected:
 	///	</summary>
 	bool m_fTracerOn;
 
+	///	<summary>
+	///		Model height cap.
+	///	</summary>
+	double m_dZtop;
+
+	///	<summary>
+	///		Flag indicating that the reference profile should be used.
+	///	</summary>
+	bool m_fNoReferenceState;
+
+	///	<summary>
+	///		Type of perturbation.
+	///	</summary>
+	PerturbationType m_ePerturbationType;
+
 public:
 	///	<summary>
 	///		Constructor.
 	///	</summary>
 	BaroclinicWaveJWTest(
 		double dAlpha,
-		bool fTracerOn
+		bool fTracerOn,
+		double dZtop,
+		bool fNoReferenceState,
+		PerturbationType ePerturbationType = PerturbationType_None
 	) :
 		m_dAlpha(dAlpha),
-		m_fTracerOn(fTracerOn)
+		m_fTracerOn(fTracerOn),
+		m_dZtop(dZtop),
+		m_fNoReferenceState(fNoReferenceState),
+		m_ePerturbationType(ePerturbationType)
 	{ }
 
 public:
@@ -108,7 +160,14 @@ public:
 	///		Get the altitude of the model cap.
 	///	</summary>
 	virtual double GetZtop() const {
-		return 30000.0;
+		return m_dZtop;
+	}
+
+	///	<summary>
+	///		Flag indicating that a reference state is available.
+	///	</summary>
+	virtual bool HasReferenceState() const {
+		return !m_fNoReferenceState;
 	}
 
 	///	<summary>
@@ -171,7 +230,7 @@ public:
 		double dLat,
 		double & dGeopotential,
 		double & dTemperature
-	) {
+	) const {
 
 		// Calculate auxiliary eta
 		double dAuxEta = 0.5 * M_PI * (dEta - ParamEta0);
@@ -247,6 +306,99 @@ public:
 	}
 
 	///	<summary>
+	///		Calculate eta at the given point via Newton iteration.  The
+	///		geopotential and temperature at this point are also returned via
+	///		command-line parameters.
+	///	</summary>
+	double EtaFromRLL(
+		const PhysicalConstants &phys,
+		double dZ,
+		double dLon,
+		double dLat,
+		double & dGeopotential,
+		double & dTemperature
+	) const {
+		const int MaxIterations  = 25;
+		const double InitialEta  = 1.0e-7;
+		const double Convergence = 1.0e-13;
+
+		// Buffer variables
+		double dEta = InitialEta;
+		double dNewEta;
+
+		double dF;
+		double dDiffF;
+
+		// Iterate until convergence is achieved
+		int i = 0;
+		for (; i < MaxIterations; i++) {
+
+			CalculateGeopotentialTemperature(
+				phys, dEta, dLon, dLat, dGeopotential, dTemperature);
+
+			dF     = - phys.GetG() * dZ + dGeopotential;
+			dDiffF = - phys.GetR() / dEta * dTemperature;
+
+			dNewEta = dEta - dF / dDiffF;
+
+			if (fabs(dEta - dNewEta) < Convergence) {
+				return dNewEta;
+			}
+
+			dEta = dNewEta;
+		}
+
+		// Check for convergence failure
+		if (i == MaxIterations) {
+			_EXCEPTIONT("Maximum number of iterations exceeded.");
+		}
+
+		if ((dEta > 1.0) || (dEta < 0.0)) {
+			_EXCEPTIONT("Invalid Eta value");
+		}
+
+		return dEta;
+	}
+
+
+	///	<summary>
+	///		Evaluate the reference state at the given point.
+	///	</summary>
+	virtual void EvaluateReferenceState(
+		const PhysicalConstants & phys,
+		double dZ,
+		double dLon,
+		double dLat,
+		double * dState
+	) const {
+
+		// Pressure coordinate
+		double dGeopotential;
+		double dTemperature;
+
+		double dEta = EtaFromRLL(
+			phys, dZ, dLon, dLat, dGeopotential, dTemperature);
+
+
+		// Calculate zonal velocity
+		double dUlon =
+			ParamU0 * pow(cos(0.5 * M_PI * (dEta - ParamEta0)), 1.5)
+				* sin(2.0 * dLat) * sin(2.0 * dLat);
+
+		dState[0] = dUlon;
+
+		// Calculate rho and theta
+		double dPressure = phys.GetP0() * dEta;
+
+		double dRho = dPressure / (phys.GetR() * dTemperature);
+
+		double dRhoTheta = phys.RhoThetaFromPressure(dPressure);
+
+		dState[2] = dRhoTheta / dRho;
+		dState[4] = dRho;
+	}
+
+	///	<summary>
 	///		Evaluate the state vector at the given point.
 	///	</summary>
 	virtual void EvaluatePointwiseState(
@@ -258,48 +410,22 @@ public:
 		double * dState,
 		double * dTracer
 	) const {
-/*
-		if (fabs(dLat - 0.5 * M_PI) < 1.0e-12) {
-			dLat -= 1.0e-12;
-		}
-		if (fabs(dLat + 0.5 * M_PI) < 1.0e-12) {
-			dLat += 1.0e-12;
-		}
 
-		// Height field
-		double dHTrig =
-			- cos(dLon) * cos(dLat) * sin(m_dAlpha)
-			+ sin(dLat) * cos(m_dAlpha);
+		// Evaluate the reference state at this point
+		EvaluateReferenceState(phys, dZ, dLon, dLat, dState);
 
-		dState[0] = m_dH0
-			- (phys.GetEarthRadius() * phys.GetOmega() + 0.5 * m_dU0)
-				* m_dU0 * dHTrig * dHTrig / phys.GetG();
+		// Add perturbation in zonal velocity
+		if (m_ePerturbationType == PerturbationType_Exp) {
+			double dGreatCircleR =
+				acos(sin(ParamPertLat) * sin(dLat)
+					+ cos(ParamPertLat) * cos(dLat) * cos(dLon - ParamPertLon));
 
-		// Pointwise zonal component of velocity
-		dState[1] = m_dU0 * cos(dLat)
-			* (cos(m_dAlpha) + cos(dLon) * tan(dLat) * sin(m_dAlpha));
+			dGreatCircleR /= ParamPertR;
 
-		// Pointwise meridional component of velocity
-		dState[2] = - m_dU0 * sin(dLon) * sin(m_dAlpha);
-
-		// Cosine bell tracer field
-		if (m_fTracerOn) {
-			const double ParamLonC = 1.5 * M_PI;
-			const double ParamLatC = 0.0;
-			const double ParamH0 = 1000.0;
-			const double ParamR = phys.GetEarthRadius() / 3.0;
-
-			double dR = phys.GetEarthRadius()
-				* acos(sin(ParamLatC) * sin(dLat)
-					+ cos(ParamLatC) * cos(dLat) * cos(dLon - ParamLonC));
-
-			if (dR < ParamR) {
-				dTracer[0] = (ParamH0 / 2.0) * (1.0 + cos(M_PI * dR / ParamR));
-			} else {
-				dTracer[0] = 0.0;
+			if (dGreatCircleR < 1.0) {
+				dState[0] += ParamUp * exp( - dGreatCircleR * dGreatCircleR);
 			}
 		}
-*/
 	}
 
 };
@@ -321,14 +447,26 @@ try {
 	// Resolution
 	int nResolution;
 
+	// Number of vertical levels
+	int nLevels;
+
 	// Order
-	int nOrder;
+	int nHorizontalOrder;
+
+	// Vertical order
+	int nVerticalOrder;
 
 	// Model height cap
 	double dZtop;
 
 	// Grid rotation angle
 	double dAlpha;
+
+	// Use reference state flag
+	bool fNoReferenceState;
+
+	// Perturbation type
+	std::string strPerturbationType;
 
 	// Include tracer field
 	bool fTracersOn;
@@ -349,14 +487,19 @@ try {
 	BeginCommandLine()
 		CommandLineString(strOutputDir, "output_dir", "out");
 		CommandLineString(strOutputPrefix, "output_prefix", "out");
-		CommandLineInt(nResolution, "resolution", 40);
-		CommandLineInt(nOrder, "order", 4);
-		CommandLineDouble(dZtop, "ztop", 30000.0);
+		CommandLineInt(nResolution, "resolution", 20);
+		CommandLineInt(nLevels, "levels", 10);
+		CommandLineInt(nHorizontalOrder, "order", 4);
+		CommandLineInt(nVerticalOrder, "vertorder", 1);
+		CommandLineDouble(dZtop, "ztop", 10000.0);
 		CommandLineDouble(dAlpha, "alpha", 0.0);
+		CommandLineBool(fNoReferenceState, "norefstate");
 		CommandLineBool(fTracersOn, "with_tracer");
+		CommandLineStringD(strPerturbationType, "pert",
+			"None", "(None | Exp)");
 		CommandLineDouble(params.m_dDeltaT, "dt", 200.0);
-		CommandLineDouble(params.m_dEndTime, "endtime", 200.0);//86400.0 * 5.0);
-		CommandLineDouble(dOutputDeltaT, "outputtime", 86400.0);
+		CommandLineDouble(params.m_dEndTime, "endtime", 200.0);
+		CommandLineDouble(dOutputDeltaT, "outputtime", 21600.0);
 		CommandLineStringD(strHorizontalDynamics, "method", "SE", "(SE | DG)");
 		CommandLineBool(fNoHyperviscosity, "nohypervis");
 
@@ -370,26 +513,9 @@ try {
 	Model model(EquationSet::PrimitiveNonhydrostaticEquations);
 	AnnounceEndBlock("Done");
 
-	// Generate a new cubed-sphere GLL grid
-	AnnounceStartBlock("Creating grid");
-	GridCSGLL grid(
-		model,
-		nResolution,
-		4,
-		nOrder,
-		nOrder,
-		1);
-
-	AnnounceEndBlock("Done");
-
 	// Set the parameters for the model
 	AnnounceStartBlock("Initializing parameters");
 	model.SetParameters(&params);
-	AnnounceEndBlock("Done");
-
-	// Set the grid for the model
-	AnnounceStartBlock("Initializing grid");
-	model.SetGrid(&grid);
 	AnnounceEndBlock("Done");
 
 	// Set the timestep scheme
@@ -410,19 +536,49 @@ try {
 	}
 
 	HorizontalDynamicsFEM hdyn(
-		model, nOrder, eHorizontalDynamicsType, fNoHyperviscosity);
+		model, nHorizontalOrder, eHorizontalDynamicsType, fNoHyperviscosity);
 	AnnounceStartBlock("Initializing horizontal dynamics");
 	model.SetHorizontalDynamics(&hdyn);
 	AnnounceEndBlock("Done");
 
 	// Set the vertical dynamics
-	VerticalDynamicsStub vdyn(model);
+	VerticalDynamicsFEM vdyn(model, nHorizontalOrder, nVerticalOrder);
 	AnnounceStartBlock("Initializing vertical dynamics");
 	model.SetVerticalDynamics(&vdyn);
 	AnnounceEndBlock("Done");
 
+	// Generate a new cubed-sphere GLL grid
+	AnnounceStartBlock("Initializing grid");
+	GridCSGLL grid(
+		model,
+		nResolution,
+		4,
+		nHorizontalOrder,
+		nVerticalOrder,
+		nLevels);
+
+	model.SetGrid(&grid);
+	AnnounceEndBlock("Done");
+
 	// Set the test case for the model
-	BaroclinicWaveJWTest test(dAlpha, fTracersOn);
+	BaroclinicWaveJWTest::PerturbationType ePerturbationType;
+	STLStringHelper::ToLower(strPerturbationType);
+	if (strPerturbationType == "none") {
+		ePerturbationType = BaroclinicWaveJWTest::PerturbationType_None;
+	} else if (strPerturbationType == "exp") {
+		ePerturbationType = BaroclinicWaveJWTest::PerturbationType_Exp;
+	} else {
+		_EXCEPTIONT("Invalid perturbation type:"
+			" Expected \"None\" or \"Exp\"");
+	}
+
+	BaroclinicWaveJWTest test(
+		dAlpha,
+		fTracersOn,
+		dZtop,
+		fNoReferenceState,
+		ePerturbationType);
+
 	AnnounceStartBlock("Initializing data");
 	model.SetTestCase(&test);
 	AnnounceEndBlock("Done");
@@ -431,12 +587,12 @@ try {
 	AnnounceStartBlock("Creating reference output manager");
 	OutputManagerReference outmanRef(
 		grid, dOutputDeltaT, strOutputDir, strOutputPrefix,
-		720, 360, false, false);
+		360, 180, false, false, true, true);
 	model.AttachOutputManager(&outmanRef);
 
 	outmanRef.InitializeNcOutput("ref.nc");
 	AnnounceEndBlock("Done");
-
+/*
 	// Set the composite output manager for the model
 	AnnounceStartBlock("Creating composite output manager");
 	OutputManagerComposite outmanComp(
@@ -445,7 +601,7 @@ try {
 
 	outmanComp.InitializeNcOutput("comp.nc");
 	AnnounceEndBlock("Done");
-
+*/
 	// Set the checksum output manager for the model
 	AnnounceStartBlock("Creating checksum output manager");
 	OutputManagerChecksum outmanChecksum(grid, dOutputDeltaT);

@@ -848,6 +848,12 @@ void VerticalDynamicsFEM::StepImplicit(
 
 		const PatchBox & box = pPatch->GetPatchBox();
 
+		// Contravariant metric components
+		const DataMatrix4D<double> & dContraMetricA =
+			pPatch->GetContraMetricA();
+		const DataMatrix4D<double> & dContraMetricB =
+			pPatch->GetContraMetricB();
+
 		// Data
 		const GridData4D & dataRefNode =
 			pPatch->GetReferenceState(DataLocation_Node);
@@ -1027,13 +1033,15 @@ void VerticalDynamicsFEM::StepImplicit(
 					m_dSoln.GetRows(),
 					1.0e-8);
 
+			// DEBUG (check for NANs in output)
 			if (!(m_dSoln[0] == m_dSoln[0])) {
                 DataVector<double> dEval;
                 dEval.Initialize(m_dColumnState.GetRows());
                 Evaluate(m_dSoln, dEval);
 
                 for (int p = 0; p < dEval.GetRows(); p++) {
-                    printf("%1.15e %1.15e %1.15e\n", dEval[p], m_dSoln[p], m_dColumnState[p]);
+                    printf("%1.15e %1.15e %1.15e\n",
+						dEval[p], m_dSoln[p], m_dColumnState[p]);
                 }
                 _EXCEPTIONT("Inversion failure");
             }
@@ -1069,6 +1077,54 @@ void VerticalDynamicsFEM::StepImplicit(
 			for (int k = 0; k < pGrid->GetRElements(); k++) {
 				dataUpdateNode[RIx][k][iA][iB] = m_dSoln[ix++];
 			}
+
+			// Compute vertical pressure gradient on nodes for
+			// potential temperature (theta) on interfaces
+			if (pGrid->GetVarLocation(TIx) == DataLocation_REdge) {
+				InterpolateNodeToREdge(
+					&(m_dSoln[m_ixRBegin]),
+					m_dStateRefNode[RIx],
+					m_dStateREdge[RIx],
+					m_dStateRefREdge[RIx]
+				);
+
+				for (int k = 0; k <= pGrid->GetRElements(); k++) {
+					m_dStateAux[k] =
+						phys.PressureFromRhoTheta(
+							m_dStateREdge[RIx][k] * m_dSoln[m_ixTBegin+k]);
+				}
+
+				DifferentiateREdgeToNode(
+					m_dStateAux,
+					m_dStateAuxDiff);
+
+			// potential temperature (theta) on levels
+			} else {
+				for (int k = 0; k < pGrid->GetRElements(); k++) {
+					m_dStateAux[k] =
+						phys.PressureFromRhoTheta(
+							m_dSoln[m_ixRBegin+k] * m_dSoln[m_ixTBegin+k]);
+				}
+
+				DifferentiateNodeToNode(
+					m_dStateAux,
+					m_dStateAuxDiff);
+			}
+
+#pragma message "This should use the Exner pressure formulation"
+			// Apply vertical pressure gradient term to horizontal velocities
+			for (int k = 0; k < pGrid->GetRElements(); k++) {
+				double dUpdateGradP =
+					dDeltaT
+					* m_dStateAuxDiff[k]
+					/ dataUpdateNode[RIx][k][iA][iB];
+
+				dataUpdateNode[UIx][k][iA][iB] -=
+					dUpdateGradP * dContraMetricA[k][iA][iB][2];
+
+				dataUpdateNode[VIx][k][iA][iB] -=
+					dUpdateGradP * dContraMetricB[k][iA][iB][2];
+			}
 		}
 		}
 
@@ -1095,6 +1151,10 @@ void VerticalDynamicsFEM::StepImplicit(
 					int iB = box.GetBInteriorBegin() + b * m_nHorizontalOrder + j;
 
 					for (int k = 0; k < pGrid->GetRElements(); k++) {
+						dataUpdateNode[UIx][k][iA][iB]
+							= dataUpdateNode[UIx][k][iA+1][iB];
+						dataUpdateNode[VIx][k][iA][iB]
+							= dataUpdateNode[VIx][k][iA+1][iB];
 						dataUpdateNode[TIx][k][iA][iB]
 							= dataUpdateNode[TIx][k][iA+1][iB];
 						dataUpdateNode[WIx][k][iA][iB]
@@ -1104,6 +1164,10 @@ void VerticalDynamicsFEM::StepImplicit(
 					}
 
 					for (int k = 0; k <= pGrid->GetRElements(); k++) {
+						dataUpdateREdge[UIx][k][iA][iB]
+							= dataUpdateREdge[UIx][k][iA+1][iB];
+						dataUpdateREdge[VIx][k][iA][iB]
+							= dataUpdateREdge[VIx][k][iA+1][iB];
 						dataUpdateREdge[TIx][k][iA][iB]
 							= dataUpdateREdge[TIx][k][iA+1][iB];
 						dataUpdateREdge[WIx][k][iA][iB]
@@ -1121,6 +1185,10 @@ void VerticalDynamicsFEM::StepImplicit(
 			int iB = box.GetBInteriorBegin() + b * m_nHorizontalOrder - 1;
 
 			for (int k = 0; k < pGrid->GetRElements(); k++) {
+				dataUpdateNode[UIx][k][i][iB]
+					= dataUpdateNode[UIx][k][i][iB+1];
+				dataUpdateNode[VIx][k][i][iB]
+					= dataUpdateNode[VIx][k][i][iB+1];
 				dataUpdateNode[TIx][k][i][iB]
 					= dataUpdateNode[TIx][k][i][iB+1];
 				dataUpdateNode[WIx][k][i][iB]
@@ -1130,6 +1198,10 @@ void VerticalDynamicsFEM::StepImplicit(
 			}
 
 			for (int k = 0; k <= pGrid->GetRElements(); k++) {
+				dataUpdateREdge[UIx][k][i][iB]
+					= dataUpdateREdge[UIx][k][i][iB+1];
+				dataUpdateREdge[VIx][k][i][iB]
+					= dataUpdateREdge[VIx][k][i][iB+1];
 				dataUpdateREdge[TIx][k][i][iB]
 					= dataUpdateREdge[TIx][k][i][iB+1];
 				dataUpdateREdge[WIx][k][i][iB]
