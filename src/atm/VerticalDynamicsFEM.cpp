@@ -803,7 +803,7 @@ void VerticalDynamicsFEM::StepExplicit(
 			// Vertical transport of vertical momentum (W at interfaces)
 			} else {
 
-				// Differentiate W on model levels
+				// Differentiate W on model interfaces
 				DifferentiateREdgeToREdge(
 					m_dStateREdge[WIx],
 					m_dStateAuxDiff);
@@ -1081,50 +1081,94 @@ void VerticalDynamicsFEM::StepImplicit(
 			// Compute vertical pressure gradient on nodes for
 			// potential temperature (theta) on interfaces
 			if (pGrid->GetVarLocation(TIx) == DataLocation_REdge) {
-				InterpolateNodeToREdge(
-					&(m_dSoln[m_ixRBegin]),
-					m_dStateRefNode[RIx],
-					m_dStateREdge[RIx],
-					m_dStateRefREdge[RIx]
-				);
-
-				for (int k = 0; k <= pGrid->GetRElements(); k++) {
-					m_dStateAux[k] =
-						phys.PressureFromRhoTheta(
-							m_dStateREdge[RIx][k] * m_dSoln[m_ixTBegin+k]);
-				}
-
-				DifferentiateREdgeToNode(
-					m_dStateAux,
-					m_dStateAuxDiff);
+				InterpolateREdgeToNode(
+					&(m_dSoln[m_ixTBegin]),
+					m_dStateRefREdge[TIx],
+					m_dStateNode[TIx],
+					m_dStateRefNode[TIx]);
 
 			// potential temperature (theta) on levels
 			} else {
 				for (int k = 0; k < pGrid->GetRElements(); k++) {
-					m_dStateAux[k] =
-						phys.PressureFromRhoTheta(
-							m_dSoln[m_ixRBegin+k] * m_dSoln[m_ixTBegin+k]);
+					m_dStateNode[TIx][k] = dataUpdateNode[TIx][k][iA][iB];
 				}
-
-				DifferentiateNodeToNode(
-					m_dStateAux,
-					m_dStateAuxDiff);
 			}
 
-#pragma message "This should use the Exner pressure formulation"
-			// Apply vertical pressure gradient term to horizontal velocities
+			// Exner function perturbation on nodes
 			for (int k = 0; k < pGrid->GetRElements(); k++) {
-				double dUpdateGradP =
-					dDeltaT
-					* m_dStateAuxDiff[k]
-					/ dataUpdateNode[RIx][k][iA][iB];
+				m_dExnerPertNode[k] =
+					phys.GetCp() * exp(phys.GetR() / phys.GetCv()
+						* log(phys.GetR() / phys.GetP0()
+							* dataUpdateNode[RIx][k][iA][iB]
+							* m_dStateNode[TIx][k]));
+
+				m_dExnerPertNode[k] -= m_dExnerRefNode[k];
+			}
+
+			// Differentiate Exner function
+			DifferentiateNodeToNode(
+				m_dExnerPertNode,
+				m_dDiffExnerPertNode);
+
+			// Apply Exner gradient term to horizontal velocities
+			for (int k = 0; k < pGrid->GetRElements(); k++) {
+				double dPressureTerm = dDeltaT * m_dStateNode[TIx][k] * (
+					m_dDiffExnerRefNode[k] + m_dDiffExnerPertNode[k]);
 
 				dataUpdateNode[UIx][k][iA][iB] -=
-					dUpdateGradP * dContraMetricA[k][iA][iB][2];
+					dContraMetricA[k][iA][iB][2] * dPressureTerm;
 
 				dataUpdateNode[VIx][k][iA][iB] -=
-					dUpdateGradP * dContraMetricB[k][iA][iB][2];
+					dContraMetricB[k][iA][iB][2] * dPressureTerm;
 			}
+/*
+            // Compute vertical pressure gradient on nodes for
+            // potential temperature (theta) on interfaces
+            if (pGrid->GetVarLocation(TIx) == DataLocation_REdge) {
+                InterpolateNodeToREdge(
+                    &(m_dSoln[m_ixRBegin]),
+                    m_dStateRefNode[RIx],
+                    m_dStateREdge[RIx],
+                    m_dStateRefREdge[RIx]
+                );
+
+                for (int k = 0; k <= pGrid->GetRElements(); k++) {
+                    m_dStateAux[k] =
+                        phys.PressureFromRhoTheta(
+                            m_dStateREdge[RIx][k] * m_dSoln[m_ixTBegin+k]);
+                }
+
+                DifferentiateREdgeToNode(
+                    m_dStateAux,
+                    m_dStateAuxDiff);
+
+            // potential temperature (theta) on levels
+            } else {
+                for (int k = 0; k < pGrid->GetRElements(); k++) {
+                    m_dStateAux[k] =
+                        phys.PressureFromRhoTheta(
+                            m_dSoln[m_ixRBegin+k] * m_dSoln[m_ixTBegin+k]);
+                }
+
+                DifferentiateNodeToNode(
+                    m_dStateAux,
+                    m_dStateAuxDiff);
+            }
+
+            // Apply vertical pressure gradient term to horizontal velocities
+            for (int k = 0; k < pGrid->GetRElements(); k++) {
+                double dUpdateGradP =
+                    dDeltaT
+                    * m_dStateAuxDiff[k]
+                    / dataUpdateNode[RIx][k][iA][iB];
+
+                dataUpdateNode[UIx][k][iA][iB] -=
+                    dUpdateGradP * dContraMetricA[k][iA][iB][2];
+
+                dataUpdateNode[VIx][k][iA][iB] -=
+                    dUpdateGradP * dContraMetricB[k][iA][iB][2];
+            }
+*/
 		}
 		}
 
