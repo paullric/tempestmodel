@@ -118,7 +118,7 @@ Advection and geometry:
 \begin{align}
 u^\alpha \nabla_\alpha u^k &= u^\alpha \left[ \pdiff{u^k}{\alpha} + \Gamma^k_{\ \alpha \alpha} u^\alpha + \Gamma^k_{\ \alpha \beta} u^\beta + \Gamma^k_{\ \alpha \xi} u^\xi \right] \\
 u^\beta \nabla_\beta u^k &= u^\beta \left[ \pdiff{u^k}{\beta} + \Gamma^k_{\ \beta \alpha} u^\alpha + \Gamma^k_{\ \beta \beta} u^\beta + \Gamma^k_{\ \beta \xi} u^\xi \right] \\
-u^\xi \nabla_\xi u^k &= u^\beta \left[ \pdiff{u^k}{\xi} + \Gamma^k_{\ \xi \alpha} u^\alpha + \Gamma^k_{\ \xi \beta} u^\beta + \Gamma^k_{\ \xi \xi} u^\xi \right]
+u^\xi \nabla_\xi u^k &= u^\xi \left[ \pdiff{u^k}{\xi} + \Gamma^k_{\ \xi \alpha} u^\alpha + \Gamma^k_{\ \xi \beta} u^\beta + \Gamma^k_{\ \xi \xi} u^\xi \right]
 \end{align}
 Pressure gradient:
 \begin{align}
@@ -128,6 +128,42 @@ Coriolis Force:
 \begin{align}
 f g^{\alpha j} \epsilon_{j \xi k} u^k &= - f g^{\alpha \alpha} J u^\beta + f g^{\alpha \beta} J u^\alpha \\
 f g^{\beta j} \epsilon_{j \xi k} u^k &= - f g^{\beta \alpha} J u^\beta + f g^{\beta \beta} J u^\alpha
+\end{align}
+
+%\begin{align}
+%\vb{u} &= u^\alpha \vb{g}_\alpha + u^\beta \vb{g}_\beta + u^\xi \vb{g}_\xi \\
+%&= u^\alpha (\vb{\tilde{g}}_{\alpha} + \frac{1-\xi}{z_{top}-z_s} \pdiff{z_s}{\alpha} \vb{\tilde{g}}_{\xi})
+%\end{align}
+
+\subsection{Vertical-orthogonal coordinates}
+
+Vertical-orthogonal coordinates $\alpha, \beta, \xi$ with corresponding terrain-following coordinates $\tilde{\alpha}, \tilde{\beta}, \tilde{\xi}$ with
+\begin{align}
+\alpha &= \tilde{\alpha}, &\qquad \beta &= \tilde{\beta}, &\qquad \xi &= \xi_s(\alpha, \beta) + (1 - \xi_s(\alpha,\beta)) \tilde{\xi}, \\
+\tilde{\alpha} &= \alpha, &\qquad \tilde{\beta} &= \beta, &\qquad \tilde{\xi} &= \frac{\xi - \xi_s(\alpha, \beta)}{1 - \xi_s(\alpha, \beta)}.
+\end{align}
+
+\begin{align}
+\pdiff{}{\xi} &= \pdiff{\tilde{\xi}}{\xi} \pdiff{}{\tilde{\xi}} = \frac{1}{(1 - \xi_s(\alpha,\beta))} \pdiff{}{\tilde{\xi}}, \\
+%\pdiff{\xi_s}{\alpha} &= \pdiff{}{\alpha}\left( \frac{z_s}{z_{top}} \right) = \frac{1}{z_{top}} \pdiff{z_s}{\alpha}, \\
+\pdiff{}{\alpha} &= \pdiff{}{\tilde{\alpha}} + \pdiff{\tilde{\xi}}{\alpha} \pdiff{}{\tilde{\xi}} = \pdiff{}{\tilde{\alpha}} - \frac{(1 - \xi)}{(1 - \xi_s(\alpha, \beta))^2} \left( \pdiff{\xi_s}{\alpha} \right) \pdiff{}{\tilde{\xi}}, \\
+\pdiff{}{\beta} &= \pdiff{}{\tilde{\beta}} + \pdiff{\tilde{\xi}}{\beta} \pdiff{}{\tilde{\xi}} = \pdiff{}{\tilde{\beta}} - \frac{(1 - \xi)}{(1 - \xi_s(\alpha, \beta))^2} \left( \pdiff{\xi_s}{\beta} \right) \pdiff{}{\tilde{\xi}},
+\end{align}
+
+Define:
+\begin{align}
+A_\alpha &= \pdiff{\tilde{\xi}}{\alpha}, & A_\beta &= \pdiff{\tilde{\xi}}{\beta}, & A_\xi &= \pdiff{\tilde{\xi}}{\xi}
+\end{align}
+
+Hydrodynamics (assuming $A_\alpha$, $A_\beta$ and $A_\xi$ are not functions of $\tilde{\xi}$):
+\begin{align}
+\pdiff{u^\alpha}{t} & + u^\alpha \pdiff{u^\alpha}{\tilde{\alpha}} + u^\beta \pdiff{u^\alpha}{\tilde{\beta}} + \Gamma^{\alpha}_{\ \alpha \alpha} u^\alpha u^\alpha + 2\ \Gamma^{\alpha}_{\ \alpha \beta} u^\alpha u^\beta + \Gamma^{\alpha}_{\ \beta \beta} u^\beta u^\beta \nonumber \\ &  + \frac{1}{\rho} \left[ g^{\alpha \alpha} \pdiff{p}{\tilde{\alpha}} + g^{\alpha \beta} \pdiff{p}{\tilde{\beta}} \right] + f J \left[ - g^{\alpha \alpha} u^\beta + g^{\alpha \beta} u^\alpha \right] \nonumber \\
+& + \left[A_\alpha u^\alpha + A_\beta u^\beta + A_\xi u^\xi \right] \pdiff{u^\alpha}{\tilde{\xi}} + \frac{1}{\rho} \left[ g^{\alpha \alpha} A_\alpha + g^{\alpha \beta} A_\beta \right] \pdiff{p}{\tilde{\xi}} = 0, \\
+\pdiff{u^\beta}{t} & + u^\alpha \pdiff{u^\beta}{\tilde{\alpha}} + u^\beta \pdiff{u^\beta}{\tilde{\beta}} + \Gamma^{\beta}_{\ \alpha \alpha} u^\alpha u^\alpha + 2\ \Gamma^{\beta}_{\ \alpha \beta} u^\alpha u^\beta + \Gamma^{\beta}_{\ \beta \beta} u^\beta u^\beta \nonumber \\ &  + \frac{1}{\rho} \left[ g^{\beta \alpha} \pdiff{p}{\tilde{\alpha}} + g^{\beta \beta} \pdiff{p}{\tilde{\beta}} \right] + f J \left[ - g^{\beta \alpha} u^\beta + g^{\beta \beta} u^\alpha \right] \nonumber \\
+& + \left[A_\alpha u^\alpha + A_\beta u^\beta + A_\xi u^\xi \right] \pdiff{u^\beta}{\tilde{\xi}} + \frac{1}{\rho} \left[ g^{\beta \alpha} A_\alpha + g^{\beta \beta} A_\beta \right] \pdiff{p}{\tilde{\xi}} = 0, \\
+\pdiff{\theta}{t} & + u^\alpha \pdiff{\theta}{\tilde{\alpha}} + u^\beta \pdiff{\theta}{\tilde{\beta}} = - \left[ A_\alpha u^\alpha + A_\beta u^\beta + A_\xi u^\xi \right] \pdiff{\theta}{\tilde{\xi}}, \\
+\pdiff{u^\xi}{t} & + u^\alpha \pdiff{u^\xi}{\tilde{\alpha}} + u^\beta \pdiff{u^\xi}{\tilde{\beta}} + \left[ A_\alpha u^\alpha + A_\beta u^\beta + A_\xi u^\xi \right] \pdiff{u^\xi}{\tilde{\xi}} = - \frac{1}{\rho} A_\xi \pdiff{p}{\tilde{\xi}}, \\
+\pdiff{\rho}{t} & + \frac{1}{J} \pdiff{}{\tilde{\alpha}} \left( J \rho u^\alpha \right) + \frac{1}{J} \pdiff{}{\tilde{\beta}} \left( J \rho u^\beta \right) = - \frac{1}{J} \pdiff{}{\tilde{\xi}} \left[ J \rho \left( A_\alpha u^\alpha + A_\beta u^\beta + A_\xi u^\xi \right) \right].
 \end{align}
 
 \section{Horizontal Discretization}
