@@ -358,6 +358,7 @@ void GridPatchCSGLL::EvaluateGeometricTerms(
 			jx = jx + m_nHorizontalOrder;
 		}
 
+#pragma message "This should use the natural spectral element basis"
 		// Evaluate derivatives of topography
 		double dEpsilon = 1.0e-5;
 		double dTopography[3][3];
@@ -400,7 +401,7 @@ void GridPatchCSGLL::EvaluateGeometricTerms(
 		double dDabZs =
 			( dTopography[2][2] - dTopography[2][0]
 			- dTopography[0][2] + dTopography[0][0])
-				/ (dEpsilon * dEpsilon);
+				/ (4.0 * dEpsilon * dEpsilon);
 
 		// Initialize 2D Jacobian
 		m_dataJacobian2D[i][j] =
@@ -443,6 +444,10 @@ void GridPatchCSGLL::EvaluateGeometricTerms(
 
 			// Sub-element index
 			int kx = k % m_nVerticalOrder;
+
+			// Z coordinate
+			double dREta = m_grid.GetREtaLevel(k);
+			double dZ = dZs + (m_grid.GetZtop() - dZs) * dREta;
 
 			// Gal-Chen and Somerville (1975) linear terrain-following coord
 			double dDaR = (1.0 - m_grid.GetREtaLevel(k)) * dDaZs;
@@ -516,11 +521,29 @@ void GridPatchCSGLL::EvaluateGeometricTerms(
 			m_dataChristoffelXi[k][i][j][3] /= dDxR;
 			m_dataChristoffelXi[k][i][j][4] /= dDxR;
 			m_dataChristoffelXi[k][i][j][5] /= dDxR;
+
+			// Orthonormalization coefficients
+			m_dataOrthonormNode[k][i][j][0] =
+				- dDaZs * (m_grid.GetZtop() - dZ)
+				/ (m_grid.GetZtop() - dZs)
+				/ (m_grid.GetZtop() - dZs);
+
+			m_dataOrthonormNode[k][i][j][1] =
+				- dDbZs * (m_grid.GetZtop() - dZ)
+				/ (m_grid.GetZtop() - dZs)
+				/ (m_grid.GetZtop() - dZs);
+
+			m_dataOrthonormNode[k][i][j][2] =
+				m_grid.GetZtop() / (m_grid.GetZtop() - dZs);
 		}
 
 		// Metric terms at vertical interfaces
 		for (int k = 0; k <= m_grid.GetRElements(); k++) {
 			int kx = k % m_nVerticalOrder;
+
+			// Z coordinate
+			double dREta = m_grid.GetREtaInterface(k);
+			double dZ = dZs + (m_grid.GetZtop() - dZs) * dREta;
 
 			// Gal-Chen and Somerville (1975) linear terrain-following coord
 			double dDxR = m_grid.GetZtop() - dZs;
@@ -544,6 +567,20 @@ void GridPatchCSGLL::EvaluateGeometricTerms(
 			if ((k != 0) && (k != m_grid.GetRElements()) && (kx == 0)) {
 				m_dataElementAreaREdge[k][i][j] *= 2.0;
 			}
+
+			// Orthonormalization coefficients
+			m_dataOrthonormREdge[k][i][j][0] =
+				- dDaZs * (m_grid.GetZtop() - dZ)
+				/ (m_grid.GetZtop() - dZs)
+				/ (m_grid.GetZtop() - dZs);
+
+			m_dataOrthonormREdge[k][i][j][1] =
+				- dDbZs * (m_grid.GetZtop() - dZ)
+				/ (m_grid.GetZtop() - dZs)
+				/ (m_grid.GetZtop() - dZs);
+
+			m_dataOrthonormREdge[k][i][j][2] =
+				m_grid.GetZtop() / (m_grid.GetZtop() - dZs);
 		}
 	}
 	}

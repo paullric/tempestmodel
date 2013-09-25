@@ -400,7 +400,7 @@ void GridPatchCartesianGLL::EvaluateGeometricTerms(
 		double dDabZs =
 			( dTopography[2][2] - dTopography[2][0]
 			- dTopography[0][2] + dTopography[0][0])
-				/ (dEpsilon * dEpsilon);
+				/ (4.0 * dEpsilon * dEpsilon);
 
 		// Initialize 2D contravariant metric
 		double dContraMetricScale = 1.0;

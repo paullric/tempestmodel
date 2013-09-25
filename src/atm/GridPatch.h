@@ -397,6 +397,28 @@ public:
 	}
 
 	///	<summary>
+	///		Get the orthonormalization components at nodes.
+	///	</summary>
+	const DataMatrix4D<double> & GetOrthonormNode() const {
+		if (!m_fContainsData) {
+			_EXCEPTIONT("Stub patch does not store data.");
+		}
+
+		return m_dataOrthonormNode;
+	}
+
+	///	<summary>
+	///		Get the orthonormalization components at interfaces.
+	///	</summary>
+	const DataMatrix4D<double> & GetOrthonormREdge() const {
+		if (!m_fContainsData) {
+			_EXCEPTIONT("Stub patch does not store data.");
+		}
+
+		return m_dataOrthonormREdge;
+	}
+
+	///	<summary>
 	///		Get the nodal element area matrix.
 	///	</summary>
 	const DataMatrix3D<double> & GetElementArea() const {
@@ -809,6 +831,16 @@ protected:
 	///		Christoffel symbol (xi) components at each node.
 	///	</summary>
 	DataMatrix4D<double> m_dataChristoffelXi;
+
+	///	<summary>
+	///		Orthonormalization coefficients at each node.
+	///	</summary>
+	DataMatrix4D<double> m_dataOrthonormNode;
+
+	///	<summary>
+	///		Orthonormalization coefficients at each interface.
+	///	</summary>
+	DataMatrix4D<double> m_dataOrthonormREdge;
 
 	///	<summary>
 	///		Element area at each node.
