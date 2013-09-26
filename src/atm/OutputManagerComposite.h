@@ -35,7 +35,7 @@ public:
 		Grid & grid,
 		double dOutputDeltaT,
 		std::string strOutputDir,
-		std::string strOutputFormat
+		std::string strOutputPrefix
 	);
 
 	///	<summary>
@@ -62,14 +62,14 @@ public:
 	///	<summary>
 	///		Open a new NetCDF file.
 	///	</summary>
-	void InitializeNcOutput(
+	virtual bool OpenFile(
 		const std::string & strFileName
 	);
 
 	///	<summary>
 	///		Close an existing NetCDF file.
 	///	</summary>
-	void DeinitializeNcOutput();
+	virtual void CloseFile();
 
 protected:
 	///	<summary>

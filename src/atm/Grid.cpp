@@ -579,65 +579,62 @@ void Grid::InterpolateREdgeToNode(
 void Grid::ReduceInterpolate(
 	const DataVector<double> & dAlpha,
 	const DataVector<double> & dBeta,
-	const DataVector<int> & iPanel,
+	const DataVector<int> & iPatch,
 	DataType eDataType,
 	DataMatrix3D<double> & dInterpData,
 	bool fIncludeReferenceState,
 	bool fConvertToPrimitive
 ) const {
+	// Check interpolation data array size
 	if ((dAlpha.GetRows() != dBeta.GetRows()) ||
-		(dAlpha.GetRows() != iPanel.GetRows())
+		(dAlpha.GetRows() != iPatch.GetRows())
 	) {
 		_EXCEPTIONT("Inconsistency in vector lengths.");
 	}
+
 	if ((eDataType == DataType_Tracers) &&
 		(m_model.GetEquationSet().GetTracers() == 0)
 	) {
 		_EXCEPTIONT("Unable to Interpolate with no tracers.");
 	}
-
-	// Initialize interpolated data
-	if (eDataType == DataType_State) {
-		dInterpData.Initialize(
-			m_model.GetEquationSet().GetComponents(),
-			GetRElements(),
-			dAlpha.GetRows());
-
-	} else if (eDataType == DataType_Tracers) {
-		dInterpData.Initialize(
-			m_model.GetEquationSet().GetTracers(),
-			GetRElements(),
-			dAlpha.GetRows());
-
-	} else if (eDataType == DataType_Vorticity) {
-		dInterpData.Initialize(
-			1,
-			GetRElements(),
-			dAlpha.GetRows());
-
-	} else if (eDataType == DataType_Divergence) {
-		dInterpData.Initialize(
-			1,
-			GetRElements(),
-			dAlpha.GetRows());
-
-	} else {
-		_EXCEPTIONT("Invalid DataType / Not implemented.");
+	
+	// Check interpolation data array size
+	if ((eDataType == DataType_State) &&
+		(dInterpData.GetRows() != m_model.GetEquationSet().GetComponents())
+	) {
+		_EXCEPTIONT("InterpData dimension mismatch (0)");
 	}
 
-	// Set value of interp data
-	for (int i = 0; i < dInterpData.GetRows(); i++) {
-	for (int j = 0; j < dInterpData.GetColumns(); j++) {
-	for (int k = 0; k < dInterpData.GetSubColumns(); k++) {
-		dInterpData[i][j][k] = -DBL_MAX;
+	if ((eDataType == DataType_Tracers) &&
+		(dInterpData.GetRows() != m_model.GetEquationSet().GetTracers())
+	) {
+		_EXCEPTIONT("InterpData dimension mismatch (0)");
 	}
+
+	if ((eDataType == DataType_Vorticity) &&
+		(dInterpData.GetRows() != 1)
+	) {
+		_EXCEPTIONT("InterpData dimension mismatch (0)");
 	}
+
+	if ((eDataType == DataType_Divergence) &&
+		(dInterpData.GetRows() != 1)
+	) {
+		_EXCEPTIONT("InterpData dimension mismatch (0)");
+	}
+
+	if (dInterpData.GetColumns() != GetRElements()) {
+		_EXCEPTIONT("InterpData dimension mismatch (1)");
+	}
+
+	if (dInterpData.GetSubColumns() != dAlpha.GetRows()) {
+		_EXCEPTIONT("InterpData dimension mismatch (2)");
 	}
 
 	// Interpolate state data
 	for (int n = 0; n < m_vecActiveGridPatches.size(); n++) {
 		m_vecActiveGridPatches[n]->InterpolateData(
-			dAlpha, dBeta, iPanel,
+			dAlpha, dBeta, iPatch,
 			eDataType,
 			dInterpData,
 			fIncludeReferenceState,
@@ -656,7 +653,7 @@ void Grid::ReduceInterpolate(
 				* dInterpData.GetColumns()
 				* dInterpData.GetSubColumns(),
 			MPI_DOUBLE,
-			MPI_MAX,
+			MPI_SUM,
 			0,
 			MPI_COMM_WORLD);
 
@@ -668,10 +665,22 @@ void Grid::ReduceInterpolate(
 				* dInterpData.GetColumns()
 				* dInterpData.GetSubColumns(),
 			MPI_DOUBLE,
-			MPI_MAX,
+			MPI_SUM,
 			0,
 			MPI_COMM_WORLD);
 	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void Grid::ConvertReferenceToPatchCoord(
+	const DataVector<double> & dXReference,
+	const DataVector<double> & dYReference,
+	DataVector<double> & dAlpha,
+	DataVector<double> & dBeta,
+	DataVector<int> & iPatch
+) const {
+	_EXCEPTIONT("Unimplemented.");
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -772,18 +781,6 @@ void Grid::AddReferenceState(
 	for (int n = 0; n < m_vecActiveGridPatches.size(); n++) {
 		m_vecActiveGridPatches[n]->AddReferenceState(ix);
 	}
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
-void Grid::ConvertReferenceToABP(
-	const DataVector<double> & dXReference,
-	const DataVector<double> & dYReference,
-	DataVector<double> & dAlpha,
-	DataVector<double> & dBeta,
-	DataVector<int> & iPanel
-) const {
-	_EXCEPTIONT("Unimplemented.");
 }
 
 ///////////////////////////////////////////////////////////////////////////////

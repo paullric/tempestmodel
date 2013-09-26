@@ -37,13 +37,22 @@ public:
 		Grid & grid,
 		double dOutputDeltaT,
 		std::string strOutputDir,
-		std::string strOutputFormat,
+		std::string strOutputPrefix,
+		int nOutputsPerFile,
 		int nXReference,
-		int nYReference,
-		bool fXNodal,
-		bool fYNodal,
-		bool fOutputVorticity = false,
-		bool fOutputDivergence = false
+		int nYReference
+	);
+
+	///	<summary>
+	///		Destructor.
+	///	</summary>
+	virtual ~OutputManagerReference();
+
+	///	<summary>
+	///		Calculate the patch coordinates of the reference points.
+	///	</summary>
+	void CalculatePatchCoordinates(
+		const Grid & grid
 	);
 
 	///	<summary>
@@ -52,9 +61,7 @@ public:
 	///	</summary>
 	void OutputVorticity(
 		bool fOutputVorticity = true
-	) {
-		m_fOutputVorticity = fOutputVorticity;
-	}
+	);
 
 	///	<summary>
 	///		Modify the flag which indicates whether divergence should be
@@ -62,33 +69,26 @@ public:
 	///	</summary>
 	void OutputDivergence(
 		bool fOutputDivergence = true
-	) {
-		m_fOutputDivergence = fOutputDivergence;
-	}
+	);
 
-	///	<summary>
-	///		Destructor.
-	///	</summary>
-	virtual ~OutputManagerReference();
-
-public:
+protected:
 	///	<summary>
 	///		Open a new NetCDF file.
 	///	</summary>
-	void InitializeNcOutput(
+	virtual bool OpenFile(
 		const std::string & strFileName
 	);
 
 	///	<summary>
 	///		Close an existing NetCDF file.
 	///	</summary>
-	void DeinitializeNcOutput();
+	virtual void CloseFile();
 
 protected:
 	///	<summary>
 	///		Write output to a file.
 	///	</summary>
-	void Output(
+	virtual void Output(
 		double dTime
 	);
 
@@ -114,9 +114,9 @@ protected:
 	DataVector<double> m_dBeta;
 
 	///	<summary>
-	///		Vector of panel indices.
+	///		Vector of patch indices.
 	///	</summary>
-	DataVector<int> m_iPanel;
+	DataVector<int> m_iPatch;
 
 	///	<summary>
 	///		Active output file.

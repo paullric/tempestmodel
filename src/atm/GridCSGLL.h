@@ -45,19 +45,22 @@ public:
 	///	</summary>
 	virtual void Initialize();
 
+public:
 	///	<summary>
-	///		Initialize the vertical coordinate.
+	///		Get the bounds on the reference grid.
 	///	</summary>
-	virtual void InitializeVerticalCoordinate(
-		const GridSpacing & aGridSpacing
+	virtual void GetReferenceGridBounds(
+		double & dX0,
+		double & dX1,
+		double & dY0,
+		double & dY1
 	);
 
-public:
 	///	<summary>
 	///		Convert an array of coordinate variables to coordinates on the
 	///		reference grid (RLL on the sphere)
 	///	</summary>
-	virtual void ConvertReferenceToABP(
+	virtual void ConvertReferenceToPatchCoord(
 		const DataVector<double> & dXReference,
 		const DataVector<double> & dYReference,
 		DataVector<double> & dAlpha,

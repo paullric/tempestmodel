@@ -444,6 +444,9 @@ try {
 	// Output file prefix
 	std::string strOutputPrefix;
 
+	// Number of outputs per reference file
+	int nOutputsPerFile;
+
 	// Resolution
 	int nResolution;
 
@@ -485,8 +488,10 @@ try {
 
 	// Parse the command line
 	BeginCommandLine()
-		CommandLineString(strOutputDir, "output_dir", "out");
+		CommandLineString(strOutputDir, "output_dir",
+			"outBaroclinicWaveJWTest");
 		CommandLineString(strOutputPrefix, "output_prefix", "out");
+		CommandLineInt(nOutputsPerFile, "output_perfile", 1);
 		CommandLineInt(nResolution, "resolution", 20);
 		CommandLineInt(nLevels, "levels", 10);
 		CommandLineInt(nHorizontalOrder, "order", 4);
@@ -586,11 +591,15 @@ try {
 	// Set the reference output manager for the model
 	AnnounceStartBlock("Creating reference output manager");
 	OutputManagerReference outmanRef(
-		grid, dOutputDeltaT, strOutputDir, strOutputPrefix,
-		360, 180, false, false, true, true);
+		grid,
+		dOutputDeltaT,
+		strOutputDir,
+		strOutputPrefix,
+		nOutputsPerFile,
+		360, 180);
+	outmanRef.OutputVorticity();
+	outmanRef.OutputDivergence();
 	model.AttachOutputManager(&outmanRef);
-
-	outmanRef.InitializeNcOutput("ref.nc");
 	AnnounceEndBlock("Done");
 /*
 	// Set the composite output manager for the model
@@ -598,8 +607,6 @@ try {
 	OutputManagerComposite outmanComp(
 		grid, dOutputDeltaT, strOutputDir, strOutputPrefix);
 	model.AttachOutputManager(&outmanComp);
-
-	outmanComp.InitializeNcOutput("comp.nc");
 	AnnounceEndBlock("Done");
 */
 	// Set the checksum output manager for the model

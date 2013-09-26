@@ -33,7 +33,8 @@ OutputManagerChecksum::OutputManagerChecksum(
 		grid,
 		dOutputDeltaT,
 		"",
-		"")
+		"",
+		-1)
 {
 }
 
@@ -42,10 +43,7 @@ OutputManagerChecksum::OutputManagerChecksum(
 void OutputManagerChecksum::Output(
 	double dTime
 ) {
-	// Call up the stack
-	OutputManager::Output(dTime);
-
-	// Processor
+	// Get processor rank
 	int nRank;
 	MPI_Comm_rank(MPI_COMM_WORLD, &nRank);
 

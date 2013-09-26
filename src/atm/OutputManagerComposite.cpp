@@ -42,7 +42,8 @@ OutputManagerComposite::OutputManagerComposite(
 		grid,
 		dOutputDeltaT,
 		strOutputDir,
-		strOutputFormat),
+		strOutputFormat,
+		1),
 	m_pActiveNcOutput(NULL)
 {
 }
@@ -50,7 +51,7 @@ OutputManagerComposite::OutputManagerComposite(
 ///////////////////////////////////////////////////////////////////////////////
 
 OutputManagerComposite::~OutputManagerComposite() {
-	DeinitializeNcOutput();
+	CloseFile();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -62,7 +63,7 @@ void OutputManagerComposite::ResizeDataBuffer() {
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void OutputManagerComposite::InitializeNcOutput(
+bool OutputManagerComposite::OpenFile(
 	const std::string & strFileName
 ) {
 	// Determine processor rank; only proceed if root node
@@ -87,7 +88,8 @@ void OutputManagerComposite::InitializeNcOutput(
 		}
 
 		// Open new NetCDF file
-		m_pActiveNcOutput = new NcFile(strFileName.c_str(), NcFile::Replace);
+		std::string strNcFileName = strFileName + ".restart.nc";
+		m_pActiveNcOutput = new NcFile(strNcFileName.c_str(), NcFile::Replace);
 		if (m_pActiveNcOutput == NULL) {
 			_EXCEPTIONT("Error opening NetCDF file");
 		}
@@ -246,11 +248,13 @@ void OutputManagerComposite::InitializeNcOutput(
 
 	// Wait for all processes to complete
 	MPI_Barrier(MPI_COMM_WORLD);
+
+	return true;
 }	
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void OutputManagerComposite::DeinitializeNcOutput() {
+void OutputManagerComposite::CloseFile() {
 	if (m_pActiveNcOutput != NULL) {
 		delete(m_pActiveNcOutput);
 		m_pActiveNcOutput = NULL;
@@ -265,18 +269,21 @@ void OutputManagerComposite::DeinitializeNcOutput() {
 void OutputManagerComposite::Output(
 	double dTime
 ) {
+	// Check for open file
+	if (!IsFileOpen()) {
+		_EXCEPTIONT("No file available for output");
+	}
+
+	// Determine processor rank
 	int nRank;
 	MPI_Comm_rank(MPI_COMM_WORLD, &nRank);
-
-	// Call up the stack
-	OutputManager::Output(dTime);
 
 	// Equation set
 	const EquationSet & eqn = m_grid.GetModel().GetEquationSet();
 
 	// Add new time
 	if (nRank == 0) {
-		m_varTime->set_cur(m_nOutputFileIx);
+		m_varTime->set_cur(m_ixOutputTime);
 		m_varTime->put(&dTime, 1);
 	}
 
@@ -321,7 +328,7 @@ void OutputManagerComposite::Output(
 
 			int nPatchIx = m_grid.GetCumulativePatch3DNodeIndex(ixRecvPatch);
 			for (int c = 0; c < eqn.GetComponents(); c++) {
-				m_vecComponentVar[c]->set_cur(m_nOutputFileIx, nPatchIx);
+				m_vecComponentVar[c]->set_cur(m_ixOutputTime, nPatchIx);
 				m_vecComponentVar[c]->put(
 					&(dataRecvBuffer[nComponentSize * c]), 1, nComponentSize);
 			}
@@ -337,7 +344,7 @@ void OutputManagerComposite::Output(
 
 			int nPatchIx = m_grid.GetCumulativePatch3DNodeIndex(ixRecvPatch);
 			for (int c = 0; c < eqn.GetTracers(); c++) {
-				m_vecTracersVar[c]->set_cur(m_nOutputFileIx, nPatchIx);
+				m_vecTracersVar[c]->set_cur(m_ixOutputTime, nPatchIx);
 				m_vecTracersVar[c]->put(
 					&(dataRecvBuffer[nComponentSize * c]), 1, nComponentSize);
 			}

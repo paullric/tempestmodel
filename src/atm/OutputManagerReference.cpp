@@ -36,79 +36,46 @@ OutputManagerReference::OutputManagerReference(
 	Grid & grid,
 	double dOutputDeltaT,
 	std::string strOutputDir,
-	std::string strOutputFormat,
+	std::string strOutputPrefix,
+	int nOutputsPerFile,
 	int nXReference,
-	int nYReference,
-	bool fXNodal,
-	bool fYNodal,
-	bool fOutputVorticity,
-	bool fOutputDivergence
+	int nYReference
 ) :
 	OutputManager(
 		grid,
 		dOutputDeltaT,
 		strOutputDir,
-		strOutputFormat),
+		strOutputPrefix,
+		nOutputsPerFile),
 	m_pActiveNcOutput(NULL),
-	m_fOutputVorticity(fOutputVorticity),
-	m_fOutputDivergence(fOutputDivergence)
+	m_fOutputVorticity(false),
+	m_fOutputDivergence(false)
 {
-	// Create the coordinate arrays
-	m_dXCoord.Initialize(nXReference);
-	m_dYCoord.Initialize(nYReference);
+	// Get the reference box
+	double dX0;
+	double dX1;
+	double dY0;
+	double dY1;
 
-	double dDeltaX = 360.0 / static_cast<double>(nXReference);
+	grid.GetReferenceGridBounds(dX0, dX1, dY0, dY1);
 
 	// Initialize the coordinate arrays
-	if (fXNodal) {
-		for (int i = 0; i < nXReference; i++) {
-			m_dXCoord[i] =
-				dDeltaX * static_cast<double>(i) - 180.0;
-		}
-	} else {
-		for (int i = 0; i < nXReference; i++) {
-			m_dXCoord[i] =
-				dDeltaX * (static_cast<double>(i) + 0.5) - 180.0;
-		}
-	}
-
-	if (fYNodal) {
-		double dDeltaY = 180.0 / static_cast<double>(nYReference-1);
-		for (int i = 0; i < nYReference; i++) {
-			m_dYCoord[i] =
-				dDeltaY * static_cast<double>(i) - 90.0;
-		}
-
-	} else {
-		double dDeltaY = 180.0 / static_cast<double>(nYReference);
-		for (int i = 0; i < nYReference; i++) {
-			m_dYCoord[i] =
-				dDeltaY * (static_cast<double>(i) + 0.5) - 90.0;
-		}
-	}
-
-	// Construct array of reference coordinates
-	DataVector<double> dXReference;
-	dXReference.Initialize(nXReference * nYReference);
-
-	DataVector<double> dYReference;
-	dYReference.Initialize(nXReference * nYReference);
-
-	int ix = 0;
-	for (int j = 0; j < nYReference; j++) {
+	m_dXCoord.Initialize(nXReference);
+	double dDeltaX = (dX1 - dX0) / static_cast<double>(nXReference);
 	for (int i = 0; i < nXReference; i++) {
-		dXReference[ix] = m_dXCoord[i] * M_PI / 180.0;
-		dYReference[ix] = m_dYCoord[j] * M_PI / 180.0;
-		ix++;
-	}
+		m_dXCoord[i] =
+			dDeltaX * (static_cast<double>(i) + 0.5) + dX0;
 	}
 
-	grid.ConvertReferenceToABP(
-		dXReference,
-		dYReference,
-		m_dAlpha,
-		m_dBeta,
-		m_iPanel);
+	m_dYCoord.Initialize(nYReference);
+	double dDeltaY = (dY1 - dY0) / static_cast<double>(nYReference);
+	for (int j = 0; j < nYReference; j++) {
+		m_dYCoord[j] =
+			dDeltaY * (static_cast<double>(j) + 0.5) + dY0;
+	}
+
+	// Calculate patch coordinates
+	CalculatePatchCoordinates(grid);
 
 	// Allocate data arrays
 	m_dataRefState.Initialize(
@@ -132,12 +99,88 @@ OutputManagerReference::OutputManagerReference(
 ///////////////////////////////////////////////////////////////////////////////
 
 OutputManagerReference::~OutputManagerReference() {
-	DeinitializeNcOutput();
+	CloseFile();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void OutputManagerReference::InitializeNcOutput(
+void OutputManagerReference::CalculatePatchCoordinates(
+	const Grid & grid
+) {
+
+	int nXReference = m_dXCoord.GetRows();
+	int nYReference = m_dYCoord.GetRows();
+
+	// Construct array of reference coordinates
+	DataVector<double> dXReference;
+	dXReference.Initialize(nXReference * nYReference);
+
+	DataVector<double> dYReference;
+	dYReference.Initialize(nXReference * nYReference);
+
+	int ix = 0;
+	for (int j = 0; j < nYReference; j++) {
+	for (int i = 0; i < nXReference; i++) {
+		dXReference[ix] = m_dXCoord[i];
+		dYReference[ix] = m_dYCoord[j];
+		ix++;
+	}
+	}
+
+	// Resize arrays
+	m_dAlpha.Initialize(dXReference.GetRows());
+	m_dBeta .Initialize(dXReference.GetRows());
+	m_iPatch.Initialize(dXReference.GetRows());
+
+	// Convert this reference point to a patch coordinate
+	grid.ConvertReferenceToPatchCoord(
+		dXReference,
+		dYReference,
+		m_dAlpha,
+		m_dBeta,
+		m_iPatch);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void OutputManagerReference::OutputVorticity(
+	bool fOutputVorticity
+) {
+	m_fOutputVorticity = fOutputVorticity;
+
+	if (fOutputVorticity) {
+		m_dataVorticity.Initialize(
+			1,
+			m_grid.GetRElements(),
+			m_dAlpha.GetRows());
+
+	} else {
+		m_dataVorticity.Deinitialize();
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void OutputManagerReference::OutputDivergence(
+	bool fOutputDivergence
+) {
+	m_fOutputDivergence = fOutputDivergence;
+
+	if (fOutputDivergence) {
+		m_dataDivergence.Initialize(
+			1,
+			m_grid.GetRElements(),
+			m_dAlpha.GetRows());
+
+	} else {
+		m_dataDivergence.Deinitialize();
+	}
+
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+bool OutputManagerReference::OpenFile(
 	const std::string & strFileName
 ) {
 	// Determine processor rank; only proceed if root node
@@ -155,8 +198,11 @@ void OutputManagerReference::InitializeNcOutput(
 			_EXCEPTIONT("NetCDF file already open");
 		}
 
+		// Append .nc extension to file
+		std::string strNcFileName = strFileName + ".nc";
+
 		// Open new NetCDF file
-		m_pActiveNcOutput = new NcFile(strFileName.c_str(), NcFile::Replace);
+		m_pActiveNcOutput = new NcFile(strNcFileName.c_str(), NcFile::Replace);
 		if (m_pActiveNcOutput == NULL) {
 			_EXCEPTIONT("Error opening NetCDF file");
 		}
@@ -259,11 +305,13 @@ void OutputManagerReference::InitializeNcOutput(
 
 	// Wait for all processes to complete
 	MPI_Barrier(MPI_COMM_WORLD);
+
+	return true;
 }	
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void OutputManagerReference::DeinitializeNcOutput() {
+void OutputManagerReference::CloseFile() {
 	if (m_pActiveNcOutput != NULL) {
 		delete(m_pActiveNcOutput);
 		m_pActiveNcOutput = NULL;
@@ -278,18 +326,21 @@ void OutputManagerReference::DeinitializeNcOutput() {
 void OutputManagerReference::Output(
 	double dTime
 ) {
+	// Check for open file
+	if (!IsFileOpen()) {
+		_EXCEPTIONT("No file available for output");
+	}
+
+	// Get processor rank
 	int nRank;
 	MPI_Comm_rank(MPI_COMM_WORLD, &nRank);
-
-	// Call up the stack
-	OutputManager::Output(dTime);
 
 	// Equation set
 	const EquationSet & eqn = m_grid.GetModel().GetEquationSet();
 
 	// Add new time
 	if (nRank == 0) {
-		m_varTime->set_cur(m_nOutputFileIx);
+		m_varTime->set_cur(m_ixOutputTime);
 		m_varTime->put(&dTime, 1);
 	}
 
@@ -304,7 +355,7 @@ void OutputManagerReference::Output(
 	m_dataState.Zero();
 
 	m_grid.ReduceInterpolate(
-		m_dAlpha, m_dBeta, m_iPanel,
+		m_dAlpha, m_dBeta, m_iPatch,
 		DataType_State, m_dataState, true);
 
 	// Perform Interpolate / Reduction on tracers data
@@ -312,7 +363,7 @@ void OutputManagerReference::Output(
 		m_dataTracers.Zero();
 
 		m_grid.ReduceInterpolate(
-			m_dAlpha, m_dBeta, m_iPanel,
+			m_dAlpha, m_dBeta, m_iPatch,
 			DataType_Tracers, m_dataTracers, true);
 	}
 
@@ -326,12 +377,12 @@ void OutputManagerReference::Output(
 
 		if (m_fOutputVorticity) {
 			m_grid.ReduceInterpolate(
-				m_dAlpha, m_dBeta, m_iPanel,
+				m_dAlpha, m_dBeta, m_iPatch,
 				DataType_Vorticity, m_dataVorticity);
 		}
 		if (m_fOutputDivergence) {
 			m_grid.ReduceInterpolate(
-				m_dAlpha, m_dBeta, m_iPanel,
+				m_dAlpha, m_dBeta, m_iPatch,
 				DataType_Divergence, m_dataDivergence);
 		}
 	}
@@ -339,7 +390,7 @@ void OutputManagerReference::Output(
 	// Store state variable data
 	if (nRank == 0) {
 		for (int c = 0; c < eqn.GetComponents(); c++) {
-			m_vecComponentVar[c]->set_cur(m_nOutputFileIx, 0, 0, 0);
+			m_vecComponentVar[c]->set_cur(m_ixOutputTime, 0, 0, 0);
 			m_vecComponentVar[c]->put(
 				&(m_dataState[c][0][0]),
 				1,
@@ -351,7 +402,7 @@ void OutputManagerReference::Output(
 		// Store tracer variable data
 		if (m_grid.GetModel().GetEquationSet().GetTracers() != 0) {
 			for (int c = 0; c < eqn.GetTracers(); c++) {
-				m_vecTracersVar[c]->set_cur(m_nOutputFileIx, 0, 0, 0);
+				m_vecTracersVar[c]->set_cur(m_ixOutputTime, 0, 0, 0);
 				m_vecTracersVar[c]->put(
 					&(m_dataTracers[c][0][0]),
 					1,
@@ -363,7 +414,7 @@ void OutputManagerReference::Output(
 
 		// Store vorticity data
 		if (m_fOutputVorticity) {
-			m_varVorticity->set_cur(m_nOutputFileIx, 0, 0, 0);
+			m_varVorticity->set_cur(m_ixOutputTime, 0, 0, 0);
 			m_varVorticity->put(
 				&(m_dataVorticity[0][0][0]),
 				1,
@@ -374,7 +425,7 @@ void OutputManagerReference::Output(
 
 		// Store divergence data
 		if (m_fOutputDivergence) {
-			m_varDivergence->set_cur(m_nOutputFileIx, 0, 0, 0);
+			m_varDivergence->set_cur(m_ixOutputTime, 0, 0, 0);
 			m_varDivergence->put(
 				&(m_dataDivergence[0][0][0]),
 				1,

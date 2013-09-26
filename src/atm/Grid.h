@@ -177,17 +177,43 @@ public:
 		int iDataIndex
 	);
 
+public:
 	///	<summary>
-	///		Perform interpolation on a node array and send data to root.
+	///		Get the bounds on the reference grid.
+	///	</summary>
+	virtual void GetReferenceGridBounds(
+		double & dX0,
+		double & dX1,
+		double & dY0,
+		double & dY1
+	) {
+		_EXCEPTIONT("Not implemented");
+	}
+
+	///	<summary>
+	///		Perform interpolation on a node array and send data to root
+	///		(generally used for serial output on reference grid)
 	///	</summary>
 	void ReduceInterpolate(
 		const DataVector<double> & dAlpha,
 		const DataVector<double> & dBeta,
-		const DataVector<int> & iPanel,
+		const DataVector<int> & iPatch,
 		DataType eDataType,
 		DataMatrix3D<double> & dInterpData,
 		bool fIncludeReferenceState = true,
 		bool fConvertToPrimitive = true
+	) const;
+
+	///	<summary>
+	///		Convert an array of coordinate variables to coordinates on the
+	///		reference grid (RLL on the sphere, Cartesian on the plane).
+	///	</summary>
+	virtual void ConvertReferenceToPatchCoord(
+		const DataVector<double> & dXReference,
+		const DataVector<double> & dYReference,
+		DataVector<double> & dAlpha,
+		DataVector<double> & dBeta,
+		DataVector<int> & iPatch
 	) const;
 
 protected:
@@ -236,18 +262,6 @@ public:
 	void AddReferenceState(
 		int ix
 	);
-
-	///	<summary>
-	///		Convert an array of coordinate variables to coordinates on the
-	///		reference grid (RLL on the sphere, Cartesian on the plane).
-	///	</summary>
-	virtual void ConvertReferenceToABP(
-		const DataVector<double> & dXReference,
-		const DataVector<double> & dYReference,
-		DataVector<double> & dAlpha,
-		DataVector<double> & dBeta,
-		DataVector<int> & iPanel
-	) const;
 
 public:
 	///	<summary>

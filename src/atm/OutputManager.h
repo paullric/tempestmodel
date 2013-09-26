@@ -36,24 +36,14 @@ class OutputManager {
 
 public:
 	///	<summary>
-	///		Types of data that can be handled by ConsolidateData.
-	///	</summary>
-	enum OutputDataType {
-		OutputDataType_Default = 0,
-		OutputDataType_Data = OutputDataType_Default,
-		OutputDataType_Tracers = 1,
-		OutputDataType_CentroidZ = 2
-	};
-
-public:
-	///	<summary>
 	///		Constructor.
 	///	</summary>
 	OutputManager(
 		Grid & grid,
 		double dOutputDeltaT,
 		std::string strOutputDir,
-		std::string strOutputFormat
+		std::string strOutputPrefix,
+		int nOutputsPerFile
 	);
 
 	///	<summary>
@@ -61,6 +51,17 @@ public:
 	///	</summary>
 	virtual ~OutputManager()
 	{ }
+
+protected:
+	///	<summary>
+	///		Get the active file name.
+	///	</summary>
+	void GetFileName(std::string & strFileName) const;
+
+	///	<summary>
+	///		Perform the output.
+	///	</summary>
+	void PerformOutput(double dTime);
 
 public:
 	///	<summary>
@@ -85,11 +86,33 @@ public:
 
 protected:
 	///	<summary>
+	///		Check if a file is currently open.
+	///	</summary>
+	inline bool IsFileOpen() const {
+		return m_fIsFileOpen;
+	}
+
+	///	<summary>
+	///		Open a new file.
+	///	</summary>
+	virtual bool OpenFile(
+		const std::string & strFileName
+	) {
+		return true;
+	}
+
+	///	<summary>
+	///		Close an existing file.
+	///	</summary>
+	virtual void CloseFile()
+	{ }
+
+	///	<summary>
 	///		Handle manager-specific file output.
 	///	</summary>
 	virtual void Output(
 		double dTime
-	);
+	) = 0;
 
 protected:
 	///	<summary>
@@ -98,14 +121,25 @@ protected:
 	Grid & m_grid;
 
 	///	<summary>
-	///		Flag indicating if we were initialized from a recovery file.
+	///		Flag indicating that the initial conditions came from a
+	///		recovery file and that output should be supressed.
 	///	</summary>
 	bool m_fFromRecoveryFile;
 
 	///	<summary>
+	///		Flag indicating that a file is currently open.
+	///	</summary>
+	bool m_fIsFileOpen;
+
+	///	<summary>
+	///		Current output time index.
+	///	</summary>
+	int m_ixOutputTime;
+
+	///	<summary>
 	///		Current output file index.
 	///	</summary>
-	int m_nOutputFileIx;
+	int m_ixOutputFile;
 
 	///	<summary>
 	///		Last output time.
@@ -130,7 +164,12 @@ protected:
 	///	<summary>
 	///		Format of the output filename.
 	///	</summary>
-	std::string m_strOutputFormat;
+	std::string m_strOutputPrefix;
+
+	///	<summary>
+	///		Number of time steps output per file.
+	///	</summary>
+	int m_nOutputsPerFile;
 };
 
 ///////////////////////////////////////////////////////////////////////////////

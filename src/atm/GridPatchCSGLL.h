@@ -121,7 +121,7 @@ public:
 	virtual void InterpolateData(
 		const DataVector<double> & dAlpha,
 		const DataVector<double> & dBeta,
-		const DataVector<int> & iPanel,
+		const DataVector<int> & iPatch,
 		DataType eDataType,
 		DataMatrix3D<double> & dInterpData,
 		bool fIncludeReferenceState = true,

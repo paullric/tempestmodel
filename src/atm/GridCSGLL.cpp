@@ -218,39 +218,72 @@ void GridCSGLL::Initialize() {
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void GridCSGLL::InitializeVerticalCoordinate(
-	const GridSpacing & aGridSpacing
+void GridCSGLL::GetReferenceGridBounds(
+	double & dX0,
+	double & dX1,
+	double & dY0,
+	double & dY1
 ) {
-	// Call to Grid
-	Grid::InitializeVerticalCoordinate(aGridSpacing);
+	dX0 = - M_PI;
+	dX1 = + M_PI;
+	dY0 = - M_PI / 2.0;
+	dY1 = + M_PI / 2.0;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void GridCSGLL::ConvertReferenceToABP(
+void GridCSGLL::ConvertReferenceToPatchCoord(
 	const DataVector<double> & dXReference,
 	const DataVector<double> & dYReference,
 	DataVector<double> & dAlpha,
 	DataVector<double> & dBeta,
-	DataVector<int> & iPanel
+	DataVector<int> & iPatch
 ) const {
-	if (dXReference.GetRows() != dYReference.GetRows()) {
-		_EXCEPTIONT("XReference and YReference must have same length.");
+	if ((dXReference.GetRows() != dYReference.GetRows()) ||
+		(dXReference.GetRows() != dAlpha.GetRows()) ||
+		(dXReference.GetRows() != dBeta.GetRows()) ||
+		(dXReference.GetRows() != iPatch.GetRows())
+	) {
+		_EXCEPTIONT("Dimension mismatch: All arrays must have same length");
 	}
-
-	// Resize arrays
-	dAlpha.Initialize(dXReference.GetRows());
-	dBeta .Initialize(dXReference.GetRows());
-	iPanel.Initialize(dXReference.GetRows());
 
 	// Loop over all coordinates
 	for (int i = 0; i < dXReference.GetRows(); i++) {
+
+		int iPanel;
+
 		CubedSphereTrans::ABPFromRLL(
 			dXReference[i],
 			dYReference[i],
 			dAlpha[i],
 			dBeta[i],
-			iPanel[i]);
+			iPanel);
+
+		// Loop over all patches
+		int n = 0;
+		for (; n < GetPatchCount(); n++) {
+			const GridPatch * pPatch = GetPatch(n);
+			const PatchBox & box = pPatch->GetPatchBox();
+
+			if (iPanel != box.GetPanel()) {
+				continue;
+			}
+			if ((dAlpha[i] >= box.GetAEdge(box.GetAInteriorBegin())) &&
+				(dAlpha[i] <= box.GetAEdge(box.GetAInteriorEnd())) &&
+				(dBeta[i] >= box.GetBEdge(box.GetBInteriorBegin())) &&
+				(dBeta[i] <= box.GetBEdge(box.GetBInteriorEnd()))
+			) {
+				iPatch[i] = pPatch->GetPatchIndex();
+				break;
+			}
+		}
+
+		if (n == GetPatchCount()) {
+			_EXCEPTION5("Unable to find associated patch for node:\n"
+				"(%1.5e, %1.5e) : (%1.5e, %1.5e, %i)",
+				dXReference[i], dYReference[i],
+				dAlpha[i], dBeta[i], iPanel);
+		}
 	}
 }
 

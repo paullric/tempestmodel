@@ -1024,13 +1024,15 @@ void GridPatchCSGLL::InterpolateREdgeToNode(
 void GridPatchCSGLL::InterpolateData(
 	const DataVector<double> & dAlpha,
 	const DataVector<double> & dBeta,
-	const DataVector<int> & iPanel,
+	const DataVector<int> & iPatch,
 	DataType eDataType,
 	DataMatrix3D<double> & dInterpData,
 	bool fIncludeReferenceState,
 	bool fConvertToPrimitive
 ) {
-	if (dAlpha.GetRows() != dBeta.GetRows()) {
+	if ((dAlpha.GetRows() != dBeta.GetRows()) ||
+		(dAlpha.GetRows() != iPatch.GetRows())
+	) {
 		_EXCEPTIONT("Point vectors must have equivalent length.");
 	}
 
@@ -1050,15 +1052,6 @@ void GridPatchCSGLL::InterpolateData(
 	DataVector<double> dAInterpPt;
 	dAInterpPt.Initialize(m_nHorizontalOrder);
 
-	// Element-wise grid spacing
-	double dDeltaA =
-		+ m_box.GetAEdge(m_box.GetHaloElements() + m_nHorizontalOrder)
-		- m_box.GetAEdge(m_box.GetHaloElements());
-
-	double dDeltaB =
-		+ m_box.GetBEdge(m_box.GetHaloElements() + m_nHorizontalOrder)
-		- m_box.GetBEdge(m_box.GetHaloElements());
-
 	// Physical constants
 	const PhysicalConstants & phys = m_grid.GetModel().GetPhysicalConstants();
 
@@ -1066,20 +1059,28 @@ void GridPatchCSGLL::InterpolateData(
 	for (int i = 0; i < dAlpha.GetRows(); i++) {
 
 		// Element index
-		if ((iPanel[i] != m_box.GetPanel()) ||
-			(dAlpha[i] < m_box.GetAEdge(m_box.GetAInteriorBegin())) ||
-			(dAlpha[i] > m_box.GetAEdge(m_box.GetAInteriorEnd())) ||
-			(dBeta[i] < m_box.GetBEdge(m_box.GetBInteriorBegin())) ||
-			(dBeta[i] > m_box.GetBEdge(m_box.GetBInteriorEnd()))
-		) {
+		if (iPatch[i] != GetPatchIndex()) {
 			continue;
 		}
 
+		// Verify point lies within domain of patch
+		const double Eps = 1.0e-10;
+		if ((dAlpha[i] < m_box.GetAEdge(m_box.GetAInteriorBegin()) - Eps) ||
+			(dAlpha[i] > m_box.GetAEdge(m_box.GetAInteriorEnd()) + Eps) ||
+			(dBeta[i] < m_box.GetBEdge(m_box.GetBInteriorBegin()) - Eps) ||
+			(dBeta[i] > m_box.GetBEdge(m_box.GetBInteriorEnd()) + Eps)
+		) {
+			_EXCEPTIONT("Point out of range");
+		}
+
+		// Determine finite element inde
 		int iA =
-			(dAlpha[i] - m_box.GetAEdge(m_box.GetAInteriorBegin())) / dDeltaA;
+			(dAlpha[i] - m_box.GetAEdge(m_box.GetAInteriorBegin()))
+				/ GetElementDeltaA();
 
 		int iB =
-			(dBeta[i] - m_box.GetBEdge(m_box.GetBInteriorBegin())) / dDeltaB;
+			(dBeta[i] - m_box.GetBEdge(m_box.GetBInteriorBegin()))
+				/ GetElementDeltaB();
 
 		// Bound the index within the element
 		if (iA < 0) {
@@ -1179,7 +1180,7 @@ void GridPatchCSGLL::InterpolateData(
 				CubedSphereTrans::VecTransRLLFromABP(
 					tan(dAlpha[i]),
 					tan(dBeta[i]),
-					iPanel[i],
+					GetPatchBox().GetPanel(),
 					dUalpha,
 					dUbeta,
 					dInterpData[0][k][i],
