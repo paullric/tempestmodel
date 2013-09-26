@@ -1,8 +1,8 @@
 ///////////////////////////////////////////////////////////////////////////////
 ///
 ///	\file    GridCartesianGLL.cpp
-///	\author  Paul Ullrich
-///	\version September 19, 2013
+///	\author  Paul Ullrich, Jorge Guerra
+///	\version September 26, 2013
 ///
 ///	<remarks>
 ///		Copyright 2000-2010 Paul Ullrich
@@ -74,11 +74,11 @@ void GridCartesianGLL::Initialize() {
 	int nCommSize;
 	MPI_Comm_size(MPI_COMM_WORLD, &nCommSize);
 
-	int nProcsPerDirection = Max((int)ISqrt(nCommSize / 6), 1);
+	int nProcsPerDirection = Max((int)ISqrt(nCommSize), 1);
 
 	int nProcsPerPanel = nProcsPerDirection * nProcsPerDirection;
 
-	int nDistributedPatches = 6 * nProcsPerPanel;
+	int nDistributedPatches = nProcsPerPanel;
 
 	if (nDistributedPatches < nCommSize) {
 		Announce("WARNING: Patch / thread mismatch: "
@@ -106,7 +106,8 @@ void GridCartesianGLL::Initialize() {
 	std::vector<GridPatch *> pPatches;
 	pPatches.reserve(nDistributedPatches);
 
-	for (int n = 0; n < 6; n++) {
+	// Single panel 0 implementation (Cartesian Grid)
+    int n = 0;
 	for (int i = 0; i < nProcsPerDirection; i++) {
 	for (int j = 0; j < nProcsPerDirection; j++) {
 		double dDeltaA = 0.5 * M_PI / GetABaseResolution();
@@ -135,13 +136,13 @@ void GridCartesianGLL::Initialize() {
 					m_nVerticalOrder)));
 	}
 	}
-	}
 
 	if (pPatches.size() != nDistributedPatches) {
 		_EXCEPTIONT("Logic error");
 	}
 
 	// Set up connectivity
+    // TODO: Change this for a single panel (no transforms accross panels)
 	for (int n = 0; n < nDistributedPatches; n++) {
 		int iDestPanel;
 		int iDestI;
@@ -226,7 +227,7 @@ void GridCartesianGLL::InitializeVerticalCoordinate(
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-
+// TODO This method is no longer needed
 void GridCartesianGLL::ConvertReferenceToABP(
 	const DataVector<double> & dXReference,
 	const DataVector<double> & dYReference,
@@ -234,24 +235,11 @@ void GridCartesianGLL::ConvertReferenceToABP(
 	DataVector<double> & dBeta,
 	DataVector<int> & iPanel
 ) const {
-	if (dXReference.GetRows() != dYReference.GetRows()) {
-		_EXCEPTIONT("XReference and YReference must have same length.");
-	}
 
 	// Resize arrays
 	dAlpha.Initialize(dXReference.GetRows());
 	dBeta .Initialize(dXReference.GetRows());
 	iPanel.Initialize(dXReference.GetRows());
-
-	// Loop over all coordinates
-	for (int i = 0; i < dXReference.GetRows(); i++) {
-		CubedSphereTrans::ABPFromRLL(
-			dXReference[i],
-			dYReference[i],
-			dAlpha[i],
-			dBeta[i],
-			iPanel[i]);
-	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////

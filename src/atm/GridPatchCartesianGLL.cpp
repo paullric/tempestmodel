@@ -1,8 +1,8 @@
 ///////////////////////////////////////////////////////////////////////////////
 ///
 ///	\file    GridPatchCartesianGLL.cpp
-///	\author  Paul Ullrich
-///	\version February 25, 2013
+///	\author  Paul Ullrich, Jorge Guerra
+///	\version September 26, 2013
 ///
 ///	<remarks>
 ///		Copyright 2000-2010 Paul Ullrich
@@ -48,98 +48,11 @@ GridPatchCartesianGLL::GridPatchCartesianGLL(
 		nVerticalOrder)
 {
 
-	// Get panels in each coordinate direction
-	if (grid.GetABaseResolution() != grid.GetBBaseResolution()) {
-		_EXCEPTIONT("Invalid grid; CubedSphere grids must be square");
-	}
-
-	int ixDest;
-	int jxDest;
-	bool fSwitchAB;
-	bool fSwitchPar;
-	bool fSwitchPerp;
-
 	m_ixNeighborPanel.resize(8);
-
-	// Towards the right
-	CubedSphereTrans::RelativeCoord(
-		m_nHorizontalOrder * grid.GetABaseResolution(),
-		box.GetPanel(),
-		box.GetAGlobalInteriorEnd(),
-		box.GetBGlobalInteriorBegin(),
-		m_ixNeighborPanel[(int)(Direction_Right)],
-		ixDest, jxDest,
-		fSwitchAB, fSwitchPar, fSwitchPerp);
-
-	// Towards the top
-	CubedSphereTrans::RelativeCoord(
-		m_nHorizontalOrder * grid.GetABaseResolution(),
-		box.GetPanel(),
-		box.GetAGlobalInteriorBegin(),
-		box.GetBGlobalInteriorEnd(),
-		m_ixNeighborPanel[(int)(Direction_Top)],
-		ixDest, jxDest,
-		fSwitchAB, fSwitchPar, fSwitchPerp);
-
-	// Towards the left
-	CubedSphereTrans::RelativeCoord(
-		m_nHorizontalOrder * grid.GetABaseResolution(),
-		box.GetPanel(),
-		box.GetAGlobalInteriorBegin()-1,
-		box.GetBGlobalInteriorBegin(),
-		m_ixNeighborPanel[(int)(Direction_Left)],
-		ixDest, jxDest,
-		fSwitchAB, fSwitchPar, fSwitchPerp);
-
-	// Towards the bottom
-	CubedSphereTrans::RelativeCoord(
-		m_nHorizontalOrder * grid.GetABaseResolution(),
-		box.GetPanel(),
-		box.GetAGlobalInteriorBegin(),
-		box.GetBGlobalInteriorBegin()-1,
-		m_ixNeighborPanel[(int)(Direction_Bottom)],
-		ixDest, jxDest,
-		fSwitchAB, fSwitchPar, fSwitchPerp);
-
-	// Towards the top-right
-	CubedSphereTrans::RelativeCoord(
-		m_nHorizontalOrder * grid.GetABaseResolution(),
-		box.GetPanel(),
-		box.GetAGlobalInteriorEnd(),
-		box.GetBGlobalInteriorEnd(),
-		m_ixNeighborPanel[(int)(Direction_TopRight)],
-		ixDest, jxDest,
-		fSwitchAB, fSwitchPar, fSwitchPerp);
-
-	// Towards the top-left
-	CubedSphereTrans::RelativeCoord(
-		m_nHorizontalOrder * grid.GetABaseResolution(),
-		box.GetPanel(),
-		box.GetAGlobalInteriorBegin()-1,
-		box.GetBGlobalInteriorEnd(),
-		m_ixNeighborPanel[(int)(Direction_TopLeft)],
-		ixDest, jxDest,
-		fSwitchAB, fSwitchPar, fSwitchPerp);
-
-	// Towards the bottom-left
-	CubedSphereTrans::RelativeCoord(
-		m_nHorizontalOrder * grid.GetABaseResolution(),
-		box.GetPanel(),
-		box.GetAGlobalInteriorBegin()-1,
-		box.GetBGlobalInteriorBegin()-1,
-		m_ixNeighborPanel[(int)(Direction_BottomLeft)],
-		ixDest, jxDest,
-		fSwitchAB, fSwitchPar, fSwitchPerp);
-
-	// Towards the bottom-right
-	CubedSphereTrans::RelativeCoord(
-		m_nHorizontalOrder * grid.GetABaseResolution(),
-		box.GetPanel(),
-		box.GetAGlobalInteriorEnd(),
-		box.GetBGlobalInteriorBegin()-1,
-		m_ixNeighborPanel[(int)(Direction_BottomRight)],
-		ixDest, jxDest,
-		fSwitchAB, fSwitchPar, fSwitchPerp);
+    m_ixNeighborPanel[0] = 0.; m_ixNeighborPanel[1] = 0.;
+    m_ixNeighborPanel[2] = 0.; m_ixNeighborPanel[3] = 0.;
+    m_ixNeighborPanel[4] = 0.; m_ixNeighborPanel[5] = 0.;
+    m_ixNeighborPanel[6] = 0.; m_ixNeighborPanel[7] = 0.;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -155,14 +68,9 @@ void GridPatchCartesianGLL::InitializeDataLocal() {
 	// Initialize the longitude and latitude at each node
 	for (int i = 0; i < m_box.GetATotalWidth(); i++) {
 	for (int j = 0; j < m_box.GetBTotalWidth(); j++) {
-		CubedSphereTrans::RLLFromABP(
-			m_box.GetANode(i),
-			m_box.GetBNode(j),
-			m_box.GetPanel(),
-			m_dataLon[i][j],
-			m_dataLat[i][j]);
-
-		m_dataCoriolisF[i][j] = 2.0 * phys.GetOmega() * sin(m_dataLat[i][j]);
+        // TODO: Initialize the force with user input (latitude input for reference force)
+		m_dataCoriolisF[i][j] = m_dataCoriolisF[i][j] +
+                                phys.GetOmega() * m_box.GetBNode(j);
 	}
 	}
 /*
@@ -368,22 +276,14 @@ void GridPatchCartesianGLL::EvaluateGeometricTerms(
 			double dBeta =
 				m_box.GetBNode(j) + static_cast<double>(t-1) * dEpsilon;
 
-			double dLon;
-			double dLat;
-			CubedSphereTrans::RLLFromABP(
-				dAlpha, dBeta, m_box.GetPanel(),
-				dLon, dLat);
-
 			dTopography[s][t] =
-				test.EvaluateTopography(phys, dLon, dLat);
+				test.EvaluateTopography(phys, dAlpha, dBeta);
 		}
 		}
 
 		// Gnomonic coordinates
 		double dX = tan(m_box.GetANode(i));
 		double dY = tan(m_box.GetBNode(j));
-		//double dDelta2 = (1.0 + dX * dX + dY * dY);
-		//double dDelta = sqrt(dDelta2);
 
 		// Topography height and its derivatives
 		double dZs = dTopography[1][1];
@@ -448,15 +348,18 @@ void GridPatchCartesianGLL::EvaluateGeometricTerms(
 
 			m_dataContraMetricA[k][i][j][0] = dContraMetricScale;
 			m_dataContraMetricA[k][i][j][1] = 0.0;
-			m_dataContraMetricA[k][i][j][2] = dContraMetricScale * (-dDaR / dDxR);
-
+			m_dataContraMetricA[k][i][j][2] = dContraMetricScale
+                                            * (-dDaR / dDxR);
 			m_dataContraMetricB[k][i][j][0] = 0.0;
 			m_dataContraMetricB[k][i][j][1] = dContraMetricScale;
-			m_dataContraMetricB[k][i][j][2] = dContraMetricScale * (-dDbR / dDxR);
-
-			m_dataContraMetricXi[k][i][j][0] = dContraMetricScale * (-dDaR / dDxR);
-			m_dataContraMetricXi[k][i][j][1] = dContraMetricScale * (-dDbR / dDxR);
-			m_dataContraMetricXi[k][i][j][2] = (1.0 + dDaR * dDaR + dDbR * dDbR) / sqrt(dDxR);
+			m_dataContraMetricB[k][i][j][2] = dContraMetricScale
+                                            * (-dDbR / dDxR);
+			m_dataContraMetricXi[k][i][j][0] = dContraMetricScale
+                                             * (-dDaR / dDxR);
+			m_dataContraMetricXi[k][i][j][1] = dContraMetricScale
+                                             * (-dDbR / dDxR);
+            m_dataContraMetricXi[k][i][j][2] = (1.0 + dDaR * dDaR + dDbR * dDbR)
+                                             / sqrt(dDxR);
 
 			// Vertical Christoffel symbol components
 			m_dataChristoffelXi[k][i][j][0] = dDaaR;
@@ -592,24 +495,6 @@ void GridPatchCartesianGLL::EvaluateTestCase(
 			m_datavecStateNode[iDataIndex][c][k][i][j] = dPointwiseState[c];
 		}
 
-		// Transform state velocities
-		double dUlon;
-		double dUlat;
-
-		dUlon = m_datavecStateNode[iDataIndex][0][k][i][j];
-		dUlat = m_datavecStateNode[iDataIndex][1][k][i][j];
-
-		dUlon /= phys.GetEarthRadius();
-		dUlat /= phys.GetEarthRadius();
-
-		CubedSphereTrans::VecTransABPFromRLL(
-			tan(m_box.GetANode(i)),
-			tan(m_box.GetBNode(j)),
-			m_box.GetPanel(),
-			dUlon, dUlat,
-			m_datavecStateNode[iDataIndex][0][k][i][j],
-			m_datavecStateNode[iDataIndex][1][k][i][j]);
-
 		// Evaluate reference state
 		if (m_grid.HasReferenceState()) {
 			test.EvaluateReferenceState(
@@ -622,22 +507,7 @@ void GridPatchCartesianGLL::EvaluateTestCase(
 			for (int c = 0; c < dPointwiseState.GetRows(); c++) {
 				m_dataRefStateNode[c][k][i][j] = dPointwiseRefState[c];
 			}
-
-			// Transform reference velocities
-			dUlon = m_dataRefStateNode[0][k][i][j];
-			dUlat = m_dataRefStateNode[1][k][i][j];
-
-			dUlon /= phys.GetEarthRadius();
-			dUlat /= phys.GetEarthRadius();
-
-			CubedSphereTrans::VecTransABPFromRLL(
-				tan(m_box.GetANode(i)),
-				tan(m_box.GetBNode(j)),
-				m_box.GetPanel(),
-				dUlon, dUlat,
-				m_dataRefStateNode[0][k][i][j],
-				m_dataRefStateNode[1][k][i][j]);
-		}
+        }
 
 		// Evaluate tracers
 		for (int c = 0; c < dPointwiseTracers.GetRows(); c++) {
@@ -666,24 +536,6 @@ void GridPatchCartesianGLL::EvaluateTestCase(
 			m_datavecStateREdge[iDataIndex][c][k][i][j] = dPointwiseState[c];
 		}
 
-		// Transform state velocities
-		double dUlon;
-		double dUlat;
-
-		dUlon = m_datavecStateREdge[iDataIndex][0][k][i][j];
-		dUlat = m_datavecStateREdge[iDataIndex][1][k][i][j];
-
-		dUlon /= phys.GetEarthRadius();
-		dUlat /= phys.GetEarthRadius();
-
-		CubedSphereTrans::VecTransABPFromRLL(
-			tan(m_box.GetANode(i)),
-			tan(m_box.GetBNode(j)),
-			m_box.GetPanel(),
-			dUlon, dUlat,
-			m_datavecStateREdge[iDataIndex][0][k][i][j],
-			m_datavecStateREdge[iDataIndex][1][k][i][j]);
-
 		if (m_grid.HasReferenceState()) {
 			test.EvaluateReferenceState(
 				m_grid.GetModel().GetPhysicalConstants(),
@@ -695,21 +547,6 @@ void GridPatchCartesianGLL::EvaluateTestCase(
 			for (int c = 0; c < dPointwiseState.GetRows(); c++) {
 				m_dataRefStateREdge[c][k][i][j] = dPointwiseRefState[c];
 			}
-
-			// Transform reference velocities
-			dUlon = m_dataRefStateREdge[0][k][i][j];
-			dUlat = m_dataRefStateREdge[1][k][i][j];
-
-			dUlon /= phys.GetEarthRadius();
-			dUlat /= phys.GetEarthRadius();
-
-			CubedSphereTrans::VecTransABPFromRLL(
-				tan(m_box.GetANode(i)),
-				tan(m_box.GetBNode(j)),
-				m_box.GetPanel(),
-				dUlon, dUlat,
-				m_dataRefStateREdge[0][k][i][j],
-				m_dataRefStateREdge[1][k][i][j]);
 		}
 	}
 	}
@@ -1081,30 +918,11 @@ void GridPatchCartesianGLL::InterpolateData(
 				}
 			}
 		}
-
-		// Convert to primitive variables
-		if ((eDataType == DataType_State) && (fConvertToPrimitive)) {
-			for (int k = 0; k < m_grid.GetRElements(); k++) {
-				double dUalpha = phys.GetEarthRadius()
-					* dInterpData[0][k][i];
-				double dUbeta = phys.GetEarthRadius()
-					* dInterpData[1][k][i];
-
-				CubedSphereTrans::VecTransRLLFromABP(
-					tan(dAlpha[i]),
-					tan(dBeta[i]),
-					iPanel[i],
-					dUalpha,
-					dUbeta,
-					dInterpData[0][k][i],
-					dInterpData[1][k][i]);
-			}
-		}
 	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-
+// TODO: Transform not necessary in cartesian grid (delete method)
 void GridPatchCartesianGLL::TransformHaloVelocities(
 	int iDataUpdate
 ) {
@@ -1118,105 +936,6 @@ void GridPatchCartesianGLL::TransformHaloVelocities(
 
 	if (pDataVelocity->GetComponents() < 2) {
 		_EXCEPTIONT("Invalid number of components.");
-	}
-
-	// Panels in each coordinate direction
-	int ixRightPanel  = GetNeighborPanel(Direction_Right);
-	int ixTopPanel    = GetNeighborPanel(Direction_Top);
-	int ixLeftPanel   = GetNeighborPanel(Direction_Left);
-	int ixBottomPanel = GetNeighborPanel(Direction_Bottom);
-
-	int ixTopRightPanel    = GetNeighborPanel(Direction_TopRight);
-	int ixTopLeftPanel     = GetNeighborPanel(Direction_TopLeft);
-	int ixBottomLeftPanel  = GetNeighborPanel(Direction_BottomLeft);
-	int ixBottomRightPanel = GetNeighborPanel(Direction_BottomRight);
-
-	// Post-process velocities across right edge
-	if (ixRightPanel != m_box.GetPanel()) {
-		int i;
-		int j;
-
-		int jBegin = m_box.GetBInteriorBegin()-1;
-		int jEnd = m_box.GetBInteriorEnd()+1;
-
-		i = m_box.GetAInteriorEnd();
-		for (int k = 0; k < pDataVelocity->GetRElements(); k++) {
-		for (j = jBegin; j < jEnd; j++) {
-			CubedSphereTrans::VecPanelTrans(
-				ixRightPanel,
-				m_box.GetPanel(),
-				(*pDataVelocity)[0][k][i][j],
-				(*pDataVelocity)[1][k][i][j],
-				tan(m_box.GetANode(i)),
-				tan(m_box.GetBNode(j)));
-		}
-		}
-	}
-
-	// Post-process velocities across top edge
-	if (ixTopPanel != m_box.GetPanel()) {
-		int i;
-		int j;
-
-		int iBegin = m_box.GetAInteriorBegin()-1;
-		int iEnd = m_box.GetAInteriorEnd()+1;
-
-		j = m_box.GetBInteriorEnd();
-		for (int k = 0; k < pDataVelocity->GetRElements(); k++) {
-		for (i = iBegin; i < iEnd; i++) {
-			CubedSphereTrans::VecPanelTrans(
-				ixTopPanel,
-				m_box.GetPanel(),
-				(*pDataVelocity)[0][k][i][j],
-				(*pDataVelocity)[1][k][i][j],
-				tan(m_box.GetANode(i)),
-				tan(m_box.GetBNode(j)));
-		}
-		}
-	}
-
-	// Post-process velocities across left edge
-	if (ixLeftPanel != m_box.GetPanel()) {
-		int i;
-		int j;
-
-		int jBegin = m_box.GetBInteriorBegin()-1;
-		int jEnd = m_box.GetBInteriorEnd()+1;
-
-		i = m_box.GetAInteriorBegin()-1;
-		for (int k = 0; k < pDataVelocity->GetRElements(); k++) {
-		for (j = jBegin; j < jEnd; j++) {
-			CubedSphereTrans::VecPanelTrans(
-				ixLeftPanel,
-				m_box.GetPanel(),
-				(*pDataVelocity)[0][k][i][j],
-				(*pDataVelocity)[1][k][i][j],
-				tan(m_box.GetANode(i)),
-				tan(m_box.GetBNode(j)));
-		}
-		}
-	}
-
-	// Post-process velocities across bottom edge
-	if (ixBottomPanel != m_box.GetPanel()) {
-		int i;
-		int j;
-
-		int iBegin = m_box.GetAInteriorBegin()-1;
-		int iEnd = m_box.GetAInteriorEnd()+1;
-
-		j = m_box.GetBInteriorBegin()-1;
-		for (int k = 0; k < pDataVelocity->GetRElements(); k++) {
-		for (i = iBegin; i < iEnd; i++) {
-			CubedSphereTrans::VecPanelTrans(
-				ixBottomPanel,
-				m_box.GetPanel(),
-				(*pDataVelocity)[0][k][i][j],
-				(*pDataVelocity)[1][k][i][j],
-				tan(m_box.GetANode(i)),
-				tan(m_box.GetBNode(j)));
-		}
-		}
 	}
 }
 
