@@ -11,3 +11,4 @@ test/BaroclinicWaveJWTest
 test/BaroclinicWaveUMJSTest
 test/BarotropicInstabilityTest
 test/SWTest2
+/.project
