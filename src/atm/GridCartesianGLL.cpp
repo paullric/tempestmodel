@@ -107,20 +107,23 @@ void GridCartesianGLL::Initialize() {
 	pPatches.reserve(nDistributedPatches);
 
 	// Single panel 0 implementation (Cartesian Grid)
+	// Rectangular alpha-wise patches that span all of the beta direction
+	// (as many as there are processors available)
     int n = 0;
 	for (int i = 0; i < nProcsPerDirection; i++) {
-	for (int j = 0; j < nProcsPerDirection; j++) {
+	int j = 0;
 		double dDeltaA = 0.5 * M_PI / GetABaseResolution();
 
 		GridSpacingGaussLobattoRepeated
 			glspacing(dDeltaA, -0.25 * M_PI, m_nHorizontalOrder);
 
+        // Patch strips that span beta
 		PatchBox boxMaster(
 			n, 0, m_model.GetHaloElements(),
 			m_nHorizontalOrder * iBoxBegin[i],
 			m_nHorizontalOrder * iBoxBegin[i+1],
-			m_nHorizontalOrder * iBoxBegin[j],
-			m_nHorizontalOrder * iBoxBegin[j+1],
+			0.0,
+			m_nHorizontalOrder,
 			glspacing,
 			glspacing);
 
@@ -135,12 +138,12 @@ void GridCartesianGLL::Initialize() {
 					m_nHorizontalOrder,
 					m_nVerticalOrder)));
 	}
-	}
 
 	if (pPatches.size() != nDistributedPatches) {
 		_EXCEPTIONT("Logic error");
 	}
 
+    /*
 	// Set up connectivity
     // TODO: Change this for a single panel (no transforms accross panels)
 	for (int n = 0; n < nDistributedPatches; n++) {
@@ -193,6 +196,7 @@ void GridCartesianGLL::Initialize() {
 				fSwitchPar);
 		}
 	}
+	*/
 
 	// Distribute patches to processors
 	Grid::DistributePatches();
