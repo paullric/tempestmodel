@@ -214,6 +214,12 @@ The spectral element method can also be derived in differential form by noting t
 \left. \pdiff{f}{\beta} \right\vert_{\alpha = \alpha_i, \beta = \beta_j} &= \sum_{q=0}^{n_p-1} \left. \diff{\tilde{\phi}_{(q)}}{\beta} \right\vert_{\beta = \beta_j} f(\alpha_i, \beta_q).
 \end{align}
 
+Second derivatives are defined as follows:
+\begin{align}
+\left. \frac{\partial^2 f}{\partial \alpha^2} \right\vert_{\alpha = \alpha_i, \beta = \beta_j} &= \sum_{p=0}^{n_p-1} \left. \diff{\tilde{\phi}_{(p)}}{\alpha} \right\vert_{\alpha = \alpha_i} \pdiff{f}{\alpha}(\alpha_p, \beta_j) \\
+&= \sum_{p=0}^{n_p-1} \sum_{q=0}^{n_p-1} \left. \diff{\tilde{\phi}_{(p)}}{\alpha} \right\vert_{\alpha = \alpha_i} \left. \diff{\tilde{\phi}_{(q)}}{\alpha} \right\vert_{\alpha = \alpha_p} f(\alpha_q, \beta_j)
+\end{align}
+
 \subsection{Flux Reconstruction / Discontinuous Galerkin}
 
 \section{Hyperviscosity}
