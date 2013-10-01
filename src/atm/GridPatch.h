@@ -102,6 +102,11 @@ public:
 	virtual void DeinitializeData();
 
 	///	<summary>
+	///		Initialize geometric terms.
+	///	</summary>
+	virtual void EvaluateGeometricTerms() = 0;
+
+	///	<summary>
 	///		Initialize state and tracer data from a test case.
 	///	</summary>
 	virtual void EvaluateTestCase(

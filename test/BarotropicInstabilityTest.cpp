@@ -424,12 +424,6 @@ try {
 	model.SetGrid(&grid);
 	AnnounceEndBlock("Done");
 
-	// Set the test case for the model
-	BarotropicInstabilityTestCase test(dAlpha);
-	AnnounceStartBlock("Initializing test case");
-	model.SetTestCase(&test);
-	AnnounceEndBlock("Done");
-
 	// Set the reference output manager for the model
 	AnnounceStartBlock("Creating reference output manager");
 	OutputManagerReference outmanRef(
@@ -447,7 +441,10 @@ try {
 	// Set the composite output manager for the model
 	AnnounceStartBlock("Creating composite output manager");
 	OutputManagerComposite outmanComp(
-		grid, dOutputDeltaT, strOutputDir, strOutputPrefix);
+		grid,
+		dOutputDeltaT,
+		strOutputDir,
+		strOutputPrefix);
 	model.AttachOutputManager(&outmanComp);
 	AnnounceEndBlock("Done");
 
@@ -455,6 +452,12 @@ try {
 	AnnounceStartBlock("Creating checksum output manager");
 	OutputManagerChecksum outmanChecksum(grid, dOutputDeltaT);
 	model.AttachOutputManager(&outmanChecksum);
+	AnnounceEndBlock("Done");
+
+	// Set the test case for the model
+	BarotropicInstabilityTestCase test(dAlpha);
+	AnnounceStartBlock("Initializing test case");
+	model.SetTestCase(&test);
 	AnnounceEndBlock("Done");
 
 	// Begin execution

@@ -17,6 +17,7 @@
 #ifndef _OUTPUTMANAGERCOMPOSITE_H_
 #define _OUTPUTMANAGERCOMPOSITE_H_
 
+#include "InputManager.h"
 #include "OutputManager.h"
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -25,7 +26,10 @@
 ///		An OutputManager which implements direct dumping of data structures
 ///		to a NetCDF file for later recovery.
 ///	</summary>
-class OutputManagerComposite : public OutputManager {
+class OutputManagerComposite :
+	public OutputManager,
+	public InputManager
+{
 
 public:
 	///	<summary>
@@ -35,7 +39,8 @@ public:
 		Grid & grid,
 		double dOutputDeltaT,
 		std::string strOutputDir,
-		std::string strOutputPrefix
+		std::string strOutputPrefix,
+		std::string strRestartFile = ""
 	);
 
 	///	<summary>
@@ -48,15 +53,6 @@ public:
 	///		Resize the data buffer to store maximum patch data.
 	///	</summary>
 	void ResizeDataBuffer();
-
-public:
-	///	<summary>
-	///		Load in data from a recovery file.
-	///	</summary>
-	bool InitialInput(
-		const std::string & strFilename,
-		double & dTime
-	);
 
 public:
 	///	<summary>
@@ -78,6 +74,20 @@ protected:
 	void Output(
 		double dTime
 	);
+
+protected:
+	///	<summary>
+	///		Initialize the grid data from a file.
+	///	</summary>
+	void Input(
+		Grid & grid
+	) const;
+
+protected:
+	///	<summary>
+	///		Restart file.
+	///	</summary>
+	std::string m_strRestartFile;
 
 protected:
 	///	<summary>

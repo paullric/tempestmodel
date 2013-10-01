@@ -18,7 +18,10 @@
 
 #include "Grid.h"
 #include "TestCase.h"
+#include "InputManager.h"
 #include "OutputManager.h"
+
+#include "Announce.h"
 
 #include <cfloat>
 
@@ -104,7 +107,24 @@ void Model::SetVerticalDynamics(VerticalDynamics * pVerticalDynamics) {
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void Model::SetTestCase(TestCase * pTestCase) {
+void Model::InputInitialConditions(
+	const InputManager & inman
+) {
+	if (m_pGrid == NULL) {
+		_EXCEPTIONT(
+			"A grid must be specified before attaching a TestCase.");
+	}
+
+	// Load in the Grid data from the InputManager
+	inman.Input(*m_pGrid);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void Model::SetTestCase(
+	TestCase * pTestCase,
+	bool fEvaluateTestCase
+) {
 	if (m_pGrid == NULL) {
 		_EXCEPTIONT(
 			"A grid must be specified before attaching a TestCase.");
@@ -116,11 +136,14 @@ void Model::SetTestCase(TestCase * pTestCase) {
 	// Attach the test case
 	m_pTestCase = pTestCase;
 
-	// Evaluate physical constants
-	m_pTestCase->EvaluatePhysicalConstants(m_phys);
+	// Evaluate physical constants and data from TestCase
+	if (fEvaluateTestCase) {
+		// Evaluate physical constants
+		m_pTestCase->EvaluatePhysicalConstants(m_phys);
 
-	// Initialize the topography and data
-	m_pGrid->EvaluateTestCase(*pTestCase);
+		// Initialize the topography and data
+		m_pGrid->EvaluateTestCase(*pTestCase);
+	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -154,9 +177,6 @@ void Model::Go() {
 	}
 	if (m_pVerticalDynamics == NULL) {
 		_EXCEPTIONT("VerticalDynamics not specified.");
-	}
-	if (m_pTestCase == NULL) {
-		_EXCEPTIONT("TestCase not specified.");
 	}
 	if (m_vecOutMan.size() == 0) {
 		printf("WARNING: No OutputManager specified.");
@@ -239,11 +259,12 @@ void Model::Go() {
 ///////////////////////////////////////////////////////////////////////////////
 
 void Model::ComputeErrorNorms() {
+	if (m_pTestCase == NULL) {
+		Announce("Error: No TestCase specified; cannot compute error norms.");
+		return;
+	}
 	if (m_pGrid == NULL) {
 		_EXCEPTIONT("Model Grid not specified.");
-	}
-	if (m_pTestCase == NULL) {
-		_EXCEPTIONT("TestCase not specified.");
 	}
 
 	// Local rank

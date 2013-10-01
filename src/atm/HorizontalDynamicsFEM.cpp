@@ -127,23 +127,13 @@ void HorizontalDynamicsFEM::StepShallowWater(
 		double dCourantA = dDeltaT / dElementDeltaA;
 		double dCourantB = dDeltaT / dElementDeltaB;
 
-		// Check interior domain size
-		int nAPatchInteriorWidth = pPatch->GetPatchBox().GetAInteriorWidth();
-		int nBPatchInteriorWidth = pPatch->GetPatchBox().GetBInteriorWidth();
-
-		int nAElements = nAPatchInteriorWidth / m_nHorizontalOrder;
-		int nBElements = nBPatchInteriorWidth / m_nHorizontalOrder;
-
-		if ((nAPatchInteriorWidth % m_nHorizontalOrder) != 0) {
-			_EXCEPTIONT("Logic Error: Invalid PatchBox alpha spacing");
-		}
-		if ((nBPatchInteriorWidth % m_nHorizontalOrder) != 0) {
-			_EXCEPTIONT("Logic Error: Invalid PatchBox beta spacing");
-		}
+		// Get number of finite elements in each coordinate direction
+		int nElementCountA = pPatch->GetElementCountA();
+		int nElementCountB = pPatch->GetElementCountB();
 
 		for (int k = 0; k < pGrid->GetRElements(); k++) {
-		for (int a = 0; a < nAElements; a++) {
-		for (int b = 0; b < nBElements; b++) {
+		for (int a = 0; a < nElementCountA; a++) {
+		for (int b = 0; b < nElementCountB; b++) {
 
 			// Pointwise fluxes within spectral element
 			for (int i = 0; i < m_nHorizontalOrder; i++) {
@@ -176,8 +166,8 @@ void HorizontalDynamicsFEM::StepShallowWater(
 				int iA = a * m_nHorizontalOrder + i + box.GetHaloElements();
 				int iB = b * m_nHorizontalOrder + j + box.GetHaloElements();
 
-				int iAElement = a * m_nHorizontalOrder + box.GetHaloElements();
-				int iBElement = b * m_nHorizontalOrder + box.GetHaloElements();
+				int iElementA = a * m_nHorizontalOrder + box.GetHaloElements();
+				int iElementB = b * m_nHorizontalOrder + box.GetHaloElements();
 
 				// Derivatives of the velocity field
 				double dDaUa = 0.0;
@@ -209,12 +199,12 @@ void HorizontalDynamicsFEM::StepShallowWater(
 #endif
 					// Derivative of alpha velocity with respect to alpha
 					dDaUa +=
-						dataInitialNode[UIx][k][iAElement+s][iB]
+						dataInitialNode[UIx][k][iElementA+s][iB]
 						* dDxBasis1D[s][i];
 
 					// Derivative of beta velocity with respect to alpha
 					dDaUb +=
-						dataInitialNode[VIx][k][iAElement+s][iB]
+						dataInitialNode[VIx][k][iElementA+s][iB]
 						* dDxBasis1D[s][i];
 
 					// Derivative of pressure with respect to alpha
@@ -238,12 +228,12 @@ void HorizontalDynamicsFEM::StepShallowWater(
 #endif
 					// Derivative of alpha velocity with respect to beta
 					dDbUa +=
-						dataInitialNode[UIx][k][iA][iBElement+s]
+						dataInitialNode[UIx][k][iA][iElementB+s]
 						* dDxBasis1D[s][j];
 
 					// Derivative of beta velocity with respect to beta
 					dDbUb +=
-						dataInitialNode[VIx][k][iA][iBElement+s]
+						dataInitialNode[VIx][k][iA][iElementB+s]
 						* dDxBasis1D[s][j];
 
 					// Derivative of pressure with respect to beta
@@ -373,19 +363,9 @@ void HorizontalDynamicsFEM::ElementFluxesShallowWater(
 		double dCourantA = dDeltaT / dElementDeltaA;
 		double dCourantB = dDeltaT / dElementDeltaB;
 
-		// Check interior domain size
-		int nAPatchInteriorWidth = pPatch->GetPatchBox().GetAInteriorWidth();
-		int nBPatchInteriorWidth = pPatch->GetPatchBox().GetBInteriorWidth();
-
-		int nAElements = nAPatchInteriorWidth / m_nHorizontalOrder;
-		int nBElements = nBPatchInteriorWidth / m_nHorizontalOrder;
-
-		if ((nAPatchInteriorWidth % m_nHorizontalOrder) != 0) {
-			_EXCEPTIONT("Logic Error: Invalid PatchBox alpha spacing");
-		}
-		if ((nBPatchInteriorWidth % m_nHorizontalOrder) != 0) {
-			_EXCEPTIONT("Logic Error: Invalid PatchBox beta spacing");
-		}
+		// Get number of finite elements in each coordinate direction
+		int nElementCountA = pPatch->GetElementCountA();
+		int nElementCountB = pPatch->GetElementCountB();
 
 		// Post-process velocities received during exchange
 		pPatch->TransformHaloVelocities(iDataInitial);
@@ -398,7 +378,7 @@ void HorizontalDynamicsFEM::ElementFluxesShallowWater(
 
 		// Loop over edges of constant alpha
 		for (int k = 0; k < pGrid->GetRElements(); k++) {
-		for (int a = 0; a <= nAElements; a++) {
+		for (int a = 0; a <= nElementCountA; a++) {
 
 			int i = box.GetAInteriorBegin() + a * m_nHorizontalOrder;
 			int j = box.GetBInteriorBegin();
@@ -466,7 +446,7 @@ void HorizontalDynamicsFEM::ElementFluxesShallowWater(
 
 		// Loop over edges of constant beta
 		for (int k = 0; k < pGrid->GetRElements(); k++) {
-		for (int b = 0; b <= nBElements; b++) {
+		for (int b = 0; b <= nElementCountB; b++) {
 
 			int i = box.GetAInteriorBegin();
 			int j = box.GetBInteriorBegin() + b * m_nHorizontalOrder;
@@ -622,23 +602,13 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 		double dCourantA = dDeltaT / dElementDeltaA;
 		double dCourantB = dDeltaT / dElementDeltaB;
 
-		// Calculate pointwise fluxes
-		int nAPatchInteriorWidth = pPatch->GetPatchBox().GetAInteriorWidth();
-		int nBPatchInteriorWidth = pPatch->GetPatchBox().GetBInteriorWidth();
-
-		int nAElements = nAPatchInteriorWidth / m_nHorizontalOrder;
-		int nBElements = nBPatchInteriorWidth / m_nHorizontalOrder;
-
-		if ((nAPatchInteriorWidth % m_nHorizontalOrder) != 0) {
-			_EXCEPTIONT("Logic Error: Invalid PatchBox alpha spacing");
-		}
-		if ((nBPatchInteriorWidth % m_nHorizontalOrder) != 0) {
-			_EXCEPTIONT("Logic Error: Invalid PatchBox beta spacing");
-		}
+		// Get number of finite elements in each coordinate direction
+		int nElementCountA = pPatch->GetElementCountA();
+		int nElementCountB = pPatch->GetElementCountB();
 
 		for (int k = 0; k < pGrid->GetRElements(); k++) {
-		for (int a = 0; a < nAElements; a++) {
-		for (int b = 0; b < nBElements; b++) {
+		for (int a = 0; a < nElementCountA; a++) {
+		for (int b = 0; b < nElementCountB; b++) {
 
 			// Pointwise fluxes and pressure within spectral element
 			for (int i = 0; i < m_nHorizontalOrder; i++) {
@@ -673,8 +643,8 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 				int iA = a * m_nHorizontalOrder + i + box.GetHaloElements();
 				int iB = b * m_nHorizontalOrder + j + box.GetHaloElements();
 
-				int iAElement = a * m_nHorizontalOrder + box.GetHaloElements();
-				int iBElement = b * m_nHorizontalOrder + box.GetHaloElements();
+				int iElementA = a * m_nHorizontalOrder + box.GetHaloElements();
+				int iElementB = b * m_nHorizontalOrder + box.GetHaloElements();
 
 				// Derivatives of the velocity field
 				double dDaUa = 0.0;
@@ -706,12 +676,12 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 #endif
 					// Derivative of alpha velocity with respect to alpha
 					dDaUa +=
-						dataInitialNode[UIx][k][iAElement+s][iB]
+						dataInitialNode[UIx][k][iElementA+s][iB]
 						* dDxBasis1D[s][i];
 
 					// Derivative of beta velocity with respect to alpha
 					dDaUb +=
-						dataInitialNode[VIx][k][iAElement+s][iB]
+						dataInitialNode[VIx][k][iElementA+s][iB]
 						* dDxBasis1D[s][i];
 
 					// Derivative of pressure with respect to alpha
@@ -736,12 +706,12 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 #endif
 					// Derivative of alpha velocity with respect to beta
 					dDbUa +=
-						dataInitialNode[UIx][k][iA][iBElement+s]
+						dataInitialNode[UIx][k][iA][iElementB+s]
 						* dDxBasis1D[s][j];
 
 					// Derivative of beta velocity with respect to beta
 					dDbUb +=
-						dataInitialNode[VIx][k][iA][iBElement+s]
+						dataInitialNode[VIx][k][iA][iElementB+s]
 						* dDxBasis1D[s][j];
 
 					// Derivative of pressure with respect to beta
@@ -827,12 +797,12 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 					for (int s = 0; s < m_nHorizontalOrder; s++) {
 						// Derivative of xi velocity with respect to alpha
 						dDaUx +=
-							dataInitialNode[WIx][k][iAElement+s][iB]
+							dataInitialNode[WIx][k][iElementA+s][iB]
 							* dDxBasis1D[s][i];
 
 						// Derivative of xi velocity with respect to beta
 						dDbUx +=
-							dataInitialNode[WIx][k][iA][iBElement+s]
+							dataInitialNode[WIx][k][iA][iElementB+s]
 							* dDxBasis1D[s][j];
 					}
 
@@ -869,12 +839,12 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 					for (int s = 0; s < m_nHorizontalOrder; s++) {
 						// Derivative of theta with respect to alpha
 						dDaTheta +=
-							dataInitialNode[TIx][k][iAElement+s][iB]
+							dataInitialNode[TIx][k][iElementA+s][iB]
 							* dDxBasis1D[s][i];
 
 						// Derivative of theta with respect to beta
 						dDbTheta +=
-							dataInitialNode[TIx][k][iA][iBElement+s]
+							dataInitialNode[TIx][k][iA][iElementB+s]
 							* dDxBasis1D[s][j];
 					}
 
@@ -894,8 +864,8 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 
 		// Update quantities on model interfaces
 		for (int k = 0; k <= pGrid->GetRElements(); k++) {
-		for (int a = 0; a < nAElements; a++) {
-		for (int b = 0; b < nBElements; b++) {
+		for (int a = 0; a < nElementCountA; a++) {
+		for (int b = 0; b < nElementCountB; b++) {
 
 			// Pointwise update of horizontal velocities
 			for (int i = 0; i < m_nHorizontalOrder; i++) {
@@ -904,8 +874,8 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 				int iA = a * m_nHorizontalOrder + i + box.GetHaloElements();
 				int iB = b * m_nHorizontalOrder + j + box.GetHaloElements();
 
-				int iAElement = a * m_nHorizontalOrder + box.GetHaloElements();
-				int iBElement = b * m_nHorizontalOrder + box.GetHaloElements();
+				int iElementA = a * m_nHorizontalOrder + box.GetHaloElements();
+				int iElementB = b * m_nHorizontalOrder + box.GetHaloElements();
 
 				// Update the vertical velocity (on model interfaces)
 				if (pGrid->GetVarLocation(WIx) == DataLocation_REdge) {
@@ -919,12 +889,12 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 					for (int s = 0; s < m_nHorizontalOrder; s++) {
 						// Derivative of xi velocity with respect to alpha
 						dDaUx +=
-							dataInitialREdge[WIx][k][iAElement+s][iB]
+							dataInitialREdge[WIx][k][iElementA+s][iB]
 							* dDxBasis1D[s][i];
 
 						// Derivative of xi velocity with respect to beta
 						dDbUx +=
-							dataInitialREdge[WIx][k][iA][iBElement+s]
+							dataInitialREdge[WIx][k][iA][iElementB+s]
 							* dDxBasis1D[s][j];
 					}
 
@@ -964,12 +934,12 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 					for (int s = 0; s < m_nHorizontalOrder; s++) {
 						// Derivative of theta with respect to alpha
 						dDaTheta +=
-							dataInitialREdge[TIx][k][iAElement+s][iB]
+							dataInitialREdge[TIx][k][iElementA+s][iB]
 							* dDxBasis1D[s][i];
 
 						// Derivative of theta with respect to beta
 						dDbTheta +=
-							dataInitialREdge[TIx][k][iA][iBElement+s]
+							dataInitialREdge[TIx][k][iA][iElementB+s]
 							* dDxBasis1D[s][j];
 					}
 
@@ -1144,10 +1114,8 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusion(
 		const DataMatrix<double> & dStiffness1D = pGrid->GetStiffness1D();
 
 		// Number of finite elements
-		int nAElements =
-			box.GetAInteriorWidth() / m_nHorizontalOrder;
-		int nBElements =
-			box.GetBInteriorWidth() / m_nHorizontalOrder;
+		int nElementCountA = pPatch->GetElementCountA();
+		int nElementCountB = pPatch->GetElementCountB();
 
 		// Compute new hyperviscosity coefficient
 		double dLocalNu  = dNu;
@@ -1161,47 +1129,47 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusion(
 		int nComponents = m_model.GetEquationSet().GetComponents();
 		for (int c = 2; c < nComponents; c++) {
 
-			int nRElements;
+			int nElementCountR;
 
 			double *** pDataInitial;
 			double *** pDataUpdate;
 			if (pGrid->GetVarLocation(c) == DataLocation_Node) {
 				pDataInitial = dataInitialNode[c];
 				pDataUpdate  = dataUpdateNode[c];
-				nRElements = dataInitialNode.GetRElements();
+				nElementCountR = dataInitialNode.GetRElements();
 
 			} else if (pGrid->GetVarLocation(c) == DataLocation_REdge) {
 				pDataInitial = dataInitialREdge[c];
 				pDataUpdate  = dataUpdateREdge[c];
-				nRElements = dataInitialREdge.GetRElements();
+				nElementCountR = dataInitialREdge.GetRElements();
 
 			} else {
 				_EXCEPTIONT("UNIMPLEMENTED");
 			}
 
 			// Loop over all finite elements
-			for (int k = 0; k < nRElements; k++) {
-			for (int a = 0; a < nAElements; a++) {
-			for (int b = 0; b < nBElements; b++) {
+			for (int k = 0; k < nElementCountR; k++) {
+			for (int a = 0; a < nElementCountA; a++) {
+			for (int b = 0; b < nElementCountB; b++) {
 
-				int iAElement = a * m_nHorizontalOrder + box.GetHaloElements();
-				int iBElement = b * m_nHorizontalOrder + box.GetHaloElements();
+				int iElementA = a * m_nHorizontalOrder + box.GetHaloElements();
+				int iElementB = b * m_nHorizontalOrder + box.GetHaloElements();
 
 				// Calculate the pointwise gradient of the scalar field
 				for (int i = 0; i < m_nHorizontalOrder; i++) {
 				for (int j = 0; j < m_nHorizontalOrder; j++) {
-					int iA = iAElement + i;
-					int iB = iBElement + j;
+					int iA = iElementA + i;
+					int iB = iElementB + j;
 
 					double dDaPsi = 0.0;
 					double dDbPsi = 0.0;
 					for (int s = 0; s < m_nHorizontalOrder; s++) {
 						dDaPsi +=
-							pDataInitial[k][iAElement+s][iB]
+							pDataInitial[k][iElementA+s][iB]
 							* dDxBasis1D[s][i];
 
 						dDbPsi +=
-							pDataInitial[k][iA][iBElement+s]
+							pDataInitial[k][iA][iElementB+s]
 							* dDxBasis1D[s][j];
 					}
 
@@ -1224,8 +1192,8 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusion(
 				// Pointwise updates
 				for (int i = 0; i < m_nHorizontalOrder; i++) {
 				for (int j = 0; j < m_nHorizontalOrder; j++) {
-					int iA = iAElement + i;
-					int iB = iBElement + j;
+					int iA = iElementA + i;
+					int iB = iElementB + j;
 
 					// Compute integral term
 					double dUpdateA = 0.0;
@@ -1371,23 +1339,23 @@ void HorizontalDynamicsFEM::ApplyVectorHyperdiffusion(
 		}
 
 		// Number of finite elements
-		int nAElements = box.GetAInteriorWidth() / m_nHorizontalOrder;
-		int nBElements = box.GetBInteriorWidth() / m_nHorizontalOrder;
+		int nElementCountA = pPatch->GetElementCountA();
+		int nElementCountB = pPatch->GetElementCountB();
 
 		// Loop over all finite elements
 		for (int k = 0; k < pGrid->GetRElements(); k++) {
-		for (int a = 0; a < nAElements; a++) {
-		for (int b = 0; b < nBElements; b++) {
+		for (int a = 0; a < nElementCountA; a++) {
+		for (int b = 0; b < nElementCountB; b++) {
 
-			int iAElement = a * m_nHorizontalOrder + box.GetHaloElements();
-			int iBElement = b * m_nHorizontalOrder + box.GetHaloElements();
+			int iElementA = a * m_nHorizontalOrder + box.GetHaloElements();
+			int iElementB = b * m_nHorizontalOrder + box.GetHaloElements();
 
 			// Pointwise update of horizontal velocities
 			for (int i = 0; i < m_nHorizontalOrder; i++) {
 			for (int j = 0; j < m_nHorizontalOrder; j++) {
 
-				int iA = iAElement + i;
-				int iB = iBElement + j;
+				int iA = iElementA + i;
+				int iB = iElementB + j;
 
 				// Compute hyperviscosity sums
 				double dAlphaDivTermA = 0.0;
@@ -1400,32 +1368,32 @@ void HorizontalDynamicsFEM::ApplyVectorHyperdiffusion(
 
 				for (int s = 0; s < m_nHorizontalOrder; s++) {
 					double dAlphaDiv =
-						dJacobian[iAElement+s][iB]
+						dJacobian[iElementA+s][iB]
 						* dStiffness1D[i][s]
-						* dataDiv[k][iAElement+s][iB];
+						* dataDiv[k][iElementA+s][iB];
 
 					double dBetaDiv =
-						dJacobian[iA][iBElement+s]
+						dJacobian[iA][iElementB+s]
 						* dStiffness1D[j][s]
-						* dataDiv[k][iA][iBElement+s];
+						* dataDiv[k][iA][iElementB+s];
 
 					dAlphaDivTermA +=
-						dAlphaDiv * dContraMetricA[iAElement+s][iB][0];
+						dAlphaDiv * dContraMetricA[iElementA+s][iB][0];
 					dAlphaDivTermB +=
-						dBetaDiv  * dContraMetricB[iA][iBElement+s][0];
+						dBetaDiv  * dContraMetricB[iA][iElementB+s][0];
 
 					dAlphaCurlTerm +=
 						dStiffness1D[j][s]
-						* dataCurl[k][iA][iBElement+s];
+						* dataCurl[k][iA][iElementB+s];
 
 					dBetaDivTermA +=
-						dAlphaDiv * dContraMetricA[iAElement+s][iB][1];
+						dAlphaDiv * dContraMetricA[iElementA+s][iB][1];
 					dBetaDivTermB +=
-						dBetaDiv  * dContraMetricB[iA][iBElement+s][1];
+						dBetaDiv  * dContraMetricB[iA][iElementB+s][1];
 
 					dBetaCurlTerm +=
 						dStiffness1D[i][s]
-						* dataCurl[k][iAElement+s][iB];
+						* dataCurl[k][iElementA+s][iB];
 				}
 
 				dAlphaDivTermA /= dElementDeltaA;

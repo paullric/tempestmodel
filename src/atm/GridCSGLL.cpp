@@ -305,18 +305,8 @@ void GridCSGLL::ApplyDSS(
 		const PatchBox & box = pPatch->GetPatchBox();
 
 		// Patch-specific quantities
-		int nAInteriorWidth = pPatch->GetPatchBox().GetAInteriorWidth();
-		int nBInteriorWidth = pPatch->GetPatchBox().GetBInteriorWidth();
-
-		int nAElements = nAInteriorWidth / m_nHorizontalOrder;
-		int nBElements = nBInteriorWidth / m_nHorizontalOrder;
-
-		if ((nAInteriorWidth % m_nHorizontalOrder) != 0) {
-			_EXCEPTIONT("Logic Error: Invalid PatchBox alpha spacing");
-		}
-		if ((nBInteriorWidth % m_nHorizontalOrder) != 0) {
-			_EXCEPTIONT("Logic Error: Invalid PatchBox beta spacing");
-		}
+		int nElementCountA = pPatch->GetElementCountA();
+		int nElementCountB = pPatch->GetElementCountB();
 
 		// Apply panel transforms to velocity data
 		if (eDataType == DataType_State) {
@@ -382,7 +372,7 @@ void GridCSGLL::ApplyDSS(
 			for (int k = 0; k < nRElements; k++) {
 
 				// Average in the alpha direction
-				for (int a = 0; a <= nAElements; a++) {
+				for (int a = 0; a <= nElementCountA; a++) {
 					int iA = a * m_nHorizontalOrder + box.GetHaloElements();
 
 					// Do not average across cubed-sphere corners
@@ -391,14 +381,14 @@ void GridCSGLL::ApplyDSS(
 
 					if (((a == 0) &&
 							(ixTopLeftPanel == InvalidPanel)) ||
-						((a == nAElements) &&
+						((a == nElementCountA) &&
 							(ixTopRightPanel == InvalidPanel))
 					) {
 						jEnd -= 2;
 					}
 					if (((a == 0) &&
 							(ixBottomLeftPanel == InvalidPanel)) ||
-						((a == nAElements) &&
+						((a == nElementCountA) &&
 							(ixBottomRightPanel == InvalidPanel))
 					) {
 						jBegin += 2;
@@ -415,7 +405,7 @@ void GridCSGLL::ApplyDSS(
 				}
 
 				// Average in the beta direction
-				for (int b = 0; b <= nBElements; b++) {
+				for (int b = 0; b <= nElementCountB; b++) {
 					int iB = b * m_nHorizontalOrder + box.GetHaloElements();
 
 					// Do not average across cubed-sphere corners
@@ -424,14 +414,14 @@ void GridCSGLL::ApplyDSS(
 
 					if (((b == 0) &&
 							(ixBottomLeftPanel == InvalidPanel)) ||
-						((b == nAElements) &&
+						((b == nElementCountA) &&
 							(ixTopLeftPanel == InvalidPanel))
 					) {
 						iBegin += 2;
 					}
 					if (((b == 0) &&
 							(ixBottomRightPanel == InvalidPanel)) ||
-						((b == nAElements) &&
+						((b == nElementCountA) &&
 							(ixTopRightPanel == InvalidPanel))
 					) {
 						iEnd -= 2;
