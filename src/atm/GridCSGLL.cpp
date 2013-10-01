@@ -170,7 +170,7 @@ void GridCSGLL::AddDefaultPatches() {
 	Grid::DistributePatches();
 
 	// Set up connectivity
-	for (int n = 0; n < nDistributedPatches; n++) {
+	for (int n = 0; n < GetActivePatchCount(); n++) {
 		int iDestPanel;
 		int iDestI;
 		int iDestJ;
@@ -178,13 +178,15 @@ void GridCSGLL::AddDefaultPatches() {
 		bool fSwitchPar;
 		bool fSwitchPerp;
 
-		int iSrcPanel = n / nProcsPerPanel;
-		int iSrcI = (n % nProcsPerPanel) / nProcsPerDirection;
-		int iSrcJ = (n % nProcsPerPanel) % nProcsPerDirection;
+		GridPatch * pActivePatch = GetActivePatch(n);
+
+		int iPatchIx = pActivePatch->GetPatchIndex();
+
+		int iSrcPanel = iPatchIx / nProcsPerPanel;
+		int iSrcI = (iPatchIx % nProcsPerPanel) / nProcsPerDirection;
+		int iSrcJ = (iPatchIx % nProcsPerPanel) % nProcsPerDirection;
 
 		int iDestN;
-
-		//GridPatch * pActivePatch = GetActivePatch(n);
 
 		// Loop through all directions
 		for (int iDir = 0; iDir < 8; iDir++) {
@@ -217,7 +219,7 @@ void GridCSGLL::AddDefaultPatches() {
 
 			// Set of the exterior connection
 			Connectivity::ExteriorConnect(
-				pPatches[n], dir,
+				pActivePatch, dir,
 				pPatches[iDestN], dirOpposing,
 				fSwitchPar);
 		}
