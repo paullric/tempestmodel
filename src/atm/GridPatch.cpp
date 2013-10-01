@@ -285,22 +285,6 @@ void GridPatch::InitializeDataLocal() {
 			m_box.GetHaloElements());
 	}
 
-	// Initialize buffers for exchanging with neighbors
-	int nStateTracerMaxVariables;
-	if (eqn.GetComponents() > eqn.GetTracers()) {
-		nStateTracerMaxVariables = eqn.GetComponents();
-	} else {
-		nStateTracerMaxVariables = eqn.GetTracers();
-	}
-
-	int nHaloElements =
-		m_grid.GetModel().GetHaloElements();
-
-	m_connect.InitializeBuffers(
-		m_grid.GetRElements(),
-		nHaloElements,
-		nStateTracerMaxVariables);
-
 #pragma message "Make these processes more generic"
 	// Initialize auxiliary data
 	m_datavecAuxNode.resize(2);

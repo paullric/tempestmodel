@@ -216,7 +216,14 @@ public:
 		DataVector<int> & iPatch
 	) const;
 
-protected:
+public:
+	///	<summary>
+	///		Add the default set of patches.
+	///	</summary>
+	virtual void AddDefaultPatches() {
+		_EXCEPTIONT("Not implemented");
+	}
+
 	///	<summary>
 	///		Add a patch to the grid.
 	///	</summary>
@@ -224,6 +231,7 @@ protected:
 		GridPatch * pPatch
 	);
 
+protected:
 	///	<summary>
 	///		Distribute patches among processors and allocate local patches.
 	///	</summary>
@@ -269,6 +277,13 @@ public:
 	///	</summary>
 	const Model & GetModel() const {
 		return m_model;
+	}
+
+	///	<summary>
+	///		Get the grid stamp.
+	///	</summary>
+	int GetGridStamp() const {
+		return m_iGridStamp;
 	}
 
 	///	<summary>
@@ -440,6 +455,11 @@ protected:
 	///		Reference to the model.
 	///	</summary>
 	const Model & m_model;
+
+	///	<summary>
+	///		Grid stamp.  This value is incremented whenever the grid changes.
+	///	</summary>
+	int m_iGridStamp;
 
 	///	<summary>
 	///		Base resolution of the method in the alpha direction.

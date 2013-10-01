@@ -70,6 +70,31 @@ void GridCSGLL::Initialize() {
 		GridSpacingMixedGaussLobatto(dDeltaElement, 0.0, m_nVerticalOrder)
 	);
 
+	// Interpolation coefficients from nodes to interfaces and vice versa
+	m_dInterpNodeToREdge.Initialize(m_nVerticalOrder+1, m_nVerticalOrder);
+	m_dInterpREdgeToNode.Initialize(m_nVerticalOrder, m_nVerticalOrder+1);
+
+	for (int n = 0; n < m_nVerticalOrder+1; n++) {
+		PolynomialInterp::LagrangianPolynomialCoeffs(
+			m_nVerticalOrder,
+			m_dREtaLevels,
+			m_dInterpNodeToREdge[n],
+			m_dREtaInterfaces[n]);
+	}
+	for (int n = 0; n < m_nVerticalOrder; n++) {
+		PolynomialInterp::LagrangianPolynomialCoeffs(
+			m_nVerticalOrder+1,
+			m_dREtaInterfaces,
+			m_dInterpREdgeToNode[n],
+			m_dREtaLevels[n]);
+	}
+
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void GridCSGLL::AddDefaultPatches() {
+
 	// Determine number of usable processors
 	int nCommSize;
 	MPI_Comm_size(MPI_COMM_WORLD, &nCommSize);
@@ -141,6 +166,9 @@ void GridCSGLL::Initialize() {
 		_EXCEPTIONT("Logic error");
 	}
 
+	// Distribute patches to processors
+	Grid::DistributePatches();
+
 	// Set up connectivity
 	for (int n = 0; n < nDistributedPatches; n++) {
 		int iDestPanel;
@@ -155,6 +183,8 @@ void GridCSGLL::Initialize() {
 		int iSrcJ = (n % nProcsPerPanel) % nProcsPerDirection;
 
 		int iDestN;
+
+		//GridPatch * pActivePatch = GetActivePatch(n);
 
 		// Loop through all directions
 		for (int iDir = 0; iDir < 8; iDir++) {
@@ -191,28 +221,6 @@ void GridCSGLL::Initialize() {
 				pPatches[iDestN], dirOpposing,
 				fSwitchPar);
 		}
-	}
-
-	// Distribute patches to processors
-	Grid::DistributePatches();
-
-	// Interpolation coefficients from nodes to interfaces and vice versa
-	m_dInterpNodeToREdge.Initialize(m_nVerticalOrder+1, m_nVerticalOrder);
-	m_dInterpREdgeToNode.Initialize(m_nVerticalOrder, m_nVerticalOrder+1);
-
-	for (int n = 0; n < m_nVerticalOrder+1; n++) {
-		PolynomialInterp::LagrangianPolynomialCoeffs(
-			m_nVerticalOrder,
-			m_dREtaLevels,
-			m_dInterpNodeToREdge[n],
-			m_dREtaInterfaces[n]);
-	}
-	for (int n = 0; n < m_nVerticalOrder; n++) {
-		PolynomialInterp::LagrangianPolynomialCoeffs(
-			m_nVerticalOrder+1,
-			m_dREtaInterfaces,
-			m_dInterpREdgeToNode[n],
-			m_dREtaLevels[n]);
 	}
 }
 

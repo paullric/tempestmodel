@@ -36,6 +36,7 @@ Grid::Grid(
 	int nRElements
 ) :
 	m_fInitialized(false),
+	m_iGridStamp(0),
 	m_model(model),
 	m_nABaseResolution(nABaseResolution),
 	m_nBBaseResolution(nBBaseResolution),

@@ -132,7 +132,7 @@ public:
 
 	///	<summary>
 	///		Get the initial conditions from a file
-	void InputInitialConditions(
+	void InputGrid(
 		const InputManager & inman
 	);
 

@@ -107,7 +107,7 @@ void Model::SetVerticalDynamics(VerticalDynamics * pVerticalDynamics) {
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void Model::InputInitialConditions(
+void Model::InputGrid(
 	const InputManager & inman
 ) {
 	if (m_pGrid == NULL) {

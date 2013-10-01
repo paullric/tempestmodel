@@ -57,6 +57,11 @@ public:
 	);
 
 	///	<summary>
+	///		Add the default set of patches.
+	///	</summary>
+	virtual void AddDefaultPatches();
+
+	///	<summary>
 	///		Convert an array of coordinate variables to coordinates on the
 	///		reference grid (RLL on the sphere)
 	///	</summary>

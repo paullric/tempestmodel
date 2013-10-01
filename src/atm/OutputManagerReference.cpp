@@ -47,53 +47,13 @@ OutputManagerReference::OutputManagerReference(
 		strOutputDir,
 		strOutputPrefix,
 		nOutputsPerFile),
+	m_iGridStamp(-1),
+	m_nXReference(nXReference),
+	m_nYReference(nYReference),
 	m_pActiveNcOutput(NULL),
 	m_fOutputVorticity(false),
 	m_fOutputDivergence(false)
 {
-	// Get the reference box
-	double dX0;
-	double dX1;
-	double dY0;
-	double dY1;
-
-	grid.GetReferenceGridBounds(dX0, dX1, dY0, dY1);
-
-	// Initialize the coordinate arrays
-	m_dXCoord.Initialize(nXReference);
-	double dDeltaX = (dX1 - dX0) / static_cast<double>(nXReference);
-	for (int i = 0; i < nXReference; i++) {
-		m_dXCoord[i] =
-			dDeltaX * (static_cast<double>(i) + 0.5) + dX0;
-	}
-
-	m_dYCoord.Initialize(nYReference);
-	double dDeltaY = (dY1 - dY0) / static_cast<double>(nYReference);
-	for (int j = 0; j < nYReference; j++) {
-		m_dYCoord[j] =
-			dDeltaY * (static_cast<double>(j) + 0.5) + dY0;
-	}
-
-	// Calculate patch coordinates
-	CalculatePatchCoordinates(grid);
-
-	// Allocate data arrays
-	m_dataRefState.Initialize(
-		grid.GetModel().GetEquationSet().GetComponents(),
-		grid.GetRElements(),
-		nXReference * nYReference);
-
-	m_dataState.Initialize(
-		grid.GetModel().GetEquationSet().GetComponents(),
-		grid.GetRElements(),
-		nXReference * nYReference);
-
-	if (grid.GetModel().GetEquationSet().GetTracers() != 0) {
-		m_dataTracers.Initialize(
-			grid.GetModel().GetEquationSet().GetTracers(),
-			grid.GetRElements(),
-			nXReference * nYReference);
-	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -104,23 +64,73 @@ OutputManagerReference::~OutputManagerReference() {
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void OutputManagerReference::CalculatePatchCoordinates(
-	const Grid & grid
+void OutputManagerReference::OutputVorticity(
+	bool fOutputVorticity
 ) {
+	m_fOutputVorticity = fOutputVorticity;
 
-	int nXReference = m_dXCoord.GetRows();
-	int nYReference = m_dYCoord.GetRows();
+	if (!fOutputVorticity) {
+		m_dataVorticity.Deinitialize();
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void OutputManagerReference::OutputDivergence(
+	bool fOutputDivergence
+) {
+	m_fOutputDivergence = fOutputDivergence;
+
+	if (!fOutputDivergence) {
+		m_dataDivergence.Deinitialize();
+	}
+
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void OutputManagerReference::CalculatePatchCoordinates() {
+
+	if (m_grid.GetGridStamp() == m_iGridStamp) {
+		return;
+	}
+
+	// Recalculate patch coordinates
+	Announce("Recalculating patch coordinates");
+
+	// Get the reference box
+	double dX0;
+	double dX1;
+	double dY0;
+	double dY1;
+
+	m_grid.GetReferenceGridBounds(dX0, dX1, dY0, dY1);
+
+	// Initialize the coordinate arrays
+	m_dXCoord.Initialize(m_nXReference);
+	double dDeltaX = (dX1 - dX0) / static_cast<double>(m_nXReference);
+	for (int i = 0; i < m_nXReference; i++) {
+		m_dXCoord[i] =
+			dDeltaX * (static_cast<double>(i) + 0.5) + dX0;
+	}
+
+	m_dYCoord.Initialize(m_nYReference);
+	double dDeltaY = (dY1 - dY0) / static_cast<double>(m_nYReference);
+	for (int j = 0; j < m_nYReference; j++) {
+		m_dYCoord[j] =
+			dDeltaY * (static_cast<double>(j) + 0.5) + dY0;
+	}
 
 	// Construct array of reference coordinates
 	DataVector<double> dXReference;
-	dXReference.Initialize(nXReference * nYReference);
+	dXReference.Initialize(m_nXReference * m_nYReference);
 
 	DataVector<double> dYReference;
-	dYReference.Initialize(nXReference * nYReference);
+	dYReference.Initialize(m_nXReference * m_nYReference);
 
 	int ix = 0;
-	for (int j = 0; j < nYReference; j++) {
-	for (int i = 0; i < nXReference; i++) {
+	for (int j = 0; j < m_nYReference; j++) {
+	for (int i = 0; i < m_nXReference; i++) {
 		dXReference[ix] = m_dXCoord[i];
 		dYReference[ix] = m_dYCoord[j];
 		ix++;
@@ -133,49 +143,47 @@ void OutputManagerReference::CalculatePatchCoordinates(
 	m_iPatch.Initialize(dXReference.GetRows());
 
 	// Convert this reference point to a patch coordinate
-	grid.ConvertReferenceToPatchCoord(
+	m_grid.ConvertReferenceToPatchCoord(
 		dXReference,
 		dYReference,
 		m_dAlpha,
 		m_dBeta,
 		m_iPatch);
-}
 
-///////////////////////////////////////////////////////////////////////////////
+	// Allocate data arrays
+	m_dataRefState.Initialize(
+		m_grid.GetModel().GetEquationSet().GetComponents(),
+		m_grid.GetRElements(),
+		m_nXReference * m_nYReference);
 
-void OutputManagerReference::OutputVorticity(
-	bool fOutputVorticity
-) {
-	m_fOutputVorticity = fOutputVorticity;
+	m_dataState.Initialize(
+		m_grid.GetModel().GetEquationSet().GetComponents(),
+		m_grid.GetRElements(),
+		m_nXReference * m_nYReference);
 
-	if (fOutputVorticity) {
+	if (m_grid.GetModel().GetEquationSet().GetTracers() != 0) {
+		m_dataTracers.Initialize(
+			m_grid.GetModel().GetEquationSet().GetTracers(),
+			m_grid.GetRElements(),
+			m_nXReference * m_nYReference);
+	}
+
+	if (m_fOutputVorticity) {
 		m_dataVorticity.Initialize(
 			1,
 			m_grid.GetRElements(),
 			m_dAlpha.GetRows());
-
-	} else {
-		m_dataVorticity.Deinitialize();
 	}
-}
 
-///////////////////////////////////////////////////////////////////////////////
-
-void OutputManagerReference::OutputDivergence(
-	bool fOutputDivergence
-) {
-	m_fOutputDivergence = fOutputDivergence;
-
-	if (fOutputDivergence) {
+	if (m_fOutputDivergence) {
 		m_dataDivergence.Initialize(
 			1,
 			m_grid.GetRElements(),
 			m_dAlpha.GetRows());
-
-	} else {
-		m_dataDivergence.Deinitialize();
 	}
 
+	// Update grid stamp
+	m_iGridStamp = m_grid.GetGridStamp();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -223,11 +231,11 @@ bool OutputManagerReference::OpenFile(
 
 		// Create latitude dimension
 		NcDim * dimLat =
-			m_pActiveNcOutput->add_dim("lat", m_dYCoord.GetRows());
+			m_pActiveNcOutput->add_dim("lat", m_nYReference);
 
 		// Create longitude dimension
 		NcDim * dimLon =
-			m_pActiveNcOutput->add_dim("lon", m_dXCoord.GetRows());
+			m_pActiveNcOutput->add_dim("lon", m_nXReference);
 
 		// Output physical constants
 		const PhysicalConstants & phys = model.GetPhysicalConstants();
@@ -330,6 +338,9 @@ void OutputManagerReference::Output(
 	if (!IsFileOpen()) {
 		_EXCEPTIONT("No file available for output");
 	}
+
+	// Update reference grid
+	CalculatePatchCoordinates();
 
 	// Get processor rank
 	int nRank;

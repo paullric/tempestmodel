@@ -186,7 +186,7 @@ class DataVector {
 			// Check initialization status
 			if (!IsInitialized()) {
 				_EXCEPTIONT(
-					"Attempted operation on uninitialized DataMatrix3D.");
+					"Attempted operation on uninitialized DataVector.");
 			}
 
 			// Set content to zero

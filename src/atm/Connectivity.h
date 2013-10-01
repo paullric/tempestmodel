@@ -353,12 +353,12 @@ public:
 	///	<summary>
 	///		Vector of exterior boundary neighbors.
 	///	</summary>
-	typedef std::vector<ExteriorNeighbor> ExteriorNeighborVector;
+	typedef std::vector<ExteriorNeighbor *> ExteriorNeighborVector;
 
 	///	<summary>
 	///		Vector of interior boundary neighbors.
 	///	</summary>
-	typedef std::vector<InteriorNeighbor> InteriorNeighborVector;
+	typedef std::vector<InteriorNeighbor *> InteriorNeighborVector;
 
 public:
 	///	<summary>
@@ -367,6 +367,11 @@ public:
 	Connectivity(GridPatch & patch) :
 		m_patch(patch)
 	{ }
+
+	///	<summary>
+	///		Destructor.
+	///	</summary>
+	virtual ~Connectivity();
 
 public:
 	///	<summary>
@@ -378,16 +383,6 @@ public:
 		GridPatch * pPatchSecond,
 		Direction dirSecond,
 		bool fReverseDirection
-	);
-
-public:
-	///	<summary>
-	///		Initialize buffers.
-	///	</summary>
-	void InitializeBuffers(
-		int nRElements,
-		int nHaloElements,
-		int nVariables
 	);
 
 public:

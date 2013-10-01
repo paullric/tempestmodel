@@ -18,6 +18,8 @@
 
 #include "Grid.h"
 #include "GridPatch.h"
+#include "Model.h"
+#include "EquationSet.h"
 
 ///////////////////////////////////////////////////////////////////////////////
 // Neighbor
@@ -129,10 +131,6 @@ void ExteriorNeighbor::Pack(
 			  data.GetRElements()
 			* (ixBoundaryEnd - ixBoundaryBegin)
 			* (m_ixNodeEnd - m_ixNodeBegin);
-
-		if (m_ixSendBuffer + nTotalValues > m_vecSendBuffer.GetRows()) {
-			_EXCEPTIONT("Insufficient space in SendBuffer for operation.");
-		}
 
 		// Pack the SendBuffer
 		if (m_fReverseDirection) {
@@ -731,6 +729,19 @@ void ExteriorNeighbor::Unpack(
 // Connectivity
 ///////////////////////////////////////////////////////////////////////////////
 
+Connectivity::~Connectivity() {
+	for (int n = 0; n < m_vecExteriorNeighbors.size(); n++) {
+		delete m_vecExteriorNeighbors[n];
+	}
+/*
+	for (int n = 0; n < m_vecNestedNeighbors; n++) {
+		delete m_vecNestedNeighbors[n];
+	}
+*/
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
 void Connectivity::ExteriorConnect(
 	GridPatch * pPatchFirst,
 	Direction dirFirst,
@@ -738,9 +749,26 @@ void Connectivity::ExteriorConnect(
 	Direction dirSecond,
 	bool fReverseDirection
 ) {
+	// Get number of components
+	const Grid & grid = pPatchFirst->GetGrid();
+
+	const Model & model = grid.GetModel();
+
+	const EquationSet & eqn = model.GetEquationSet();
+
+	int nStateTracerMaxVariables;
+	if (eqn.GetComponents() > eqn.GetTracers()) {
+		nStateTracerMaxVariables = eqn.GetComponents();
+	} else {
+		nStateTracerMaxVariables = eqn.GetTracers();
+	}
+
+	int nRElements = grid.GetRElements();
+
+	int nHaloElements = model.GetHaloElements();
+
 	// Get connectivities of individual patches
-	Connectivity & connectFirst  = pPatchFirst->GetConnectivity();
-	//Connectivity & connectSecond = pPatchSecond->GetConnectivity();
+	Connectivity & connectFirst = pPatchFirst->GetConnectivity();
 
 	// First patch coordinate index
 	int ixFirstBegin;
@@ -763,74 +791,24 @@ void Connectivity::ExteriorConnect(
 		ixFirstBegin = pPatchFirst->GetPatchBox().GetHaloElements();
 		ixFirstEnd   = pPatchFirst->GetPatchBox().GetHaloElements() + 1;
 	}
-/*
-	// Second patch coordinate index
-	int ixSecondBegin;
-	int ixSecondEnd;
 
-	if ((dirSecond == Direction_Right) ||
-		(dirSecond == Direction_Left)
-	) {
-		ixSecondBegin = pPatchSecond->GetPatchBox().GetBInteriorBegin();
-		ixSecondEnd   = pPatchSecond->GetPatchBox().GetBInteriorEnd();
-
-	} else if (
-		(dirSecond == Direction_Top) ||
-		(dirSecond == Direction_Bottom)
-	) {
-		ixSecondBegin = pPatchSecond->GetPatchBox().GetAInteriorBegin();
-		ixSecondEnd   = pPatchSecond->GetPatchBox().GetAInteriorEnd();
-
-	} else {
-		ixSecondBegin = pPatchSecond->GetPatchBox().GetHaloElements();
-		ixSecondEnd   = pPatchSecond->GetPatchBox().GetHaloElements() + 1;
-	}
-*/
 	// Add connectivity to first patch
-	connectFirst.m_vecExteriorNeighbors.push_back(
-		ExteriorNeighbor(
+	ExteriorNeighbor * pNeighbor =
+		new ExteriorNeighbor(
 			&connectFirst,
 			dirFirst,
 			dirSecond,
 			pPatchSecond->GetPatchIndex(),
 			fReverseDirection,
 			ixFirstBegin,
-			ixFirstEnd
-		));
-/*
-	// Add connectivity to second patch
-	connectSecond.m_vecExteriorNeighbors.push_back(
-		ExteriorNeighbor(
-			&connectSecond,
-			dirSecond,
-			dirFirst,
-			pPatchFirst->GetPatchIndex(),
-			fReverseDirection,
-			ixSecondBegin,
-			ixSecondEnd
-		));
-*/
-}
+			ixFirstEnd);
 
-///////////////////////////////////////////////////////////////////////////////
+	pNeighbor->InitializeBuffers(
+		nRElements,
+		nHaloElements,
+		nStateTracerMaxVariables);
 
-void Connectivity::InitializeBuffers(
-	int nRElements,
-	int nHaloElements,
-	int nVariables
-) {
-	// Initialize exterior neighbor buffers
-	for (int m = 0; m < m_vecExteriorNeighbors.size(); m++) {
-		m_vecExteriorNeighbors[m].InitializeBuffers(
-			nRElements, nHaloElements, nVariables);
-	}
-/*
-	// Initialize interior neighbor buffers
-	for (int m = 0; m < m_vecNestedNeighbors.size(); m++) {
-		m_vecNestedNeighbors[m].InitializeBuffers(
-			nRElements, nHaloElements, nVariables);
-	}
-*/
+	connectFirst.m_vecExteriorNeighbors.push_back(pNeighbor);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -839,7 +817,7 @@ void Connectivity::PrepareExchange() {
 
 	// Prepare for asynchronous receives from each neighbor
 	for (int m = 0; m < m_vecExteriorNeighbors.size(); m++) {
-		m_vecExteriorNeighbors[m].PrepareExchange();
+		m_vecExteriorNeighbors[m]->PrepareExchange();
 	}
 }
 
@@ -850,7 +828,7 @@ void Connectivity::Pack(
 ) {
 	// Send data to exterior neighbors
 	for (int m = 0; m < m_vecExteriorNeighbors.size(); m++) {
-		m_vecExteriorNeighbors[m].Pack(data);
+		m_vecExteriorNeighbors[m]->Pack(data);
 	}
 }
 
@@ -861,7 +839,7 @@ void Connectivity::Pack(
 ) {
 	// Send data to exterior neighbors
 	for (int m = 0; m < m_vecExteriorNeighbors.size(); m++) {
-		m_vecExteriorNeighbors[m].Pack(data);
+		m_vecExteriorNeighbors[m]->Pack(data);
 	}
 }
 
@@ -870,7 +848,7 @@ void Connectivity::Pack(
 void Connectivity::Send() {
 	// Send data to exterior neighbors
 	for (int m = 0; m < m_vecExteriorNeighbors.size(); m++) {
-		m_vecExteriorNeighbors[m].Send();
+		m_vecExteriorNeighbors[m]->Send();
 	}
 }
 
@@ -885,13 +863,13 @@ Neighbor * Connectivity::WaitReceive() {
 
 		nRecvMessageCount = 0;
 		for (int m = 0; m < m_vecExteriorNeighbors.size(); m++) {
-			if (m_vecExteriorNeighbors[m].IsComplete()) {
+			if (m_vecExteriorNeighbors[m]->IsComplete()) {
 				nRecvMessageCount++;
 				continue;
 			}
-			if (m_vecExteriorNeighbors[m].CheckReceive()) {
-				m_vecExteriorNeighbors[m].SetComplete();
-				return &(m_vecExteriorNeighbors[m]);
+			if (m_vecExteriorNeighbors[m]->CheckReceive()) {
+				m_vecExteriorNeighbors[m]->SetComplete();
+				return m_vecExteriorNeighbors[m];
 			}
 		}
 	}
