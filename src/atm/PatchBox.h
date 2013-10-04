@@ -34,7 +34,7 @@ public:
 	///	</summary>
 	PatchBox(
 		int ixPanel,
-		int nRefinementLevel,
+		int iRefinementLevel,
 		int nHaloElements,
 		int ixAGlobalInteriorBegin,
 		int ixAGlobalInteriorEnd,
@@ -44,7 +44,7 @@ public:
 		GridSpacing & gridspacingB
 	) :
 		m_ixPanel(ixPanel),
-		m_nRefinementLevel(nRefinementLevel),
+		m_iRefinementLevel(iRefinementLevel),
 		m_nHaloElements(nHaloElements),
 		m_ixABegin(ixAGlobalInteriorBegin - nHaloElements),
 		m_ixAEnd(ixAGlobalInteriorEnd + nHaloElements),
@@ -66,6 +66,28 @@ public:
 
 public:
 	///	<summary>
+	///		Determine if the coordinate is within this PatchBox.
+	///	</summary>
+	inline bool ContainsGlobalPoint(
+		int ixPanel,
+		int ixGlobalA,
+		int ixGlboalB
+	) const {
+		if (ixPanel != m_ixPanel) {
+			return false;
+		}
+		if ((ixGlobalA >= GetAGlobalInteriorBegin()) &&
+			(ixGlobalA <  GetAGlobalInteriorEnd()) &&
+			(ixGlboalB >= GetBGlobalInteriorBegin()) &&
+			(ixGlboalB <  GetBGlobalInteriorEnd())
+		) {
+			return true;
+		}
+		return false;
+	}
+
+public:
+	///	<summary>
 	///		Get the panel on which this box appears.
 	///	</summary>
 	inline int GetPanel() const {
@@ -76,7 +98,7 @@ public:
 	///		Get the level of refinement of this box.
 	///	</summary>
 	inline int GetRefinementLevel() const {
-		return m_nRefinementLevel;
+		return m_iRefinementLevel;
 	}
 
 	///	<summary>
@@ -133,6 +155,13 @@ public:
 	///	</summary>
 	inline int GetTotalNodes() const {
 		return (GetATotalWidth() * GetBTotalWidth());
+	}
+
+	///	<summary>
+	///		Get the length of the interior perimeter of this patch.
+	///	</summary>
+	inline int GetInteriorPerimeter() const {
+		return (2 * GetAInteriorWidth() + 2 * GetBInteriorWidth());
 	}
 
 public:
@@ -244,7 +273,7 @@ private:
 	///	<summary>
 	///		Level of refinement where this box is defined.
 	///	</summary>
-	int m_nRefinementLevel;
+	int m_iRefinementLevel;
 
 	///	<summary>
 	///		Number of halo elements on this patch.

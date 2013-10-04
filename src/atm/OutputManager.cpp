@@ -126,7 +126,8 @@ void OutputManager::ManageOutput(
 	double dTime
 ) {
 	// Notification
-	Announce("Output (%i): %f", m_ixOutputFile+1, dTime);
+	Announce("Output (%i/%i): %f",
+		m_ixOutputFile+1,  m_ixOutputTime+1, dTime);
 
 	// Perform the output
 	PerformOutput(dTime);

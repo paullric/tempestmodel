@@ -54,6 +54,29 @@ OutputManagerReference::OutputManagerReference(
 	m_fOutputVorticity(false),
 	m_fOutputDivergence(false)
 {
+
+	// Get the reference box
+	double dX0;
+	double dX1;
+	double dY0;
+	double dY1;
+
+	grid.GetReferenceGridBounds(dX0, dX1, dY0, dY1);
+
+	// Initialize the coordinate arrays
+	m_dXCoord.Initialize(m_nXReference);
+	double dDeltaX = (dX1 - dX0) / static_cast<double>(m_nXReference);
+	for (int i = 0; i < m_nXReference; i++) {
+		m_dXCoord[i] =
+			dDeltaX * (static_cast<double>(i) + 0.5) + dX0;
+	}
+
+	m_dYCoord.Initialize(m_nYReference);
+	double dDeltaY = (dY1 - dY0) / static_cast<double>(m_nYReference);
+	for (int j = 0; j < m_nYReference; j++) {
+		m_dYCoord[j] =
+			dDeltaY * (static_cast<double>(j) + 0.5) + dY0;
+	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -97,29 +120,6 @@ void OutputManagerReference::CalculatePatchCoordinates() {
 
 	// Recalculate patch coordinates
 	Announce("Recalculating patch coordinates");
-
-	// Get the reference box
-	double dX0;
-	double dX1;
-	double dY0;
-	double dY1;
-
-	m_grid.GetReferenceGridBounds(dX0, dX1, dY0, dY1);
-
-	// Initialize the coordinate arrays
-	m_dXCoord.Initialize(m_nXReference);
-	double dDeltaX = (dX1 - dX0) / static_cast<double>(m_nXReference);
-	for (int i = 0; i < m_nXReference; i++) {
-		m_dXCoord[i] =
-			dDeltaX * (static_cast<double>(i) + 0.5) + dX0;
-	}
-
-	m_dYCoord.Initialize(m_nYReference);
-	double dDeltaY = (dY1 - dY0) / static_cast<double>(m_nYReference);
-	for (int j = 0; j < m_nYReference; j++) {
-		m_dYCoord[j] =
-			dDeltaY * (static_cast<double>(j) + 0.5) + dY0;
-	}
 
 	// Construct array of reference coordinates
 	DataVector<double> dXReference;

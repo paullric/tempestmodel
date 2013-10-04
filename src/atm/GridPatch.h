@@ -50,6 +50,12 @@ public:
 
 public:
 	///	<summary>
+	///		The PatchIndex indicating an invalid patch.
+	///	</summary>
+	static const int InvalidIndex = (-1);
+
+public:
+	///	<summary>
 	///		Constructor.
 	///	</summary>
 	GridPatch(

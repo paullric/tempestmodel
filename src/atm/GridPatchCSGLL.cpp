@@ -910,17 +910,34 @@ void GridPatchCSGLL::ComputeCurlAndDiv(
 			double dDbUa = 0.0;
 			double dDbUb = 0.0;
 
+			double dDaJUa = 0.0;
+			double dDbJUb = 0.0;
+
 			for (int s = 0; s < m_nHorizontalOrder; s++) {
 				dDaUa += dataUa[k][iA+s][iB+j] * dDxBasis1D[s][i];
 				dDaUb += dataUb[k][iA+s][iB+j] * dDxBasis1D[s][i];
 				dDbUa += dataUa[k][iA+i][iB+s] * dDxBasis1D[s][j];
 				dDbUb += dataUb[k][iA+i][iB+s] * dDxBasis1D[s][j];
+/*
+				dDaJUa +=
+					m_dataJacobian2D[iA+s][iB+j]
+					* dataUa[k][iA+s][iB+j]
+					* dDxBasis1D[s][i];
+
+				dDbJUb +=
+					m_dataJacobian2D[iA+i][iB+s]
+					* dataUb[k][iA+i][iB+s]
+					* dDxBasis1D[s][j];
+*/
 			}
 
 			dDaUa /= dElementDeltaA;
 			dDaUb /= dElementDeltaA;
 			dDbUa /= dElementDeltaA;
 			dDbUb /= dElementDeltaA;
+
+			//dDaJUa /= dElementDeltaA;
+			//dDbJUb /= dElementDeltaA;
 
 			// Compute covariant derivatives at node
 			double dCovDaUa = dDaUa
@@ -948,6 +965,9 @@ void GridPatchCSGLL::ComputeCurlAndDiv(
 
 			// Compute the divergence at node
 			m_dataDivergence[k][iA+i][iB+j] = dCovDaUa + dCovDbUb;
+			//double dInvJacobian = 1.0 / m_dataJacobian2D[iA+i][iB+j];
+			//m_dataDivergence[k][iA+i][iB+j] =
+			//	dInvJacobian * (dDaJUa + dDbJUb);
 		}
 		}
 	}

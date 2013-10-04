@@ -217,7 +217,7 @@ void GridCSGLL::AddDefaultPatches() {
 			Direction dirOpposing =
 				CubedSphereTrans::OpposingDirection(iSrcPanel, iDestPanel, dir);
 
-			// Set of the exterior connection
+			// Set up the exterior connection
 			Connectivity::ExteriorConnect(
 				pActivePatch, dir,
 				pPatches[iDestN], dirOpposing,
@@ -294,6 +294,143 @@ void GridCSGLL::ConvertReferenceToPatchCoord(
 				dXReference[i], dYReference[i],
 				dAlpha[i], dBeta[i], iPanel);
 		}
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void GridCSGLL::GetPatchFromCoordinateIndex(
+	int iRefinementLevel,
+	const DataVector<int> & vecIxA,
+	const DataVector<int> & vecIxB,
+	const DataVector<int> & vecPanel,
+	DataVector<int> & vecPatchIndex,
+	int nVectorLength
+) {
+	// Set vector length
+	if (nVectorLength == (-1)) {
+		nVectorLength = vecIxA.GetRows();
+	}
+
+	// Check arguments
+	if ((vecIxA.GetRows() < nVectorLength) ||
+		(vecIxB.GetRows() < nVectorLength) ||
+		(vecPanel.GetRows() < nVectorLength)
+	) {
+		_EXCEPTIONT("Argument vector length mismatch");
+	}
+	if (iRefinementLevel < 0) {
+		_EXCEPTIONT("Refinement level must be positive");
+	}
+
+	// Calculate local resolution
+	int nLocalResolution = GetABaseResolution(iRefinementLevel);
+
+	// Loop through all entries
+	int iLastPatch = GridPatch::InvalidIndex;
+	for (int i = 0; i < nVectorLength; i++) {
+
+		int iA = vecIxA[i];
+		int iB = vecIxB[i];
+		int iP = vecPanel[i];
+
+		// Transform to alternative panel if necessary
+		if ((vecIxA[i] < 0) || (vecIxA[i] >= nLocalResolution) ||
+			(vecIxB[i] < 0) || (vecIxB[i] >= nLocalResolution)
+		) {
+			bool fSwitchAB;
+			bool fSwitchPar;
+			bool fSwitchPerp;
+
+			CubedSphereTrans::RelativeCoord(
+				nLocalResolution,
+				vecPanel[i], vecIxA[i], vecIxB[i],
+				iP, iA, iB,
+				fSwitchAB,
+				fSwitchPar,
+				fSwitchPerp);
+
+			// Coordinate out of bounds
+			if ((iA == (-1)) && (iB == (-1))) {
+				vecPatchIndex[i] = GridPatch::InvalidIndex;
+				continue;
+			}
+		}
+
+		// Check the last patch searched
+		if (iLastPatch != GridPatch::InvalidIndex) {
+			const GridPatch * pPatch = GetPatch(iLastPatch);
+
+			const PatchBox & box = pPatch->GetPatchBox();
+
+			if (box.ContainsGlobalPoint(iP, iA, iB)) {
+				vecPatchIndex[i] = pPatch->GetPatchIndex();
+				continue;
+			}
+		}
+
+		// Check all other patches
+		int n;
+		for (n = 0; n < GetPatchCount(); n++) {
+			const GridPatch * pPatch = GetPatch(n);
+
+			const PatchBox & box = pPatch->GetPatchBox();
+
+			if (box.ContainsGlobalPoint(iP, iA, iB)) {
+				vecPatchIndex[i] = pPatch->GetPatchIndex();
+				iLastPatch = n;
+				break;
+			}
+		}
+		if (n == GetPatchCount()) {
+			vecPatchIndex[i] = GridPatch::InvalidIndex;
+		}
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void GridCSGLL::GetOpposingDirection(
+	int ixPanelSrc,
+	int ixPanelDest,
+	Direction dir,
+	Direction & dirOpposing,
+	bool & fSwitchParallel
+) {
+	if ((ixPanelSrc < 0) || (ixPanelSrc > 5)) {
+		_EXCEPTIONT("Invalid value for ixPanelSrc: Out of range");
+	}
+	if ((ixPanelDest < 0) || (ixPanelDest > 5)) {
+		_EXCEPTIONT("Invalid value for ixPanelDest: Out of range");
+	}
+
+	// Get the opposing direction
+	dirOpposing =
+		CubedSphereTrans::OpposingDirection(
+			ixPanelSrc, ixPanelDest, dir);
+
+	// Check panel indices to determine parallel switch of vectors
+	fSwitchParallel = false;
+	if ((ixPanelSrc == 1) && (ixPanelDest == 5)) {
+		fSwitchParallel = true;
+
+	} else if ((ixPanelSrc == 2) && (ixPanelDest > 3)) {
+		fSwitchParallel = true;
+
+	} else if ((ixPanelSrc == 3) && (ixPanelDest == 4)) {
+		fSwitchParallel = true;
+
+	} else if (
+		(ixPanelSrc == 4) &&
+		((ixPanelDest == 2) || (ixPanelDest == 3))
+	) {
+		fSwitchParallel = true;
+
+	} else if (
+		(ixPanelSrc == 5) &&
+		((ixPanelDest == 2) || (ixPanelDest == 1))
+	) {
+		fSwitchParallel = true;
 	}
 }
 

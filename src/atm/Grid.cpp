@@ -241,23 +241,7 @@ void Grid::Exchange(
 	for (int n = 0; n < m_vecActiveGridPatches.size(); n++) {
 		m_vecActiveGridPatches[n]->Send(eDataType, iDataIndex);
 	}
-/*
-	// Postprocess data
-	int nExpectedMessageCount = 0;
 
-	for (int n = 0; n < m_vecGridPatches.size(); n++) {
-		const GridPatch * pPatch = m_vecGridPatches[n];
-		if (pPatch->ContainsData()) {
-			nExpectedMessageCount +=
-				pPatch->GetConnectivity().GetExpectedMessageCount();
-		}
-	}
-
-	// Receive data from exterior neighbors
-	int nRecvMessageCount = 0;
-	for (; nRecvMessageCount != nExpectedMessageCount; nRecvMessageCount++) {
-	}
-*/
 	// Receive data
 	for (int n = 0; n < m_vecActiveGridPatches.size(); n++) {
 		m_vecActiveGridPatches[n]->Receive(eDataType, iDataIndex);
@@ -282,6 +266,26 @@ int Grid::GetLargestGridPatchNodes() const {
 	}
 
 	return nMaxNodes;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+int Grid::GetLongestActivePatchPerimeter() const {
+
+	// Longest perimeter
+	int nLongestPerimeter = 0;
+
+	// Loop over all active patches
+	for (int n = 0; n < m_vecActiveGridPatches.size(); n++) {
+		int nPerimeter =
+			m_vecActiveGridPatches[n]->GetPatchBox().GetInteriorPerimeter();
+
+		if (nPerimeter > nLongestPerimeter) {
+			nLongestPerimeter = nPerimeter;
+		}
+	}
+
+	return nLongestPerimeter;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -632,6 +636,9 @@ void Grid::ReduceInterpolate(
 		_EXCEPTIONT("InterpData dimension mismatch (2)");
 	}
 
+	// Zero the interpolated data
+	dInterpData.Zero();
+
 	// Interpolate state data
 	for (int n = 0; n < m_vecActiveGridPatches.size(); n++) {
 		m_vecActiveGridPatches[n]->InterpolateData(
@@ -730,6 +737,124 @@ void Grid::DistributePatches() {
 		} else {
 			m_vecGridPatches[n]->InitializeDataRemote(nPatchProcessor);
 		}
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void Grid::InitializeConnectivity() {
+
+	// Vector of nodal points around element
+	DataVector<int> vecIxA;
+	DataVector<int> vecIxB;
+	DataVector<int> vecPanel;
+	DataVector<int> vecPatch;
+
+	// Determine longest perimeter
+	int nLongestActivePerimeter = GetLongestActivePatchPerimeter() + 4;
+	vecIxA.Initialize(nLongestActivePerimeter);
+	vecIxB.Initialize(nLongestActivePerimeter);
+	vecPanel.Initialize(nLongestActivePerimeter);
+	vecPatch.Initialize(nLongestActivePerimeter);
+
+	// Loop over all active patches
+	for (int n = 0; n < m_vecActiveGridPatches.size(); n++) {
+
+		const GridPatch * pPatch = m_vecActiveGridPatches[n];
+
+		const PatchBox & box = pPatch->GetPatchBox();
+
+		int i;
+		int j;
+
+		int ix = 0;
+
+		// Bottom-left corner
+		vecIxA[ix] = box.GetAInteriorBegin()-1;
+		vecIxB[ix] = box.GetBInteriorBegin()-1;
+		vecPanel[ix] = box.GetPanel();
+		ix++;
+
+		// Bottom edge
+		for (i = box.GetAInteriorBegin(); i < box.GetAInteriorEnd(); i++) {
+			vecIxA[ix] = i;
+			vecIxB[ix] = box.GetBInteriorBegin()-1;
+			vecPanel[ix] = box.GetPanel();
+			ix++;
+		}
+
+		// Bottom-right corner
+		vecIxA[ix] = box.GetAInteriorEnd();
+		vecIxB[ix] = box.GetBInteriorBegin()-1;
+		vecPanel[ix] = box.GetPanel();
+		ix++;
+
+		// Right edge
+		for (j = box.GetBInteriorBegin(); j < box.GetBInteriorEnd(); j++) {
+			vecIxA[ix] = box.GetAInteriorEnd();
+			vecIxB[ix] = j;
+			vecPanel[ix] = box.GetPanel();
+			ix++;
+		}
+
+		// Top-right corner
+		vecIxA[ix] = box.GetAInteriorEnd();
+		vecIxB[ix] = box.GetBInteriorEnd();
+		vecPanel[ix] = box.GetPanel();
+		ix++;
+
+		// Top edge
+		for (i = box.GetAInteriorEnd()-1; i >= box.GetAInteriorBegin(); i--) {
+			vecIxA[ix] = i;
+			vecIxB[ix] = box.GetBInteriorEnd();
+			vecPanel[ix] = box.GetPanel();
+			ix++;
+		}
+
+		// Top-left corner
+		vecIxA[ix] = box.GetAInteriorBegin()-1;
+		vecIxB[ix] = box.GetBInteriorEnd();
+		vecPanel[ix] = box.GetPanel();
+		ix++;
+
+		// Left edge
+		for (j = box.GetBInteriorEnd()-1; j >= box.GetBInteriorBegin(); j--) {
+			vecIxA[ix] = box.GetAInteriorBegin()-1;
+			vecIxB[ix] = j;
+			vecPanel[ix] = box.GetPanel();
+			ix++;
+		}
+
+		// Get neighboring patches at each halo node
+		GetPatchFromCoordinateIndex(
+			box.GetRefinementLevel(),
+			vecIxA,
+			vecIxB,
+			vecPanel,
+			vecPatch,
+			ix);
+
+		// Reset index
+		ix = 0;
+
+		Direction dirOpposing;
+		bool fSwitchParallel;
+/*
+		// Add connectivity to bottom-left corner
+		const GridPatch * pPatchBottomLeft = m_vecGridPatches[vecPatch[ix]];
+
+		GetOpposingDirection(
+			vecPanel[ix],
+			pPatchBottomLeft->GetPatchBox().GetPanel(),
+			Direction_BottomLeft,
+			dirOpposing,
+			fSwitchParallel);
+
+		Connectivity::ExteriorConnect(
+			pPatch, Direction_BottomLeft,
+			pPatchBottomLeft, dirOpposing,
+			fSwitchParallel);
+*/
 	}
 }
 

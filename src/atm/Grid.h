@@ -19,6 +19,7 @@
 
 #include "GridPatch.h"
 #include "ChecksumType.h"
+#include "MathHelper.h"
 
 #include "mpi.h"
 
@@ -118,10 +119,14 @@ public:
 	}
 
 	///	<summary>
-	///		Get the total number of nodes in the largest patch, returned to
-	///		the root node.
+	///		Get the total number of nodes in the largest patch.
 	///	</summary>
 	int GetLargestGridPatchNodes() const;
+
+	///	<summary>
+	///		Get the longest perimeter over all patches.
+	///	</summary>
+	int GetLongestActivePatchPerimeter() const;
 
 	///	<summary>
 	///		Get the total count of nodes over the global grid, returned to
@@ -216,6 +221,34 @@ public:
 		DataVector<int> & iPatch
 	) const;
 
+	///	<summary>
+	///		Get the patch and coordinate index for the specified node.
+	///	</summary>
+	virtual void GetPatchFromCoordinateIndex(
+		int iRefinementLevel,
+		const DataVector<int> & vecIxA,
+		const DataVector<int> & vecIxB,
+		const DataVector<int> & vecPanel,
+		DataVector<int> & vecPatchIndex,
+		int nVectorLength = (-1)
+	) {
+		_EXCEPTIONT("Not implemented.");
+	}
+
+	///	<summary>
+	///		Get the relation between coordinate vectors across panel
+	///		boundaries.
+	///	</summary>
+	virtual void GetOpposingDirection(
+		int ixPanelSrc,
+		int ixPanelDest,
+		Direction dir,
+		Direction & dirOpposing,
+		bool & fSwitchParallel
+	) {
+		_EXCEPTIONT("Not implemented.");
+	}
+
 public:
 	///	<summary>
 	///		Add the default set of patches.
@@ -236,6 +269,11 @@ protected:
 	///		Distribute patches among processors and allocate local patches.
 	///	</summary>
 	void DistributePatches();
+
+	///	<summary>
+	///		Initialize connectivity between patches.
+	///	</summary>
+	void InitializeConnectivity();
 
 public:
 	///	<summary>
@@ -305,6 +343,26 @@ public:
 	///	</summary>
 	int GetRefinementRatio() const {
 		return m_nRefinementRatio;
+	}
+
+	///	<summary>
+	///		Get the base resolution at the specified refinement level.
+	///	</summary>
+	inline int GetABaseResolution(int iRefineLevel) {
+		return (m_nABaseResolution
+			* IntPow(
+				m_nRefinementRatio,
+				static_cast<unsigned int>(iRefineLevel)));
+	}
+
+	///	<summary>
+	///		Get the base resolution at the specified refinement level.
+	///	</summary>
+	inline int GetBBaseResolution(int iRefineLevel) {
+		return (m_nBBaseResolution
+			* IntPow(
+				m_nRefinementRatio,
+				static_cast<unsigned int>(iRefineLevel)));
 	}
 
 	///	<summary>
