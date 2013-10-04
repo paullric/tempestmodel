@@ -21,7 +21,7 @@ include $(TEMPESTBASEDIR)/mk/Make.defs
 ##
 ## Build instructions
 ##
-all: atm SWTest2 BarotropicInstabilityTest BaroclinicWaveJWTest BaroclinicWaveUMJSTest
+all: atm SWTest2 BarotropicInstabilityTest ShallowWaterEddyTest BaroclinicWaveJWTest BaroclinicWaveUMJSTest
 
 atm:
 	cd $(TEMPESTBASEDIR)/src/base; make
@@ -36,6 +36,9 @@ SWTest2: $(BUILDDIR)/SWTest2.o $(FILES:%.cpp=$(BUILDDIR)/%.o) $(TEMPESTLIBS)
 BarotropicInstabilityTest: $(BUILDDIR)/BarotropicInstabilityTest.o $(FILES:%.cpp=$(BUILDDIR)/%.o) $(TEMPESTLIBS)
 	$(CC) $(LDFLAGS) -o $@ $(BUILDDIR)/BarotropicInstabilityTest.o $(FILES:%.cpp=$(BUILDDIR)/%.o) $(LDFILES)
 
+ShallowWaterEddyTest: $(BUILDDIR)/ShallowWaterEddyTest.o $(FILES:%.cpp=$(BUILDDIR)/%.o) $(TEMPESTLIBS)
+	$(CC) $(LDFLAGS) -o $@ $(BUILDDIR)/ShallowWaterEddyTest.o $(FILES:%.cpp=$(BUILDDIR)/%.o) $(LDFILES)
+
 BaroclinicWaveJWTest: $(BUILDDIR)/BaroclinicWaveJWTest.o $(FILES:%.cpp=$(BUILDDIR)/%.o) $(TEMPESTLIBS)
 	$(CC) $(LDFLAGS) -o $@ $(BUILDDIR)/BaroclinicWaveJWTest.o $(FILES:%.cpp=$(BUILDDIR)/%.o) $(LDFILES)
 
@@ -48,6 +51,7 @@ BaroclinicWaveUMJSTest: $(BUILDDIR)/BaroclinicWaveUMJSTest.o $(FILES:%.cpp=$(BUI
 clean:
 	rm -f SWTest2
 	rm -f BarotropicInstabilityTest
+	rm -f ShallowWaterEddyTest
 	rm -f BaroclinicWaveJWTest
 	rm -f BaroclinicWaveUMJSTest
 	rm -rf $(DEPDIR)
