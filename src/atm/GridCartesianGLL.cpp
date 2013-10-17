@@ -187,9 +187,9 @@ void GridCartesianGLL::Initialize() {
 
 			// Set of the exterior connection
 			Connectivity::ExteriorConnect(
-				pPatches[n], dir,
-				pPatches[iDestN], dirOpposing,
-				fSwitchPar);
+				pPatches[n],
+				dir,
+				pPatches[iDestN]);
 		}
 	}
 

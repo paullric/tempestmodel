@@ -256,17 +256,6 @@ try {
 	Model model(EquationSet::ShallowWaterEquations);
 	AnnounceEndBlock("Done");
 
-	// Generate a new cubed-sphere GLL grid
-	AnnounceStartBlock("Creating grid");
-	GridCSGLL grid(
-		model,
-		nResolution,
-		4,
-		nOrder,
-		1,
-		1);
-	AnnounceEndBlock("Done");
-
 	// Set the parameters for the model
 	AnnounceStartBlock("Initializing parameters");
 	model.SetParameters(&params);
@@ -301,8 +290,16 @@ try {
 	model.SetVerticalDynamics(&vdyn);
 	AnnounceEndBlock("Done");
 
-	// Set the grid for the model
-	AnnounceStartBlock("Initializing grid");
+	// Construct the cubed-sphere grid for the model
+	AnnounceStartBlock("Constructing grid");
+	GridCSGLL grid(
+		model,
+		nResolution,
+		4,
+		nOrder,
+		1,
+		1);
+
 	grid.AddDefaultPatches();
 	model.SetGrid(&grid);
 	AnnounceEndBlock("Done");

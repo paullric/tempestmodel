@@ -685,8 +685,8 @@ try {
 	model.SetVerticalDynamics(&vdyn);
 	AnnounceEndBlock("Done");
 
-	// Create a new grid for the model
-	AnnounceStartBlock("Initializing grid");
+	// Construct the cubed-sphere grid for the model
+	AnnounceStartBlock("Constructing grid");
 	GridCSGLL grid(
 		model,
 		nResolution,
@@ -695,33 +695,8 @@ try {
 		nVerticalOrder,
 		nLevels);
 
+	grid.AddDefaultPatches();
 	model.SetGrid(&grid);
-	AnnounceEndBlock("Done");
-
-	// Set the test case for the model
-	BaroclinicWaveUMJSTest::PerturbationType ePerturbationType;
-	STLStringHelper::ToLower(strPerturbationType);
-	if (strPerturbationType == "none") {
-		ePerturbationType = BaroclinicWaveUMJSTest::PerturbationType_None;
-	} else if (strPerturbationType == "exp") {
-		ePerturbationType = BaroclinicWaveUMJSTest::PerturbationType_Exp;
-	} else if (strPerturbationType == "sfn") {
-		ePerturbationType = BaroclinicWaveUMJSTest::PerturbationType_StreamFn;
-	} else {
-		_EXCEPTIONT("Invalid perturbation type:"
-			" Expected \"None\", \"Exp\" or \"SFn\"");
-	}
-
-	BaroclinicWaveUMJSTest test(
-		dAlpha,
-		fDeepAtmosphere,
-		fTracersOn,
-		dZtop,
-		fNoReferenceState,
-		ePerturbationType);
-
-	AnnounceStartBlock("Initializing data");
-	model.SetTestCase(&test);
 	AnnounceEndBlock("Done");
 
 	// Set the reference output manager for the model
@@ -749,6 +724,32 @@ try {
 	AnnounceStartBlock("Creating checksum output manager");
 	OutputManagerChecksum outmanChecksum(grid, dOutputDeltaT);
 	model.AttachOutputManager(&outmanChecksum);
+	AnnounceEndBlock("Done");
+
+	// Set the test case for the model
+	BaroclinicWaveUMJSTest::PerturbationType ePerturbationType;
+	STLStringHelper::ToLower(strPerturbationType);
+	if (strPerturbationType == "none") {
+		ePerturbationType = BaroclinicWaveUMJSTest::PerturbationType_None;
+	} else if (strPerturbationType == "exp") {
+		ePerturbationType = BaroclinicWaveUMJSTest::PerturbationType_Exp;
+	} else if (strPerturbationType == "sfn") {
+		ePerturbationType = BaroclinicWaveUMJSTest::PerturbationType_StreamFn;
+	} else {
+		_EXCEPTIONT("Invalid perturbation type:"
+			" Expected \"None\", \"Exp\" or \"SFn\"");
+	}
+
+	BaroclinicWaveUMJSTest test(
+		dAlpha,
+		fDeepAtmosphere,
+		fTracersOn,
+		dZtop,
+		fNoReferenceState,
+		ePerturbationType);
+
+	AnnounceStartBlock("Initializing test case");
+	model.SetTestCase(&test);
 	AnnounceEndBlock("Done");
 
 	// Begin execution

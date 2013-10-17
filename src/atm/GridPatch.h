@@ -941,7 +941,19 @@ protected:
 
 ///////////////////////////////////////////////////////////////////////////////
 
-typedef std::vector<GridPatch*> GridPatchVector;
+//typedef std::vector<GridPatch*> GridPatchVector;
+
+class GridPatchVector
+	: public std::vector<GridPatch*>
+{
+	public:
+		GridPatch * operator[](int i) const {
+			if (i == GridPatch::InvalidIndex) {
+				return NULL;
+			}
+			return std::vector<GridPatch*>::operator[](i);
+		}
+};
 
 ///////////////////////////////////////////////////////////////////////////////
 

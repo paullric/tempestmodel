@@ -33,6 +33,8 @@
 
 ///////////////////////////////////////////////////////////////////////////////
 
+#pragma message "BaseResolution should refer to the total number of nodes, not the number of finite elements"
+
 GridCSGLL::GridCSGLL(
 	const Model & model,
 	int nBaseResolution,
@@ -89,6 +91,68 @@ void GridCSGLL::Initialize() {
 			m_dREtaLevels[n]);
 	}
 
+	// Distribute patches to processors
+	Grid::DistributePatches();
+
+	// Set up connectivity
+	Grid::InitializeConnectivity();
+/*
+	// Set up connectivity
+#pragma message "FIX"
+	int nProcsPerDirection = 1;
+	int nProcsPerPanel = 1;
+
+	for (int n = 0; n < GetActivePatchCount(); n++) {
+		int iDestPanel;
+		int iDestI;
+		int iDestJ;
+		bool fSwitchAB;
+		bool fSwitchPar;
+		bool fSwitchPerp;
+
+		GridPatch * pActivePatch = GetActivePatch(n);
+
+		int iPatchIx = pActivePatch->GetPatchIndex();
+
+		int iSrcPanel = iPatchIx / nProcsPerPanel;
+		int iSrcI = (iPatchIx % nProcsPerPanel) / nProcsPerDirection;
+		int iSrcJ = (iPatchIx % nProcsPerPanel) % nProcsPerDirection;
+
+		int iDestN;
+
+		// Loop through all directions
+		for (int iDir = 0; iDir < 8; iDir++) {
+			Direction dir = (Direction)(iDir);
+
+			// Find the panel index in this direction
+			int iSrcInew = iSrcI;
+			int iSrcJnew = iSrcJ;
+
+			DirectionIncrement(dir, iSrcInew, iSrcJnew);
+
+			CubedSphereTrans::RelativeCoord(
+				nProcsPerDirection,
+				iSrcPanel, iSrcInew, iSrcJnew,
+				iDestPanel, iDestI, iDestJ,
+				fSwitchAB, fSwitchPar, fSwitchPerp);
+
+			if (iDestPanel == InvalidPanel) {
+				continue;
+			}
+
+			iDestN =
+				iDestPanel * nProcsPerPanel
+				+ iDestI * nProcsPerDirection
+				+ iDestJ;
+
+			// Set up the exterior connection
+			Connectivity::ExteriorConnect(
+				pActivePatch,
+				dir,
+				GetPatch(iDestN));
+		}
+	}
+*/
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -165,65 +229,6 @@ void GridCSGLL::AddDefaultPatches() {
 	if (pPatches.size() != nDistributedPatches) {
 		_EXCEPTIONT("Logic error");
 	}
-
-	// Distribute patches to processors
-	Grid::DistributePatches();
-
-	// Set up connectivity
-	for (int n = 0; n < GetActivePatchCount(); n++) {
-		int iDestPanel;
-		int iDestI;
-		int iDestJ;
-		bool fSwitchAB;
-		bool fSwitchPar;
-		bool fSwitchPerp;
-
-		GridPatch * pActivePatch = GetActivePatch(n);
-
-		int iPatchIx = pActivePatch->GetPatchIndex();
-
-		int iSrcPanel = iPatchIx / nProcsPerPanel;
-		int iSrcI = (iPatchIx % nProcsPerPanel) / nProcsPerDirection;
-		int iSrcJ = (iPatchIx % nProcsPerPanel) % nProcsPerDirection;
-
-		int iDestN;
-
-		// Loop through all directions
-		for (int iDir = 0; iDir < 8; iDir++) {
-			Direction dir = (Direction)(iDir);
-
-			// Find the panel index in this direction
-			int iSrcInew = iSrcI;
-			int iSrcJnew = iSrcJ;
-
-			DirectionIncrement(dir, iSrcInew, iSrcJnew);
-
-			CubedSphereTrans::RelativeCoord(
-				nProcsPerDirection,
-				iSrcPanel, iSrcInew, iSrcJnew,
-				iDestPanel, iDestI, iDestJ,
-				fSwitchAB, fSwitchPar, fSwitchPerp);
-
-			if (iDestPanel == InvalidPanel) {
-				continue;
-			}
-
-			iDestN =
-				iDestPanel * nProcsPerPanel
-				+ iDestI * nProcsPerDirection
-				+ iDestJ;
-
-			// Find the opposing direction to return to this panel
-			Direction dirOpposing =
-				CubedSphereTrans::OpposingDirection(iSrcPanel, iDestPanel, dir);
-
-			// Set up the exterior connection
-			Connectivity::ExteriorConnect(
-				pActivePatch, dir,
-				pPatches[iDestN], dirOpposing,
-				fSwitchPar);
-		}
-	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -271,6 +276,7 @@ void GridCSGLL::ConvertReferenceToPatchCoord(
 
 		// Loop over all patches
 		int n = 0;
+
 		for (; n < GetPatchCount(); n++) {
 			const GridPatch * pPatch = GetPatch(n);
 			const PatchBox & box = pPatch->GetPatchBox();
@@ -324,7 +330,8 @@ void GridCSGLL::GetPatchFromCoordinateIndex(
 	}
 
 	// Calculate local resolution
-	int nLocalResolution = GetABaseResolution(iRefinementLevel);
+	int nLocalResolution =
+		m_nHorizontalOrder * GetABaseResolution(iRefinementLevel);
 
 	// Loop through all entries
 	int iLastPatch = GridPatch::InvalidIndex;
@@ -396,7 +403,7 @@ void GridCSGLL::GetOpposingDirection(
 	Direction dir,
 	Direction & dirOpposing,
 	bool & fSwitchParallel
-) {
+) const {
 	if ((ixPanelSrc < 0) || (ixPanelSrc > 5)) {
 		_EXCEPTIONT("Invalid value for ixPanelSrc: Out of range");
 	}

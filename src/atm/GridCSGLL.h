@@ -95,7 +95,7 @@ public:
 		Direction dir,
 		Direction & dirOpposing,
 		bool & fSwitchParallel
-	);
+	) const;
 
 public:
 	///	<summary>

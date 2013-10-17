@@ -245,7 +245,7 @@ public:
 		Direction dir,
 		Direction & dirOpposing,
 		bool & fSwitchParallel
-	) {
+	) const {
 		_EXCEPTIONT("Not implemented.");
 	}
 
