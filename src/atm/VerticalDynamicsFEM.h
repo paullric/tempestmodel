@@ -134,6 +134,21 @@ public:
 		double dDeltaT
 	);
 
+	///	<summary>
+	///		Build the Jacobian matrix.
+	///	</summary>
+	void BuildJacobian();
+
+	///	<summary>
+	///		Advance implicit terms of the vertical column one substep.
+	///	</summary>
+	virtual void StepImplicit(
+		int iDataInitial,
+		int iDataUpdate,
+		double dTime,
+		double dDeltaT
+	);
+
 protected:
 	///	<summary>
 	///		Evaluate the RHS when all variables are on model levels.
@@ -166,17 +181,6 @@ public:
 	void Evaluate(
 		const double * dX,
 		double * dF
-	);
-
-public:
-	///	<summary>
-	///		Advance implicit terms of the vertical column one substep.
-	///	</summary>
-	virtual void StepImplicit(
-		int iDataInitial,
-		int iDataUpdate,
-		double dTime,
-		double dDeltaT
 	);
 
 protected:

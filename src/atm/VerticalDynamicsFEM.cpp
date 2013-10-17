@@ -820,6 +820,65 @@ void VerticalDynamicsFEM::StepExplicit(
 
 ///////////////////////////////////////////////////////////////////////////////
 
+void VerticalDynamicsFEM::BuildJacobian() {
+
+	static const double Epsilon = 1.0e-5;
+
+	int nDim = m_dColumnState.GetRows();
+
+	DataMatrix<double> dJacobian;
+	dJacobian.Initialize(nDim, nDim);
+
+	DataVector<double> dJC;
+	dJC.Initialize(nDim);
+
+	DataVector<double> dG;
+	dG.Initialize(nDim);
+
+	DataVector<double> dJCref;
+	dJCref.Initialize(nDim);
+
+	Evaluate(m_dColumnState, dJCref);
+
+	for (int i = 0; i < nDim; i++) {
+		dG = m_dColumnState;
+		dG[i] = dG[i] + Epsilon;
+
+		Evaluate(dG, dJC);
+
+		for (int j = 0; j < nDim; j++) {
+			dJacobian[j][i] = (dJC[j] - dJCref[j]) / Epsilon;
+		}
+	}
+
+	std::cout << "DeltaT: " << m_dDeltaT << std::endl;
+
+	FILE * fp;
+	fp = fopen("DG.txt", "w");
+	for (int i = 0; i < nDim; i++) {
+		for (int j = 0; j < nDim; j++) {
+			fprintf(fp, "%1.15e", dJacobian[i][j]);
+			if (j != nDim-1) {
+				fprintf(fp, " ");
+			}
+		}
+		fprintf(fp, "\n");
+	}
+	fclose(fp);
+
+	fp = fopen("G.txt", "w");
+	for (int i = 0; i < nDim; i++) {
+		fprintf(fp, "%1.15e", dJCref[i]);
+		if (i != nDim-1) {
+			fprintf(fp, "\n");
+		}
+	}
+	fclose(fp);
+	_EXCEPTION();
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
 void VerticalDynamicsFEM::StepImplicit(
 	int iDataInitial,
 	int iDataUpdate,
@@ -1025,6 +1084,10 @@ void VerticalDynamicsFEM::StepImplicit(
 #else
 			// Use Jacobian-Free Newton-Krylov to solve
 			m_dSoln = m_dColumnState;
+
+			if (dTime > 0.0) {
+				BuildJacobian();
+			}
 
 			double dError =
 				PerformJFNK_NewtonStep_Safe(
