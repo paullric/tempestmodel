@@ -270,7 +270,7 @@ void HorizontalDynamicsFEM::StepShallowWater(
 				dLocalUpdateUb -= dUa * dDaUb + dUb * dDbUb;
 
 				// Curvature terms
-				dLocalUpdateUa -= 
+				dLocalUpdateUa -=
 						+ dChristoffelA[iA][iB][0] * dUa * dUa
 						+ dChristoffelA[iA][iB][1] * dUa * dUb
 						+ dChristoffelA[iA][iB][2] * dUb * dUb;
@@ -418,7 +418,7 @@ void HorizontalDynamicsFEM::ElementFluxesShallowWater(
 
 				double dHF = 0.5 * (dHFL + dHFR);
 
-#ifdef DIFFERENTIAL_FORM 
+#ifdef DIFFERENTIAL_FORM
 				_EXCEPTIONT("Not implemented.");
 #else
 				dataUpdateNode[HIx][k][i-1][j] -=
@@ -486,7 +486,7 @@ void HorizontalDynamicsFEM::ElementFluxesShallowWater(
 
 				double dHF = 0.5 * (dHFL + dHFR);
 
-#ifdef DIFFERENTIAL_FORM 
+#ifdef DIFFERENTIAL_FORM
 				_EXCEPTIONT("Not implemented.");
 #else
 				dataUpdateNode[HIx][k][i][j-1] -=
@@ -768,7 +768,7 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 				dLocalUpdateUb -= dUa * dDaUb + dUb * dDbUb;
 
 				// Curvature terms
-				dLocalUpdateUa -= 
+				dLocalUpdateUa -=
 						+ dChristoffelA[iA][iB][0] * dUa * dUa
 						+ dChristoffelA[iA][iB][1] * dUa * dUb
 						+ dChristoffelA[iA][iB][2] * dUb * dUb;
@@ -892,6 +892,8 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 		}
 		}
 
+        //TODO: Boundary Conditions to be implemented here
+        //TODO: Cartesian test case 1 requires no-flux condition at Beta extremes
 		// Update quantities on model interfaces
 		for (int k = 0; k <= pGrid->GetRElements(); k++) {
 		for (int a = 0; a < nAElements; a++) {
@@ -1059,7 +1061,7 @@ void HorizontalDynamicsFEM::StepExplicit(
 						dChristoffel[iA][iB][4],
 						dChristoffel[iA][iB][5]);
 					printf("Mome: %1.10e %1.10e\n",
-						(dUa * dDaUa + dUb * dDbUa), 
+						(dUa * dDaUa + dUb * dDbUa),
 						(dUa * dDaUb + dUb * dDbUb));
 					printf("Curv: %1.10e %1.10e\n",
 						( dChristoffel[iA][iB][0] * dUa * dUa

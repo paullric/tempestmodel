@@ -143,61 +143,6 @@ void GridCartesianGLL::Initialize() {
 		_EXCEPTIONT("Logic error");
 	}
 
-    /*
-	// Set up connectivity
-    // TODO: Change this for a single panel (no transforms accross panels)
-	for (int n = 0; n < nDistributedPatches; n++) {
-		int iDestPanel;
-		int iDestI;
-		int iDestJ;
-		bool fSwitchAB;
-		bool fSwitchPar;
-		bool fSwitchPerp;
-
-		int iSrcPanel = n / nProcsPerPanel;
-		int iSrcI = (n % nProcsPerPanel) / nProcsPerDirection;
-		int iSrcJ = (n % nProcsPerPanel) % nProcsPerDirection;
-
-		int iDestN;
-
-		// Loop through all directions
-		for (int iDir = 0; iDir < 8; iDir++) {
-			Direction dir = (Direction)(iDir);
-
-			// Find the panel index in this direction
-			int iSrcInew = iSrcI;
-			int iSrcJnew = iSrcJ;
-
-			DirectionIncrement(dir, iSrcInew, iSrcJnew);
-
-			CubedSphereTrans::RelativeCoord(
-				nProcsPerDirection,
-				iSrcPanel, iSrcInew, iSrcJnew,
-				iDestPanel, iDestI, iDestJ,
-				fSwitchAB, fSwitchPar, fSwitchPerp);
-
-			if (iDestPanel == InvalidPanel) {
-				continue;
-			}
-
-			iDestN =
-				iDestPanel * nProcsPerPanel
-				+ iDestI * nProcsPerDirection
-				+ iDestJ;
-
-			// Find the opposing direction to return to this panel
-			Direction dirOpposing =
-				CubedSphereTrans::OpposingDirection(iSrcPanel, iDestPanel, dir);
-
-			// Set of the exterior connection
-			Connectivity::ExteriorConnect(
-				pPatches[n], dir,
-				pPatches[iDestN], dirOpposing,
-				fSwitchPar);
-		}
-	}
-	*/
-
 	// Distribute patches to processors
 	Grid::DistributePatches();
 
@@ -282,25 +227,6 @@ void GridCartesianGLL::ApplyDSS(
 			pPatch->TransformHaloVelocities(iDataUpdate);
 		}
 
-		// Panels in each coordinate direction
-		int ixRightPanel =
-			pPatch->GetNeighborPanel(Direction_Right);
-		int ixTopPanel =
-			pPatch->GetNeighborPanel(Direction_Top);
-		int ixLeftPanel =
-			pPatch->GetNeighborPanel(Direction_Left);
-		int ixBottomPanel =
-			pPatch->GetNeighborPanel(Direction_Bottom);
-
-		int ixTopRightPanel =
-			pPatch->GetNeighborPanel(Direction_TopRight);
-		int ixTopLeftPanel =
-			pPatch->GetNeighborPanel(Direction_TopLeft);
-		int ixBottomLeftPanel =
-			pPatch->GetNeighborPanel(Direction_BottomLeft);
-		int ixBottomRightPanel =
-			pPatch->GetNeighborPanel(Direction_BottomRight);
-
 		// Loop through all components associated with this DataType
 		int nComponents;
 		if (eDataType == DataType_State) {
@@ -315,6 +241,7 @@ void GridCartesianGLL::ApplyDSS(
 			_EXCEPTIONT("Invalid DataType");
 		}
 
+        // TODO: apply BC here looping over the edges of the cartesian panel
 		// Perform Direct Stiffness Summation (DSS)
 		for (int c = 0; c < nComponents; c++) {
 
@@ -338,32 +265,46 @@ void GridCartesianGLL::ApplyDSS(
 				pDataUpdate = pPatch->GetDataDivergence();
 			}
 
+			// Apply horizontal direction BC's (PERIODIC ONLY FOR NOW)
+           for (int k = 0; k < nRElements; k++) {
+                // Loop in beta over first and last alpha edge. Apply X direction BC
+                int aFirst = 0;
+                int aLast= nAElements * m_nHorizontalOrder;
+                for (int j = 0; j < nBElements; j++) {
+                    // Periodic condition in X
+                    pDataUpdate[k][aFirst][j] = pDataUpdate[k][aLast][j];
+                }
+                // Loop in alpha over first and last beta edge. Apply Y direction BC
+                int bFirst = 0;
+                int bLast = nBElements * m_nHorizontalOrder;
+                for (int i = 0; i < nAElements; i++) {
+                    // Periodic condition in Y
+                    pDataUpdate[k][i][bFirst] = pDataUpdate[k][i][bLast];
+                }
+           }
+
+           // Apply the vertical direction BC (NO FLUX TOP AND BOTTOM FOR NOW)
+           int kFirst = 0;
+           int kLast = nRElements * m_nVerticalOrder;
+           for (int i = 0; i < nAElements; i++) {
+                for (int j = 0; j < nBElements; j++) {
+                    pDataUpdate[kFirst][i][j] = pDataUpdate[kFirst+1][i][j];
+                    pDataUpdate[kLast][i][j] = pDataUpdate[kLast-1][i][j];
+                }
+           }
+
+           // Averaging DSS across patch boundaries
 			for (int k = 0; k < nRElements; k++) {
 
 				// Average in the alpha direction
 				for (int a = 0; a <= nAElements; a++) {
 					int iA = a * m_nHorizontalOrder + box.GetHaloElements();
 
-					// Do not average across cubed-sphere corners
+					// Averaging done at the corners of the panel
 					int jBegin = box.GetBInteriorBegin()-1;
 					int jEnd = box.GetBInteriorEnd()+1;
 
-					if (((a == 0) &&
-							(ixTopLeftPanel == InvalidPanel)) ||
-						((a == nAElements) &&
-							(ixTopRightPanel == InvalidPanel))
-					) {
-						jEnd -= 2;
-					}
-					if (((a == 0) &&
-							(ixBottomLeftPanel == InvalidPanel)) ||
-						((a == nAElements) &&
-							(ixBottomRightPanel == InvalidPanel))
-					) {
-						jBegin += 2;
-					}
-
-					// Perform averaging across edge
+					// Perform averaging across edge of patch
 					for (int j = jBegin; j < jEnd; j++) {
 						pDataUpdate[k][iA][j] = 0.5 * (
 							+ pDataUpdate[k][iA  ][j]
@@ -377,24 +318,9 @@ void GridCartesianGLL::ApplyDSS(
 				for (int b = 0; b <= nBElements; b++) {
 					int iB = b * m_nHorizontalOrder + box.GetHaloElements();
 
-					// Do not average across cubed-sphere corners
+					// Averaging done at the corners of the panel
 					int iBegin = box.GetAInteriorBegin()-1;
 					int iEnd = box.GetAInteriorEnd()+1;
-
-					if (((b == 0) &&
-							(ixBottomLeftPanel == InvalidPanel)) ||
-						((b == nAElements) &&
-							(ixTopLeftPanel == InvalidPanel))
-					) {
-						iBegin += 2;
-					}
-					if (((b == 0) &&
-							(ixBottomRightPanel == InvalidPanel)) ||
-						((b == nAElements) &&
-							(ixTopRightPanel == InvalidPanel))
-					) {
-						iEnd -= 2;
-					}
 
 					for (int i = iBegin; i < iEnd; i++) {
 						pDataUpdate[k][i][iB] = 0.5 * (
@@ -403,47 +329,6 @@ void GridCartesianGLL::ApplyDSS(
 
 						pDataUpdate[k][i][iB-1] = pDataUpdate[k][i][iB];
 					}
-				}
-
-				// Average at cubed-sphere corners (nodes of connectivity 3)
-				if (ixTopRightPanel == InvalidPanel) {
-					int iA = box.GetAInteriorEnd()-1;
-					int iB = box.GetBInteriorEnd()-1;
-
-					pDataUpdate[k][iA][iB] = (1.0/3.0) * (
-						+ pDataUpdate[k][iA  ][iB  ]
-						+ pDataUpdate[k][iA+1][iB  ]
-						+ pDataUpdate[k][iA  ][iB+1]);
-				}
-
-				if (ixTopLeftPanel == InvalidPanel) {
-					int iA = box.GetAInteriorBegin();
-					int iB = box.GetBInteriorEnd()-1;
-
-					pDataUpdate[k][iA][iB] = (1.0/3.0) * (
-						+ pDataUpdate[k][iA  ][iB  ]
-						+ pDataUpdate[k][iA-1][iB  ]
-						+ pDataUpdate[k][iA  ][iB+1]);
-				}
-
-				if (ixBottomLeftPanel == InvalidPanel) {
-					int iA = box.GetAInteriorBegin();
-					int iB = box.GetBInteriorBegin();
-
-					pDataUpdate[k][iA][iB] = (1.0/3.0) * (
-						+ pDataUpdate[k][iA  ][iB  ]
-						+ pDataUpdate[k][iA-1][iB  ]
-						+ pDataUpdate[k][iA  ][iB-1]);
-				}
-
-				if (ixBottomRightPanel == InvalidPanel) {
-					int iA = box.GetAInteriorEnd()-1;
-					int iB = box.GetBInteriorBegin();
-
-					pDataUpdate[k][iA][iB] = (1.0/3.0) * (
-						+ pDataUpdate[k][iA  ][iB  ]
-						+ pDataUpdate[k][iA+1][iB  ]
-						+ pDataUpdate[k][iA  ][iB-1]);
 				}
 			}
 		}
