@@ -162,7 +162,7 @@ public:
 	///		Evaluate the perturbed potential temperature field.
 	///	</summary>
 	double EvaluateTPrime(
-        const PhysicalConstants &phys,
+        const PhysicalConstants phys,
 		double dxP,
 		double dzP
 	) const {
@@ -171,7 +171,7 @@ public:
 		double dThetaBar = m_dTheta0 * exp(pow(m_dNbar,2.0)/gsi * dzP);
         // Potential temperature perturbation
         double dThetaHat = m_dThetaC * sin(m_dpiC * dxP / m_dhC)
-                                     / (1.0 + pow((dxP - m_dxC)/m_daC,2.0))
+                                     / (1.0 + pow((dxP - m_dxC)/m_daC,2.0));
 
 		return dThetaHat + dThetaHat;
 	}
@@ -180,7 +180,7 @@ public:
 	///		Evaluate the state vector at the given point.
 	///	</summary>
 	virtual void EvaluatePointwiseState(
-		const PhysicalConstants &phys,
+		const PhysicalConstants & phys,
 		double dTime,
 		double dzP,
         double dxP,
@@ -195,7 +195,7 @@ public:
         dState[3] = 0.0;
 
         // Set the initial potential temperature field
-        dState[2] = EvaluateTPrime(&phys, dxP, dzP);
+        dState[2] = EvaluateTPrime(phys, dxP, dzP);
 
         // Set the initial density based on the Exner pressure
         double gsi = phys.GetG();
@@ -205,6 +205,7 @@ public:
 
         double dRho = m_dP0 / (m_dR * dState[2]) * pow(dExnerP,(m_dCv / m_dR));
         dState[4] = dRho;
+	}
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -275,15 +276,15 @@ try {
 	Model model(EquationSet::PrimitiveNonhydrostaticEquations);
 	AnnounceEndBlock("Done");
 
-	// Generate a new cartesian GLL grid
+	// Generate a new cartesian GLL grid (20 x 20 x 20 for now)
 	AnnounceStartBlock("Creating grid");
 	GridCartesianGLL grid(
 		model,
 		nResolution,
-		4,
-		nOrder,
 		1,
-		1);
+		nOrder,
+        nOrder,
+		nResolution);
 
 	AnnounceEndBlock("Done");
 
@@ -316,8 +317,6 @@ try {
 	AnnounceEndBlock("Done");
 
 	// Set the vertical dynamics
-	// TODO: The vertical dynamics for the cartesian grid are the same in all directions
-	// this needs to be replaced with a copy of the horizontal dynamics
 	VerticalDynamicsStub vdyn(model);
 	AnnounceStartBlock("Initializing vertical dynamics");
 	model.SetVerticalDynamics(&vdyn);

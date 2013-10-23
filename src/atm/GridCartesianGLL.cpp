@@ -241,7 +241,6 @@ void GridCartesianGLL::ApplyDSS(
 			_EXCEPTIONT("Invalid DataType");
 		}
 
-        // TODO: apply BC here looping over the edges of the cartesian panel
 		// Perform Direct Stiffness Summation (DSS)
 		for (int c = 0; c < nComponents; c++) {
 
