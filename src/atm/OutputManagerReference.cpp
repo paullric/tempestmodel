@@ -57,6 +57,7 @@ OutputManagerReference::OutputManagerReference(
 	double dY0;
 	double dY1;
 
+    //std::cout << dX0 <<"\n";
 	grid.GetReferenceGridBounds(dX0, dX1, dY0, dY1);
 
 	// Initialize the coordinate arrays
@@ -307,7 +308,7 @@ bool OutputManagerReference::OpenFile(
 	MPI_Barrier(MPI_COMM_WORLD);
 
 	return true;
-}	
+}
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -372,8 +373,10 @@ void OutputManagerReference::Output(
 		if (m_dataState.GetRows() < 2) {
 			_EXCEPTIONT("Insufficient components");
 		}
-
+        
+        std::cout << "Compute vorticity of initial state\n";
 		m_grid.ComputeVorticityDivergence(0);
+        std::cout << "Done computing vorticity of initial state\n";
 
 		if (m_fOutputVorticity) {
 			m_grid.ReduceInterpolate(

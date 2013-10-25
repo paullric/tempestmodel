@@ -72,6 +72,7 @@ GridGLL::GridGLL(
 void GridGLL::ComputeVorticityDivergence(
 	int iDataIndex
 ) {
+    std::cout << "Number of active grid patch: " << iDataIndex;
 	// Compute vorticity on all grid patches
 	Grid::ComputeVorticityDivergence(iDataIndex);
 

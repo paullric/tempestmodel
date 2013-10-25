@@ -544,6 +544,8 @@ void Grid::ConsolidateDataToRoot(
 void Grid::ComputeVorticityDivergence(
 	int iDataIndex
 ) {
+    //std::cout << "Number of active grid patches: " << iDataIndex;
+    
 	// Loop over all grid patches
 	for (int n = 0; n < m_vecActiveGridPatches.size(); n++) {
 		m_vecActiveGridPatches[n]->ComputeVorticityDivergence(iDataIndex);

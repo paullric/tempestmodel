@@ -176,8 +176,22 @@ void GridCartesianGLL::InitializeVerticalCoordinate(
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+// TODO: Hard coded dimensions for the test case here for now - JEG
+void GridCartesianGLL::GetReferenceGridBounds(
+    double & dX0,
+    double & dX1,
+    double & dY0,
+    double & dY1
+) {
+	dX0 = 0.0;
+	dX1 = 300000.;
+	dY0 = -10.0;
+	dY1 = +10.0;
+}
+
+///////////////////////////////////////////////////////////////////////////////
 // TODO This method is no longer needed
-void GridCartesianGLL::ConvertReferenceToABP(
+void GridCartesianGLL::ConvertReferenceToPatchCoord(
 	const DataVector<double> & dXReference,
 	const DataVector<double> & dYReference,
 	DataVector<double> & dAlpha,

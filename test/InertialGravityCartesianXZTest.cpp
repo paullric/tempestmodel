@@ -252,12 +252,12 @@ try {
 			"outInertialGravityCartesianXZTest");
 		CommandLineString(strOutputPrefix, "output_prefix", "out");
 		CommandLineInt(nOutputsPerFile, "output_perfile", -1);
-		CommandLineInt(nResolution, "resolution", 20);
+		CommandLineInt(nResolution, "resolution", 60);
 		CommandLineInt(nOrder, "order", 4);
 		CommandLineDouble(dAlpha, "alpha", 0.0);
-		CommandLineDouble(params.m_dDeltaT, "dt", 200.0);
-		CommandLineDouble(params.m_dEndTime, "endtime", 200.0);//86400.0 * 5.0);
-		CommandLineDouble(dOutputDeltaT, "outputtime", 86400.0);
+		CommandLineDouble(params.m_dDeltaT, "dt", 30.0);
+		CommandLineDouble(params.m_dEndTime, "endtime", 3000.0);
+		CommandLineDouble(dOutputDeltaT, "outputtime", 300.0);
 		CommandLineStringD(strHorizontalDynamics, "method", "DG", "(SE | DG)");
 		CommandLineBool(fNoHyperviscosity, "nohypervis");
 
@@ -328,7 +328,7 @@ try {
 	AnnounceEndBlock("Done");
 
 	// Set the test case for the model
-	InertialGravityCartesianXZTest test();
+	InertialGravityCartesianXZTest test;
 	AnnounceStartBlock("Initializing test case");
 	model.SetTestCase(&test);
 	AnnounceEndBlock("Done");
@@ -341,7 +341,7 @@ try {
 		strOutputDir,
 		strOutputPrefix,
 		nOutputsPerFile,
-		720, 360);
+		60, 60);
 	outmanRef.OutputVorticity();
 	outmanRef.OutputDivergence();
 	model.AttachOutputManager(&outmanRef);

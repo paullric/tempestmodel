@@ -51,7 +51,7 @@ unsigned long FunctionTimer::Time(bool fDone) {
 	timeval tv;
 	gettimeofday(&tv, NULL);
 
-	unsigned long iTime = 
+	unsigned long iTime =
 	    MICROSECONDS_PER_SECOND * (tv.tv_sec - m_tvStartTime.tv_sec)
 	    + (tv.tv_usec - m_tvStartTime.tv_usec);
 

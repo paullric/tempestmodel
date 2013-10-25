@@ -20,7 +20,7 @@
 #include "DataVector.h"
 #include "DataMatrix4D.h"
 
-#include "netcdfcpp.h"
+#include "/opt/local/include/netcdfcpp.h"
 
 #include <vector>
 

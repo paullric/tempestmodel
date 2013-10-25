@@ -44,6 +44,17 @@ public:
 	///		Initialize grid patches.
 	///	</summary>
 	virtual void Initialize();
+    
+public:
+	///	<summary>
+	///		Get the bounds on the reference grid.
+	///	</summary>
+	virtual void GetReferenceGridBounds(
+        double & dX0,
+        double & dX1,
+        double & dY0,
+        double & dY1
+    );
 
 	///	<summary>
 	///		Initialize the vertical coordinate.
@@ -57,7 +68,7 @@ public:
 	///		Convert an array of coordinate variables to coordinates on the
 	///		reference grid (RLL on the sphere)
 	///	</summary>
-	virtual void ConvertReferenceToABP(
+	virtual void ConvertReferenceToPatchCoord(
 		const DataVector<double> & dXReference,
 		const DataVector<double> & dYReference,
 		DataVector<double> & dAlpha,
