@@ -19,6 +19,8 @@
 
 #include "OutputManager.h"
 
+class Time;
+
 ///////////////////////////////////////////////////////////////////////////////
 
 ///	<summary>
@@ -36,12 +38,19 @@ public:
 		double dOutputDeltaT
 	);
 
+	///	<summary>
+	///		Get the name of the OutputManager.
+	///	</summary>
+	virtual const char * GetName() const {
+		return "Checksum ";
+	}
+
 protected:
 	///	<summary>
 	///		Perform an output.
 	///	</summary>
 	void Output(
-		double dTime
+		const Time & time
 	);
 };
 

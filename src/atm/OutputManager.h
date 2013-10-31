@@ -17,6 +17,7 @@
 #ifndef _OUTPUTMANAGER_H_
 #define _OUTPUTMANAGER_H_
 
+#include "TimeObj.h"
 #include "DataVector.h"
 #include "DataMatrix4D.h"
 
@@ -52,6 +53,14 @@ public:
 	virtual ~OutputManager()
 	{ }
 
+public:
+	///	<summary>
+	///		Get the name of this OutputManager.
+	///	</summary>
+	virtual const char * GetName() const {
+		return "Output";
+	}
+
 protected:
 	///	<summary>
 	///		Get the active file name.
@@ -61,28 +70,28 @@ protected:
 	///	<summary>
 	///		Perform the output.
 	///	</summary>
-	void PerformOutput(double dTime);
+	void PerformOutput(const Time & time);
 
 public:
 	///	<summary>
 	///		Determine if an output is needed.
 	///	</summary>
-	bool IsOutputNeeded(double dTime);
+	bool IsOutputNeeded(const Time & time);
 
 	///	<summary>
 	///		Perform an output.
 	///	</summary>
-	void ManageOutput(double dTime);
+	void ManageOutput(const Time & time);
 
 	///	<summary>
 	///		Write the initial system state to a file.
 	///	</summary>
-	void InitialOutput(double dTime);
+	void InitialOutput(const Time & time);
 
 	///	<summary>
 	///		Write the final system state to a file.
 	///	</summary>
-	void FinalOutput(double dTime);
+	void FinalOutput(const Time & time);
 
 protected:
 	///	<summary>
@@ -111,7 +120,7 @@ protected:
 	///		Handle manager-specific file output.
 	///	</summary>
 	virtual void Output(
-		double dTime
+		const Time & time
 	) = 0;
 
 protected:
@@ -144,15 +153,15 @@ protected:
 	///	<summary>
 	///		Last output time.
 	///	</summary>
-	double m_dLastOutputTime;
+	Time m_timeLastOutput;
 
 	///	<summary>
 	///		Next output time.
 	///	</summary>
-	double m_dNextOutputTime;
+	Time m_timeNextOutput;
 
 	///	<summary>
-	///		Time between successive outputs.
+	///		Time between successive outputs (in seconds).
 	///	</summary>
 	double m_dOutputDeltaT;
 

@@ -22,6 +22,7 @@
 
 ///////////////////////////////////////////////////////////////////////////////
 
+class Time;
 class GridCartesianGLL;
 class GridData3D;
 
@@ -66,7 +67,7 @@ public:
 	///	</summary>
 	void EvaluateTestCase(
 		const TestCase & test,
-		double dTime = 0.0,
+		const Time & time,
 		int iDataInstance = 0
 	);
 

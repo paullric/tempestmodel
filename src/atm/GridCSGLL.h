@@ -62,6 +62,14 @@ public:
 	virtual void AddDefaultPatches();
 
 	///	<summary>
+	///		Add a patch to the grid with the specified index and PatchBox.
+	///	</summary>
+	virtual GridPatch * AddPatch(
+		int ixPatch,
+		const PatchBox & box
+	);
+
+	///	<summary>
 	///		Convert an array of coordinate variables to coordinates on the
 	///		reference grid (RLL on the sphere)
 	///	</summary>

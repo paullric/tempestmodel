@@ -20,6 +20,7 @@
 #include "Grid.h"
 #include "ConsolidationStatus.h"
 
+#include "TimeObj.h"
 #include "Announce.h"
 
 #include "mpi.h"
@@ -92,21 +93,14 @@ bool OutputManagerComposite::OpenFile(
 			_EXCEPTIONT("Error opening NetCDF file");
 		}
 
-		// Create nodal time dimension
-		NcDim * dimTime =
-			m_pActiveNcOutput->add_dim("time");
-
-		m_varTime = m_pActiveNcOutput->add_var("time", ncDouble, dimTime);
-
-		// Create patch index dimension
-		NcDim * dimPatchIndex =
-			m_pActiveNcOutput->add_dim(
-				"patch_index", m_grid.GetPatchCount());
-
 		// Create nodal index dimension
 		NcDim * dimIndex =
 			m_pActiveNcOutput->add_dim(
 				"node_index", m_grid.GetTotalNodeCount());
+
+		// Output start time and current time
+		m_pActiveNcOutput->add_att("start_time",
+			model.GetStartTime().ToString().c_str());
 
 		// Output physical constants
 		const PhysicalConstants & phys = model.GetPhysicalConstants();
@@ -129,43 +123,28 @@ bool OutputManagerComposite::OpenFile(
 
 		m_pActiveNcOutput->add_att("equation_set", eqn.GetName().c_str());
 
+		// Output the grid
+		m_grid.ToFile(*m_pActiveNcOutput);
+
+		// Get the patch index dimension
+		NcDim * dimPatchIndex = m_pActiveNcOutput->get_dim("patch_index");
+		if (dimPatchIndex == NULL) {
+			_EXCEPTIONT("Dimension \'patch_index\' not found");
+		}
+
 		// Create variables
 		for (int c = 0; c < eqn.GetComponents(); c++) {
 			m_vecComponentVar.push_back(
 				m_pActiveNcOutput->add_var(
 					eqn.GetComponentShortName(c).c_str(),
-					ncDouble, dimTime, dimIndex));
+					ncDouble, dimIndex));
 		}
 
 		for (int c = 0; c < eqn.GetTracers(); c++) {
 			m_vecTracersVar.push_back(
 				m_pActiveNcOutput->add_var(
 					eqn.GetTracerShortName(c).c_str(),
-					ncDouble, dimTime, dimIndex));
-		}
-
-		// Output PatchBox for each patch
-		NcDim * dimPatchBox = m_pActiveNcOutput->add_dim("patchbox_info", 7);
-
-		NcVar * pPanel =
-			m_pActiveNcOutput->add_var(
-				"PatchBox", ncInt, dimPatchIndex, dimPatchBox);
-
-		for (int n = 0; n < m_grid.GetPatchCount(); n++) {
-			int nBox[7];
-
-			const PatchBox & box = m_grid.GetPatch(n)->GetPatchBox();
-
-			nBox[0] = box.GetPanel();
-			nBox[1] = box.GetRefinementLevel();
-			nBox[2] = box.GetHaloElements();
-			nBox[3] = box.GetAGlobalInteriorBegin();
-			nBox[4] = box.GetAGlobalInteriorEnd();
-			nBox[5] = box.GetBGlobalInteriorBegin();
-			nBox[6] = box.GetBGlobalInteriorEnd();
-
-			pPanel->set_cur(n, 0);
-			pPanel->put(nBox, 1, 7);
+					ncDouble, dimIndex));
 		}
 
 		// Output topography for each patch
@@ -230,11 +209,16 @@ void OutputManagerComposite::CloseFile() {
 ///////////////////////////////////////////////////////////////////////////////
 
 void OutputManagerComposite::Output(
-	double dTime
+	const Time & time
 ) {
 	// Check for open file
 	if (!IsFileOpen()) {
 		_EXCEPTIONT("No file available for output");
+	}
+
+	// Verify that only one output has been performed
+	if (m_ixOutputTime != 0) {
+		_EXCEPTIONT("Only one Composite output allowed per file");
 	}
 
 	// Determine processor rank
@@ -244,10 +228,9 @@ void OutputManagerComposite::Output(
 	// Equation set
 	const EquationSet & eqn = m_grid.GetModel().GetEquationSet();
 
-	// Add new time
+	// Output start time and current time
 	if (nRank == 0) {
-		m_varTime->set_cur(m_ixOutputTime);
-		m_varTime->put(&dTime, 1);
+		m_pActiveNcOutput->add_att("current_time", time.ToString().c_str());
 	}
 
 	// Begin data consolidation
@@ -291,7 +274,7 @@ void OutputManagerComposite::Output(
 
 			int nPatchIx = m_grid.GetCumulativePatch3DNodeIndex(ixRecvPatch);
 			for (int c = 0; c < eqn.GetComponents(); c++) {
-				m_vecComponentVar[c]->set_cur(m_ixOutputTime, nPatchIx);
+				m_vecComponentVar[c]->set_cur(nPatchIx);
 				m_vecComponentVar[c]->put(
 					&(dataRecvBuffer[nComponentSize * c]), 1, nComponentSize);
 			}
@@ -307,7 +290,7 @@ void OutputManagerComposite::Output(
 
 			int nPatchIx = m_grid.GetCumulativePatch3DNodeIndex(ixRecvPatch);
 			for (int c = 0; c < eqn.GetTracers(); c++) {
-				m_vecTracersVar[c]->set_cur(m_ixOutputTime, nPatchIx);
+				m_vecTracersVar[c]->set_cur(nPatchIx);
 				m_vecTracersVar[c]->put(
 					&(dataRecvBuffer[nComponentSize * c]), 1, nComponentSize);
 			}
@@ -323,6 +306,7 @@ void OutputManagerComposite::Output(
 void OutputManagerComposite::Input(
 	Grid & grid
 ) const {
+	_EXCEPTION();
 	// Determine processor rank; only proceed if root node
 	int nRank;
 	MPI_Comm_rank(MPI_COMM_WORLD, &nRank);

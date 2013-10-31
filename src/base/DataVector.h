@@ -56,6 +56,7 @@ class DataVector {
 		DataVector(
 			unsigned int sRows
 		) :
+			m_sRows(0),
 			m_data(NULL)
 		{
 			Initialize(sRows);
@@ -67,6 +68,7 @@ class DataVector {
 		DataVector(
 			const DataVector<DataType> & dv
 		) :
+			m_sRows(0),
 			m_data(NULL)
 		{
 			Assign(dv);
@@ -164,7 +166,7 @@ class DataVector {
 			}
 
 			// Allocate memory
-			Initialize(dv.m_sRows);
+			Initialize(dv.m_sRows, false);
 
 			// Copy data
 			memcpy(m_data, dv.m_data, m_sRows * sizeof(DataType));

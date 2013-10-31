@@ -16,6 +16,7 @@
 
 #include "OutputManager.h"
 
+#include "TimeObj.h"
 #include "Model.h"
 #include "Grid.h"
 #include "ConsolidationStatus.h"
@@ -44,8 +45,8 @@ OutputManager::OutputManager(
 	m_fIsFileOpen(false),
 	m_ixOutputTime(0),
 	m_ixOutputFile(0),
-	m_dLastOutputTime(0.0),
-	m_dNextOutputTime(0.0),
+	m_timeLastOutput(0, 0, 0, 0.0),
+	m_timeNextOutput(0, 0, 0, 0.0),
 	m_dOutputDeltaT(dOutputDeltaT),
 	m_strOutputDir(strOutputDir),
 	m_strOutputPrefix(strOutputPrefix),
@@ -75,7 +76,7 @@ void OutputManager::GetFileName(std::string & strFileName) const {
 ///////////////////////////////////////////////////////////////////////////////
 
 bool OutputManager::IsOutputNeeded(
-	double dTime
+	const Time & time
 ) {
 	// Only output initial and final results if no output time is set
 	if (m_dOutputDeltaT == 0.0) {
@@ -83,7 +84,7 @@ bool OutputManager::IsOutputNeeded(
 	}
 
 	// Check current time against next output time
-	if (dTime < (1.0 - 1.0e-12) * m_dNextOutputTime) {
+	if (time < m_timeNextOutput) {
 		return false;
 	}
 
@@ -93,7 +94,7 @@ bool OutputManager::IsOutputNeeded(
 ///////////////////////////////////////////////////////////////////////////////
 
 void OutputManager::PerformOutput(
-	double dTime
+	const Time & time
 ) {
 	// Open the file
 	if (!m_fIsFileOpen) {
@@ -108,7 +109,7 @@ void OutputManager::PerformOutput(
 	}
 
 	// Output
-	Output(dTime);
+	Output(time);
 	m_ixOutputTime ++;
 
 	// Check if time limit is reached
@@ -123,61 +124,68 @@ void OutputManager::PerformOutput(
 ///////////////////////////////////////////////////////////////////////////////
 
 void OutputManager::ManageOutput(
-	double dTime
+	const Time & time
 ) {
 	// Notification
-	Announce("Output (%i/%i): %f",
-		m_ixOutputFile+1,  m_ixOutputTime+1, dTime);
+	Announce("Output (%i/%i): %s",
+		m_ixOutputFile+1,  m_ixOutputTime+1, time.ToString().c_str());
 
 	// Perform the output
-	PerformOutput(dTime);
+	PerformOutput(time);
 
 	// Update last output time
-	m_dLastOutputTime = dTime;
+	m_timeLastOutput = time;
 
 	// Update next output time
-	m_dNextOutputTime += m_dOutputDeltaT;
+	m_timeNextOutput += m_dOutputDeltaT;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 
 void OutputManager::InitialOutput(
-	double dTime
+	const Time & time
 ) {
 	// Check if we were initialized from a recovery file
 	if (m_fFromRecoveryFile) {
-		Announce("Output (%i): %f (Initial; Output Suppressed)",
-			m_ixOutputFile+1, dTime);
-
-		m_dNextOutputTime = dTime + m_dOutputDeltaT;
+		Announce("%s (%i): %s (Initial; Output Suppressed)",
+			GetName(),
+			m_ixOutputFile+1,
+			time.ToString().c_str());
 
 	// Output initial conditions
 	} else {
-		Announce("Output (%i/%i): %f (Initial)",
-			m_ixOutputFile+1, m_ixOutputTime+1, dTime);
+		Announce("%s (%i/%i): %s (Initial)",
+			GetName(),
+			m_ixOutputFile+1,
+			m_ixOutputTime+1,
+			time.ToString().c_str());
 
-		PerformOutput(dTime);
-
-		m_dNextOutputTime = m_dOutputDeltaT;
+		PerformOutput(time);
 	}
+
+	m_timeNextOutput = time;
+	m_timeNextOutput += m_dOutputDeltaT;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 
 void OutputManager::FinalOutput(
-	double dTime
+	const Time & time
 ) {
 	// Verify that the time has changed sufficiently since last output
-	if (fabs(dTime - m_dLastOutputTime) < dTime * DBL_EPSILON) {
+	if (time == m_timeLastOutput) {
 		return;
 	}
 
 	// Notification
-	Announce("Output (%i/%i): %f (Final)",
-		m_ixOutputFile+1, m_ixOutputTime+1, dTime);
+	Announce("%s (%i/%i): %s (Final)",
+		GetName(),
+		m_ixOutputFile+1,
+		m_ixOutputTime+1,
+		time.ToString().c_str());
 
 	// Output
-	PerformOutput(dTime);
+	PerformOutput(time);
 }
 
 ///////////////////////////////////////////////////////////////////////////////

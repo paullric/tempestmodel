@@ -24,6 +24,7 @@
 
 ///////////////////////////////////////////////////////////////////////////////
 
+class Time;
 class GridData3D;
 class GridData4D;
 
@@ -84,7 +85,7 @@ public:
 	void StepShallowWater(
 		int iDataInitial,
 		int iDataUpdate,
-		double dTime,
+		const Time & time,
 		double dDeltaT
 	);
 
@@ -95,7 +96,7 @@ public:
 	void ElementFluxesShallowWater(
 		int iDataInitial,
 		int iDataUpdate,
-		double dTime,
+		const Time & time,
 		double dDeltaT
 	);
 
@@ -106,7 +107,7 @@ public:
 	void StepNonhydrostaticPrimitive(
 		int iDataInitial,
 		int iDataUpdate,
-		double dTime,
+		const Time & time,
 		double dDeltaT
 	);
 
@@ -117,7 +118,7 @@ public:
 	virtual void StepExplicit(
 		int iDataInitial,
 		int iDataUpdate,
-		double dTime,
+		const Time & time,
 		double dDeltaT
 	);
 
@@ -153,7 +154,7 @@ public:
 		int iDataInitial,
 		int iDataUpdate,
 		int iDataWorking,
-		double dTime,
+		const Time & time,
 		double dDeltaT
 	);
 
@@ -167,29 +168,7 @@ private:
 	///		Spatial order of accuracy.
 	///	</summary>
 	int m_nHorizontalOrder;
-/*
-	///	<summary>
-	///		Type of mass matrix employed by this method.
-	///	</summary>
-	MassMatrixType m_eMassMatrixType;
 
-	///	<summary>
-	///		Horizontal time integrator being used.
-	///	</summary>
-	TimeIntegrator m_eTimeIntegrator;
-*/
-/*
-	///	<summary>
-	///		Derivatives of the basis functions at nodal points on the
-	///		reference element.
-	///	</summary>
-	DataMatrix<double> m_dDxBasis1D;
-
-	///	<summary>
-	///		Components of the stiffness matrix.
-	///	</summary>
-	DataMatrix<double> m_dStiffness1D;
-*/
 	///	<summary>
 	///		Derivatives of the flux reconstruction function (used by
 	///		discontinuous Galerkin dynamics).

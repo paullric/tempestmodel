@@ -29,9 +29,12 @@
 
 ///////////////////////////////////////////////////////////////////////////////
 
+class Time;
 class Model;
 class TestCase;
 class ConsolidationStatus;
+
+class NcFile;
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -79,7 +82,7 @@ protected:
 	///	</summary>
 	void EvaluateTestCase(
 		const TestCase & test,
-		double dTime = 0.0,
+		const Time & time,
 		int iDataIndex = 0
 	);
 
@@ -258,10 +261,34 @@ public:
 	}
 
 	///	<summary>
+	///		Add a patch to the grid with the specified index and PatchBox.
+	///	</summary>
+	virtual GridPatch * AddPatch(
+		int ixPatch,
+		const PatchBox & box
+	) {
+		_EXCEPTIONT("Not implemented");
+	}
+
+	///	<summary>
 	///		Add a patch to the grid.
 	///	</summary>
 	GridPatch * AddPatch(
 		GridPatch * pPatch
+	);
+
+	///	<summary>
+	///		Write a grid to a NetCDF file.
+	///	</summary>
+	void ToFile(
+		NcFile & ncfile
+	);
+
+	///	<summary>
+	///		Load a grid from a file.
+	///	</summary>
+	void FromFile(
+		const std::string & strGridFile
 	);
 
 protected:

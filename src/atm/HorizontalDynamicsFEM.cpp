@@ -72,7 +72,7 @@ HorizontalDynamicsFEM::HorizontalDynamicsFEM(
 void HorizontalDynamicsFEM::StepShallowWater(
 	int iDataInitial,
 	int iDataUpdate,
-	double dTime,
+	const Time & time,
 	double dDeltaT
 ) {
 
@@ -311,7 +311,7 @@ void HorizontalDynamicsFEM::StepShallowWater(
 void HorizontalDynamicsFEM::ElementFluxesShallowWater(
 	int iDataInitial,
 	int iDataUpdate,
-	double dTime,
+	const Time & time,
 	double dDeltaT
 ) {
 	// Get a copy of the GLL grid
@@ -519,7 +519,7 @@ void HorizontalDynamicsFEM::ElementFluxesShallowWater(
 void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 	int iDataInitial,
 	int iDataUpdate,
-	double dTime,
+	const Time & time,
 	double dDeltaT
 ) {
 	// Get a copy of the GLL grid
@@ -965,7 +965,7 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 void HorizontalDynamicsFEM::StepExplicit(
 	int iDataInitial,
 	int iDataUpdate,
-	double dTime,
+	const Time & time,
 	double dDeltaT
 ) {
 	if (iDataInitial == iDataUpdate) {
@@ -978,14 +978,14 @@ void HorizontalDynamicsFEM::StepExplicit(
 
 	// Step the primitive nonhydrostatic equations
 	if (eqn.GetType() == EquationSet::PrimitiveNonhydrostaticEquations) {
-		StepNonhydrostaticPrimitive(iDataInitial, iDataUpdate, dTime, dDeltaT);
+		StepNonhydrostaticPrimitive(iDataInitial, iDataUpdate, time, dDeltaT);
 
 	// Step the shallow water equations
 	} else if (eqn.GetType() == EquationSet::ShallowWaterEquations) {
-		StepShallowWater(iDataInitial, iDataUpdate, dTime, dDeltaT);
+		StepShallowWater(iDataInitial, iDataUpdate, time, dDeltaT);
 
 		if (m_eHorizontalDynamicsType == DiscontinuousGalerkin) {
-			ElementFluxesShallowWater(iDataInitial, iDataUpdate, dTime, dDeltaT);
+			ElementFluxesShallowWater(iDataInitial, iDataUpdate, time, dDeltaT);
 		}
 
 	// Invalid EquationSet
@@ -1433,7 +1433,7 @@ void HorizontalDynamicsFEM::StepAfterSubCycle(
 	int iDataInitial,
 	int iDataUpdate,
 	int iDataWorking,
-	double dTime,
+	const Time & time,
 	double dDeltaT
 ) {
 	// Only proceed if hyperdiffusion is applied

@@ -39,7 +39,8 @@ FILES= CubedSphereTrans.cpp \
        Direction.cpp \
        GridData3D.cpp \
        GridData4D.cpp \
-       TestCase.cpp
+       TestCase.cpp \
+	   TimeObj.cpp
 
 ##
 ## Build flags

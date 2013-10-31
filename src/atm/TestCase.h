@@ -22,6 +22,8 @@
 
 #include "GridData4D.h"
 
+class Time;
+
 ///////////////////////////////////////////////////////////////////////////////
 
 ///	<summary>
@@ -94,7 +96,7 @@ public:
 	///	</summary>
 	virtual void EvaluatePointwiseState(
 		const PhysicalConstants & phys,
-		double dTime,
+		const Time & time,
 		double dZ,
 		double dLon,
 		double dLat,

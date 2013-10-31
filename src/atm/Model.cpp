@@ -37,7 +37,7 @@ Model::Model(
 	m_pVerticalDynamics(NULL),
 	m_pTestCase(NULL),
 	m_eqn(eEquationSetType),
-	m_dTime(0.0)
+	m_time(0, 0, 0, 0.0)
 {
 	// Initialize staggering from equation set
 	m_stag.Initialize(m_eqn);
@@ -129,6 +129,9 @@ void Model::SetTestCase(
 		_EXCEPTIONT(
 			"A grid must be specified before attaching a TestCase.");
 	}
+	if (m_pParam == NULL) {
+		_EXCEPTIONT("No ModelParameters have been set.");
+	}
 	if (pTestCase == NULL) {
 		_EXCEPTIONT("Invalid TestCase (NULL)");
 	}
@@ -142,7 +145,7 @@ void Model::SetTestCase(
 		m_pTestCase->EvaluatePhysicalConstants(m_phys);
 
 		// Initialize the topography and data
-		m_pGrid->EvaluateTestCase(*pTestCase);
+		m_pGrid->EvaluateTestCase(*pTestCase, m_pParam->m_timeStart);
 	}
 }
 
@@ -193,17 +196,19 @@ void Model::Go() {
 	m_pHorizontalDynamics->Initialize();
 	m_pVerticalDynamics->Initialize();
 
-	// Current time
-	m_dTime = m_pParam->m_dBeginTime;
+	// Set the end time of the simulation from number of seconds
+	if (m_pParam->m_dEndTime != 0.0) {
+		m_pParam->m_timeEnd = Time(0, 0, 0, m_pParam->m_dEndTime);
+	}
 
 	// Check time
-	if (m_dTime / m_pParam->m_dEndTime >= 1.0 - DBL_EPSILON) {
+	if (m_time > m_pParam->m_timeEnd) {
 		return;
 	}
 
 	// Initial output
 	for (int om = 0; om < m_vecOutMan.size(); om++) {
-		m_vecOutMan[om]->InitialOutput(m_dTime);
+		m_vecOutMan[om]->InitialOutput(m_time);
 	}
 
 	// First time step
@@ -216,33 +221,32 @@ void Model::Go() {
 		bool fLastStep = false;
 
 		// Next time step
-		double dTimeNext = m_dTime + m_pParam->m_dDeltaT;
+		Time timeNext = m_time;
+		timeNext.AddSeconds(m_pParam->m_dDeltaT);
 
 		// Time step size
 		double dDeltaT = m_pParam->m_dDeltaT;
 
 		// Perform a semi-timestep if necessary to align timescales
-		if (dTimeNext / m_pParam->m_dEndTime >= 1.0 - DBL_EPSILON) {
-			dDeltaT = m_pParam->m_dEndTime - m_dTime;
+		if (timeNext >= m_pParam->m_timeEnd) {
+			dDeltaT = m_pParam->m_timeEnd - m_time;
 			fLastStep = true;
 		}
 
 		// Perform one time step
-		m_pTimestepScheme->Step(fFirstStep, fLastStep, m_dTime, dDeltaT);
+		m_pTimestepScheme->Step(fFirstStep, fLastStep, m_time, dDeltaT);
 
 		// Update the timer
-		m_dTime += dDeltaT;
+		m_time += dDeltaT;
 
-		if ((fLastStep) ||
-			(m_dTime / m_pParam->m_dEndTime >= (1.0 - DBL_EPSILON))
-		) {
+		if (fLastStep) {
 			break;
 		}
 
 		// Check for output
 		for (int om = 0; om < m_vecOutMan.size(); om++) {
-			if (m_vecOutMan[om]->IsOutputNeeded(m_dTime)) {
-				m_vecOutMan[om]->ManageOutput(m_dTime);
+			if (m_vecOutMan[om]->IsOutputNeeded(m_time)) {
+				m_vecOutMan[om]->ManageOutput(m_time);
 			}
 		}
 
@@ -252,7 +256,7 @@ void Model::Go() {
 
 	// Final output
 	for (int om = 0; om < m_vecOutMan.size(); om++) {
-		m_vecOutMan[om]->FinalOutput(m_dTime);
+		m_vecOutMan[om]->FinalOutput(m_time);
 	}
 }
 
@@ -272,7 +276,7 @@ void Model::ComputeErrorNorms() {
 	MPI_Comm_rank(MPI_COMM_WORLD, &nRank);
 
 	// Initialize test case reference data
-	m_pGrid->EvaluateTestCase(*m_pTestCase, m_dTime, 1);
+	m_pGrid->EvaluateTestCase(*m_pTestCase, m_time, 1);
 
 	// Construct the reference state
 	m_pGrid->CopyData(1, 2, DataType_State);

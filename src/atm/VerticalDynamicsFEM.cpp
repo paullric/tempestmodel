@@ -23,6 +23,7 @@
 #include "Grid.h"
 #include "GridCSGLL.h"
 #include "EquationSet.h"
+#include "TimeObj.h"
 #include "PolynomialInterp.h"
 #include "LinearAlgebra.h"
 
@@ -646,7 +647,7 @@ void VerticalDynamicsFEM::DifferentiateREdgeToREdge(
 void VerticalDynamicsFEM::StepExplicit(
 	int iDataInitial,
 	int iDataUpdate,
-	double dTime,
+	const Time & time,
 	double dDeltaT
 ) {
 	// Get a copy of the grid
@@ -882,7 +883,7 @@ void VerticalDynamicsFEM::BuildJacobian() {
 void VerticalDynamicsFEM::StepImplicit(
 	int iDataInitial,
 	int iDataUpdate,
-	double dTime,
+	const Time & time,
 	double dDeltaT
 ) {
 	// Get a copy of the grid
@@ -1085,9 +1086,7 @@ void VerticalDynamicsFEM::StepImplicit(
 			// Use Jacobian-Free Newton-Krylov to solve
 			m_dSoln = m_dColumnState;
 
-			if (dTime > 0.0) {
-				BuildJacobian();
-			}
+			BuildJacobian();
 
 			double dError =
 				PerformJFNK_NewtonStep_Safe(

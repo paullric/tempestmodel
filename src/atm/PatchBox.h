@@ -55,6 +55,37 @@ public:
 		InitializeCoordinates(gridspacingA, gridspacingB);
 	}
 
+	///	<summary>
+	///		Constructor with coordinate arrays.
+	///	</summary>
+	PatchBox(
+		int ixPanel,
+		int iRefinementLevel,
+		int nHaloElements,
+		int ixAGlobalInteriorBegin,
+		int ixAGlobalInteriorEnd,
+		int ixBGlobalInteriorBegin,
+		int ixBGlobalInteriorEnd,
+		const DataVector<double> & dANodes,
+		const DataVector<double> & dBNodes,
+		const DataVector<double> & dAEdges,
+		const DataVector<double> & dBEdges
+	) :
+		m_ixPanel(ixPanel),
+		m_iRefinementLevel(iRefinementLevel),
+		m_nHaloElements(nHaloElements),
+		m_ixABegin(ixAGlobalInteriorBegin - nHaloElements),
+		m_ixAEnd(ixAGlobalInteriorEnd + nHaloElements),
+		m_ixBBegin(ixBGlobalInteriorBegin - nHaloElements),
+		m_ixBEnd(ixBGlobalInteriorEnd + nHaloElements),
+		m_dANodes(dANodes),
+		m_dBNodes(dBNodes),
+		m_dAEdges(dAEdges),
+		m_dBEdges(dBEdges)
+	{
+		// Check coordinate arrays?
+	}
+
 public:
 	///	<summary>
 	///		Initialize the coordinate arrays.

@@ -21,6 +21,8 @@
 
 #include "DataMatrix3D.h"
 
+class Time;
+
 ///////////////////////////////////////////////////////////////////////////////
 
 ///	<summary>
@@ -47,6 +49,13 @@ public:
 	///		Destructor.
 	///	</summary>
 	virtual ~OutputManagerReference();
+
+	///	<summary>
+	///		Get the name of the OutputManager.
+	///	</summary>
+	virtual const char * GetName() const {
+		return "Reference";
+	}
 
 	///	<summary>
 	///		Modify the flag which indicates whether vorticity should be
@@ -88,7 +97,7 @@ protected:
 	///		Write output to a file.
 	///	</summary>
 	virtual void Output(
-		double dTime
+		const Time & time
 	);
 
 protected:

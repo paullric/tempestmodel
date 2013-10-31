@@ -115,7 +115,7 @@ public:
 	///	</summary>
 	virtual void EvaluatePointwiseState(
 		const PhysicalConstants & phys,
-		double dTime,
+		const Time & time,
 		double dZ,
 		double dLon,
 		double dLat,
@@ -194,6 +194,9 @@ try {
 	// Number of outputs per reference file
 	int nOutputsPerFile;
 
+	// Restart file name
+	std::string strRestartFile;
+
 	// Resolution
 	int nResolution;
 
@@ -215,6 +218,9 @@ try {
 	// Output time
 	double dOutputDeltaT;
 
+	// End time of the simulation (in seconds)
+	double dEndTime;
+
 	// Numerical method
 	std::string strHorizontalDynamics;
 
@@ -229,6 +235,7 @@ try {
 		CommandLineString(strOutputDir, "output_dir", "outSWTest2");
 		CommandLineString(strOutputPrefix, "output_prefix", "out");
 		CommandLineInt(nOutputsPerFile, "output_perfile", -1);
+		CommandLineString(strRestartFile, "restart_file", "");
 		CommandLineInt(nResolution, "resolution", 40);
 		CommandLineInt(nOrder, "order", 4);
 		CommandLineDouble(dU0, "u0", 38.61068277);
@@ -300,7 +307,12 @@ try {
 		1,
 		1);
 
-	grid.AddDefaultPatches();
+	if (strRestartFile == "") {
+		grid.AddDefaultPatches();
+	} else {
+		grid.FromFile(strRestartFile);
+	}
+
 	model.SetGrid(&grid);
 	AnnounceEndBlock("Done");
 

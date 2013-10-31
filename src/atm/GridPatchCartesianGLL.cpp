@@ -504,7 +504,7 @@ void GridPatchCartesianGLL::EvaluateGeometricTerms(
 
 void GridPatchCartesianGLL::EvaluateTestCase(
 	const TestCase & test,
-	double dTime,
+	const Time & time,
 	int iDataIndex
 ) {
 	// Initialize the data at each node
@@ -581,7 +581,7 @@ void GridPatchCartesianGLL::EvaluateTestCase(
 		// Evaluate pointwise state
 		test.EvaluatePointwiseState(
 			m_grid.GetModel().GetPhysicalConstants(),
-			dTime,
+			time,
 			m_dataZLevels[k][i][j],
 			m_dataLon[i][j],
 			m_dataLat[i][j],
@@ -655,7 +655,7 @@ void GridPatchCartesianGLL::EvaluateTestCase(
 		// Evaluate pointwise state
 		test.EvaluatePointwiseState(
 			m_grid.GetModel().GetPhysicalConstants(),
-			dTime,
+			time,
 			m_dataZInterfaces[k][i][j],
 			m_dataLon[i][j],
 			m_dataLat[i][j],
