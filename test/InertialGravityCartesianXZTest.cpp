@@ -44,6 +44,11 @@
 ///	</summary>
 class InertialGravityCartesianXZTest : public TestCase {
 
+public:
+    /// <summary>
+    ///		Grid dimension array (FOR CARTESIAN GRIDS).
+	///	</summary>
+    double m_dGDim[6];
 private:
 	///	<summary>
 	///		Background height field.
@@ -118,8 +123,8 @@ public:
 		m_dH0(10000.),
 		m_dU0(20.),
         m_dP0(1.E5),
-        m_dCp(1.012),
-        m_dCv(0.00121),
+        m_dCp(1005.0),
+        m_dCv(718.0),
         m_dR(287.058),
 		m_dNbar(0.01),
 		m_dTheta0(300.),
@@ -128,7 +133,11 @@ public:
 		m_daC(5000.),
 		m_dxC(100.E+3),
 		m_dpiC(3.14159265)
-	{ }
+	{
+        m_dGDim[0] = 0.0; m_dGDim[1] = 300000.0;
+        m_dGDim[2] = -1000.0; m_dGDim[3] = 1000.0;
+        m_dGDim[4] = 0.0; m_dGDim[5] = 10000.0;
+    }
 
 public:
 	///	<summary>
@@ -172,8 +181,9 @@ public:
         // Potential temperature perturbation
         double dThetaHat = m_dThetaC * sin(m_dpiC * dxP / m_dhC)
                                      / (1.0 + pow((dxP - m_dxC)/m_daC,2.0));
+        //std::cout << dThetaHat + dThetaBar << '\n';
 
-		return dThetaHat + dThetaHat;
+		return dThetaHat + dThetaBar;
 	}
 
 	///	<summary>
@@ -202,8 +212,9 @@ public:
         double dExnerP = pow(gsi,2.0) / (m_dCp * m_dTheta0 * pow(m_dNbar,2.0));
         dExnerP *= exp(-pow(m_dNbar,2.0)/gsi * dzP) - 1.0;
         dExnerP += 1.0;
-
+        //std::cout << dExnerP << '\n';
         double dRho = m_dP0 / (m_dR * dState[2]) * pow(dExnerP,(m_dCv / m_dR));
+        //std::cout << dRho << '\n';
         dState[4] = dRho;
 	}
 };
@@ -252,12 +263,12 @@ try {
 			"outInertialGravityCartesianXZTest");
 		CommandLineString(strOutputPrefix, "output_prefix", "out");
 		CommandLineInt(nOutputsPerFile, "output_perfile", -1);
-		CommandLineInt(nResolution, "resolution", 60);
+		CommandLineInt(nResolution, "resolution", 20);
 		CommandLineInt(nOrder, "order", 4);
 		CommandLineDouble(dAlpha, "alpha", 0.0);
-		CommandLineDouble(params.m_dDeltaT, "dt", 30.0);
-		CommandLineDouble(params.m_dEndTime, "endtime", 3000.0);
-		CommandLineDouble(dOutputDeltaT, "outputtime", 300.0);
+		CommandLineDouble(params.m_dDeltaT, "dt", 1.0);
+		CommandLineDouble(params.m_dEndTime, "endtime", 2.0);
+		CommandLineDouble(dOutputDeltaT, "outputtime", 1.0);
 		CommandLineStringD(strHorizontalDynamics, "method", "DG", "(SE | DG)");
 		CommandLineBool(fNoHyperviscosity, "nohypervis");
 
@@ -277,6 +288,8 @@ try {
 	AnnounceEndBlock("Done");
 
 	// Generate a new cartesian GLL grid (20 x 20 x 20 for now)
+    // Initialize the test case here (to have grid dimensions available)
+    InertialGravityCartesianXZTest test;
 	AnnounceStartBlock("Creating grid");
 	GridCartesianGLL grid(
 		model,
@@ -284,7 +297,8 @@ try {
 		1,
 		nOrder,
         nOrder,
-		nResolution);
+		nResolution,
+        test.m_dGDim);
 
 	AnnounceEndBlock("Done");
 
@@ -328,9 +342,9 @@ try {
 	AnnounceEndBlock("Done");
 
 	// Set the test case for the model
-	InertialGravityCartesianXZTest test;
+    InertialGravityCartesianXZTest ctest;
 	AnnounceStartBlock("Initializing test case");
-	model.SetTestCase(&test);
+	model.SetTestCase(&ctest);
 	AnnounceEndBlock("Done");
 
 	// Set the reference output manager for the model
@@ -341,7 +355,7 @@ try {
 		strOutputDir,
 		strOutputPrefix,
 		nOutputsPerFile,
-		60, 60);
+		20, 20);
 	outmanRef.OutputVorticity();
 	outmanRef.OutputDivergence();
 	model.AttachOutputManager(&outmanRef);

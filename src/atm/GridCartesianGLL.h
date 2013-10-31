@@ -26,6 +26,12 @@
 ///		quadrature nodes.
 ///	</summary>
 class GridCartesianGLL : public GridGLL {
+    
+private:
+    ///	<summary>
+	///		Dimension of the grid - private to cartesian grids.
+	///	</summary>
+    double m_dGDim[];
 
 public:
 	///	<summary>
@@ -37,7 +43,8 @@ public:
 		int nRefinementRatio,
 		int nHorizontalOrder,
 		int nVerticalOrder,
-		int nRElements
+		int nRElements,
+        double nGDim[]
 	);
 
 	///	<summary>

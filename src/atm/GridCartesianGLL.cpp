@@ -30,6 +30,7 @@
 #include "MathHelper.h"
 
 #include <cmath>
+#include <sstream>
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -39,8 +40,12 @@ GridCartesianGLL::GridCartesianGLL(
 	int nRefinementRatio,
 	int nHorizontalOrder,
 	int nVerticalOrder,
-	int nRElements
+	int nRElements,
+    double dGDim[]
 ) :
+    // Bring through the grid dimensions
+    //m_dGDim({0.0, 0.0, 0.0, 0.0, 0.0, 0.0}),
+
 	// Call up the stack
 	GridGLL::GridGLL(
 		model,
@@ -51,7 +56,12 @@ GridCartesianGLL::GridCartesianGLL(
 		nRElements)
 {
 	// Set the reference length scale
-	m_dReferenceLength = 0.5 * M_PI / 30.0;
+	m_dReferenceLength = 10000.0;
+    
+    // Bring through the grid dimensions
+    m_dGDim[0] = dGDim[0]; m_dGDim[1] = dGDim[1];
+    m_dGDim[2] = dGDim[2]; m_dGDim[3] = dGDim[3];
+    m_dGDim[4] = dGDim[4]; m_dGDim[5] = dGDim[5];
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -109,6 +119,7 @@ void GridCartesianGLL::Initialize() {
 	// Single panel 0 implementation (Cartesian Grid)
 	// Rectangular alpha-wise patches that span all of the beta direction
 	// (as many as there are processors available)
+    //std::cout << "nProcsPerDirection" << nProcsPerDirection << "\n";
     int n = 0;
 	for (int i = 0; i < nProcsPerDirection; i++) {
 	int j = 0;
@@ -123,11 +134,12 @@ void GridCartesianGLL::Initialize() {
 			m_nHorizontalOrder * iBoxBegin[i],
 			m_nHorizontalOrder * iBoxBegin[i+1],
 			0.0,
-			m_nHorizontalOrder,
+			m_nHorizontalOrder * nElementsPerDirection,
 			glspacing,
 			glspacing);
 
 		int ixPatch = n * nProcsPerPanel + i * nProcsPerDirection + j;
+        //std::cout << "ixPatch" << ixPatch << "\n";
 
 		pPatches.push_back(
 			AddPatch(
@@ -176,21 +188,21 @@ void GridCartesianGLL::InitializeVerticalCoordinate(
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// TODO: Hard coded dimensions for the test case here for now - JEG
+
 void GridCartesianGLL::GetReferenceGridBounds(
     double & dX0,
     double & dX1,
     double & dY0,
     double & dY1
 ) {
-	dX0 = 0.0;
-	dX1 = 300000.;
-	dY0 = -10.0;
-	dY1 = +10.0;
+	dX0 = m_dGDim[0];
+	dX1 = m_dGDim[1];
+	dY0 = m_dGDim[2];
+	dY1 = m_dGDim[3];
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// TODO This method is no longer needed
+// TODO: This method is no longer needed
 void GridCartesianGLL::ConvertReferenceToPatchCoord(
 	const DataVector<double> & dXReference,
 	const DataVector<double> & dYReference,
@@ -217,6 +229,7 @@ void GridCartesianGLL::ApplyDSS(
 	// Post-process velocities across panel edges and
 	// perform direct stiffness summation (DSS)
 	for (int n = 0; n < GetActivePatchCount(); n++) {
+        //std::cout << "DSS patch loop count: " << n << "\n";
 		GridPatchCartesianGLL * pPatch =
 			dynamic_cast<GridPatchCartesianGLL*>(GetActivePatch(n));
 
@@ -225,9 +238,15 @@ void GridCartesianGLL::ApplyDSS(
 		// Patch-specific quantities
 		int nAInteriorWidth = pPatch->GetPatchBox().GetAInteriorWidth();
 		int nBInteriorWidth = pPatch->GetPatchBox().GetBInteriorWidth();
+        
+        //std::cout << "ApplyDSS nAInteriorWidth: " << nAInteriorWidth << "\n";
+        //std::cout << "ApplyDSS nBInteriorWidth: " << nBInteriorWidth << "\n";
 
 		int nAElements = nAInteriorWidth / m_nHorizontalOrder;
 		int nBElements = nBInteriorWidth / m_nHorizontalOrder;
+        
+        //std::cout << "ApplyDSS nAElements: " << nAElements << "\n";
+        //std::cout << "ApplyDSS nBElements: " << nBElements << "\n";
 
 		if ((nAInteriorWidth % m_nHorizontalOrder) != 0) {
 			_EXCEPTIONT("Logic Error: Invalid PatchBox alpha spacing");
@@ -277,73 +296,81 @@ void GridCartesianGLL::ApplyDSS(
 			} else if (eDataType == DataType_Divergence) {
 				pDataUpdate = pPatch->GetDataDivergence();
 			}
-
-			// Apply horizontal direction BC's (PERIODIC ONLY FOR NOW)
-           for (int k = 0; k < nRElements; k++) {
-                // Loop in beta over first and last alpha edge. Apply X direction BC
+            
+            if (n == 0) {
+            //std::cout << nComponents << "\n";
+            }
+            std::cout << pDataUpdate[0][0][0] << "\n";
+            
+            // Apply horizontal direction BC's (PERIODIC ONLY FOR NOW)
+            for (int k = 0; k < nRElements; k++) {
+                // Loop in beta over first and last alpha edge. Apply X BC
                 int aFirst = 0;
                 int aLast= nAElements * m_nHorizontalOrder;
-                for (int j = 0; j < nBElements; j++) {
+                for (int j = 0; j <= nBElements * m_nHorizontalOrder; j++) {
                     // Periodic condition in X
                     pDataUpdate[k][aFirst][j] = pDataUpdate[k][aLast][j];
                 }
-                // Loop in alpha over first and last beta edge. Apply Y direction BC
+                // Loop in alpha over first and last beta edge. Apply Y BC
                 int bFirst = 0;
                 int bLast = nBElements * m_nHorizontalOrder;
-                for (int i = 0; i < nAElements; i++) {
+                for (int i = 0; i <= nAElements * m_nHorizontalOrder; i++) {
                     // Periodic condition in Y
                     pDataUpdate[k][i][bFirst] = pDataUpdate[k][i][bLast];
                 }
-           }
-
-           // Apply the vertical direction BC (NO FLUX TOP AND BOTTOM FOR NOW)
-           int kFirst = 0;
-           int kLast = nRElements * m_nVerticalOrder;
-           for (int i = 0; i < nAElements; i++) {
-                for (int j = 0; j < nBElements; j++) {
+            }
+        
+            // Apply the vertical direction BC (NO FLUX TOP AND BOTTOM FOR NOW)
+            int kFirst = 0;
+            int kLast = nRElements - 1;
+            //std::cout << nRElements << "\n";
+            
+            for (int i = 0; i < nAElements * m_nHorizontalOrder; i++) {
+                for (int j = 0; j < nBElements * m_nHorizontalOrder; j++) {
                     pDataUpdate[kFirst][i][j] = pDataUpdate[kFirst+1][i][j];
                     pDataUpdate[kLast][i][j] = pDataUpdate[kLast-1][i][j];
                 }
-           }
-
-           // Averaging DSS across patch boundaries
-			for (int k = 0; k < nRElements; k++) {
-
+            }
+            
+            //std::cout << "Entering DSS averaging loop!";
+            // Averaging DSS across patch boundaries
+            for (int k = 0; k < nRElements; k++) {
+                
 				// Average in the alpha direction
 				for (int a = 0; a <= nAElements; a++) {
 					int iA = a * m_nHorizontalOrder + box.GetHaloElements();
-
+                    
 					// Averaging done at the corners of the panel
 					int jBegin = box.GetBInteriorBegin()-1;
 					int jEnd = box.GetBInteriorEnd()+1;
-
+                    
 					// Perform averaging across edge of patch
 					for (int j = jBegin; j < jEnd; j++) {
 						pDataUpdate[k][iA][j] = 0.5 * (
-							+ pDataUpdate[k][iA  ][j]
-							+ pDataUpdate[k][iA-1][j]);
-
+                                                       + pDataUpdate[k][iA  ][j]
+                                                       + pDataUpdate[k][iA-1][j]);
+                        
 						pDataUpdate[k][iA-1][j] = pDataUpdate[k][iA][j];
 					}
 				}
-
+                
 				// Average in the beta direction
 				for (int b = 0; b <= nBElements; b++) {
 					int iB = b * m_nHorizontalOrder + box.GetHaloElements();
-
+                    
 					// Averaging done at the corners of the panel
 					int iBegin = box.GetAInteriorBegin()-1;
 					int iEnd = box.GetAInteriorEnd()+1;
-
+                    
 					for (int i = iBegin; i < iEnd; i++) {
 						pDataUpdate[k][i][iB] = 0.5 * (
-							+ pDataUpdate[k][i][iB  ]
-							+ pDataUpdate[k][i][iB-1]);
-
+                                                       + pDataUpdate[k][i][iB  ]
+                                                       + pDataUpdate[k][i][iB-1]);
+                        
 						pDataUpdate[k][i][iB-1] = pDataUpdate[k][i][iB];
 					}
 				}
-			}
+            }
 		}
 	}
 }

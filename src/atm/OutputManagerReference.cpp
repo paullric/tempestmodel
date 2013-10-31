@@ -374,9 +374,7 @@ void OutputManagerReference::Output(
 			_EXCEPTIONT("Insufficient components");
 		}
         
-        std::cout << "Compute vorticity of initial state\n";
 		m_grid.ComputeVorticityDivergence(0);
-        std::cout << "Done computing vorticity of initial state\n";
 
 		if (m_fOutputVorticity) {
 			m_grid.ReduceInterpolate(
