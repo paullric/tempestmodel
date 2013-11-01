@@ -262,6 +262,19 @@ public:
 	///	<summary>
 	///		Get the Time as a string.
 	///	</summary>
+	std::string ToShortString() const {
+		char szBuffer[100];
+
+		sprintf(szBuffer, "%04i-%02i-%02i-%05i",
+			m_iYear, m_iMonth+1, m_iDay+1, static_cast<int>(m_dSeconds));
+
+		return std::string(szBuffer);
+	}
+
+	///	<summary>
+	///		Get the Time as a full-length string showing hours, days
+	///		and seconds.
+	///	</summary>
 	std::string ToString() const {
 		char szBuffer[100];
 

@@ -65,7 +65,10 @@ protected:
 	///	<summary>
 	///		Get the active file name.
 	///	</summary>
-	void GetFileName(std::string & strFileName) const;
+	void GetFileName(
+		const Time & time,
+		std::string & strFileName
+	) const;
 
 	///	<summary>
 	///		Perform the output.

@@ -63,14 +63,15 @@ OutputManager::OutputManager(
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void OutputManager::GetFileName(std::string & strFileName) const {
-	char szIndex[128];
-	sprintf(szIndex, "%06i", m_ixOutputFile);
-	
+void OutputManager::GetFileName(
+	const Time & time,
+	std::string & strFileName
+) const {
 	strFileName = m_strOutputDir;
 	strFileName += "/";
 	strFileName += m_strOutputPrefix;
-	strFileName += szIndex;
+	strFileName += ".";
+	strFileName += time.ToShortString();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -99,7 +100,7 @@ void OutputManager::PerformOutput(
 	// Open the file
 	if (!m_fIsFileOpen) {
 		std::string strActiveFileName;
-		GetFileName(strActiveFileName);
+		GetFileName(time, strActiveFileName);
 		m_fIsFileOpen = OpenFile(strActiveFileName);
 
 		if (!m_fIsFileOpen) {
