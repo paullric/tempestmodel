@@ -159,6 +159,11 @@ void GridCSGLL::Initialize() {
 
 void GridCSGLL::AddDefaultPatches() {
 
+	// Verify no Patches have been previously added
+	if (GetPatchCount() != 0) {
+		_EXCEPTIONT("AddDefaultPatches() must be called on an empty Grid");
+	}
+
 	// Determine number of usable processors
 	int nCommSize;
 	MPI_Comm_size(MPI_COMM_WORLD, &nCommSize);

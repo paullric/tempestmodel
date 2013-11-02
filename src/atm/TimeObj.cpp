@@ -99,6 +99,35 @@ bool Time::operator>(const Time & time) const {
 
 ///////////////////////////////////////////////////////////////////////////////
 
+void Time::VerifyTime() {
+
+	// Calendar with no leap years
+	if (m_eCalendarType == CalendarNoLeap) {
+
+		const int nDaysPerMonth[]
+			= {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
+
+		if ((m_iYear < 0) || (m_iYear > 9999)) {
+			_EXCEPTIONT("Year out of range");
+		}
+		if ((m_iMonth < 0) || (m_iMonth > 11)) {
+			_EXCEPTIONT("Month out of range");
+		}
+		if ((m_iDay < 0) || (m_iDay > nDaysPerMonth[m_iMonth])) {
+			_EXCEPTIONT("Day out of range");
+		}
+		if ((m_dSeconds < 0.0) || (m_dSeconds > 86400.0)) {
+			_EXCEPTIONT("Seconds out of range");
+		}
+
+	// Operation not permitted on this CalendarType
+	} else {
+		_EXCEPTIONT("Invalid CalendarType");
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
 void Time::NormalizeTime() {
 
 	// Calendar with no leap years
@@ -230,6 +259,68 @@ double Time::operator-(const Time & time) const {
 	}
 	
 	return dDeltaSeconds;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+std::string Time::ToDateString() const {
+	char szBuffer[100];
+
+	sprintf(szBuffer, "%04i-%02i-%02i",
+		m_iYear, m_iMonth+1, m_iDay+1);
+
+	return std::string(szBuffer);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+std::string Time::ToShortString() const {
+	char szBuffer[100];
+
+	sprintf(szBuffer, "%04i-%02i-%02i-%05i",
+		m_iYear, m_iMonth+1, m_iDay+1, static_cast<int>(m_dSeconds));
+
+	return std::string(szBuffer);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+std::string Time::ToString() const {
+	char szBuffer[100];
+
+	sprintf(szBuffer, "%04i-%02i-%02i %02i:%02i:%02i",
+		m_iYear, m_iMonth+1, m_iDay+1,
+		static_cast<int>(m_dSeconds / 3600.0),
+		static_cast<int>(fmod(m_dSeconds, 3600.0) / 60.0),
+		static_cast<int>(fmod(m_dSeconds, 60.0)));
+
+	return std::string(szBuffer);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void Time::FromShortString(const std::string & strShortTime) {
+	if (strShortTime.length() != 16) {
+		_EXCEPTIONT("Invalid Time ShortString");
+	}
+	m_iYear = atoi(strShortTime.c_str());
+	m_iMonth = atoi(strShortTime.c_str()+5) - 1;
+	m_iDay = atoi(strShortTime.c_str()+8) - 1;
+	m_dSeconds = atof(strShortTime.c_str()+11);
+
+	VerifyTime();
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+std::string Time::GetCalendarName() const {
+	if (m_eCalendarType == CalendarNone) {
+		return std::string("none");
+	} else if (m_eCalendarType == CalendarNoLeap) {
+		return std::string("noleap");
+	} else {
+		_EXCEPTIONT("Invalid CalendarType");
+	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////

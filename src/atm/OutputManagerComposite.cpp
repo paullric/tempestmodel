@@ -164,6 +164,7 @@ bool OutputManagerComposite::OpenFile(
         m_grid.GetLargestGridPatchNodes()
         * m_grid.GetRElements());
 
+#pragma "Move to Output"
     while ((nRank == 0) && (!status.Done())) {
 
         int nRecvCount;
@@ -230,7 +231,8 @@ void OutputManagerComposite::Output(
 
 	// Output start time and current time
 	if (nRank == 0) {
-		m_pActiveNcOutput->add_att("current_time", time.ToString().c_str());
+		m_pActiveNcOutput->add_att(
+			"current_time", time.ToShortString().c_str());
 	}
 
 	// Begin data consolidation
@@ -271,12 +273,19 @@ void OutputManagerComposite::Output(
 			if (nRecvCount % eqn.GetComponents() != 0) {
 				_EXCEPTIONT("Invalid message length");
 			}
+			if (dataRecvBuffer.GetRows() <
+					eqn.GetComponents() * nComponentSize
+			) {
+				_EXCEPTIONT("Insufficient RecvBuffer size");
+			}
 
-			int nPatchIx = m_grid.GetCumulativePatch3DNodeIndex(ixRecvPatch);
+			int nCumulative3DNodeIx =
+				m_grid.GetCumulativePatch3DNodeIndex(ixRecvPatch);
+
 			for (int c = 0; c < eqn.GetComponents(); c++) {
-				m_vecComponentVar[c]->set_cur(nPatchIx);
+				m_vecComponentVar[c]->set_cur(nCumulative3DNodeIx);
 				m_vecComponentVar[c]->put(
-					&(dataRecvBuffer[nComponentSize * c]), 1, nComponentSize);
+					&(dataRecvBuffer[nComponentSize * c]), nComponentSize);
 			}
 
 		// Store tracer variable data
@@ -288,11 +297,13 @@ void OutputManagerComposite::Output(
 				_EXCEPTIONT("Invalid message length");
 			}
 
-			int nPatchIx = m_grid.GetCumulativePatch3DNodeIndex(ixRecvPatch);
+			int nCumulative3DNodeIx =
+				m_grid.GetCumulativePatch3DNodeIndex(ixRecvPatch);
+
 			for (int c = 0; c < eqn.GetTracers(); c++) {
-				m_vecTracersVar[c]->set_cur(nPatchIx);
+				m_vecTracersVar[c]->set_cur(nCumulative3DNodeIx);
 				m_vecTracersVar[c]->put(
-					&(dataRecvBuffer[nComponentSize * c]), 1, nComponentSize);
+					&(dataRecvBuffer[nComponentSize * c]), nComponentSize);
 			}
 		}
 	}
@@ -303,11 +314,13 @@ void OutputManagerComposite::Output(
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void OutputManagerComposite::Input(
-	Grid & grid
-) const {
-	_EXCEPTION();
-	// Determine processor rank; only proceed if root node
+Time OutputManagerComposite::Input(
+	const std::string & strFileName
+) {
+	// Set the flag indicating that output came from a restart file
+	m_fFromRestartFile = true;
+
+	// Determine processor rank
 	int nRank;
 	MPI_Comm_rank(MPI_COMM_WORLD, &nRank);
 
@@ -316,22 +329,63 @@ void OutputManagerComposite::Input(
 
 	// Open new NetCDF file
 	NcFile * pNcFile = NULL;
-	NcVar * varZs;
 
-	if (nRank == 0) {
+	// Open NetCDF file
+	pNcFile = new NcFile(strFileName.c_str(), NcFile::ReadOnly);
+	if (pNcFile == NULL) {
+		_EXCEPTIONT("Error opening NetCDF file");
+	}
 
-		// Open NetCDF file
-		pNcFile = new NcFile(m_strRestartFile.c_str(), NcFile::ReadOnly);
-		if (m_pActiveNcOutput == NULL) {
-			_EXCEPTIONT("Error opening NetCDF file");
+	// Get the time
+	NcAtt * attCurrentTime = pNcFile->get_att("current_time");
+	if (attCurrentTime == NULL) {
+		_EXCEPTIONT("Attribute \'current_time\' not found in restart file");
+	}
+	std::string strCurrentTime = attCurrentTime->as_string(0);
+
+	Time timeCurrent(strCurrentTime);
+
+	// Equation set
+	const EquationSet & eqn = m_grid.GetModel().GetEquationSet();
+
+	// Input physical constants
+#pragma message "Input physical constants here"
+
+	// Input topography here
+#pragma message "Input topography here"
+
+	// Input state
+	for (int n = 0; n < m_grid.GetActivePatchCount(); n++) {
+		GridPatch * pPatch = m_grid.GetActivePatch(n);
+
+#pragma "Allow for specification of data index here"
+		GridData4D & data = pPatch->GetDataState(0);
+
+		int nCumulative3DNodeIx =
+			m_grid.GetCumulativePatch3DNodeIndex(pPatch->GetPatchIndex());
+
+		int nComponentSize =
+			pPatch->GetPatchBox().GetTotalNodes();
+
+		for (int c = 0; c < eqn.GetComponents(); c++) {
+			std::string strComponentName = eqn.GetComponentShortName(c);
+
+			NcVar * var = pNcFile->get_var(strComponentName.c_str());
+			if (var == NULL) {
+				_EXCEPTION1("Cannot find variable \'%s\' in file",
+					strComponentName.c_str());
+			}
+			var->set_cur(nCumulative3DNodeIx);
+			var->get(data[c][0][0], nComponentSize);
 		}
-
 	}
 
 	// Close the file
 	if (pNcFile != NULL) {
 		delete pNcFile;
 	}
+
+	return timeCurrent;
 }
 
 ///////////////////////////////////////////////////////////////////////////////

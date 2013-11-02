@@ -55,12 +55,22 @@ void Model::SetGrid(Grid * pGrid) {
 	if (pGrid == NULL) {
 		_EXCEPTIONT("Invalid Grid (NULL)");
 	}
+	if (m_pParam == NULL) {
+		_EXCEPTIONT("Model parameters must be specified before SetGrid()");
+	}
 	if (m_pGrid != NULL) {
 		_EXCEPTIONT("Grid already specified");
 	}
 
 	// Attach the grid
 	m_pGrid = pGrid;
+
+	// Set up patches
+	if (m_pParam->m_strRestartFile == "") {
+		m_pGrid->AddDefaultPatches();
+	} else {
+		m_pGrid->FromFile(m_pParam->m_strRestartFile);
+	}
 
 	// Initialize the grid
 	m_pGrid->Initialize();
@@ -122,8 +132,7 @@ void Model::InputGrid(
 ///////////////////////////////////////////////////////////////////////////////
 
 void Model::SetTestCase(
-	TestCase * pTestCase,
-	bool fEvaluateTestCase
+	TestCase * pTestCase
 ) {
 	if (m_pGrid == NULL) {
 		_EXCEPTIONT(
@@ -140,7 +149,8 @@ void Model::SetTestCase(
 	m_pTestCase = pTestCase;
 
 	// Evaluate physical constants and data from TestCase
-	if (fEvaluateTestCase) {
+	if (m_pParam->m_strRestartFile == "") {
+
 		// Evaluate physical constants
 		m_pTestCase->EvaluatePhysicalConstants(m_phys);
 
@@ -159,6 +169,34 @@ void Model::AttachOutputManager(OutputManager * pOutMan) {
 
 	// Attach output manager
 	m_vecOutMan.push_back(pOutMan);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void Model::EvaluateStateFromRestartFile() {
+	if (m_pParam == NULL) {
+		_EXCEPTIONT("ModelParameters must be set before Evaluation");
+	}
+	if (m_pGrid == NULL) {
+		_EXCEPTIONT("A grid must be specified before Evaluation");
+	}
+	if (m_pParam->m_strRestartFile == "") {
+		return;
+	}
+
+	AnnounceStartBlock("Loading state from recovery file");
+
+	int n = 0;
+	for (; n < m_vecOutMan.size(); n++) {
+		if (m_vecOutMan[n]->SupportsInput()) {
+			m_time = m_vecOutMan[n]->Input(m_pParam->m_strRestartFile);
+			break;
+		}
+	}
+	if (n == m_vecOutMan.size()) {
+		Announce("Warning: No input capable OutputManager found");
+	}
+	AnnounceEndBlock("Done");
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -196,13 +234,24 @@ void Model::Go() {
 	m_pHorizontalDynamics->Initialize();
 	m_pVerticalDynamics->Initialize();
 
+#pragma "Should this be called prior to Go()?"
+	// Initialize the state from the input file
+	EvaluateStateFromRestartFile();
+
+	// Evaluate geometric terms in the grid
+	m_pGrid->EvaluateGeometricTerms();
+
 	// Set the end time of the simulation from number of seconds
 	if (m_pParam->m_dEndTime != 0.0) {
 		m_pParam->m_timeEnd = Time(0, 0, 0, m_pParam->m_dEndTime);
 	}
 
 	// Check time
-	if (m_time > m_pParam->m_timeEnd) {
+	if (m_time >= m_pParam->m_timeEnd) {
+		Announce("Warning: Simulation start time (%s)\n"
+			"  equals or exceeds end time (%s)",
+			m_time.ToString().c_str(),
+			m_pParam->m_timeEnd.ToString().c_str());
 		return;
 	}
 

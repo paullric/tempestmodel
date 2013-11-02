@@ -417,7 +417,6 @@ try {
 		1,
 		1);
 
-	grid.AddDefaultPatches();
 	model.SetGrid(&grid);
 	AnnounceEndBlock("Done");
 

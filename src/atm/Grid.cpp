@@ -160,6 +160,14 @@ void Grid::EvaluateTestCase(
 
 ///////////////////////////////////////////////////////////////////////////////
 
+void Grid::EvaluateGeometricTerms() {
+	for (int n = 0; n < m_vecActiveGridPatches.size(); n++) {
+		m_vecActiveGridPatches[n]->EvaluateGeometricTerms();
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
 void Grid::Checksum(
 	DataType eDataType,
 	DataVector<double> & dChecksums,
@@ -829,6 +837,11 @@ void Grid::ToFile(
 void Grid::FromFile(
 	const std::string & strGridFile
 ) {
+	// Check for existing patches
+	if (GetPatchCount() != 0) {
+		_EXCEPTIONT("Trying to load over non-empty grid");
+	}
+
 	// Open the NetCDF file
 	NcFile ncfile(strGridFile.c_str(), NcFile::ReadOnly);
 

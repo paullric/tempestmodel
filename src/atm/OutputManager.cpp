@@ -41,7 +41,7 @@ OutputManager::OutputManager(
 	int nOutputsPerFile
 ) :
 	m_grid(grid),
-	m_fFromRecoveryFile(false),
+	m_fFromRestartFile(false),
 	m_fIsFileOpen(false),
 	m_ixOutputTime(0),
 	m_ixOutputFile(0),
@@ -147,7 +147,7 @@ void OutputManager::InitialOutput(
 	const Time & time
 ) {
 	// Check if we were initialized from a recovery file
-	if (m_fFromRecoveryFile) {
+	if (m_fFromRestartFile) {
 		Announce("%s (%i): %s (Initial; Output Suppressed)",
 			GetName(),
 			m_ixOutputFile+1,

@@ -29,8 +29,7 @@ class Time;
 ///		to a NetCDF file for later recovery.
 ///	</summary>
 class OutputManagerComposite :
-	public OutputManager,
-	public InputManager
+	public OutputManager
 {
 
 public:
@@ -86,11 +85,18 @@ protected:
 
 protected:
 	///	<summary>
+	///		Returns true if this OutputManager supports the input operation.
+	///	</summary>
+	virtual bool SupportsInput() const {
+		return true;
+	}
+
+	///	<summary>
 	///		Initialize the grid data from a file.
 	///	</summary>
-	void Input(
-		Grid & grid
-	) const;
+	virtual Time Input(
+		const std::string & strFileName
+	);
 
 protected:
 	///	<summary>

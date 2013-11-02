@@ -20,6 +20,7 @@
 #include "Exception.h"
 
 #include <string>
+#include <cstdlib>
 #include <cmath>
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -74,6 +75,19 @@ public:
 		NormalizeTime();
 	}
 
+	///	<summary>
+	///		Constructor from std::string.
+	///	</summary>
+	Time(const std::string & strTime) :
+		m_iYear(0),
+		m_iMonth(0),
+		m_iDay(0),
+		m_dSeconds(0),
+		m_eCalendarType(CalendarNoLeap)
+	{
+		FromShortString(strTime);
+	}
+
 public:
 	///	<summary>
 	///		Determine if two Times occur on the same date.
@@ -122,6 +136,11 @@ public:
 	}
 
 protected:
+	///	<summary>
+	///		Verify that the Time is in accordance with the calendar.
+	///	</summary>
+	void VerifyTime();
+
 	///	<summary>
 	///		Normalize the Time, in accordance with the Calendar.
 	///	</summary>
@@ -248,57 +267,30 @@ public:
 
 public:
 	///	<summary>
-	///		Get the Time as a string, only including the date.
+	///		Get the Time as a string, only including the date: "YYYY-MM-DD"
 	///	</summary>
-	std::string ToDateString() const {
-		char szBuffer[100];
-
-		sprintf(szBuffer, "%04i-%02i-%02i",
-			m_iYear, m_iMonth+1, m_iDay+1);
-
-		return std::string(szBuffer);
-	}
+	std::string ToDateString() const;
 
 	///	<summary>
-	///		Get the Time as a string.
+	///		Get the Time as a short string: "YYYY-MM-DD-SSSSS"
 	///	</summary>
-	std::string ToShortString() const {
-		char szBuffer[100];
-
-		sprintf(szBuffer, "%04i-%02i-%02i-%05i",
-			m_iYear, m_iMonth+1, m_iDay+1, static_cast<int>(m_dSeconds));
-
-		return std::string(szBuffer);
-	}
+	std::string ToShortString() const;
 
 	///	<summary>
 	///		Get the Time as a full-length string showing hours, days
-	///		and seconds.
+	///		and seconds: "YYYY-MM-DD hh:mm:ss"
 	///	</summary>
-	std::string ToString() const {
-		char szBuffer[100];
+	std::string ToString() const;
 
-		sprintf(szBuffer, "%04i-%02i-%02i %02i:%02i:%02i",
-			m_iYear, m_iMonth+1, m_iDay+1,
-			static_cast<int>(m_dSeconds / 3600.0),
-			static_cast<int>(fmod(m_dSeconds, 3600.0) / 60.0),
-			static_cast<int>(fmod(m_dSeconds, 60.0)));
-
-		return std::string(szBuffer);
-	}
+	///	<summary>
+	///		Set the Time using a short string: "YYYY-MM-DD-SSSSS"
+	///	</summary>
+	void FromShortString(const std::string & strShortTime);
 
 	///	<summary>
 	///		Get the name of the calendar.
 	///	</summary>
-	std::string GetCalendarName() const {
-		if (m_eCalendarType == CalendarNone) {
-			return std::string("none");
-		} else if (m_eCalendarType == CalendarNoLeap) {
-			return std::string("noleap");
-		} else {
-			_EXCEPTIONT("Invalid CalendarType");
-		}
-	}
+	std::string GetCalendarName() const;
 
 private:
 	///	<summary>

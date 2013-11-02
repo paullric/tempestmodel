@@ -96,6 +96,23 @@ public:
 	///	</summary>
 	void FinalOutput(const Time & time);
 
+public:
+	///	<summary>
+	///		Returns true if this OutputManager supports the input operation.
+	///	</summary>
+	virtual bool SupportsInput() const {
+		return false;
+	}
+
+	///	<summary>
+	///		Load in the state from a file.
+	///	</summary>
+	virtual Time Input(
+		const std::string & strFileName
+	) {
+		_EXCEPTIONT("OutputManager does not support Input operation");
+	}
+
 protected:
 	///	<summary>
 	///		Check if a file is currently open.
@@ -136,7 +153,7 @@ protected:
 	///		Flag indicating that the initial conditions came from a
 	///		recovery file and that output should be supressed.
 	///	</summary>
-	bool m_fFromRecoveryFile;
+	bool m_fFromRestartFile;
 
 	///	<summary>
 	///		Flag indicating that a file is currently open.

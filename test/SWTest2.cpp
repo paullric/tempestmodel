@@ -235,7 +235,7 @@ try {
 		CommandLineString(strOutputDir, "output_dir", "outSWTest2");
 		CommandLineString(strOutputPrefix, "output_prefix", "out");
 		CommandLineInt(nOutputsPerFile, "output_perfile", -1);
-		CommandLineString(strRestartFile, "restart_file", "");
+		CommandLineString(params.m_strRestartFile, "restart_file", "");
 		CommandLineInt(nResolution, "resolution", 40);
 		CommandLineInt(nOrder, "order", 4);
 		CommandLineDouble(dU0, "u0", 38.61068277);
@@ -307,12 +307,6 @@ try {
 		1,
 		1);
 
-	if (strRestartFile == "") {
-		grid.AddDefaultPatches();
-	} else {
-		grid.FromFile(strRestartFile);
-	}
-
 	model.SetGrid(&grid);
 	AnnounceEndBlock("Done");
 
@@ -353,9 +347,6 @@ try {
 	// Begin execution
 	AnnounceBanner("SIMULATION");
 	model.Go();
-
-	// Execution complete
-	//AnnounceBanner("Execution completed successfully");
 
 	// Compute error norms
 	AnnounceBanner("RESULTS");

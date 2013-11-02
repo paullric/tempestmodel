@@ -86,6 +86,11 @@ protected:
 		int iDataIndex = 0
 	);
 
+	///	<summary>
+	///		Evaluate relevant geometric terms.
+	///	</summary>
+	void EvaluateGeometricTerms();
+
 public:
 	///	<summary>
 	///		Perform checksum calculation on all state variables.

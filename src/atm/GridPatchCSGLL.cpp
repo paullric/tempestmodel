@@ -683,9 +683,6 @@ void GridPatchCSGLL::EvaluateTestCase(
 	// Evaluate topography
 	EvaluateTopography(test);
 
-	// Evaluate geometric terms
-	EvaluateGeometricTerms();
-
 	// Physical constants
 	const PhysicalConstants & phys = m_grid.GetModel().GetPhysicalConstants();
 

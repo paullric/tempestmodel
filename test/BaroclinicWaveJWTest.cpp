@@ -562,7 +562,6 @@ try {
 		nVerticalOrder,
 		nLevels);
 
-	grid.AddDefaultPatches();
 	model.SetGrid(&grid);
 	AnnounceEndBlock("Done");
 

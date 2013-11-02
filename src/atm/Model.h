@@ -52,6 +52,11 @@ public:
 
 public:
 	///	<summary>
+	///		Name of the restart file to use.
+	///	</summary>
+	std::string m_strRestartFile;
+
+	///	<summary>
 	///		Time step size, in seconds.
 	///	</summary>
 	double m_dDeltaT;
@@ -134,15 +139,18 @@ public:
 	///	<summary>
 	///		Set the test case.
 	///	</summary>
-	void SetTestCase(
-		TestCase * pTestCase,
-		bool fEvaluateTestCase = true
-	);
+	void SetTestCase(TestCase * pTestCase);
 
 	///	<summary>
 	///		Attach an output manager to this model.
 	///	</summary>
 	void AttachOutputManager(OutputManager * pOutMan);
+
+protected:
+	///	<summary>
+	///		Evaluate the state from a Restart file.
+	///	</summary>
+	void EvaluateStateFromRestartFile();
 
 public:
 	///	<summary>
