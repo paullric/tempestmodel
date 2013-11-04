@@ -52,13 +52,18 @@ public:
 	virtual void InitializeDataLocal();
 
 private:
+    ///	<summary>
+	///		Initialize topographical data from a TestCase.
+	///	</summary>
+	void EvaluateTopography(
+        const TestCase & test
+    );
 	///	<summary>
 	///		Initialize geometric source term coefficients and topographical
 	///		data from a TestCase.
 	///	</summary>
 	void EvaluateGeometricTerms(
-		const TestCase & test
-	);
+    );
 
 public:
 	///	<summary>

@@ -414,7 +414,7 @@ void VerticalDynamicsFEM::InterpolateREdgeToNode(
 		// Apply interface values to nodes
 		for (int l = 0; l <= m_nVerticalOrder; l++) {
 			dDataNode[k] +=
-				(*m_pInterpREdgeToNode)[m][l] *
+				(*m_pInterpREdgeToNode)[m][l] * 
 					(dDataREdge[lBegin + l] - dDataRefREdge[lBegin + l]);
 		}
 	}
@@ -465,7 +465,7 @@ void VerticalDynamicsFEM::InterpolateNodeToFEEdges(
 
 #pragma message "Understand why this works for free boundaries"
 	// Ignore contributions due to upper and lower boundary
-	// TODO: This needs to be changed for W to enforce boundary conditions
+	// NOTE: This needs to be changed for W to enforce boundary conditions
 	if (fZeroBoundaries) {
 
 	} else if (nFiniteElements == 1) {
@@ -669,8 +669,8 @@ void VerticalDynamicsFEM::StepExplicit(
 	int nFiniteElements = nRElements / m_nVerticalOrder;
 
 	// Reset the reference state
-	memset(m_dStateRefNode[WIx],  0,  nRElements   *sizeof(double));
-	memset(m_dStateRefREdge[WIx], 0, (nRElements+1)*sizeof(double));
+	memset(m_dStateRefNode[WIx],  0,  nRElements   *sizeof(double)); 
+	memset(m_dStateRefREdge[WIx], 0, (nRElements+1)*sizeof(double)); 
 
 	// Perform local update
 	for (int n = 0; n < pGrid->GetActivePatchCount(); n++) {
@@ -816,6 +816,65 @@ void VerticalDynamicsFEM::StepExplicit(
 		}
 		}
 	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void VerticalDynamicsFEM::BuildJacobian() {
+
+	static const double Epsilon = 1.0e-5;
+
+	int nDim = m_dColumnState.GetRows();
+
+	DataMatrix<double> dJacobian;
+	dJacobian.Initialize(nDim, nDim);
+
+	DataVector<double> dJC;
+	dJC.Initialize(nDim);
+
+	DataVector<double> dG;
+	dG.Initialize(nDim);
+
+	DataVector<double> dJCref;
+	dJCref.Initialize(nDim);
+
+	Evaluate(m_dColumnState, dJCref);
+
+	for (int i = 0; i < nDim; i++) {
+		dG = m_dColumnState;
+		dG[i] = dG[i] + Epsilon;
+
+		Evaluate(dG, dJC);
+
+		for (int j = 0; j < nDim; j++) {
+			dJacobian[j][i] = (dJC[j] - dJCref[j]) / Epsilon;
+		}
+	}
+
+	std::cout << "DeltaT: " << m_dDeltaT << std::endl;
+
+	FILE * fp;
+	fp = fopen("DG.txt", "w");
+	for (int i = 0; i < nDim; i++) {
+		for (int j = 0; j < nDim; j++) {
+			fprintf(fp, "%1.15e", dJacobian[i][j]);
+			if (j != nDim-1) {
+				fprintf(fp, " ");
+			}
+		}
+		fprintf(fp, "\n");
+	}
+	fclose(fp);
+
+	fp = fopen("G.txt", "w");
+	for (int i = 0; i < nDim; i++) {
+		fprintf(fp, "%1.15e", dJCref[i]);
+		if (i != nDim-1) {
+			fprintf(fp, "\n");
+		}
+	}
+	fclose(fp);
+	_EXCEPTION();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1025,6 +1084,10 @@ void VerticalDynamicsFEM::StepImplicit(
 #else
 			// Use Jacobian-Free Newton-Krylov to solve
 			m_dSoln = m_dColumnState;
+
+			if (dTime > 0.0) {
+				BuildJacobian();
+			}
 
 			double dError =
 				PerformJFNK_NewtonStep_Safe(

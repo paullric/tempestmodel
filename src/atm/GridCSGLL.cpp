@@ -33,6 +33,8 @@
 
 ///////////////////////////////////////////////////////////////////////////////
 
+#pragma message "BaseResolution should refer to the total number of nodes, not the number of finite elements"
+
 GridCSGLL::GridCSGLL(
 	const Model & model,
 	int nBaseResolution,
@@ -69,6 +71,93 @@ void GridCSGLL::Initialize() {
 	InitializeVerticalCoordinate(
 		GridSpacingMixedGaussLobatto(dDeltaElement, 0.0, m_nVerticalOrder)
 	);
+
+	// Interpolation coefficients from nodes to interfaces and vice versa
+	m_dInterpNodeToREdge.Initialize(m_nVerticalOrder+1, m_nVerticalOrder);
+	m_dInterpREdgeToNode.Initialize(m_nVerticalOrder, m_nVerticalOrder+1);
+
+	for (int n = 0; n < m_nVerticalOrder+1; n++) {
+		PolynomialInterp::LagrangianPolynomialCoeffs(
+			m_nVerticalOrder,
+			m_dREtaLevels,
+			m_dInterpNodeToREdge[n],
+			m_dREtaInterfaces[n]);
+	}
+	for (int n = 0; n < m_nVerticalOrder; n++) {
+		PolynomialInterp::LagrangianPolynomialCoeffs(
+			m_nVerticalOrder+1,
+			m_dREtaInterfaces,
+			m_dInterpREdgeToNode[n],
+			m_dREtaLevels[n]);
+	}
+
+	// Distribute patches to processors
+	Grid::DistributePatches();
+
+	// Set up connectivity
+	Grid::InitializeConnectivity();
+/*
+	// Set up connectivity
+#pragma message "FIX"
+	int nProcsPerDirection = 1;
+	int nProcsPerPanel = 1;
+
+	for (int n = 0; n < GetActivePatchCount(); n++) {
+		int iDestPanel;
+		int iDestI;
+		int iDestJ;
+		bool fSwitchAB;
+		bool fSwitchPar;
+		bool fSwitchPerp;
+
+		GridPatch * pActivePatch = GetActivePatch(n);
+
+		int iPatchIx = pActivePatch->GetPatchIndex();
+
+		int iSrcPanel = iPatchIx / nProcsPerPanel;
+		int iSrcI = (iPatchIx % nProcsPerPanel) / nProcsPerDirection;
+		int iSrcJ = (iPatchIx % nProcsPerPanel) % nProcsPerDirection;
+
+		int iDestN;
+
+		// Loop through all directions
+		for (int iDir = 0; iDir < 8; iDir++) {
+			Direction dir = (Direction)(iDir);
+
+			// Find the panel index in this direction
+			int iSrcInew = iSrcI;
+			int iSrcJnew = iSrcJ;
+
+			DirectionIncrement(dir, iSrcInew, iSrcJnew);
+
+			CubedSphereTrans::RelativeCoord(
+				nProcsPerDirection,
+				iSrcPanel, iSrcInew, iSrcJnew,
+				iDestPanel, iDestI, iDestJ,
+				fSwitchAB, fSwitchPar, fSwitchPerp);
+
+			if (iDestPanel == InvalidPanel) {
+				continue;
+			}
+
+			iDestN =
+				iDestPanel * nProcsPerPanel
+				+ iDestI * nProcsPerDirection
+				+ iDestJ;
+
+			// Set up the exterior connection
+			Connectivity::ExteriorConnect(
+				pActivePatch,
+				dir,
+				GetPatch(iDestN));
+		}
+	}
+*/
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void GridCSGLL::AddDefaultPatches() {
 
 	// Determine number of usable processors
 	int nCommSize;
@@ -140,80 +229,6 @@ void GridCSGLL::Initialize() {
 	if (pPatches.size() != nDistributedPatches) {
 		_EXCEPTIONT("Logic error");
 	}
-
-	// Set up connectivity
-	for (int n = 0; n < nDistributedPatches; n++) {
-		int iDestPanel;
-		int iDestI;
-		int iDestJ;
-		bool fSwitchAB;
-		bool fSwitchPar;
-		bool fSwitchPerp;
-
-		int iSrcPanel = n / nProcsPerPanel;
-		int iSrcI = (n % nProcsPerPanel) / nProcsPerDirection;
-		int iSrcJ = (n % nProcsPerPanel) % nProcsPerDirection;
-
-		int iDestN;
-
-		// Loop through all directions
-		for (int iDir = 0; iDir < 8; iDir++) {
-			Direction dir = (Direction)(iDir);
-
-			// Find the panel index in this direction
-			int iSrcInew = iSrcI;
-			int iSrcJnew = iSrcJ;
-
-			DirectionIncrement(dir, iSrcInew, iSrcJnew);
-
-			CubedSphereTrans::RelativeCoord(
-				nProcsPerDirection,
-				iSrcPanel, iSrcInew, iSrcJnew,
-				iDestPanel, iDestI, iDestJ,
-				fSwitchAB, fSwitchPar, fSwitchPerp);
-
-			if (iDestPanel == InvalidPanel) {
-				continue;
-			}
-
-			iDestN =
-				iDestPanel * nProcsPerPanel
-				+ iDestI * nProcsPerDirection
-				+ iDestJ;
-
-			// Find the opposing direction to return to this panel
-			Direction dirOpposing =
-				CubedSphereTrans::OpposingDirection(iSrcPanel, iDestPanel, dir);
-
-			// Set of the exterior connection
-			Connectivity::ExteriorConnect(
-				pPatches[n], dir,
-				pPatches[iDestN], dirOpposing,
-				fSwitchPar);
-		}
-	}
-
-	// Distribute patches to processors
-	Grid::DistributePatches();
-
-	// Interpolation coefficients from nodes to interfaces and vice versa
-	m_dInterpNodeToREdge.Initialize(m_nVerticalOrder+1, m_nVerticalOrder);
-	m_dInterpREdgeToNode.Initialize(m_nVerticalOrder, m_nVerticalOrder+1);
-
-	for (int n = 0; n < m_nVerticalOrder+1; n++) {
-		PolynomialInterp::LagrangianPolynomialCoeffs(
-			m_nVerticalOrder,
-			m_dREtaLevels,
-			m_dInterpNodeToREdge[n],
-			m_dREtaInterfaces[n]);
-	}
-	for (int n = 0; n < m_nVerticalOrder; n++) {
-		PolynomialInterp::LagrangianPolynomialCoeffs(
-			m_nVerticalOrder+1,
-			m_dREtaInterfaces,
-			m_dInterpREdgeToNode[n],
-			m_dREtaLevels[n]);
-	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -261,6 +276,7 @@ void GridCSGLL::ConvertReferenceToPatchCoord(
 
 		// Loop over all patches
 		int n = 0;
+
 		for (; n < GetPatchCount(); n++) {
 			const GridPatch * pPatch = GetPatch(n);
 			const PatchBox & box = pPatch->GetPatchBox();
@@ -289,6 +305,144 @@ void GridCSGLL::ConvertReferenceToPatchCoord(
 
 ///////////////////////////////////////////////////////////////////////////////
 
+void GridCSGLL::GetPatchFromCoordinateIndex(
+	int iRefinementLevel,
+	const DataVector<int> & vecIxA,
+	const DataVector<int> & vecIxB,
+	const DataVector<int> & vecPanel,
+	DataVector<int> & vecPatchIndex,
+	int nVectorLength
+) {
+	// Set vector length
+	if (nVectorLength == (-1)) {
+		nVectorLength = vecIxA.GetRows();
+	}
+
+	// Check arguments
+	if ((vecIxA.GetRows() < nVectorLength) ||
+		(vecIxB.GetRows() < nVectorLength) ||
+		(vecPanel.GetRows() < nVectorLength)
+	) {
+		_EXCEPTIONT("Argument vector length mismatch");
+	}
+	if (iRefinementLevel < 0) {
+		_EXCEPTIONT("Refinement level must be positive");
+	}
+
+	// Calculate local resolution
+	int nLocalResolution =
+		m_nHorizontalOrder * GetABaseResolution(iRefinementLevel);
+
+	// Loop through all entries
+	int iLastPatch = GridPatch::InvalidIndex;
+	for (int i = 0; i < nVectorLength; i++) {
+
+		int iA = vecIxA[i];
+		int iB = vecIxB[i];
+		int iP = vecPanel[i];
+
+		// Transform to alternative panel if necessary
+		if ((vecIxA[i] < 0) || (vecIxA[i] >= nLocalResolution) ||
+			(vecIxB[i] < 0) || (vecIxB[i] >= nLocalResolution)
+		) {
+			bool fSwitchAB;
+			bool fSwitchPar;
+			bool fSwitchPerp;
+
+			CubedSphereTrans::RelativeCoord(
+				nLocalResolution,
+				vecPanel[i], vecIxA[i], vecIxB[i],
+				iP, iA, iB,
+				fSwitchAB,
+				fSwitchPar,
+				fSwitchPerp);
+
+			// Coordinate out of bounds
+			if ((iA == (-1)) && (iB == (-1))) {
+				vecPatchIndex[i] = GridPatch::InvalidIndex;
+				continue;
+			}
+		}
+
+		// Check the last patch searched
+		if (iLastPatch != GridPatch::InvalidIndex) {
+			const GridPatch * pPatch = GetPatch(iLastPatch);
+
+			const PatchBox & box = pPatch->GetPatchBox();
+
+			if (box.ContainsGlobalPoint(iP, iA, iB)) {
+				vecPatchIndex[i] = pPatch->GetPatchIndex();
+				continue;
+			}
+		}
+
+		// Check all other patches
+		int n;
+		for (n = 0; n < GetPatchCount(); n++) {
+			const GridPatch * pPatch = GetPatch(n);
+
+			const PatchBox & box = pPatch->GetPatchBox();
+
+			if (box.ContainsGlobalPoint(iP, iA, iB)) {
+				vecPatchIndex[i] = pPatch->GetPatchIndex();
+				iLastPatch = n;
+				break;
+			}
+		}
+		if (n == GetPatchCount()) {
+			vecPatchIndex[i] = GridPatch::InvalidIndex;
+		}
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void GridCSGLL::GetOpposingDirection(
+	int ixPanelSrc,
+	int ixPanelDest,
+	Direction dir,
+	Direction & dirOpposing,
+	bool & fSwitchParallel
+) const {
+	if ((ixPanelSrc < 0) || (ixPanelSrc > 5)) {
+		_EXCEPTIONT("Invalid value for ixPanelSrc: Out of range");
+	}
+	if ((ixPanelDest < 0) || (ixPanelDest > 5)) {
+		_EXCEPTIONT("Invalid value for ixPanelDest: Out of range");
+	}
+
+	// Get the opposing direction
+	dirOpposing =
+		CubedSphereTrans::OpposingDirection(
+			ixPanelSrc, ixPanelDest, dir);
+
+	// Check panel indices to determine parallel switch of vectors
+	fSwitchParallel = false;
+	if ((ixPanelSrc == 1) && (ixPanelDest == 5)) {
+		fSwitchParallel = true;
+
+	} else if ((ixPanelSrc == 2) && (ixPanelDest > 3)) {
+		fSwitchParallel = true;
+
+	} else if ((ixPanelSrc == 3) && (ixPanelDest == 4)) {
+		fSwitchParallel = true;
+
+	} else if (
+		(ixPanelSrc == 4) &&
+		((ixPanelDest == 2) || (ixPanelDest == 3))
+	) {
+		fSwitchParallel = true;
+
+	} else if (
+		(ixPanelSrc == 5) &&
+		((ixPanelDest == 2) || (ixPanelDest == 1))
+	) {
+		fSwitchParallel = true;
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
 void GridCSGLL::ApplyDSS(
 	int iDataUpdate,
 	DataType eDataType
@@ -303,21 +457,11 @@ void GridCSGLL::ApplyDSS(
 			dynamic_cast<GridPatchCSGLL*>(GetActivePatch(n));
 
 		const PatchBox & box = pPatch->GetPatchBox();
-
-		// Patch-specific quantities
-		int nAInteriorWidth = pPatch->GetPatchBox().GetAInteriorWidth();
-		int nBInteriorWidth = pPatch->GetPatchBox().GetBInteriorWidth();
-
-		int nAElements = nAInteriorWidth / m_nHorizontalOrder;
-		int nBElements = nBInteriorWidth / m_nHorizontalOrder;
-
-		if ((nAInteriorWidth % m_nHorizontalOrder) != 0) {
-			_EXCEPTIONT("Logic Error: Invalid PatchBox alpha spacing");
-		}
-		if ((nBInteriorWidth % m_nHorizontalOrder) != 0) {
-			_EXCEPTIONT("Logic Error: Invalid PatchBox beta spacing");
-		}
-
+        
+        // Patch-specific quantities
+		int nElementCountA = pPatch->GetElementCountA();
+		int nElementCountB = pPatch->GetElementCountB();
+        
 		// Apply panel transforms to velocity data
 		if (eDataType == DataType_State) {
 			pPatch->TransformHaloVelocities(iDataUpdate);
@@ -382,7 +526,7 @@ void GridCSGLL::ApplyDSS(
 			for (int k = 0; k < nRElements; k++) {
 
 				// Average in the alpha direction
-				for (int a = 0; a <= nAElements; a++) {
+				for (int a = 0; a <= nElementCountA; a++) {
 					int iA = a * m_nHorizontalOrder + box.GetHaloElements();
 
 					// Do not average across cubed-sphere corners
@@ -391,14 +535,14 @@ void GridCSGLL::ApplyDSS(
 
 					if (((a == 0) &&
 							(ixTopLeftPanel == InvalidPanel)) ||
-						((a == nAElements) &&
+						((a == nElementCountA) &&
 							(ixTopRightPanel == InvalidPanel))
 					) {
 						jEnd -= 2;
 					}
 					if (((a == 0) &&
 							(ixBottomLeftPanel == InvalidPanel)) ||
-						((a == nAElements) &&
+						((a == nElementCountA) &&
 							(ixBottomRightPanel == InvalidPanel))
 					) {
 						jBegin += 2;
@@ -415,7 +559,7 @@ void GridCSGLL::ApplyDSS(
 				}
 
 				// Average in the beta direction
-				for (int b = 0; b <= nBElements; b++) {
+				for (int b = 0; b <= nElementCountB; b++) {
 					int iB = b * m_nHorizontalOrder + box.GetHaloElements();
 
 					// Do not average across cubed-sphere corners
@@ -424,14 +568,14 @@ void GridCSGLL::ApplyDSS(
 
 					if (((b == 0) &&
 							(ixBottomLeftPanel == InvalidPanel)) ||
-						((b == nAElements) &&
+						((b == nElementCountA) &&
 							(ixTopLeftPanel == InvalidPanel))
 					) {
 						iBegin += 2;
 					}
 					if (((b == 0) &&
 							(ixBottomRightPanel == InvalidPanel)) ||
-						((b == nAElements) &&
+						((b == nElementCountA) &&
 							(ixTopRightPanel == InvalidPanel))
 					) {
 						iEnd -= 2;

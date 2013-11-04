@@ -36,7 +36,8 @@ OutputManagerComposite::OutputManagerComposite(
 	Grid & grid,
 	double dOutputDeltaT,
 	std::string strOutputDir,
-	std::string strOutputFormat
+	std::string strOutputFormat,
+	std::string strRestartFile
 ) :
 	OutputManager(
 		grid,
@@ -44,7 +45,8 @@ OutputManagerComposite::OutputManagerComposite(
 		strOutputDir,
 		strOutputFormat,
 		1),
-	m_pActiveNcOutput(NULL)
+	m_pActiveNcOutput(NULL),
+	m_strRestartFile(strRestartFile)
 {
 }
 
@@ -74,11 +76,7 @@ bool OutputManagerComposite::OpenFile(
 	const Model & model = m_grid.GetModel();
 
 	// Open new NetCDF file
-	NcVar * varJ;
-	NcVar * varHsurf;
-	NcVar * varLon;
-	NcVar * varLat;
-	NcVar * varZ;
+	NcVar * varZs;
 
 	if (nRank == 0) {
 
@@ -170,79 +168,44 @@ bool OutputManagerComposite::OpenFile(
 			pPanel->put(nBox, 1, 7);
 		}
 
-		// Output Jacobian information for each patch
-		varJ = m_pActiveNcOutput->add_var("J", ncDouble, dimIndex);
-
 		// Output topography for each patch
-		varHsurf = m_pActiveNcOutput->add_var("hsurf", ncDouble, dimIndex);
-
-		// Output longitude and latitude for each patch
-		varLon = m_pActiveNcOutput->add_var("lon", ncDouble, dimIndex);
-		varLat = m_pActiveNcOutput->add_var("lat", ncDouble, dimIndex);
-
-		// Output height coordinate for each patch
-		varZ = m_pActiveNcOutput->add_var("z", ncDouble, dimIndex);
+		varZs = m_pActiveNcOutput->add_var("ZS", ncDouble, dimIndex);
 	}
 
-	// Begin data consolidation
-	std::vector<DataType> vecDataTypes;
-	vecDataTypes.push_back(DataType_Jacobian);
-	vecDataTypes.push_back(DataType_Topography);
-	vecDataTypes.push_back(DataType_Longitude);
-	vecDataTypes.push_back(DataType_Latitude);
-	vecDataTypes.push_back(DataType_Z);
+    // Begin data consolidation
+    std::vector<DataType> vecDataTypes;
+    vecDataTypes.push_back(DataType_Topography);
 
-	ConsolidationStatus status(m_grid, vecDataTypes);
+    ConsolidationStatus status(m_grid, vecDataTypes);
 
-	m_grid.ConsolidateDataToRoot(status);
+    m_grid.ConsolidateDataToRoot(status);
 
-	DataVector<double> dataRecvBuffer;
-	dataRecvBuffer.Initialize(
-		m_grid.GetLargestGridPatchNodes()
-		* m_grid.GetRElements());
+    DataVector<double> dataRecvBuffer;
+    dataRecvBuffer.Initialize(
+        m_grid.GetLargestGridPatchNodes()
+        * m_grid.GetRElements());
 
-	while ((nRank == 0) && (!status.Done())) {
+    while ((nRank == 0) && (!status.Done())) {
 
-		int nRecvCount;
-		int ixRecvPatch;
-		DataType eRecvDataType;
+        int nRecvCount;
+        int ixRecvPatch;
+        DataType eRecvDataType;
 
-		m_grid.ConsolidateDataAtRoot(
-			status,
-			dataRecvBuffer,
-			nRecvCount,
-			ixRecvPatch,
-			eRecvDataType);
+        m_grid.ConsolidateDataAtRoot(
+            status,
+            dataRecvBuffer,
+            nRecvCount,
+            ixRecvPatch,
+            eRecvDataType);
 
-		// Store Jacobian data
-		if (eRecvDataType == DataType_Jacobian) {
-			int nPatchIx = m_grid.GetCumulativePatch3DNodeIndex(ixRecvPatch);
-			varJ->set_cur(nPatchIx);
-			varJ->put(&(dataRecvBuffer[0]), nRecvCount);
+        // Store topography data
+        if (eRecvDataType == DataType_Topography) {
+            int nPatchIx = m_grid.GetCumulativePatch2DNodeIndex(ixRecvPatch);
+            varZs->set_cur(nPatchIx);
+            varZs->put(&(dataRecvBuffer[0]), nRecvCount);
 
-		// Store topography data
-		} else if (eRecvDataType == DataType_Topography) {
-			int nPatchIx = m_grid.GetCumulativePatch2DNodeIndex(ixRecvPatch);
-			varHsurf->set_cur(nPatchIx);
-			varHsurf->put(&(dataRecvBuffer[0]), nRecvCount);
-
-		// Store longitude data
-		} else if (eRecvDataType == DataType_Longitude) {
-			int nPatchIx = m_grid.GetCumulativePatch2DNodeIndex(ixRecvPatch);
-			varLon->set_cur(nPatchIx);
-			varLon->put(&(dataRecvBuffer[0]), nRecvCount);
-
-		// Store latitude data
-		} else if (eRecvDataType == DataType_Latitude) {
-			int nPatchIx = m_grid.GetCumulativePatch2DNodeIndex(ixRecvPatch);
-			varLat->set_cur(nPatchIx);
-			varLat->put(&(dataRecvBuffer[0]), nRecvCount);
-
-		// Store altitude data
-		} else if (eRecvDataType == DataType_Z) {
-			int nPatchIx = m_grid.GetCumulativePatch3DNodeIndex(ixRecvPatch);
-			varZ->set_cur(nPatchIx);
-			varZ->put(&(dataRecvBuffer[0]), nRecvCount);
+		} else {
+			_EXCEPTIONT("Invalid DataType");
 		}
 	}
 
@@ -353,6 +316,38 @@ void OutputManagerComposite::Output(
 
 	// Barrier
 	MPI_Barrier(MPI_COMM_WORLD);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void OutputManagerComposite::Input(
+	Grid & grid
+) const {
+	// Determine processor rank; only proceed if root node
+	int nRank;
+	MPI_Comm_rank(MPI_COMM_WORLD, &nRank);
+
+	// The active model
+	const Model & model = m_grid.GetModel();
+
+	// Open new NetCDF file
+	NcFile * pNcFile = NULL;
+	NcVar * varZs;
+
+	if (nRank == 0) {
+
+		// Open NetCDF file
+		pNcFile = new NcFile(m_strRestartFile.c_str(), NcFile::ReadOnly);
+		if (m_pActiveNcOutput == NULL) {
+			_EXCEPTIONT("Error opening NetCDF file");
+		}
+
+	}
+
+	// Close the file
+	if (pNcFile != NULL) {
+		delete pNcFile;
+	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////

@@ -17,7 +17,6 @@ FILES= Preferences.cpp \
 	FunctionTimer.cpp \
 	MathHelper.cpp \
 	Announce.cpp \
-	GaussianQuadrature.cpp \
 	LinearAlgebra.cpp \
 	LegendrePolynomial.cpp \
 	PolynomialInterp.cpp

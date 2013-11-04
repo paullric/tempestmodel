@@ -53,18 +53,21 @@ public:
 
 private:
 	///	<summary>
-	///		Initialize geometric source term coefficients and topographical
-	///		data from a TestCase.
+	///		Initialize topographical data from a TestCase.
 	///	</summary>
-	void EvaluateGeometricTerms(
+	void EvaluateTopography(
 		const TestCase & test
 	);
 
-public:
+	///	<summary>
+	///		Initialize geometric terms.
+	///	</summary>
+	virtual void EvaluateGeometricTerms();
+
 	///	<summary>
 	///		Initialize this grid from a TestCase.
 	///	</summary>
-	void EvaluateTestCase(
+	virtual void EvaluateTestCase(
 		const TestCase & test,
 		double dTime = 0.0,
 		int iDataInstance = 0

@@ -552,8 +552,8 @@ try {
 	model.SetVerticalDynamics(&vdyn);
 	AnnounceEndBlock("Done");
 
-	// Generate a new cubed-sphere GLL grid
-	AnnounceStartBlock("Initializing grid");
+	// Construct the cubed-sphere grid for the model
+	AnnounceStartBlock("Constructing grid");
 	GridCSGLL grid(
 		model,
 		nResolution,
@@ -562,6 +562,7 @@ try {
 		nVerticalOrder,
 		nLevels);
 
+	grid.AddDefaultPatches();
 	model.SetGrid(&grid);
 	AnnounceEndBlock("Done");
 

@@ -51,6 +51,20 @@ public:
 
 public:
 	///	<summary>
+	///		Get the number of finite elements in the alpha direction.
+	///	</summary>
+	int GetElementCountA() const {
+		return m_nElementCountA;
+	}
+
+	///	<summary>
+	///		Get the number of finite elements in the beta direction.
+	///	</summary>
+	int GetElementCountB() const {
+		return m_nElementCountB;
+	}
+
+	///	<summary>
 	///		Get the element grid spacing in the alpha direction.
 	///	</summary>
 	double GetElementDeltaA() const {
@@ -74,6 +88,16 @@ protected:
 	///		Vertical order of accuracy of this patch.
 	///	</summary>
 	int m_nVerticalOrder;
+
+	///	<summary>
+	///		Number of finite elements in the alpha direction.
+	///	</summary>
+	int m_nElementCountA;
+
+	///	<summary>
+	///		Number of finite elements in the beta direction.
+	///	</summary>
+	int m_nElementCountB;
 
 	///	<summary>
 	///		Element grid spacing in the alpha direction.

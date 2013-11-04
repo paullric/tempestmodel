@@ -47,6 +47,19 @@ GridPatchGLL::GridPatchGLL(
 			box.GetBGlobalInteriorEnd());
 	}
 
+	// Get the number of finite elements in each coordinate direction
+	m_nElementCountA =
+		(box.GetAInteriorEnd() - box.GetAInteriorBegin()) / nHorizontalOrder;
+	m_nElementCountB =
+		(box.GetBInteriorEnd() - box.GetBInteriorBegin()) / nHorizontalOrder;
+
+	if ((box.GetAInteriorWidth() % m_nHorizontalOrder) != 0) {
+		_EXCEPTIONT("Logic error: Invalid PatchBox alpha spacing");
+	}
+	if ((box.GetBInteriorWidth() % m_nHorizontalOrder) != 0) {
+		_EXCEPTIONT("Logic error: Invalid PatchBox beta spacing");
+	}
+
 	// Element grid spacing
 	m_dElementDeltaA =
 		  box.GetAEdge(box.GetHaloElements() + m_nHorizontalOrder)

@@ -1,8 +1,8 @@
 ///////////////////////////////////////////////////////////////////////////////
 ///
-///	\file    InertialGravityCartesianXZTest.cpp
-///	\author  Paul Ullrich, Jorge Guerra
-///	\version October 2, 2013
+///	\file    ShallowWaterEddyTest.cpp
+///	\author  Paul Ullrich
+///	\version October 4, 2013
 ///
 ///	<remarks>
 ///		Copyright 2000-2010 Paul Ullrich
@@ -31,24 +31,19 @@
 #include "GridData4D.h"
 #include "EquationSet.h"
 
-#include "GridCartesianGLL.h"
+#include "GridCSGLL.h"
 
 #include "mpi.h"
 
 ///////////////////////////////////////////////////////////////////////////////
 
 ///	<summary>
-///		Giraldo et al. (2007)
+///		Galewsky et al. (2004)
 ///
-///		Intertia-gravity waves test case.
+///		Barotropic instability test case.
 ///	</summary>
-class InertialGravityCartesianXZTest : public TestCase {
+class BarotropicInstabilityTestCase : public TestCase {
 
-public:
-    /// <summary>
-    ///		Grid dimension array (FOR CARTESIAN GRIDS).
-	///	</summary>
-    double m_dGDim[6];
 private:
 	///	<summary>
 	///		Background height field.
@@ -56,88 +51,68 @@ private:
 	double m_dH0;
 
 	///	<summary>
-	///		Uniform +X flow field.
+	///		Maximum velocity.
 	///	</summary>
 	double m_dU0;
 
-    ///	<summary>
-	///		Reference surface pressure.
+	///	<summary>
+	///		Grid inclination.
 	///	</summary>
-	double m_dP0;
-
-    ///	<summary>
-	///		Specific heat of air at constant pressure.
-	///	</summary>
-	double m_dCp;
-
-    ///	<summary>
-	///		Specific heat of air at constant volume.
-	///	</summary>
-	double m_dCv;
-
-    ///	<summary>
-	///		Gas constant of air.
-	///	</summary>
-	double m_dR;
+	double m_dAlpha;
 
 	///	<summary>
-	///		Brunt-Vaisala frequency
-	///	</summary>
-	double m_dNbar;
-
-	///	<summary>
-	///		Reference pontential temperature
+	///		Southern latitude of barotropic jet.
 	///	</summary>
 	double m_dTheta0;
 
 	///	<summary>
-	///		Parameter factor for temperature disturbance
+	///		Northern latitude of barotropic jet.
 	///	</summary>
-	double m_dThetaC;
+	double m_dTheta1;
 
 	///	<summary>
-	///		Parameter reference height for temperature disturbance
+	///		Stretching parameter.
 	///	</summary>
-	double m_dhC;
+	double m_dXE;
 
 	///	<summary>
-	///		Parameter reference length a for temperature disturbance
+	///		Parameter used for computing height field (??)
 	///	</summary>
-	double m_daC;
+	double m_dHHat;
 
 	///	<summary>
-	///		Parameter reference length x for temperature disturbance
+	///		Parameter used for computing height field (??)
 	///	</summary>
-	double m_dxC;
+	double m_dHPhi2;
 
 	///	<summary>
-	///		Parameter Archimede's Constant (essentially Pi but to some digits)
+	///		Parameter used for computing height field (??)
 	///	</summary>
-	double m_dpiC;
+	double m_dHAlpha;
+
+	///	<summary>
+	///		Parameter used for computing height field (??)
+	///	</summary>
+	double m_dHBeta;
 
 public:
 	///	<summary>
-	///		Constructor. (with physical constants defined privately here)
+	///		Constructor.
 	///	</summary>
-	InertialGravityCartesianXZTest() :
-		m_dH0(10000.),
-		m_dU0(20.),
-        m_dP0(1.E5),
-        m_dCp(1005.0),
-        m_dCv(718.0),
-        m_dR(287.058),
-		m_dNbar(0.01),
-		m_dTheta0(300.),
-		m_dThetaC(0.01),
-		m_dhC(10000.),
-		m_daC(5000.),
-		m_dxC(100.E+3),
-		m_dpiC(3.14159265)
-	{
-        m_dGDim[0] = 0.0; m_dGDim[1] = 300000.0;
-        m_dGDim[2] = -1000.0; m_dGDim[3] = 1000.0;
-        m_dGDim[4] = 0.0; m_dGDim[5] = 10000.0;
-    }
+	BarotropicInstabilityTestCase(
+		double dAlpha
+	) :
+		m_dH0(10158.18617045463179),
+		m_dU0(80.0),
+		m_dAlpha(dAlpha),
+		m_dTheta0(M_PI / 7.0),
+		m_dTheta1(M_PI / 2.0 - m_dTheta0),
+		m_dXE(0.3),
+		m_dHHat(120.0),
+		m_dHPhi2(M_PI / 4.0),
+		m_dHAlpha(1.0 / 3.0),
+		m_dHBeta(1.0 / 15.0)
+	{ }
 
 public:
 	///	<summary>
@@ -153,37 +128,80 @@ public:
 	virtual void EvaluatePhysicalConstants(
 		PhysicalConstants & phys
 	) const {
-		// Do nothing to the PhysicalConstants for global simulations
+		// Set the alpha parameter
+		phys.SetAlpha(m_dAlpha);
+
+		// Turn off Coriolis forces
+		phys.SetOmega(0.0);
 	}
 
 	///	<summary>
-	///		Evaluate the topography at the given point. (cartesian version)
+	///		Evaluate the topography at the given point.
 	///	</summary>
 	virtual double EvaluateTopography(
-       double dxp,
-       double dyp
+		const PhysicalConstants & phys,
+		double dLon,
+		double dLat
 	) const {
-	    // This test case has no topography associated with it
 		return 0.0;
 	}
 
 	///	<summary>
-	///		Evaluate the perturbed potential temperature field.
+	///		Determined the corresponding point in rotated spherical coordinates.
 	///	</summary>
-	double EvaluateTPrime(
-        const PhysicalConstants phys,
-		double dxP,
-		double dzP
+	void CalculateRLLPrime(
+		double dLon,
+		double dLat,
+		double & dLonP,
+		double & dLatP
 	) const {
-        double gsi = phys.GetG();
-        // Base potential temperature field
-		double dThetaBar = m_dTheta0 * exp(pow(m_dNbar,2.0)/gsi * dzP);
-        // Potential temperature perturbation
-        double dThetaHat = m_dThetaC * sin(m_dpiC * dxP / m_dhC)
-                                     / (1.0 + pow((dxP - m_dxC)/m_daC,2.0));
-        //std::cout << dThetaHat + dThetaBar << '\n';
+		if (m_dAlpha == 0.0) {
+			dLonP = dLon;
+			dLatP = dLat;
+			return;
+		}
 
-		return dThetaHat + dThetaBar;
+		// Calculate latitude and longitude in rotated coordinates
+		dLatP = asin(sin(dLat) * cos(m_dAlpha)
+			- cos(dLat) * cos(dLon) * sin(m_dAlpha));
+
+		dLonP = asin(sin(dLon) * cos(dLat) / cos(dLatP));
+
+		double dTemp =
+			cos(m_dAlpha) * cos(dLon) * cos(dLat)
+			+ sin(m_dAlpha) * sin(dLat);
+
+		if (dTemp < 0.0) {
+			dLonP = M_PI - dLonP;
+		}
+		if (dLonP < 0.0) {
+			dLonP += 2.0 * M_PI;
+		}
+	}
+
+	///	<summary>
+	///		Evaluate the perturbed velocity field.
+	///	</summary>
+	double EvaluateUPrime(
+		double dLonP,
+		double dLatP
+	) const {
+		dLatP = fabs(dLatP);
+
+		if (dLatP < m_dTheta0) {
+			return 0.0;
+
+		} else if (dLatP > m_dTheta1) {
+			return 0.0;
+		}
+
+		double dNormalizer =
+			exp(- 4.0 / (m_dTheta1 - m_dTheta0) / (m_dTheta1 - m_dTheta0));
+
+		double dUp =
+			exp(1.0 / (dLatP - m_dTheta0) / (dLatP - m_dTheta1));
+
+		return (m_dU0 / dNormalizer * dUp);
 	}
 
 	///	<summary>
@@ -192,31 +210,100 @@ public:
 	virtual void EvaluatePointwiseState(
 		const PhysicalConstants & phys,
 		double dTime,
-		double dzP,
-        double dxP,
-        double dyP,
-		double *dState,
-		double *dTracer
+		double dZ,
+		double dLon,
+		double dLat,
+		double * dState,
+		double * dTracer
 	) const {
 
-        // Set the uniform U, V, W field for all time
-        dState[0] = m_dU0;
-        dState[1] = 0.0;
-        dState[3] = 0.0;
+		// Calculate rotated RLL coordinates of this point
+		double dLonP;
+		double dLatP;
 
-        // Set the initial potential temperature field
-        dState[2] = EvaluateTPrime(phys, dxP, dzP);
+		CalculateRLLPrime(dLon, dLat, dLonP, dLatP);
 
-        // Set the initial density based on the Exner pressure
-        double gsi = phys.GetG();
-        double dExnerP = pow(gsi,2.0) / (m_dCp * m_dTheta0 * pow(m_dNbar,2.0));
-        dExnerP *= exp(-pow(m_dNbar,2.0)/gsi * dzP) - 1.0;
-        dExnerP += 1.0;
-        //std::cout << dExnerP << '\n';
-        double dRho = m_dP0 / (m_dR * dState[2]) * pow(dExnerP,(m_dCv / m_dR));
-        //std::cout << dRho << '\n';
-        dState[4] = dRho;
+		// Calculate height field via numerical integration
+		int nIntervals =
+			static_cast<unsigned int>((dLatP + 0.5 * M_PI) / (1.0e-2));
+
+		if (nIntervals < 1) {
+			nIntervals = 1;
+		}
+
+		// Numerically integrate H using 4th order Gaussian quadrature
+		DataVector<double> dLatX;
+		dLatX.Initialize(nIntervals+1);
+
+		for (int i = 0; i <= nIntervals; i++) {
+			dLatX[i] = - 0.5 * M_PI +
+				((dLatP + 0.5 * M_PI) / static_cast<double>(nIntervals))
+					* static_cast<double>(i);
+		}
+
+		double dH = 0.0;
+
+		double dXeval;
+		double dU;
+
+		for (int i = 0; i < nIntervals; i++) {
+		for (int m = -1; m <= 1; m += 2) {
+			dXeval =
+				0.5 * (dLatX[i+1] + dLatX[i])
+				+ static_cast<double>(m)
+					* sqrt(1.0 / 3.0) * 0.5 * (dLatX[i+1] - dLatX[i]);
+
+			dU = EvaluateUPrime(dLonP, dXeval);
+
+			dH += (2.0 * phys.GetEarthRadius() * phys.GetOmega() * sin(dXeval)
+				+ dU * tan(dXeval)) * dU;
+		}
+		}
+
+		dH *= 0.5 * (dLatX[1] - dLatX[0]);
+
+		dState[2] = m_dH0 - dH / phys.GetG();
+
+		// Add perturbation
+		if (dLon > M_PI) {
+			dLon = dLon - 2.0 * M_PI;
+		}
+		if ((dLon < -M_PI) || (dLon > M_PI)) {
+			_EXCEPTIONT("Invalid value of longitude.");
+		}
+
+		dState[2] += m_dHHat * cos(dLat)
+			* exp(-((dLon * dLon) / (m_dHAlpha * m_dHAlpha)))
+			* exp(-((m_dHPhi2 - dLat) * (m_dHPhi2 - dLat)
+				/ (m_dHBeta * m_dHBeta)));
+
+		// Evaluate the velocity field
+		double dUP = EvaluateUPrime(dLonP, dLatP);
+
+		double dUlat =
+			(- dUP * sin(m_dAlpha) * sin(dLonP)) / cos(dLat);
+
+		double dUlon;
+		if (fabs(cos(dLon)) < 1.0e-13) {
+			if (fabs(m_dAlpha) > 1.0e-13) {
+				if (cos(dLon) > 0.0) {
+					dUlon = - dUlat * cos(dLat) / tan(m_dAlpha);
+				} else {
+					dUlon = dUlat * cos(dLat) / tan(m_dAlpha);
+				}
+			} else {
+				dUlon = dUP;
+			}
+
+		} else {
+			dUlon = (dUlat * sin(dLat) * sin(dLon) + dUP * cos(dLonP))
+				/ cos(dLon);
+		}
+
+		dState[0] = dUlon;
+		dState[1] = dUlat;
 	}
+
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -260,16 +347,16 @@ try {
 	// Parse the command line
 	BeginCommandLine()
 		CommandLineString(strOutputDir, "output_dir",
-			"outInertialGravityCartesianXZTest");
+			"outShallowWaterEddyTest");
 		CommandLineString(strOutputPrefix, "output_prefix", "out");
 		CommandLineInt(nOutputsPerFile, "output_perfile", -1);
-		CommandLineInt(nResolution, "resolution", 20);
+		CommandLineInt(nResolution, "resolution", 30);
 		CommandLineInt(nOrder, "order", 4);
 		CommandLineDouble(dAlpha, "alpha", 0.0);
-		CommandLineDouble(params.m_dDeltaT, "dt", 1.0);
-		CommandLineDouble(params.m_dEndTime, "endtime", 2.0);
-		CommandLineDouble(dOutputDeltaT, "outputtime", 1.0);
-		CommandLineStringD(strHorizontalDynamics, "method", "DG", "(SE | DG)");
+		CommandLineDouble(params.m_dDeltaT, "dt", 200.0);
+		CommandLineDouble(params.m_dEndTime, "endtime", 200.0);//86400.0 * 5.0);
+		CommandLineDouble(dOutputDeltaT, "outputtime", 86400.0);
+		CommandLineStringD(strHorizontalDynamics, "method", "SE", "(SE | DG)");
 		CommandLineBool(fNoHyperviscosity, "nohypervis");
 
 		ParseCommandLine(argc, argv);
@@ -279,25 +366,37 @@ try {
 
 	// Create a new test case object
 	AnnounceStartBlock("Creating test case");
-
+	
 	AnnounceEndBlock("Done");
 
 	// Construct a model
 	AnnounceStartBlock("Creating model");
-	Model model(EquationSet::PrimitiveNonhydrostaticEquations);
+	Model model(EquationSet::ShallowWaterEquations);
 	AnnounceEndBlock("Done");
-    
-    // Set the parameters for the model
+
+	// Generate a new cubed-sphere GLL grid
+	AnnounceStartBlock("Creating grid");
+	GridCSGLL grid(
+		model,
+		nResolution,
+		4,
+		nOrder,
+		1,
+		1);
+
+	AnnounceEndBlock("Done");
+
+	// Set the parameters for the model
 	AnnounceStartBlock("Initializing parameters");
 	model.SetParameters(&params);
 	AnnounceEndBlock("Done");
-    
-    // Set the timestep scheme
+
+	// Set the timestep scheme
 	TimestepSchemeARK4 timestep(model);
 	AnnounceStartBlock("Initializing timestep scheme");
 	model.SetTimestepScheme(&timestep);
 	AnnounceEndBlock("Done");
-    
+
 	// Set the horizontal dynamics
 	HorizontalDynamicsFEM::Type eHorizontalDynamicsType;
 	STLStringHelper::ToLower(strHorizontalDynamics);
@@ -308,60 +407,49 @@ try {
 	} else {
 		_EXCEPTIONT("Invalid method: Expected \"SE\" or \"DG\"");
 	}
-    
+
 	HorizontalDynamicsFEM hdyn(
-                               model, nOrder, eHorizontalDynamicsType, fNoHyperviscosity);
+		model, nOrder, eHorizontalDynamicsType, fNoHyperviscosity);
 	AnnounceStartBlock("Initializing horizontal dynamics");
 	model.SetHorizontalDynamics(&hdyn);
 	AnnounceEndBlock("Done");
-    
+
 	// Set the vertical dynamics
 	VerticalDynamicsStub vdyn(model);
 	AnnounceStartBlock("Initializing vertical dynamics");
 	model.SetVerticalDynamics(&vdyn);
 	AnnounceEndBlock("Done");
 
-	// Generate a new cartesian GLL grid (20 x 20 x 20 for now)
-    // Initialize the test case here (to have grid dimensions available)
-    InertialGravityCartesianXZTest test;
-	AnnounceStartBlock("Constructing grid");
-	GridCartesianGLL grid(
-		model,
-		nResolution,
-		1,
-		nOrder,
-        nOrder,
-		nResolution,
-        test.m_dGDim);
-
+	// Set the grid for the model
+	AnnounceStartBlock("Initializing grid");
 	grid.AddDefaultPatches();
 	model.SetGrid(&grid);
 	AnnounceEndBlock("Done");
-    
-    // Set the reference output manager for the model
+
+	// Set the reference output manager for the model
 	AnnounceStartBlock("Creating reference output manager");
 	OutputManagerReference outmanRef(
-        grid,
-        dOutputDeltaT,
-        strOutputDir,
-        strOutputPrefix,
-        nOutputsPerFile,
-        720, 360);
+		grid,
+		dOutputDeltaT,
+		strOutputDir,
+		strOutputPrefix,
+		nOutputsPerFile,
+		720, 360);
 	outmanRef.OutputVorticity();
 	outmanRef.OutputDivergence();
 	model.AttachOutputManager(&outmanRef);
 	AnnounceEndBlock("Done");
-    
+
 	// Set the composite output manager for the model
 	AnnounceStartBlock("Creating composite output manager");
 	OutputManagerComposite outmanComp(
-        grid,
-        dOutputDeltaT,
-        strOutputDir,
-        strOutputPrefix);
+		grid,
+		dOutputDeltaT,
+		strOutputDir,
+		strOutputPrefix);
 	model.AttachOutputManager(&outmanComp);
 	AnnounceEndBlock("Done");
-    
+
 	// Set the checksum output manager for the model
 	AnnounceStartBlock("Creating checksum output manager");
 	OutputManagerChecksum outmanChecksum(grid, dOutputDeltaT);
@@ -369,9 +457,9 @@ try {
 	AnnounceEndBlock("Done");
 
 	// Set the test case for the model
-    InertialGravityCartesianXZTest ctest;
+	BarotropicInstabilityTestCase test(dAlpha);
 	AnnounceStartBlock("Initializing test case");
-	model.SetTestCase(&ctest);
+	model.SetTestCase(&test);
 	AnnounceEndBlock("Done");
 
 	// Begin execution

@@ -49,13 +49,6 @@ public:
 	virtual ~OutputManagerReference();
 
 	///	<summary>
-	///		Calculate the patch coordinates of the reference points.
-	///	</summary>
-	void CalculatePatchCoordinates(
-		const Grid & grid
-	);
-
-	///	<summary>
 	///		Modify the flag which indicates whether vorticity should be
 	///		computed and output.
 	///	</summary>
@@ -70,6 +63,12 @@ public:
 	void OutputDivergence(
 		bool fOutputDivergence = true
 	);
+
+private:
+	///	<summary>
+	///		Calculate the patch coordinates of the reference points.
+	///	</summary>
+	void CalculatePatchCoordinates();
 
 protected:
 	///	<summary>
@@ -93,6 +92,21 @@ protected:
 	);
 
 protected:
+	///	<summary>
+	///		Grid stamp.
+	///	</summary>
+	int m_iGridStamp;
+
+	///	<summary>
+	///		Number of reference points in the X direction.
+	///	</summary>
+	int m_nXReference;
+
+	///	<summary>
+	///		Number of reference points in the Y direction.
+	///	</summary>
+	int m_nYReference;
+
 	///	<summary>
 	///		Vector of longitudes.
 	///	</summary>

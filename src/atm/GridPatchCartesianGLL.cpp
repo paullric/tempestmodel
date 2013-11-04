@@ -77,200 +77,330 @@ void GridPatchCartesianGLL::InitializeDataLocal() {
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void GridPatchCartesianGLL::EvaluateGeometricTerms(
-	const TestCase & test
-) {
+void GridPatchCartesianGLL::EvaluateTopography(
+                                        const TestCase & test
+                                        ) {
+	const PhysicalConstants & phys = m_grid.GetModel().GetPhysicalConstants();
+    
+	for (int i = 0; i < m_box.GetATotalWidth(); i++) {
+        for (int j = 0; j < m_box.GetBTotalWidth(); j++) {
+            double dLon;
+            double dLat;
+            
+            CubedSphereTrans::RLLFromABP(
+                                         m_box.GetANode(i),
+                                         m_box.GetBNode(j),
+                                         m_box.GetPanel(),
+                                         dLon, dLat);
+            
+            m_dataTopography[i][j] = test.EvaluateTopography(phys, dLon, dLat);
+            
+            if (m_dataTopography[i][j] >= m_grid.GetZtop()) {
+                _EXCEPTIONT("TestCase topography exceeds model top.");
+            }
+        }
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void GridPatchCartesianGLL::EvaluateGeometricTerms() {
+    
 	// Physical constants
 	const PhysicalConstants & phys = m_grid.GetModel().GetPhysicalConstants();
-
+    
 	// Obtain Gauss Lobatto quadrature nodes and weights
 	DataVector<double> dGL;
 	DataVector<double> dWL;
-
+    
 	GaussLobattoQuadrature::GetPoints(m_nHorizontalOrder, 0.0, 1.0, dGL, dWL);
-
+    
 	// Obtain Gaussian quadrature nodes and weights in the vertical
 	DataVector<double> dGNode;
 	DataVector<double> dWNode;
-
+    
 	GaussQuadrature::GetPoints(
-		m_nVerticalOrder, 0.0, 1.0, dGNode, dWNode);
-
+                               m_nVerticalOrder, 0.0, 1.0, dGNode, dWNode);
+    
 	// Obtain Gauss Lobatto quadrature nodes and weights in the vertical
 	DataVector<double> dGREdge;
 	DataVector<double> dWREdge;
-
+    
 	GaussLobattoQuadrature::GetPoints(
-		m_nVerticalOrder+1, 0.0, 1.0, dGREdge, dWREdge);
-
+                                      m_nVerticalOrder+1, 0.0, 1.0, dGREdge, dWREdge);
+    
+	// Derivatives of basis functions
+	GridCartesianGLL & gridCartesianGLL =
+    dynamic_cast<GridCartesianGLL &>(m_grid);
+    
+	const DataMatrix<double> & dDxBasis1D = gridCartesianGLL.GetDxBasis1D();
+    
 	// Element spacing at this refinement level
 	double dElementDeltaA =
-		  m_box.GetAEdge(m_box.GetHaloElements() + m_nHorizontalOrder)
-		- m_box.GetAEdge(m_box.GetHaloElements());
-
+    m_box.GetAEdge(m_box.GetHaloElements() + m_nHorizontalOrder)
+    - m_box.GetAEdge(m_box.GetHaloElements());
+    
 	double dElementDeltaB =
-		  m_box.GetBEdge(m_box.GetHaloElements() + m_nHorizontalOrder)
-		- m_box.GetBEdge(m_box.GetHaloElements());
-
+    m_box.GetBEdge(m_box.GetHaloElements() + m_nHorizontalOrder)
+    - m_box.GetBEdge(m_box.GetHaloElements());
+    
 #pragma message "Implement rectangular grid elements"
 	if (fabs(dElementDeltaA - dElementDeltaB) > 1.0e-12) {
 		_EXCEPTIONT("Not implemented.");
 	}
-
+    
 	// Vertical grid spacing
 	double dElementDeltaXi =
-		  m_grid.GetREtaInterface(m_nVerticalOrder)
-		- m_grid.GetREtaInterface(0);
-
+    m_grid.GetREtaInterface(m_nVerticalOrder)
+    - m_grid.GetREtaInterface(0);
+    
 	// Initialize metric and Christoffel symbols in terrain-following coords
-	for (int i = 0; i < m_box.GetATotalWidth(); i++) {
-	for (int j = 0; j < m_box.GetBTotalWidth(); j++) {
-
-		// Find index within sub-element
-		int ix = (i - m_box.GetHaloElements()) % m_nHorizontalOrder;
-		int jx = (j - m_box.GetHaloElements()) % m_nHorizontalOrder;
-
-		if (ix < 0) {
-			ix = ix + m_nHorizontalOrder;
-		}
-		if (jx < 0) {
-			jx = jx + m_nHorizontalOrder;
-		}
-
-		// Evaluate derivatives of topography
-		double dEpsilon = 1.0e-5;
-		double dTopography[3][3];
-		for (int s = 0; s < 3; s++) {
-		for (int t = 0; t < 3; t++) {
-			double dAlpha =
-				m_box.GetANode(i) + static_cast<double>(s-1) * dEpsilon;
-			double dBeta =
-				m_box.GetBNode(j) + static_cast<double>(t-1) * dEpsilon;
-
-			dTopography[s][t] =
-				test.EvaluateTopography(phys, dAlpha, dBeta);
-		}
-		}
-
-		// Gnomonic coordinates
-		double dX = tan(m_box.GetANode(i));
-		double dY = tan(m_box.GetBNode(j));
-
-		// Topography height and its derivatives
-		double dZs = dTopography[1][1];
-		double dDaZs =
-			(dTopography[2][1] - dTopography[0][1]) / (2.0 * dEpsilon);
-		double dDbZs =
-			(dTopography[1][2] - dTopography[1][0]) / (2.0 * dEpsilon);
-		double dDaaZs =
-			(dTopography[2][1] - 2.0 * dZs + dTopography[0][1])
-				/ (dEpsilon * dEpsilon);
-		double dDbbZs =
-			(dTopography[1][2] - 2.0 * dZs + dTopography[1][0])
-				/ (dEpsilon * dEpsilon);
-		double dDabZs =
-			( dTopography[2][2] - dTopography[2][0]
-			- dTopography[0][2] + dTopography[0][0])
-				/ (4.0 * dEpsilon * dEpsilon);
-
-		// Initialize 2D contravariant metric
-		double dContraMetricScale = 1.0;
-
-		// Christoffel symbol components at each node
-        // (off-diagonal element are doubled due to symmetry)
-        m_dataChristoffelA[i][j][0] = 0.0;
-        m_dataChristoffelA[i][j][1] = 0.0;
-        m_dataChristoffelA[i][j][2] = 0.0;
-        m_dataChristoffelB[i][j][0] = 0.0;
-        m_dataChristoffelB[i][j][1] = 0.0;
-        m_dataChristoffelB[i][j][2] = 0.0;
-
-		// Vertical coordinate transform and its derivatives
-		for (int k = 0; k < m_grid.GetRElements(); k++) {
-
-			// Sub-element index
-			int kx = k % m_nVerticalOrder;
-
-			// Gal-Chen and Somerville (1975) linear terrain-following coord
-			double dDaR = (1.0 - m_grid.GetREtaLevel(k)) * dDaZs;
-			double dDbR = (1.0 - m_grid.GetREtaLevel(k)) * dDbZs;
-			double dDaaR = (1.0 - m_grid.GetREtaLevel(k)) * dDaaZs;
-			double dDabR = (1.0 - m_grid.GetREtaLevel(k)) * dDabZs;
-			double dDbbR = (1.0 - m_grid.GetREtaLevel(k)) * dDbbZs;
-
-			double dDxR = m_grid.GetZtop() - dZs;
-			double dDaxR = - dDaZs;
-			double dDbxR = - dDbZs;
-			double dDxxR = 0.0;
-
-#pragma message "Why does the Jacobian not include the DxR term? -- its inclusion shouldn't mess up the Coriolis force"
-			// Calculate pointwise Jacobian
-			m_dataJacobian[k][i][j] = dDxR;
-
-			// Element area associated with each model level GLL node
-			m_dataElementArea[k][i][j] =
-				m_dataJacobian[k][i][j]
-				* dWL[ix] * dElementDeltaA
-				* dWL[jx] * dElementDeltaB
-				* dWNode[kx] * dElementDeltaXi * dDxR;
-
-			// Contravariant metric components
-			double dContraMetricScale = 1.0;
-
-			m_dataContraMetricA[k][i][j][0] = dContraMetricScale;
-			m_dataContraMetricA[k][i][j][1] = 0.0;
-			m_dataContraMetricA[k][i][j][2] = dContraMetricScale
-                                            * (-dDaR / dDxR);
-			m_dataContraMetricB[k][i][j][0] = 0.0;
-			m_dataContraMetricB[k][i][j][1] = dContraMetricScale;
-			m_dataContraMetricB[k][i][j][2] = dContraMetricScale
-                                            * (-dDbR / dDxR);
-			m_dataContraMetricXi[k][i][j][0] = dContraMetricScale
-                                             * (-dDaR / dDxR);
-			m_dataContraMetricXi[k][i][j][1] = dContraMetricScale
-                                             * (-dDbR / dDxR);
-            m_dataContraMetricXi[k][i][j][2] = (1.0 + dDaR * dDaR + dDbR * dDbR)
-                                             / sqrt(dDxR);
-
-			// Vertical Christoffel symbol components
-			m_dataChristoffelXi[k][i][j][0] = dDaaR;
-			m_dataChristoffelXi[k][i][j][1] = dDabR;
-			m_dataChristoffelXi[k][i][j][2] = dDaxR;
-			m_dataChristoffelXi[k][i][j][3] = dDbbR;
-			m_dataChristoffelXi[k][i][j][4] = dDbxR;
-			m_dataChristoffelXi[k][i][j][5] = dDxxR;
-
-			m_dataChristoffelXi[k][i][j][0] /= dDxR;
-			m_dataChristoffelXi[k][i][j][1] /= dDxR;
-			m_dataChristoffelXi[k][i][j][2] /= dDxR;
-			m_dataChristoffelXi[k][i][j][3] /= dDxR;
-			m_dataChristoffelXi[k][i][j][4] /= dDxR;
-			m_dataChristoffelXi[k][i][j][5] /= dDxR;
-		}
-
-		// Metric terms at vertical interfaces
-		for (int k = 0; k <= m_grid.GetRElements(); k++) {
-			int kx = k % m_nVerticalOrder;
-
-			// Gal-Chen and Somerville (1975) linear terrain-following coord
-			double dDxR = m_grid.GetZtop() - dZs;
-
-			// Calculate pointwise Jacobian
-			double dJacobian = dDxR;
-
-
-			// Element area associated with each model interface GLL node
-			m_dataElementAreaREdge[k][i][j] =
-				dJacobian
-				* dWL[ix] * dElementDeltaA
-				* dWL[jx] * dElementDeltaB
-				* dWREdge[kx] * dElementDeltaXi * dDxR;
-
-			if ((k != 0) && (k != m_grid.GetRElements()) && (kx == 0)) {
-				m_dataElementAreaREdge[k][i][j] *= 2.0;
-			}
-		}
-	}
+	for (int a = 0; a < GetElementCountA(); a++) {
+        for (int b = 0; b < GetElementCountB(); b++) {
+            
+            for (int i = 0; i < m_nHorizontalOrder; i++) {
+                for (int j = 0; j < m_nHorizontalOrder; j++) {
+                    
+                    /*
+                     // Find index within sub-element
+                     int ix = (i - m_box.GetHaloElements()) % m_nHorizontalOrder;
+                     int jx = (j - m_box.GetHaloElements()) % m_nHorizontalOrder;
+                     
+                     if (ix < 0) {
+                     ix = ix + m_nHorizontalOrder;
+                     }
+                     if (jx < 0) {
+                     jx = jx + m_nHorizontalOrder;
+                     }
+                     */
+                    /*
+                     #pragma message "This should use the natural spectral element basis"
+                     // Evaluate derivatives of topography
+                     double dEpsilon = 1.0e-5;
+                     double dTopography[3][3];
+                     for (int s = 0; s < 3; s++) {
+                     for (int t = 0; t < 3; t++) {
+                     double dAlpha =
+                     m_box.GetANode(i) + static_cast<double>(s-1) * dEpsilon;
+                     double dBeta =
+                     m_box.GetBNode(j) + static_cast<double>(t-1) * dEpsilon;
+                     
+                     double dLon;
+                     double dLat;
+                     CubedSphereTrans::RLLFromABP(
+                     dAlpha, dBeta, m_box.GetPanel(),
+                     dLon, dLat);
+                     
+                     dTopography[s][t] =
+                     test.EvaluateTopography(phys, dLon, dLat);
+                     }
+                     }
+                     */
+                    // Nodal points
+                    int iElementA = m_box.GetAInteriorBegin() + a * m_nHorizontalOrder;
+                    int iElementB = m_box.GetBInteriorBegin() + b * m_nHorizontalOrder;
+                    
+                    int iA = iElementA + i;
+                    int iB = iElementB + j;
+                    
+                    // Gnomonic coordinates
+                    double dX = tan(m_box.GetANode(iA));
+                    double dY = tan(m_box.GetBNode(iB));
+                    double dDelta2 = (1.0 + dX * dX + dY * dY);
+                    double dDelta = sqrt(dDelta2);
+                    
+                    // Topography height and its derivatives
+                    double dZs = m_dataTopography[iA][iB];
+                    
+                    double dDaZs = 0.0;
+                    double dDbZs = 0.0;
+                    for (int s = 0; s < m_nHorizontalOrder; s++) {
+                        dDaZs += dDxBasis1D[s][i] * m_dataTopography[iElementA+s][iB];
+                        dDbZs += dDxBasis1D[s][j] * m_dataTopography[iA][iElementB+s];
+                    }
+                    dDaZs /= GetElementDeltaA();
+                    dDbZs /= GetElementDeltaB();
+                    
+                    double dDaaZs = 0.0;
+                    double dDabZs = 0.0;
+                    double dDbbZs = 0.0;
+                    #pragma message "FIX second derivatives"
+                    /*
+                     for (int s = 0; s < m_nHorizontalOrder; s++) {
+                     dDaaZs += m_dDxBasis1D[s][i] * d
+                     }
+                     */
+                    
+                    /*
+                     double dDaZs =
+                     (dTopography[2][1] - dTopography[0][1]) / (2.0 * dEpsilon);
+                     double dDbZs =
+                     (dTopography[1][2] - dTopography[1][0]) / (2.0 * dEpsilon);
+                     double dDaaZs =
+                     (dTopography[2][1] - 2.0 * dZs + dTopography[0][1])
+                     / (dEpsilon * dEpsilon);
+                     double dDbbZs =
+                     (dTopography[1][2] - 2.0 * dZs + dTopography[1][0])
+                     / (dEpsilon * dEpsilon);
+                     double dDabZs =
+                     ( dTopography[2][2] - dTopography[2][0]
+                     - dTopography[0][2] + dTopography[0][0])
+                     / (4.0 * dEpsilon * dEpsilon);
+                     */
+                    // Initialize 2D Jacobian
+                    m_dataJacobian2D[iA][iB] =
+                    (1.0 + dX * dX) * (1.0 + dY * dY) / (dDelta * dDelta * dDelta);
+                    
+                    m_dataJacobian2D[iA][iB] *=
+                    phys.GetEarthRadius()
+                    * phys.GetEarthRadius();
+                    
+                    // Initialize 2D contravariant metric
+                    double dContraMetricScale = 1.0;
+                    
+                    m_dataContraMetric2DA[iA][iB][0] =
+                    dContraMetricScale * (1.0 + dY * dY);
+                    m_dataContraMetric2DA[iA][iB][1] =
+                    dContraMetricScale * dX * dY;
+                    
+                    m_dataContraMetric2DB[iA][iB][0] =
+                    dContraMetricScale * dX * dY;
+                    m_dataContraMetric2DB[iA][iB][1] =
+                    dContraMetricScale * (1.0 + dX * dX);
+                    
+                    // Christoffel symbol components at each node
+                    // (off-diagonal element are doubled due to symmetry)
+                    m_dataChristoffelA[i][j][0] = 0.0;
+                    m_dataChristoffelA[i][j][1] = 0.0;
+                    m_dataChristoffelA[i][j][2] = 0.0;
+                    m_dataChristoffelB[i][j][0] = 0.0;
+                    m_dataChristoffelB[i][j][1] = 0.0;
+                    m_dataChristoffelB[i][j][2] = 0.0;
+                    
+                    // Vertical coordinate transform and its derivatives
+                    for (int k = 0; k < m_grid.GetRElements(); k++) {
+                        
+                        // Sub-element index
+                        int kx = k % m_nVerticalOrder;
+                        
+                        // Z coordinate
+                        double dREta = m_grid.GetREtaLevel(k);
+                        double dZ = dZs + (m_grid.GetZtop() - dZs) * dREta;
+                        
+                        // Gal-Chen and Somerville (1975) linear terrain
+                        // following coord
+                        double dDaR = (1.0 - m_grid.GetREtaLevel(k)) * dDaZs;
+                        double dDbR = (1.0 - m_grid.GetREtaLevel(k)) * dDbZs;
+                        double dDaaR = (1.0 - m_grid.GetREtaLevel(k)) * dDaaZs;
+                        double dDabR = (1.0 - m_grid.GetREtaLevel(k)) * dDabZs;
+                        double dDbbR = (1.0 - m_grid.GetREtaLevel(k)) * dDbbZs;
+                        
+                        double dDxR = m_grid.GetZtop() - dZs;
+                        double dDaxR = - dDaZs;
+                        double dDbxR = - dDbZs;
+                        double dDxxR = 0.0;
+                        
+                        // Calculate pointwise Jacobian
+                        m_dataJacobian[k][i][j] = dDxR;
+                        
+                        // Element area associated with each model level GLL node
+                        m_dataElementArea[k][i][j] =
+                        m_dataJacobian[k][i][j]
+                        * dWL[i] * dElementDeltaA
+                        * dWL[j] * dElementDeltaB
+                        * dWNode[kx] * dElementDeltaXi * dDxR;
+                        
+                        // Contravariant metric components
+                        double dContraMetricScale = 1.0;
+                        
+                        m_dataContraMetricA[k][i][j][0] = dContraMetricScale;
+                        m_dataContraMetricA[k][i][j][1] = 0.0;
+                        m_dataContraMetricA[k][i][j][2] = dContraMetricScale
+                        * (-dDaR / dDxR);
+                        m_dataContraMetricB[k][i][j][0] = 0.0;
+                        m_dataContraMetricB[k][i][j][1] = dContraMetricScale;
+                        m_dataContraMetricB[k][i][j][2] = dContraMetricScale
+                        * (-dDbR / dDxR);
+                        m_dataContraMetricXi[k][i][j][0] = dContraMetricScale
+                        * (-dDaR / dDxR);
+                        m_dataContraMetricXi[k][i][j][1] = dContraMetricScale
+                        * (-dDbR / dDxR);
+                        m_dataContraMetricXi[k][i][j][2] = (1.0 + dDaR * dDaR + dDbR * dDbR)
+                        / sqrt(dDxR);
+                        
+                        // Vertical Christoffel symbol components
+                        m_dataChristoffelXi[k][i][j][0] = dDaaR;
+                        m_dataChristoffelXi[k][i][j][1] = dDabR;
+                        m_dataChristoffelXi[k][i][j][2] = dDaxR;
+                        m_dataChristoffelXi[k][i][j][3] = dDbbR;
+                        m_dataChristoffelXi[k][i][j][4] = dDbxR;
+                        m_dataChristoffelXi[k][i][j][5] = dDxxR;
+                        
+                        m_dataChristoffelXi[k][i][j][0] /= dDxR;
+                        m_dataChristoffelXi[k][i][j][1] /= dDxR;
+                        m_dataChristoffelXi[k][i][j][2] /= dDxR;
+                        m_dataChristoffelXi[k][i][j][3] /= dDxR;
+                        m_dataChristoffelXi[k][i][j][4] /= dDxR;
+                        m_dataChristoffelXi[k][i][j][5] /= dDxR;
+                        
+                        // Orthonormalization coefficients
+                        m_dataOrthonormNode[k][iA][iB][0] =
+                        - dDaZs * (m_grid.GetZtop() - dZ)
+                        / (m_grid.GetZtop() - dZs)
+                        / (m_grid.GetZtop() - dZs);
+                        
+                        m_dataOrthonormNode[k][iA][iB][1] =
+                        - dDbZs * (m_grid.GetZtop() - dZ)
+                        / (m_grid.GetZtop() - dZs)
+                        / (m_grid.GetZtop() - dZs);
+                        
+                        m_dataOrthonormNode[k][iA][iB][2] =
+                        m_grid.GetZtop() / (m_grid.GetZtop() - dZs);
+                    }
+                    
+                    // Metric terms at vertical interfaces
+                    for (int k = 0; k <= m_grid.GetRElements(); k++) {
+                        int kx = k % m_nVerticalOrder;
+                        
+                        // Z coordinate
+                        double dREta = m_grid.GetREtaInterface(k);
+                        double dZ = dZs + (m_grid.GetZtop() - dZs) * dREta;
+                        
+                        // Gal-Chen and Somerville (1975) linear terrain-following coord
+                        double dDxR = m_grid.GetZtop() - dZs;
+                        
+                        // Calculate pointwise Jacobian
+                        double dJacobian = dDxR;
+                        
+                        // Element area associated with each model interface GLL node
+                        m_dataElementAreaREdge[k][iA][iB] =
+                        dJacobian
+                        * dWL[i] * dElementDeltaA
+                        * dWL[j] * dElementDeltaB
+                        * dWREdge[kx] * dElementDeltaXi;
+                        
+                        if ((k != 0) && (k != m_grid.GetRElements()) && (kx == 0)) {
+                            m_dataElementAreaREdge[k][iA][iB] *= 2.0;
+                        }
+                        
+                        // Orthonormalization coefficients
+                        m_dataOrthonormREdge[k][iA][iB][0] =
+                        - dDaZs * (m_grid.GetZtop() - dZ)
+                        / (m_grid.GetZtop() - dZs)
+                        / (m_grid.GetZtop() - dZs);
+                        
+                        m_dataOrthonormREdge[k][iA][iB][1] =
+                        - dDbZs * (m_grid.GetZtop() - dZ)
+                        / (m_grid.GetZtop() - dZs)
+                        / (m_grid.GetZtop() - dZs);
+                        
+                        m_dataOrthonormREdge[k][iA][iB][2] =
+                        m_grid.GetZtop() / (m_grid.GetZtop() - dZs);
+                    }
+                }
+            }
+            
+        }
 	}
 }
 
@@ -296,9 +426,12 @@ void GridPatchCartesianGLL::EvaluateTestCase(
 		_EXCEPTIONT("VerticalOrder / Dimensionality mismatch:\n"
 			"For 2D problems vertical order must be 1.");
 	}
+    
+    // Evaluate topography
+	EvaluateTopography(test);
 
 	// Evaluate geometric terms
-	EvaluateGeometricTerms(test);
+	EvaluateGeometricTerms();
 
 	// Physical constants
 	const PhysicalConstants & phys = m_grid.GetModel().GetPhysicalConstants();

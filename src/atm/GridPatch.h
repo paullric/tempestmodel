@@ -50,6 +50,12 @@ public:
 
 public:
 	///	<summary>
+	///		The PatchIndex indicating an invalid patch.
+	///	</summary>
+	static const int InvalidIndex = (-1);
+
+public:
+	///	<summary>
 	///		Constructor.
 	///	</summary>
 	GridPatch(
@@ -100,6 +106,11 @@ public:
 	///		Delete data and reset patch to a stub.
 	///	</summary>
 	virtual void DeinitializeData();
+
+	///	<summary>
+	///		Initialize geometric terms.
+	///	</summary>
+	virtual void EvaluateGeometricTerms() = 0;
 
 	///	<summary>
 	///		Initialize state and tracer data from a test case.
@@ -930,7 +941,19 @@ protected:
 
 ///////////////////////////////////////////////////////////////////////////////
 
-typedef std::vector<GridPatch*> GridPatchVector;
+//typedef std::vector<GridPatch*> GridPatchVector;
+
+class GridPatchVector
+	: public std::vector<GridPatch*>
+{
+	public:
+		GridPatch * operator[](int i) const {
+			if (i == GridPatch::InvalidIndex) {
+				return NULL;
+			}
+			return std::vector<GridPatch*>::operator[](i);
+		}
+};
 
 ///////////////////////////////////////////////////////////////////////////////
 

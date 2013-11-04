@@ -18,6 +18,8 @@
 
 #include "Grid.h"
 #include "GridPatch.h"
+#include "Model.h"
+#include "EquationSet.h"
 
 ///////////////////////////////////////////////////////////////////////////////
 // Neighbor
@@ -94,12 +96,12 @@ void ExteriorNeighbor::Pack(
 ) {
 	// Check matrix bounds
 	if (((m_dir == Direction_Right) || (m_dir == Direction_Left)) &&
-		(m_ixNodeEnd > data.GetBElements())
+		(m_ixSecond > data.GetBElements())
 	) {
 		_EXCEPTIONT("GridData / ExteriorNeighbor inconsistency.");
 	}
 	if (((m_dir == Direction_Top) || (m_dir == Direction_Bottom)) &&
-		(m_ixNodeEnd > data.GetAElements())
+		(m_ixSecond > data.GetAElements())
 	) {
 		_EXCEPTIONT("GridData / ExteriorNeighbor inconsistency.");
 	}
@@ -128,17 +130,13 @@ void ExteriorNeighbor::Pack(
 		int nTotalValues =
 			  data.GetRElements()
 			* (ixBoundaryEnd - ixBoundaryBegin)
-			* (m_ixNodeEnd - m_ixNodeBegin);
-
-		if (m_ixSendBuffer + nTotalValues > m_vecSendBuffer.GetRows()) {
-			_EXCEPTIONT("Insufficient space in SendBuffer for operation.");
-		}
+			* (m_ixSecond - m_ixFirst);
 
 		// Pack the SendBuffer
 		if (m_fReverseDirection) {
 			for (int k = 0; k < data.GetRElements(); k++) {
 			for (int i = ixBoundaryBegin; i < ixBoundaryEnd; i++) {
-			for (int j = m_ixNodeEnd-1; j >= m_ixNodeBegin; j--) {
+			for (int j = m_ixSecond-1; j >= m_ixFirst; j--) {
 				m_vecSendBuffer[m_ixSendBuffer++] = data[k][i][j];
 			}
 			}
@@ -147,7 +145,7 @@ void ExteriorNeighbor::Pack(
 		} else {
 			for (int k = 0; k < data.GetRElements(); k++) {
 			for (int i = ixBoundaryBegin; i < ixBoundaryEnd; i++) {
-			for (int j = m_ixNodeBegin; j < m_ixNodeEnd; j++) {
+			for (int j = m_ixFirst; j < m_ixSecond; j++) {
 				m_vecSendBuffer[m_ixSendBuffer++] = data[k][i][j];	
 			}
 			}
@@ -163,7 +161,7 @@ void ExteriorNeighbor::Pack(
 		int nTotalValues =
 			  data.GetRElements()
 			* (ixBoundaryEnd - ixBoundaryBegin)
-			* (m_ixNodeEnd - m_ixNodeBegin);
+			* (m_ixSecond - m_ixFirst);
 
 		if (m_ixSendBuffer + nTotalValues > m_vecSendBuffer.GetRows()) {
 			_EXCEPTIONT("Insufficient space in SendBuffer for operation.");
@@ -173,7 +171,7 @@ void ExteriorNeighbor::Pack(
 		if (m_fReverseDirection) {
 			for (int k = 0; k < data.GetRElements(); k++) {
 			for (int j = ixBoundaryBegin; j < ixBoundaryEnd; j++) {
-			for (int i = m_ixNodeEnd-1; i >= m_ixNodeBegin; i--) {
+			for (int i = m_ixSecond-1; i >= m_ixFirst; i--) {
 				m_vecSendBuffer[m_ixSendBuffer++] = data[k][i][j];
 			}
 			}
@@ -182,7 +180,7 @@ void ExteriorNeighbor::Pack(
 		} else {
 			for (int k = 0; k < data.GetRElements(); k++) {
 			for (int j = ixBoundaryBegin; j < ixBoundaryEnd; j++) {
-			for (int i = m_ixNodeBegin; i < m_ixNodeEnd; i++) {
+			for (int i = m_ixFirst; i < m_ixSecond; i++) {
 				m_vecSendBuffer[m_ixSendBuffer++] = data[k][i][j];
 			}
 			}
@@ -198,7 +196,7 @@ void ExteriorNeighbor::Pack(
 		int nTotalValues =
 			  data.GetRElements()
 			* (ixBoundaryEnd - ixBoundaryBegin)
-			* (m_ixNodeEnd - m_ixNodeBegin);
+			* (m_ixSecond - m_ixFirst);
 
 		if (m_ixSendBuffer + nTotalValues > m_vecSendBuffer.GetRows()) {
 			_EXCEPTIONT("Insufficient space in SendBuffer for operation.");
@@ -208,7 +206,7 @@ void ExteriorNeighbor::Pack(
 		if (m_fReverseDirection) {
 			for (int k = 0; k < data.GetRElements(); k++) {
 			for (int i = ixBoundaryEnd-1; i >= ixBoundaryBegin; i--) {
-			for (int j = m_ixNodeEnd-1; j >= m_ixNodeBegin; j--) {
+			for (int j = m_ixSecond-1; j >= m_ixFirst; j--) {
 				m_vecSendBuffer[m_ixSendBuffer++] = data[k][i][j];
 			}
 			}
@@ -217,7 +215,7 @@ void ExteriorNeighbor::Pack(
 		} else {
 			for (int k = 0; k < data.GetRElements(); k++) {
 			for (int i = ixBoundaryEnd-1; i >= ixBoundaryBegin; i--) {
-			for (int j = m_ixNodeBegin; j < m_ixNodeEnd; j++) {
+			for (int j = m_ixFirst; j < m_ixSecond; j++) {
 				m_vecSendBuffer[m_ixSendBuffer++] = data[k][i][j];
 			}
 			}
@@ -233,7 +231,7 @@ void ExteriorNeighbor::Pack(
 		int nTotalValues =
 			  data.GetRElements()
 			* (ixBoundaryEnd - ixBoundaryBegin)
-			* (m_ixNodeEnd - m_ixNodeBegin);
+			* (m_ixSecond - m_ixFirst);
 
 		if (m_ixSendBuffer + nTotalValues > m_vecSendBuffer.GetRows()) {
 			_EXCEPTIONT("Insufficient space in SendBuffer for operation.");
@@ -243,7 +241,7 @@ void ExteriorNeighbor::Pack(
 		if (m_fReverseDirection) {
 			for (int k = 0; k < data.GetRElements(); k++) {
 			for (int j = ixBoundaryEnd-1; j >= ixBoundaryBegin; j--) {
-			for (int i = m_ixNodeEnd-1; i >= m_ixNodeBegin; i--) {
+			for (int i = m_ixSecond-1; i >= m_ixFirst; i--) {
 				m_vecSendBuffer[m_ixSendBuffer++] = data[k][i][j];
 			}
 			}
@@ -252,7 +250,7 @@ void ExteriorNeighbor::Pack(
 		} else {
 			for (int k = 0; k < data.GetRElements(); k++) {
 			for (int j = ixBoundaryEnd-1; j >= ixBoundaryBegin; j--) {
-			for (int i = m_ixNodeBegin; i < m_ixNodeEnd; i++) {
+			for (int i = m_ixFirst; i < m_ixSecond; i++) {
 				m_vecSendBuffer[m_ixSendBuffer++] = data[k][i][j];
 			}
 			}
@@ -261,10 +259,10 @@ void ExteriorNeighbor::Pack(
 
 	// Pack data to send toprightward 
 	} else if (m_dir == Direction_TopRight) {
-		ixABoundaryBegin = data.GetAElements() - 2 * data.GetHaloElements();
-		ixABoundaryEnd   = data.GetAElements() - data.GetHaloElements();
-		ixBBoundaryBegin = data.GetBElements() - 2 * data.GetHaloElements();
-		ixBBoundaryEnd   = data.GetBElements() - data.GetHaloElements();
+		ixABoundaryBegin = m_ixFirst - data.GetHaloElements() + 1;
+		ixABoundaryEnd   = m_ixFirst + 1;
+		ixBBoundaryBegin = m_ixSecond - data.GetHaloElements() + 1;
+		ixBBoundaryEnd   = m_ixSecond + 1;
  
 		// Check that sufficient data remains in send buffer
 		int nTotalValues =
@@ -298,10 +296,10 @@ void ExteriorNeighbor::Pack(
 
 	// Pack data to send topleftward 
 	} else if (m_dir == Direction_TopLeft) {
-		ixABoundaryBegin = data.GetHaloElements();
-		ixABoundaryEnd   = 2 * data.GetHaloElements();
-		ixBBoundaryBegin = data.GetBElements() - 2 * data.GetHaloElements();
-		ixBBoundaryEnd   = data.GetBElements() - data.GetHaloElements();
+		ixABoundaryBegin = m_ixFirst;
+		ixABoundaryEnd   = m_ixFirst + data.GetHaloElements();
+		ixBBoundaryBegin = m_ixSecond - data.GetHaloElements() + 1;
+		ixBBoundaryEnd   = m_ixSecond + 1;
  
 		// Check that sufficient data remains in send buffer
 		int nTotalValues =
@@ -335,10 +333,10 @@ void ExteriorNeighbor::Pack(
 
 	// Pack data to send bottomleftward 
 	} else if (m_dir == Direction_BottomLeft) {
-		ixABoundaryBegin = data.GetHaloElements();
-		ixABoundaryEnd   = 2 * data.GetHaloElements();
-		ixBBoundaryBegin = data.GetHaloElements();
-		ixBBoundaryEnd   = 2 * data.GetHaloElements();
+		ixABoundaryBegin = m_ixFirst;
+		ixABoundaryEnd   = m_ixFirst + data.GetHaloElements();
+		ixBBoundaryBegin = m_ixSecond;
+		ixBBoundaryEnd   = m_ixSecond + data.GetHaloElements();
  
 		// Check that sufficient data remains in send buffer
 		int nTotalValues =
@@ -372,10 +370,10 @@ void ExteriorNeighbor::Pack(
 
 	// Pack data to send bottomrightward 
 	} else if (m_dir == Direction_BottomRight) {
-		ixABoundaryBegin = data.GetAElements() - 2 * data.GetHaloElements();
-		ixABoundaryEnd   = data.GetAElements() - data.GetHaloElements();
-		ixBBoundaryBegin = data.GetHaloElements();
-		ixBBoundaryEnd   = 2 * data.GetHaloElements();
+		ixABoundaryBegin = m_ixFirst - data.GetHaloElements() + 1;
+		ixABoundaryEnd   = m_ixFirst + 1;
+		ixBBoundaryBegin = m_ixSecond;
+		ixBBoundaryEnd   = m_ixSecond + data.GetHaloElements();
  
 		// Check that sufficient data remains in send buffer
 		int nTotalValues =
@@ -515,7 +513,7 @@ void ExteriorNeighbor::Unpack(
 		int nTotalValues =
 			  data.GetRElements()
 			* (ixBoundaryEnd - ixBoundaryBegin)
-			* (m_ixNodeEnd - m_ixNodeBegin);
+			* (m_ixSecond - m_ixFirst);
 
 		if (m_ixRecvBuffer + nTotalValues > m_vecRecvBuffer.GetRows()) {
 			_EXCEPTIONT("Insufficient space in RecvBuffer for operation.");
@@ -524,7 +522,7 @@ void ExteriorNeighbor::Unpack(
 		// Unpack data
 		for (int k = 0; k < data.GetRElements(); k++) {
 		for (int i = ixBoundaryEnd-1; i >= ixBoundaryBegin; i--) {
-		for (int j = m_ixNodeBegin; j < m_ixNodeEnd; j++) {
+		for (int j = m_ixFirst; j < m_ixSecond; j++) {
 			data[k][i][j] = m_vecRecvBuffer[m_ixRecvBuffer++];
 		}
 		}
@@ -539,7 +537,7 @@ void ExteriorNeighbor::Unpack(
 		int nTotalValues =
 			  data.GetRElements()
 			* (ixBoundaryEnd - ixBoundaryBegin)
-			* (m_ixNodeEnd - m_ixNodeBegin);
+			* (m_ixSecond - m_ixFirst);
 
 		if (m_ixRecvBuffer + nTotalValues > m_vecRecvBuffer.GetRows()) {
 			_EXCEPTIONT("Insufficient space in RecvBuffer for operation.");
@@ -548,7 +546,7 @@ void ExteriorNeighbor::Unpack(
 		// Unpack data
 		for (int k = 0; k < data.GetRElements(); k++) {
 		for (int j = ixBoundaryEnd-1; j >= ixBoundaryBegin; j--) {
-		for (int i = m_ixNodeBegin; i < m_ixNodeEnd; i++) {
+		for (int i = m_ixFirst; i < m_ixSecond; i++) {
 			data[k][i][j] = m_vecRecvBuffer[m_ixRecvBuffer++];
 		}
 		}
@@ -563,7 +561,7 @@ void ExteriorNeighbor::Unpack(
 		int nTotalValues =
 			  data.GetRElements()
 			* (ixBoundaryEnd - ixBoundaryBegin)
-			* (m_ixNodeEnd - m_ixNodeBegin);
+			* (m_ixSecond - m_ixFirst);
 
 		if (m_ixRecvBuffer + nTotalValues > m_vecRecvBuffer.GetRows()) {
 			_EXCEPTIONT("Insufficient space in RecvBuffer for operation.");
@@ -572,7 +570,7 @@ void ExteriorNeighbor::Unpack(
 		// Unpack data
 		for (int k = 0; k < data.GetRElements(); k++) {
 		for (int i = ixBoundaryBegin; i < ixBoundaryEnd; i++) {
-		for (int j = m_ixNodeBegin; j < m_ixNodeEnd; j++) {
+		for (int j = m_ixFirst; j < m_ixSecond; j++) {
 			data[k][i][j] = m_vecRecvBuffer[m_ixRecvBuffer++];
 		}
 		}
@@ -587,7 +585,7 @@ void ExteriorNeighbor::Unpack(
 		int nTotalValues =
 			  data.GetRElements()
 			* (ixBoundaryEnd - ixBoundaryBegin)
-			* (m_ixNodeEnd - m_ixNodeBegin);
+			* (m_ixSecond - m_ixFirst);
 
 		if (m_ixRecvBuffer + nTotalValues > m_vecRecvBuffer.GetRows()) {
 			_EXCEPTIONT("Insufficient space in RecvBuffer for operation.");
@@ -596,7 +594,7 @@ void ExteriorNeighbor::Unpack(
 		// Unpack data
 		for (int k = 0; k < data.GetRElements(); k++) {
 		for (int j = ixBoundaryBegin; j < ixBoundaryEnd; j++) {
-		for (int i = m_ixNodeBegin; i < m_ixNodeEnd; i++) {
+		for (int i = m_ixFirst; i < m_ixSecond; i++) {
 			data[k][i][j] = m_vecRecvBuffer[m_ixRecvBuffer++];
 		}
 		}
@@ -604,10 +602,10 @@ void ExteriorNeighbor::Unpack(
 
 	// Unpack data from top-right
 	} else if (m_dir == Direction_TopRight) {
-		ixABoundaryBegin = data.GetAElements() - data.GetHaloElements();
-		ixABoundaryEnd   = data.GetAElements();
-		ixBBoundaryBegin = data.GetBElements() - data.GetHaloElements();
-		ixBBoundaryEnd   = data.GetBElements();
+		ixABoundaryBegin = m_ixFirst + 1;
+		ixABoundaryEnd   = m_ixFirst + data.GetHaloElements() + 1;
+		ixBBoundaryBegin = m_ixSecond + 1;
+		ixBBoundaryEnd   = m_ixSecond + data.GetHaloElements() + 1;
 
 		// Check that sufficient data remains in send buffer
 		int nTotalValues =
@@ -626,10 +624,10 @@ void ExteriorNeighbor::Unpack(
 
 	// Unpack data from top-left
 	} else if (m_dir == Direction_TopLeft) {
-		ixABoundaryBegin = 0;
-		ixABoundaryEnd   = data.GetHaloElements();
-		ixBBoundaryBegin = data.GetBElements() - data.GetHaloElements();
-		ixBBoundaryEnd   = data.GetBElements();
+		ixABoundaryBegin = m_ixFirst - data.GetHaloElements();
+		ixABoundaryEnd   = m_ixFirst;
+		ixBBoundaryBegin = m_ixSecond + 1;
+		ixBBoundaryEnd   = m_ixSecond + data.GetHaloElements() + 1;
 
 		// Check that sufficient data remains in send buffer
 		int nTotalValues =
@@ -648,10 +646,10 @@ void ExteriorNeighbor::Unpack(
 
 	// Unpack data from bottom-left
 	} else if (m_dir == Direction_BottomLeft) {
-		ixABoundaryBegin = 0;
-		ixABoundaryEnd   = data.GetHaloElements();
-		ixBBoundaryBegin = 0;
-		ixBBoundaryEnd   = data.GetHaloElements();
+		ixABoundaryBegin = m_ixFirst - data.GetHaloElements();
+		ixABoundaryEnd   = m_ixFirst;
+		ixBBoundaryBegin = m_ixSecond - data.GetHaloElements();
+		ixBBoundaryEnd   = m_ixSecond;
 
 		// Check that sufficient data remains in send buffer
 		int nTotalValues =
@@ -670,10 +668,10 @@ void ExteriorNeighbor::Unpack(
 
 	// Unpack data from bottom-right
 	} else if (m_dir == Direction_BottomRight) {
-		ixABoundaryBegin = data.GetAElements() - data.GetHaloElements();
-		ixABoundaryEnd   = data.GetAElements();
-		ixBBoundaryBegin = 0;
-		ixBBoundaryEnd   = data.GetHaloElements();
+		ixABoundaryBegin = m_ixFirst + 1;
+		ixABoundaryEnd   = m_ixFirst + data.GetHaloElements() + 1;
+		ixBBoundaryBegin = m_ixSecond - data.GetHaloElements();
+		ixBBoundaryEnd   = m_ixSecond;
 
 		// Check that sufficient data remains in send buffer
 		int nTotalValues =
@@ -731,106 +729,184 @@ void ExteriorNeighbor::Unpack(
 // Connectivity
 ///////////////////////////////////////////////////////////////////////////////
 
-void Connectivity::ExteriorConnect(
-	GridPatch * pPatchFirst,
-	Direction dirFirst,
-	GridPatch * pPatchSecond,
-	Direction dirSecond,
-	bool fReverseDirection
-) {
-	// Get connectivities of individual patches
-	Connectivity & connectFirst  = pPatchFirst->GetConnectivity();
-	//Connectivity & connectSecond = pPatchSecond->GetConnectivity();
-
-	// First patch coordinate index
-	int ixFirstBegin;
-	int ixFirstEnd;
-
-	if ((dirFirst == Direction_Right) ||
-		(dirFirst == Direction_Left)
-	) {
-		ixFirstBegin = pPatchFirst->GetPatchBox().GetBInteriorBegin();
-		ixFirstEnd   = pPatchFirst->GetPatchBox().GetBInteriorEnd();
-
-	} else if (
-		(dirFirst == Direction_Top) ||
-		(dirFirst == Direction_Bottom)
-	) {
-		ixFirstBegin = pPatchFirst->GetPatchBox().GetAInteriorBegin();
-		ixFirstEnd   = pPatchFirst->GetPatchBox().GetAInteriorEnd();
-
-	} else {
-		ixFirstBegin = pPatchFirst->GetPatchBox().GetHaloElements();
-		ixFirstEnd   = pPatchFirst->GetPatchBox().GetHaloElements() + 1;
+Connectivity::~Connectivity() {
+	for (int n = 0; n < m_vecExteriorNeighbors.size(); n++) {
+		delete m_vecExteriorNeighbors[n];
 	}
 /*
-	// Second patch coordinate index
-	int ixSecondBegin;
-	int ixSecondEnd;
-
-	if ((dirSecond == Direction_Right) ||
-		(dirSecond == Direction_Left)
-	) {
-		ixSecondBegin = pPatchSecond->GetPatchBox().GetBInteriorBegin();
-		ixSecondEnd   = pPatchSecond->GetPatchBox().GetBInteriorEnd();
-
-	} else if (
-		(dirSecond == Direction_Top) ||
-		(dirSecond == Direction_Bottom)
-	) {
-		ixSecondBegin = pPatchSecond->GetPatchBox().GetAInteriorBegin();
-		ixSecondEnd   = pPatchSecond->GetPatchBox().GetAInteriorEnd();
-
-	} else {
-		ixSecondBegin = pPatchSecond->GetPatchBox().GetHaloElements();
-		ixSecondEnd   = pPatchSecond->GetPatchBox().GetHaloElements() + 1;
+	for (int n = 0; n < m_vecNestedNeighbors; n++) {
+		delete m_vecNestedNeighbors[n];
 	}
-*/
-	// Add connectivity to first patch
-	connectFirst.m_vecExteriorNeighbors.push_back(
-		ExteriorNeighbor(
-			&connectFirst,
-			dirFirst,
-			dirSecond,
-			pPatchSecond->GetPatchIndex(),
-			fReverseDirection,
-			ixFirstBegin,
-			ixFirstEnd
-		));
-/*
-	// Add connectivity to second patch
-	connectSecond.m_vecExteriorNeighbors.push_back(
-		ExteriorNeighbor(
-			&connectSecond,
-			dirSecond,
-			dirFirst,
-			pPatchFirst->GetPatchIndex(),
-			fReverseDirection,
-			ixSecondBegin,
-			ixSecondEnd
-		));
 */
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void Connectivity::InitializeBuffers(
-	int nRElements,
-	int nHaloElements,
-	int nVariables
+void Connectivity::ExteriorConnect(
+	GridPatch * pPatchFirst,
+	Direction dirFirst,
+	const GridPatch * pPatchSecond
 ) {
-	// Initialize exterior neighbor buffers
-	for (int m = 0; m < m_vecExteriorNeighbors.size(); m++) {
-		m_vecExteriorNeighbors[m].InitializeBuffers(
-			nRElements, nHaloElements, nVariables);
+	// First patch coordinate index
+	int ixFirst;
+	int ixSecond;
+
+	if ((dirFirst == Direction_Right) ||
+		(dirFirst == Direction_Left)
+	) {
+		ixFirst  = pPatchFirst->GetPatchBox().GetBInteriorBegin();
+		ixSecond = pPatchFirst->GetPatchBox().GetBInteriorEnd();
+
+	} else if (
+		(dirFirst == Direction_Top) ||
+		(dirFirst == Direction_Bottom)
+	) {
+		ixFirst  = pPatchFirst->GetPatchBox().GetAInteriorBegin();
+		ixSecond = pPatchFirst->GetPatchBox().GetAInteriorEnd();
+
+	} else if (dirFirst == Direction_TopRight) {
+		ixFirst  = pPatchFirst->GetPatchBox().GetAInteriorEnd()-1;
+		ixSecond = pPatchFirst->GetPatchBox().GetBInteriorEnd()-1;
+
+	} else if (dirFirst == Direction_TopLeft) {
+		ixFirst  = pPatchFirst->GetPatchBox().GetAInteriorBegin();
+		ixSecond = pPatchFirst->GetPatchBox().GetBInteriorEnd()-1;
+
+	} else if (dirFirst == Direction_BottomLeft) {
+		ixFirst  = pPatchFirst->GetPatchBox().GetAInteriorBegin();
+		ixSecond = pPatchFirst->GetPatchBox().GetBInteriorBegin();
+
+	} else if (dirFirst == Direction_BottomRight) {
+		ixFirst  = pPatchFirst->GetPatchBox().GetAInteriorEnd()-1;
+		ixSecond = pPatchFirst->GetPatchBox().GetBInteriorBegin();
+
+	} else {
+		_EXCEPTIONT("Invalid direction");
 	}
-/*
-	// Initialize interior neighbor buffers
-	for (int m = 0; m < m_vecNestedNeighbors.size(); m++) {
-		m_vecNestedNeighbors[m].InitializeBuffers(
-			nRElements, nHaloElements, nVariables);
+
+	// Exterior connect
+	ExteriorConnect(
+		pPatchFirst,
+		dirFirst,
+		pPatchSecond,
+		ixFirst,
+		ixSecond);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void Connectivity::ExteriorConnect(
+	GridPatch * pPatchFirst,
+	Direction dirFirst,
+	const GridPatch * pPatchSecond,
+	int ixFirst,
+	int ixSecond
+) {
+	// Check for NULL patches (do nothing)
+	if ((pPatchFirst == NULL) || (pPatchSecond == NULL)) {
+		return;
 	}
-*/
+
+	// Get number of components
+	const PatchBox & box = pPatchFirst->GetPatchBox();
+
+	const Grid & grid = pPatchFirst->GetGrid();
+
+	const Model & model = grid.GetModel();
+
+	const EquationSet & eqn = model.GetEquationSet();
+
+	int nStateTracerMaxVariables;
+	if (eqn.GetComponents() > eqn.GetTracers()) {
+		nStateTracerMaxVariables = eqn.GetComponents();
+	} else {
+		nStateTracerMaxVariables = eqn.GetTracers();
+	}
+
+	int nRElements = grid.GetRElements();
+
+	int nHaloElements = model.GetHaloElements();
+
+	// Get the opposing direction
+	Direction dirOpposing;
+	bool fReverseDirection;
+
+	grid.GetOpposingDirection(
+		box.GetPanel(),
+		pPatchSecond->GetPatchBox().GetPanel(),
+		dirFirst,
+		dirOpposing,
+		fReverseDirection);
+
+	// DEBUG
+	//std::cout << dirFirst << " : " << dirOpposing << " : " << pPatchFirst->GetPatchIndex() << " : " << pPatchSecond->GetPatchIndex() << std::endl;
+
+	// Get connectivities of individual patches
+	Connectivity & connectFirst = pPatchFirst->GetConnectivity();
+
+	// Determine the size of the boundary (number of elements along exterior
+	// edge).  Used in computing the size of the send/recv buffers.
+	int nBoundarySize;
+	if ((dirFirst == Direction_Right) ||
+		(dirFirst == Direction_Top) ||
+		(dirFirst == Direction_Left) ||
+		(dirFirst == Direction_Bottom)
+	) {
+		nBoundarySize = ixSecond - ixFirst;
+	} else {
+		nBoundarySize = nHaloElements;
+	}
+
+	if ((dirFirst == Direction_TopRight) && (
+		(ixFirst < box.GetAInteriorBegin() + nBoundarySize - 1) ||
+		(ixSecond < box.GetBInteriorBegin() + nBoundarySize - 1)
+	)) {
+		_EXCEPTIONT("Insufficient interior elements to build "
+			"diagonal connection.");
+	}
+
+	if ((dirFirst == Direction_TopLeft) && (
+		(ixFirst > box.GetAInteriorEnd() - nBoundarySize) ||
+		(ixSecond < box.GetBInteriorBegin() + nBoundarySize - 1)
+	)) {
+		_EXCEPTIONT("Insufficient interior elements to build "
+			"diagonal connection.");
+	}
+
+	if ((dirFirst == Direction_BottomLeft) && (
+		(ixFirst > box.GetAInteriorEnd() - nBoundarySize) ||
+		(ixSecond > box.GetBInteriorEnd() - nBoundarySize)
+	)) {
+		_EXCEPTIONT("Insufficient interior elements to build "
+			"diagonal connection.");
+	}
+
+	if ((dirFirst == Direction_BottomRight) && (
+		(ixFirst < box.GetAInteriorBegin() + nBoundarySize - 1) ||
+		(ixSecond > box.GetBInteriorEnd() - nBoundarySize)
+	)) {
+		_EXCEPTIONT("Insufficient interior elements to build "
+			"diagonal connection.");
+	}
+
+	// Add an external neighbor to the patch
+	ExteriorNeighbor * pNeighbor =
+		new ExteriorNeighbor(
+			&connectFirst,
+			dirFirst,
+			dirOpposing,
+			pPatchSecond->GetPatchIndex(),
+			fReverseDirection,
+			nBoundarySize,
+			ixFirst,
+			ixSecond);
+
+	pNeighbor->InitializeBuffers(
+		nRElements,
+		nHaloElements,
+		nStateTracerMaxVariables);
+
+	connectFirst.m_vecExteriorNeighbors.push_back(pNeighbor);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -839,7 +915,7 @@ void Connectivity::PrepareExchange() {
 
 	// Prepare for asynchronous receives from each neighbor
 	for (int m = 0; m < m_vecExteriorNeighbors.size(); m++) {
-		m_vecExteriorNeighbors[m].PrepareExchange();
+		m_vecExteriorNeighbors[m]->PrepareExchange();
 	}
 }
 
@@ -850,7 +926,7 @@ void Connectivity::Pack(
 ) {
 	// Send data to exterior neighbors
 	for (int m = 0; m < m_vecExteriorNeighbors.size(); m++) {
-		m_vecExteriorNeighbors[m].Pack(data);
+		m_vecExteriorNeighbors[m]->Pack(data);
 	}
 }
 
@@ -861,7 +937,7 @@ void Connectivity::Pack(
 ) {
 	// Send data to exterior neighbors
 	for (int m = 0; m < m_vecExteriorNeighbors.size(); m++) {
-		m_vecExteriorNeighbors[m].Pack(data);
+		m_vecExteriorNeighbors[m]->Pack(data);
 	}
 }
 
@@ -870,7 +946,7 @@ void Connectivity::Pack(
 void Connectivity::Send() {
 	// Send data to exterior neighbors
 	for (int m = 0; m < m_vecExteriorNeighbors.size(); m++) {
-		m_vecExteriorNeighbors[m].Send();
+		m_vecExteriorNeighbors[m]->Send();
 	}
 }
 
@@ -885,13 +961,13 @@ Neighbor * Connectivity::WaitReceive() {
 
 		nRecvMessageCount = 0;
 		for (int m = 0; m < m_vecExteriorNeighbors.size(); m++) {
-			if (m_vecExteriorNeighbors[m].IsComplete()) {
+			if (m_vecExteriorNeighbors[m]->IsComplete()) {
 				nRecvMessageCount++;
 				continue;
 			}
-			if (m_vecExteriorNeighbors[m].CheckReceive()) {
-				m_vecExteriorNeighbors[m].SetComplete();
-				return &(m_vecExteriorNeighbors[m]);
+			if (m_vecExteriorNeighbors[m]->CheckReceive()) {
+				m_vecExteriorNeighbors[m]->SetComplete();
+				return m_vecExteriorNeighbors[m];
 			}
 		}
 	}

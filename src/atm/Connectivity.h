@@ -215,8 +215,9 @@ public:
 		Direction dirOpposite,
 		int ixNeighbor,
 		bool fReverseDirection,
-		int ixNodeBegin,
-		int ixNodeEnd
+		int nBoundarySize,
+		int ixFirst,
+		int ixSecond
 	) :
 		m_dir(dir),
 		m_dirOpposite(dirOpposite),
@@ -224,9 +225,9 @@ public:
 			pConnect,
 			ixNeighbor,
 			fReverseDirection,
-			ixNodeEnd - ixNodeBegin),
-		m_ixNodeBegin(ixNodeBegin),
-		m_ixNodeEnd(ixNodeEnd)
+			nBoundarySize),
+		m_ixFirst(ixFirst),
+		m_ixSecond(ixSecond)
 	{ }
 
 public:
@@ -280,10 +281,16 @@ public:
 	Direction m_dirOpposite;
 
 	///	<summary>
-	///		Node index along boundary (increasing in alpha and beta).
+	///		First index (begin node for Right, Top, Left, Bottom and alpha
+	///		coordinate for TopRight, TopLeft, BottomLeft, BottomRight)
 	///	</summary>
-	int m_ixNodeBegin;
-	int m_ixNodeEnd;
+	int m_ixFirst;
+
+	///	<summary>
+	///		Second index (end node for Right, Top, Left, Bottom and beta
+	///		coordinate for TopRight, TopLeft, BottomLeft, BottomRight)
+	///	</summary>
+	int m_ixSecond;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -353,12 +360,12 @@ public:
 	///	<summary>
 	///		Vector of exterior boundary neighbors.
 	///	</summary>
-	typedef std::vector<ExteriorNeighbor> ExteriorNeighborVector;
+	typedef std::vector<ExteriorNeighbor *> ExteriorNeighborVector;
 
 	///	<summary>
 	///		Vector of interior boundary neighbors.
 	///	</summary>
-	typedef std::vector<InteriorNeighbor> InteriorNeighborVector;
+	typedef std::vector<InteriorNeighbor *> InteriorNeighborVector;
 
 public:
 	///	<summary>
@@ -368,26 +375,38 @@ public:
 		m_patch(patch)
 	{ }
 
+	///	<summary>
+	///		Destructor.
+	///	</summary>
+	virtual ~Connectivity();
+
 public:
 	///	<summary>
-	///		Connect two patches along entire edge.
+	///		Connect one patch to a second along entire edge.
 	///	</summary>
 	static void ExteriorConnect(
 		GridPatch * pPatchFirst,
 		Direction dirFirst,
-		GridPatch * pPatchSecond,
-		Direction dirSecond,
-		bool fReverseDirection
+		const GridPatch * pPatchSecond
 	);
 
-public:
 	///	<summary>
-	///		Initialize buffers.
+	///		Connect one patch to a second along part of the edge.
 	///	</summary>
-	void InitializeBuffers(
-		int nRElements,
-		int nHaloElements,
-		int nVariables
+	///	<param name="ixFirst">
+	///		First index (begin node for Right, Top, Left, Bottom and alpha
+	///		coordinate for TopRight, TopLeft, BottomLeft, BottomRight)
+	///	</param>
+	///	<param name="ixSecond">
+	///		Second index (end node for Right, Top, Left, Bottom and beta
+	///		coordinate for TopRight, TopLeft, BottomLeft, BottomRight)
+	///	</param>
+	static void ExteriorConnect(
+		GridPatch * pPatchFirst,
+		Direction dirFirst,
+		const GridPatch * pPatchSecond,
+		int ixFirst,
+		int ixSecond
 	);
 
 public:

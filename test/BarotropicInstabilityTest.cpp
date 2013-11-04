@@ -373,18 +373,6 @@ try {
 	Model model(EquationSet::ShallowWaterEquations);
 	AnnounceEndBlock("Done");
 
-	// Generate a new cubed-sphere GLL grid
-	AnnounceStartBlock("Creating grid");
-	GridCSGLL grid(
-		model,
-		nResolution,
-		4,
-		nOrder,
-		1,
-		1);
-
-	AnnounceEndBlock("Done");
-
 	// Set the parameters for the model
 	AnnounceStartBlock("Initializing parameters");
 	model.SetParameters(&params);
@@ -419,15 +407,18 @@ try {
 	model.SetVerticalDynamics(&vdyn);
 	AnnounceEndBlock("Done");
 
-	// Set the grid for the model
-	AnnounceStartBlock("Initializing grid");
-	model.SetGrid(&grid);
-	AnnounceEndBlock("Done");
+	// Construct the cubed-sphere grid for the model
+	AnnounceStartBlock("Constructing grid");
+	GridCSGLL grid(
+		model,
+		nResolution,
+		4,
+		nOrder,
+		1,
+		1);
 
-	// Set the test case for the model
-	BarotropicInstabilityTestCase test(dAlpha);
-	AnnounceStartBlock("Initializing test case");
-	model.SetTestCase(&test);
+	grid.AddDefaultPatches();
+	model.SetGrid(&grid);
 	AnnounceEndBlock("Done");
 
 	// Set the reference output manager for the model
@@ -447,7 +438,10 @@ try {
 	// Set the composite output manager for the model
 	AnnounceStartBlock("Creating composite output manager");
 	OutputManagerComposite outmanComp(
-		grid, dOutputDeltaT, strOutputDir, strOutputPrefix);
+		grid,
+		dOutputDeltaT,
+		strOutputDir,
+		strOutputPrefix);
 	model.AttachOutputManager(&outmanComp);
 	AnnounceEndBlock("Done");
 
@@ -455,6 +449,12 @@ try {
 	AnnounceStartBlock("Creating checksum output manager");
 	OutputManagerChecksum outmanChecksum(grid, dOutputDeltaT);
 	model.AttachOutputManager(&outmanChecksum);
+	AnnounceEndBlock("Done");
+
+	// Set the test case for the model
+	BarotropicInstabilityTestCase test(dAlpha);
+	AnnounceStartBlock("Initializing test case");
+	model.SetTestCase(&test);
 	AnnounceEndBlock("Done");
 
 	// Begin execution
