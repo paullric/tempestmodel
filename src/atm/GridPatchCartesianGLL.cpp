@@ -69,6 +69,8 @@ void GridPatchCartesianGLL::InitializeDataLocal() {
 	for (int i = 0; i < m_box.GetATotalWidth(); i++) {
 	for (int j = 0; j < m_box.GetBTotalWidth(); j++) {
         // TODO: Initialize the force with user input (latitude input for reference force)
+        m_dataLon[i][j] = m_box.GetANode(i);
+        m_dataLat[i][j] = m_box.GetBNode(j);
 		m_dataCoriolisF[i][j] = m_dataCoriolisF[i][j] +
                                 phys.GetOmega() * m_box.GetBNode(j);
 	}
@@ -87,11 +89,8 @@ void GridPatchCartesianGLL::EvaluateTopography(
             double dLon;
             double dLat;
             
-            CubedSphereTrans::RLLFromABP(
-                                         m_box.GetANode(i),
-                                         m_box.GetBNode(j),
-                                         m_box.GetPanel(),
-                                         dLon, dLat);
+            dLon = m_box.GetANode(i);
+            dLat = m_box.GetBNode(j);
             
             m_dataTopography[i][j] = test.EvaluateTopography(phys, dLon, dLat);
             
@@ -161,41 +160,6 @@ void GridPatchCartesianGLL::EvaluateGeometricTerms() {
             for (int i = 0; i < m_nHorizontalOrder; i++) {
                 for (int j = 0; j < m_nHorizontalOrder; j++) {
                     
-                    /*
-                     // Find index within sub-element
-                     int ix = (i - m_box.GetHaloElements()) % m_nHorizontalOrder;
-                     int jx = (j - m_box.GetHaloElements()) % m_nHorizontalOrder;
-                     
-                     if (ix < 0) {
-                     ix = ix + m_nHorizontalOrder;
-                     }
-                     if (jx < 0) {
-                     jx = jx + m_nHorizontalOrder;
-                     }
-                     */
-                    /*
-                     #pragma message "This should use the natural spectral element basis"
-                     // Evaluate derivatives of topography
-                     double dEpsilon = 1.0e-5;
-                     double dTopography[3][3];
-                     for (int s = 0; s < 3; s++) {
-                     for (int t = 0; t < 3; t++) {
-                     double dAlpha =
-                     m_box.GetANode(i) + static_cast<double>(s-1) * dEpsilon;
-                     double dBeta =
-                     m_box.GetBNode(j) + static_cast<double>(t-1) * dEpsilon;
-                     
-                     double dLon;
-                     double dLat;
-                     CubedSphereTrans::RLLFromABP(
-                     dAlpha, dBeta, m_box.GetPanel(),
-                     dLon, dLat);
-                     
-                     dTopography[s][t] =
-                     test.EvaluateTopography(phys, dLon, dLat);
-                     }
-                     }
-                     */
                     // Nodal points
                     int iElementA = m_box.GetAInteriorBegin() + a * m_nHorizontalOrder;
                     int iElementB = m_box.GetBInteriorBegin() + b * m_nHorizontalOrder;
@@ -224,29 +188,7 @@ void GridPatchCartesianGLL::EvaluateGeometricTerms() {
                     double dDaaZs = 0.0;
                     double dDabZs = 0.0;
                     double dDbbZs = 0.0;
-                    #pragma message "FIX second derivatives"
-                    /*
-                     for (int s = 0; s < m_nHorizontalOrder; s++) {
-                     dDaaZs += m_dDxBasis1D[s][i] * d
-                     }
-                     */
-                    
-                    /*
-                     double dDaZs =
-                     (dTopography[2][1] - dTopography[0][1]) / (2.0 * dEpsilon);
-                     double dDbZs =
-                     (dTopography[1][2] - dTopography[1][0]) / (2.0 * dEpsilon);
-                     double dDaaZs =
-                     (dTopography[2][1] - 2.0 * dZs + dTopography[0][1])
-                     / (dEpsilon * dEpsilon);
-                     double dDbbZs =
-                     (dTopography[1][2] - 2.0 * dZs + dTopography[1][0])
-                     / (dEpsilon * dEpsilon);
-                     double dDabZs =
-                     ( dTopography[2][2] - dTopography[2][0]
-                     - dTopography[0][2] + dTopography[0][0])
-                     / (4.0 * dEpsilon * dEpsilon);
-                     */
+
                     // Initialize 2D Jacobian
                     m_dataJacobian2D[iA][iB] =
                     (1.0 + dX * dX) * (1.0 + dY * dY) / (dDelta * dDelta * dDelta);

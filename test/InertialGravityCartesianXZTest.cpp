@@ -171,7 +171,7 @@ public:
 	///		Evaluate the perturbed potential temperature field.
 	///	</summary>
 	double EvaluateTPrime(
-        const PhysicalConstants phys,
+        const PhysicalConstants & phys,
 		double dxP,
 		double dzP
 	) const {
@@ -181,7 +181,12 @@ public:
         // Potential temperature perturbation
         double dThetaHat = m_dThetaC * sin(m_dpiC * dxP / m_dhC)
                                      / (1.0 + pow((dxP - m_dxC)/m_daC,2.0));
-        //std::cout << dThetaHat + dThetaBar << '\n';
+        //std::cout << dThetaHat << '\n';
+        //std::cout << m_dThetaC << '\n';
+        //std::cout << m_dpiC << '\n';
+        //std::cout << m_dhC << '\n';
+        //std::cout << dxP << '\n';
+        //std::cout << dThetaBar << '\n';
 
 		return dThetaHat + dThetaBar;
 	}
@@ -263,7 +268,7 @@ try {
 			"outInertialGravityCartesianXZTest");
 		CommandLineString(strOutputPrefix, "output_prefix", "out");
 		CommandLineInt(nOutputsPerFile, "output_perfile", -1);
-		CommandLineInt(nResolution, "resolution", 20);
+		CommandLineInt(nResolution, "resolution", 60);
 		CommandLineInt(nOrder, "order", 4);
 		CommandLineDouble(dAlpha, "alpha", 0.0);
 		CommandLineDouble(params.m_dDeltaT, "dt", 1.0);
@@ -346,7 +351,7 @@ try {
         strOutputDir,
         strOutputPrefix,
         nOutputsPerFile,
-        720, 360);
+        60, 60);
 	outmanRef.OutputVorticity();
 	outmanRef.OutputDivergence();
 	model.AttachOutputManager(&outmanRef);
