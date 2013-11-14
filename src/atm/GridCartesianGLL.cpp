@@ -352,31 +352,6 @@ void GridCartesianGLL::GetOpposingDirection(
     } else if (dir == Direction_BottomRight) {
         dirOpposing = Direction_TopLeft;
     }
-    
-	/*/ Check panel indices to determine parallel switch of vectors
-	fSwitchParallel = false;
-	if ((ixPanelSrc == 1) && (ixPanelDest == 5)) {
-		fSwitchParallel = true;
-        
-	} else if ((ixPanelSrc == 2) && (ixPanelDest > 3)) {
-		fSwitchParallel = true;
-        
-	} else if ((ixPanelSrc == 3) && (ixPanelDest == 4)) {
-		fSwitchParallel = true;
-        
-	} else if (
-               (ixPanelSrc == 4) &&
-               ((ixPanelDest == 2) || (ixPanelDest == 3))
-               ) {
-		fSwitchParallel = true;
-        
-	} else if (
-               (ixPanelSrc == 5) &&
-               ((ixPanelDest == 2) || (ixPanelDest == 1))
-               ) {
-		fSwitchParallel = true;
-	}
-    */
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -442,43 +417,6 @@ void GridCartesianGLL::ApplyDSS(
 			} else if (eDataType == DataType_Divergence) {
 				pDataUpdate = pPatch->GetDataDivergence();
 			}
-            
-            /* BAD IMPLEMENTATION OF BOUNDARY CONDITIONS - JEG
-            if (n == 0) {
-            //std::cout << nComponents << "\n";
-            }
-            std::cout << pDataUpdate[0][0][0] << "\n";
-            
-            // Apply horizontal direction BC's (PERIODIC ONLY FOR NOW)
-            for (int k = 0; k < nRElements; k++) {
-                // Loop in beta over first and last alpha edge. Apply X BC
-                int aFirst = 0;
-                int aLast= nAElements * m_nHorizontalOrder;
-                for (int j = 0; j <= nBElements * m_nHorizontalOrder; j++) {
-                    // Periodic condition in X
-                    pDataUpdate[k][aFirst][j] = pDataUpdate[k][aLast][j];
-                }
-                // Loop in alpha over first and last beta edge. Apply Y BC
-                int bFirst = 0;
-                int bLast = nBElements * m_nHorizontalOrder;
-                for (int i = 0; i <= nAElements * m_nHorizontalOrder; i++) {
-                    // Periodic condition in Y
-                    pDataUpdate[k][i][bFirst] = pDataUpdate[k][i][bLast];
-                }
-            }
-        
-            // Apply the vertical direction BC (NO FLUX TOP AND BOTTOM FOR NOW)
-            int kFirst = 0;
-            int kLast = nRElements - 1;
-            //std::cout << nRElements << "\n";
-            
-            for (int i = 0; i < nAElements * m_nHorizontalOrder; i++) {
-                for (int j = 0; j < nBElements * m_nHorizontalOrder; j++) {
-                    pDataUpdate[kFirst][i][j] = pDataUpdate[kFirst+1][i][j];
-                    pDataUpdate[kLast][i][j] = pDataUpdate[kLast-1][i][j];
-                }
-            }
-            */
             
             //std::cout << "Entering DSS averaging loop!";
             // Averaging DSS across patch boundaries

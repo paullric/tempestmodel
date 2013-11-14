@@ -119,14 +119,14 @@ void GridPatchCartesianGLL::EvaluateGeometricTerms() {
 	DataVector<double> dWNode;
     
 	GaussQuadrature::GetPoints(
-                               m_nVerticalOrder, 0.0, 1.0, dGNode, dWNode);
+        m_nVerticalOrder, 0.0, 1.0, dGNode, dWNode);
     
 	// Obtain Gauss Lobatto quadrature nodes and weights in the vertical
 	DataVector<double> dGREdge;
 	DataVector<double> dWREdge;
     
 	GaussLobattoQuadrature::GetPoints(
-                                      m_nVerticalOrder+1, 0.0, 1.0, dGREdge, dWREdge);
+        m_nVerticalOrder+1, 0.0, 1.0, dGREdge, dWREdge);
     
 	// Derivatives of basis functions
 	GridCartesianGLL & gridCartesianGLL =
@@ -189,26 +189,18 @@ void GridPatchCartesianGLL::EvaluateGeometricTerms() {
                     double dDabZs = 0.0;
                     double dDbbZs = 0.0;
 
+                    #pragma message "FIX second derivatives"
                     // Initialize 2D Jacobian
-                    m_dataJacobian2D[iA][iB] =
-                    (1.0 + dX * dX) * (1.0 + dY * dY) / (dDelta * dDelta * dDelta);
-                    
-                    m_dataJacobian2D[iA][iB] *=
-                    phys.GetEarthRadius()
-                    * phys.GetEarthRadius();
+                    m_dataJacobian2D[iA][iB] = 1.0;
                     
                     // Initialize 2D contravariant metric
                     double dContraMetricScale = 1.0;
                     
-                    m_dataContraMetric2DA[iA][iB][0] =
-                    dContraMetricScale * (1.0 + dY * dY);
-                    m_dataContraMetric2DA[iA][iB][1] =
-                    dContraMetricScale * dX * dY;
+                    m_dataContraMetric2DA[iA][iB][0] = dContraMetricScale;
+                    m_dataContraMetric2DA[iA][iB][1] = 0.0;
                     
-                    m_dataContraMetric2DB[iA][iB][0] =
-                    dContraMetricScale * dX * dY;
-                    m_dataContraMetric2DB[iA][iB][1] =
-                    dContraMetricScale * (1.0 + dX * dX);
+                    m_dataContraMetric2DB[iA][iB][0] = 0.0;
+                    m_dataContraMetric2DB[iA][iB][1] = dContraMetricScale;
                     
                     // Christoffel symbol components at each node
                     // (off-diagonal element are doubled due to symmetry)
@@ -231,59 +223,64 @@ void GridPatchCartesianGLL::EvaluateGeometricTerms() {
                         
                         // Gal-Chen and Somerville (1975) linear terrain
                         // following coord
-                        double dDaR = (1.0 - m_grid.GetREtaLevel(k)) * dDaZs;
-                        double dDbR = (1.0 - m_grid.GetREtaLevel(k)) * dDbZs;
-                        double dDaaR = (1.0 - m_grid.GetREtaLevel(k)) * dDaaZs;
-                        double dDabR = (1.0 - m_grid.GetREtaLevel(k)) * dDabZs;
-                        double dDbbR = (1.0 - m_grid.GetREtaLevel(k)) * dDbbZs;
+                        double dDaZ = (1.0 - m_grid.GetREtaLevel(k)) * dDaZs;
+                        double dDbZ = (1.0 - m_grid.GetREtaLevel(k)) * dDbZs;
+                        double dDaaZ = (1.0 - m_grid.GetREtaLevel(k)) * dDaaZs;
+                        double dDabZ = (1.0 - m_grid.GetREtaLevel(k)) * dDabZs;
+                        double dDbbZ = (1.0 - m_grid.GetREtaLevel(k)) * dDbbZs;
                         
-                        double dDxR = m_grid.GetZtop() - dZs;
-                        double dDaxR = - dDaZs;
-                        double dDbxR = - dDbZs;
-                        double dDxxR = 0.0;
+                        double dDxZ = m_grid.GetZtop() - dZs;
+                        double dDaxZ = - dDaZs;
+                        double dDbxZ = - dDbZs;
+                        double dDxxZ = 0.0;
                         
                         // Calculate pointwise Jacobian
-                        m_dataJacobian[k][i][j] = dDxR;
+                        m_dataJacobian[k][i][j] = dDxZ;
                         
                         // Element area associated with each model level GLL node
                         m_dataElementArea[k][i][j] =
                         m_dataJacobian[k][i][j]
                         * dWL[i] * dElementDeltaA
                         * dWL[j] * dElementDeltaB
-                        * dWNode[kx] * dElementDeltaXi * dDxR;
+                        * dWNode[kx] * dElementDeltaXi * dDxZ;
                         
                         // Contravariant metric components
                         double dContraMetricScale = 1.0;
                         
-                        m_dataContraMetricA[k][i][j][0] = dContraMetricScale;
-                        m_dataContraMetricA[k][i][j][1] = 0.0;
-                        m_dataContraMetricA[k][i][j][2] = dContraMetricScale
-                        * (-dDaR / dDxR);
-                        m_dataContraMetricB[k][i][j][0] = 0.0;
-                        m_dataContraMetricB[k][i][j][1] = dContraMetricScale;
-                        m_dataContraMetricB[k][i][j][2] = dContraMetricScale
-                        * (-dDbR / dDxR);
-                        m_dataContraMetricXi[k][i][j][0] = dContraMetricScale
-                        * (-dDaR / dDxR);
-                        m_dataContraMetricXi[k][i][j][1] = dContraMetricScale
-                        * (-dDbR / dDxR);
-                        m_dataContraMetricXi[k][i][j][2] = (1.0 + dDaR * dDaR + dDbR * dDbR)
-                        / sqrt(dDxR);
+                        m_dataContraMetricA[k][iA][iB][0] =
+                            m_dataContraMetric2DA[iA][iB][0];
+                        m_dataContraMetricA[k][iA][iB][1] =
+                            m_dataContraMetric2DA[iA][iB][1];
+                        m_dataContraMetricA[k][iA][iB][2] =
+                            - dContraMetricScale * dDxZ / dDaZ;
+                        
+                        m_dataContraMetricB[k][iA][iB][0] =
+                            m_dataContraMetric2DB[iA][iB][0];
+                        m_dataContraMetricB[k][iA][iB][1] =
+                            m_dataContraMetric2DB[iA][iB][1];
+                        m_dataContraMetricB[k][iA][iB][2] =
+                            - dContraMetricScale * dDxZ / dDbZ;
+                        
+                        m_dataContraMetricXi[k][i][j][0] =
+                            - dContraMetricScale * dDxZ / dDaZ;
+                        m_dataContraMetricXi[k][i][j][1] =
+                            - dContraMetricScale * dDxZ / dDbZ;
+                        m_dataContraMetricXi[k][i][j][2] = (1.0 + dDaZ * dDaZ + dDbZ * dDbZ) / (dDxZ * dDxZ);
                         
                         // Vertical Christoffel symbol components
-                        m_dataChristoffelXi[k][i][j][0] = dDaaR;
-                        m_dataChristoffelXi[k][i][j][1] = dDabR;
-                        m_dataChristoffelXi[k][i][j][2] = dDaxR;
-                        m_dataChristoffelXi[k][i][j][3] = dDbbR;
-                        m_dataChristoffelXi[k][i][j][4] = dDbxR;
-                        m_dataChristoffelXi[k][i][j][5] = dDxxR;
+                        m_dataChristoffelXi[k][i][j][0] = dDaaZ;
+                        m_dataChristoffelXi[k][i][j][1] = dDabZ;
+                        m_dataChristoffelXi[k][i][j][2] = dDaxZ;
+                        m_dataChristoffelXi[k][i][j][3] = dDbbZ;
+                        m_dataChristoffelXi[k][i][j][4] = dDbxZ;
+                        m_dataChristoffelXi[k][i][j][5] = dDxxZ;
                         
-                        m_dataChristoffelXi[k][i][j][0] /= dDxR;
-                        m_dataChristoffelXi[k][i][j][1] /= dDxR;
-                        m_dataChristoffelXi[k][i][j][2] /= dDxR;
-                        m_dataChristoffelXi[k][i][j][3] /= dDxR;
-                        m_dataChristoffelXi[k][i][j][4] /= dDxR;
-                        m_dataChristoffelXi[k][i][j][5] /= dDxR;
+                        m_dataChristoffelXi[k][i][j][0] /= dDxZ;
+                        m_dataChristoffelXi[k][i][j][1] /= dDxZ;
+                        m_dataChristoffelXi[k][i][j][2] /= dDxZ;
+                        m_dataChristoffelXi[k][i][j][3] /= dDxZ;
+                        m_dataChristoffelXi[k][i][j][4] /= dDxZ;
+                        m_dataChristoffelXi[k][i][j][5] /= dDxZ;
                         
                         // Orthonormalization coefficients
                         m_dataOrthonormNode[k][iA][iB][0] =
@@ -309,10 +306,10 @@ void GridPatchCartesianGLL::EvaluateGeometricTerms() {
                         double dZ = dZs + (m_grid.GetZtop() - dZs) * dREta;
                         
                         // Gal-Chen and Somerville (1975) linear terrain-following coord
-                        double dDxR = m_grid.GetZtop() - dZs;
+                        double dDxZ = m_grid.GetZtop() - dZs;
                         
                         // Calculate pointwise Jacobian
-                        double dJacobian = dDxR;
+                        double dJacobian = dDxZ;
                         
                         // Element area associated with each model interface GLL node
                         m_dataElementAreaREdge[k][iA][iB] =

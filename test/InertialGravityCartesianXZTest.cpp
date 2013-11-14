@@ -181,13 +181,6 @@ public:
         // Potential temperature perturbation
         double dThetaHat = m_dThetaC * sin(m_dpiC * dxP / m_dhC)
                                      / (1.0 + pow((dxP - m_dxC)/m_daC,2.0));
-        //std::cout << dThetaHat << '\n';
-        //std::cout << m_dThetaC << '\n';
-        //std::cout << m_dpiC << '\n';
-        //std::cout << m_dhC << '\n';
-        //std::cout << dxP << '\n';
-        //std::cout << dThetaBar << '\n';
-
 		return dThetaHat + dThetaBar;
 	}
 
@@ -217,9 +210,7 @@ public:
         double dExnerP = pow(gsi,2.0) / (m_dCp * m_dTheta0 * pow(m_dNbar,2.0));
         dExnerP *= exp(-pow(m_dNbar,2.0)/gsi * dzP) - 1.0;
         dExnerP += 1.0;
-        //std::cout << dExnerP << '\n';
         double dRho = m_dP0 / (m_dR * dState[2]) * pow(dExnerP,(m_dCv / m_dR));
-        //std::cout << dRho << '\n';
         dState[4] = dRho;
 	}
 };
