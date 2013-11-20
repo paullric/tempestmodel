@@ -32,6 +32,12 @@ class GridData3D;
 ///		Gauss-Lobatto-Legendre quadrature nodes.
 ///	</summary>
 class GridPatchCartesianGLL : public GridPatchGLL {
+    
+private:
+    ///	<summary>
+	///		Dimension of the grid - private to cartesian grids.
+	///	</summary>
+    double m_dGDim[];
 
 public:
 	///	<summary>
@@ -42,7 +48,8 @@ public:
 		int ixPatch,
 		const PatchBox & box,
 		int nHorizontalOrder,
-		int nVerticalOrder = 1
+		int nVerticalOrder,
+        double dGDim[]
 	);
 
 public:

@@ -122,21 +122,25 @@ public:
 	InertialGravityCartesianXZTest() :
 		m_dH0(10000.),
 		m_dU0(20.),
-        m_dP0(1.E5),
+        m_dP0(1.0E5),
         m_dCp(1005.0),
         m_dCv(718.0),
         m_dR(287.058),
 		m_dNbar(0.01),
-		m_dTheta0(300.),
-		m_dThetaC(0.01),
+		m_dTheta0(300.0),
+		m_dThetaC(10.0),
 		m_dhC(10000.),
 		m_daC(5000.),
-		m_dxC(100.E+3),
+		m_dxC(1.0E+5),
 		m_dpiC(3.14159265)
 	{
-        m_dGDim[0] = 0.0; m_dGDim[1] = 300000.0;
-        m_dGDim[2] = -1000.0; m_dGDim[3] = 1000.0;
-        m_dGDim[4] = 0.0; m_dGDim[5] = 10000.0;
+        // Set the dimensions of the box
+        m_dGDim[0] = 0.0;
+        m_dGDim[1] = 300000.0;
+        m_dGDim[2] = -1000.0;
+        m_dGDim[3] = 1000.0;
+        m_dGDim[4] = 0.0;
+        m_dGDim[5] = 10000.0;
     }
 
 public:
@@ -179,9 +183,16 @@ public:
         // Base potential temperature field
 		double dThetaBar = m_dTheta0 * exp(pow(m_dNbar,2.0)/gsi * dzP);
         // Potential temperature perturbation
-        double dThetaHat = m_dThetaC * sin(m_dpiC * dxP / m_dhC)
-                                     / (1.0 + pow((dxP - m_dxC)/m_daC,2.0));
-		return dThetaHat + dThetaBar;
+        double dThetaHat1 = m_dThetaC * sin(m_dpiC * dzP / m_dhC);
+        double argX = (dxP - m_dxC)/m_daC;
+        double dThetaHat2 = (1.0 + pow(argX,2.0));
+        double dThetaHat = dThetaHat1 / dThetaHat2;
+		
+        //std::cout << "\n" << dzP << " " << dThetaHat1;
+        //std::cout << "\n" << dxP << " " << argX << " " << dThetaHat2;
+        //std::cout << m_daC << " " << m_dxC;
+        return dThetaHat + dThetaBar;
+        //return dThetaHat;
 	}
 
 	///	<summary>
@@ -191,8 +202,8 @@ public:
 		const PhysicalConstants & phys,
 		double dTime,
 		double dzP,
-        double dxP,
         double dyP,
+        double dxP,
 		double *dState,
 		double *dTracer
 	) const {
@@ -208,7 +219,7 @@ public:
         // Set the initial density based on the Exner pressure
         double gsi = phys.GetG();
         double dExnerP = pow(gsi,2.0) / (m_dCp * m_dTheta0 * pow(m_dNbar,2.0));
-        dExnerP *= exp(-pow(m_dNbar,2.0)/gsi * dzP) - 1.0;
+        dExnerP *= (exp(-pow(m_dNbar,2.0)/gsi * dzP) - 1.0);
         dExnerP += 1.0;
         double dRho = m_dP0 / (m_dR * dState[2]) * pow(dExnerP,(m_dCv / m_dR));
         dState[4] = dRho;
@@ -259,7 +270,7 @@ try {
 			"outInertialGravityCartesianXZTest");
 		CommandLineString(strOutputPrefix, "output_prefix", "out");
 		CommandLineInt(nOutputsPerFile, "output_perfile", -1);
-		CommandLineInt(nResolution, "resolution", 60);
+		CommandLineInt(nResolution, "resolution", 40);
 		CommandLineInt(nOrder, "order", 4);
 		CommandLineDouble(dAlpha, "alpha", 0.0);
 		CommandLineDouble(params.m_dDeltaT, "dt", 1.0);
@@ -342,7 +353,8 @@ try {
         strOutputDir,
         strOutputPrefix,
         nOutputsPerFile,
-        60, 60);
+        nResolution,
+        nResolution);
 	outmanRef.OutputVorticity();
 	outmanRef.OutputDivergence();
 	model.AttachOutputManager(&outmanRef);

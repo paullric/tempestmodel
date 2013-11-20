@@ -38,7 +38,8 @@ GridPatchCartesianGLL::GridPatchCartesianGLL(
 	int ixPatch,
 	const PatchBox & box,
 	int nHorizontalOrder,
-	int nVerticalOrder
+	int nVerticalOrder,
+    double dGDim[]
 ) :
 	GridPatchGLL(
 		grid,
@@ -48,7 +49,13 @@ GridPatchCartesianGLL::GridPatchCartesianGLL(
 		nVerticalOrder)
 {
 
-	m_ixNeighborPanel.resize(8);
+	// Bring in the grid dimensions as a member variable
+    // Bring through the grid dimensions
+    m_dGDim[0] = dGDim[0]; m_dGDim[1] = dGDim[1];
+    m_dGDim[2] = dGDim[2]; m_dGDim[3] = dGDim[3];
+    m_dGDim[4] = dGDim[4]; m_dGDim[5] = dGDim[5];
+    
+    m_ixNeighborPanel.resize(8);
     m_ixNeighborPanel[0] = 0.; m_ixNeighborPanel[1] = 0.;
     m_ixNeighborPanel[2] = 0.; m_ixNeighborPanel[3] = 0.;
     m_ixNeighborPanel[4] = 0.; m_ixNeighborPanel[5] = 0.;
@@ -64,15 +71,29 @@ void GridPatchCartesianGLL::InitializeDataLocal() {
 
 	// Physical constants
 	const PhysicalConstants & phys = m_grid.GetModel().GetPhysicalConstants();
-
-	// Initialize the longitude and latitude at each node
+    
+    // Get the maximum value of the ABP coordinates (to scale dataLon and Lat)
+    double maxA = m_box.GetANode(m_box.GetATotalWidth()-1);
+    double maxB = m_box.GetBNode(m_box.GetBTotalWidth()-1);
+    double XL = (m_dGDim[1] - m_dGDim[0]);
+    double YL = (m_dGDim[3] - m_dGDim[2]);
+    
+    // Initialize the longitude and latitude at each node
 	for (int i = 0; i < m_box.GetATotalWidth(); i++) {
 	for (int j = 0; j < m_box.GetBTotalWidth(); j++) {
-        // TODO: Initialize the force with user input (latitude input for reference force)
-        m_dataLon[i][j] = m_box.GetANode(i);
-        m_dataLat[i][j] = m_box.GetBNode(j);
+        // TODO: Initialize the force with user input
+        // (latitude input for reference force)
+        m_dataLat[i][j] = 0.5 * XL *
+                        m_box.GetANode(i) / maxA + 0.5 * XL;
+        m_dataLon[i][j] = 0.5 * YL *
+                        m_box.GetBNode(j) / maxB;
 		m_dataCoriolisF[i][j] = m_dataCoriolisF[i][j] +
                                 phys.GetOmega() * m_box.GetBNode(j);
+        
+        //std::cout << m_dataLat[i][j] << " "
+                  //<< m_dataLon[i][j] << "\n";
+                  //<< m_dataZLevels[k][i][j] << "\n";
+
 	}
 	}
 }
@@ -220,6 +241,7 @@ void GridPatchCartesianGLL::EvaluateGeometricTerms() {
                         // Z coordinate
                         double dREta = m_grid.GetREtaLevel(k);
                         double dZ = dZs + (m_grid.GetZtop() - dZs) * dREta;
+                        //std::cout << dZ << "\n";
                         
                         // Gal-Chen and Somerville (1975) linear terrain
                         // following coord
@@ -424,7 +446,7 @@ void GridPatchCartesianGLL::EvaluateTestCase(
 	for (int i = 0; i < m_box.GetATotalWidth(); i++) {
 	for (int j = 0; j < m_box.GetBTotalWidth(); j++) {
 
-		// Evaluate pointwise state
+        // Evaluate pointwise state
 		test.EvaluatePointwiseState(
 			m_grid.GetModel().GetPhysicalConstants(),
 			dTime,

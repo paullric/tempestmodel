@@ -53,7 +53,7 @@ public:
 	virtual void Initialize();
     
 public:
-	///	<summary>
+    ///	<summary
 	///		Get the bounds on the reference grid.
 	///	</summary>
 	virtual void GetReferenceGridBounds(
@@ -61,6 +61,18 @@ public:
         double & dX1,
         double & dY0,
         double & dY1
+);
+    
+	///	<summary>
+	///		Get the bounds on the reference grid 3D.
+	///	</summary>
+	virtual void GetReferenceGridBounds3D(
+        double & dX0,
+        double & dX1,
+        double & dY0,
+        double & dY1,
+        double & dZ0,
+        double & dZ1
     );
     
     ///	<summary>

@@ -32,7 +32,7 @@
 #include <cmath>
 #include <sstream>
 
-///////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////
 
 GridCartesianGLL::GridCartesianGLL(
 	const Model & model,
@@ -43,9 +43,6 @@ GridCartesianGLL::GridCartesianGLL(
 	int nRElements,
     double dGDim[]
 ) :
-    // Bring through the grid dimensions
-    //m_dGDim({0.0, 0.0, 0.0, 0.0, 0.0, 0.0}),
-
 	// Call up the stack
 	GridGLL::GridGLL(
 		model,
@@ -56,12 +53,15 @@ GridCartesianGLL::GridCartesianGLL(
 		nRElements)
 {
 	// Set the reference length scale
-	m_dReferenceLength = 10000.0;
+    // TODO: change this from hard coded information
+	m_dReferenceLength = 1.0;
     
     // Bring through the grid dimensions
     m_dGDim[0] = dGDim[0]; m_dGDim[1] = dGDim[1];
     m_dGDim[2] = dGDim[2]; m_dGDim[3] = dGDim[3];
     m_dGDim[4] = dGDim[4]; m_dGDim[5] = dGDim[5];
+    
+    m_dZtop = dGDim[5];
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -159,18 +159,18 @@ void GridCartesianGLL::AddDefaultPatches() {
 		GridSpacingGaussLobattoRepeated
 			glspacing(dDeltaA, -0.25 * M_PI, m_nHorizontalOrder);
 
+        //std::cout << "\n" << m_model.GetHaloElements() << "\n";
         // Patch strips that span beta
 		PatchBox boxMaster(
 			n, 0, m_model.GetHaloElements(),
 			m_nHorizontalOrder * iBoxBegin[i],
 			m_nHorizontalOrder * iBoxBegin[i+1],
-			0.0,
-			m_nHorizontalOrder * nElementsPerDirection,
+			m_nHorizontalOrder * iBoxBegin[j],
+			m_nHorizontalOrder * iBoxBegin[nProcsPerDirection],
 			glspacing,
 			glspacing);
 
 		int ixPatch = n * nProcsPerPanel + i * nProcsPerDirection + j;
-        //std::cout << "ixPatch" << ixPatch << "\n";
 
 		pPatches.push_back(
 			AddPatch(
@@ -179,7 +179,8 @@ void GridCartesianGLL::AddDefaultPatches() {
 					ixPatch,
 					boxMaster,
 					m_nHorizontalOrder,
-					m_nVerticalOrder)));
+					m_nVerticalOrder,
+                    m_dGDim)));
 	}
 
 	if (pPatches.size() != nDistributedPatches) {
@@ -204,10 +205,29 @@ void GridCartesianGLL::GetReferenceGridBounds(
     double & dY0,
     double & dY1
 ) {
-	dX0 = m_dGDim[0];
-	dX1 = m_dGDim[1];
-	dY0 = m_dGDim[2];
-	dY1 = m_dGDim[3];
+	dX0 = m_dGDim[2];
+	dX1 = m_dGDim[3];
+	dY0 = m_dGDim[0];
+	dY1 = m_dGDim[1];
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void GridCartesianGLL::GetReferenceGridBounds3D(
+    double & dX0,
+    double & dX1,
+    double & dY0,
+    double & dY1,
+    double & dZ0,
+    double & dZ1
+) {
+	dX0 = m_dGDim[2];
+	dX1 = m_dGDim[3];
+	dY0 = m_dGDim[0];
+	dY1 = m_dGDim[1];
+    // vertical dimension
+    dZ0 = m_dGDim[4];
+    dZ1 = m_dGDim[5];
 }
 
 ///////////////////////////////////////////////////////////////////////////////
