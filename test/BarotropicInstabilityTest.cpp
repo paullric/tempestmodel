@@ -353,7 +353,7 @@ try {
 		CommandLineInt(nOrder, "order", 4);
 		CommandLineDouble(dAlpha, "alpha", 0.0);
 		CommandLineDouble(params.m_dDeltaT, "dt", 200.0);
-		CommandLineDouble(params.m_dEndTime, "endtime", 200.0);//86400.0 * 5.0);
+		CommandLineDouble(params.m_dEndTime, "endtime", 86400.0 * 5.0);
 		CommandLineDouble(dOutputDeltaT, "outputtime", 86400.0);
 		CommandLineStringD(strHorizontalDynamics, "method", "SE", "(SE | DG)");
 		CommandLineBool(fNoHyperviscosity, "nohypervis");

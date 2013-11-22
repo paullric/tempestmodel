@@ -150,7 +150,6 @@ void GridCartesianGLL::AddDefaultPatches() {
 	// Single panel 0 implementation (Cartesian Grid)
 	// Rectangular alpha-wise patches that span all of the beta direction
 	// (as many as there are processors available)
-    //std::cout << "nProcsPerDirection" << nProcsPerDirection << "\n";
     int n = 0;
 	for (int i = 0; i < nProcsPerDirection; i++) {
 	int j = 0;
@@ -159,7 +158,6 @@ void GridCartesianGLL::AddDefaultPatches() {
 		GridSpacingGaussLobattoRepeated
 			glspacing(dDeltaA, -0.25 * M_PI, m_nHorizontalOrder);
 
-        //std::cout << "\n" << m_model.GetHaloElements() << "\n";
         // Patch strips that span beta
 		PatchBox boxMaster(
 			n, 0, m_model.GetHaloElements(),

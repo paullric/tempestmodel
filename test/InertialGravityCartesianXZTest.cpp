@@ -270,12 +270,12 @@ try {
 			"outInertialGravityCartesianXZTest");
 		CommandLineString(strOutputPrefix, "output_prefix", "out");
 		CommandLineInt(nOutputsPerFile, "output_perfile", -1);
-		CommandLineInt(nResolution, "resolution", 40);
+		CommandLineInt(nResolution, "resolution", 20);
 		CommandLineInt(nOrder, "order", 4);
 		CommandLineDouble(dAlpha, "alpha", 0.0);
-		CommandLineDouble(params.m_dDeltaT, "dt", 1.0);
-		CommandLineDouble(params.m_dEndTime, "endtime", 2.0);
-		CommandLineDouble(dOutputDeltaT, "outputtime", 1.0);
+		CommandLineDouble(params.m_dDeltaT, "dt", 100.0);
+		CommandLineDouble(params.m_dEndTime, "endtime", 200.0);
+		CommandLineDouble(dOutputDeltaT, "outputtime", 200.0);
 		CommandLineStringD(strHorizontalDynamics, "method", "DG", "(SE | DG)");
 		CommandLineBool(fNoHyperviscosity, "nohypervis");
 

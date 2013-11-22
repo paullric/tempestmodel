@@ -174,6 +174,8 @@ void GridPatchCartesianGLL::EvaluateGeometricTerms() {
     m_grid.GetREtaInterface(m_nVerticalOrder)
     - m_grid.GetREtaInterface(0);
     
+    //std::cout << "Evaluating Metric Terms! \n";
+    
 	// Initialize metric and Christoffel symbols in terrain-following coords
 	for (int a = 0; a < GetElementCountA(); a++) {
         for (int b = 0; b < GetElementCountB(); b++) {
@@ -225,12 +227,12 @@ void GridPatchCartesianGLL::EvaluateGeometricTerms() {
                     
                     // Christoffel symbol components at each node
                     // (off-diagonal element are doubled due to symmetry)
-                    m_dataChristoffelA[i][j][0] = 0.0;
-                    m_dataChristoffelA[i][j][1] = 0.0;
-                    m_dataChristoffelA[i][j][2] = 0.0;
-                    m_dataChristoffelB[i][j][0] = 0.0;
-                    m_dataChristoffelB[i][j][1] = 0.0;
-                    m_dataChristoffelB[i][j][2] = 0.0;
+                    m_dataChristoffelA[iA][iB][0] = 0.0;
+                    m_dataChristoffelA[iA][iB][1] = 0.0;
+                    m_dataChristoffelA[iA][iB][2] = 0.0;
+                    m_dataChristoffelB[iA][iB][0] = 0.0;
+                    m_dataChristoffelB[iA][iB][1] = 0.0;
+                    m_dataChristoffelB[iA][iB][2] = 0.0;
                     
                     // Vertical coordinate transform and its derivatives
                     for (int k = 0; k < m_grid.GetRElements(); k++) {
@@ -241,7 +243,6 @@ void GridPatchCartesianGLL::EvaluateGeometricTerms() {
                         // Z coordinate
                         double dREta = m_grid.GetREtaLevel(k);
                         double dZ = dZs + (m_grid.GetZtop() - dZs) * dREta;
-                        //std::cout << dZ << "\n";
                         
                         // Gal-Chen and Somerville (1975) linear terrain
                         // following coord
@@ -257,14 +258,17 @@ void GridPatchCartesianGLL::EvaluateGeometricTerms() {
                         double dDxxZ = 0.0;
                         
                         // Calculate pointwise Jacobian
-                        m_dataJacobian[k][i][j] = dDxZ;
+                        m_dataJacobian[k][iA][iB] = dDxZ *
+                                                    m_dataJacobian2D[iA][iB];
+                        //std::cout << m_dataJacobian[k][iA][iB] << "\n";
                         
                         // Element area associated with each model level GLL node
-                        m_dataElementArea[k][i][j] =
-                        m_dataJacobian[k][i][j]
+                        m_dataElementArea[k][iA][iB] =
+                        m_dataJacobian[k][iA][iB]
                         * dWL[i] * dElementDeltaA
                         * dWL[j] * dElementDeltaB
-                        * dWNode[kx] * dElementDeltaXi * dDxZ;
+                        * dWNode[kx] * dElementDeltaXi;
+                        //std::cout << m_dataElementArea[k][iA][iB] << "\n";
                         
                         // Contravariant metric components
                         double dContraMetricScale = 1.0;
@@ -274,35 +278,35 @@ void GridPatchCartesianGLL::EvaluateGeometricTerms() {
                         m_dataContraMetricA[k][iA][iB][1] =
                             m_dataContraMetric2DA[iA][iB][1];
                         m_dataContraMetricA[k][iA][iB][2] =
-                            - dContraMetricScale * dDxZ / dDaZ;
+                            - dContraMetricScale * dDaZ / dDxZ;
                         
                         m_dataContraMetricB[k][iA][iB][0] =
                             m_dataContraMetric2DB[iA][iB][0];
                         m_dataContraMetricB[k][iA][iB][1] =
                             m_dataContraMetric2DB[iA][iB][1];
                         m_dataContraMetricB[k][iA][iB][2] =
-                            - dContraMetricScale * dDxZ / dDbZ;
+                            - dContraMetricScale * dDbZ / dDxZ;
                         
-                        m_dataContraMetricXi[k][i][j][0] =
-                            - dContraMetricScale * dDxZ / dDaZ;
-                        m_dataContraMetricXi[k][i][j][1] =
-                            - dContraMetricScale * dDxZ / dDbZ;
-                        m_dataContraMetricXi[k][i][j][2] = (1.0 + dDaZ * dDaZ + dDbZ * dDbZ) / (dDxZ * dDxZ);
+                        m_dataContraMetricXi[k][iA][iB][0] =
+                            - dContraMetricScale * dDaZ / dDxZ;
+                        m_dataContraMetricXi[k][iA][iB][1] =
+                            - dContraMetricScale * dDbZ / dDxZ;
+                        m_dataContraMetricXi[k][iA][iB][2] = (1.0 + dDaZ * dDaZ + dDbZ * dDbZ) / (dDxZ * dDxZ);
                         
                         // Vertical Christoffel symbol components
-                        m_dataChristoffelXi[k][i][j][0] = dDaaZ;
-                        m_dataChristoffelXi[k][i][j][1] = dDabZ;
-                        m_dataChristoffelXi[k][i][j][2] = dDaxZ;
-                        m_dataChristoffelXi[k][i][j][3] = dDbbZ;
-                        m_dataChristoffelXi[k][i][j][4] = dDbxZ;
-                        m_dataChristoffelXi[k][i][j][5] = dDxxZ;
+                        m_dataChristoffelXi[k][iA][iB][0] = dDaaZ;
+                        m_dataChristoffelXi[k][iA][iB][1] = dDabZ;
+                        m_dataChristoffelXi[k][iA][iB][2] = dDaxZ;
+                        m_dataChristoffelXi[k][iA][iB][3] = dDbbZ;
+                        m_dataChristoffelXi[k][iA][iB][4] = dDbxZ;
+                        m_dataChristoffelXi[k][iA][iB][5] = dDxxZ;
                         
-                        m_dataChristoffelXi[k][i][j][0] /= dDxZ;
-                        m_dataChristoffelXi[k][i][j][1] /= dDxZ;
-                        m_dataChristoffelXi[k][i][j][2] /= dDxZ;
-                        m_dataChristoffelXi[k][i][j][3] /= dDxZ;
-                        m_dataChristoffelXi[k][i][j][4] /= dDxZ;
-                        m_dataChristoffelXi[k][i][j][5] /= dDxZ;
+                        m_dataChristoffelXi[k][iA][iB][0] /= dDxZ;
+                        m_dataChristoffelXi[k][iA][iB][1] /= dDxZ;
+                        m_dataChristoffelXi[k][iA][iB][2] /= dDxZ;
+                        m_dataChristoffelXi[k][iA][iB][3] /= dDxZ;
+                        m_dataChristoffelXi[k][iA][iB][4] /= dDxZ;
+                        m_dataChristoffelXi[k][iA][iB][5] /= dDxZ;
                         
                         // Orthonormalization coefficients
                         m_dataOrthonormNode[k][iA][iB][0] =

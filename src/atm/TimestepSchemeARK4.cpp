@@ -79,15 +79,19 @@ void TimestepSchemeARK4::Step(
 
 	// Vertical timestep
 	if (fFirstStep) {
-		pVerticalDynamics->StepImplicit(0, 0, dTime, dHalfDeltaT);
+        //std::cout << "In the first vertical step! \n";
+		//pVerticalDynamics->StepImplicit(0, 0, dTime, dHalfDeltaT);
 	} else {
+        /*
 		DataVector<double> dCarryoverCombination;
 		dCarryoverCombination.Initialize(2);
 		dCarryoverCombination[0] = 1.0;
 		dCarryoverCombination[1] = 1.0;
 		pGrid->LinearCombineData(dCarryoverCombination, 0, DataType_State);
+         */
 	}
-/*
+
+    /*
 	// Explicit RK4
 	pGrid->CopyData(0, 1, DataType_State);
 	pHorizontalDynamics->StepExplicit(0, 1, dTime, dHalfDeltaT);
@@ -113,7 +117,7 @@ void TimestepSchemeARK4::Step(
 		3, 4, dTime + dDeltaT / 6.0, dDeltaT / 6.0);
 	pVerticalDynamics->StepExplicit(
 		3, 4, dTime + dDeltaT / 6.0, dDeltaT / 6.0);
-*/
+     */
 
 	// SSP RK3
 	pGrid->CopyData(0, 1, DataType_State);
@@ -141,7 +145,10 @@ void TimestepSchemeARK4::Step(
 		2, 4, dTime + 0.5 * dDeltaT, (2.0/3.0) * dDeltaT);
 	pVerticalDynamics->StepExplicit(
 		2, 4, dTime + 0.5 * dDeltaT, (2.0/3.0) * dDeltaT);
+    
+    pGrid->CopyData(4, 0, DataType_State);
 
+    /*
 	// Apply hyperdiffusion
 	pGrid->CopyData(4, 1, DataType_State);
 	pHorizontalDynamics->StepAfterSubCycle(4, 1, 2, dTime, dDeltaT);
@@ -157,7 +164,7 @@ void TimestepSchemeARK4::Step(
 		dCarryoverFinal[1] = -1.0;
 		pGrid->LinearCombineData(dCarryoverFinal, 1, DataType_State);
 	}
-
+*/
 	//pGrid->CopyData(0, 1, DataType_State);
 	//pVerticalDynamics->StepExplicit(0, 1, dTime, dDeltaT);
 	//pVerticalDynamics->StepImplicit(0, 0, dTime, dDeltaT);
