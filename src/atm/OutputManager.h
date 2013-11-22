@@ -17,6 +17,7 @@
 #ifndef _OUTPUTMANAGER_H_
 #define _OUTPUTMANAGER_H_
 
+#include "TimeObj.h"
 #include "DataVector.h"
 #include "DataMatrix4D.h"
 
@@ -52,37 +53,65 @@ public:
 	virtual ~OutputManager()
 	{ }
 
+public:
+	///	<summary>
+	///		Get the name of this OutputManager.
+	///	</summary>
+	virtual const char * GetName() const {
+		return "Output";
+	}
+
 protected:
 	///	<summary>
 	///		Get the active file name.
 	///	</summary>
-	void GetFileName(std::string & strFileName) const;
+	void GetFileName(
+		const Time & time,
+		std::string & strFileName
+	) const;
 
 	///	<summary>
 	///		Perform the output.
 	///	</summary>
-	void PerformOutput(double dTime);
+	void PerformOutput(const Time & time);
 
 public:
 	///	<summary>
 	///		Determine if an output is needed.
 	///	</summary>
-	bool IsOutputNeeded(double dTime);
+	bool IsOutputNeeded(const Time & time);
 
 	///	<summary>
 	///		Perform an output.
 	///	</summary>
-	void ManageOutput(double dTime);
+	void ManageOutput(const Time & time);
 
 	///	<summary>
 	///		Write the initial system state to a file.
 	///	</summary>
-	void InitialOutput(double dTime);
+	void InitialOutput(const Time & time);
 
 	///	<summary>
 	///		Write the final system state to a file.
 	///	</summary>
-	void FinalOutput(double dTime);
+	void FinalOutput(const Time & time);
+
+public:
+	///	<summary>
+	///		Returns true if this OutputManager supports the input operation.
+	///	</summary>
+	virtual bool SupportsInput() const {
+		return false;
+	}
+
+	///	<summary>
+	///		Load in the state from a file.
+	///	</summary>
+	virtual Time Input(
+		const std::string & strFileName
+	) {
+		_EXCEPTIONT("OutputManager does not support Input operation");
+	}
 
 protected:
 	///	<summary>
@@ -111,7 +140,7 @@ protected:
 	///		Handle manager-specific file output.
 	///	</summary>
 	virtual void Output(
-		double dTime
+		const Time & time
 	) = 0;
 
 protected:
@@ -124,7 +153,7 @@ protected:
 	///		Flag indicating that the initial conditions came from a
 	///		recovery file and that output should be supressed.
 	///	</summary>
-	bool m_fFromRecoveryFile;
+	bool m_fFromRestartFile;
 
 	///	<summary>
 	///		Flag indicating that a file is currently open.
@@ -144,15 +173,15 @@ protected:
 	///	<summary>
 	///		Last output time.
 	///	</summary>
-	double m_dLastOutputTime;
+	Time m_timeLastOutput;
 
 	///	<summary>
 	///		Next output time.
 	///	</summary>
-	double m_dNextOutputTime;
+	Time m_timeNextOutput;
 
 	///	<summary>
-	///		Time between successive outputs.
+	///		Time between successive outputs (in seconds).
 	///	</summary>
 	double m_dOutputDeltaT;
 

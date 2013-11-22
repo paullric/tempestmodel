@@ -59,6 +59,11 @@ class DataMatrix4D {
 		) :
 			m_data(NULL)
 		{
+			m_sSize[0] = 0;
+			m_sSize[1] = 0;
+			m_sSize[2] = 0;
+			m_sSize[3] = 0;
+
 			Initialize(sSize0, sSize1, sSize2, sSize3);
 		}
 
@@ -68,6 +73,11 @@ class DataMatrix4D {
 		DataMatrix4D(const DataMatrix4D<DataType> & dm) 
 			: m_data(NULL)
 		{
+			m_sSize[0] = 0;
+			m_sSize[1] = 0;
+			m_sSize[2] = 0;
+			m_sSize[3] = 0;
+
 			Assign(dm);
 		}
 
@@ -225,7 +235,8 @@ class DataMatrix4D {
 				dm.m_sSize[0],
 				dm.m_sSize[1],
 				dm.m_sSize[2],
-				dm.m_sSize[3]);
+				dm.m_sSize[3],
+				false);
 
 			// Copy data
 			unsigned int nOffset =

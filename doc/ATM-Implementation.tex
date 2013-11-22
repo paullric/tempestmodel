@@ -222,6 +222,42 @@ Second derivatives are defined as follows:
 
 \subsection{Flux Reconstruction / Discontinuous Galerkin}
 
+\section{Vertical Discretization}
+
+The following operators will be applied in the context of the vertical discretization:
+
+\begin{center}
+\begin{tabular}{cc}
+\hline Operator & Description \\
+\hline \hline $\mathcal{I}^n_e$ & Interpolate from nodes to edges \\
+$\mathcal{I}^e_n$ & Interpolate from edges to nodes \\
+$\mathcal{D}^n_e$ & Differentiate from nodes to edges \\
+$\mathcal{D}^e_n$ & Differentiate from edges to nodes \\
+$\mathcal{D}^n_n$ & Differentiate from nodes to nodes \\
+$\mathcal{D}^e_e$ & Differentiate from edges to edges \\
+\hline
+\end{tabular}
+\end{center}
+
+Exner function:
+\begin{equation}
+\Pi(\rho, \theta) = c_p \left( \frac{R \rho \theta}{p_0} \right)^{R/c_v}
+\end{equation}
+
+Vertical discretizations:
+
+\begin{center}
+\begin{tabular}{cc|ccc}
+\hline Prognostic & & \multicolumn{3}{c}{\underline{Choice of Staggering}} \\
+Variable & Operator & DG $(\rho_n \theta_n u^\xi_n)$ & $(\rho_n \theta_n, u^\xi_e)$ & $(\rho_n, u^\xi_e \theta_e)$ \\
+\hline \hline & $\displaystyle \Pi_n$ & $\Pi_n(\rho_n, \theta_n)$ & $\Pi_n(\rho_n, \theta_n)$ & $\Pi_n(\rho_n, \mathcal{I}_n^e \theta_e)$ \\[2.5ex]
+$\theta$ & $\displaystyle u^\xi \pdiff{\theta}{\xi}$ & $(u^\xi_n) \mathcal{D}_n^n \theta_n$ & $(\mathcal{I}_n^e u^\xi_e) (\mathcal{D}_n^n \theta)$ & $(u^\xi_e) (\mathcal{D}_e^e \theta_e)$ \\[2.5ex]
+$u^\xi$ & $\displaystyle \theta \pdiff{\Pi}{\xi}$ & $\theta_n \mathcal{D}^n_n \Pi_n$ & $(\mathcal{I}_n^e \theta_n) (\mathcal{D}^n_e \Pi_n)$ & $\theta_e (\mathcal{D}^n_e \Pi_n)$ \\[2.5ex]
+$\rho$ & $\displaystyle \frac{1}{J} \pdiff{}{\xi} (J \rho u^\xi)$ & $\displaystyle \frac{1}{J_n} \mathcal{D}^n_n (J_n \rho_n u^\xi_n)$ & $\displaystyle \frac{1}{J_n} \mathcal{D}^e_n \left[ J_e (\mathcal{I}_e^n \rho_n) u^\xi_e \right]$ & $\displaystyle \frac{1}{J_n} \mathcal{D}^e_n \left[ J_e (\mathcal{I}_e^n \rho_n) u^\xi_e \right]$ \\[2.5ex]
+\hline
+\end{tabular}
+\end{center}
+
 \section{Hyperviscosity}
 
 Hyperviscosity is formulated in variational form.

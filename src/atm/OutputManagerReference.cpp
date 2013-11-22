@@ -20,6 +20,7 @@
 #include "Grid.h"
 #include "ConsolidationStatus.h"
 
+#include "TimeObj.h"
 #include "Announce.h"
 
 #include "mpi.h"
@@ -119,7 +120,7 @@ void OutputManagerReference::CalculatePatchCoordinates() {
 	}
 
 	// Recalculate patch coordinates
-	Announce("Recalculating patch coordinates");
+	Announce("..Recalculating patch coordinates");
 
 	// Construct array of reference coordinates
 	DataVector<double> dXReference;
@@ -221,6 +222,16 @@ bool OutputManagerReference::OpenFile(
 
 		m_varTime = m_pActiveNcOutput->add_var("time", ncDouble, dimTime);
 
+		std::string strUnits =
+			"days since " + model.GetStartTime().ToDateString();
+
+		std::string strCalendarName = model.GetStartTime().GetCalendarName();
+
+		m_varTime->add_att("long_name", "time");
+		m_varTime->add_att("units", strUnits.c_str());
+		m_varTime->add_att("calendar", strCalendarName.c_str());
+		m_varTime->add_att("bounds", "time_bnds");
+
 		// Create levels dimension
 		NcDim * dimLev =
 			m_pActiveNcOutput->add_dim("lev", m_grid.GetRElements());
@@ -294,6 +305,12 @@ bool OutputManagerReference::OpenFile(
 		varLon->put(m_dXCoord, m_dXCoord.GetRows());
 		varLat->put(m_dYCoord, m_dYCoord.GetRows());
 
+		varLon->add_att("long_name", "longitude");
+		varLon->add_att("units", "degrees_east");
+
+		varLat->add_att("long_name", "latitude");
+		varLat->add_att("units", "degrees_north");
+
 		// Output levels
 		NcVar * varLev =
 			m_pActiveNcOutput->add_var("lev", ncDouble, dimLev);
@@ -302,6 +319,9 @@ bool OutputManagerReference::OpenFile(
 			m_grid.GetREtaLevels(),
 			m_grid.GetREtaLevels().GetRows());
 
+		varLev->add_att("long_name", "level");
+		varLev->add_att("units", "level");
+
 		// Output levels
 		NcVar * varILev =
 			m_pActiveNcOutput->add_var("ilev", ncDouble, dimILev);
@@ -309,6 +329,9 @@ bool OutputManagerReference::OpenFile(
 		varILev->put(
 			m_grid.GetREtaInterfaces(),
 			m_grid.GetREtaInterfaces().GetRows());
+
+		varILev->add_att("long_name", "interface level");
+		varILev->add_att("units", "level");
 	}
 
 	// Wait for all processes to complete
@@ -332,7 +355,7 @@ void OutputManagerReference::CloseFile() {
 ///////////////////////////////////////////////////////////////////////////////
 
 void OutputManagerReference::Output(
-	double dTime
+	const Time & time
 ) {
 	// Check for open file
 	if (!IsFileOpen()) {
@@ -351,8 +374,9 @@ void OutputManagerReference::Output(
 
 	// Add new time
 	if (nRank == 0) {
+		double dTimeDays = (time - m_grid.GetModel().GetStartTime()) / 86400.0;
 		m_varTime->set_cur(m_ixOutputTime);
-		m_varTime->put(&dTime, 1);
+		m_varTime->put(&dTimeDays, 1);
 	}
 
 	// Vertically interpolate data to model levels

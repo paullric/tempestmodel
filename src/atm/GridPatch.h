@@ -28,6 +28,7 @@
 
 ///////////////////////////////////////////////////////////////////////////////
 
+class Time;
 class Grid;
 
 class TestCase;
@@ -117,7 +118,7 @@ public:
 	///	</summary>
 	virtual void EvaluateTestCase(
 		const TestCase & test,
-		double dTime = 0.0,
+		const Time & time,
 		int iDataIndex = 0
 	) = 0;
 

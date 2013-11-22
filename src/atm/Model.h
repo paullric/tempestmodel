@@ -17,6 +17,7 @@
 #ifndef _MODEL_H_
 #define _MODEL_H_
 
+#include "TimeObj.h"
 #include "EquationSet.h"
 #include "PhysicalConstants.h"
 #include "GridStaggering.h"
@@ -34,7 +35,7 @@ class OutputManager;
 ///////////////////////////////////////////////////////////////////////////////
 
 ///	<summary>
-///		Relevant paramters for initialization and execution of the model.
+///		Relevant parameters for initialization and execution of the model.
 ///	</summary>
 class ModelParameters {
 
@@ -44,37 +45,36 @@ public:
 	///	</summary>
 	ModelParameters() :
 		m_dDeltaT(0.0),
-		m_dBeginTime(0.0),
-		m_dEndTime(0.0)
+		m_dEndTime(0.0),
+		m_timeStart(0, 0, 0, 0.0),
+		m_timeEnd(0, 0, 0, 0.0)
 	{ }
 
-	///	<summary>
-	///		Virtual destructor.
-	///	</summary>
-	virtual ~ModelParameters() {
-	}
-/*
 public:
 	///	<summary>
-	///		Verify model parameters
+	///		Name of the restart file to use.
 	///	</summary>
-	virtual void Verify()
-*/
-public:
+	std::string m_strRestartFile;
+
 	///	<summary>
-	///		Time step size.
+	///		Time step size, in seconds.
 	///	</summary>
 	double m_dDeltaT;
 
 	///	<summary>
-	///		Simulation begin time.
-	///	</summary>
-	double m_dBeginTime;
-
-	///	<summary>
-	///		Simulation end time.
+	///		End time of the simulation, in seconds.
 	///	</summary>
 	double m_dEndTime;
+
+	///	<summary>
+	///		Start time of the simulation.
+	///	</summary>
+	Time m_timeStart;
+
+	///	<summary>
+	///		End time of the simulation.
+	///	</summary>
+	Time m_timeEnd;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -139,15 +139,18 @@ public:
 	///	<summary>
 	///		Set the test case.
 	///	</summary>
-	void SetTestCase(
-		TestCase * pTestCase,
-		bool fEvaluateTestCase = true
-	);
+	void SetTestCase(TestCase * pTestCase);
 
 	///	<summary>
 	///		Attach an output manager to this model.
 	///	</summary>
 	void AttachOutputManager(OutputManager * pOutMan);
+
+protected:
+	///	<summary>
+	///		Evaluate the state from a Restart file.
+	///	</summary>
+	void EvaluateStateFromRestartFile();
 
 public:
 	///	<summary>
@@ -205,18 +208,6 @@ public:
 		}
 
 		return m_pVerticalDynamics->GetAuxDataCount();
-	}
-
-protected:
-	///	<summary>
-	///		Perform one time step.
-	///	</summary>
-	virtual void Step(
-		bool fFirstStep,
-		bool fLastStep,
-		double dTime,
-		double dDeltaT
-	) {
 	}
 
 public:
@@ -281,6 +272,24 @@ public:
 		return m_eqn;
 	}
 
+public:
+	///	<summary>
+	///		Get the start time of the simulation.
+	///	</summary>
+	const Time & GetStartTime() const {
+		return m_pParam->m_timeStart;
+	}
+
+	///	<summary>
+	///		Set the start time of the simulation.
+	///	</summary>
+	void SetStartTime(const Time & timeStart) {
+		if (m_pParam == NULL) {
+			_EXCEPTIONT("No ModelParameters specified.");
+		}
+		m_pParam->m_timeStart = timeStart;
+	}
+
 protected:
 	///	<summary>
 	///		Pointer to model parameters.
@@ -336,7 +345,7 @@ private:
 	///	<summary>
 	///		Current model time.
 	///	</summary>
-	double m_dTime;
+	Time m_time;
 };
 
 ///////////////////////////////////////////////////////////////////////////////

@@ -199,7 +199,7 @@ class DataMatrix {
 			}
 
 			// Allocate memory
-			Initialize(dm.m_sRows, dm.m_sColumns);
+			Initialize(dm.m_sRows, dm.m_sColumns, false);
 
 			// Copy data
 			memcpy(

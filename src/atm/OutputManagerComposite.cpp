@@ -20,6 +20,7 @@
 #include "Grid.h"
 #include "ConsolidationStatus.h"
 
+#include "TimeObj.h"
 #include "Announce.h"
 
 #include "mpi.h"
@@ -92,21 +93,14 @@ bool OutputManagerComposite::OpenFile(
 			_EXCEPTIONT("Error opening NetCDF file");
 		}
 
-		// Create nodal time dimension
-		NcDim * dimTime =
-			m_pActiveNcOutput->add_dim("time");
-
-		m_varTime = m_pActiveNcOutput->add_var("time", ncDouble, dimTime);
-
-		// Create patch index dimension
-		NcDim * dimPatchIndex =
-			m_pActiveNcOutput->add_dim(
-				"patch_index", m_grid.GetPatchCount());
-
 		// Create nodal index dimension
 		NcDim * dimIndex =
 			m_pActiveNcOutput->add_dim(
 				"node_index", m_grid.GetTotalNodeCount());
+
+		// Output start time and current time
+		m_pActiveNcOutput->add_att("start_time",
+			model.GetStartTime().ToString().c_str());
 
 		// Output physical constants
 		const PhysicalConstants & phys = model.GetPhysicalConstants();
@@ -129,43 +123,28 @@ bool OutputManagerComposite::OpenFile(
 
 		m_pActiveNcOutput->add_att("equation_set", eqn.GetName().c_str());
 
+		// Output the grid
+		m_grid.ToFile(*m_pActiveNcOutput);
+
+		// Get the patch index dimension
+		NcDim * dimPatchIndex = m_pActiveNcOutput->get_dim("patch_index");
+		if (dimPatchIndex == NULL) {
+			_EXCEPTIONT("Dimension \'patch_index\' not found");
+		}
+
 		// Create variables
 		for (int c = 0; c < eqn.GetComponents(); c++) {
 			m_vecComponentVar.push_back(
 				m_pActiveNcOutput->add_var(
 					eqn.GetComponentShortName(c).c_str(),
-					ncDouble, dimTime, dimIndex));
+					ncDouble, dimIndex));
 		}
 
 		for (int c = 0; c < eqn.GetTracers(); c++) {
 			m_vecTracersVar.push_back(
 				m_pActiveNcOutput->add_var(
 					eqn.GetTracerShortName(c).c_str(),
-					ncDouble, dimTime, dimIndex));
-		}
-
-		// Output PatchBox for each patch
-		NcDim * dimPatchBox = m_pActiveNcOutput->add_dim("patchbox_info", 7);
-
-		NcVar * pPanel =
-			m_pActiveNcOutput->add_var(
-				"PatchBox", ncInt, dimPatchIndex, dimPatchBox);
-
-		for (int n = 0; n < m_grid.GetPatchCount(); n++) {
-			int nBox[7];
-
-			const PatchBox & box = m_grid.GetPatch(n)->GetPatchBox();
-
-			nBox[0] = box.GetPanel();
-			nBox[1] = box.GetRefinementLevel();
-			nBox[2] = box.GetHaloElements();
-			nBox[3] = box.GetAGlobalInteriorBegin();
-			nBox[4] = box.GetAGlobalInteriorEnd();
-			nBox[5] = box.GetBGlobalInteriorBegin();
-			nBox[6] = box.GetBGlobalInteriorEnd();
-
-			pPanel->set_cur(n, 0);
-			pPanel->put(nBox, 1, 7);
+					ncDouble, dimIndex));
 		}
 
 		// Output topography for each patch
@@ -185,6 +164,7 @@ bool OutputManagerComposite::OpenFile(
         m_grid.GetLargestGridPatchNodes()
         * m_grid.GetRElements());
 
+#pragma "Move to Output"
     while ((nRank == 0) && (!status.Done())) {
 
         int nRecvCount;
@@ -230,11 +210,16 @@ void OutputManagerComposite::CloseFile() {
 ///////////////////////////////////////////////////////////////////////////////
 
 void OutputManagerComposite::Output(
-	double dTime
+	const Time & time
 ) {
 	// Check for open file
 	if (!IsFileOpen()) {
 		_EXCEPTIONT("No file available for output");
+	}
+
+	// Verify that only one output has been performed
+	if (m_ixOutputTime != 0) {
+		_EXCEPTIONT("Only one Composite output allowed per file");
 	}
 
 	// Determine processor rank
@@ -244,10 +229,10 @@ void OutputManagerComposite::Output(
 	// Equation set
 	const EquationSet & eqn = m_grid.GetModel().GetEquationSet();
 
-	// Add new time
+	// Output start time and current time
 	if (nRank == 0) {
-		m_varTime->set_cur(m_ixOutputTime);
-		m_varTime->put(&dTime, 1);
+		m_pActiveNcOutput->add_att(
+			"current_time", time.ToShortString().c_str());
 	}
 
 	// Begin data consolidation
@@ -288,12 +273,19 @@ void OutputManagerComposite::Output(
 			if (nRecvCount % eqn.GetComponents() != 0) {
 				_EXCEPTIONT("Invalid message length");
 			}
+			if (dataRecvBuffer.GetRows() <
+					eqn.GetComponents() * nComponentSize
+			) {
+				_EXCEPTIONT("Insufficient RecvBuffer size");
+			}
 
-			int nPatchIx = m_grid.GetCumulativePatch3DNodeIndex(ixRecvPatch);
+			int nCumulative3DNodeIx =
+				m_grid.GetCumulativePatch3DNodeIndex(ixRecvPatch);
+
 			for (int c = 0; c < eqn.GetComponents(); c++) {
-				m_vecComponentVar[c]->set_cur(m_ixOutputTime, nPatchIx);
+				m_vecComponentVar[c]->set_cur(nCumulative3DNodeIx);
 				m_vecComponentVar[c]->put(
-					&(dataRecvBuffer[nComponentSize * c]), 1, nComponentSize);
+					&(dataRecvBuffer[nComponentSize * c]), nComponentSize);
 			}
 
 		// Store tracer variable data
@@ -305,11 +297,13 @@ void OutputManagerComposite::Output(
 				_EXCEPTIONT("Invalid message length");
 			}
 
-			int nPatchIx = m_grid.GetCumulativePatch3DNodeIndex(ixRecvPatch);
+			int nCumulative3DNodeIx =
+				m_grid.GetCumulativePatch3DNodeIndex(ixRecvPatch);
+
 			for (int c = 0; c < eqn.GetTracers(); c++) {
-				m_vecTracersVar[c]->set_cur(m_ixOutputTime, nPatchIx);
+				m_vecTracersVar[c]->set_cur(nCumulative3DNodeIx);
 				m_vecTracersVar[c]->put(
-					&(dataRecvBuffer[nComponentSize * c]), 1, nComponentSize);
+					&(dataRecvBuffer[nComponentSize * c]), nComponentSize);
 			}
 		}
 	}
@@ -320,10 +314,13 @@ void OutputManagerComposite::Output(
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void OutputManagerComposite::Input(
-	Grid & grid
-) const {
-	// Determine processor rank; only proceed if root node
+Time OutputManagerComposite::Input(
+	const std::string & strFileName
+) {
+	// Set the flag indicating that output came from a restart file
+	m_fFromRestartFile = true;
+
+	// Determine processor rank
 	int nRank;
 	MPI_Comm_rank(MPI_COMM_WORLD, &nRank);
 
@@ -332,22 +329,63 @@ void OutputManagerComposite::Input(
 
 	// Open new NetCDF file
 	NcFile * pNcFile = NULL;
-	NcVar * varZs;
 
-	if (nRank == 0) {
+	// Open NetCDF file
+	pNcFile = new NcFile(strFileName.c_str(), NcFile::ReadOnly);
+	if (pNcFile == NULL) {
+		_EXCEPTIONT("Error opening NetCDF file");
+	}
 
-		// Open NetCDF file
-		pNcFile = new NcFile(m_strRestartFile.c_str(), NcFile::ReadOnly);
-		if (m_pActiveNcOutput == NULL) {
-			_EXCEPTIONT("Error opening NetCDF file");
+	// Get the time
+	NcAtt * attCurrentTime = pNcFile->get_att("current_time");
+	if (attCurrentTime == NULL) {
+		_EXCEPTIONT("Attribute \'current_time\' not found in restart file");
+	}
+	std::string strCurrentTime = attCurrentTime->as_string(0);
+
+	Time timeCurrent(strCurrentTime);
+
+	// Equation set
+	const EquationSet & eqn = m_grid.GetModel().GetEquationSet();
+
+	// Input physical constants
+#pragma message "Input physical constants here"
+
+	// Input topography here
+#pragma message "Input topography here"
+
+	// Input state
+	for (int n = 0; n < m_grid.GetActivePatchCount(); n++) {
+		GridPatch * pPatch = m_grid.GetActivePatch(n);
+
+#pragma "Allow for specification of data index here"
+		GridData4D & data = pPatch->GetDataState(0);
+
+		int nCumulative3DNodeIx =
+			m_grid.GetCumulativePatch3DNodeIndex(pPatch->GetPatchIndex());
+
+		int nComponentSize =
+			pPatch->GetPatchBox().GetTotalNodes();
+
+		for (int c = 0; c < eqn.GetComponents(); c++) {
+			std::string strComponentName = eqn.GetComponentShortName(c);
+
+			NcVar * var = pNcFile->get_var(strComponentName.c_str());
+			if (var == NULL) {
+				_EXCEPTION1("Cannot find variable \'%s\' in file",
+					strComponentName.c_str());
+			}
+			var->set_cur(nCumulative3DNodeIx);
+			var->get(data[c][0][0], nComponentSize);
 		}
-
 	}
 
 	// Close the file
 	if (pNcFile != NULL) {
 		delete pNcFile;
 	}
+
+	return timeCurrent;
 }
 
 ///////////////////////////////////////////////////////////////////////////////

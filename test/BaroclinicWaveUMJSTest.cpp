@@ -438,7 +438,7 @@ public:
 	///	</summary>
 	virtual void EvaluatePointwiseState(
 		const PhysicalConstants & phys,
-		double dTime,
+		const Time & time,
 		double dZ,
 		double dLon,
 		double dLat,
@@ -695,7 +695,6 @@ try {
 		nVerticalOrder,
 		nLevels);
 
-	grid.AddDefaultPatches();
 	model.SetGrid(&grid);
 	AnnounceEndBlock("Done");
 

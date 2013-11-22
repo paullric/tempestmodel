@@ -20,6 +20,8 @@
 #include "InputManager.h"
 #include "OutputManager.h"
 
+class Time;
+
 ///////////////////////////////////////////////////////////////////////////////
 
 ///	<summary>
@@ -27,8 +29,7 @@
 ///		to a NetCDF file for later recovery.
 ///	</summary>
 class OutputManagerComposite :
-	public OutputManager,
-	public InputManager
+	public OutputManager
 {
 
 public:
@@ -47,6 +48,13 @@ public:
 	///		Destructor.
 	///	</summary>
 	virtual ~OutputManagerComposite();
+
+	///	<summary>
+	///		Get the name of the OutputManager.
+	///	</summary>
+	virtual const char * GetName() const {
+		return "Composite";
+	}
 
 public:
 	///	<summary>
@@ -72,16 +80,23 @@ protected:
 	///		Write output to a file.
 	///	</summary>
 	void Output(
-		double dTime
+		const Time & time
 	);
 
 protected:
 	///	<summary>
+	///		Returns true if this OutputManager supports the input operation.
+	///	</summary>
+	virtual bool SupportsInput() const {
+		return true;
+	}
+
+	///	<summary>
 	///		Initialize the grid data from a file.
 	///	</summary>
-	void Input(
-		Grid & grid
-	) const;
+	virtual Time Input(
+		const std::string & strFileName
+	);
 
 protected:
 	///	<summary>

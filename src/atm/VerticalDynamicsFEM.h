@@ -28,6 +28,8 @@
 #include <petscsnes.h>
 #endif
 
+class Time;
+
 ///////////////////////////////////////////////////////////////////////////////
 
 ///	<summary>
@@ -52,7 +54,6 @@ public:
 	///		Destructor.
 	///	</summary>
 	~VerticalDynamicsFEM();
-
 
 public:
 	///	<summary>
@@ -130,7 +131,7 @@ public:
 	virtual void StepExplicit(
 		int iDataInitial,
 		int iDataUpdate,
-		double dTime,
+		const Time & time,
 		double dDeltaT
 	);
 
@@ -145,7 +146,7 @@ public:
 	virtual void StepImplicit(
 		int iDataInitial,
 		int iDataUpdate,
-		double dTime,
+		const Time & time,
 		double dDeltaT
 	);
 

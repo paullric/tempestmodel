@@ -83,6 +83,9 @@ class DataMatrix3D {
 				m_sSize[2] = dm.m_sSize[2];
 				m_data = dm.m_data;
 			} else {
+				m_sSize[0] = 0;
+				m_sSize[1] = 0;
+				m_sSize[2] = 0;
 				Assign(dm);
 			}
 		}
@@ -266,7 +269,7 @@ class DataMatrix3D {
 
 			// Allocate memory
 			} else {
-				Initialize(dm.m_sSize[0], dm.m_sSize[1], dm.m_sSize[2]);
+				Initialize(dm.m_sSize[0], dm.m_sSize[1], dm.m_sSize[2], false);
 			}
 
 			// Copy data

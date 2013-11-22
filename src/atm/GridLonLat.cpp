@@ -25,7 +25,7 @@ void GridPatchLonLat::InitializeData() {
 
 void GridPatchLonLat::EvaluateTestCase(
 	const TestCase & test,
-	double dTime,
+	const Time & time,
 	int iDataInstance
 ) {
 }

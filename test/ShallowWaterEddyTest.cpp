@@ -209,7 +209,7 @@ public:
 	///	</summary>
 	virtual void EvaluatePointwiseState(
 		const PhysicalConstants & phys,
-		double dTime,
+		const Time & time,
 		double dZ,
 		double dLon,
 		double dLat,
@@ -422,7 +422,6 @@ try {
 
 	// Set the grid for the model
 	AnnounceStartBlock("Initializing grid");
-	grid.AddDefaultPatches();
 	model.SetGrid(&grid);
 	AnnounceEndBlock("Done");
 

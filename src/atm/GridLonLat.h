@@ -20,6 +20,8 @@
 #include "Grid.h"
 #include "GridPatch.h"
 
+class Time;
+
 ///////////////////////////////////////////////////////////////////////////////
 
 ///	<summary>
@@ -50,7 +52,7 @@ public:
 	///	</summary>
 	void EvaluateTestCase(
 		const TestCase & test,
-		double dTime = 0.0,
+		const Time & time,
 		int iDataInstance = 0
 	);
 };

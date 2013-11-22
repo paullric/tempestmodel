@@ -19,6 +19,7 @@
 
 ///////////////////////////////////////////////////////////////////////////////
 
+class Time;
 class Model;
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -55,7 +56,7 @@ public:
 	virtual void StepExplicit(
 		int iDataInitial,
 		int iDataUpdate,
-		double dTime,
+		const Time & time,
 		double dDeltaT
 	) {
 	}
@@ -66,7 +67,7 @@ public:
 	virtual void StepImplicit(
 		int iDataInitial,
 		int iDataUpdate,
-		double dTime,
+		const Time & time,
 		double dDeltaT
 	) {
 	}
@@ -78,7 +79,7 @@ public:
 		int iDataInitial,
 		int iDataUpdate,
 		int iDataWorking,
-		double dTime,
+		const Time & time,
 		double dDeltaT
 	) {
 	}

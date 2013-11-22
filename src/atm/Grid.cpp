@@ -24,6 +24,7 @@
 #include <cfloat>
 #include <cmath>
 
+#include <netcdfcpp.h>
 #include "mpi.h"
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -141,7 +142,7 @@ void Grid::InitializeVerticalCoordinate(
 
 void Grid::EvaluateTestCase(
 	const TestCase & test,
-	double dTime,
+	const Time & time,
 	int iDataIndex
 ) {
 	// Store the model cap
@@ -154,7 +155,15 @@ void Grid::EvaluateTestCase(
 	// Evaluate the pointwise values of the test
 	for (int n = 0; n < m_vecActiveGridPatches.size(); n++) {
 		m_vecActiveGridPatches[n]->
-			EvaluateTestCase(test, dTime, iDataIndex);
+			EvaluateTestCase(test, time, iDataIndex);
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void Grid::EvaluateGeometricTerms() {
+	for (int n = 0; n < m_vecActiveGridPatches.size(); n++) {
+		m_vecActiveGridPatches[n]->EvaluateGeometricTerms();
 	}
 }
 
@@ -715,6 +724,223 @@ GridPatch * Grid::AddPatch(
 		+ pPatch->GetTotalNodeCount());
 
 	return pPatch;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void Grid::ToFile(
+	NcFile & ncfile
+) {
+
+	// Create patch index dimension
+	NcDim * dimPatchIndex =
+		ncfile.add_dim("patch_index", GetPatchCount());
+
+	// Get the length of each dimension array
+	int iANodeIndex = 0;
+	int iBNodeIndex = 0;
+	int iAEdgeIndex = 0;
+	int iBEdgeIndex = 0;
+
+	int nANodeCount = 0;
+	int nBNodeCount = 0;
+	int nAEdgeCount = 0;
+	int nBEdgeCount = 0;
+
+	for (int n = 0; n < GetPatchCount(); n++) {
+		const PatchBox & box = GetPatch(n)->GetPatchBox();
+
+		nANodeCount += box.GetANodes().GetRows();
+		nBNodeCount += box.GetBNodes().GetRows();
+		nAEdgeCount += box.GetAEdges().GetRows();
+		nBEdgeCount += box.GetBEdges().GetRows();
+	}
+
+	NcDim * dimANodeCount =
+		ncfile.add_dim("alpha_node_index", nANodeCount);
+	NcDim * dimBNodeCount =
+		ncfile.add_dim("beta_node_index", nBNodeCount);
+	NcDim * dimAEdgeCount =
+		ncfile.add_dim("alpha_edge_index", nAEdgeCount);
+	NcDim * dimBEdgeCount =
+		ncfile.add_dim("beta_edge_index", nBEdgeCount);
+
+	NcVar * varANodeCoord =
+		ncfile.add_var(
+			"alpha_node_coord", ncDouble, dimANodeCount);
+	NcVar * varBNodeCoord =
+		ncfile.add_var(
+			"beta_node_coord", ncDouble, dimBNodeCount);
+	NcVar * varAEdgeCoord =
+		ncfile.add_var(
+			"alpha_edge_coord", ncDouble, dimAEdgeCount);
+	NcVar * varBEdgeCoord =
+		ncfile.add_var(
+			"beta_edge_coord", ncDouble, dimBEdgeCount);
+
+	// Output global resolution
+	int iGridInfo[4];
+	iGridInfo[0] = m_iGridStamp;
+	iGridInfo[1] = m_nABaseResolution;
+	iGridInfo[2] = m_nBBaseResolution;
+	iGridInfo[3] = m_nRefinementRatio;
+
+	NcDim * dimGridInfoCount =
+		ncfile.add_dim("grid_info_count", 4);
+
+	NcVar * varGridInfo =
+		ncfile.add_var("grid_info", ncInt, dimGridInfoCount);
+
+	varGridInfo->put(iGridInfo, 4);
+
+	// Output PatchBox for each patch
+	NcDim * dimPatchInfoCount =
+		ncfile.add_dim("patch_info_count", 7);
+
+	NcVar * varPatchInfo =
+		ncfile.add_var("patch_info", ncInt, dimPatchIndex, dimPatchInfoCount);
+
+	for (int n = 0; n < GetPatchCount(); n++) {
+		int iPatchInfo[7];
+
+		const PatchBox & box = GetPatch(n)->GetPatchBox();
+
+		iPatchInfo[0] = box.GetPanel();
+		iPatchInfo[1] = box.GetRefinementLevel();
+		iPatchInfo[2] = box.GetHaloElements();
+		iPatchInfo[3] = box.GetAGlobalInteriorBegin();
+		iPatchInfo[4] = box.GetAGlobalInteriorEnd();
+		iPatchInfo[5] = box.GetBGlobalInteriorBegin();
+		iPatchInfo[6] = box.GetBGlobalInteriorEnd();
+
+		varPatchInfo->set_cur(n, 0);
+		varPatchInfo->put(iPatchInfo, 1, 7);
+
+		varANodeCoord->set_cur(iANodeIndex);
+		varBNodeCoord->set_cur(iBNodeIndex);
+		varAEdgeCoord->set_cur(iAEdgeIndex);
+		varBEdgeCoord->set_cur(iBEdgeIndex);
+
+		varANodeCoord->put(box.GetANodes(), box.GetANodes().GetRows());
+		varBNodeCoord->put(box.GetBNodes(), box.GetBNodes().GetRows());
+		varAEdgeCoord->put(box.GetAEdges(), box.GetAEdges().GetRows());
+		varBEdgeCoord->put(box.GetBEdges(), box.GetBEdges().GetRows());
+
+		iANodeIndex += box.GetANodes().GetRows();
+		iBNodeIndex += box.GetBNodes().GetRows();
+		iAEdgeIndex += box.GetAEdges().GetRows();
+		iBEdgeIndex += box.GetBEdges().GetRows();
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void Grid::FromFile(
+	const std::string & strGridFile
+) {
+	// Check for existing patches
+	if (GetPatchCount() != 0) {
+		_EXCEPTIONT("Trying to load over non-empty grid");
+	}
+
+	// Open the NetCDF file
+	NcFile ncfile(strGridFile.c_str(), NcFile::ReadOnly);
+
+	// Load in grid info in alpha and beta direction
+	int iGridInfo[4];
+
+	NcVar * varGridInfo = ncfile.get_var("grid_info");
+
+	varGridInfo->get(iGridInfo, 4);
+
+	m_iGridStamp = iGridInfo[0];
+	m_nABaseResolution = iGridInfo[1];
+	m_nBBaseResolution = iGridInfo[2];
+	m_nRefinementRatio = iGridInfo[3];
+
+	// Coordinate arrays
+	int iANodeIndex = 0;
+	int iBNodeIndex = 0;
+	int iAEdgeIndex = 0;
+	int iBEdgeIndex = 0;
+
+	DataVector<double> dANodes;
+	DataVector<double> dBNodes;
+	DataVector<double> dAEdges;
+	DataVector<double> dBEdges;
+
+	// Load in all PatchBoxes
+	NcVar * varPatchInfo = ncfile.get_var("patch_info");
+	if (varPatchInfo == NULL) {
+		_EXCEPTIONT("Invalid GridFile; variable patch_info required");
+	}
+
+	NcVar * varANodeCoord = ncfile.get_var("alpha_node_coord");
+	if (varANodeCoord == NULL) {
+		_EXCEPTIONT("Invalid GridFile; variable alpha_node_coord required");
+	}
+
+	NcVar * varBNodeCoord = ncfile.get_var("beta_node_coord");
+	if (varBNodeCoord == NULL) {
+		_EXCEPTIONT("Invalid GridFile; variable beta_node_coord required");
+	}
+
+	NcVar * varAEdgeCoord = ncfile.get_var("alpha_edge_coord");
+	if (varAEdgeCoord == NULL) {
+		_EXCEPTIONT("Invalid GridFile; variable alpha_edge_coord required");
+	}
+
+	NcVar * varBEdgeCoord = ncfile.get_var("beta_edge_coord");
+	if (varBEdgeCoord == NULL) {
+		_EXCEPTIONT("Invalid GridFile; variable beta_edge_coord required");
+	}
+
+	NcDim * dimPatchInfoCount = varPatchInfo->get_dim(0);
+	int nPatches = static_cast<int>(dimPatchInfoCount->size());
+
+	for (int ix = 0; ix < nPatches; ix++) {
+		int iPatchInfo[7];
+		varPatchInfo->set_cur(ix, 0);
+		varPatchInfo->get(iPatchInfo, 1, 7);
+
+		int nANodes = iPatchInfo[4] - iPatchInfo[3] + 2 * iPatchInfo[2];
+		int nBNodes = iPatchInfo[6] - iPatchInfo[5] + 2 * iPatchInfo[2];
+
+		dANodes.Initialize(nANodes);
+		dBNodes.Initialize(nBNodes);
+		dAEdges.Initialize(nANodes+1);
+		dBEdges.Initialize(nBNodes+1);
+
+		varANodeCoord->set_cur(iANodeIndex);
+		varBNodeCoord->set_cur(iBNodeIndex);
+		varAEdgeCoord->set_cur(iAEdgeIndex);
+		varBEdgeCoord->set_cur(iBEdgeIndex);
+
+		varANodeCoord->get(dANodes, nANodes);
+		varBNodeCoord->get(dBNodes, nBNodes);
+		varAEdgeCoord->get(dAEdges, nANodes+1);
+		varBEdgeCoord->get(dBEdges, nBNodes+1);
+
+		PatchBox box(
+			iPatchInfo[0],
+			iPatchInfo[1],
+			iPatchInfo[2],
+			iPatchInfo[3],
+			iPatchInfo[4],
+			iPatchInfo[5],
+			iPatchInfo[6],
+			dANodes,
+			dBNodes,
+			dAEdges,
+			dBEdges);
+
+		AddPatch(ix, box);
+
+		iANodeIndex += box.GetANodes().GetRows();
+		iBNodeIndex += box.GetBNodes().GetRows();
+		iAEdgeIndex += box.GetAEdges().GetRows();
+		iBEdgeIndex += box.GetBEdges().GetRows();
+	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////

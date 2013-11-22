@@ -41,7 +41,7 @@ OutputManagerChecksum::OutputManagerChecksum(
 ///////////////////////////////////////////////////////////////////////////////
 
 void OutputManagerChecksum::Output(
-	double dTime
+	const Time & time
 ) {
 	// Get processor rank
 	int nRank;

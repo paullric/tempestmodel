@@ -159,6 +159,11 @@ void GridCSGLL::Initialize() {
 
 void GridCSGLL::AddDefaultPatches() {
 
+	// Verify no Patches have been previously added
+	if (GetPatchCount() != 0) {
+		_EXCEPTIONT("AddDefaultPatches() must be called on an empty Grid");
+	}
+
 	// Determine number of usable processors
 	int nCommSize;
 	MPI_Comm_size(MPI_COMM_WORLD, &nCommSize);
@@ -192,9 +197,6 @@ void GridCSGLL::AddDefaultPatches() {
 	iBoxBegin[nProcsPerDirection] = GetABaseResolution();
 
 	// Create master patch for each panel
-	std::vector<GridPatch *> pPatches;
-	pPatches.reserve(nDistributedPatches);
-
 	for (int n = 0; n < 6; n++) {
 	for (int i = 0; i < nProcsPerDirection; i++) {
 	for (int j = 0; j < nProcsPerDirection; j++) {
@@ -214,21 +216,32 @@ void GridCSGLL::AddDefaultPatches() {
 
 		int ixPatch = n * nProcsPerPanel + i * nProcsPerDirection + j;
 
-		pPatches.push_back(
-			AddPatch(
-				new GridPatchCSGLL(
-					(*this),
-					ixPatch,
-					boxMaster,
-					m_nHorizontalOrder,
-					m_nVerticalOrder)));
+		Grid::AddPatch(
+			new GridPatchCSGLL(
+				(*this),
+				ixPatch,
+				boxMaster,
+				m_nHorizontalOrder,
+				m_nVerticalOrder));
 	}
 	}
 	}
+}
 
-	if (pPatches.size() != nDistributedPatches) {
-		_EXCEPTIONT("Logic error");
-	}
+///////////////////////////////////////////////////////////////////////////////
+
+GridPatch * GridCSGLL::AddPatch(
+	int ixPatch,
+	const PatchBox & box
+) {
+	return
+		Grid::AddPatch(
+			new GridPatchCSGLL(
+				(*this),
+				ixPatch,
+				box,
+				m_nHorizontalOrder,
+				m_nVerticalOrder));
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -239,10 +252,10 @@ void GridCSGLL::GetReferenceGridBounds(
 	double & dY0,
 	double & dY1
 ) {
-	dX0 = - M_PI;
-	dX1 = + M_PI;
-	dY0 = - M_PI / 2.0;
-	dY1 = + M_PI / 2.0;
+	dX0 = - 180.0;
+	dX1 = + 180.0;
+	dY0 = -  90.0;
+	dY1 = +  90.0;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -268,8 +281,8 @@ void GridCSGLL::ConvertReferenceToPatchCoord(
 		int iPanel;
 
 		CubedSphereTrans::ABPFromRLL(
-			dXReference[i],
-			dYReference[i],
+			dXReference[i] * M_PI / 180.0,
+			dYReference[i] * M_PI / 180.0,
 			dAlpha[i],
 			dBeta[i],
 			iPanel);
