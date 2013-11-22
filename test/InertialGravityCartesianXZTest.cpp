@@ -45,10 +45,11 @@
 class InertialGravityCartesianXZTest : public TestCase {
 
 public:
-    /// <summary>
-    ///		Grid dimension array (FOR CARTESIAN GRIDS).
+	/// <summary>
+	///		Grid dimension array (FOR CARTESIAN GRIDS).
 	///	</summary>
-    double m_dGDim[6];
+	double m_dGDim[6];
+
 private:
 	///	<summary>
 	///		Background height field.
@@ -60,22 +61,22 @@ private:
 	///	</summary>
 	double m_dU0;
 
-    ///	<summary>
+	///	<summary>
 	///		Reference surface pressure.
 	///	</summary>
 	double m_dP0;
 
-    ///	<summary>
+	///	<summary>
 	///		Specific heat of air at constant pressure.
 	///	</summary>
 	double m_dCp;
 
-    ///	<summary>
+	///	<summary>
 	///		Specific heat of air at constant volume.
 	///	</summary>
 	double m_dCv;
 
-    ///	<summary>
+	///	<summary>
 	///		Gas constant of air.
 	///	</summary>
 	double m_dR;
@@ -122,10 +123,10 @@ public:
 	InertialGravityCartesianXZTest() :
 		m_dH0(10000.),
 		m_dU0(20.),
-        m_dP0(1.0E5),
-        m_dCp(1005.0),
-        m_dCv(718.0),
-        m_dR(287.058),
+		m_dP0(1.0E5),
+		m_dCp(1005.0),
+		m_dCv(718.0),
+		m_dR(287.058),
 		m_dNbar(0.01),
 		m_dTheta0(300.0),
 		m_dThetaC(10.0),
@@ -134,14 +135,14 @@ public:
 		m_dxC(1.0E+5),
 		m_dpiC(3.14159265)
 	{
-        // Set the dimensions of the box
-        m_dGDim[0] = 0.0;
-        m_dGDim[1] = 300000.0;
-        m_dGDim[2] = -1000.0;
-        m_dGDim[3] = 1000.0;
-        m_dGDim[4] = 0.0;
-        m_dGDim[5] = 10000.0;
-    }
+		// Set the dimensions of the box
+		m_dGDim[0] = 0.0;
+		m_dGDim[1] = 300000.0;
+		m_dGDim[2] = -1000.0;
+		m_dGDim[3] = 1000.0;
+		m_dGDim[4] = 0.0;
+		m_dGDim[5] = 10000.0;
+	}
 
 public:
 	///	<summary>
@@ -164,10 +165,10 @@ public:
 	///		Evaluate the topography at the given point. (cartesian version)
 	///	</summary>
 	virtual double EvaluateTopography(
-       double dxp,
-       double dyp
+	   double dxp,
+	   double dyp
 	) const {
-	    // This test case has no topography associated with it
+		// This test case has no topography associated with it
 		return 0.0;
 	}
 
@@ -175,24 +176,24 @@ public:
 	///		Evaluate the perturbed potential temperature field.
 	///	</summary>
 	double EvaluateTPrime(
-        const PhysicalConstants & phys,
+		const PhysicalConstants & phys,
 		double dxP,
 		double dzP
 	) const {
-        double gsi = phys.GetG();
-        // Base potential temperature field
+		double gsi = phys.GetG();
+		// Base potential temperature field
 		double dThetaBar = m_dTheta0 * exp(pow(m_dNbar,2.0)/gsi * dzP);
-        // Potential temperature perturbation
-        double dThetaHat1 = m_dThetaC * sin(m_dpiC * dzP / m_dhC);
-        double argX = (dxP - m_dxC)/m_daC;
-        double dThetaHat2 = (1.0 + pow(argX,2.0));
-        double dThetaHat = dThetaHat1 / dThetaHat2;
+		// Potential temperature perturbation
+		double dThetaHat1 = m_dThetaC * sin(m_dpiC * dzP / m_dhC);
+		double argX = (dxP - m_dxC)/m_daC;
+		double dThetaHat2 = (1.0 + pow(argX,2.0));
+		double dThetaHat = dThetaHat1 / dThetaHat2;
 		
-        //std::cout << "\n" << dzP << " " << dThetaHat1;
-        //std::cout << "\n" << dxP << " " << argX << " " << dThetaHat2;
-        //std::cout << m_daC << " " << m_dxC;
-        return dThetaHat + dThetaBar;
-        //return dThetaHat;
+		//std::cout << "\n" << dzP << " " << dThetaHat1;
+		//std::cout << "\n" << dxP << " " << argX << " " << dThetaHat2;
+		//std::cout << m_daC << " " << m_dxC;
+		return dThetaHat + dThetaBar;
+		//return dThetaHat;
 	}
 
 	///	<summary>
@@ -202,27 +203,27 @@ public:
 		const PhysicalConstants & phys,
 		const Time & time,
 		double dzP,
-        double dyP,
-        double dxP,
+		double dyP,
+		double dxP,
 		double * dState,
 		double * dTracer
 	) const {
 
-        // Set the uniform U, V, W field for all time
-        dState[0] = m_dU0;
-        dState[1] = 0.0;
-        dState[3] = 0.0;
+		// Set the uniform U, V, W field for all time
+		dState[0] = m_dU0;
+		dState[1] = 0.0;
+		dState[3] = 0.0;
 
-        // Set the initial potential temperature field
-        dState[2] = EvaluateTPrime(phys, dxP, dzP);
+		// Set the initial potential temperature field
+		dState[2] = EvaluateTPrime(phys, dxP, dzP);
 
-        // Set the initial density based on the Exner pressure
-        double gsi = phys.GetG();
-        double dExnerP = pow(gsi,2.0) / (m_dCp * m_dTheta0 * pow(m_dNbar,2.0));
-        dExnerP *= (exp(-pow(m_dNbar,2.0)/gsi * dzP) - 1.0);
-        dExnerP += 1.0;
-        double dRho = m_dP0 / (m_dR * dState[2]) * pow(dExnerP,(m_dCv / m_dR));
-        dState[4] = dRho;
+		// Set the initial density based on the Exner pressure
+		double gsi = phys.GetG();
+		double dExnerP = pow(gsi,2.0) / (m_dCp * m_dTheta0 * pow(m_dNbar,2.0));
+		dExnerP *= (exp(-pow(m_dNbar,2.0)/gsi * dzP) - 1.0);
+		dExnerP += 1.0;
+		double dRho = m_dP0 / (m_dR * dState[2]) * pow(dExnerP,(m_dCv / m_dR));
+		dState[4] = dRho;
 	}
 };
 
@@ -293,18 +294,18 @@ try {
 	AnnounceStartBlock("Creating model");
 	Model model(EquationSet::PrimitiveNonhydrostaticEquations);
 	AnnounceEndBlock("Done");
-    
-    // Set the parameters for the model
+	
+	// Set the parameters for the model
 	AnnounceStartBlock("Initializing parameters");
 	model.SetParameters(&params);
 	AnnounceEndBlock("Done");
-    
-    // Set the timestep scheme
+	
+	// Set the timestep scheme
 	TimestepSchemeARK4 timestep(model);
 	AnnounceStartBlock("Initializing timestep scheme");
 	model.SetTimestepScheme(&timestep);
 	AnnounceEndBlock("Done");
-    
+	
 	// Set the horizontal dynamics
 	HorizontalDynamicsFEM::Type eHorizontalDynamicsType;
 	STLStringHelper::ToLower(strHorizontalDynamics);
@@ -315,13 +316,13 @@ try {
 	} else {
 		_EXCEPTIONT("Invalid method: Expected \"SE\" or \"DG\"");
 	}
-    
+	
 	HorizontalDynamicsFEM hdyn(
-                               model, nOrder, eHorizontalDynamicsType, fNoHyperviscosity);
+	   model, nOrder, eHorizontalDynamicsType, fNoHyperviscosity);
 	AnnounceStartBlock("Initializing horizontal dynamics");
 	model.SetHorizontalDynamics(&hdyn);
 	AnnounceEndBlock("Done");
-    
+	
 	// Set the vertical dynamics
 	VerticalDynamicsStub vdyn(model);
 	AnnounceStartBlock("Initializing vertical dynamics");
@@ -329,47 +330,47 @@ try {
 	AnnounceEndBlock("Done");
 
 	// Generate a new cartesian GLL grid (20 x 20 x 20 for now)
-    // Initialize the test case here (to have grid dimensions available)
-    InertialGravityCartesianXZTest test;
+	// Initialize the test case here (to have grid dimensions available)
+	InertialGravityCartesianXZTest test;
 	AnnounceStartBlock("Constructing grid");
 	GridCartesianGLL grid(
 		model,
 		nResolution,
 		1,
 		nOrder,
-        nOrder,
+		nOrder,
 		nResolution,
-        test.m_dGDim);
+		test.m_dGDim);
 
 	grid.AddDefaultPatches();
 	model.SetGrid(&grid);
 	AnnounceEndBlock("Done");
-    
-    // Set the reference output manager for the model
+	
+	// Set the reference output manager for the model
 	AnnounceStartBlock("Creating reference output manager");
 	OutputManagerReference outmanRef(
-        grid,
-        dOutputDeltaT,
-        strOutputDir,
-        strOutputPrefix,
-        nOutputsPerFile,
-        nResolution,
-        nResolution);
+		grid,
+		dOutputDeltaT,
+		strOutputDir,
+		strOutputPrefix,
+		nOutputsPerFile,
+		nResolution,
+		nResolution);
 	outmanRef.OutputVorticity();
 	outmanRef.OutputDivergence();
 	model.AttachOutputManager(&outmanRef);
 	AnnounceEndBlock("Done");
-    
+	
 	// Set the composite output manager for the model
 	AnnounceStartBlock("Creating composite output manager");
 	OutputManagerComposite outmanComp(
-        grid,
-        dOutputDeltaT,
-        strOutputDir,
-        strOutputPrefix);
+		grid,
+		dOutputDeltaT,
+		strOutputDir,
+		strOutputPrefix);
 	model.AttachOutputManager(&outmanComp);
 	AnnounceEndBlock("Done");
-    
+	
 	// Set the checksum output manager for the model
 	AnnounceStartBlock("Creating checksum output manager");
 	OutputManagerChecksum outmanChecksum(grid, dOutputDeltaT);
@@ -377,7 +378,7 @@ try {
 	AnnounceEndBlock("Done");
 
 	// Set the test case for the model
-    InertialGravityCartesianXZTest ctest;
+	InertialGravityCartesianXZTest ctest;
 	AnnounceStartBlock("Initializing test case");
 	model.SetTestCase(&ctest);
 	AnnounceEndBlock("Done");
