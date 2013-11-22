@@ -21,7 +21,7 @@
 #include "DataVector.h"
 #include "DataMatrix4D.h"
 
-#include "/opt/local/include/netcdfcpp.h"
+#include "netcdfcpp.h"
 
 #include <vector>
 
