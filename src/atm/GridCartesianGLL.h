@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 ///
 ///	\file    GridCartesianGLL.h
-///	\author  Paul Ullrich
+///	\author  Paul Ullrich, Jorge Guerra
 ///	\version September 19, 2013
 ///
 ///	<remarks>
@@ -26,12 +26,6 @@
 ///		quadrature nodes.
 ///	</summary>
 class GridCartesianGLL : public GridGLL {
-    
-private:
-    ///	<summary>
-	///		Dimension of the grid - private to cartesian grids.
-	///	</summary>
-    double m_dGDim[];
 
 public:
 	///	<summary>
@@ -44,38 +38,38 @@ public:
 		int nHorizontalOrder,
 		int nVerticalOrder,
 		int nRElements,
-        double nGDim[]
+		double nGDim[]
 	);
 
 	///	<summary>
 	///		Initialize grid patches.
 	///	</summary>
 	virtual void Initialize();
-    
+	
 public:
-    ///	<summary
+	///	<summary
 	///		Get the bounds on the reference grid.
 	///	</summary>
 	virtual void GetReferenceGridBounds(
-        double & dX0,
-        double & dX1,
-        double & dY0,
-        double & dY1
-);
-    
+		double & dX0,
+		double & dX1,
+		double & dY0,
+		double & dY1
+	);
+	
 	///	<summary>
 	///		Get the bounds on the reference grid 3D.
 	///	</summary>
 	virtual void GetReferenceGridBounds3D(
-        double & dX0,
-        double & dX1,
-        double & dY0,
-        double & dY1,
-        double & dZ0,
-        double & dZ1
-    );
-    
-    ///	<summary>
+		double & dX0,
+		double & dX1,
+		double & dY0,
+		double & dY1,
+		double & dZ0,
+		double & dZ1
+	);
+	
+	///	<summary>
 	///		Add the default set of patches.
 	///	</summary>
 	virtual void AddDefaultPatches();
@@ -98,30 +92,30 @@ public:
 		DataVector<double> & dBeta,
 		DataVector<int> & iPanel
 	) const;
-    
-    ///	<summary>
+	
+	///	<summary>
 	///		Get the patch and coordinate index for the specified node.
 	///	</summary>
 	virtual void GetPatchFromCoordinateIndex(
-        int iRefinementLevel,
-        const DataVector<int> & vecIxA,
-        const DataVector<int> & vecIxB,
-        const DataVector<int> & vecPanel,
-        DataVector<int> & vecPatchIndex,
-        int nVectorLength = (-1)
-    );
-    
+		int iRefinementLevel,
+		const DataVector<int> & vecIxA,
+		const DataVector<int> & vecIxB,
+		const DataVector<int> & vecPanel,
+		DataVector<int> & vecPatchIndex,
+		int nVectorLength = (-1)
+	);
+	
 	///	<summary>
 	///		Get the relation between coordinate vectors across panel
 	///		boundaries.
 	///	</summary>
 	virtual void GetOpposingDirection(
-        int ixPanelSrc,
-        int ixPanelDest,
-        Direction dir,
-        Direction & dirOpposing,
-        bool & fSwitchParallel
-    ) const;
+		int ixPanelSrc,
+		int ixPanelDest,
+		Direction dir,
+		Direction & dirOpposing,
+		bool & fSwitchParallel
+	) const;
 
 public:
 	///	<summary>
@@ -131,6 +125,13 @@ public:
 		int iDataUpdate,
 		DataType eDataType = DataType_State
 	);
+	
+private:
+	///	<summary>
+	///		Dimension of the grid - private to cartesian grids.
+	///	</summary>
+	double m_dGDim[];
+
 };
 
 ///////////////////////////////////////////////////////////////////////////////

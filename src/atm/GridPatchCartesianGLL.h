@@ -1,8 +1,8 @@
 ///////////////////////////////////////////////////////////////////////////////
 ///
-///	\file    GridPatchCSGLL.h
-///	\author  Paul Ullrich
-///	\version February 25, 2013
+///	\file    GridPatchCartesianGLL.h
+///	\author  Paul Ullrich, Jorge Guerra
+///	\version September 26, 2013
 ///
 ///	<remarks>
 ///		Copyright 2000-2010 Paul Ullrich
@@ -33,12 +33,6 @@ class GridData3D;
 ///		Gauss-Lobatto-Legendre quadrature nodes.
 ///	</summary>
 class GridPatchCartesianGLL : public GridPatchGLL {
-    
-private:
-    ///	<summary>
-	///		Dimension of the grid - private to cartesian grids.
-	///	</summary>
-    double m_dGDim[];
 
 public:
 	///	<summary>
@@ -50,7 +44,7 @@ public:
 		const PatchBox & box,
 		int nHorizontalOrder,
 		int nVerticalOrder,
-        double dGDim[]
+		double dGDim[]
 	);
 
 public:
@@ -60,18 +54,19 @@ public:
 	virtual void InitializeDataLocal();
 
 private:
-    ///	<summary>
+	///	<summary>
 	///		Initialize topographical data from a TestCase.
 	///	</summary>
 	void EvaluateTopography(
-        const TestCase & test
-    );
+		const TestCase & test
+	);
+
 	///	<summary>
 	///		Initialize geometric source term coefficients and topographical
 	///		data from a TestCase.
 	///	</summary>
-	void EvaluateGeometricTerms(
-    );
+	virtual void EvaluateGeometricTerms(
+	);
 
 public:
 	///	<summary>
@@ -140,6 +135,12 @@ public:
 		bool fIncludeReferenceState = true,
 		bool fConvertToPrimitive = true
 	);
+
+private:
+	///	<summary>
+	///		Dimension of the grid - private to cartesian grids.
+	///	</summary>
+	double m_dGDim[];
 
 };
 

@@ -200,12 +200,12 @@ public:
 	///	</summary>
 	virtual void EvaluatePointwiseState(
 		const PhysicalConstants & phys,
-		double dTime,
+		const Time & time,
 		double dzP,
         double dyP,
         double dxP,
-		double *dState,
-		double *dTracer
+		double * dState,
+		double * dTracer
 	) const {
 
         // Set the uniform U, V, W field for all time
