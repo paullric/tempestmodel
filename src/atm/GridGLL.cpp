@@ -25,7 +25,8 @@
 
 GridGLL::GridGLL(
 	const Model & model,
-	int nBaseResolution,
+	int nBaseResolutionA,
+	int nBaseResolutionB,
 	int nRefinementRatio,
 	int nHorizontalOrder,
 	int nVerticalOrder,
@@ -34,8 +35,8 @@ GridGLL::GridGLL(
 	// Call up the stack
 	Grid::Grid(
 		model,
-		nBaseResolution,
-		nBaseResolution,
+		nBaseResolutionA,
+		nBaseResolutionB,
 		nRefinementRatio,
 		nRElements),
 	m_nHorizontalOrder(nHorizontalOrder),
@@ -59,6 +60,7 @@ GridGLL::GridGLL(
 		PolynomialInterp::DiffLagrangianPolynomialCoeffs(
 			m_nHorizontalOrder, dG, dCoeffs, dG[i]);
 
+#pragma message "Verify that DxBasis1D adds up to 0"
 		for (int m = 0; m < m_nHorizontalOrder; m++) {
 			m_dDxBasis1D[m][i] = dCoeffs[m];
 

@@ -47,6 +47,7 @@ GridCSGLL::GridCSGLL(
 	GridGLL::GridGLL(
 		model,
 		nBaseResolution,
+		nBaseResolution,
 		nRefinementRatio,
 		nHorizontalOrder,
 		nVerticalOrder,

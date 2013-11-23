@@ -33,7 +33,8 @@ public:
 	///	</summary>
 	GridGLL(
 		const Model & model,
-		int nBaseResolution,
+		int nBaseResolutionA,
+		int nBaseResolutionB,
 		int nRefinementRatio,
 		int nHorizontalOrder,
 		int nVerticalOrder,

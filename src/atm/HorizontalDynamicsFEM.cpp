@@ -24,7 +24,7 @@
 #include "GridGLL.h"
 #include "GridPatchGLL.h"
 
-//#define DIFFERENTIAL_FORM
+#define DIFFERENTIAL_FORM
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -534,8 +534,8 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 	const int TIx = 2;
 	const int WIx = 3;
 	const int RIx = 4;
-    
-    //std::cout << "Inside the horizontal step! \n";
+
+	//std::cout << "Inside the horizontal step! \n";
 
 	// Perform local update
 	for (int n = 0; n < pGrid->GetActivePatchCount(); n++) {
@@ -624,9 +624,6 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 					dJacobian[k][iA][iB]
 					* dataInitialNode[RIx][k][iA][iB]
 					* dataInitialNode[UIx][k][iA][iB];
-                
-                //if (dJacobian[k][iA][iB] != 1.0)
-                //std::cout << dJacobian[k][iA][iB] << "\n";
 
 				m_dBetaFlux[i][j] =
 					dJacobian[k][iA][iB]
@@ -961,9 +958,7 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 		}
 		}
 		}
-
 	}
-    //_EXCEPTION();
 }
 
 ///////////////////////////////////////////////////////////////////////////////

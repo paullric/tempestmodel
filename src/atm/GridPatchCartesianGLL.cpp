@@ -72,28 +72,15 @@ void GridPatchCartesianGLL::InitializeDataLocal() {
 	// Physical constants
 	const PhysicalConstants & phys = m_grid.GetModel().GetPhysicalConstants();
 
-	// Get the maximum value of the ABP coordinates (to scale dataLon and Lat)
-	double maxA = m_box.GetANode(m_box.GetATotalWidth()-1);
-	double maxB = m_box.GetBNode(m_box.GetBTotalWidth()-1);
-	double XL = (m_dGDim[1] - m_dGDim[0]);
-	double YL = (m_dGDim[3] - m_dGDim[2]);
-
 	// Initialize the longitude and latitude at each node
 	for (int i = 0; i < m_box.GetATotalWidth(); i++) {
 	for (int j = 0; j < m_box.GetBTotalWidth(); j++) {
-		// TODO: Initialize the force with user input
-		// (latitude input for reference force)
-		m_dataLat[i][j] =
-			0.5 * XL * m_box.GetANode(i) / maxA + 0.5 * XL;
-		m_dataLon[i][j] =
-			0.5 * YL * m_box.GetBNode(j) / maxB;
-		m_dataCoriolisF[i][j] =
-			m_dataCoriolisF[i][j] + phys.GetOmega() * m_box.GetBNode(j);
+		// Longitude and latitude directly from box
+		m_dataLon[i][j] = m_box.GetANode(i);
+		m_dataLat[i][j] = m_box.GetBNode(j);
 
-		//std::cout << m_dataLat[i][j] << " "
-				  //<< m_dataLon[i][j] << "\n";
-				  //<< m_dataZLevels[k][i][j] << "\n";
-
+		// No Coriolis force
+		m_dataCoriolisF[i][j] = 0.0;
 	}
 	}
 }
@@ -154,25 +141,20 @@ void GridPatchCartesianGLL::EvaluateGeometricTerms() {
 	dynamic_cast<GridCartesianGLL &>(m_grid);
 
 	const DataMatrix<double> & dDxBasis1D = gridCartesianGLL.GetDxBasis1D();
-
+/*
 	// Element spacing at this refinement level
 	double dElementDeltaA =
-	m_box.GetAEdge(m_box.GetHaloElements() + m_nHorizontalOrder)
-	- m_box.GetAEdge(m_box.GetHaloElements());
+		m_box.GetAEdge(m_box.GetHaloElements() + m_nHorizontalOrder)
+		- m_box.GetAEdge(m_box.GetHaloElements());
 
 	double dElementDeltaB =
-	m_box.GetBEdge(m_box.GetHaloElements() + m_nHorizontalOrder)
-	- m_box.GetBEdge(m_box.GetHaloElements());
-
-#pragma message "Implement rectangular grid elements"
-	if (fabs(dElementDeltaA - dElementDeltaB) > 1.0e-12) {
-		_EXCEPTIONT("Not implemented.");
-	}
-
+		m_box.GetBEdge(m_box.GetHaloElements() + m_nHorizontalOrder)
+		- m_box.GetBEdge(m_box.GetHaloElements());
+*/
 	// Vertical grid spacing
 	double dElementDeltaXi =
-	m_grid.GetREtaInterface(m_nVerticalOrder)
-	- m_grid.GetREtaInterface(0);
+		m_grid.GetREtaInterface(m_nVerticalOrder)
+		- m_grid.GetREtaInterface(0);
 
 	//std::cout << "Evaluating Metric Terms! \n";
 
@@ -266,8 +248,8 @@ void GridPatchCartesianGLL::EvaluateGeometricTerms() {
 				// Element area associated with each model level GLL node
 				m_dataElementArea[k][iA][iB] =
 					m_dataJacobian[k][iA][iB]
-					* dWL[i] * dElementDeltaA
-					* dWL[j] * dElementDeltaB
+					* dWL[i] * GetElementDeltaA()
+					* dWL[j] * GetElementDeltaB()
 					* dWNode[kx] * dElementDeltaXi;
 				//std::cout << m_dataElementArea[k][iA][iB] << "\n";
 
@@ -312,17 +294,17 @@ void GridPatchCartesianGLL::EvaluateGeometricTerms() {
 
 				// Orthonormalization coefficients
 				m_dataOrthonormNode[k][iA][iB][0] =
-				- dDaZs * (m_grid.GetZtop() - dZ)
-				/ (m_grid.GetZtop() - dZs)
-				/ (m_grid.GetZtop() - dZs);
+					- dDaZs * (m_grid.GetZtop() - dZ)
+					/ (m_grid.GetZtop() - dZs)
+					/ (m_grid.GetZtop() - dZs);
 
 				m_dataOrthonormNode[k][iA][iB][1] =
-				- dDbZs * (m_grid.GetZtop() - dZ)
-				/ (m_grid.GetZtop() - dZs)
-				/ (m_grid.GetZtop() - dZs);
+					- dDbZs * (m_grid.GetZtop() - dZ)
+					/ (m_grid.GetZtop() - dZs)
+					/ (m_grid.GetZtop() - dZs);
 
 				m_dataOrthonormNode[k][iA][iB][2] =
-				m_grid.GetZtop() / (m_grid.GetZtop() - dZs);
+					m_grid.GetZtop() / (m_grid.GetZtop() - dZs);
 			}
 
 			// Metric terms at vertical interfaces
@@ -342,8 +324,8 @@ void GridPatchCartesianGLL::EvaluateGeometricTerms() {
 				// Element area associated with each model interface GLL node
 				m_dataElementAreaREdge[k][iA][iB] =
 					dJacobian
-					* dWL[i] * dElementDeltaA
-					* dWL[j] * dElementDeltaB
+					* dWL[i] * GetElementDeltaA()
+					* dWL[j] * GetElementDeltaB()
 					* dWREdge[kx] * dElementDeltaXi;
 
 				if ((k != 0) && (k != m_grid.GetRElements()) && (kx == 0)) {
@@ -517,6 +499,122 @@ void GridPatchCartesianGLL::EvaluateTestCase(
 		}
 	}
 	}
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void GridPatchCartesianGLL::ApplyBoundaryConditions(
+	int iDataUpdate,
+	DataType eDataType
+) {
+#pragma message "BoundaryConditions only works when in HorizontalDynamicsFEM is in Differential Form"
+	// Indices of EquationSet variables
+	const int UIx = 0;
+	const int VIx = 1;
+	const int TIx = 2;
+	const int WIx = 3;
+	const int RIx = 4;
+
+	// Check number of components
+	if (m_grid.GetModel().GetEquationSet().GetComponents() != 5) {
+		_EXCEPTIONT("Unimplemented");
+	}
+
+	// Working data
+	GridData4D & dataREdge = GetDataState(iDataUpdate, DataLocation_REdge);
+	GridData4D & dataNode  = GetDataState(iDataUpdate, DataLocation_Node);
+
+	// Apply boundary conditions on model levels
+	for (int k = 0; k < m_grid.GetRElements(); k++) {
+		int i;
+		int j;
+
+		// Evaluate boundary conditions along right edge
+		i = m_box.GetAInteriorEnd();
+		for (j = m_box.GetBInteriorBegin(); j < m_box.GetBInteriorEnd(); j++) {
+			dataNode[UIx][k][i][j] =   dataNode[UIx][k][i-1][j];
+			dataNode[VIx][k][i][j] =   dataNode[VIx][k][i-1][j];
+			dataNode[TIx][k][i][j] =   dataNode[TIx][k][i-1][j];
+			dataNode[WIx][k][i][j] =   dataNode[WIx][k][i-1][j];
+			dataNode[RIx][k][i][j] =   dataNode[RIx][k][i-1][j];
+		}
+
+		// Evaluate boundary conditions along left edge
+		i = m_box.GetAInteriorBegin()-1;
+		for (j = m_box.GetBInteriorBegin(); j < m_box.GetBInteriorEnd(); j++) {
+			dataNode[UIx][k][i][j] =   dataNode[UIx][k][i+1][j];
+			dataNode[VIx][k][i][j] =   dataNode[VIx][k][i+1][j];
+			dataNode[TIx][k][i][j] =   dataNode[TIx][k][i+1][j];
+			dataNode[WIx][k][i][j] =   dataNode[WIx][k][i+1][j];
+			dataNode[RIx][k][i][j] =   dataNode[RIx][k][i+1][j];
+		}
+
+		// Evaluate boundary conditions along top edge
+		j = m_box.GetBInteriorEnd();
+		for (i = m_box.GetAInteriorBegin()-1; i < m_box.GetAInteriorEnd()+1; i++) {
+			dataNode[UIx][k][i][j] =   dataNode[UIx][k][i][j-1];
+			dataNode[VIx][k][i][j] = - dataNode[VIx][k][i][j-1];
+			dataNode[TIx][k][i][j] =   dataNode[TIx][k][i][j-1];
+			dataNode[WIx][k][i][j] =   dataNode[WIx][k][i][j-1];
+			dataNode[RIx][k][i][j] =   dataNode[RIx][k][i][j-1];
+		}
+
+		// Evaluate boundary conditions along bottom edge
+		j = m_box.GetBInteriorBegin()-1;
+		for (i = m_box.GetAInteriorBegin()-1; i < m_box.GetAInteriorEnd()+1; i++) {
+			dataNode[UIx][k][i][j] =   dataNode[UIx][k][i][j+1];
+			dataNode[VIx][k][i][j] = - dataNode[VIx][k][i][j+1];
+			dataNode[TIx][k][i][j] =   dataNode[TIx][k][i][j+1];
+			dataNode[WIx][k][i][j] =   dataNode[WIx][k][i][j+1];
+			dataNode[RIx][k][i][j] =   dataNode[RIx][k][i][j+1];
+		}
+	}
+
+	// Apply boundary conditions on interfaces
+	for (int k = 0; k <= m_grid.GetRElements(); k++) {
+		int i;
+		int j;
+
+		// Evaluate boundary conditions along right edge
+		i = m_box.GetAInteriorEnd();
+		for (j = m_box.GetBInteriorBegin(); j < m_box.GetBInteriorEnd(); j++) {
+			dataREdge[UIx][k][i][j] =   dataREdge[UIx][k][i-1][j];
+			dataREdge[VIx][k][i][j] =   dataREdge[VIx][k][i-1][j];
+			dataREdge[TIx][k][i][j] =   dataREdge[TIx][k][i-1][j];
+			dataREdge[WIx][k][i][j] =   dataREdge[WIx][k][i-1][j];
+			dataREdge[RIx][k][i][j] =   dataREdge[RIx][k][i-1][j];
+		}
+
+		// Evaluate boundary conditions along left edge
+		i = m_box.GetAInteriorBegin()-1;
+		for (j = m_box.GetBInteriorBegin(); j < m_box.GetBInteriorEnd(); j++) {
+			dataREdge[UIx][k][i][j] =   dataREdge[UIx][k][i+1][j];
+			dataREdge[VIx][k][i][j] =   dataREdge[VIx][k][i+1][j];
+			dataREdge[TIx][k][i][j] =   dataREdge[TIx][k][i+1][j];
+			dataREdge[WIx][k][i][j] =   dataREdge[WIx][k][i+1][j];
+			dataREdge[RIx][k][i][j] =   dataREdge[RIx][k][i+1][j];
+		}
+
+		// Evaluate boundary conditions along top edge
+		j = m_box.GetBInteriorEnd();
+		for (i = m_box.GetAInteriorBegin()-1; i < m_box.GetAInteriorEnd()+1; i++) {
+			dataREdge[UIx][k][i][j] =   dataREdge[UIx][k][i][j-1];
+			dataREdge[VIx][k][i][j] = - dataREdge[VIx][k][i][j-1];
+			dataREdge[TIx][k][i][j] =   dataREdge[TIx][k][i][j-1];
+			dataREdge[WIx][k][i][j] =   dataREdge[WIx][k][i][j-1];
+			dataREdge[RIx][k][i][j] =   dataREdge[RIx][k][i][j-1];
+		}
+
+		// Evaluate boundary conditions along bottom edge
+		j = m_box.GetBInteriorBegin()-1;
+		for (i = m_box.GetAInteriorBegin()-1; i < m_box.GetAInteriorEnd()+1; i++) {
+			dataREdge[UIx][k][i][j] =   dataREdge[UIx][k][i][j+1];
+			dataREdge[VIx][k][i][j] = - dataREdge[VIx][k][i][j+1];
+			dataREdge[TIx][k][i][j] =   dataREdge[TIx][k][i][j+1];
+			dataREdge[WIx][k][i][j] =   dataREdge[WIx][k][i][j+1];
+			dataREdge[RIx][k][i][j] =   dataREdge[RIx][k][i][j+1];
+		}
 	}
 }
 
@@ -696,7 +794,6 @@ void GridPatchCartesianGLL::InterpolateREdgeToNode(
 	int iVar,
 	int iDataIndex
 ) {
-
 	// Working data
 	GridData4D & dataREdge = GetDataState(iDataIndex, DataLocation_REdge);
 	GridData4D & dataNode  = GetDataState(iDataIndex, DataLocation_Node);
@@ -770,13 +867,8 @@ void GridPatchCartesianGLL::InterpolateData(
 	dAInterpPt.Initialize(m_nHorizontalOrder);
 
 	// Element-wise grid spacing
-	double dDeltaA =
-		+ m_box.GetAEdge(m_box.GetHaloElements() + m_nHorizontalOrder)
-		- m_box.GetAEdge(m_box.GetHaloElements());
-
-	double dDeltaB =
-		+ m_box.GetBEdge(m_box.GetHaloElements() + m_nHorizontalOrder)
-		- m_box.GetBEdge(m_box.GetHaloElements());
+	double dDeltaA = GetElementDeltaA();
+	double dDeltaB = GetElementDeltaB();
 
 	// Physical constants
 	const PhysicalConstants & phys = m_grid.GetModel().GetPhysicalConstants();
@@ -890,21 +982,11 @@ void GridPatchCartesianGLL::InterpolateData(
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// TODO: Transform not necessary in cartesian grid (delete method)
+
 void GridPatchCartesianGLL::TransformHaloVelocities(
 	int iDataUpdate
 ) {
-	// Indices of velocities
-	const int UIx = 0;
-	const int VIx = 1;
-
-	// Velocity data
-	GridData4D * pDataVelocity =
-		&(GetDataState(iDataUpdate, m_grid.GetVarLocation(UIx)));
-
-	if (pDataVelocity->GetComponents() < 2) {
-		_EXCEPTIONT("Invalid number of components.");
-	}
+	// Transform not necessary on Cartesian grid
 }
 
 ///////////////////////////////////////////////////////////////////////////////

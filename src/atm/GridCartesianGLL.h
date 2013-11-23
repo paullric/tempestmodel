@@ -33,7 +33,8 @@ public:
 	///	</summary>
 	GridCartesianGLL(
 		const Model & model,
-		int nBaseResolution,
+		int nBaseResolutionA,
+		int nBaseResolutionB,
 		int nRefinementRatio,
 		int nHorizontalOrder,
 		int nVerticalOrder,
@@ -118,6 +119,14 @@ public:
 	) const;
 
 public:
+	///	<summary>
+	///		Apply the boundary conditions.
+	///	</summary>
+	void ApplyBoundaryConditions(
+		int iDataUpdate,
+		DataType eDataType
+	);
+
 	///	<summary>
 	///		Apply the direct stiffness summation (DSS) operation on the grid.
 	///	</summary>

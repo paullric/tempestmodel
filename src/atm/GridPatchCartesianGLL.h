@@ -80,6 +80,15 @@ public:
 
 public:
 	///	<summary>
+	///		Apply boundary conditions to this patch.
+	///	</summary>
+	void ApplyBoundaryConditions(
+		int iDataUpdate,
+		DataType eDataType
+	);
+
+public:
+	///	<summary>
 	///		Compute the radial component of the curl on the grid given two
 	///		contravariant vector fields.
 	///	</summary>

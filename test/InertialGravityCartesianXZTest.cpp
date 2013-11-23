@@ -129,7 +129,7 @@ public:
 		m_dR(287.058),
 		m_dNbar(0.01),
 		m_dTheta0(300.0),
-		m_dThetaC(10.0),
+		m_dThetaC(0.01),
 		m_dhC(10000.),
 		m_daC(5000.),
 		m_dxC(1.0E+5),
@@ -138,8 +138,8 @@ public:
 		// Set the dimensions of the box
 		m_dGDim[0] = 0.0;
 		m_dGDim[1] = 300000.0;
-		m_dGDim[2] = -1000.0;
-		m_dGDim[3] = 1000.0;
+		m_dGDim[2] = -100000.0;
+		m_dGDim[3] = 100000.0;
 		m_dGDim[4] = 0.0;
 		m_dGDim[5] = 10000.0;
 	}
@@ -180,19 +180,22 @@ public:
 		double dxP,
 		double dzP
 	) const {
-		double gsi = phys.GetG();
+		double dG = phys.GetG();
+
 		// Base potential temperature field
-		double dThetaBar = m_dTheta0 * exp(pow(m_dNbar,2.0)/gsi * dzP);
+		double dThetaBar = m_dTheta0 * exp(m_dNbar * m_dNbar / dG * dzP);
+
 		// Potential temperature perturbation
 		double dThetaHat1 = m_dThetaC * sin(m_dpiC * dzP / m_dhC);
 		double argX = (dxP - m_dxC)/m_daC;
-		double dThetaHat2 = (1.0 + pow(argX,2.0));
+		double dThetaHat2 = (1.0 + argX * argX);
 		double dThetaHat = dThetaHat1 / dThetaHat2;
-		
+
 		//std::cout << "\n" << dzP << " " << dThetaHat1;
 		//std::cout << "\n" << dxP << " " << argX << " " << dThetaHat2;
 		//std::cout << m_daC << " " << m_dxC;
 		return dThetaHat + dThetaBar;
+		//return dThetaBar;
 		//return dThetaHat;
 	}
 
@@ -203,8 +206,8 @@ public:
 		const PhysicalConstants & phys,
 		const Time & time,
 		double dzP,
-		double dyP,
 		double dxP,
+		double dyP,
 		double * dState,
 		double * dTracer
 	) const {
@@ -274,10 +277,10 @@ try {
 		CommandLineInt(nResolution, "resolution", 20);
 		CommandLineInt(nOrder, "order", 4);
 		CommandLineDouble(dAlpha, "alpha", 0.0);
-		CommandLineDouble(params.m_dDeltaT, "dt", 100.0);
-		CommandLineDouble(params.m_dEndTime, "endtime", 200.0);
-		CommandLineDouble(dOutputDeltaT, "outputtime", 200.0);
-		CommandLineStringD(strHorizontalDynamics, "method", "DG", "(SE | DG)");
+		CommandLineDouble(params.m_dDeltaT, "dt", 10.0);
+		CommandLineDouble(params.m_dEndTime, "endtime", 10.0);
+		CommandLineDouble(dOutputDeltaT, "outputtime", 10.0);
+		CommandLineStringD(strHorizontalDynamics, "method", "SE", "(SE | DG)");
 		CommandLineBool(fNoHyperviscosity, "nohypervis");
 
 		ParseCommandLine(argc, argv);
@@ -322,7 +325,7 @@ try {
 	AnnounceStartBlock("Initializing horizontal dynamics");
 	model.SetHorizontalDynamics(&hdyn);
 	AnnounceEndBlock("Done");
-	
+
 	// Set the vertical dynamics
 	VerticalDynamicsStub vdyn(model);
 	AnnounceStartBlock("Initializing vertical dynamics");
@@ -337,12 +340,12 @@ try {
 		model,
 		nResolution,
 		1,
+		1,
 		nOrder,
 		nOrder,
 		nResolution,
 		test.m_dGDim);
 
-	grid.AddDefaultPatches();
 	model.SetGrid(&grid);
 	AnnounceEndBlock("Done");
 	
@@ -354,10 +357,8 @@ try {
 		strOutputDir,
 		strOutputPrefix,
 		nOutputsPerFile,
-		nResolution,
-		nResolution);
-	outmanRef.OutputVorticity();
-	outmanRef.OutputDivergence();
+		nResolution * nOrder,
+		2);
 	model.AttachOutputManager(&outmanRef);
 	AnnounceEndBlock("Done");
 	
