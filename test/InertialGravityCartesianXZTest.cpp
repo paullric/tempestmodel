@@ -153,6 +153,13 @@ public:
 	}
 
 	///	<summary>
+	///		Get the altitude of the model cap.
+	///	</summary>
+	virtual double GetZtop() const {
+		return 10000.0;
+	}
+
+	///	<summary>
 	///		Obtain test case specific physical constants.
 	///	</summary>
 	virtual void EvaluatePhysicalConstants(
