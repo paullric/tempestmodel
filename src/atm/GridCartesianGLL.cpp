@@ -1,8 +1,8 @@
 ///////////////////////////////////////////////////////////////////////////////
 ///
 ///	\file    GridCartesianGLL.cpp
-///	\author  Paul Ullrich
-///	\version September 19, 2013
+///	\author  Paul Ullrich, Jorge Guerra
+///	\version September 26, 2013
 ///
 ///	<remarks>
 ///		Copyright 2000-2010 Paul Ullrich
@@ -30,28 +30,40 @@
 #include "MathHelper.h"
 
 #include <cmath>
+#include <sstream>
 
-///////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////
 
 GridCartesianGLL::GridCartesianGLL(
 	const Model & model,
-	int nBaseResolution,
+	int nBaseResolutionA,
+	int nBaseResolutionB,
 	int nRefinementRatio,
 	int nHorizontalOrder,
 	int nVerticalOrder,
-	int nRElements
+	int nRElements,
+	double dGDim[]
 ) :
 	// Call up the stack
 	GridGLL::GridGLL(
 		model,
-		nBaseResolution,
+		nBaseResolutionA,
+		nBaseResolutionB,
 		nRefinementRatio,
 		nHorizontalOrder,
 		nVerticalOrder,
 		nRElements)
 {
 	// Set the reference length scale
-	m_dReferenceLength = 0.5 * M_PI / 30.0;
+	// TODO: change this from hard coded information
+	m_dReferenceLength = 1.0;
+
+	// Bring through the grid dimensions
+	m_dGDim[0] = dGDim[0]; m_dGDim[1] = dGDim[1];
+	m_dGDim[2] = dGDim[2]; m_dGDim[3] = dGDim[3];
+	m_dGDim[4] = dGDim[4]; m_dGDim[5] = dGDim[5];
+
+	m_dZtop = dGDim[5];
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -69,132 +81,6 @@ void GridCartesianGLL::Initialize() {
 	InitializeVerticalCoordinate(
 		GridSpacingMixedGaussLobatto(dDeltaElement, 0.0, m_nVerticalOrder)
 	);
-
-	// Determine number of usable processors
-	int nCommSize;
-	MPI_Comm_size(MPI_COMM_WORLD, &nCommSize);
-
-	int nProcsPerDirection = Max((int)ISqrt(nCommSize / 6), 1);
-
-	int nProcsPerPanel = nProcsPerDirection * nProcsPerDirection;
-
-	int nDistributedPatches = 6 * nProcsPerPanel;
-
-	if (nDistributedPatches < nCommSize) {
-		Announce("WARNING: Patch / thread mismatch: "
-			"%i threads will be unutilized",
-			nCommSize - nDistributedPatches);
-	}
-
-	// Determine arrangement of elements on processors
-	if (GetABaseResolution() % nProcsPerDirection != 0) {
-		_EXCEPTIONT("\n(UNIMPLEMENTED) Currently elements must be "
-			"equally divided among processors.");
-	}
-
-	int nElementsPerDirection = GetABaseResolution() / nProcsPerDirection;
-	DataVector<int> iBoxBegin;
-	iBoxBegin.Initialize(nProcsPerDirection + 1);
-
-	iBoxBegin[0] = 0;
-	for (int n = 1; n < nProcsPerDirection; n++) {
-		iBoxBegin[n] = n * nElementsPerDirection;
-	}
-	iBoxBegin[nProcsPerDirection] = GetABaseResolution();
-
-	// Create master patch for each panel
-	std::vector<GridPatch *> pPatches;
-	pPatches.reserve(nDistributedPatches);
-
-	for (int n = 0; n < 6; n++) {
-	for (int i = 0; i < nProcsPerDirection; i++) {
-	for (int j = 0; j < nProcsPerDirection; j++) {
-		double dDeltaA = 0.5 * M_PI / GetABaseResolution();
-
-		GridSpacingGaussLobattoRepeated
-			glspacing(dDeltaA, -0.25 * M_PI, m_nHorizontalOrder);
-
-		PatchBox boxMaster(
-			n, 0, m_model.GetHaloElements(),
-			m_nHorizontalOrder * iBoxBegin[i],
-			m_nHorizontalOrder * iBoxBegin[i+1],
-			m_nHorizontalOrder * iBoxBegin[j],
-			m_nHorizontalOrder * iBoxBegin[j+1],
-			glspacing,
-			glspacing);
-
-		int ixPatch = n * nProcsPerPanel + i * nProcsPerDirection + j;
-
-		pPatches.push_back(
-			AddPatch(
-				new GridPatchCartesianGLL(
-					(*this),
-					ixPatch,
-					boxMaster,
-					m_nHorizontalOrder,
-					m_nVerticalOrder)));
-	}
-	}
-	}
-
-	if (pPatches.size() != nDistributedPatches) {
-		_EXCEPTIONT("Logic error");
-	}
-
-	// Set up connectivity
-	for (int n = 0; n < nDistributedPatches; n++) {
-		int iDestPanel;
-		int iDestI;
-		int iDestJ;
-		bool fSwitchAB;
-		bool fSwitchPar;
-		bool fSwitchPerp;
-
-		int iSrcPanel = n / nProcsPerPanel;
-		int iSrcI = (n % nProcsPerPanel) / nProcsPerDirection;
-		int iSrcJ = (n % nProcsPerPanel) % nProcsPerDirection;
-
-		int iDestN;
-
-		// Loop through all directions
-		for (int iDir = 0; iDir < 8; iDir++) {
-			Direction dir = (Direction)(iDir);
-
-			// Find the panel index in this direction
-			int iSrcInew = iSrcI;
-			int iSrcJnew = iSrcJ;
-
-			DirectionIncrement(dir, iSrcInew, iSrcJnew);
-
-			CubedSphereTrans::RelativeCoord(
-				nProcsPerDirection,
-				iSrcPanel, iSrcInew, iSrcJnew,
-				iDestPanel, iDestI, iDestJ,
-				fSwitchAB, fSwitchPar, fSwitchPerp);
-
-			if (iDestPanel == InvalidPanel) {
-				continue;
-			}
-
-			iDestN =
-				iDestPanel * nProcsPerPanel
-				+ iDestI * nProcsPerDirection
-				+ iDestJ;
-
-			// Find the opposing direction to return to this panel
-			Direction dirOpposing =
-				CubedSphereTrans::OpposingDirection(iSrcPanel, iDestPanel, dir);
-
-			// Set of the exterior connection
-			Connectivity::ExteriorConnect(
-				pPatches[n],
-				dir,
-				pPatches[iDestN]);
-		}
-	}
-
-	// Distribute patches to processors
-	Grid::DistributePatches();
 
 	// Interpolation coefficients from nodes to interfaces and vice versa
 	m_dInterpNodeToREdge.Initialize(m_nVerticalOrder+1, m_nVerticalOrder);
@@ -214,6 +100,83 @@ void GridCartesianGLL::Initialize() {
 			m_dInterpREdgeToNode[n],
 			m_dREtaLevels[n]);
 	}
+
+	// Distribute patches to processors
+	Grid::DistributePatches();
+
+	// Set up connectivity
+	Grid::InitializeConnectivity();
+
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void GridCartesianGLL::AddDefaultPatches() {
+
+	// Verify no Patches have been previously added
+	if (GetPatchCount() != 0) {
+		_EXCEPTIONT("AddDefaultPatches() must be called on an empty Grid");
+	}
+
+	// Determine number of usable processors
+	int nCommSize;
+	MPI_Comm_size(MPI_COMM_WORLD, &nCommSize);
+
+	int nProcsPerDirection = nCommSize;
+
+	int nDistributedPatches = nProcsPerDirection;
+
+	// Determine arrangement of elements on processors
+	if (GetABaseResolution() % nProcsPerDirection != 0) {
+		_EXCEPTIONT("\n(UNIMPLEMENTED) Currently elements must be "
+			"equally divided among processors.");
+	}
+
+	int nElementsPerDirection = GetABaseResolution() / nProcsPerDirection;
+	DataVector<int> iBoxBegin;
+	iBoxBegin.Initialize(nProcsPerDirection + 1);
+
+	iBoxBegin[0] = 0;
+	for (int n = 1; n < nProcsPerDirection; n++) {
+		iBoxBegin[n] = n * nElementsPerDirection;
+	}
+	iBoxBegin[nProcsPerDirection] = GetABaseResolution();
+
+	// Single panel 0 implementation (Cartesian Grid)
+	// Rectangular alpha-wise patches that span all of the beta direction
+	// (as many as there are processors available)
+	int n = 0;
+	for (int i = 0; i < nProcsPerDirection; i++) {
+
+		double dDeltaA = (m_dGDim[1] - m_dGDim[0])
+			/ static_cast<double>(GetABaseResolution());
+		double dDeltaB = (m_dGDim[3] - m_dGDim[2])
+			/ static_cast<double>(GetBBaseResolution());
+
+		GridSpacingGaussLobattoRepeated
+			glspacingAlpha(dDeltaA, m_dGDim[0], m_nHorizontalOrder);
+		GridSpacingGaussLobattoRepeated
+			glspacingBeta(dDeltaB, m_dGDim[2], m_nHorizontalOrder);
+
+		// Patch strips that span beta
+		PatchBox boxMaster(
+			n, 0, m_model.GetHaloElements(),
+			m_nHorizontalOrder * iBoxBegin[i],
+			m_nHorizontalOrder * iBoxBegin[i+1],
+			0,
+			m_nHorizontalOrder * GetBBaseResolution(),
+			glspacingAlpha,
+			glspacingBeta);
+
+		Grid::AddPatch(
+			new GridPatchCartesianGLL(
+				(*this),
+				i,
+				boxMaster,
+				m_nHorizontalOrder,
+				m_nVerticalOrder,
+				m_dGDim));
+	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -227,30 +190,210 @@ void GridCartesianGLL::InitializeVerticalCoordinate(
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void GridCartesianGLL::ConvertReferenceToABP(
+void GridCartesianGLL::GetReferenceGridBounds(
+	double & dX0,
+	double & dX1,
+	double & dY0,
+	double & dY1
+) {
+	dX0 = m_dGDim[0];
+	dX1 = m_dGDim[1];
+	dY0 = m_dGDim[2];
+	dY1 = m_dGDim[3];
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void GridCartesianGLL::GetReferenceGridBounds3D(
+	double & dX0,
+	double & dX1,
+	double & dY0,
+	double & dY1,
+	double & dZ0,
+	double & dZ1
+) {
+	dX0 = m_dGDim[0];
+	dX1 = m_dGDim[1];
+	dY0 = m_dGDim[2];
+	dY1 = m_dGDim[3];
+	// vertical dimension
+	dZ0 = m_dGDim[4];
+	dZ1 = m_dGDim[5];
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void GridCartesianGLL::ConvertReferenceToPatchCoord(
 	const DataVector<double> & dXReference,
 	const DataVector<double> & dYReference,
 	DataVector<double> & dAlpha,
 	DataVector<double> & dBeta,
-	DataVector<int> & iPanel
+	DataVector<int> & iPatch
 ) const {
-	if (dXReference.GetRows() != dYReference.GetRows()) {
-		_EXCEPTIONT("XReference and YReference must have same length.");
-	}
 
-	// Resize arrays
-	dAlpha.Initialize(dXReference.GetRows());
-	dBeta .Initialize(dXReference.GetRows());
-	iPanel.Initialize(dXReference.GetRows());
+	// No conversion needed for cartesian grid but left the dimension check
+	if ((dXReference.GetRows() != dYReference.GetRows()) ||
+		(dXReference.GetRows() != dAlpha.GetRows()) ||
+		(dXReference.GetRows() != dBeta.GetRows()) ||
+		(dXReference.GetRows() != iPatch.GetRows())
+	) {
+		_EXCEPTIONT("Dimension mismatch: All arrays must have same length");
+	}
 
 	// Loop over all coordinates
 	for (int i = 0; i < dXReference.GetRows(); i++) {
-		CubedSphereTrans::ABPFromRLL(
-			dXReference[i],
-			dYReference[i],
-			dAlpha[i],
-			dBeta[i],
-			iPanel[i]);
+
+		// Reference and computational coordinates are the same
+		dAlpha[i] = dXReference[i];
+		dBeta[i]  = dYReference[i];
+
+		// Loop over all patches
+		int n = 0;
+
+		for (; n < GetPatchCount(); n++) {
+			const GridPatch * pPatch = GetPatch(n);
+			const PatchBox & box = pPatch->GetPatchBox();
+
+			if ((dAlpha[i] >= box.GetAEdge(box.GetAInteriorBegin())) &&
+				(dAlpha[i] <= box.GetAEdge(box.GetAInteriorEnd())) &&
+				(dBeta[i] >= box.GetBEdge(box.GetBInteriorBegin())) &&
+				(dBeta[i] <= box.GetBEdge(box.GetBInteriorEnd()))
+			) {
+				iPatch[i] = pPatch->GetPatchIndex();
+				break;
+			}
+		}
+
+		if (n == GetPatchCount()) {
+			_EXCEPTION4("Unable to find associated patch for node:\n"
+				"(%1.5e, %1.5e) : (%1.5e, %1.5e)",
+				dXReference[i], dYReference[i],
+				dAlpha[i], dBeta[i]);
+		}
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void GridCartesianGLL::GetPatchFromCoordinateIndex(
+	int iRefinementLevel,
+	const DataVector<int> & vecIxA,
+	const DataVector<int> & vecIxB,
+	const DataVector<int> & vecPanel,
+	DataVector<int> & vecPatchIndex,
+	int nVectorLength
+) {
+	// Set vector length
+	if (nVectorLength == (-1)) {
+		nVectorLength = vecIxA.GetRows();
+	}
+
+	// Check arguments
+	if ((vecIxA.GetRows() < nVectorLength) ||
+		(vecIxB.GetRows() < nVectorLength) ||
+		(vecPanel.GetRows() < nVectorLength)
+	) {
+		_EXCEPTIONT("Argument vector length mismatch");
+	}
+	if (iRefinementLevel < 0) {
+		_EXCEPTIONT("Refinement level must be positive");
+	}
+
+	// Calculate local resolution
+	int nLocalResolution =
+		m_nHorizontalOrder * GetABaseResolution(iRefinementLevel);
+
+	// Loop through all entries
+	int iLastPatch = GridPatch::InvalidIndex;
+	for (int i = 0; i < nVectorLength; i++) {
+
+		int iA = vecIxA[i];
+		int iB = vecIxB[i];
+		int iP = vecPanel[i];
+
+		// Check the last patch searched
+		if (iLastPatch != GridPatch::InvalidIndex) {
+			const GridPatch * pPatch = GetPatch(iLastPatch);
+
+			const PatchBox & box = pPatch->GetPatchBox();
+
+			if (box.ContainsGlobalPoint(iP, iA, iB)) {
+				vecPatchIndex[i] = pPatch->GetPatchIndex();
+				continue;
+			}
+		}
+
+		// Check all other patches
+		int n;
+		for (n = 0; n < GetPatchCount(); n++) {
+			const GridPatch * pPatch = GetPatch(n);
+
+			const PatchBox & box = pPatch->GetPatchBox();
+
+			if (box.ContainsGlobalPoint(iP, iA, iB)) {
+				vecPatchIndex[i] = pPatch->GetPatchIndex();
+				iLastPatch = n;
+				break;
+			}
+		}
+
+		if (n == GetPatchCount()) {
+			vecPatchIndex[i] = GridPatch::InvalidIndex;
+		}
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void GridCartesianGLL::GetOpposingDirection(
+	int ixPanelSrc,
+	int ixPanelDest,
+	Direction dir,
+	Direction & dirOpposing,
+	bool & fSwitchParallel
+) const {
+	if ((ixPanelSrc < 0) || (ixPanelSrc > 5)) {
+		_EXCEPTIONT("Invalid value for ixPanelSrc: Out of range");
+	}
+	if ((ixPanelDest < 0) || (ixPanelDest > 5)) {
+		_EXCEPTIONT("Invalid value for ixPanelDest: Out of range");
+	}
+
+	// Get the opposing direction for Cartesian panels Source = Destination
+	if (ixPanelDest != ixPanelSrc) {
+		_EXCEPTIONT("ERROR: Soure and Destination panels must be equal!");
+	}
+
+	if (dir == Direction_Right) {
+		dirOpposing = Direction_Left;
+	} else if (dir == Direction_Top) {
+		dirOpposing = Direction_Bottom;
+	} else if (dir == Direction_Left) {
+		dirOpposing = Direction_Right;
+	} else if (dir == Direction_Bottom) {
+		dirOpposing = Direction_Top;
+	} else if (dir == Direction_TopRight) {
+		dirOpposing = Direction_BottomLeft;
+	} else if (dir == Direction_TopLeft) {
+		dirOpposing = Direction_BottomRight;
+	} else if (dir == Direction_BottomLeft) {
+		dirOpposing = Direction_TopRight;
+	} else if (dir == Direction_BottomRight) {
+		dirOpposing = Direction_TopLeft;
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void GridCartesianGLL::ApplyBoundaryConditions(
+	int iDataUpdate,
+	DataType eDataType
+) {
+	for (int n = 0; n < GetActivePatchCount(); n++) {
+		GridPatchCartesianGLL * pPatch =
+			dynamic_cast<GridPatchCartesianGLL*>(GetActivePatch(n));
+
+		pPatch->ApplyBoundaryConditions(iDataUpdate, eDataType);
 	}
 }
 
@@ -260,54 +403,29 @@ void GridCartesianGLL::ApplyDSS(
 	int iDataUpdate,
 	DataType eDataType
 ) {
+	// Apply boundary conditions
+	ApplyBoundaryConditions(iDataUpdate, eDataType);
+
 	// Exchange data between nodes
-	Exchange(eDataType, iDataUpdate);
+	//Exchange(eDataType, iDataUpdate);
 
 	// Post-process velocities across panel edges and
 	// perform direct stiffness summation (DSS)
 	for (int n = 0; n < GetActivePatchCount(); n++) {
+		//std::cout << "DSS patch loop count: " << n << "\n";
 		GridPatchCartesianGLL * pPatch =
 			dynamic_cast<GridPatchCartesianGLL*>(GetActivePatch(n));
 
 		const PatchBox & box = pPatch->GetPatchBox();
 
 		// Patch-specific quantities
-		int nAInteriorWidth = pPatch->GetPatchBox().GetAInteriorWidth();
-		int nBInteriorWidth = pPatch->GetPatchBox().GetBInteriorWidth();
-
-		int nAElements = nAInteriorWidth / m_nHorizontalOrder;
-		int nBElements = nBInteriorWidth / m_nHorizontalOrder;
-
-		if ((nAInteriorWidth % m_nHorizontalOrder) != 0) {
-			_EXCEPTIONT("Logic Error: Invalid PatchBox alpha spacing");
-		}
-		if ((nBInteriorWidth % m_nHorizontalOrder) != 0) {
-			_EXCEPTIONT("Logic Error: Invalid PatchBox beta spacing");
-		}
+		int nElementCountA = pPatch->GetElementCountA();
+		int nElementCountB = pPatch->GetElementCountB();
 
 		// Apply panel transforms to velocity data
 		if (eDataType == DataType_State) {
 			pPatch->TransformHaloVelocities(iDataUpdate);
 		}
-
-		// Panels in each coordinate direction
-		int ixRightPanel =
-			pPatch->GetNeighborPanel(Direction_Right);
-		int ixTopPanel =
-			pPatch->GetNeighborPanel(Direction_Top);
-		int ixLeftPanel =
-			pPatch->GetNeighborPanel(Direction_Left);
-		int ixBottomPanel =
-			pPatch->GetNeighborPanel(Direction_Bottom);
-
-		int ixTopRightPanel =
-			pPatch->GetNeighborPanel(Direction_TopRight);
-		int ixTopLeftPanel =
-			pPatch->GetNeighborPanel(Direction_TopLeft);
-		int ixBottomLeftPanel =
-			pPatch->GetNeighborPanel(Direction_BottomLeft);
-		int ixBottomRightPanel =
-			pPatch->GetNeighborPanel(Direction_BottomRight);
 
 		// Loop through all components associated with this DataType
 		int nComponents;
@@ -346,32 +464,19 @@ void GridCartesianGLL::ApplyDSS(
 				pDataUpdate = pPatch->GetDataDivergence();
 			}
 
+			//std::cout << "Entering DSS averaging loop!";
+			// Averaging DSS across patch boundaries
 			for (int k = 0; k < nRElements; k++) {
 
 				// Average in the alpha direction
-				for (int a = 0; a <= nAElements; a++) {
+				for (int a = 0; a <= nElementCountA; a++) {
 					int iA = a * m_nHorizontalOrder + box.GetHaloElements();
 
-					// Do not average across cubed-sphere corners
+					// Averaging done at the corners of the panel
 					int jBegin = box.GetBInteriorBegin()-1;
 					int jEnd = box.GetBInteriorEnd()+1;
 
-					if (((a == 0) &&
-							(ixTopLeftPanel == InvalidPanel)) ||
-						((a == nAElements) &&
-							(ixTopRightPanel == InvalidPanel))
-					) {
-						jEnd -= 2;
-					}
-					if (((a == 0) &&
-							(ixBottomLeftPanel == InvalidPanel)) ||
-						((a == nAElements) &&
-							(ixBottomRightPanel == InvalidPanel))
-					) {
-						jBegin += 2;
-					}
-
-					// Perform averaging across edge
+					// Perform averaging across edge of patch
 					for (int j = jBegin; j < jEnd; j++) {
 						pDataUpdate[k][iA][j] = 0.5 * (
 							+ pDataUpdate[k][iA  ][j]
@@ -382,27 +487,12 @@ void GridCartesianGLL::ApplyDSS(
 				}
 
 				// Average in the beta direction
-				for (int b = 0; b <= nBElements; b++) {
+				for (int b = 0; b <= nElementCountB; b++) {
 					int iB = b * m_nHorizontalOrder + box.GetHaloElements();
 
-					// Do not average across cubed-sphere corners
+					// Averaging done at the corners of the panel
 					int iBegin = box.GetAInteriorBegin()-1;
 					int iEnd = box.GetAInteriorEnd()+1;
-
-					if (((b == 0) &&
-							(ixBottomLeftPanel == InvalidPanel)) ||
-						((b == nAElements) &&
-							(ixTopLeftPanel == InvalidPanel))
-					) {
-						iBegin += 2;
-					}
-					if (((b == 0) &&
-							(ixBottomRightPanel == InvalidPanel)) ||
-						((b == nAElements) &&
-							(ixTopRightPanel == InvalidPanel))
-					) {
-						iEnd -= 2;
-					}
 
 					for (int i = iBegin; i < iEnd; i++) {
 						pDataUpdate[k][i][iB] = 0.5 * (
@@ -411,47 +501,6 @@ void GridCartesianGLL::ApplyDSS(
 
 						pDataUpdate[k][i][iB-1] = pDataUpdate[k][i][iB];
 					}
-				}
-
-				// Average at cubed-sphere corners (nodes of connectivity 3)
-				if (ixTopRightPanel == InvalidPanel) {
-					int iA = box.GetAInteriorEnd()-1;
-					int iB = box.GetBInteriorEnd()-1;
-
-					pDataUpdate[k][iA][iB] = (1.0/3.0) * (
-						+ pDataUpdate[k][iA  ][iB  ]
-						+ pDataUpdate[k][iA+1][iB  ]
-						+ pDataUpdate[k][iA  ][iB+1]);
-				}
-
-				if (ixTopLeftPanel == InvalidPanel) {
-					int iA = box.GetAInteriorBegin();
-					int iB = box.GetBInteriorEnd()-1;
-
-					pDataUpdate[k][iA][iB] = (1.0/3.0) * (
-						+ pDataUpdate[k][iA  ][iB  ]
-						+ pDataUpdate[k][iA-1][iB  ]
-						+ pDataUpdate[k][iA  ][iB+1]);
-				}
-
-				if (ixBottomLeftPanel == InvalidPanel) {
-					int iA = box.GetAInteriorBegin();
-					int iB = box.GetBInteriorBegin();
-
-					pDataUpdate[k][iA][iB] = (1.0/3.0) * (
-						+ pDataUpdate[k][iA  ][iB  ]
-						+ pDataUpdate[k][iA-1][iB  ]
-						+ pDataUpdate[k][iA  ][iB-1]);
-				}
-
-				if (ixBottomRightPanel == InvalidPanel) {
-					int iA = box.GetAInteriorEnd()-1;
-					int iB = box.GetBInteriorBegin();
-
-					pDataUpdate[k][iA][iB] = (1.0/3.0) * (
-						+ pDataUpdate[k][iA  ][iB  ]
-						+ pDataUpdate[k][iA+1][iB  ]
-						+ pDataUpdate[k][iA  ][iB-1]);
 				}
 			}
 		}

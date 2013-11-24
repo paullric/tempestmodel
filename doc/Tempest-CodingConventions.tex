@@ -1,0 +1,60 @@
+\documentclass{article}
+
+\usepackage{amsmath}
+\usepackage{graphicx}
+\usepackage{multicol}
+
+\oddsidemargin 0cm
+\evensidemargin 0cm
+
+\textwidth 16.5cm
+\topmargin -2.0cm
+\parindent 0cm
+\textheight 24cm
+\parskip 0.5cm
+
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+%\fancyhead[L]{AOSS Reference Sheet}
+%\fancyhead[CH]{test}
+\fancyfoot[C]{Page \thepage}
+                                 
+\newcommand{\vb}{\mathbf}
+\newcommand{\vg}{\boldsymbol}
+\newcommand{\mat}{\mathsf}
+\newcommand{\diff}[2]{\frac{d #1}{d #2}}
+\newcommand{\diffsq}[2]{\frac{d^2 #1}{{d #2}^2}}
+\newcommand{\pdiff}[2]{\frac{\partial #1}{\partial #2}}
+\newcommand{\pdiffsq}[2]{\frac{\partial^2 #1}{{\partial #2}^2}}
+\newcommand{\topic}{\textbf}
+\newcommand{\arccot}{\mathrm{arccot}}
+\newcommand{\arcsinh}{\mathrm{arcsinh}}
+\newcommand{\arccosh}{\mathrm{arccosh}}
+\newcommand{\arctanh}{\mathrm{arctanh}}
+
+\title{\Huge \textbf{Tempest Framework: Coding Conventions}}
+\author{\Large Paul Ullrich}
+\date{November 22nd, 2013}
+
+\begin{document}
+
+\section{Tempest Framework: Coding Conventions}
+
+\begin{itemize}
+\item Variable names should following Hungarian notation conventions.
+
+\item Indentation shall be strictly performed with tabs.
+
+\item All \texttt{if} blocks must be accompanied by braces.
+
+\item One command per line except in rare circumstances (such as an assignment of a pair of variables).  The author should be careful when including more than one command per line to ensure that readability of the code is not lost.
+
+\item Pointers and references shall be identified with whitespace as follows:
+\begin{verbatim}
+double * pTest = &test;
+double & dTest = test;
+\end{verbatim}
+\end{itemize}
+
+\end{document}

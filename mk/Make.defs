@@ -3,15 +3,15 @@
 ## SYSTEM PATH DEFINITIONS
 
 # PetSc include directory
-PETSC_INCLUDEDIR= /usr/local/include
-PETSC_LIBDIR= /usr/local/lib
+PETSC_INCLUDEDIR= /opt/local/petsc/include
+PETSC_LIBDIR= /opt/local/petsc/lib
 
 # NETCDF directories
-NETCDF_INCLUDEDIR=/usr/local/include
-NETCDF_LIBDIR=/usr/local/lib
+NETCDF_INCLUDEDIR= /opt/local/include
+NETCDF_LIBDIR= /opt/local/lib
 
 # X11 lib directory
-X11_LIBDIR=/usr/X11/lib
+X11_LIBDIR= /opt/X11/lib
 
 ################################################################################
 ## SYSTEM SPECIFIC COMPILATION FLAGS

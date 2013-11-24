@@ -47,6 +47,7 @@ GridCSGLL::GridCSGLL(
 	GridGLL::GridGLL(
 		model,
 		nBaseResolution,
+		nBaseResolution,
 		nRefinementRatio,
 		nHorizontalOrder,
 		nVerticalOrder,
@@ -470,11 +471,11 @@ void GridCSGLL::ApplyDSS(
 			dynamic_cast<GridPatchCSGLL*>(GetActivePatch(n));
 
 		const PatchBox & box = pPatch->GetPatchBox();
-
-		// Patch-specific quantities
+        
+        // Patch-specific quantities
 		int nElementCountA = pPatch->GetElementCountA();
 		int nElementCountB = pPatch->GetElementCountB();
-
+        
 		// Apply panel transforms to velocity data
 		if (eDataType == DataType_State) {
 			pPatch->TransformHaloVelocities(iDataUpdate);

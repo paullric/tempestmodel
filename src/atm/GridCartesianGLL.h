@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 ///
 ///	\file    GridCartesianGLL.h
-///	\author  Paul Ullrich
+///	\author  Paul Ullrich, Jorge Guerra
 ///	\version September 19, 2013
 ///
 ///	<remarks>
@@ -33,17 +33,47 @@ public:
 	///	</summary>
 	GridCartesianGLL(
 		const Model & model,
-		int nBaseResolution,
+		int nBaseResolutionA,
+		int nBaseResolutionB,
 		int nRefinementRatio,
 		int nHorizontalOrder,
 		int nVerticalOrder,
-		int nRElements
+		int nRElements,
+		double nGDim[]
 	);
 
 	///	<summary>
 	///		Initialize grid patches.
 	///	</summary>
 	virtual void Initialize();
+	
+public:
+	///	<summary
+	///		Get the bounds on the reference grid.
+	///	</summary>
+	virtual void GetReferenceGridBounds(
+		double & dX0,
+		double & dX1,
+		double & dY0,
+		double & dY1
+	);
+	
+	///	<summary>
+	///		Get the bounds on the reference grid 3D.
+	///	</summary>
+	virtual void GetReferenceGridBounds3D(
+		double & dX0,
+		double & dX1,
+		double & dY0,
+		double & dY1,
+		double & dZ0,
+		double & dZ1
+	);
+	
+	///	<summary>
+	///		Add the default set of patches.
+	///	</summary>
+	virtual void AddDefaultPatches();
 
 	///	<summary>
 	///		Initialize the vertical coordinate.
@@ -52,20 +82,51 @@ public:
 		const GridSpacing & aGridSpacing
 	);
 
-public:
 	///	<summary>
 	///		Convert an array of coordinate variables to coordinates on the
 	///		reference grid (RLL on the sphere)
 	///	</summary>
-	virtual void ConvertReferenceToABP(
+	virtual void ConvertReferenceToPatchCoord(
 		const DataVector<double> & dXReference,
 		const DataVector<double> & dYReference,
 		DataVector<double> & dAlpha,
 		DataVector<double> & dBeta,
 		DataVector<int> & iPanel
 	) const;
+	
+	///	<summary>
+	///		Get the patch and coordinate index for the specified node.
+	///	</summary>
+	virtual void GetPatchFromCoordinateIndex(
+		int iRefinementLevel,
+		const DataVector<int> & vecIxA,
+		const DataVector<int> & vecIxB,
+		const DataVector<int> & vecPanel,
+		DataVector<int> & vecPatchIndex,
+		int nVectorLength = (-1)
+	);
+	
+	///	<summary>
+	///		Get the relation between coordinate vectors across panel
+	///		boundaries.
+	///	</summary>
+	virtual void GetOpposingDirection(
+		int ixPanelSrc,
+		int ixPanelDest,
+		Direction dir,
+		Direction & dirOpposing,
+		bool & fSwitchParallel
+	) const;
 
 public:
+	///	<summary>
+	///		Apply the boundary conditions.
+	///	</summary>
+	void ApplyBoundaryConditions(
+		int iDataUpdate,
+		DataType eDataType
+	);
+
 	///	<summary>
 	///		Apply the direct stiffness summation (DSS) operation on the grid.
 	///	</summary>
@@ -73,6 +134,13 @@ public:
 		int iDataUpdate,
 		DataType eDataType = DataType_State
 	);
+	
+private:
+	///	<summary>
+	///		Dimension of the grid - private to cartesian grids.
+	///	</summary>
+	double m_dGDim[];
+
 };
 
 ///////////////////////////////////////////////////////////////////////////////

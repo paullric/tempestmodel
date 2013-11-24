@@ -24,7 +24,7 @@
 #include "GridGLL.h"
 #include "GridPatchGLL.h"
 
-//#define DIFFERENTIAL_FORM
+#define DIFFERENTIAL_FORM
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -535,6 +535,8 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 	const int WIx = 3;
 	const int RIx = 4;
 
+	//std::cout << "Inside the horizontal step! \n";
+
 	// Perform local update
 	for (int n = 0; n < pGrid->GetActivePatchCount(); n++) {
 		GridPatchGLL * pPatch =
@@ -777,7 +779,7 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 						+ dContraMetricB[k][iA][iB][1] * dUa
 						- dContraMetricB[k][iA][iB][0] * dUb);
 
-				// Apply update to horizontal velocity on model levels
+ 				// Apply update to horizontal velocity on model levels
 				dataUpdateNode[UIx][k][iA][iB] += dDeltaT * dLocalUpdateUa;
 				dataUpdateNode[VIx][k][iA][iB] += dDeltaT * dLocalUpdateUb;
 
@@ -956,7 +958,6 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 		}
 		}
 		}
-
 	}
 }
 

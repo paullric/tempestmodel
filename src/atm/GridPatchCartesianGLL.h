@@ -1,8 +1,8 @@
 ///////////////////////////////////////////////////////////////////////////////
 ///
-///	\file    GridPatchCSGLL.h
-///	\author  Paul Ullrich
-///	\version February 25, 2013
+///	\file    GridPatchCartesianGLL.h
+///	\author  Paul Ullrich, Jorge Guerra
+///	\version September 26, 2013
 ///
 ///	<remarks>
 ///		Copyright 2000-2010 Paul Ullrich
@@ -43,7 +43,8 @@ public:
 		int ixPatch,
 		const PatchBox & box,
 		int nHorizontalOrder,
-		int nVerticalOrder = 1
+		int nVerticalOrder,
+		double dGDim[]
 	);
 
 public:
@@ -54,11 +55,17 @@ public:
 
 private:
 	///	<summary>
+	///		Initialize topographical data from a TestCase.
+	///	</summary>
+	void EvaluateTopography(
+		const TestCase & test
+	);
+
+	///	<summary>
 	///		Initialize geometric source term coefficients and topographical
 	///		data from a TestCase.
 	///	</summary>
-	void EvaluateGeometricTerms(
-		const TestCase & test
+	virtual void EvaluateGeometricTerms(
 	);
 
 public:
@@ -69,6 +76,15 @@ public:
 		const TestCase & test,
 		const Time & time,
 		int iDataInstance = 0
+	);
+
+public:
+	///	<summary>
+	///		Apply boundary conditions to this patch.
+	///	</summary>
+	void ApplyBoundaryConditions(
+		int iDataUpdate,
+		DataType eDataType
 	);
 
 public:
@@ -128,6 +144,12 @@ public:
 		bool fIncludeReferenceState = true,
 		bool fConvertToPrimitive = true
 	);
+
+private:
+	///	<summary>
+	///		Dimension of the grid - private to cartesian grids.
+	///	</summary>
+	double m_dGDim[];
 
 };
 

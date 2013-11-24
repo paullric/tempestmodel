@@ -57,6 +57,12 @@ public:
 	{ }
 
 	///	<summary>
+	///		Virtual destructor.
+	///	</summary>
+	virtual ~CommandLineParameter() {
+	}
+
+	///	<summary>
 	///		Identify the type of parameter.
 	///	</summary>
 	virtual ParameterType GetParameterType() {
