@@ -147,7 +147,6 @@ void Grid::EvaluateTestCase(
 ) {
 	// Store the model cap
 	m_dZtop = test.GetZtop();
-    //std::cout << "\n" << m_dZtop << "\n";
 
 	// Store the reference state flag
 	m_fHasReferenceState = test.HasReferenceState();

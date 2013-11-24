@@ -59,18 +59,6 @@ public:
 	);
 	
 	///	<summary>
-	///		Get the bounds on the reference grid 3D.
-	///	</summary>
-	virtual void GetReferenceGridBounds3D(
-		double & dX0,
-		double & dX1,
-		double & dY0,
-		double & dY1,
-		double & dZ0,
-		double & dZ1
-	);
-	
-	///	<summary>
 	///		Add the default set of patches.
 	///	</summary>
 	virtual void AddDefaultPatches();

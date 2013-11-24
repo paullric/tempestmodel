@@ -192,7 +192,7 @@ public:
 
 public:
     ///	<summary>
-	///		Get the bounds on the reference grid 2D.
+	///		Get the bounds on the reference grid.
 	///	</summary>
 	virtual void GetReferenceGridBounds(
         double & dX0,
@@ -200,20 +200,6 @@ public:
         double & dY0,
         double & dY1
     ) {
-		_EXCEPTIONT("Not implemented");
-	}
-    
-	///	<summary>
-	///		Get the bounds on the reference grid 3D.
-	///	</summary>
-	virtual void GetReferenceGridBounds3D(
-		double & dX0,
-		double & dX1,
-		double & dY0,
-		double & dY1,
-        double & dZ0,
-        double & dZ1
-	) {
 		_EXCEPTIONT("Not implemented");
 	}
 

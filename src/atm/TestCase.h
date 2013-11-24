@@ -50,7 +50,7 @@ public:
 	///		Get the altitude of the model cap.
 	///	</summary>
 	virtual double GetZtop() const {
-		return 10000.0;
+		return 1.0;
 	}
 
 	///	<summary>

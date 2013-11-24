@@ -204,25 +204,6 @@ void GridCartesianGLL::GetReferenceGridBounds(
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void GridCartesianGLL::GetReferenceGridBounds3D(
-	double & dX0,
-	double & dX1,
-	double & dY0,
-	double & dY1,
-	double & dZ0,
-	double & dZ1
-) {
-	dX0 = m_dGDim[0];
-	dX1 = m_dGDim[1];
-	dY0 = m_dGDim[2];
-	dY1 = m_dGDim[3];
-	// vertical dimension
-	dZ0 = m_dGDim[4];
-	dZ1 = m_dGDim[5];
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
 void GridCartesianGLL::ConvertReferenceToPatchCoord(
 	const DataVector<double> & dXReference,
 	const DataVector<double> & dYReference,
