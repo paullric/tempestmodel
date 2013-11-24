@@ -28,7 +28,7 @@ ifeq ($(system),Darwin)
   # Check for BLAS
   ifdef USEBLAS
     CFLAGS+= -DUSEVECLIB
-  	LDFLAGS+= -framework vecLib
+  	LDFLAGS+= -framework accelerate
   endif
 endif
 

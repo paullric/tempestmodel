@@ -29,7 +29,6 @@
 
 class Grid;
 class TestCase;
-class InputManager;
 class OutputManager;
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -129,12 +128,6 @@ public:
 	///		Set the vertical dynamics.
 	///	</summary>
 	void SetVerticalDynamics(VerticalDynamics * pVerticalDynamics);
-
-	///	<summary>
-	///		Get the initial conditions from a file
-	void InputGrid(
-		const InputManager & inman
-	);
 
 	///	<summary>
 	///		Set the test case.

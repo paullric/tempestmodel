@@ -13,3 +13,5 @@ test/BarotropicInstabilityTest
 test/SWTest2
 
 test/ShallowWaterEddyTest
+
+test/InertialGravityCartesianXZTest

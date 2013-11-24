@@ -18,7 +18,6 @@
 
 #include "Grid.h"
 #include "TestCase.h"
-#include "InputManager.h"
 #include "OutputManager.h"
 
 #include "Announce.h"
@@ -113,20 +112,6 @@ void Model::SetVerticalDynamics(VerticalDynamics * pVerticalDynamics) {
 	}
 
 	m_pVerticalDynamics = pVerticalDynamics;
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
-void Model::InputGrid(
-	const InputManager & inman
-) {
-	if (m_pGrid == NULL) {
-		_EXCEPTIONT(
-			"A grid must be specified before attaching a TestCase.");
-	}
-
-	// Load in the Grid data from the InputManager
-	inman.Input(*m_pGrid);
 }
 
 ///////////////////////////////////////////////////////////////////////////////

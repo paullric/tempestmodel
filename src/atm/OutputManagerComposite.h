@@ -17,7 +17,6 @@
 #ifndef _OUTPUTMANAGERCOMPOSITE_H_
 #define _OUTPUTMANAGERCOMPOSITE_H_
 
-#include "InputManager.h"
 #include "OutputManager.h"
 
 class Time;
