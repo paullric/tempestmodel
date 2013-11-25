@@ -55,6 +55,15 @@ HorizontalDynamicsFEM::HorizontalDynamicsFEM(
 		m_nHorizontalOrder,
 		m_nHorizontalOrder);
 
+	// Initialize buffers for derivatives of Jacobian
+	m_dJGradientA.Initialize(
+		m_nHorizontalOrder,
+		m_nHorizontalOrder);
+
+	m_dJGradientB.Initialize(
+		m_nHorizontalOrder,
+		m_nHorizontalOrder);
+
 	// Get quadrature points for Gauss-Lobatto quadrature
 	DataVector<double> dG;
 	DataVector<double> dW;
@@ -1070,12 +1079,6 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusion(
 	// Physical constants
 	const PhysicalConstants & phys = m_model.GetPhysicalConstants();
 
-	// Components of the gradient at each point
-	DataMatrix<double> dJGradientA;
-	dJGradientA.Initialize(m_nHorizontalOrder, m_nHorizontalOrder);
-	DataMatrix<double> dJGradientB;
-	dJGradientB.Initialize(m_nHorizontalOrder, m_nHorizontalOrder);
-
 	// Perform local update
 	for (int n = 0; n < pGrid->GetActivePatchCount(); n++) {
 		GridPatchGLL * pPatch =
@@ -1180,11 +1183,11 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusion(
 #pragma message "There should probably be a better method than using DomainHeight"
 					double dDomainHeight = dZtop - dTopography[iA][iB];
 
-					dJGradientA[i][j] = dJacobian[iA][iB] * dDomainHeight * (
+					m_dJGradientA[i][j] = dJacobian[iA][iB] * dDomainHeight * (
 						+ dContraMetricA[iA][iB][0] * dDaPsi
 						+ dContraMetricA[iA][iB][1] * dDbPsi);
 
-					dJGradientB[i][j] = dJacobian[iA][iB] * dDomainHeight * (
+					m_dJGradientB[i][j] = dJacobian[iA][iB] * dDomainHeight * (
 						+ dContraMetricB[iA][iB][0] * dDaPsi
 						+ dContraMetricB[iA][iB][1] * dDbPsi);
 				}
@@ -1202,11 +1205,11 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusion(
 
 					for (int s = 0; s < m_nHorizontalOrder; s++) {
 						dUpdateA +=
-							dJGradientA[s][j]
+							m_dJGradientA[s][j]
 							* dStiffness1D[i][s];
 
 						dUpdateB +=
-							dJGradientB[i][s]
+							m_dJGradientB[i][s]
 							* dStiffness1D[j][s];
 					}
 

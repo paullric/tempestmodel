@@ -212,6 +212,16 @@ private:
 	DataMatrix3D<double> m_dGradient;
 
 	///	<summary>
+	///		Nodal pointwise gradient of Jacobian in alpha direction (buffer).
+	///	</summary>
+	DataMatrix<double> m_dJGradientA;
+
+	///	<summary>
+	///		Nodal pointwise gradient of Jacobian in beta direction (buffer).
+	///	</summary>
+	DataMatrix<double> m_dJGradientB;
+
+	///	<summary>
 	///		Scalar hyperviscosity coefficient (at 1 degree resolution).
 	///	</summary>
 	double m_dNuScalar;
