@@ -1086,7 +1086,7 @@ void VerticalDynamicsFEM::StepImplicit(
 			// Use Jacobian-Free Newton-Krylov to solve
 			m_dSoln = m_dColumnState;
 
-			BuildJacobian();
+			//BuildJacobian();
 
 			double dError =
 				PerformJFNK_NewtonStep_Safe(

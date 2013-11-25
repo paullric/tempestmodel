@@ -44,7 +44,9 @@ Grid::Grid(
 	m_nRefinementRatio(nRefinementRatio),
 	m_dReferenceLength(1.0),
 	m_nRElements(nRElements),
-	m_dZtop(1.0)
+	m_dZtop(1.0),
+	m_nDegreesOfFreedomPerColumn(0),
+	m_fHasReferenceState(false)
 {
 }
 
@@ -61,8 +63,11 @@ Grid::~Grid() {
 void Grid::InitializeVerticalCoordinate(
 	const GridSpacing & gridspacing
 ) {
+	// Number of components in the EquationSet
+	int nComponents = m_model.GetEquationSet().GetComponents();
+
 	// Initialize location and index for each variable
-	m_vecVarLocation.resize(m_model.GetEquationSet().GetComponents());
+	m_vecVarLocation.resize(nComponents);
 
 	// If dimensionality is 2, then initialize a dummy REta
 	if (m_model.GetEquationSet().GetDimensionality() == 2) {
@@ -81,6 +86,9 @@ void Grid::InitializeVerticalCoordinate(
 		m_vecVarLocation[0] = DataLocation_Node;
 		m_vecVarLocation[1] = DataLocation_Node;
 		m_vecVarLocation[2] = DataLocation_Node;
+
+		// Initialize number of degres of freedom per column
+		m_nDegreesOfFreedomPerColumn = nComponents;
 
 	// If dimensionality is 3 then initialize normally
 	} else if (m_model.GetEquationSet().GetDimensionality() == 3) {
@@ -111,6 +119,18 @@ void Grid::InitializeVerticalCoordinate(
 		m_vecVarLocation[2] = DataLocation_REdge;
 		m_vecVarLocation[3] = DataLocation_REdge;
 		m_vecVarLocation[4] = DataLocation_Node;
+
+		// Initialize number of degres of freedom per column
+		m_nDegreesOfFreedomPerColumn = 0;
+		for (int c = 0; c < nComponents; c++) {
+			if (m_vecVarLocation[c] == DataLocation_Node) {
+				m_nDegreesOfFreedomPerColumn += m_nRElements;
+			} else if (m_vecVarLocation[c] == DataLocation_REdge) {
+				m_nDegreesOfFreedomPerColumn += m_nRElements + 1;
+			} else {
+				_EXCEPTIONT("(UNIMPLEMENTED) Horizontal staggering");
+			}
+		}
 
 	} else {
 		_EXCEPTIONT("Invalid dimensionality");
@@ -259,26 +279,6 @@ void Grid::Exchange(
 
 ///////////////////////////////////////////////////////////////////////////////
 
-int Grid::GetLargestGridPatchNodes() const {
-
-	// Most nodes per patch
-	int nMaxNodes = 0;
-
-	// Loop over all patches
-	for (int n = 0; n < m_vecGridPatches.size(); n++) {
-		int nPatchNodes =
-			m_vecGridPatches[n]->GetPatchBox().GetTotalNodes();
-
-		if (nPatchNodes > nMaxNodes) {
-			nMaxNodes = nPatchNodes;
-		}
-	}
-
-	return nMaxNodes;
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
 int Grid::GetLongestActivePatchPerimeter() const {
 
 	// Longest perimeter
@@ -299,14 +299,71 @@ int Grid::GetLongestActivePatchPerimeter() const {
 
 ///////////////////////////////////////////////////////////////////////////////
 
-int Grid::GetTotalNodeCount() const {
+int Grid::GetMaxNodeCount2D() const {
+
+	// Total number of nodes over all patches of grid
+	int nMaxNodes2D = 0;
+
+	// Loop over all patches and obtain total node count
+	for (int n = 0; n < m_vecGridPatches.size(); n++) {
+		int nPatchNodes2D = m_vecGridPatches[n]->GetTotalNodeCount2D();
+
+		if (nPatchNodes2D > nMaxNodes2D) {
+			nMaxNodes2D = nPatchNodes2D;
+		}
+	}
+
+	return nMaxNodes2D;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+int Grid::GetTotalNodeCount2D() const {
+
+	// Total number of nodes over all patches of grid
+	int nTotalNodes2D = 0;
+
+	// Loop over all patches and obtain total node count
+	for (int n = 0; n < m_vecGridPatches.size(); n++) {
+		nTotalNodes2D += m_vecGridPatches[n]->GetTotalNodeCount2D();
+	}
+
+	return nTotalNodes2D;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+int Grid::GetMaxNodeCount(
+	DataLocation loc
+) const {
+
+	// Total number of nodes over all patches of grid
+	int nMaxNodes = 0;
+
+	// Loop over all patches and obtain total node count
+	for (int n = 0; n < m_vecGridPatches.size(); n++) {
+		int nPatchNodes = m_vecGridPatches[n]->GetTotalNodeCount(loc);
+
+		if (nPatchNodes > nMaxNodes) {
+			nMaxNodes = nPatchNodes;
+		}
+	}
+
+	return nMaxNodes;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+int Grid::GetTotalNodeCount(
+	DataLocation loc
+) const {
 
 	// Total number of nodes over all patches of grid
 	int nTotalNodes = 0;
 
 	// Loop over all patches and obtain total node count
 	for (int n = 0; n < m_vecGridPatches.size(); n++) {
-		nTotalNodes += m_vecGridPatches[n]->GetTotalNodeCount();
+		nTotalNodes += m_vecGridPatches[n]->GetTotalNodeCount(loc);
 	}
 
 	return nTotalNodes;
@@ -314,7 +371,7 @@ int Grid::GetTotalNodeCount() const {
 
 ///////////////////////////////////////////////////////////////////////////////
 
-int Grid::GetMaximumDegreesOfFreedom() const {
+int Grid::GetMaxDegreesOfFreedom() const {
 
 	// Most nodes per patch
 	int nMaxDOFs = 0;
@@ -322,14 +379,12 @@ int Grid::GetMaximumDegreesOfFreedom() const {
 	// Loop over all patches and obtain max DOFs from state and tracer data
 	for (int n = 0; n < m_vecGridPatches.size(); n++) {
 		int nStateDOFs =
-			m_model.GetEquationSet().GetComponents()
-			* m_nRElements
-			* m_vecGridPatches[n]->GetPatchBox().GetTotalNodes();
+			m_vecGridPatches[n]->GetTotalDegreesOfFreedom(
+				DataType_State, DataLocation_REdge);
 
 		int nTracersDOFs =
-			m_model.GetEquationSet().GetTracers()
-			* m_nRElements
-			* m_vecGridPatches[n]->GetPatchBox().GetTotalNodes();
+			m_vecGridPatches[n]->GetTotalDegreesOfFreedom(
+				DataType_Tracers, DataLocation_REdge);
 
 		if (nTracersDOFs > nMaxDOFs) {
 			nMaxDOFs = nTracersDOFs;
@@ -349,7 +404,8 @@ void Grid::ConsolidateDataAtRoot(
 	DataVector<double> & dataRecvBuffer,
 	int & nRecvCount,
 	int & ixRecvPatch,
-	DataType & eRecvDataType
+	DataType & eRecvDataType,
+	DataLocation & eRecvDataLocation
 ) const {
 
 	// Get process id
@@ -380,53 +436,29 @@ void Grid::ConsolidateDataAtRoot(
 
 	// Process tag for DataType and global patch index
 	ConsolidationStatus::ParseTag(
-		mpistatus.MPI_TAG, ixRecvPatch, eRecvDataType);
+		mpistatus.MPI_TAG,
+		ixRecvPatch,
+		eRecvDataType,
+		eRecvDataLocation);
 
 	if ((ixRecvPatch < 0) || (ixRecvPatch >= m_vecGridPatches.size())) {
 		_EXCEPTIONT("Panel tag index out of range");
 	}
 
-	status.SetReceiveStatus(ixRecvPatch, eRecvDataType);
+	status.SetReceiveStatus(ixRecvPatch, eRecvDataType, eRecvDataLocation);
 
 	// Verify consistency of patch information
 	GridPatch * pPatch = m_vecGridPatches[ixRecvPatch];
 
 	MPI_Get_count(&mpistatus, MPI_DOUBLE, &nRecvCount);
 
-	if (eRecvDataType == DataType_State) {
-		int nExpectedRecvCount =
-			m_model.GetEquationSet().GetComponents()
-			* m_nRElements
-			* pPatch->GetPatchBox().GetTotalNodes();
+	int nExpectedRecvCount =
+		pPatch->GetTotalDegreesOfFreedom(eRecvDataType, eRecvDataLocation);
 
-		if (nExpectedRecvCount != nRecvCount) {
-			_EXCEPTIONT("State dimension mismatch");
-		}
-
-	} else if (eRecvDataType == DataType_Tracers) {
-		int nExpectedRecvCount =
-			m_model.GetEquationSet().GetTracers()
-			* m_nRElements
-			* pPatch->GetPatchBox().GetTotalNodes();
-
-		if (nExpectedRecvCount != nRecvCount) {
-			_EXCEPTIONT("Tracers dimension mismatch");
-		}
-
-	} else if (eRecvDataType == DataType_Jacobian) {
-		int nExpectedRecvCount =
-			m_nRElements
-			* pPatch->GetPatchBox().GetTotalNodes();
-
-		int nDiff =
-			GetCumulativePatch3DNodeIndex(ixRecvPatch+1)
-			- GetCumulativePatch3DNodeIndex(ixRecvPatch);
-
-		if (nExpectedRecvCount != nRecvCount) {
-			_EXCEPTIONT("Jacobian dimension mismatch");
-		}
+	if (nExpectedRecvCount != nRecvCount) {
+		_EXCEPTION2("State dimension mismatch (%i %i)",
+			nExpectedRecvCount, nRecvCount);
 	}
-#pragma message "Perform check for other data types"
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -451,8 +483,13 @@ void Grid::ConsolidateDataToRoot(
 		const GridPatch * pPatch = m_vecActiveGridPatches[n];
 
 		// Data
-		const GridData4D & dataState    = pPatch->GetDataState(0);
-		const GridData4D & dataTracers  = pPatch->GetDataTracers(0);
+		const GridData4D & dataStateNode =
+			pPatch->GetDataState(0, DataLocation_Node);
+		const GridData4D & dataStateREdge =
+			pPatch->GetDataState(0, DataLocation_REdge);
+
+		const GridData4D & dataTracers =
+			pPatch->GetDataTracers(0);
 
 		const DataMatrix3D<double> & dataJacobian   = pPatch->GetJacobian();
 		const DataMatrix<double>   & dataTopography = pPatch->GetTopography();
@@ -460,15 +497,32 @@ void Grid::ConsolidateDataToRoot(
 		const DataMatrix<double>   & dataLatitude   = pPatch->GetLatitude();
 		const DataMatrix3D<double> & dataZLevels    = pPatch->GetZLevels();
 
-		// Send state data to root process
-		if (status.Contains(DataType_State)) {
+		// Send state data on nodes to root process
+		if (status.Contains(DataType_State, DataLocation_Node)) {
 			MPI_Isend(
-				(void*)(dataState[0][0][0]),
-				dataState.GetTotalElements(),
+				(void*)(dataStateNode[0][0][0]),
+				dataStateNode.GetTotalElements(),
 				MPI_DOUBLE,
 				0,
 				ConsolidationStatus::GenerateTag(
-					pPatch->GetPatchIndex(), DataType_State),
+					pPatch->GetPatchIndex(),
+					DataType_State,
+					DataLocation_Node),
+				MPI_COMM_WORLD,
+				status.GetNextSendRequest());
+		}
+
+		// Send state data on radial edges to root process
+		if (status.Contains(DataType_State, DataLocation_REdge)) {
+			MPI_Isend(
+				(void*)(dataStateREdge[0][0][0]),
+				dataStateREdge.GetTotalElements(),
+				MPI_DOUBLE,
+				0,
+				ConsolidationStatus::GenerateTag(
+					pPatch->GetPatchIndex(),
+					DataType_State,
+					DataLocation_REdge),
 				MPI_COMM_WORLD,
 				status.GetNextSendRequest());
 		}
@@ -720,7 +774,7 @@ GridPatch * Grid::AddPatch(
 
 	m_vecCumulativePatch2DNodeIndex.push_back(
 		m_vecCumulativePatch2DNodeIndex[ixNextPatch]
-		+ pPatch->GetTotalNodeCount());
+		+ pPatch->GetTotalNodeCount2D());
 
 	return pPatch;
 }
@@ -821,13 +875,13 @@ void Grid::ToFile(
 		varBEdgeCoord->set_cur(iBEdgeIndex);
 
 		varANodeCoord->put(box.GetANodes(), box.GetANodes().GetRows());
-		varBNodeCoord->put(box.GetBNodes(), box.GetBNodes().GetRows());
 		varAEdgeCoord->put(box.GetAEdges(), box.GetAEdges().GetRows());
+		varBNodeCoord->put(box.GetBNodes(), box.GetBNodes().GetRows());
 		varBEdgeCoord->put(box.GetBEdges(), box.GetBEdges().GetRows());
 
 		iANodeIndex += box.GetANodes().GetRows();
-		iBNodeIndex += box.GetBNodes().GetRows();
 		iAEdgeIndex += box.GetAEdges().GetRows();
+		iBNodeIndex += box.GetBNodes().GetRows();
 		iBEdgeIndex += box.GetBEdges().GetRows();
 	}
 }

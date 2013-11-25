@@ -39,35 +39,71 @@ GridPatch::GridPatch(
 
 ///////////////////////////////////////////////////////////////////////////////
 
-int GridPatch::GetTotal2DNodeCount() const {
-	return (m_box.GetATotalWidth()
-		* m_box.GetBTotalWidth());
+int GridPatch::GetTotalNodeCount2D() const {
+	return (m_box.GetATotalWidth() * m_box.GetBTotalWidth());
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 
-int GridPatch::GetTotalNodeCount() const {
-	return (m_grid.GetRElements()
-		* m_box.GetATotalWidth()
-		* m_box.GetBTotalWidth());
+int GridPatch::GetTotalNodeCount(
+	DataLocation loc
+) const {
+	if (loc == DataLocation_Node) {
+		return (m_box.GetTotalNodes() * m_grid.GetRElements());
+
+	} else if (loc == DataLocation_REdge) {
+		return (m_box.GetTotalNodes() * (m_grid.GetRElements()+1));
+
+	} else {
+		_EXCEPTIONT("Invalid DataLocation");
+	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 
-int GridPatch::GetTracersCount() const {
-	return (m_grid.GetRElements()
-		* m_box.GetATotalWidth()
-		* m_box.GetBTotalWidth()
-		* m_grid.GetModel().GetEquationSet().GetTracers());
-}
+int GridPatch::GetTotalDegreesOfFreedom(
+	DataType eDataType,
+	DataLocation eDataLocation
+) const {
+	
+	// Take into account staggering of State data
+	if (eDataType == DataType_State) {
+		int nComponents = m_grid.GetModel().GetEquationSet().GetComponents();
 
-///////////////////////////////////////////////////////////////////////////////
+		if (eDataLocation == DataLocation_None) {
+			return (GetTotalNodeCount2D()
+				* m_grid.GetDegreesOfFreedomPerColumn());
 
-int GridPatch::GetStateCount() const {
-	return (m_grid.GetRElements()
-		* m_box.GetATotalWidth()
-		* m_box.GetBTotalWidth()
-		* m_grid.GetModel().GetEquationSet().GetComponents());
+		} else if (eDataLocation == DataLocation_Node) {
+			return (GetTotalNodeCount2D()
+				* m_grid.GetRElements()
+				* nComponents);
+
+		} else if (eDataLocation == DataLocation_REdge) {
+			return (GetTotalNodeCount2D()
+				* (m_grid.GetRElements()+1)
+				* nComponents);
+
+		} else {
+			_EXCEPTIONT("Invalid DataLocation");
+		}
+
+	// All tracers on model levels
+	} else if (eDataType == DataType_Tracers) {
+		int nTracers = m_grid.GetModel().GetEquationSet().GetTracers();
+
+		return (GetTotalNodeCount2D()
+			* m_grid.GetRElements()
+			* nTracers);
+
+	// Topography only at surface
+	} else if (eDataType == DataType_Topography) {
+		return GetTotalNodeCount2D();
+
+	// Invalid DataType
+	} else {
+		_EXCEPTIONT("(UNIMPLEMENTED) Invalid DataType");
+	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////

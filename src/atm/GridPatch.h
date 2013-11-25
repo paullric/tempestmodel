@@ -73,24 +73,24 @@ public:
 
 public:
 	///	<summary>
-	///		Total number of 2D nodes in data.
+	///		Total number of nodes in 2D (ignoring vertical nodes or staggering)
 	///	</summary>
-	int GetTotal2DNodeCount() const;
+	int GetTotalNodeCount2D() const;
 
 	///	<summary>
 	///		Total number of nodes in data.
 	///	</summary>
-	int GetTotalNodeCount() const;
+	int GetTotalNodeCount(
+		DataLocation loc = DataLocation_Node
+	) const;
 
 	///	<summary>
-	///		Total number of state variables in this patch.
+	///		Total number of degrees of freedom in data.
 	///	</summary>
-	int GetStateCount() const;
-
-	///	<summary>
-	///		Total number of tracer variables in this patch.
-	///	</summary>
-	int GetTracersCount() const;
+	int GetTotalDegreesOfFreedom(
+		DataType eDataType,
+		DataLocation eDataLocation = DataLocation_None
+	) const;
 
 public:
 	///	<summary>

@@ -21,7 +21,7 @@
 
 ConsolidationStatus::ConsolidationStatus(
 	const Grid & grid,
-	const std::vector<DataType> & vecDataTypes
+	const std::vector<DataTypeLocationPair> & vecDataTypes
 ) :
 	m_nCurrentSendRequest(0)
 {
@@ -33,7 +33,7 @@ ConsolidationStatus::ConsolidationStatus(
 	// Built map of data types and indices
 	for (int m = 0; m < vecDataTypes.size(); m++) {
 		m_mapDataTypes.insert(
-			DataTypeIndexMapPair(vecDataTypes[m], m));
+			ConsolidationIndexMapPair(vecDataTypes[m], m));
 	}
 
 	// Built map of send requests
@@ -53,7 +53,7 @@ ConsolidationStatus::ConsolidationStatus(
 		m_vecReceiveStatusCount[m] = 0;
 	}
 
-	// Status of each DataType / patch pair
+	// Status of each DataTypeLocationPair / patch pair
 	m_vecReceiveStatus.resize(grid.GetPatchCount());
 	for (int n = 0; n < grid.GetPatchCount(); n++) {
 		m_vecReceiveStatus[n].resize(vecDataTypes.size());
@@ -65,8 +65,13 @@ ConsolidationStatus::ConsolidationStatus(
 
 ///////////////////////////////////////////////////////////////////////////////
 
-bool ConsolidationStatus::Contains(DataType eDataType) const {
-	if (m_mapDataTypes.find(eDataType) != m_mapDataTypes.end()) {
+bool ConsolidationStatus::Contains(
+	DataType eDataType,
+	DataLocation eDataLocation
+) const {
+	DataTypeLocationPair key(eDataType, eDataLocation);
+
+	if (m_mapDataTypes.find(key) != m_mapDataTypes.end()) {
 		return true;
 	}
 	return false;
@@ -87,9 +92,12 @@ bool ConsolidationStatus::Done() const {
 
 void ConsolidationStatus::SetReceiveStatus(
 	int ixPatch,
-	DataType eDataType
+	DataType eDataType,
+	DataLocation eDataLocation
 ) {
-	DataTypeIndexMapIterator iter = m_mapDataTypes.find(eDataType);
+	DataTypeLocationPair key(eDataType, eDataLocation);
+
+	ConsolidationIndexMapIterator iter = m_mapDataTypes.find(key);
 	if (iter == m_mapDataTypes.end()) {
 		_EXCEPTIONT("Invalid DataType");
 	}

@@ -59,17 +59,10 @@ OutputManagerComposite::~OutputManagerComposite() {
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void OutputManagerComposite::ResizeDataBuffer() {
-	m_vecLocalData.Initialize(
-		m_grid.GetMaximumDegreesOfFreedom());
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
 bool OutputManagerComposite::OpenFile(
 	const std::string & strFileName
 ) {
-	// Determine processor rank; only proceed if root node
+	// Determine processor rank
 	int nRank;
 	MPI_Comm_rank(MPI_COMM_WORLD, &nRank);
 
@@ -80,6 +73,9 @@ bool OutputManagerComposite::OpenFile(
 	NcVar * varZs;
 
 	if (nRank == 0) {
+
+		// Allocate receive buffer
+		m_vecRecvBuffer.Initialize(m_grid.GetMaxDegreesOfFreedom());
 
 		// Check for existing NetCDF file
 		if (m_pActiveNcOutput != NULL) {
@@ -94,13 +90,21 @@ bool OutputManagerComposite::OpenFile(
 		}
 
 		// Create nodal index dimension
-		NcDim * dimIndex =
+		NcDim * dimNodeIndex2D =
 			m_pActiveNcOutput->add_dim(
-				"node_index", m_grid.GetTotalNodeCount());
+				"node_index_2d", m_grid.GetTotalNodeCount2D());
+
+		NcDim * dimNodeIndex =
+			m_pActiveNcOutput->add_dim(
+				"node_index", m_grid.GetTotalNodeCount(DataLocation_Node));
+
+		NcDim * dimREdgeIndex =
+			m_pActiveNcOutput->add_dim(
+				"redge_index", m_grid.GetTotalNodeCount(DataLocation_REdge));
 
 		// Output start time and current time
 		m_pActiveNcOutput->add_att("start_time",
-			model.GetStartTime().ToString().c_str());
+			model.GetStartTime().ToShortString().c_str());
 
 		// Output physical constants
 		const PhysicalConstants & phys = model.GetPhysicalConstants();
@@ -134,55 +138,63 @@ bool OutputManagerComposite::OpenFile(
 
 		// Create variables
 		for (int c = 0; c < eqn.GetComponents(); c++) {
-			m_vecComponentVar.push_back(
-				m_pActiveNcOutput->add_var(
-					eqn.GetComponentShortName(c).c_str(),
-					ncDouble, dimIndex));
+			if (m_grid.GetVarLocation(c) == DataLocation_Node) {
+				m_vecComponentVar.push_back(
+					m_pActiveNcOutput->add_var(
+						eqn.GetComponentShortName(c).c_str(),
+						ncDouble, dimNodeIndex));
+
+			} else if (m_grid.GetVarLocation(c) == DataLocation_REdge) {
+				m_vecComponentVar.push_back(
+					m_pActiveNcOutput->add_var(
+						eqn.GetComponentShortName(c).c_str(),
+						ncDouble, dimREdgeIndex));
+
+			} else {
+				_EXCEPTIONT("(UNIMPLEMENTED) Invalid DataLocation");
+			}
 		}
 
 		for (int c = 0; c < eqn.GetTracers(); c++) {
 			m_vecTracersVar.push_back(
 				m_pActiveNcOutput->add_var(
 					eqn.GetTracerShortName(c).c_str(),
-					ncDouble, dimIndex));
+					ncDouble, dimNodeIndex));
 		}
 
 		// Output topography for each patch
-		varZs = m_pActiveNcOutput->add_var("ZS", ncDouble, dimIndex);
+		varZs = m_pActiveNcOutput->add_var("ZS", ncDouble, dimNodeIndex2D);
 	}
 
-    // Begin data consolidation
-    std::vector<DataType> vecDataTypes;
-    vecDataTypes.push_back(DataType_Topography);
+	// Begin data consolidation
+	std::vector<DataTypeLocationPair> vecDataTypes;
+	vecDataTypes.push_back(DataType_Topography);
 
-    ConsolidationStatus status(m_grid, vecDataTypes);
+	ConsolidationStatus status(m_grid, vecDataTypes);
 
-    m_grid.ConsolidateDataToRoot(status);
+	m_grid.ConsolidateDataToRoot(status);
 
-    DataVector<double> dataRecvBuffer;
-    dataRecvBuffer.Initialize(
-        m_grid.GetLargestGridPatchNodes()
-        * m_grid.GetRElements());
+#pragma message "Move to Output"
+	while ((nRank == 0) && (!status.Done())) {
 
-#pragma "Move to Output"
-    while ((nRank == 0) && (!status.Done())) {
+		int nRecvCount;
+		int ixRecvPatch;
+		DataType eRecvDataType;
+		DataLocation eRecvDataLocation;
 
-        int nRecvCount;
-        int ixRecvPatch;
-        DataType eRecvDataType;
+		m_grid.ConsolidateDataAtRoot(
+			status,
+			m_vecRecvBuffer,
+			nRecvCount,
+			ixRecvPatch,
+			eRecvDataType,
+			eRecvDataLocation);
 
-        m_grid.ConsolidateDataAtRoot(
-            status,
-            dataRecvBuffer,
-            nRecvCount,
-            ixRecvPatch,
-            eRecvDataType);
-
-        // Store topography data
-        if (eRecvDataType == DataType_Topography) {
-            int nPatchIx = m_grid.GetCumulativePatch2DNodeIndex(ixRecvPatch);
-            varZs->set_cur(nPatchIx);
-            varZs->put(&(dataRecvBuffer[0]), nRecvCount);
+		// Store topography data
+		if (eRecvDataType == DataType_Topography) {
+			int nPatchIx = m_grid.GetCumulativePatch2DNodeIndex(ixRecvPatch);
+			varZs->set_cur(nPatchIx);
+			varZs->put(&(m_vecRecvBuffer[0]), nRecvCount);
 
 		} else {
 			_EXCEPTIONT("Invalid DataType");
@@ -204,6 +216,8 @@ void OutputManagerComposite::CloseFile() {
 
 		m_vecComponentVar.clear();
 		m_vecTracersVar.clear();
+
+		m_vecRecvBuffer.Deinitialize();
 	}
 }
 
@@ -236,8 +250,15 @@ void OutputManagerComposite::Output(
 	}
 
 	// Begin data consolidation
-	std::vector<DataType> vecDataTypes;
-	vecDataTypes.push_back(DataType_State);
+	std::vector<DataTypeLocationPair> vecDataTypes;
+	if (m_grid.GetVarsAtLocation(DataLocation_Node) != 0) {
+		vecDataTypes.push_back(
+			DataTypeLocationPair(DataType_State, DataLocation_Node));
+	}
+	if (m_grid.GetVarsAtLocation(DataLocation_REdge) != 0) {
+		vecDataTypes.push_back(
+			DataTypeLocationPair(DataType_State, DataLocation_REdge));
+	}
 	if (eqn.GetTracers() != 0) {
 		vecDataTypes.push_back(DataType_Tracers);
 	}
@@ -246,46 +267,67 @@ void OutputManagerComposite::Output(
 
 	m_grid.ConsolidateDataToRoot(status);
 
-	// Data buffer
-	DataVector<double> dataRecvBuffer;
-	if (nRank == 0) {
-		dataRecvBuffer.Initialize(m_grid.GetMaximumDegreesOfFreedom());
-	}
-
 	// Receive all data objects from neighbors
 	while ((nRank == 0) && (!status.Done())) {
 		int nRecvCount;
 		int ixRecvPatch;
 		DataType eRecvDataType;
+		DataLocation eRecvDataLocation;
 
 		m_grid.ConsolidateDataAtRoot(
 			status,
-			dataRecvBuffer,
+			m_vecRecvBuffer,
 			nRecvCount,
 			ixRecvPatch,
-			eRecvDataType);
+			eRecvDataType,
+			eRecvDataLocation);
 
 		// Store state variable data
 		if (eRecvDataType == DataType_State) {
-			int nComponentSize =
-				nRecvCount / eqn.GetComponents();
+			if (eRecvDataLocation == DataLocation_Node) {
+				if (nRecvCount % m_grid.GetRElements() != 0) {
+					_EXCEPTIONT("Invalid message length");
+				}
 
-			if (nRecvCount % eqn.GetComponents() != 0) {
-				_EXCEPTIONT("Invalid message length");
-			}
-			if (dataRecvBuffer.GetRows() <
-					eqn.GetComponents() * nComponentSize
-			) {
-				_EXCEPTIONT("Insufficient RecvBuffer size");
+			} else if (eRecvDataLocation == DataLocation_REdge) {
+				if (nRecvCount % (m_grid.GetRElements()+1) != 0) {
+					_EXCEPTIONT("Invalid message length");
+				}
+
+			} else {
+				_EXCEPTIONT("Invalid DataLocation");
 			}
 
-			int nCumulative3DNodeIx =
-				m_grid.GetCumulativePatch3DNodeIndex(ixRecvPatch);
+			int ixRecvPtr = 0;
+
+			int ixCumulative2DNode =
+				m_grid.GetCumulativePatch2DNodeIndex(ixRecvPatch);
 
 			for (int c = 0; c < eqn.GetComponents(); c++) {
-				m_vecComponentVar[c]->set_cur(nCumulative3DNodeIx);
-				m_vecComponentVar[c]->put(
-					&(dataRecvBuffer[nComponentSize * c]), nComponentSize);
+
+				// Advance the pointer in the receive buffer
+				int nComponentSize =
+					m_grid.GetPatch(ixRecvPatch)->GetTotalNodeCount(
+						eRecvDataLocation);
+
+				// Only output data at relevant location
+				if (m_grid.GetVarLocation(c) == eRecvDataLocation) {
+					int nRadialDegreesOfFreedom;
+					if (eRecvDataLocation == DataLocation_Node) {
+						nRadialDegreesOfFreedom = m_grid.GetRElements();
+					} else if (eRecvDataLocation == DataLocation_REdge) {
+						nRadialDegreesOfFreedom = m_grid.GetRElements()+1;
+					} else {
+						_EXCEPTION();
+					}
+
+					m_vecComponentVar[c]->set_cur(
+						ixCumulative2DNode * nRadialDegreesOfFreedom);
+					m_vecComponentVar[c]->put(
+						&(m_vecRecvBuffer[ixRecvPtr]), nComponentSize);
+				}
+
+				ixRecvPtr += nComponentSize;
 			}
 
 		// Store tracer variable data
@@ -303,7 +345,7 @@ void OutputManagerComposite::Output(
 			for (int c = 0; c < eqn.GetTracers(); c++) {
 				m_vecTracersVar[c]->set_cur(nCumulative3DNodeIx);
 				m_vecTracersVar[c]->put(
-					&(dataRecvBuffer[nComponentSize * c]), nComponentSize);
+					&(m_vecRecvBuffer[nComponentSize * c]), nComponentSize);
 			}
 		}
 	}

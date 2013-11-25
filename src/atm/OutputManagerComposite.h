@@ -57,12 +57,6 @@ public:
 
 public:
 	///	<summary>
-	///		Resize the data buffer to store maximum patch data.
-	///	</summary>
-	void ResizeDataBuffer();
-
-public:
-	///	<summary>
 	///		Open a new NetCDF file.
 	///	</summary>
 	virtual bool OpenFile(
@@ -126,9 +120,9 @@ protected:
 
 private:
 	///	<summary>
-	///		Vectors used for temporary storage of data.
+	///		Vector used at root node for storage of received data.
 	///	</summary>
-	DataVector<double> m_vecLocalData;
+	DataVector<double> m_vecRecvBuffer;
 };
 
 ///////////////////////////////////////////////////////////////////////////////

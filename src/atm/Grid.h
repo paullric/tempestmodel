@@ -127,26 +127,41 @@ public:
 	}
 
 	///	<summary>
-	///		Get the total number of nodes in the largest patch.
-	///	</summary>
-	int GetLargestGridPatchNodes() const;
-
-	///	<summary>
 	///		Get the longest perimeter over all patches.
 	///	</summary>
 	int GetLongestActivePatchPerimeter() const;
 
 	///	<summary>
+	///		Get the maximum number of nodes in 2D over all patches.
+	///	</summary>
+	int GetMaxNodeCount2D() const;
+
+	///	<summary>
+	///		Get the total count of nodes in 2D (ignoring the number of vertical
+	///		degrees of freedom).
+	///	</summary>
+	int GetTotalNodeCount2D() const;
+
+	///	<summary>
+	///		Get the maximum number of nodes over all patches.
+	///	</summary>
+	int GetMaxNodeCount(
+		DataLocation loc = DataLocation_Node
+	) const;
+
+	///	<summary>
 	///		Get the total count of nodes over the global grid, returned to
 	///		the root node.
 	///	</summary>
-	int GetTotalNodeCount() const;
+	int GetTotalNodeCount(
+		DataLocation loc = DataLocation_Node
+	) const;
 
 	///	<summary>
 	///		Get the maximum number of degrees of freedom required for a
 	///		consolidate operation, returned to the root node.
 	///	</summary>
-	int GetMaximumDegreesOfFreedom() const;
+	int GetMaxDegreesOfFreedom() const;
 
 public:
 	///	<summary>
@@ -157,7 +172,8 @@ public:
 		DataVector<double> & dataRecvBuffer,
 		int & nRecvCount,
 		int & ixRecvPatch,
-		DataType & eRecvDataType
+		DataType & eRecvDataType,
+		DataLocation & eRecvDataLocation
 	) const;
 
 	///	<summary>
@@ -468,6 +484,13 @@ public:
 	}
 
 	///	<summary>
+	///		Get the number of degrees of freedom per column.
+	///	</summary>
+	int GetDegreesOfFreedomPerColumn() const {
+		return m_nDegreesOfFreedomPerColumn;
+	}
+
+	///	<summary>
 	///		Get the reference state availability flag.
 	///	</summary>
 	bool HasReferenceState() const {
@@ -492,7 +515,8 @@ public:
 		if ((ix < 0) || (ix >= m_vecCumulativePatch2DNodeIndex.size())) {
 			_EXCEPTIONT("Invalid patch index");
 		}
-		return m_vecCumulativePatch2DNodeIndex[ix] * GetRElements();
+		return (m_vecCumulativePatch2DNodeIndex[ix]
+			* m_nDegreesOfFreedomPerColumn);
 	}
 
 	///	<summary>
@@ -607,6 +631,11 @@ protected:
 	///		Number of state variables at each location.
 	///	</summary>
 	std::vector<int> m_vecVarsAtLocation;
+
+	///	<summary>
+	///		Number of degrees of freedom per column.
+	///	</summary>
+	int m_nDegreesOfFreedomPerColumn;
 
 	///	<summary>
 	///		Flag indicating whether or not a reference state is available.

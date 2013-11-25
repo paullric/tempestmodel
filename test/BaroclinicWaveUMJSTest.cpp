@@ -711,14 +711,14 @@ try {
 	outmanRef.OutputDivergence();
 	model.AttachOutputManager(&outmanRef);
 	AnnounceEndBlock("Done");
-/*
+
 	// Set the composite output manager for the model
 	AnnounceStartBlock("Creating composite output manager");
 	OutputManagerComposite outmanComp(
 		grid, dOutputDeltaT, strOutputDir, strOutputPrefix);
 	model.AttachOutputManager(&outmanComp);
 	AnnounceEndBlock("Done");
-*/
+
 	// Set the checksum output manager for the model
 	AnnounceStartBlock("Creating checksum output manager");
 	OutputManagerChecksum outmanChecksum(grid, dOutputDeltaT);

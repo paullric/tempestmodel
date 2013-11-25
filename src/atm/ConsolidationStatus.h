@@ -18,6 +18,7 @@
 #define _CONSOLIDATIONSTATUS_H_
 
 #include "DataType.h"
+#include "DataLocation.h"
 
 #include "mpi.h"
 
@@ -31,6 +32,51 @@ class Grid;
 ///////////////////////////////////////////////////////////////////////////////
 
 ///	<summary>
+///		A DataType and DataLocation pair.
+///	</summary>
+class DataTypeLocationPair {
+
+public:
+	///	<summary>
+	///		Constructor.
+	///	</summary>
+	DataTypeLocationPair(
+		DataType eDataType,
+		DataLocation eDataLocation = DataLocation_Node
+	) :
+		m_eDataType(eDataType),
+		m_eDataLocation(eDataLocation)
+	{ }
+
+	///	<summary>
+	///		Convert this object to an int.
+	///	</summary>
+	operator int() const {
+		return (((int)(m_eDataType) << 2) + (int)(m_eDataLocation));
+	}
+
+	///	<summary>
+	///		Comparator.
+	///	</summary>
+	int operator<(const DataTypeLocationPair & pair) const {
+		return ((int)(*this) < (int)(pair));
+	}
+
+public:
+	///	<summary>
+	///		DataType of this DataTypeLocationPair.
+	///	</summary>
+	DataType m_eDataType;
+
+	///	<summary>
+	///		DataLocation of this DataTypeLocationPair.
+	///	</summary>
+	DataLocation m_eDataLocation;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+
+///	<summary>
 ///		An array for holding the current consolidation status, which is used
 ///		for MPI reduce of data to the root processor.
 ///	</summary>
@@ -38,9 +84,9 @@ class ConsolidationStatus {
 	friend class Grid;
 
 public:
-	typedef std::map<DataType, int>          DataTypeIndexMap;
-	typedef DataTypeIndexMap::const_iterator DataTypeIndexMapIterator;
-	typedef DataTypeIndexMap::value_type     DataTypeIndexMapPair;
+	typedef std::map<DataTypeLocationPair, int>   ConsolidationIndexMap;
+	typedef ConsolidationIndexMap::const_iterator ConsolidationIndexMapIterator;
+	typedef ConsolidationIndexMap::value_type     ConsolidationIndexMapPair;
 
 public:
 	///	<summary>
@@ -48,7 +94,7 @@ public:
 	///	</summary>
 	ConsolidationStatus(
 		const Grid & grid,
-		const std::vector<DataType> & vecDataTypes
+		const std::vector<DataTypeLocationPair> & vecDataTypes
 	);
 
 public:
@@ -57,9 +103,11 @@ public:
 	///	</summary>
 	static int GenerateTag(
 		int ixPatch,
-		DataType eDataType
+		DataType eDataType,
+		DataLocation eDataLocation = DataLocation_Node
 	) {
-		return (ixPatch << 4) + static_cast<int>(eDataType);
+		DataTypeLocationPair key(eDataType, eDataLocation);
+		return (ixPatch << 6) + (int)key;
 	}
 
 	///	<summary>
@@ -68,10 +116,12 @@ public:
 	static void ParseTag(
 		int nTag,
 		int & ixPatch,
-		DataType & eDataType
+		DataType & eDataType,
+		DataLocation & eDataLocation
 	) {
-		eDataType = static_cast<DataType>(nTag & 0xF);
-		ixPatch = (nTag >> 4);
+		eDataLocation = static_cast<DataLocation>(nTag & 0x3);
+		eDataType = static_cast<DataType>((nTag >> 2) & 0xF);
+		ixPatch = (nTag >> 6);
 	}
 
 public:
@@ -83,9 +133,13 @@ public:
 	}
 
 	///	<summary>
-	///		Determine if the specified DataType is to be consolidated.
+	///		Determine if the specified DataType and DataLocation is to be
+	///		consolidated.
 	///	</summary>
-	bool Contains(DataType eDataType) const;
+	bool Contains(
+		DataType eDataType,
+		DataLocation eDataLocation = DataLocation_Node
+	) const;
 
 	///	<summary>
 	///		Determine if all receives have completed.
@@ -98,7 +152,8 @@ protected:
 	///	</summary>
 	void SetReceiveStatus(
 		int ixPatch,
-		DataType eDataType
+		DataType eDataType,
+		DataLocation eDataLocation = DataLocation_Node
 	);
 
 	///	<summary>
@@ -110,7 +165,7 @@ private:
 	///	<summary>
 	///		Data types stored in this data structure.
 	///	</summary>
-	DataTypeIndexMap m_mapDataTypes;
+	ConsolidationIndexMap m_mapDataTypes;
 
 	///	<summary>
 	///		Total number of receives set.

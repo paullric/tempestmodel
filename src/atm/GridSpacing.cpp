@@ -31,7 +31,7 @@ GridSpacing::GridSpacing(
 { }
 
 ///////////////////////////////////////////////////////////////////////////////
-// UniformGridSpacing
+// GridSpacingUniform
 ///////////////////////////////////////////////////////////////////////////////
 
 GridSpacingUniform::GridSpacingUniform(
@@ -55,7 +55,7 @@ double GridSpacingUniform::GetEdge(int ix) const {
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// GaussLobattoGridSpacing
+// GridSpacingGaussLobattoRepeated
 ///////////////////////////////////////////////////////////////////////////////
 
 GridSpacingGaussLobattoRepeated::GridSpacingGaussLobattoRepeated(
@@ -99,13 +99,22 @@ double GridSpacingGaussLobattoRepeated::GetEdge(int ix) const {
 	int ixElement    = (ix / m_nOrder);
 	int ixSubElement = (ix % m_nOrder);
 
+	if (ix < 0) {
+		ixElement = ixElement - 1;
+		ixSubElement = m_nOrder + ixSubElement;
+	}
+
+	if (ixSubElement >= m_nOrder) {
+		_EXCEPTIONT("Logic error");
+	}
+
 	return (m_dZeroCoord
 		+ m_dDeltaElement * static_cast<double>(ixElement)
 		+ m_dG[ixSubElement]);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// MixedGaussLobattoGridSpacing
+// GridSpacingMixedGaussLobatto
 ///////////////////////////////////////////////////////////////////////////////
 
 GridSpacingMixedGaussLobatto::GridSpacingMixedGaussLobatto(
