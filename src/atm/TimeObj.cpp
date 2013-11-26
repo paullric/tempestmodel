@@ -175,7 +175,7 @@ void Time::NormalizeTime() {
 		}
 
 		// Add months
-		while (m_iDay > nDaysPerMonth[m_iMonth]) {
+		while (m_iDay >= nDaysPerMonth[m_iMonth]) {
 			m_iDay -= nDaysPerMonth[m_iMonth];
 			m_iMonth++;
 			if (m_iMonth > 11) {
