@@ -47,6 +47,7 @@ OutputManagerComposite::OutputManagerComposite(
 		strOutputFormat,
 		1),
 	m_pActiveNcOutput(NULL),
+	m_varZs(NULL),
 	m_strRestartFile(strRestartFile)
 {
 }
@@ -136,22 +137,43 @@ bool OutputManagerComposite::OpenFile(
 			_EXCEPTIONT("Dimension \'patch_index\' not found");
 		}
 
-		// Create variables
+		// Create variables in NetCDF output file
 		for (int c = 0; c < eqn.GetComponents(); c++) {
+
+			// State variables (only store on relevant level)
 			if (m_grid.GetVarLocation(c) == DataLocation_Node) {
-				m_vecComponentVar.push_back(
+				m_vecStateVar.push_back(
 					m_pActiveNcOutput->add_var(
 						eqn.GetComponentShortName(c).c_str(),
 						ncDouble, dimNodeIndex));
 
 			} else if (m_grid.GetVarLocation(c) == DataLocation_REdge) {
-				m_vecComponentVar.push_back(
+				m_vecStateVar.push_back(
 					m_pActiveNcOutput->add_var(
 						eqn.GetComponentShortName(c).c_str(),
 						ncDouble, dimREdgeIndex));
 
 			} else {
 				_EXCEPTIONT("(UNIMPLEMENTED) Invalid DataLocation");
+			}
+
+			// Reference state variables (store on all levels)
+			if (m_grid.HasReferenceState()) {
+				std::string strRefVarNameNode =
+					eqn.GetComponentShortName(c) + "_RefNode";
+
+				m_vecRefStateVarNode.push_back(
+					m_pActiveNcOutput->add_var(
+						strRefVarNameNode.c_str(),
+						ncDouble, dimNodeIndex));
+
+				std::string strRefVarNameREdge =
+					eqn.GetComponentShortName(c) + "_RefREdge";
+
+				m_vecRefStateVarREdge.push_back(
+					m_pActiveNcOutput->add_var(
+						strRefVarNameREdge.c_str(),
+						ncDouble, dimREdgeIndex));
 			}
 		}
 
@@ -163,42 +185,7 @@ bool OutputManagerComposite::OpenFile(
 		}
 
 		// Output topography for each patch
-		varZs = m_pActiveNcOutput->add_var("ZS", ncDouble, dimNodeIndex2D);
-	}
-
-	// Begin data consolidation
-	std::vector<DataTypeLocationPair> vecDataTypes;
-	vecDataTypes.push_back(DataType_Topography);
-
-	ConsolidationStatus status(m_grid, vecDataTypes);
-
-	m_grid.ConsolidateDataToRoot(status);
-
-#pragma message "Move to Output"
-	while ((nRank == 0) && (!status.Done())) {
-
-		int nRecvCount;
-		int ixRecvPatch;
-		DataType eRecvDataType;
-		DataLocation eRecvDataLocation;
-
-		m_grid.ConsolidateDataAtRoot(
-			status,
-			m_vecRecvBuffer,
-			nRecvCount,
-			ixRecvPatch,
-			eRecvDataType,
-			eRecvDataLocation);
-
-		// Store topography data
-		if (eRecvDataType == DataType_Topography) {
-			int nPatchIx = m_grid.GetCumulativePatch2DNodeIndex(ixRecvPatch);
-			varZs->set_cur(nPatchIx);
-			varZs->put(&(m_vecRecvBuffer[0]), nRecvCount);
-
-		} else {
-			_EXCEPTIONT("Invalid DataType");
-		}
+		m_varZs = m_pActiveNcOutput->add_var("ZS", ncDouble, dimNodeIndex2D);
 	}
 
 	// Wait for all processes to complete
@@ -214,7 +201,9 @@ void OutputManagerComposite::CloseFile() {
 		delete(m_pActiveNcOutput);
 		m_pActiveNcOutput = NULL;
 
-		m_vecComponentVar.clear();
+		m_vecStateVar.clear();
+		m_vecRefStateVarNode.clear();
+		m_vecRefStateVarREdge.clear();
 		m_vecTracersVar.clear();
 
 		m_vecRecvBuffer.Deinitialize();
@@ -251,6 +240,8 @@ void OutputManagerComposite::Output(
 
 	// Begin data consolidation
 	std::vector<DataTypeLocationPair> vecDataTypes;
+	vecDataTypes.push_back(DataType_Topography);
+
 	if (m_grid.GetVarsAtLocation(DataLocation_Node) != 0) {
 		vecDataTypes.push_back(
 			DataTypeLocationPair(DataType_State, DataLocation_Node));
@@ -259,6 +250,14 @@ void OutputManagerComposite::Output(
 		vecDataTypes.push_back(
 			DataTypeLocationPair(DataType_State, DataLocation_REdge));
 	}
+
+	if (m_grid.HasReferenceState()) {
+		vecDataTypes.push_back(
+			DataTypeLocationPair(DataType_RefState, DataLocation_Node));
+		vecDataTypes.push_back(
+			DataTypeLocationPair(DataType_RefState, DataLocation_REdge));
+	}
+
 	if (eqn.GetTracers() != 0) {
 		vecDataTypes.push_back(DataType_Tracers);
 	}
@@ -282,8 +281,14 @@ void OutputManagerComposite::Output(
 			eRecvDataType,
 			eRecvDataLocation);
 
+		// Store topography data
+		if (eRecvDataType == DataType_Topography) {
+			int nPatchIx = m_grid.GetCumulativePatch2DNodeIndex(ixRecvPatch);
+			m_varZs->set_cur(nPatchIx);
+			m_varZs->put(&(m_vecRecvBuffer[0]), nRecvCount);
+
 		// Store state variable data
-		if (eRecvDataType == DataType_State) {
+		} else if (eRecvDataType == DataType_State) {
 			if (eRecvDataLocation == DataLocation_Node) {
 				if (nRecvCount % m_grid.GetRElements() != 0) {
 					_EXCEPTIONT("Invalid message length");
@@ -321,10 +326,63 @@ void OutputManagerComposite::Output(
 						_EXCEPTION();
 					}
 
-					m_vecComponentVar[c]->set_cur(
+					m_vecStateVar[c]->set_cur(
 						ixCumulative2DNode * nRadialDegreesOfFreedom);
-					m_vecComponentVar[c]->put(
+					m_vecStateVar[c]->put(
 						&(m_vecRecvBuffer[ixRecvPtr]), nComponentSize);
+				}
+
+				ixRecvPtr += nComponentSize;
+			}
+
+		// Store reference state variable data
+		} else if (eRecvDataType == DataType_RefState) {
+			if (eRecvDataLocation == DataLocation_Node) {
+				if (nRecvCount % m_grid.GetRElements() != 0) {
+					_EXCEPTIONT("Invalid message length");
+				}
+
+			} else if (eRecvDataLocation == DataLocation_REdge) {
+				if (nRecvCount % (m_grid.GetRElements()+1) != 0) {
+					_EXCEPTIONT("Invalid message length");
+				}
+
+			} else {
+				_EXCEPTIONT("Invalid DataLocation");
+			}
+
+			int ixRecvPtr = 0;
+
+			int ixCumulative2DNode =
+				m_grid.GetCumulativePatch2DNodeIndex(ixRecvPatch);
+
+			for (int c = 0; c < eqn.GetComponents(); c++) {
+
+				// Advance the pointer in the receive buffer
+				int nComponentSize =
+					m_grid.GetPatch(ixRecvPatch)->GetTotalNodeCount(
+						eRecvDataLocation);
+
+				// Write data to file
+				int nRadialDegreesOfFreedom;
+				if (eRecvDataLocation == DataLocation_Node) {
+					nRadialDegreesOfFreedom = m_grid.GetRElements();
+
+					m_vecRefStateVarNode[c]->set_cur(
+						ixCumulative2DNode * nRadialDegreesOfFreedom);
+					m_vecRefStateVarNode[c]->put(
+						&(m_vecRecvBuffer[ixRecvPtr]), nComponentSize);
+
+				} else if (eRecvDataLocation == DataLocation_REdge) {
+					nRadialDegreesOfFreedom = m_grid.GetRElements()+1;
+
+					m_vecRefStateVarREdge[c]->set_cur(
+						ixCumulative2DNode * nRadialDegreesOfFreedom);
+					m_vecRefStateVarREdge[c]->put(
+						&(m_vecRecvBuffer[ixRecvPtr]), nComponentSize);
+
+				} else {
+					_EXCEPTION();
 				}
 
 				ixRecvPtr += nComponentSize;
@@ -400,16 +458,37 @@ Time OutputManagerComposite::Input(
 	for (int n = 0; n < m_grid.GetActivePatchCount(); n++) {
 		GridPatch * pPatch = m_grid.GetActivePatch(n);
 
-#pragma "Allow for specification of data index here"
-		GridData4D & data = pPatch->GetDataState(0);
+		GridData4D & dataStateNode =
+			pPatch->GetDataState(0, DataLocation_Node);
+		GridData4D & dataStateREdge =
+			pPatch->GetDataState(0, DataLocation_REdge);
 
-		int nCumulative3DNodeIx =
-			m_grid.GetCumulativePatch3DNodeIndex(pPatch->GetPatchIndex());
+		GridData4D & dataRefStateNode =
+			pPatch->GetReferenceState(DataLocation_Node);
+		GridData4D & dataRefStateREdge =
+			pPatch->GetReferenceState(DataLocation_REdge);
 
-		int nComponentSize =
-			pPatch->GetPatchBox().GetTotalNodes();
+		int nCumulative2DNodeIx =
+			m_grid.GetCumulativePatch2DNodeIndex(pPatch->GetPatchIndex());
 
 		for (int c = 0; c < eqn.GetComponents(); c++) {
+
+			DataLocation loc = m_grid.GetVarLocation(c);
+
+			// Number of radial elements for this component
+			int nRadialDegreesOfFreedom;
+			if (loc == DataLocation_Node) {
+				nRadialDegreesOfFreedom = m_grid.GetRElements();
+			} else if (loc == DataLocation_REdge) {
+				nRadialDegreesOfFreedom = m_grid.GetRElements()+1;
+			} else {
+				_EXCEPTION();
+			}
+
+			// Number of nodes on this patch for this component
+			int nComponentSize = pPatch->GetTotalNodeCount(loc);
+
+			// Load state variable
 			std::string strComponentName = eqn.GetComponentShortName(c);
 
 			NcVar * var = pNcFile->get_var(strComponentName.c_str());
@@ -417,9 +496,57 @@ Time OutputManagerComposite::Input(
 				_EXCEPTION1("Cannot find variable \'%s\' in file",
 					strComponentName.c_str());
 			}
-			var->set_cur(nCumulative3DNodeIx);
-			var->get(data[c][0][0], nComponentSize);
+			var->set_cur(nCumulative2DNodeIx * nRadialDegreesOfFreedom);
+
+			if (loc == DataLocation_Node) {
+				var->get(dataStateNode[c][0][0], nComponentSize);
+			} else if (loc == DataLocation_REdge) {
+				var->get(dataStateREdge[c][0][0], nComponentSize);
+			} else {
+				_EXCEPTION();
+			}
+
+			// Load reference state
+			if (m_grid.HasReferenceState()) {
+
+				// Load reference state on nodes
+				std::string strRefComponentNameNode =
+					strComponentName + "_RefNode";
+
+				NcVar * varRefNode =
+					pNcFile->get_var(strRefComponentNameNode.c_str());
+				if (varRefNode == NULL) {
+					_EXCEPTION1("Cannot find variable \'%s\' in file",
+						strRefComponentNameNode.c_str());
+				}
+				varRefNode->set_cur(
+					nCumulative2DNodeIx * m_grid.GetRElements());
+
+				varRefNode->get(
+					dataRefStateNode[c][0][0],
+					pPatch->GetTotalNodeCount(DataLocation_Node));
+
+				// Load reference state on radial edges
+				std::string strRefComponentNameREdge =
+					strComponentName + "_RefREdge";
+
+				NcVar * varRefREdge =
+					pNcFile->get_var(strRefComponentNameREdge.c_str());
+				if (varRefREdge == NULL) {
+					_EXCEPTION1("Cannot find variable \'%s\' in file",
+						strRefComponentNameREdge.c_str());
+				}
+				varRefREdge->set_cur(
+					nCumulative2DNodeIx * (m_grid.GetRElements()+1));
+
+				varRefREdge->get(
+					dataRefStateREdge[c][0][0],
+					pPatch->GetTotalNodeCount(DataLocation_REdge));
+			}
 		}
+
+		// Input tracers
+
 	}
 
 	// Close the file

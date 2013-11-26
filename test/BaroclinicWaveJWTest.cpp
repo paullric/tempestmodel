@@ -57,52 +57,52 @@ public:
 	///	<summary>
 	///		Auxiliary eta.
 	///	</summary>
-	static const double ParamEta0 = 0.252;
+	const double ParamEta0;
 
 	///	<summary>
 	///		Tropopause level (in eta coordinates)
 	///	</summary>
-	static const double ParamTropopauseEta = 0.2;
+	const double ParamTropopauseEta;
 
 	///	<summary>
 	///		Horizontal-mean temperature (K)
 	///	</summary>
-	static const double ParamT0 = 288.0;
+	const double ParamT0;
 
 	///	<summary>
 	///		Empirical temperature difference (K)
 	///	</summary>
-	static const double ParamDeltaT = 4.8e5;
+	const double ParamDeltaT;
 
 	///	<summary>
 	///		Temperature lapse rate (K/m)
 	///	</summary>
-	static const double ParamLapseRate = 0.005;
+	const double ParamLapseRate;
 
 	///	<summary>
 	///		Maximum zonal wind (m/s)
 	///	</summary>
-	static const double ParamU0 = 35.0;
+	const double ParamU0;
 
 	///	<summary>
 	///		Zonal wind perturbation (m / s)
 	///	</summary>
-	static const double ParamUp = 1.0;
+	const double ParamUp;
 
 	///	<summary>
 	///		Perturbation longitude center (radians)
 	///	</summary>
-	static const double ParamPertLon = M_PI / 9.0;
+	const double ParamPertLon;
 
 	///	<summary>
 	///		Perturbation latitude center (radians)
 	///	</summary>
-	static const double ParamPertLat = 2.0 * M_PI / 9.0;
+	const double ParamPertLat;
 
 	///	<summary>
 	///		Perturbation radius (Earth radii)
 	///	</summary>
-	static const double ParamPertR = 0.1;
+	const double ParamPertR;
 
 protected:
 	///	<summary>
@@ -141,6 +141,17 @@ public:
 		bool fNoReferenceState,
 		PerturbationType ePerturbationType = PerturbationType_None
 	) :
+		ParamEta0(0.252),
+		ParamTropopauseEta(0.2),
+		ParamT0(288.0),
+		ParamDeltaT(4.8e5),
+		ParamLapseRate(0.005),
+		ParamU0(35.0),
+		ParamUp(1.0),
+		ParamPertLon(M_PI / 9.0),
+		ParamPertLat(2.0 * M_PI / 9.0),
+		ParamPertR(0.1),
+
 		m_dAlpha(dAlpha),
 		m_fTracerOn(fTracerOn),
 		m_dZtop(dZtop),

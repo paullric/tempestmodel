@@ -1105,6 +1105,10 @@ void VerticalDynamicsFEM::StepImplicit(
                     printf("%1.15e %1.15e %1.15e\n",
 						dEval[p], m_dSoln[p], m_dColumnState[p]);
                 }
+				for (int p = 0; p < m_dExnerRefREdge.GetRows(); p++) {
+					printf("%1.15e %1.15e\n",
+						m_dExnerRefREdge[p], dataRefREdge[RIx][p][iA][iB]);
+				}
                 _EXCEPTIONT("Inversion failure");
             }
 

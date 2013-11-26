@@ -144,7 +144,7 @@ void TimestepSchemeARK4::Step(
 
 	// Apply hyperdiffusion
 	pGrid->CopyData(4, 1, DataType_State);
-	pHorizontalDynamics->StepAfterSubCycle(4, 1, 2, time, dDeltaT);
+	//pHorizontalDynamics->StepAfterSubCycle(4, 1, 2, time, dDeltaT);
 
 	// Vertical timestep
 	pGrid->CopyData(1, 0, DataType_State);

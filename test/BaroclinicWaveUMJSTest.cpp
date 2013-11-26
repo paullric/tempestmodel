@@ -62,72 +62,72 @@ public:
 	///	<summary>
 	///		Model scaling parameter
 	///	</summary>
-	static const double ParamEarthRadiusScaling = 1.0;
+	const double ParamEarthRadiusScaling;
 
 	///	<summary>
 	///		Model height limit
 	///	</summary>
-	static const double ParamHeightLimit = 30000.0;
+	const double ParamHeightLimit;
 
 	///	<summary>
 	///		Equatorial surface temperature (K)
 	///	</summary>
-	static const double ParamT0E = 310.0;
+	const double ParamT0E;
 
 	///	<summary>
 	///		Polar surface temperature (K)
 	///	</summary>
-	static const double ParamT0P = 240.0;
+	const double ParamT0P;
 
 	///	<summary>
 	///		Half-width parameter
 	///	</summary>
-	static const double ParamB = 2.0;
+	const double ParamB;
 
 	///	<summary>
 	///		Jet parameter
 	///	</summary>
-	static const double ParamK = 3.0;
+	const double ParamK;
 
 	///	<summary>
 	///		Temperature lapse rate
 	///	</summary>
-	static const double ParamLapseRate = 0.005;
+	const double ParamLapseRate;
 
 	///	<summary>
 	///		Stream function perturbation wind parameter
 	///	</summary>
-	static const double ParamU0 = -0.5;
+	const double ParamU0;
 
 	///	<summary>
 	///		Stream function perturbation radius (Earth radii)
 	///	</summary>
-	static const double ParamPertR = 1.0 / 6.0;
+	const double ParamPertR;
 
 	///	<summary>
 	///		Expontential zonal wind perturbation
 	///	</summary>
-	static const double ParamUp = 1.0;
+	const double ParamUp;
 
 	///	<summary>
 	///		Exponential perturbation radius (Earth radii)
 	///	</summary>
-	static const double ParamPertExpR = 0.1;
+	const double ParamPertExpR;
 
 	///	<summary>
 	///		Perturbation longitude center (radians)
 	///	</summary>
-	static const double ParamPertLon = M_PI / 9.0;
+	const double ParamPertLon;
 
 	///	<summary>
 	///		Perturbation latitude center (radians)
 	///	</summary>
-	static const double ParamPertLat = 2.0 * M_PI / 9.0;
+	const double ParamPertLat;
 
 	///	<summary>
 	///		Height cap of the perturbation (polynomial tapering)
 	///	</summary>
-	static const double ParamPertZ = 15000.0;
+	const double ParamPertZ;
 
 protected:
 	///	<summary>
@@ -172,6 +172,21 @@ public:
 		bool fNoReferenceState,
 		PerturbationType ePerturbationType = PerturbationType_None
 	) :
+		ParamEarthRadiusScaling(1.0),
+		ParamHeightLimit(30000.0),
+		ParamT0E(310.0),
+		ParamT0P(240.0),
+		ParamB(2.0),
+		ParamK(3.0),
+		ParamLapseRate(0.005),
+		ParamU0(-0.5),
+		ParamPertR(1.0 / 6.0),
+		ParamUp(1.0),
+		ParamPertExpR(0.1),
+		ParamPertLon(M_PI / 9.0),
+		ParamPertLat(2.0 * M_PI / 9.0),
+		ParamPertZ(15000.0),
+
 		m_dAlpha(dAlpha),
 		m_fDeepAtmosphere(fDeepAtmosphere),
 		m_fTracerOn(fTracerOn),
@@ -624,6 +639,7 @@ try {
 			"outBaroclinicWaveUMJSTest");
 		CommandLineString(strOutputPrefix, "output_prefix", "out");
 		CommandLineInt(nOutputsPerFile, "output_perfile", 1);
+		CommandLineString(params.m_strRestartFile, "restart_file", "");
 		CommandLineInt(nResolution, "resolution", 20);
 		CommandLineInt(nLevels, "levels", 10);
 		CommandLineInt(nHorizontalOrder, "order", 4);

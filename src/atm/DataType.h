@@ -26,6 +26,7 @@ enum DataType {
 	DataType_All = (-1),
 	DataType_Default = (0),
 	DataType_State = DataType_Default,
+	DataType_RefState,
 	DataType_Tracers,
 	DataType_Auxiliary,
 	DataType_Jacobian,

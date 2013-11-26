@@ -20,6 +20,7 @@
 #include "TestCase.h"
 #include "OutputManager.h"
 
+#include "FunctionTimer.h"
 #include "Announce.h"
 
 #include <cfloat>
@@ -205,7 +206,7 @@ void Model::Go() {
 		_EXCEPTIONT("VerticalDynamics not specified.");
 	}
 	if (m_vecOutMan.size() == 0) {
-		printf("WARNING: No OutputManager specified.");
+		Announce("WARNING: No OutputManager specified.");
 	}
 
 	// Check time step
@@ -214,17 +215,17 @@ void Model::Go() {
 		            "DeltaT must be non-zero.");
 	}
 
-	// Initialize all components
-	m_pTimestepScheme->Initialize();
-	m_pHorizontalDynamics->Initialize();
-	m_pVerticalDynamics->Initialize();
-
 #pragma "Should this be called prior to Go()?"
 	// Initialize the state from the input file
 	EvaluateStateFromRestartFile();
 
 	// Evaluate geometric terms in the grid
 	m_pGrid->EvaluateGeometricTerms();
+
+	// Initialize all components
+	m_pTimestepScheme->Initialize();
+	m_pHorizontalDynamics->Initialize();
+	m_pVerticalDynamics->Initialize();
 
 	// Set the end time of the simulation from number of seconds
 	if (m_pParam->m_dEndTime != 0.0) {
@@ -251,6 +252,8 @@ void Model::Go() {
 	// Loop
 	for(;;) {
 
+		FunctionTimer timerLoop("Loop");
+
 		// Last time step
 		bool fLastStep = false;
 
@@ -272,6 +275,8 @@ void Model::Go() {
 
 		// Update the timer
 		m_time += dDeltaT;
+
+		Announce("Loop timer: %li", timerLoop.StopTime());
 
 		if (fLastStep) {
 			break;

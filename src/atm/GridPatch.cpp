@@ -67,7 +67,9 @@ int GridPatch::GetTotalDegreesOfFreedom(
 ) const {
 	
 	// Take into account staggering of State data
-	if (eDataType == DataType_State) {
+	if ((eDataType == DataType_State) ||
+		(eDataType == DataType_RefState)
+	) {
 		int nComponents = m_grid.GetModel().GetEquationSet().GetComponents();
 
 		if (eDataLocation == DataLocation_None) {

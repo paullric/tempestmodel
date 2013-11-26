@@ -488,6 +488,11 @@ void Grid::ConsolidateDataToRoot(
 		const GridData4D & dataStateREdge =
 			pPatch->GetDataState(0, DataLocation_REdge);
 
+		const GridData4D & dataRefStateNode =
+			pPatch->GetReferenceState(DataLocation_Node);
+		const GridData4D & dataRefStateREdge =
+			pPatch->GetReferenceState(DataLocation_REdge);
+
 		const GridData4D & dataTracers =
 			pPatch->GetDataTracers(0);
 
@@ -522,6 +527,36 @@ void Grid::ConsolidateDataToRoot(
 				ConsolidationStatus::GenerateTag(
 					pPatch->GetPatchIndex(),
 					DataType_State,
+					DataLocation_REdge),
+				MPI_COMM_WORLD,
+				status.GetNextSendRequest());
+		}
+
+		// Send reference state data on nodes to root process
+		if (status.Contains(DataType_RefState, DataLocation_Node)) {
+			MPI_Isend(
+				(void*)(dataRefStateNode[0][0][0]),
+				dataRefStateNode.GetTotalElements(),
+				MPI_DOUBLE,
+				0,
+				ConsolidationStatus::GenerateTag(
+					pPatch->GetPatchIndex(),
+					DataType_RefState,
+					DataLocation_Node),
+				MPI_COMM_WORLD,
+				status.GetNextSendRequest());
+		}
+
+		// Send reference state data on radial edges to root process
+		if (status.Contains(DataType_RefState, DataLocation_REdge)) {
+			MPI_Isend(
+				(void*)(dataRefStateREdge[0][0][0]),
+				dataRefStateREdge.GetTotalElements(),
+				MPI_DOUBLE,
+				0,
+				ConsolidationStatus::GenerateTag(
+					pPatch->GetPatchIndex(),
+					DataType_RefState,
 					DataLocation_REdge),
 				MPI_COMM_WORLD,
 				status.GetNextSendRequest());
@@ -831,21 +866,65 @@ void Grid::ToFile(
 		ncfile.add_var(
 			"beta_edge_coord", ncDouble, dimBEdgeCount);
 
-	// Output global resolution
-	int iGridInfo[4];
+	// Output integer grid information
+	int iGridInfo[5];
 	iGridInfo[0] = m_iGridStamp;
 	iGridInfo[1] = m_nABaseResolution;
 	iGridInfo[2] = m_nBBaseResolution;
 	iGridInfo[3] = m_nRefinementRatio;
+	iGridInfo[4] = (int)(m_fHasReferenceState);
 
 	NcDim * dimGridInfoCount =
-		ncfile.add_dim("grid_info_count", 4);
+		ncfile.add_dim("grid_info_count", 5);
 
 	NcVar * varGridInfo =
 		ncfile.add_var("grid_info", ncInt, dimGridInfoCount);
 
-	varGridInfo->put(iGridInfo, 4);
+	varGridInfo->put(iGridInfo, 5);
 
+	// Output floating point grid information
+	double dGridInfo[2];
+	dGridInfo[0] = m_dReferenceLength;
+	dGridInfo[1] = m_dZtop;
+
+	NcDim * dimGridInfoFloat =
+		ncfile.add_dim("grid_info_float_count", 2);
+
+	NcVar * varGridInfoFloat =
+		ncfile.add_var("grid_info_float", ncDouble, dimGridInfoFloat);
+
+	varGridInfoFloat->put(dGridInfo, 2);
+/*
+	// Output REta coordinate of levels
+	NcDim * dimREtaLevels =
+		ncfile.add_dim("reta_levels", m_dREtaLevels.GetRows());
+
+	NcVar * varREtaLevels =
+		ncfile.add_var("reta_levels", ncDouble, dimREtaLevels);
+
+	varREtaLevels->put(
+		&(m_dREtaLevels[0]), m_dREtaLevels.GetRows());
+
+	// Output REta coordinate of interfaces
+	NcDim * dimREtaInterfaces =
+		ncfile.add_dim("reta_interfaces", m_dREtaInterfaces.GetRows());
+
+	NcVar * varREtaInterfaces =
+		ncfile.add_var("reta_interfaces", ncDouble, dimREtaInterfaces);
+
+	varREtaInterfaces->put(
+		&(m_dREtaInterfaces[0]), m_dREtaInterfaces.GetRows());
+
+	// Output location of each variable
+	NcDim * dimVarLocation =
+		ncfile.add_dim("component", m_vecVarLocation.size());
+
+	NcVar * varVarLocation =
+		ncfile.add_var("var_location", ncInt, dimVarLocation);
+
+	varVarLocation->put(
+		(int*)(&(m_vecVarLocation[0])), m_vecVarLocation.size());
+*/
 	// Output PatchBox for each patch
 	NcDim * dimPatchInfoCount =
 		ncfile.add_dim("patch_info_count", 7);
@@ -899,18 +978,56 @@ void Grid::FromFile(
 	// Open the NetCDF file
 	NcFile ncfile(strGridFile.c_str(), NcFile::ReadOnly);
 
-	// Load in grid info in alpha and beta direction
-	int iGridInfo[4];
+	// Load in grid info
+	int iGridInfo[5];
 
 	NcVar * varGridInfo = ncfile.get_var("grid_info");
 
-	varGridInfo->get(iGridInfo, 4);
+	varGridInfo->get(iGridInfo, 5);
 
 	m_iGridStamp = iGridInfo[0];
 	m_nABaseResolution = iGridInfo[1];
 	m_nBBaseResolution = iGridInfo[2];
 	m_nRefinementRatio = iGridInfo[3];
+	m_fHasReferenceState = (bool)(iGridInfo[4]);
 
+	// Load in floating point grid info
+	int dGridInfo[2];
+
+	NcVar * varGridInfoFloat = ncfile.get_var("grid_info_float");
+
+	varGridInfoFloat->get(dGridInfo, 2);
+
+	m_dReferenceLength = dGridInfo[0];
+	m_dZtop = dGridInfo[1];
+/*
+	// Load in location of REta levels
+	NcVar * varREtaLevels = ncfile.get_var("reta_levels");
+
+	NcDim * dimREtaLevels = varREtaLevels->get_dim(0);
+	int nREtaLevels = static_cast<int>(dimREtaLevels->size());
+
+	m_dREtaLevels.Initialize(nREtaLevels);
+	varREtaLevels->get(m_dREtaLevels, nREtaLevels);
+
+	// Load in location of REta interfaces
+	NcVar * varREtaInterfaces = ncfile.get_var("reta_interfaces");
+
+	NcDim * dimREtaInterfaces = varREtaInterfaces->get_dim(0);
+	int nREtaInterfaces = static_cast<int>(dimREtaInterfaces->size());
+
+	m_dREtaInterfaces.Initialize(nREtaInterfaces);
+	varREtaInterfaces->get(m_dREtaLevels, nREtaInterfaces);
+
+	// Load in location of variables
+	NcVar * varVarLocation = ncfile.get_var("var_location");
+
+	NcDim * dimVarLocation = varVarLocation->get_dim(0);
+	int nComponents = static_cast<int>(dimVarLocation->size());
+
+	m_vecVarLocation.resize(nComponents);
+	varVarLocation->get((int*)(&(m_vecVarLocation[0])), nComponents);
+*/
 	// Coordinate arrays
 	int iANodeIndex = 0;
 	int iBNodeIndex = 0;

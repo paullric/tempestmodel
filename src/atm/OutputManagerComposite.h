@@ -109,9 +109,24 @@ protected:
 	NcVar * m_varTime;
 
 	///	<summary>
-	///		Vector of component variables.
+	///		Topography variable.
 	///	</summary>
-	std::vector<NcVar *> m_vecComponentVar;
+	NcVar * m_varZs;
+
+	///	<summary>
+	///		Vector of state variables.
+	///	</summary>
+	std::vector<NcVar *> m_vecStateVar;
+
+	///	<summary>
+	///		Vector of reference state variables on model levels.
+	///	</summary>
+	std::vector<NcVar *> m_vecRefStateVarNode;
+
+	///	<summary>
+	///		Vector of reference state variables on model interfaces.
+	///	</summary>
+	std::vector<NcVar *> m_vecRefStateVarREdge;
 
 	///	<summary>
 	///		Vector of tracer variables.
