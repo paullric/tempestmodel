@@ -32,7 +32,7 @@ public:
 	///		Constructor.
 	///	</summary>
 	GridCSGLL(
-		const Model & model,
+		Model & model,
 		int nBaseResolution,
 		int nRefinementRatio,
 		int nHorizontalOrder,

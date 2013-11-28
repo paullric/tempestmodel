@@ -35,7 +35,7 @@
 /////////////////////////////////////////////////////////////////////////////
 
 GridCartesianGLL::GridCartesianGLL(
-	const Model & model,
+	Model & model,
 	int nBaseResolutionA,
 	int nBaseResolutionB,
 	int nRefinementRatio,

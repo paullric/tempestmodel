@@ -455,6 +455,17 @@ public:
 	///	<summary>
 	///		Get the nodal topography matrix.
 	///	</summary>
+	DataMatrix<double> & GetTopography() {
+		if (!m_fContainsData) {
+			_EXCEPTIONT("Stub patch does not store data.");
+		}
+
+		return m_dataTopography;
+	}
+
+	///	<summary>
+	///		Get the nodal topography matrix.
+	///	</summary>
 	const DataMatrix<double> & GetTopography() const {
 		if (!m_fContainsData) {
 			_EXCEPTIONT("Stub patch does not store data.");

@@ -107,22 +107,6 @@ bool OutputManagerComposite::OpenFile(
 		m_pActiveNcOutput->add_att("start_time",
 			model.GetStartTime().ToShortString().c_str());
 
-		// Output physical constants
-		const PhysicalConstants & phys = model.GetPhysicalConstants();
-
-		m_pActiveNcOutput->add_att("earth_radius", phys.GetEarthRadius());
-		m_pActiveNcOutput->add_att("g", phys.GetG());
-		m_pActiveNcOutput->add_att("omega", phys.GetOmega());
-		m_pActiveNcOutput->add_att("alpha", phys.GetAlpha());
-		m_pActiveNcOutput->add_att("Rd", phys.GetR());
-		m_pActiveNcOutput->add_att("Cp", phys.GetCp());
-		m_pActiveNcOutput->add_att("T0", phys.GetT0());
-		m_pActiveNcOutput->add_att("P0", phys.GetP0());
-		m_pActiveNcOutput->add_att("rho_water", phys.GetRhoWater());
-		m_pActiveNcOutput->add_att("Rvap", phys.GetRvap());
-		m_pActiveNcOutput->add_att("Mvap", phys.GetMvap());
-		m_pActiveNcOutput->add_att("Lvap", phys.GetLvap());
-
 		// Output equation set
 		const EquationSet & eqn = model.GetEquationSet();
 
@@ -448,16 +432,27 @@ Time OutputManagerComposite::Input(
 	// Equation set
 	const EquationSet & eqn = m_grid.GetModel().GetEquationSet();
 
-	// Input physical constants
-#pragma message "Input physical constants here"
-
-	// Input topography here
-#pragma message "Input topography here"
-
-	// Input state
 	for (int n = 0; n < m_grid.GetActivePatchCount(); n++) {
 		GridPatch * pPatch = m_grid.GetActivePatch(n);
 
+		int nCumulative2DNodeIx =
+			m_grid.GetCumulativePatch2DNodeIndex(pPatch->GetPatchIndex());
+
+		int nPatchNodeCount = pPatch->GetTotalNodeCount2D();
+
+		// Input topography here
+		DataMatrix<double> & dataTopography =
+			pPatch->GetTopography();
+
+		NcVar * varTopography = pNcFile->get_var("ZS");
+		if (varTopography == NULL) {
+			_EXCEPTIONT("Cannot find variable \'ZS\' in file");
+		}
+		varTopography->set_cur(nCumulative2DNodeIx);
+
+		varTopography->get(dataTopography[0], nPatchNodeCount);
+
+		// Input state
 		GridData4D & dataStateNode =
 			pPatch->GetDataState(0, DataLocation_Node);
 		GridData4D & dataStateREdge =
@@ -467,9 +462,6 @@ Time OutputManagerComposite::Input(
 			pPatch->GetReferenceState(DataLocation_Node);
 		GridData4D & dataRefStateREdge =
 			pPatch->GetReferenceState(DataLocation_REdge);
-
-		int nCumulative2DNodeIx =
-			m_grid.GetCumulativePatch2DNodeIndex(pPatch->GetPatchIndex());
 
 		for (int c = 0; c < eqn.GetComponents(); c++) {
 

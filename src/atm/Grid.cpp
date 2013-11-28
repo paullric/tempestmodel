@@ -30,7 +30,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 Grid::Grid(
-	const Model & model,
+	Model & model,
 	int nABaseResolution,
 	int nBBaseResolution,
 	int nRefinementRatio,
@@ -820,6 +820,22 @@ void Grid::ToFile(
 	NcFile & ncfile
 ) {
 
+	// Output physical constants
+	const PhysicalConstants & phys = m_model.GetPhysicalConstants();
+
+	ncfile.add_att("earth_radius", phys.GetEarthRadius());
+	ncfile.add_att("g", phys.GetG());
+	ncfile.add_att("omega", phys.GetOmega());
+	ncfile.add_att("alpha", phys.GetAlpha());
+	ncfile.add_att("Rd", phys.GetR());
+	ncfile.add_att("Cp", phys.GetCp());
+	ncfile.add_att("T0", phys.GetT0());
+	ncfile.add_att("P0", phys.GetP0());
+	ncfile.add_att("rho_water", phys.GetRhoWater());
+	ncfile.add_att("Rvap", phys.GetRvap());
+	ncfile.add_att("Mvap", phys.GetMvap());
+	ncfile.add_att("Lvap", phys.GetLvap());
+
 	// Create patch index dimension
 	NcDim * dimPatchIndex =
 		ncfile.add_dim("patch_index", GetPatchCount());
@@ -977,6 +993,47 @@ void Grid::FromFile(
 
 	// Open the NetCDF file
 	NcFile ncfile(strGridFile.c_str(), NcFile::ReadOnly);
+
+	// Input physical constants
+	PhysicalConstants & phys = m_model.GetPhysicalConstants();
+
+	NcAtt * attPhys;
+
+	attPhys = ncfile.get_att("earth_radius");
+	phys.SetEarthRadius(attPhys->as_double(0));
+
+	attPhys = ncfile.get_att("g");
+	phys.SetG(attPhys->as_double(0));
+
+	attPhys = ncfile.get_att("omega");
+	phys.SetOmega(attPhys->as_double(0));
+
+	attPhys = ncfile.get_att("alpha");
+	phys.SetAlpha(attPhys->as_double(0));
+
+	attPhys = ncfile.get_att("Rd");
+	phys.SetR(attPhys->as_double(0));
+
+	attPhys = ncfile.get_att("Cp");
+	phys.SetCp(attPhys->as_double(0));
+
+	attPhys = ncfile.get_att("T0");
+	phys.SetT0(attPhys->as_double(0));
+
+	attPhys = ncfile.get_att("P0");
+	phys.SetP0(attPhys->as_double(0));
+
+	attPhys = ncfile.get_att("rho_water");
+	phys.SetRhoWater(attPhys->as_double(0));
+
+	attPhys = ncfile.get_att("Rvap");
+	phys.SetRvap(attPhys->as_double(0));
+
+	attPhys = ncfile.get_att("Mvap");
+	phys.SetMvap(attPhys->as_double(0));
+
+	attPhys = ncfile.get_att("Lvap");
+	phys.SetLvap(attPhys->as_double(0));
 
 	// Load in grid info
 	int iGridInfo[5];

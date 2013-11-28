@@ -50,7 +50,7 @@ public:
 	///		Constructor.
 	///	</summary>
 	Grid(
-		const Model & model,
+		Model & model,
 		int nABaseResolution,
 		int nBBaseResolution,
 		int nRefinementRatio,
@@ -568,7 +568,7 @@ protected:
 	///	<summary>
 	///		Reference to the model.
 	///	</summary>
-	const Model & m_model;
+	Model & m_model;
 
 	///	<summary>
 	///		Grid stamp.  This value is incremented whenever the grid changes.

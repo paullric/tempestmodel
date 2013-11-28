@@ -259,6 +259,13 @@ public:
 	}
 
 	///	<summary>
+	///		Get the physical constants for this model.
+	///	</summary>
+	PhysicalConstants & GetPhysicalConstants() {
+		return m_phys;
+	}
+
+	///	<summary>
 	///		Get the equation set being solved.
 	///	</summary>
 	const EquationSet & GetEquationSet() const {

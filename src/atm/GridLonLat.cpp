@@ -33,7 +33,7 @@ void GridPatchLonLat::EvaluateTestCase(
 ///////////////////////////////////////////////////////////////////////////////
 
 GridLonLat::GridLonLat(
-	const Model & model,
+	Model & model,
 	int nLongitudes,
 	int nLatitudes,
 	int nRefinementRatio,

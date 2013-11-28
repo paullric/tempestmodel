@@ -36,7 +36,7 @@
 #pragma message "BaseResolution should refer to the total number of nodes, not the number of finite elements"
 
 GridCSGLL::GridCSGLL(
-	const Model & model,
+	Model & model,
 	int nBaseResolution,
 	int nRefinementRatio,
 	int nHorizontalOrder,

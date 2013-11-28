@@ -69,7 +69,7 @@ public:
 	///		Constructor.
 	///	</summary>
 	GridLonLat(
-		const Model & model,
+		Model & model,
 		int nLongitudes,
 		int nLatitudes,
 		int nRefinementRatio,
