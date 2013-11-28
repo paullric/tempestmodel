@@ -209,8 +209,8 @@ void GridPatchCSGLL::InitializeDataLocal() {
 		// Element area associated with each GLL node
 		m_dataElementArea[k][i][j] =
 			m_dataJacobian[k][i][j]
-			* dWL[ix] * dElementDeltaA
-			* dWL[jx] * dElementDeltaB
+			* dWL[ix] * GetElementDeltaA()
+			* dWL[jx] * GetElementDeltaB()
 			* dWNode[kx] * dElementDeltaXi;
 
 		// Contravariant metric components at each node
@@ -286,8 +286,8 @@ void GridPatchCSGLL::InitializeDataLocal() {
 		// Element area associated with each vertical interface node
 		m_dataElementAreaREdge[k][i][j] =
 			dJacobian
-			* dWL[ix] * dElementDeltaA
-			* dWL[jx] * dElementDeltaB
+			* dWL[ix] * GetElementDeltaA()
+			* dWL[jx] * GetElementDeltaB()
 			* dWREdge[kx] * dElementDeltaXi;
 
 	}
@@ -354,20 +354,6 @@ void GridPatchCSGLL::EvaluateGeometricTerms() {
 	GridCSGLL & gridCSGLL = dynamic_cast<GridCSGLL &>(m_grid);
 
 	const DataMatrix<double> & dDxBasis1D = gridCSGLL.GetDxBasis1D();
-
-	// Element spacing at this refinement level
-	double dElementDeltaA =
-		  m_box.GetAEdge(m_box.GetHaloElements() + m_nHorizontalOrder)
-		- m_box.GetAEdge(m_box.GetHaloElements());
-
-	double dElementDeltaB =
-		  m_box.GetBEdge(m_box.GetHaloElements() + m_nHorizontalOrder)
-		- m_box.GetBEdge(m_box.GetHaloElements());
-
-#pragma message "Implement rectangular grid elements"
-	if (fabs(dElementDeltaA - dElementDeltaB) > 1.0e-12) {
-		_EXCEPTIONT("Not implemented.");
-	}
 
 	// Vertical grid spacing
 	double dElementDeltaXi =
@@ -475,8 +461,8 @@ void GridPatchCSGLL::EvaluateGeometricTerms() {
 			// Element area associated with each model level GLL node
 			m_dataElementArea[k][iA][iB] =
 				m_dataJacobian[k][iA][iB]
-				* dWL[i] * dElementDeltaA
-				* dWL[j] * dElementDeltaB
+				* dWL[i] * GetElementDeltaA()
+				* dWL[j] * GetElementDeltaB()
 				* dWNode[kx] * dElementDeltaXi;
 
 			// Contravariant metric components
@@ -572,8 +558,8 @@ void GridPatchCSGLL::EvaluateGeometricTerms() {
 			// Element area associated with each model interface GLL node
 			m_dataElementAreaREdge[k][iA][iB] =
 				dJacobian
-				* dWL[i] * dElementDeltaA
-				* dWL[j] * dElementDeltaB
+				* dWL[i] * GetElementDeltaA()
+				* dWL[j] * GetElementDeltaB()
 				* dWREdge[kx] * dElementDeltaXi;
 
 			if ((k != 0) && (k != m_grid.GetRElements()) && (kx == 0)) {
@@ -820,11 +806,6 @@ void GridPatchCSGLL::ComputeCurlAndDiv(
 	// Compute derivatives of the field
 	const DataMatrix<double> & dDxBasis1D = gridCSGLL.GetDxBasis1D();
 
-	// Element spacing
-	double dElementDeltaA =
-		  m_box.GetAEdge(m_box.GetHaloElements() + m_nHorizontalOrder)
-		- m_box.GetAEdge(m_box.GetHaloElements());
-
 	// Number of finite elements in each direction
 	int nAFiniteElements = m_box.GetAInteriorWidth() / m_nHorizontalOrder;
 	int nBFiniteElements = m_box.GetBInteriorWidth() / m_nHorizontalOrder;
@@ -872,13 +853,13 @@ void GridPatchCSGLL::ComputeCurlAndDiv(
 */
 			}
 
-			dDaUa /= dElementDeltaA;
-			dDaUb /= dElementDeltaA;
-			dDbUa /= dElementDeltaA;
-			dDbUb /= dElementDeltaA;
+			dDaUa /= GetElementDeltaA();
+			dDaUb /= GetElementDeltaA();
+			dDbUa /= GetElementDeltaB();
+			dDbUb /= GetElementDeltaB();
 
-			//dDaJUa /= dElementDeltaA;
-			//dDbJUb /= dElementDeltaA;
+			//dDaJUa /= GetElementDeltaA();
+			//dDbJUb /= GetElementDeltaA();
 
 			// Compute covariant derivatives at node
 			double dCovDaUa = dDaUa

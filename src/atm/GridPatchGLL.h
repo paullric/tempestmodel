@@ -53,28 +53,28 @@ public:
 	///	<summary>
 	///		Get the number of finite elements in the alpha direction.
 	///	</summary>
-	int GetElementCountA() const {
+	inline int GetElementCountA() const {
 		return m_nElementCountA;
 	}
 
 	///	<summary>
 	///		Get the number of finite elements in the beta direction.
 	///	</summary>
-	int GetElementCountB() const {
+	inline int GetElementCountB() const {
 		return m_nElementCountB;
 	}
 
 	///	<summary>
 	///		Get the element grid spacing in the alpha direction.
 	///	</summary>
-	double GetElementDeltaA() const {
+	inline double GetElementDeltaA() const {
 		return m_dElementDeltaA;
 	}
 
 	///	<summary>
 	///		Get the element grid spacing in the beta direction.
 	///	</summary>
-	double GetElementDeltaB() const {
+	inline double GetElementDeltaB() const {
 		return m_dElementDeltaB;
 	}
 
