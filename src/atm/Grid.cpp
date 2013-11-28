@@ -52,6 +52,30 @@ Grid::Grid(
 
 ///////////////////////////////////////////////////////////////////////////////
 
+Grid::Grid(
+	Model & model,
+	int nABaseResolution,
+	int nBBaseResolution,
+	int nRefinementRatio,
+	int nRElements,
+	const DataVector<DataLocation> & locStaggering
+) :
+	m_fInitialized(false),
+	m_iGridStamp(0),
+	m_model(model),
+	m_nABaseResolution(nABaseResolution),
+	m_nBBaseResolution(nBBaseResolution),
+	m_nRefinementRatio(nRefinementRatio),
+	m_dReferenceLength(1.0),
+	m_nRElements(nRElements),
+	m_dZtop(1.0),
+	m_nDegreesOfFreedomPerColumn(0),
+	m_fHasReferenceState(false)
+{
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
 Grid::~Grid() {
 	for (int n = 0; n < m_vecGridPatches.size(); n++) {
 		delete m_vecGridPatches[n];
@@ -67,7 +91,16 @@ void Grid::InitializeVerticalCoordinate(
 	int nComponents = m_model.GetEquationSet().GetComponents();
 
 	// Initialize location and index for each variable
-	m_vecVarLocation.resize(nComponents);
+	bool fInitializeStaggering = false;
+	if (m_vecVarLocation.IsInitialized()) {
+		if (m_vecVarLocation.GetRows() != nComponents) {
+			_EXCEPTIONT("Mismatch in staggered variable locations and "
+				"number of free equations");
+		}
+	} else {
+		m_vecVarLocation.Initialize(nComponents);
+		fInitializeStaggering = true;
+	}
 
 	// If dimensionality is 2, then initialize a dummy REta
 	if (m_model.GetEquationSet().GetDimensionality() == 2) {
@@ -81,11 +114,12 @@ void Grid::InitializeVerticalCoordinate(
 		m_dREtaInterfaces[1] = 1.0;
 		m_dREtaLevels[0] = 0.5;
 
-#pragma message "Do not hardcode this information"
 		// Everything on model levels
-		m_vecVarLocation[0] = DataLocation_Node;
-		m_vecVarLocation[1] = DataLocation_Node;
-		m_vecVarLocation[2] = DataLocation_Node;
+		if (fInitializeStaggering) {
+			m_vecVarLocation[0] = DataLocation_Node;
+			m_vecVarLocation[1] = DataLocation_Node;
+			m_vecVarLocation[2] = DataLocation_Node;
+		}
 
 		// Initialize number of degres of freedom per column
 		m_nDegreesOfFreedomPerColumn = nComponents;
@@ -114,11 +148,13 @@ void Grid::InitializeVerticalCoordinate(
 		}
 
 		// Location of variables
-		m_vecVarLocation[0] = DataLocation_Node;
-		m_vecVarLocation[1] = DataLocation_Node;
-		m_vecVarLocation[2] = DataLocation_REdge;
-		m_vecVarLocation[3] = DataLocation_REdge;
-		m_vecVarLocation[4] = DataLocation_Node;
+		if (fInitializeStaggering) {
+			m_vecVarLocation[0] = DataLocation_Node;
+			m_vecVarLocation[1] = DataLocation_Node;
+			m_vecVarLocation[2] = DataLocation_REdge;
+			m_vecVarLocation[3] = DataLocation_REdge;
+			m_vecVarLocation[4] = DataLocation_Node;
+		}
 
 		// Initialize number of degres of freedom per column
 		m_nDegreesOfFreedomPerColumn = 0;

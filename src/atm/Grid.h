@@ -58,6 +58,18 @@ public:
 	);
 
 	///	<summary>
+	///		Constructor.
+	///	</summary>
+	Grid(
+		Model & model,
+		int nABaseResolution,
+		int nBBaseResolution,
+		int nRefinementRatio,
+		int nRElements,
+		const DataVector<DataLocation> & locStaggering
+	);
+
+	///	<summary>
 	///		Virtual destructor.
 	///	</summary>
 	virtual ~Grid();
@@ -619,7 +631,7 @@ protected:
 	///	<summary>
 	///		Location of each equation set variable.
 	///	</summary>
-	std::vector<DataLocation> m_vecVarLocation;
+	DataVector<DataLocation> m_vecVarLocation;
 
 	///	<summary>
 	///		Map from equation set variable index to location-dependent
