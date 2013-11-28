@@ -55,8 +55,7 @@ GridCartesianGLL::GridCartesianGLL(
 		nRElements)
 {
 	// Set the reference length scale
-	// TODO: change this from hard coded information
-	m_dReferenceLength = 1.0;
+	m_dReferenceLength = 110000.0;
 
 	// Bring through the grid dimensions
 	m_dGDim[0] = dGDim[0]; m_dGDim[1] = dGDim[1];
@@ -281,8 +280,10 @@ void GridCartesianGLL::GetPatchFromCoordinateIndex(
 	}
 
 	// Calculate local resolution
-	int nLocalResolution =
+	int nLocalResolutionA =
 		m_nHorizontalOrder * GetABaseResolution(iRefinementLevel);
+	int nLocalResolutionB =
+		m_nHorizontalOrder * GetBBaseResolution(iRefinementLevel);
 
 	// Loop through all entries
 	int iLastPatch = GridPatch::InvalidIndex;
@@ -291,6 +292,20 @@ void GridCartesianGLL::GetPatchFromCoordinateIndex(
 		int iA = vecIxA[i];
 		int iB = vecIxB[i];
 		int iP = vecPanel[i];
+
+		// Wrap global indices
+		if (iA < 0) {
+			iA += nLocalResolutionA;
+		}
+		if (iA >= nLocalResolutionA) {
+			iA -= nLocalResolutionA;
+		}
+		if (iB < 0) {
+			iB += nLocalResolutionB;
+		}
+		if (iB >= nLocalResolutionB) {
+			iB -= nLocalResolutionB;
+		}
 
 		// Check the last patch searched
 		if (iLastPatch != GridPatch::InvalidIndex) {
@@ -320,6 +335,8 @@ void GridCartesianGLL::GetPatchFromCoordinateIndex(
 
 		if (n == GetPatchCount()) {
 			vecPatchIndex[i] = GridPatch::InvalidIndex;
+
+			_EXCEPTIONT("(LOGIC ERROR) Invalid global coordinate");
 		}
 	}
 }
@@ -362,6 +379,9 @@ void GridCartesianGLL::GetOpposingDirection(
 	} else if (dir == Direction_BottomRight) {
 		dirOpposing = Direction_TopLeft;
 	}
+
+	// Do not switch directions across this edge
+	fSwitchParallel = false;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -370,6 +390,7 @@ void GridCartesianGLL::ApplyBoundaryConditions(
 	int iDataUpdate,
 	DataType eDataType
 ) {
+	_EXCEPTION();
 	for (int n = 0; n < GetActivePatchCount(); n++) {
 		GridPatchCartesianGLL * pPatch =
 			dynamic_cast<GridPatchCartesianGLL*>(GetActivePatch(n));
@@ -384,16 +405,12 @@ void GridCartesianGLL::ApplyDSS(
 	int iDataUpdate,
 	DataType eDataType
 ) {
-	// Apply boundary conditions
-	ApplyBoundaryConditions(iDataUpdate, eDataType);
-
 	// Exchange data between nodes
-	//Exchange(eDataType, iDataUpdate);
+	Exchange(eDataType, iDataUpdate);
 
 	// Post-process velocities across panel edges and
 	// perform direct stiffness summation (DSS)
 	for (int n = 0; n < GetActivePatchCount(); n++) {
-		//std::cout << "DSS patch loop count: " << n << "\n";
 		GridPatchCartesianGLL * pPatch =
 			dynamic_cast<GridPatchCartesianGLL*>(GetActivePatch(n));
 
@@ -445,7 +462,6 @@ void GridCartesianGLL::ApplyDSS(
 				pDataUpdate = pPatch->GetDataDivergence();
 			}
 
-			//std::cout << "Entering DSS averaging loop!";
 			// Averaging DSS across patch boundaries
 			for (int k = 0; k < nRElements; k++) {
 

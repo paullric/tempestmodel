@@ -828,8 +828,8 @@ void Connectivity::ExteriorConnect(
 	int nHaloElements = model.GetHaloElements();
 
 	// Get the opposing direction
-	Direction dirOpposing;
-	bool fReverseDirection;
+	Direction dirOpposing = Direction_Unreachable;
+	bool fReverseDirection = false;
 
 	grid.GetOpposingDirection(
 		box.GetPanel(),

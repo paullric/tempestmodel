@@ -819,7 +819,7 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 
 					// Scale derivatives
 					dDaUx /= dElementDeltaA;
-					dDbUx /= dElementDeltaA;
+					dDbUx /= dElementDeltaB;
 
 					// Update vertical velocity
 					dataUpdateNode[WIx][k][iA][iB] -=
@@ -861,7 +861,7 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 
 					// Scale derivatives
 					dDaTheta /= dElementDeltaA;
-					dDbTheta /= dElementDeltaA;
+					dDbTheta /= dElementDeltaB;
 
 					// Update potential temperature
 					dataUpdateNode[TIx][k][iA][iB] -=
@@ -911,7 +911,7 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 
 					// Scale derivatives
 					dDaUx /= dElementDeltaA;
-					dDbUx /= dElementDeltaA;
+					dDbUx /= dElementDeltaB;
 
 					// Update vertical velocity
 					dataUpdateREdge[WIx][k][iA][iB] -=
@@ -956,7 +956,7 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 
 					// Scale derivatives
 					dDaTheta /= dElementDeltaA;
-					dDbTheta /= dElementDeltaA;
+					dDbTheta /= dElementDeltaB;
 
 					// Update vertical velocity
 					dataUpdateREdge[TIx][k][iA][iB] -=

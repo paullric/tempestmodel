@@ -21,7 +21,7 @@
 #include "Model.h"
 #include "TimestepSchemeARK4.h"
 #include "HorizontalDynamicsFEM.h"
-#include "VerticalDynamicsStub.h"
+#include "VerticalDynamicsFEM.h"
 
 #include "PhysicalConstants.h"
 #include "TestCase.h"
@@ -129,7 +129,7 @@ public:
 		m_dR(287.058),
 		m_dNbar(0.01),
 		m_dTheta0(300.0),
-		m_dThetaC(0.01),
+		m_dThetaC(1.0),
 		m_dhC(10000.),
 		m_daC(5000.),
 		m_dxC(1.0E+5),
@@ -334,7 +334,7 @@ try {
 	AnnounceEndBlock("Done");
 
 	// Set the vertical dynamics
-	VerticalDynamicsStub vdyn(model);
+	VerticalDynamicsFEM vdyn(model, nOrder, nOrder);
 	AnnounceStartBlock("Initializing vertical dynamics");
 	model.SetVerticalDynamics(&vdyn);
 	AnnounceEndBlock("Done");

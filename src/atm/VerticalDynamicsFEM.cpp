@@ -97,13 +97,13 @@ void VerticalDynamicsFEM::Initialize() {
 	}
 
 	// Parent grid, containing the vertical remapping information
-	const GridCSGLL * pCSGLLGrid = dynamic_cast<const GridCSGLL*>(pGrid);
-	if (pCSGLLGrid == NULL) {
-		_EXCEPTIONT("Invalid grid -- expected GridCSGLL");
+	const GridGLL * pGLLGrid = dynamic_cast<const GridGLL*>(pGrid);
+	if (pGLLGrid == NULL) {
+		_EXCEPTIONT("Invalid grid -- expected GridGLL");
 	}
 
-	m_pInterpNodeToREdge = &(pCSGLLGrid->GetInterpNodeToREdge());
-	m_pInterpREdgeToNode = &(pCSGLLGrid->GetInterpREdgeToNode());
+	m_pInterpNodeToREdge = &(pGLLGrid->GetInterpNodeToREdge());
+	m_pInterpREdgeToNode = &(pGLLGrid->GetInterpREdgeToNode());
 
 #ifdef USE_PETSC
 	// Initialize the PetSc solver context
