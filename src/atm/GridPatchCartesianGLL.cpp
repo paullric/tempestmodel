@@ -141,16 +141,7 @@ void GridPatchCartesianGLL::EvaluateGeometricTerms() {
 	dynamic_cast<GridCartesianGLL &>(m_grid);
 
 	const DataMatrix<double> & dDxBasis1D = gridCartesianGLL.GetDxBasis1D();
-/*
-	// Element spacing at this refinement level
-	double dElementDeltaA =
-		m_box.GetAEdge(m_box.GetHaloElements() + m_nHorizontalOrder)
-		- m_box.GetAEdge(m_box.GetHaloElements());
 
-	double dElementDeltaB =
-		m_box.GetBEdge(m_box.GetHaloElements() + m_nHorizontalOrder)
-		- m_box.GetBEdge(m_box.GetHaloElements());
-*/
 	// Vertical grid spacing
 	double dElementDeltaXi =
 		m_grid.GetREtaInterface(m_nVerticalOrder)
@@ -631,11 +622,6 @@ void GridPatchCartesianGLL::ComputeCurlAndDiv(
 	// Compute derivatives of the field
 	const DataMatrix<double> & dDxBasis1D = gridCSGLL.GetDxBasis1D();
 
-	// Element spacing
-	double dElementDeltaA =
-		  m_box.GetAEdge(m_box.GetHaloElements() + m_nHorizontalOrder)
-		- m_box.GetAEdge(m_box.GetHaloElements());
-
 	// Number of finite elements in each direction
 	int nAFiniteElements = m_box.GetAInteriorWidth() / m_nHorizontalOrder;
 	int nBFiniteElements = m_box.GetBInteriorWidth() / m_nHorizontalOrder;
@@ -669,10 +655,10 @@ void GridPatchCartesianGLL::ComputeCurlAndDiv(
 				dDbUb += dataUb[k][iA+i][iB+s] * dDxBasis1D[s][j];
 			}
 
-			dDaUa /= dElementDeltaA;
-			dDaUb /= dElementDeltaA;
-			dDbUa /= dElementDeltaA;
-			dDbUb /= dElementDeltaA;
+			dDaUa /= GetElementDeltaA();
+			dDaUb /= GetElementDeltaA();
+			dDbUa /= GetElementDeltaB();
+			dDbUb /= GetElementDeltaB();
 
 			// Compute covariant derivatives at node
 			double dCovDaUa = dDaUa
@@ -840,7 +826,7 @@ void GridPatchCartesianGLL::InterpolateREdgeToNode(
 void GridPatchCartesianGLL::InterpolateData(
 	const DataVector<double> & dAlpha,
 	const DataVector<double> & dBeta,
-	const DataVector<int> & iPanel,
+	const DataVector<int> & iPatch,
 	DataType eDataType,
 	DataMatrix3D<double> & dInterpData,
 	bool fIncludeReferenceState,
@@ -877,15 +863,21 @@ void GridPatchCartesianGLL::InterpolateData(
 	for (int i = 0; i < dAlpha.GetRows(); i++) {
 
 		// Element index
-		if ((iPanel[i] != m_box.GetPanel()) ||
-			(dAlpha[i] < m_box.GetAEdge(m_box.GetAInteriorBegin())) ||
-			(dAlpha[i] > m_box.GetAEdge(m_box.GetAInteriorEnd())) ||
-			(dBeta[i] < m_box.GetBEdge(m_box.GetBInteriorBegin())) ||
-			(dBeta[i] > m_box.GetBEdge(m_box.GetBInteriorEnd()))
-		) {
+		if (iPatch[i] != GetPatchIndex()) {
 			continue;
 		}
 
+		// Verify point lies within domain of patch
+		const double Eps = 1.0e-10;
+		if ((dAlpha[i] < m_box.GetAEdge(m_box.GetAInteriorBegin()) - Eps) ||
+			(dAlpha[i] > m_box.GetAEdge(m_box.GetAInteriorEnd()) + Eps) ||
+			(dBeta[i] < m_box.GetBEdge(m_box.GetBInteriorBegin()) - Eps) ||
+			(dBeta[i] > m_box.GetBEdge(m_box.GetBInteriorEnd()) + Eps)
+		) {
+			_EXCEPTIONT("Point out of range");
+		}
+
+		// Determine finite element index
 		int iA =
 			(dAlpha[i] - m_box.GetAEdge(m_box.GetAInteriorBegin())) / dDeltaA;
 

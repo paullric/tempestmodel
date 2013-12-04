@@ -1080,7 +1080,7 @@ void GridPatchCSGLL::InterpolateData(
 			_EXCEPTIONT("Point out of range");
 		}
 
-		// Determine finite element inde
+		// Determine finite element index
 		int iA =
 			(dAlpha[i] - m_box.GetAEdge(m_box.GetAInteriorBegin()))
 				/ GetElementDeltaA();

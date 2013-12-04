@@ -54,7 +54,7 @@ GridCartesianGLL::GridCartesianGLL(
 		nVerticalOrder,
 		nRElements)
 {
-	// Set the reference length scale
+	// Set the reference length scale (110km)
 	m_dReferenceLength = 110000.0;
 
 	// Bring through the grid dimensions

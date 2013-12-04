@@ -276,8 +276,6 @@ void Model::Go() {
 		// Update the timer
 		m_time += dDeltaT;
 
-		Announce("Loop timer: %li", timerLoop.StopTime());
-
 		if (fLastStep) {
 			break;
 		}
@@ -285,6 +283,10 @@ void Model::Go() {
 		// Check for output
 		for (int om = 0; om < m_vecOutMan.size(); om++) {
 			if (m_vecOutMan[om]->IsOutputNeeded(m_time)) {
+
+#pragma message "Output average loop time"
+				//Announce("Loop timer: %li", timerLoop.StopTime());
+
 				m_vecOutMan[om]->ManageOutput(m_time);
 			}
 		}
