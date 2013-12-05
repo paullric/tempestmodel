@@ -116,11 +116,18 @@ private:
 	///	</summary>
 	double m_dpiC;
 
+	///	<summary>
+	///		Flag indicating that the reference profile should be used.
+	///	</summary>
+	bool m_fNoReferenceState;
+
 public:
 	///	<summary>
 	///		Constructor. (with physical constants defined privately here)
 	///	</summary>
-	InertialGravityCartesianXZTest() :
+	InertialGravityCartesianXZTest(
+		bool fNoReferenceState
+	) :
 		m_dH0(10000.),
 		m_dU0(20.),
 		m_dP0(1.0E5),
@@ -133,7 +140,8 @@ public:
 		m_dhC(10000.),
 		m_daC(5000.),
 		m_dxC(1.0E+5),
-		m_dpiC(3.14159265)
+		m_dpiC(3.14159265),
+		m_fNoReferenceState(fNoReferenceState)
 	{
 		// Set the dimensions of the box
 		m_dGDim[0] = 0.0;
@@ -160,6 +168,13 @@ public:
 	}
 
 	///	<summary>
+	///		Flag indicating that a reference state is available.
+	///	</summary>
+	virtual bool HasReferenceState() const {
+		return !m_fNoReferenceState;
+	}
+
+	///	<summary>
 	///		Obtain test case specific physical constants.
 	///	</summary>
 	virtual void EvaluatePhysicalConstants(
@@ -180,7 +195,7 @@ public:
 	}
 
 	///	<summary>
-	///		Evaluate the perturbed potential temperature field.
+	///		Evaluate the potential temperature field perturbation.
 	///	</summary>
 	double EvaluateTPrime(
 		const PhysicalConstants & phys,
@@ -189,21 +204,44 @@ public:
 	) const {
 		double dG = phys.GetG();
 
-		// Base potential temperature field
-		double dThetaBar = m_dTheta0 * exp(m_dNbar * m_dNbar / dG * dzP);
-
 		// Potential temperature perturbation
 		double dThetaHat1 = m_dThetaC * sin(m_dpiC * dzP / m_dhC);
 		double argX = (dxP - m_dxC)/m_daC;
 		double dThetaHat2 = (1.0 + argX * argX);
 		double dThetaHat = dThetaHat1 / dThetaHat2;
 
-		//std::cout << "\n" << dzP << " " << dThetaHat1;
-		//std::cout << "\n" << dxP << " " << argX << " " << dThetaHat2;
-		//std::cout << m_daC << " " << m_dxC;
-		return dThetaHat + dThetaBar;
-		//return dThetaBar;
-		//return dThetaHat;
+		return dThetaHat;
+	}
+
+	///	<summary>
+	///		Evaluate the reference state at the given point.
+	///	</summary>
+	virtual void EvaluateReferenceState(
+		const PhysicalConstants & phys,
+		double dzP,
+		double dxP,
+		double dyP,
+		double * dState
+	) const {
+		// Base potential temperature field
+		double dG = phys.GetG();
+		double dThetaBar = m_dTheta0 * exp(m_dNbar * m_dNbar / dG * dzP);
+
+		// Set the uniform U, V, W field for all time
+		dState[0] = m_dU0;
+		dState[1] = 0.0;
+		dState[3] = 0.0;
+
+		// Set the initial potential temperature field
+		dState[2] = dThetaBar;
+
+		// Set the initial density based on the Exner pressure
+		double gsi = phys.GetG();
+		double dExnerP = pow(gsi,2.0) / (m_dCp * m_dTheta0 * pow(m_dNbar,2.0));
+		dExnerP *= (exp(-pow(m_dNbar,2.0)/gsi * dzP) - 1.0);
+		dExnerP += 1.0;
+		double dRho = m_dP0 / (m_dR * dThetaBar) * pow(dExnerP,(m_dCv / m_dR));
+		dState[4] = dRho;
 	}
 
 	///	<summary>
@@ -218,6 +256,9 @@ public:
 		double * dState,
 		double * dTracer
 	) const {
+		// Base potential temperature field
+		double dG = phys.GetG();
+		double dThetaBar = m_dTheta0 * exp(m_dNbar * m_dNbar / dG * dzP);
 
 		// Set the uniform U, V, W field for all time
 		dState[0] = m_dU0;
@@ -225,14 +266,14 @@ public:
 		dState[3] = 0.0;
 
 		// Set the initial potential temperature field
-		dState[2] = EvaluateTPrime(phys, dxP, dzP);
+		dState[2] = dThetaBar + EvaluateTPrime(phys, dxP, dzP);
 
 		// Set the initial density based on the Exner pressure
 		double gsi = phys.GetG();
 		double dExnerP = pow(gsi,2.0) / (m_dCp * m_dTheta0 * pow(m_dNbar,2.0));
 		dExnerP *= (exp(-pow(m_dNbar,2.0)/gsi * dzP) - 1.0);
 		dExnerP += 1.0;
-		double dRho = m_dP0 / (m_dR * dState[2]) * pow(dExnerP,(m_dCv / m_dR));
+		double dRho = m_dP0 / (m_dR * dThetaBar) * pow(dExnerP,(m_dCv / m_dR));
 		dState[4] = dRho;
 	}
 };
@@ -257,8 +298,14 @@ try {
 	// Resolution
 	int nResolution;
 
-	// Order
-	int nOrder;
+	// Levels
+	int nLevels;
+
+	// Horizontal Order
+	int nHorizontalOrder;
+
+	// Vertical Order
+	int nVerticalOrder;
 
 	// Grid rotation angle
 	double dAlpha;
@@ -272,6 +319,15 @@ try {
 	// Use hyperdiffusion
 	bool fNoHyperviscosity;
 
+	// No reference state
+	bool fNoReferenceState;
+
+	// Store Exner pressure on edges (advanced)
+	bool fExnerPressureOnREdges;
+
+	// Store mass flux on levels (advanced)
+	bool fMassFluxOnLevels;
+
 	// Model parameters
 	ModelParameters params;
 
@@ -281,14 +337,20 @@ try {
 			"outInertialGravityCartesianXZTest");
 		CommandLineString(strOutputPrefix, "output_prefix", "out");
 		CommandLineInt(nOutputsPerFile, "output_perfile", -1);
+		CommandLineString(params.m_strRestartFile, "restart_file", "");
 		CommandLineInt(nResolution, "resolution", 20);
-		CommandLineInt(nOrder, "order", 4);
+		CommandLineInt(nLevels, "levels", 20);
+		CommandLineInt(nHorizontalOrder, "order", 4);
+		CommandLineInt(nVerticalOrder, "vertorder", 4);
 		CommandLineDouble(dAlpha, "alpha", 0.0);
 		CommandLineDouble(params.m_dDeltaT, "dt", 10.0);
 		CommandLineDouble(params.m_dEndTime, "endtime", 10.0);
 		CommandLineDouble(dOutputDeltaT, "outputtime", 10.0);
 		CommandLineStringD(strHorizontalDynamics, "method", "SE", "(SE | DG)");
 		CommandLineBool(fNoHyperviscosity, "nohypervis");
+		CommandLineBool(fNoReferenceState, "norefstate");
+		CommandLineBool(fExnerPressureOnREdges, "exneredges");
+		CommandLineBool(fMassFluxOnLevels, "massfluxlevels");
 
 		ParseCommandLine(argc, argv);
 	EndCommandLine(argv)
@@ -328,29 +390,36 @@ try {
 	}
 	
 	HorizontalDynamicsFEM hdyn(
-	   model, nOrder, eHorizontalDynamicsType, fNoHyperviscosity);
+	   model, nHorizontalOrder, eHorizontalDynamicsType, fNoHyperviscosity);
 	AnnounceStartBlock("Initializing horizontal dynamics");
 	model.SetHorizontalDynamics(&hdyn);
 	AnnounceEndBlock("Done");
 
 	// Set the vertical dynamics
-	VerticalDynamicsFEM vdyn(model, nOrder, nOrder);
+	VerticalDynamicsFEM vdyn(
+		model,
+		nHorizontalOrder,
+		nVerticalOrder,
+		!fExnerPressureOnREdges,
+		fMassFluxOnLevels);
+
 	AnnounceStartBlock("Initializing vertical dynamics");
 	model.SetVerticalDynamics(&vdyn);
 	AnnounceEndBlock("Done");
 
-	// Generate a new cartesian GLL grid (20 x 20 x 20 for now)
+	// Generate a new cartesian GLL grid
 	// Initialize the test case here (to have grid dimensions available)
-	InertialGravityCartesianXZTest test;
+	InertialGravityCartesianXZTest test(fNoReferenceState);
+
 	AnnounceStartBlock("Constructing grid");
 	GridCartesianGLL grid(
 		model,
 		nResolution,
 		1,
 		1,
-		nOrder,
-		nOrder,
-		nResolution,
+		nHorizontalOrder,
+		nVerticalOrder,
+		nLevels,
 		test.m_dGDim);
 
 	model.SetGrid(&grid);
@@ -364,7 +433,7 @@ try {
 		strOutputDir,
 		strOutputPrefix,
 		nOutputsPerFile,
-		nResolution * nOrder,
+		nResolution * nHorizontalOrder,
 		2);
 	model.AttachOutputManager(&outmanRef);
 	AnnounceEndBlock("Done");
@@ -386,7 +455,7 @@ try {
 	AnnounceEndBlock("Done");
 
 	// Set the test case for the model
-	InertialGravityCartesianXZTest ctest;
+	InertialGravityCartesianXZTest ctest(fNoReferenceState);
 	AnnounceStartBlock("Initializing test case");
 	model.SetTestCase(&ctest);
 	AnnounceEndBlock("Done");

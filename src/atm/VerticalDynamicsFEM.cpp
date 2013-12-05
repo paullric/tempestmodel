@@ -32,11 +32,15 @@
 VerticalDynamicsFEM::VerticalDynamicsFEM(
 	Model & model,
 	int nHorizontalOrder,
-	int nVerticalOrder
+	int nVerticalOrder,
+	bool fExnerPressureOnLevels,
+	bool fMassFluxOnLevels
 ) :
 	VerticalDynamics(model),
 	m_nHorizontalOrder(nHorizontalOrder),
-	m_nVerticalOrder(nVerticalOrder)
+	m_nVerticalOrder(nVerticalOrder),
+	m_fExnerPressureOnLevels(fExnerPressureOnLevels),
+	m_fMassFluxOnLevels(fMassFluxOnLevels)
 {
 }
 
@@ -155,7 +159,6 @@ void VerticalDynamicsFEM::Initialize() {
 	// Get points for Gaussian quadrature
 	DataVector<double> dG;
 	DataVector<double> dGL;
-	DataVector<double> dGE;
 	DataVector<double> dW;
 
 	// Reference element [0,1] model levels
@@ -163,14 +166,6 @@ void VerticalDynamicsFEM::Initialize() {
 
 	// Reference element [0,1] model interfaces
 	GaussLobattoQuadrature::GetPoints(m_nVerticalOrder+1, 0.0, 1.0, dGL, dW);
-
-	// Extended nodes
-	dGE.Initialize(dG.GetRows()+2);
-	dGE[0] = 0.0;
-	for (int i = 0; i < dG.GetRows(); i++) {
-		dGE[i+1] = dG[i];
-	}
-	dGE[dG.GetRows()+1] = 1.0;
 
 	// State vector at levels
 	m_dStateNode.Initialize(
@@ -184,6 +179,9 @@ void VerticalDynamicsFEM::Initialize() {
 
 	// Auxiliary variables at interfaces
 	int nFiniteElements = nRElements / m_nVerticalOrder;
+	if (nRElements % m_nVerticalOrder != 0) {
+		_EXCEPTIONT("Logic error: Vertical order must divide RElements");
+	}
 
 	m_dStateAux.Initialize(nRElements+1);
 	m_dStateAuxDiff.Initialize(nRElements+1);
@@ -327,13 +325,24 @@ void VerticalDynamicsFEM::Initialize() {
 				(pGrid->GetVarLocation(RIx) == DataLocation_Node) &&
 				(pGrid->GetVarLocation(WIx) == DataLocation_REdge)
 			) {
-				DifferentiateNodeToNode(
-					m_dExnerRefNode,
-					m_dDiffExnerRefNode);
+				if (m_fExnerPressureOnLevels) {
+					DifferentiateNodeToNode(
+						m_dExnerRefNode,
+						m_dDiffExnerRefNode);
 
-				DifferentiateNodeToREdge(
-					m_dExnerRefREdge,
-					m_dDiffExnerRefREdge);
+					DifferentiateNodeToREdge(
+						m_dExnerRefNode,
+						m_dDiffExnerRefREdge);
+
+				} else {
+					DifferentiateREdgeToNode(
+						m_dExnerRefREdge,
+						m_dDiffExnerRefNode);
+
+					DifferentiateREdgeToREdge(
+						m_dExnerRefREdge,
+						m_dDiffExnerRefREdge);
+				}
 
 			} else {
 				_EXCEPTIONT("Invalid variable staggering"
@@ -359,7 +368,8 @@ void VerticalDynamicsFEM::InterpolateNodeToREdge(
 	const double * dDataNode,
 	const double * dDataRefNode,
 	double * dDataREdge,
-	const double * dDataRefREdge
+	const double * dDataRefREdge,
+	bool fZeroBoundaries
 ) {
 	// Number of radial elements
 	int nRElements = m_model.GetGrid()->GetRElements();
@@ -389,6 +399,12 @@ void VerticalDynamicsFEM::InterpolateNodeToREdge(
 	}
 	for (int k = 0; k <= nRElements; k++) {
 		dDataREdge[k] += dDataRefREdge[k];
+	}
+
+	// Override boundary values if zero
+	if (fZeroBoundaries) {
+		dDataREdge[0] = 0.0;
+		dDataREdge[nRElements] = 0.0;
 	}
 }
 
@@ -650,6 +666,7 @@ void VerticalDynamicsFEM::StepExplicit(
 	const Time & time,
 	double dDeltaT
 ) {
+	return;
 	// Get a copy of the grid
 	Grid * pGrid = m_model.GetGrid();
 
@@ -1094,24 +1111,24 @@ void VerticalDynamicsFEM::StepImplicit(
 					m_dSoln,
 					m_dSoln.GetRows(),
 					1.0e-8);
-
+/*
 			// DEBUG (check for NANs in output)
-			if (!(m_dSoln[0] == m_dSoln[0])) {
+			//if (!(m_dSoln[0] == m_dSoln[0])) {
                 DataVector<double> dEval;
                 dEval.Initialize(m_dColumnState.GetRows());
                 Evaluate(m_dSoln, dEval);
 
                 for (int p = 0; p < dEval.GetRows(); p++) {
                     printf("%1.15e %1.15e %1.15e\n",
-						dEval[p], m_dSoln[p], m_dColumnState[p]);
+						dEval[p], m_dSoln[p] - m_dColumnState[p], m_dColumnState[p]);
                 }
 				for (int p = 0; p < m_dExnerRefREdge.GetRows(); p++) {
 					printf("%1.15e %1.15e\n",
 						m_dExnerRefREdge[p], dataRefREdge[RIx][p][iA][iB]);
 				}
                 _EXCEPTIONT("Inversion failure");
-            }
-
+            //}
+*/
 #endif
 
 			// Apply updated state
@@ -1552,108 +1569,91 @@ void VerticalDynamicsFEM::EvaluateMixed(
 	// Zero F
 	memset(dF, 0, m_nColumnStateSize * sizeof(double));
 
-	// Calculate mass flux on W levels
+	// W on model interfaces
 	if (pGrid->GetVarLocation(WIx) == DataLocation_REdge) {
+		memcpy(
+			m_dStateREdge[WIx],
+			&(dX[m_ixWBegin]),
+			(nRElements+1) * sizeof(double));
 
-		// W needed on model levels
-		if (pGrid->GetVarLocation(TIx) == DataLocation_Node) {
+		// W is needed on model levels
+		if ((m_fMassFluxOnLevels) ||
+			(pGrid->GetVarLocation(TIx) == DataLocation_Node)
+		) {
 			InterpolateREdgeToNode(
 				&(dX[m_ixWBegin]),
 				m_dStateRefREdge[WIx],
 				m_dStateNode[WIx],
 				m_dStateRefNode[WIx]);
 		}
-/*
-		// Mass flux on model levels
-		InterpolateREdgeToNode(
-			&(dX[m_ixWBegin]),
-			m_dStateRefREdge[WIx],
-			m_dStateNode[WIx],
-			m_dStateRefNode[WIx]);
-
-		for (int k = 0; k < nRElements; k++) {
-			m_dMassFluxNode[k] = m_dStateNode[WIx][k] * dX[m_ixRBegin + k];
-		}
-
-		// Compute derivatives of mass flux on nodes
-		DifferentiateNodeToNode(
-			m_dMassFluxNode,
-			m_dDiffMassFluxNode,
-			true);
-*/
-		// Mass flux on model interfaces
-		InterpolateNodeToREdge(
-			&(dX[m_ixRBegin]),
-			m_dStateRefNode[RIx],
-			m_dStateREdge[RIx],
-			m_dStateRefREdge[RIx]);
-
-		for (int k = 1; k < nRElements; k++) {
-			m_dMassFluxREdge[k] = m_dStateREdge[RIx][k] * dX[m_ixWBegin + k];
-		}
-		m_dMassFluxREdge[0] = 0.0;
-		m_dMassFluxREdge[nRElements] = 0.0;
-
-		// Compute derivatives of mass flux on nodes
-		DifferentiateREdgeToNode(
-			m_dMassFluxREdge,
-			m_dDiffMassFluxNode);
 
 	// W on model levels
 	} else {
-		// W needed on model interfaces
-		if (pGrid->GetVarLocation(TIx) == DataLocation_REdge) {
+		memcpy(
+			m_dStateNode[WIx],
+			&(dX[m_ixWBegin]),
+			nRElements * sizeof(double));
+
+		// W is needed on model interfaces
+		if ((!m_fMassFluxOnLevels) ||
+			(pGrid->GetVarLocation(TIx) == DataLocation_REdge)
+		) {
 			InterpolateNodeToREdge(
 				&(dX[m_ixWBegin]),
 				m_dStateRefNode[WIx],
 				m_dStateREdge[WIx],
-				m_dStateRefREdge[WIx]);
-
-			m_dStateREdge[WIx][0] = 0.0;
-			m_dStateREdge[WIx][nRElements] = 0.0;
+				m_dStateRefREdge[WIx],
+				true);
 		}
-
-		// Mass flux on nodes
-		for (int k = 0; k < nRElements; k++) {
-			m_dMassFluxNode[k] = dX[m_ixWBegin + k] * dX[m_ixRBegin + k];
-		}
-
-		// Compute derivatives of mass flux on nodes
-		DifferentiateNodeToNode(
-			m_dMassFluxNode,
-			m_dDiffMassFluxNode,
-			true);
 	}
 
-	// Compute update on rho
-	for (int k = 0; k < nRElements; k++) {
-		dF[m_ixRBegin+k] = m_dDiffMassFluxNode[k];
-	}
-
-	// Theta on model interfaces
+	// T on model interfaces
 	if (pGrid->GetVarLocation(TIx) == DataLocation_REdge) {
-
 		memcpy(
 			m_dStateREdge[TIx],
 			&(dX[m_ixTBegin]),
 			(nRElements+1) * sizeof(double));
 
-		// Remap Theta to model levels
-		InterpolateREdgeToNode(
+		// Calculate update for T
+		DifferentiateREdgeToREdge(
 			&(dX[m_ixTBegin]),
-			m_dStateRefREdge[TIx],
-			m_dStateNode[TIx],
-			m_dStateRefNode[TIx]);
+			m_dStateAuxDiff);
 
-	// Theta on model levels
+		for (int k = 0; k <= nRElements; k++) {
+			dF[m_ixTBegin+k] = m_dStateREdge[WIx][k] * m_dStateAuxDiff[k];
+		}
+
+		// T is needed on model levels
+		if ((m_fExnerPressureOnLevels) ||
+			(pGrid->GetVarLocation(WIx) == DataLocation_Node)
+		) {
+			InterpolateREdgeToNode(
+				&(dX[m_ixTBegin]),
+				m_dStateRefREdge[TIx],
+				m_dStateNode[TIx],
+				m_dStateRefNode[TIx]);
+		}
+
+	// T on model levels
 	} else {
 		memcpy(
 			m_dStateNode[TIx],
 			&(dX[m_ixTBegin]),
 			nRElements * sizeof(double));
 
-		// If W is on interfaces, remap theta to interfaces
-		if (pGrid->GetVarLocation(WIx) == DataLocation_REdge) {
+		// Calculate update for T
+		DifferentiateNodeToNode(
+			&(dX[m_ixTBegin]),
+			m_dStateAuxDiff);
+
+		for (int k = 0; k < nRElements; k++) {
+			dF[m_ixTBegin+k] = m_dStateNode[WIx][k] * m_dStateAuxDiff[k];
+		}
+
+		// T is needed on model interfaces
+		if ((!m_fExnerPressureOnLevels) ||
+			(pGrid->GetVarLocation(WIx) == DataLocation_REdge)
+		) {
 			InterpolateNodeToREdge(
 				&(dX[m_ixTBegin]),
 				m_dStateRefNode[TIx],
@@ -1662,29 +1662,156 @@ void VerticalDynamicsFEM::EvaluateMixed(
 		}
 	}
 
-	// Compute Exner function on nodes
-	for (int k = 0; k < nRElements; k++) {
-		m_dExnerPertNode[k] =
-			phys.GetCp() * exp(phys.GetR() / phys.GetCv()
-				* log(phys.GetR() / phys.GetP0()
-					* dX[m_ixRBegin+k] * m_dStateNode[TIx][k]));
+	// Rho on model interfaces
+	if (pGrid->GetVarLocation(RIx) == DataLocation_REdge) {
+		memcpy(
+			m_dStateREdge[RIx],
+			&(dX[m_ixRBegin]),
+			(nRElements+1) * sizeof(double));
 
-		m_dExnerPertNode[k] -= m_dExnerRefNode[k];
+		// Rho is needed on model levels
+		if ((m_fMassFluxOnLevels) ||
+			(m_fExnerPressureOnLevels)
+		) {
+			InterpolateREdgeToNode(
+				&(dX[m_ixRBegin]),
+				m_dStateRefREdge[RIx],
+				m_dStateNode[RIx],
+				m_dStateRefNode[RIx]);
+		}
+
+	// Rho on model levels
+	} else {
+		memcpy(
+			m_dStateNode[RIx],
+			&(dX[m_ixRBegin]),
+			nRElements * sizeof(double));
+
+		// Rho is needed on model interfaces
+		if ((!m_fMassFluxOnLevels) ||
+			(!m_fExnerPressureOnLevels)
+		) {
+			InterpolateNodeToREdge(
+				&(dX[m_ixRBegin]),
+				m_dStateRefNode[RIx],
+				m_dStateREdge[RIx],
+				m_dStateRefREdge[RIx]);
+		}
 	}
 
-	// W on interfaces
-	if (pGrid->GetVarLocation(WIx) == DataLocation_REdge) {
+	// Calculate mass flux on model levels
+	if (m_fMassFluxOnLevels) {
+		for (int k = 0; k < nRElements; k++) {
+			m_dMassFluxNode[k] =
+				  m_dStateNode[RIx][k]
+				* m_dStateNode[WIx][k];
+		}
 
-		// Differentiate Exner function on interfaces
-		DifferentiateNodeToREdge(
-			m_dExnerPertNode,
-			m_dDiffExnerPertREdge);
-/*
-		DifferentiateNodeToREdge(
-			m_dExnerRefNode,
-			m_dDiffExnerRefREdge);
-*/
-		// Compute update to W
+		// Calculate derivative of mass flux on interfaces
+		if (pGrid->GetVarLocation(RIx) == DataLocation_REdge) {
+			DifferentiateNodeToREdge(
+				m_dMassFluxNode,
+				m_dDiffMassFluxREdge,
+				true);
+
+		// Calculate derivative of mass flux on levels
+		} else {
+			DifferentiateNodeToNode(
+				m_dMassFluxNode,
+				m_dDiffMassFluxNode,
+				true);
+		}
+
+	// Calculate mass flux on model interfaces
+	} else {
+		for (int k = 1; k < nRElements; k++) {
+			m_dMassFluxREdge[k] =
+				  m_dStateREdge[RIx][k]
+				* m_dStateREdge[WIx][k];
+		}
+		m_dMassFluxREdge[0] = 0.0;
+		m_dMassFluxREdge[nRElements] = 0.0;
+
+		// Calculate derivative of mass flux on interfaces
+		if (pGrid->GetVarLocation(RIx) == DataLocation_REdge) {
+			DifferentiateREdgeToREdge(
+				m_dMassFluxNode,
+				m_dDiffMassFluxREdge);
+
+		// Calculate derivative of mass flux on levels
+		} else {
+			DifferentiateREdgeToNode(
+				m_dMassFluxREdge,
+				m_dDiffMassFluxNode);
+		}
+	}
+
+	// Calculate Exner pressure on model levels
+	if (m_fExnerPressureOnLevels) {
+		for (int k = 0; k < nRElements; k++) {
+			m_dExnerPertNode[k] =
+				phys.GetCp() * exp(phys.GetR() / phys.GetCv()
+					* log(phys.GetR() / phys.GetP0()
+						* m_dStateNode[RIx][k]
+						* m_dStateNode[TIx][k]));
+
+			m_dExnerPertNode[k] -= m_dExnerRefNode[k];
+		}
+
+		// Calculate derivative of Exner pressure on interfaces
+		if (pGrid->GetVarLocation(WIx) == DataLocation_REdge) {
+			DifferentiateNodeToREdge(
+				m_dExnerPertNode,
+				m_dDiffExnerPertREdge);
+
+		// Calculate derivative of Exner pressure on levels
+		} else {
+			DifferentiateNodeToNode(
+				m_dExnerPertNode,
+				m_dDiffExnerPertNode);
+		}
+
+	// Calculate Exner pressure on model interfaces
+	} else {
+		for (int k = 0; k <= nRElements; k++) {
+			m_dExnerPertREdge[k] =
+				phys.GetCp() * exp(phys.GetR() / phys.GetCv()
+					* log(phys.GetR() / phys.GetP0()
+						* m_dStateREdge[RIx][k]
+						* m_dStateREdge[TIx][k]));
+
+			m_dExnerPertREdge[k] -= m_dExnerRefREdge[k];
+		}
+
+		// Calculate derivative of Exner pressure on interfaces
+		if (pGrid->GetVarLocation(WIx) == DataLocation_REdge) {
+			DifferentiateREdgeToREdge(
+				m_dExnerPertREdge,
+				m_dDiffExnerPertREdge);
+
+		// Calculate derivative of Exner pressure on levels
+		} else {
+			DifferentiateREdgeToNode(
+				m_dExnerPertREdge,
+				m_dDiffExnerPertNode);
+		}
+	}
+
+	// Compute update to Rho on model interfaces
+	if (pGrid->GetVarLocation(RIx) == DataLocation_REdge) {
+		for (int k = 0; k <= nRElements; k++) {
+			dF[m_ixRBegin+k] = m_dDiffMassFluxREdge[k];
+		}
+
+	// Compute update to Rho on model levels
+	} else {
+		for (int k = 0; k < nRElements; k++) {
+			dF[m_ixRBegin+k] = m_dDiffMassFluxNode[k];
+		}
+	}
+
+	// Compute update to W on model interfaces
+	if (pGrid->GetVarLocation(WIx) == DataLocation_REdge) {
 		for (int k = 1; k < nRElements; k++) {
 			double dTheta = m_dStateREdge[TIx][k];
 			double dThetaPert = dTheta - m_dStateRefREdge[TIx][k];
@@ -1698,26 +1825,16 @@ void VerticalDynamicsFEM::EvaluateMixed(
 		dF[m_ixWBegin] = dX[m_ixWBegin];
 		dF[m_ixWBegin + nRElements] = dX[m_ixWBegin + nRElements];
 
-		// If no vertical reference state is specified, gravity must be included
+		// If no vertical reference state is specified,
+		// gravity must be included
 		if (!pGrid->HasReferenceState()) {
 			for (int k = 1; k < nRElements; k++) {
 				dF[m_ixWBegin+k] += phys.GetG() / m_dDomainHeight;
 			}
 		}
 
-	// W on model levels
+	// Compute update to W on model levels
 	} else {
-
-		// Differentiate Exner function on model levels
-		DifferentiateNodeToNode(
-			m_dExnerPertNode,
-			m_dDiffExnerPertNode);
-/*
-		DifferentiateNodeToNode(
-			m_dExnerRefNode,
-			m_dDiffExnerRefNode);
-*/
-		// Compute update to W
 		for (int k = 0; k < nRElements; k++) {
 			double dTheta = m_dStateNode[TIx][k];
 			double dThetaPert = dTheta - m_dStateRefNode[TIx][k];
@@ -1727,45 +1844,13 @@ void VerticalDynamicsFEM::EvaluateMixed(
 				+ dTheta * m_dDiffExnerPertNode[k]);
 		}
 
-		// If no vertical reference state is specified, gravity must be included
+		// If no vertical reference state is specified,
+		// gravity must be included
 		if (!pGrid->HasReferenceState()) {
 			for (int k = 0; k < nRElements; k++) {
 				dF[m_ixWBegin+k] += phys.GetG() / m_dDomainHeight;
 			}
 		}
-	}
-
-	// Updates to theta
-	if (pGrid->GetVarLocation(TIx) == DataLocation_REdge) {
-		DifferentiateREdgeToREdge(
-			&(dX[m_ixTBegin]),
-			m_dStateAuxDiff);
-
-	} else {
-		DifferentiateNodeToNode(
-			&(dX[m_ixTBegin]),
-			m_dStateAuxDiff);
-	}
-
-	if ((pGrid->GetVarLocation(TIx) == DataLocation_REdge) &&
-		(pGrid->GetVarLocation(WIx) == DataLocation_REdge)
-	) {
-		for (int k = 0; k <= nRElements; k++) {
-			dF[m_ixTBegin+k] = dX[m_ixWBegin+k] * m_dStateAuxDiff[k];
-		}
-
-	} else if (pGrid->GetVarLocation(TIx) == DataLocation_REdge) {
-		for (int k = 0; k <= nRElements; k++) {
-			dF[m_ixTBegin+k] = m_dStateREdge[WIx][k] * m_dStateAuxDiff[k];
-		}
-
-	} else if (pGrid->GetVarLocation(WIx) == DataLocation_REdge) {
-		for (int k = 0; k < nRElements; k++) {
-			dF[m_ixTBegin+k] = m_dStateNode[WIx][k] * m_dStateAuxDiff[k];
-		}
-
-	} else {
-		_EXCEPTIONT("Invalid staggering");
 	}
 
 	// Construct the time-dependent component of the RHS

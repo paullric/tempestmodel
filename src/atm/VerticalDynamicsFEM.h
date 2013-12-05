@@ -47,7 +47,9 @@ public:
 	VerticalDynamicsFEM(
 		Model & model,
 		int nHorizontalOrder,
-		int nVerticalOrder
+		int nVerticalOrder,
+		bool fExnerPressureOnLevels = true,
+		bool fMassFluxOnLevels = false
 	);
 
 	///	<summary>
@@ -69,7 +71,8 @@ protected:
 		const double * dDataNode,
 		const double * dDataRefNode,
 		double * dDataREdge,
-		const double * dDataRefREdge
+		const double * dDataRefREdge,
+		bool fZeroBoundaries = false
 	);
 
 	///	<summary>
@@ -194,6 +197,18 @@ protected:
 	///		Vertical order of accuacy of the method.
 	///	</summary>
 	int m_nVerticalOrder;
+
+	///	<summary>
+	///		Flag indicating that Exner pressure should be stored on model
+	///		levels.
+	///	</summary>
+	bool m_fExnerPressureOnLevels;
+
+	///	<summary>
+	///		Flag indicating that mass flux should be stored on model
+	///		levels.
+	///	</summary>
+	bool m_fMassFluxOnLevels;
 
 	///	<summary>
 	///		Timestep size.
