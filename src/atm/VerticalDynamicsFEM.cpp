@@ -29,6 +29,13 @@
 
 ///////////////////////////////////////////////////////////////////////////////
 
+///	<summary>
+///		Type of flux reconstruction function to use (see Huynh 2007)
+///	</summary>
+static const int ParamFluxReconstructionType = 1;
+
+///////////////////////////////////////////////////////////////////////////////
+
 VerticalDynamicsFEM::VerticalDynamicsFEM(
 	Model & model,
 	int nHorizontalOrder,
@@ -247,9 +254,12 @@ void VerticalDynamicsFEM::Initialize() {
 	// Get derivatives of flux reconstruction function and scale to the
 	// element [0, dElementDeltaXi]
 	FluxReconstructionFunction::GetDerivatives(
-		1, m_nVerticalOrder, dG, m_dDiffReconsPolyNode);
+		ParamFluxReconstructionType,
+		m_nVerticalOrder, dG, m_dDiffReconsPolyNode);
+
 	FluxReconstructionFunction::GetDerivatives(
-		1, m_nVerticalOrder, dGL, m_dDiffReconsPolyREdge);
+		ParamFluxReconstructionType,
+		m_nVerticalOrder, dGL, m_dDiffReconsPolyREdge);
 
 	for (int n = 0; n < m_dDiffReconsPolyNode.GetRows(); n++) {
 		m_dDiffReconsPolyNode[n] /= dElementDeltaXi;
@@ -1111,9 +1121,9 @@ void VerticalDynamicsFEM::StepImplicit(
 					m_dSoln,
 					m_dSoln.GetRows(),
 					1.0e-8);
-/*
+
 			// DEBUG (check for NANs in output)
-			//if (!(m_dSoln[0] == m_dSoln[0])) {
+			if (!(m_dSoln[0] == m_dSoln[0])) {
                 DataVector<double> dEval;
                 dEval.Initialize(m_dColumnState.GetRows());
                 Evaluate(m_dSoln, dEval);
@@ -1127,8 +1137,8 @@ void VerticalDynamicsFEM::StepImplicit(
 						m_dExnerRefREdge[p], dataRefREdge[RIx][p][iA][iB]);
 				}
                 _EXCEPTIONT("Inversion failure");
-            //}
-*/
+            }
+
 #endif
 
 			// Apply updated state
