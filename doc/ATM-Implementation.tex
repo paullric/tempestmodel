@@ -111,7 +111,7 @@ The system of equations describing the hydrodynamic system in arbitrary geometry
 \pdiff{u^\alpha}{t} + u^\alpha \nabla_\alpha u^\alpha + u^\beta \nabla_\beta u^\alpha + u^\xi \nabla_\xi u^\alpha + \frac{1}{\rho} \nabla^\alpha p + f g^{\alpha j} \epsilon_{j \xi k} u^k &= 0 \\
 \pdiff{u^\beta}{t} + u^\alpha \nabla_\alpha u^\beta + u^\beta \nabla_\beta u^\beta + u^\xi \nabla_\xi u^\beta + \frac{1}{\rho} \nabla^\beta p + f g^{\beta j} \epsilon_{j \xi k} u^k &= 0 \\
 \pdiff{\theta}{t} + u^\alpha \pdiff{\theta}{\alpha} + u^\beta \pdiff{\theta}{\beta} &= - u^\xi \pdiff{\theta}{\xi} \\
-\pdiff{u^\xi}{t} + u^\alpha \nabla_\alpha u^\xi + u^\beta \nabla_\beta u^\xi + u^\xi \nabla_\xi u^\xi &= - \frac{1}{\rho} \nabla^\xi p \\
+\pdiff{u^\xi}{t} + u^\alpha \nabla_\alpha u^\xi + u^\beta \nabla_\beta u^\xi + u^\xi \nabla_\xi u^\xi &= - \theta \nabla^\xi \Pi \\
 \pdiff{\rho}{t} + \frac{1}{J} \pdiff{}{\alpha} (J \rho u^\alpha) + \frac{1}{J} \pdiff{}{\beta} (J \rho u^\beta) &= - \frac{1}{J} \pdiff{}{\xi} (J \rho u^\xi)
 \end{align}
 Advection and geometry:
