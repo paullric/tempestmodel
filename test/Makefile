@@ -21,7 +21,7 @@ include $(TEMPESTBASEDIR)/mk/Make.defs
 ##
 ## Build instructions
 ##
-all: atm SWTest2 BarotropicInstabilityTest BaroclinicWaveJWTest BaroclinicWaveUMJSTest InertialGravityCartesianXZTest ShallowWaterEddyTest
+all: atm SWTest2 BarotropicInstabilityTest BaroclinicWaveJWTest BaroclinicWaveUMJSTest InertialGravityCartesianXZTest ThermalBubbleCartesianTest ShallowWaterEddyTest
 atm:
 	cd $(TEMPESTBASEDIR)/src/base; make
 	cd $(TEMPESTBASEDIR)/src/atm; make
@@ -43,6 +43,9 @@ BaroclinicWaveJWTest: $(BUILDDIR)/BaroclinicWaveJWTest.o $(FILES:%.cpp=$(BUILDDI
 
 BaroclinicWaveUMJSTest: $(BUILDDIR)/BaroclinicWaveUMJSTest.o $(FILES:%.cpp=$(BUILDDIR)/%.o) $(TEMPESTLIBS)
 	$(CC) $(LDFLAGS) -o $@ $(BUILDDIR)/BaroclinicWaveUMJSTest.o $(FILES:%.cpp=$(BUILDDIR)/%.o) $(LDFILES)
+
+ThermalBubbleCartesianTest: $(BUILDDIR)/ThermalBubbleCartesianTest.o $(FILES:%.cpp=$(BUILDDIR)/%.o) $(TEMPESTLIBS)
+	$(CC) $(LDFLAGS) -o $@ $(BUILDDIR)/ThermalBubbleCartesianTest.o $(FILES:%.cpp=$(BUILDDIR)/%.o) $(LDFILES)
 
 InertialGravityCartesianXZTest: $(BUILDDIR)/InertialGravityCartesianXZTest.o $(FILES:%.cpp=$(BUILDDIR)/%.o) $(TEMPESTLIBS)
 	$(CC) $(LDFLAGS) -o $@ $(BUILDDIR)/InertialGravityCartesianXZTest.o $(FILES:%.cpp=$(BUILDDIR)/%.o) $(LDFILES)

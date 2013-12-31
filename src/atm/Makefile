@@ -17,6 +17,7 @@ FILES= CubedSphereTrans.cpp \
        ConsolidationStatus.cpp \
        Connectivity.cpp \
        Model.cpp \
+       TimestepSchemeStrang.cpp \
        TimestepSchemeARK4.cpp \
        HorizontalDynamicsFEM.cpp \
        VerticalDynamicsFEM.cpp \
