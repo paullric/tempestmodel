@@ -374,6 +374,7 @@ void OutputManagerReference::Output(
 
 	// Add new time
 	if (nRank == 0) {
+#pragma message "FIX: Doesn't give correct count of days"
 		double dTimeDays = (time - m_grid.GetModel().GetStartTime()) / 86400.0;
 		m_varTime->set_cur(m_ixOutputTime);
 		m_varTime->put(&dTimeDays, 1);

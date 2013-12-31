@@ -128,8 +128,11 @@ void OutputManager::ManageOutput(
 	const Time & time
 ) {
 	// Notification
-	Announce("Output (%i/%i): %s",
-		m_ixOutputFile+1,  m_ixOutputTime+1, time.ToString().c_str());
+	Announce("%s (%i/%i): %s",
+		GetName(),
+		m_ixOutputFile+1,
+		m_ixOutputTime+1,
+		time.ToString().c_str());
 
 	// Perform the output
 	PerformOutput(time);
