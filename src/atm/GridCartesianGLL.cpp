@@ -141,21 +141,22 @@ void GridCartesianGLL::AddDefaultPatches() {
 	}
 	iBoxBegin[nProcsPerDirection] = GetABaseResolution();
 
+	// Patch grid spacing
+	double dDeltaA = (m_dGDim[1] - m_dGDim[0])
+		/ static_cast<double>(GetABaseResolution());
+	double dDeltaB = (m_dGDim[3] - m_dGDim[2])
+		/ static_cast<double>(GetBBaseResolution());
+
+	GridSpacingGaussLobattoRepeated
+		glspacingAlpha(dDeltaA, m_dGDim[0], m_nHorizontalOrder);
+	GridSpacingGaussLobattoRepeated
+		glspacingBeta(dDeltaB, m_dGDim[2], m_nHorizontalOrder);
+
 	// Single panel 0 implementation (Cartesian Grid)
 	// Rectangular alpha-wise patches that span all of the beta direction
 	// (as many as there are processors available)
 	int n = 0;
 	for (int i = 0; i < nProcsPerDirection; i++) {
-
-		double dDeltaA = (m_dGDim[1] - m_dGDim[0])
-			/ static_cast<double>(GetABaseResolution());
-		double dDeltaB = (m_dGDim[3] - m_dGDim[2])
-			/ static_cast<double>(GetBBaseResolution());
-
-		GridSpacingGaussLobattoRepeated
-			glspacingAlpha(dDeltaA, m_dGDim[0], m_nHorizontalOrder);
-		GridSpacingGaussLobattoRepeated
-			glspacingBeta(dDeltaB, m_dGDim[2], m_nHorizontalOrder);
 
 		// Patch strips that span beta
 		PatchBox boxMaster(

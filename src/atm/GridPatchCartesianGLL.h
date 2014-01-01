@@ -149,7 +149,7 @@ private:
 	///	<summary>
 	///		Dimension of the grid - private to cartesian grids.
 	///	</summary>
-	double m_dGDim[];
+	double m_dGDim[6];
 
 };
 
