@@ -433,7 +433,7 @@ try {
 		strOutputDir,
 		strOutputPrefix,
 		nOutputsPerFile,
-		nResolution * nHorizontalOrder,
+		nResolution * (nHorizontalOrder - 1),
 		2);
 	model.AttachOutputManager(&outmanRef);
 	AnnounceEndBlock("Done");

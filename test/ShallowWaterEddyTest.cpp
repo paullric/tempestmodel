@@ -350,6 +350,7 @@ try {
 			"outShallowWaterEddyTest");
 		CommandLineString(strOutputPrefix, "output_prefix", "out");
 		CommandLineInt(nOutputsPerFile, "output_perfile", -1);
+		CommandLineString(params.m_strRestartFile, "restart_file", "");
 		CommandLineInt(nResolution, "resolution", 30);
 		CommandLineInt(nOrder, "order", 4);
 		CommandLineDouble(dAlpha, "alpha", 0.0);
@@ -443,7 +444,7 @@ try {
 	AnnounceStartBlock("Creating composite output manager");
 	OutputManagerComposite outmanComp(
 		grid,
-		dOutputDeltaT,
+		dOutputDeltaT * static_cast<double>(nOutputsPerFile),
 		strOutputDir,
 		strOutputPrefix);
 	model.AttachOutputManager(&outmanComp);

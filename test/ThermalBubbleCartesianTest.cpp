@@ -62,21 +62,6 @@ private:
 	double m_dP0;
 
 	///	<summary>
-	///		Specific heat of air at constant pressure.
-	///	</summary>
-	double m_dCp;
-
-	///	<summary>
-	///		Specific heat of air at constant volume.
-	///	</summary>
-	double m_dCv;
-
-	///	<summary>
-	///		Gas constant of air.
-	///	</summary>
-	double m_dR;
-
-	///	<summary>
 	///		Reference constant background pontential temperature
 	///	</summary>
 	double m_dThetaBar;
@@ -119,10 +104,6 @@ public:
 		bool fNoReferenceState
 	) :
 		m_dH0(10000.),
-		m_dP0(1.0E5),
-		m_dCp(1005.0),
-		m_dCv(718.0),
-		m_dR(287.058),
 		m_dThetaBar(300.0),
 		m_dThetaC(0.5),
 		m_drC(250.),
@@ -225,10 +206,12 @@ public:
 		dState[2] = m_dThetaBar;
 
 		// Set the initial density based on the Exner pressure
-		double dG = phys.GetG();
-		double dExnerP = - dG / (m_dCp * m_dThetaBar) * dzP + 1.0;
-		double dRho = m_dP0 / (m_dR * m_dThetaBar) *
-					  pow(dExnerP, (m_dCv / m_dR));
+		double dExnerP =
+			- phys.GetG() / (phys.GetCp() * m_dThetaBar) * dzP + 1.0;
+		double dRho =
+			phys.GetP0() / (phys.GetR() * m_dThetaBar) *
+			  pow(dExnerP, (phys.GetCv() / phys.GetR()));
+
 		dState[4] = dRho;
 	}
 
@@ -253,10 +236,12 @@ public:
 		dState[2] = m_dThetaBar + EvaluateTPrime(phys, dxP, dzP);;
 
 		// Set the initial density based on the Exner pressure
-		double dG = phys.GetG();
-		double dExnerP = - dG / (m_dCp * m_dThetaBar) * dzP + 1.0;
-		double dRho = m_dP0 / (m_dR * m_dThetaBar) *
-					  pow(dExnerP, (m_dCv / m_dR));
+		double dExnerP =
+			- phys.GetG() / (phys.GetCp() * m_dThetaBar) * dzP + 1.0;
+		double dRho =
+			phys.GetP0() / (phys.GetR() * m_dThetaBar) *
+			  pow(dExnerP, (phys.GetCv() / phys.GetR()));
+
 		dState[4] = dRho;
 	}
 };
@@ -419,7 +404,7 @@ try {
 		strOutputDir,
 		strOutputPrefix,
 		nOutputsPerFile,
-		nResolution * nHorizontalOrder,
+		nResolution * (nHorizontalOrder - 1),
 		1);
 	model.AttachOutputManager(&outmanRef);
 	AnnounceEndBlock("Done");
