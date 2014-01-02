@@ -1033,6 +1033,8 @@ void GridPatchCSGLL::InterpolateData(
 	const DataVector<double> & dBeta,
 	const DataVector<int> & iPatch,
 	DataType eDataType,
+	DataLocation eDataLocation,
+	bool fInterpAllVariables,
 	DataMatrix3D<double> & dInterpData,
 	bool fIncludeReferenceState,
 	bool fConvertToPrimitive
@@ -1121,8 +1123,16 @@ void GridPatchCSGLL::InterpolateData(
 
 		// Perform interpolation on all variables
 		int nComponents;
+		int nRElements = m_grid.GetRElements();
+
 		if (eDataType == DataType_State) {
-			nComponents = m_datavecStateNode[0].GetComponents();
+			if (eDataLocation == DataLocation_Node) {
+				nComponents = m_datavecStateNode[0].GetComponents();
+			} else {
+				nComponents = m_datavecStateREdge[0].GetComponents();
+				nRElements = m_grid.GetRElements() + 1;
+			}
+
 		} else if (eDataType == DataType_Tracers) {
 			nComponents = m_datavecTracers[0].GetComponents();
 		} else if (eDataType == DataType_Vorticity) {
@@ -1137,7 +1147,12 @@ void GridPatchCSGLL::InterpolateData(
 
 			const double *** pData;
 			if (eDataType == DataType_State) {
-				pData = (const double ***)(m_datavecStateNode[0][c]);
+				if (eDataLocation == DataLocation_Node) {
+					pData = (const double ***)(m_datavecStateNode[0][c]);
+				} else {
+					pData = (const double ***)(m_datavecStateREdge[0][c]);
+				}
+
 			} else if (eDataType == DataType_Tracers) {
 				pData = (const double ***)(m_datavecTracers[0][c]);
 			} else if (eDataType == DataType_Vorticity) {
@@ -1164,13 +1179,25 @@ void GridPatchCSGLL::InterpolateData(
 				if ((eDataType == DataType_State) &&
 					(!fIncludeReferenceState)
 				) {
-					for (int m = 0; m < m_nHorizontalOrder; m++) {
-					for (int n = 0; n < m_nHorizontalOrder; n++) {
-						dInterpData[c][k][i] -=
-							  dAInterpCoeffs[m]
-							* dBInterpCoeffs[n]
-							* m_dataRefStateNode[c][k][iA+m][iB+n];
-					}
+					if (eDataLocation == DataLocation_Node) {
+						for (int m = 0; m < m_nHorizontalOrder; m++) {
+						for (int n = 0; n < m_nHorizontalOrder; n++) {
+							dInterpData[c][k][i] -=
+								  dAInterpCoeffs[m]
+								* dBInterpCoeffs[n]
+								* m_dataRefStateNode[c][k][iA+m][iB+n];
+						}
+						}
+
+					} else {
+						for (int m = 0; m < m_nHorizontalOrder; m++) {
+						for (int n = 0; n < m_nHorizontalOrder; n++) {
+							dInterpData[c][k][i] -=
+								  dAInterpCoeffs[m]
+								* dBInterpCoeffs[n]
+								* m_dataRefStateREdge[c][k][iA+m][iB+n];
+						}
+						}
 					}
 				}
 			}

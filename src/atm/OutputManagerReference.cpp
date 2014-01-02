@@ -40,7 +40,9 @@ OutputManagerReference::OutputManagerReference(
 	std::string strOutputPrefix,
 	int nOutputsPerFile,
 	int nXReference,
-	int nYReference
+	int nYReference,
+	bool fOutputAllVarsOnNodes,
+	bool fRemoveReferenceProfile
 ) :
 	OutputManager(
 		grid,
@@ -53,7 +55,9 @@ OutputManagerReference::OutputManagerReference(
 	m_nYReference(nYReference),
 	m_pActiveNcOutput(NULL),
 	m_fOutputVorticity(false),
-	m_fOutputDivergence(false)
+	m_fOutputDivergence(false),
+	m_fOutputAllVarsOnNodes(fOutputAllVarsOnNodes),
+	m_fRemoveReferenceProfile(fRemoveReferenceProfile)
 {
 
 	// Get the reference box
@@ -152,15 +156,17 @@ void OutputManagerReference::CalculatePatchCoordinates() {
 		m_iPatch);
 
 	// Allocate data arrays
-	m_dataRefState.Initialize(
+	m_dataStateNode.Initialize(
 		m_grid.GetModel().GetEquationSet().GetComponents(),
 		m_grid.GetRElements(),
 		m_nXReference * m_nYReference);
 
-	m_dataState.Initialize(
-		m_grid.GetModel().GetEquationSet().GetComponents(),
-		m_grid.GetRElements(),
-		m_nXReference * m_nYReference);
+	if (!m_fOutputAllVarsOnNodes) {
+		m_dataStateREdge.Initialize(
+			m_grid.GetModel().GetEquationSet().GetComponents(),
+			m_grid.GetRElements() + 1,
+			m_nXReference * m_nYReference);
+	}
 
 	if (m_grid.GetModel().GetEquationSet().GetTracers() != 0) {
 		m_dataTracers.Initialize(
@@ -271,10 +277,19 @@ bool OutputManagerReference::OpenFile(
 
 		// Create variables
 		for (int c = 0; c < eqn.GetComponents(); c++) {
-			m_vecComponentVar.push_back(
-				m_pActiveNcOutput->add_var(
-					eqn.GetComponentShortName(c).c_str(),
-					ncDouble, dimTime, dimLev, dimLat, dimLon));
+			if ((m_fOutputAllVarsOnNodes) ||
+				(m_grid.GetVarLocation(c) == DataLocation_Node)
+			) {
+				m_vecComponentVar.push_back(
+					m_pActiveNcOutput->add_var(
+						eqn.GetComponentShortName(c).c_str(),
+						ncDouble, dimTime, dimLev, dimLat, dimLon));
+			} else {
+				m_vecComponentVar.push_back(
+					m_pActiveNcOutput->add_var(
+						eqn.GetComponentShortName(c).c_str(),
+						ncDouble, dimTime, dimILev, dimLat, dimLon));
+			}
 		}
 
 		for (int c = 0; c < eqn.GetTracers(); c++) {
@@ -381,18 +396,32 @@ void OutputManagerReference::Output(
 	}
 
 	// Vertically interpolate data to model levels
-	for (int c = 0; c < eqn.GetComponents(); c++) {
-		if (m_grid.GetVarLocation(c) == DataLocation_REdge) {
-			m_grid.InterpolateREdgeToNode(c, 0);
+	if (m_fOutputAllVarsOnNodes) {
+		for (int c = 0; c < eqn.GetComponents(); c++) {
+			if (m_grid.GetVarLocation(c) == DataLocation_REdge) {
+				m_grid.InterpolateREdgeToNode(c, 0);
+			}
 		}
 	}
 
 	// Perform Interpolate / Reduction on state data
-	m_dataState.Zero();
+	m_dataStateNode.Zero();
 
 	m_grid.ReduceInterpolate(
 		m_dAlpha, m_dBeta, m_iPatch,
-		DataType_State, m_dataState, true);
+		DataType_State, DataLocation_Node, m_fOutputAllVarsOnNodes,
+		m_dataStateNode,
+		!m_fRemoveReferenceProfile);
+
+	if (!m_fOutputAllVarsOnNodes) {
+		m_dataStateREdge.Zero();
+
+		m_grid.ReduceInterpolate(
+			m_dAlpha, m_dBeta, m_iPatch,
+			DataType_State, DataLocation_REdge, false,
+			m_dataStateREdge,
+			!m_fRemoveReferenceProfile);
+	}
 
 	// Perform Interpolate / Reduction on tracers data
 	if (m_grid.GetModel().GetEquationSet().GetTracers() != 0) {
@@ -400,39 +429,51 @@ void OutputManagerReference::Output(
 
 		m_grid.ReduceInterpolate(
 			m_dAlpha, m_dBeta, m_iPatch,
-			DataType_Tracers, m_dataTracers, true);
+			DataType_Tracers, DataLocation_Node, false,
+			m_dataTracers, true);
 	}
 
 	// Perform Interpolate / Reduction on computed vorticity
 	if (m_fOutputVorticity || m_fOutputDivergence) {
-		if (m_dataState.GetRows() < 2) {
-			_EXCEPTIONT("Insufficient components");
-		}
-
 		m_grid.ComputeVorticityDivergence(0);
 
 		if (m_fOutputVorticity) {
 			m_grid.ReduceInterpolate(
 				m_dAlpha, m_dBeta, m_iPatch,
-				DataType_Vorticity, m_dataVorticity);
+				DataType_Vorticity, DataLocation_Node, false,
+				m_dataVorticity);
 		}
 		if (m_fOutputDivergence) {
 			m_grid.ReduceInterpolate(
 				m_dAlpha, m_dBeta, m_iPatch,
-				DataType_Divergence, m_dataDivergence);
+				DataType_Divergence, DataLocation_Node, false,
+				m_dataDivergence);
 		}
 	}
 
 	// Store state variable data
 	if (nRank == 0) {
 		for (int c = 0; c < eqn.GetComponents(); c++) {
-			m_vecComponentVar[c]->set_cur(m_ixOutputTime, 0, 0, 0);
-			m_vecComponentVar[c]->put(
-				&(m_dataState[c][0][0]),
-				1,
-				m_dataState.GetColumns(),
-				m_dYCoord.GetRows(),
-				m_dXCoord.GetRows());
+			if ((m_fOutputAllVarsOnNodes) ||
+				(m_grid.GetVarLocation(c) == DataLocation_Node)
+			) {
+				m_vecComponentVar[c]->set_cur(m_ixOutputTime, 0, 0, 0);
+				m_vecComponentVar[c]->put(
+					&(m_dataStateNode[c][0][0]),
+					1,
+					m_dataStateNode.GetColumns(),
+					m_dYCoord.GetRows(),
+					m_dXCoord.GetRows());
+
+			} else {
+				m_vecComponentVar[c]->set_cur(m_ixOutputTime, 0, 0, 0);
+				m_vecComponentVar[c]->put(
+					&(m_dataStateREdge[c][0][0]),
+					1,
+					m_dataStateREdge.GetColumns(),
+					m_dYCoord.GetRows(),
+					m_dXCoord.GetRows());
+			}
 		}
 
 		// Store tracer variable data

@@ -412,7 +412,10 @@ try {
 		strOutputPrefix,
 		nOutputsPerFile,
 		nResolution * (nHorizontalOrder - 1),
-		1);
+		1,
+		false,  // Output variables in natural locations
+		true);  // Remove reference profile in output
+
 	model.AttachOutputManager(&outmanRef);
 	AnnounceEndBlock("Done");
 	

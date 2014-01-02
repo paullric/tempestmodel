@@ -235,11 +235,17 @@ public:
 	///		Perform interpolation on a node array and send data to root
 	///		(generally used for serial output on reference grid)
 	///	</summary>
+	///	<param name="eDataLocation">
+	///		DataLocation_Node  = Interpolate all variables on nodes
+	///		DataLocation_REdge = Interpolate all variables on redges
+	///	</param>
 	void ReduceInterpolate(
 		const DataVector<double> & dAlpha,
 		const DataVector<double> & dBeta,
 		const DataVector<int> & iPatch,
 		DataType eDataType,
+		DataLocation eDataLocation,
+		bool fInterpAllVariables,
 		DataMatrix3D<double> & dInterpData,
 		bool fIncludeReferenceState = true,
 		bool fConvertToPrimitive = true

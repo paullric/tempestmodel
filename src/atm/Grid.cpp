@@ -720,6 +720,8 @@ void Grid::ReduceInterpolate(
 	const DataVector<double> & dBeta,
 	const DataVector<int> & iPatch,
 	DataType eDataType,
+	DataLocation eDataLocation,
+	bool fInterpAllVariables,
 	DataMatrix3D<double> & dInterpData,
 	bool fIncludeReferenceState,
 	bool fConvertToPrimitive
@@ -762,7 +764,15 @@ void Grid::ReduceInterpolate(
 		_EXCEPTIONT("InterpData dimension mismatch (0)");
 	}
 
-	if (dInterpData.GetColumns() != GetRElements()) {
+	if ((eDataLocation == DataLocation_Node) &&
+		(dInterpData.GetColumns() != GetRElements())
+	) {
+		_EXCEPTIONT("InterpData dimension mismatch (1)");
+	}
+
+	if ((eDataLocation == DataLocation_REdge) &&
+		(dInterpData.GetColumns() != GetRElements() + 1)
+	) {
 		_EXCEPTIONT("InterpData dimension mismatch (1)");
 	}
 
@@ -778,6 +788,8 @@ void Grid::ReduceInterpolate(
 		m_vecActiveGridPatches[n]->InterpolateData(
 			dAlpha, dBeta, iPatch,
 			eDataType,
+			eDataLocation,
+			fInterpAllVariables,
 			dInterpData,
 			fIncludeReferenceState,
 			fConvertToPrimitive);

@@ -42,7 +42,9 @@ public:
 		std::string strOutputPrefix,
 		int nOutputsPerFile,
 		int nXReference,
-		int nYReference
+		int nYReference,
+		bool fOutputAllVarsOnNodes = true,
+		bool fRemoveReferenceProfile = false
 	);
 
 	///	<summary>
@@ -117,6 +119,16 @@ protected:
 	int m_nYReference;
 
 	///	<summary>
+	///		Flag indicating that all state variables should be output on nodes.
+	///	</summary>
+	bool m_fOutputAllVarsOnNodes;
+
+	///	<summary>
+	///		Flag indicating that the reference profile should not be used.
+	///	</summary>
+	bool m_fRemoveReferenceProfile;
+
+	///	<summary>
 	///		Vector of longitudes.
 	///	</summary>
 	DataVector<double> m_dXCoord;
@@ -163,14 +175,14 @@ protected:
 
 private:
 	///	<summary>
-	///		Reference state data.
+	///		Interpolated state data on nodes on the reference grid.
 	///	</summary>
-	DataMatrix3D<double> m_dataRefState;
+	DataMatrix3D<double> m_dataStateNode;
 
 	///	<summary>
-	///		Interpolated state data on the reference grid.
+	///		Interpolated state data on redges on the reference grid.
 	///	</summary>
-	DataMatrix3D<double> m_dataState;
+	DataMatrix3D<double> m_dataStateREdge;
 
 	///	<summary>
 	///		Interpolated tracers data on the reference grid.

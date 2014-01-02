@@ -855,6 +855,8 @@ void GridPatch::InterpolateData(
 	const DataVector<double> & dBeta,
 	const DataVector<int> & iPanel,
 	DataType eDataType,
+	DataLocation eDataLocation,
+	bool fInterpAllVariables,
 	DataMatrix3D<double> & dInterpData,
 	bool fIncludeReferenceState,
 	bool fConvertToPrimitive

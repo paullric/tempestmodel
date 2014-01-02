@@ -140,6 +140,8 @@ public:
 		const DataVector<double> & dBeta,
 		const DataVector<int> & iPatch,
 		DataType eDataType,
+		DataLocation eDataLocation,
+		bool fInterpAllVariables,
 		DataMatrix3D<double> & dInterpData,
 		bool fIncludeReferenceState = true,
 		bool fConvertToPrimitive = true

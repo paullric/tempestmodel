@@ -236,6 +236,8 @@ public:
 		const DataVector<double> & dBeta,
 		const DataVector<int> & iPanel,
 		DataType eDataType,
+		DataLocation eDataLocation,
+		bool fInterpAllVariables,
 		DataMatrix3D<double> & dInterpData,
 		bool fIncludeReferenceState = true,
 		bool fConvertToPrimitive = false
