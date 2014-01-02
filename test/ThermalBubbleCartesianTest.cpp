@@ -293,6 +293,9 @@ try {
 	// No reference state
 	bool fNoReferenceState;
 
+	// Solve vertical using a fully explicit method
+	bool fFullyExplicitVertical;
+
 	// Store Exner pressure on edges (advanced)
 	bool fExnerPressureOnREdges;
 
@@ -320,6 +323,7 @@ try {
 		CommandLineStringD(strHorizontalDynamics, "method", "SE", "(SE | DG)");
 		CommandLineBool(fNoHyperviscosity, "nohypervis");
 		CommandLineBool(fNoReferenceState, "norefstate");
+		CommandLineBool(fFullyExplicitVertical, "explicitvertical");
 		CommandLineBool(fExnerPressureOnREdges, "exneredges");
 		CommandLineBool(fMassFluxOnLevels, "massfluxlevels");
 
@@ -359,7 +363,7 @@ try {
 	} else {
 		_EXCEPTIONT("Invalid method: Expected \"SE\" or \"DG\"");
 	}
-	
+
 	HorizontalDynamicsFEM hdyn(
 	   model, nHorizontalOrder, eHorizontalDynamicsType, fNoHyperviscosity);
 	AnnounceStartBlock("Initializing horizontal dynamics");
@@ -371,6 +375,7 @@ try {
 		model,
 		nHorizontalOrder,
 		nVerticalOrder,
+		fFullyExplicitVertical,
 		!fExnerPressureOnREdges,
 		fMassFluxOnLevels);
 
@@ -392,6 +397,8 @@ try {
 		nVerticalOrder,
 		nLevels,
 		test.m_dGDim);
+
+	grid.SetReferenceLength(1100000.0);
 
 	model.SetGrid(&grid);
 	AnnounceEndBlock("Done");

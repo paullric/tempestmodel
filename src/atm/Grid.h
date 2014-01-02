@@ -433,6 +433,13 @@ public:
 	}
 
 	///	<summary>
+	///		Set the reference length scale.
+	///	</summary>
+	void SetReferenceLength(double dReferenceLength) {
+		m_dReferenceLength = dReferenceLength;
+	}
+
+	///	<summary>
 	///		Get the number of radial elements.
 	///	</summary>
 	int GetRElements() const {

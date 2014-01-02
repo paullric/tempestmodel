@@ -40,12 +40,14 @@ VerticalDynamicsFEM::VerticalDynamicsFEM(
 	Model & model,
 	int nHorizontalOrder,
 	int nVerticalOrder,
+	bool fFullyExplicit,
 	bool fExnerPressureOnLevels,
 	bool fMassFluxOnLevels
 ) :
 	VerticalDynamics(model),
 	m_nHorizontalOrder(nHorizontalOrder),
 	m_nVerticalOrder(nVerticalOrder),
+	m_fFullyExplicit(fFullyExplicit),
 	m_fExnerPressureOnLevels(fExnerPressureOnLevels),
 	m_fMassFluxOnLevels(fMassFluxOnLevels)
 {
@@ -670,13 +672,98 @@ void VerticalDynamicsFEM::DifferentiateREdgeToREdge(
 
 ///////////////////////////////////////////////////////////////////////////////
 
+void VerticalDynamicsFEM::SetupReferenceColumn(
+	int iA,
+	int iB,
+	const DataMatrix<double> & dataTopography,
+	const GridData4D & dataRefNode,
+	const GridData4D & dataInitialNode,
+	const GridData4D & dataRefREdge,
+	const GridData4D & dataInitialREdge,
+	const GridData3D & dataExnerNode,
+	const GridData3D & dataDiffExnerNode,
+	const GridData3D & dataExnerREdge,
+	const GridData3D & dataDiffExnerREdge
+) {
+
+	// Indices of EquationSet variables
+	const int UIx = 0;
+	const int VIx = 1;
+	const int TIx = 2;
+	const int WIx = 3;
+	const int RIx = 4;
+
+	// Get a copy of the grid
+	Grid * pGrid = m_model.GetGrid();
+
+	// Store domain height
+	m_dDomainHeight = pGrid->GetZtop() - dataTopography[iA][iB];
+
+	// Construct column of state variables
+	int ix = 0;
+
+	// Copy over Theta
+	if (pGrid->GetVarLocation(TIx) == DataLocation_REdge) {
+		for (int k = 0; k <= pGrid->GetRElements(); k++) {
+			m_dColumnState[ix] = dataInitialREdge[TIx][k][iA][iB];
+			ix++;
+		}
+	} else {
+		for (int k = 0; k < pGrid->GetRElements(); k++) {
+			m_dColumnState[ix] = dataInitialNode[TIx][k][iA][iB];
+			ix++;
+		}
+	}
+
+	// Copy over W
+	if (pGrid->GetVarLocation(WIx) == DataLocation_REdge) {
+		for (int k = 0; k <= pGrid->GetRElements(); k++) {
+			m_dColumnState[ix] = dataInitialREdge[WIx][k][iA][iB];
+			ix++;
+		}
+	} else {
+		for (int k = 0; k < pGrid->GetRElements(); k++) {
+			m_dColumnState[ix] = dataInitialNode[WIx][k][iA][iB];
+			ix++;
+		}
+	}
+
+	// Copy over rho
+	for (int k = 0; k < pGrid->GetRElements(); k++) {
+		m_dColumnState[ix] = dataInitialNode[RIx][k][iA][iB];
+		ix++;
+	}
+
+	// Construct reference column
+	for (int k = 0; k < pGrid->GetRElements(); k++) {
+		m_dStateRefNode[RIx][k] = dataRefNode[RIx][k][iA][iB];
+		m_dStateRefNode[TIx][k] = dataRefNode[TIx][k][iA][iB];
+	}
+	for (int k = 0; k <= pGrid->GetRElements(); k++) {
+		m_dStateRefREdge[RIx][k] = dataRefREdge[RIx][k][iA][iB];
+		m_dStateRefREdge[TIx][k] = dataRefREdge[TIx][k][iA][iB];
+	}
+
+	// Build the Exner pressure reference
+	for (int k = 0; k < pGrid->GetRElements(); k++) {
+		m_dExnerRefNode[k] = dataExnerNode[k][iA][iB];
+		m_dDiffExnerRefNode[k] = dataDiffExnerNode[k][iA][iB];
+	}
+
+	for (int k = 0; k <= pGrid->GetRElements(); k++) {
+		m_dExnerRefREdge[k] = dataExnerREdge[k][iA][iB];
+		m_dDiffExnerRefREdge[k] = dataDiffExnerREdge[k][iA][iB];
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
 void VerticalDynamicsFEM::StepExplicit(
 	int iDataInitial,
 	int iDataUpdate,
 	const Time & time,
 	double dDeltaT
 ) {
-	return;
 	// Get a copy of the grid
 	Grid * pGrid = m_model.GetGrid();
 
@@ -707,21 +794,100 @@ void VerticalDynamicsFEM::StepExplicit(
 		const PatchBox & box = pPatch->GetPatchBox();
 
 		// Data
+		const GridData4D & dataRefNode =
+			pPatch->GetReferenceState(DataLocation_Node);
+
 		const GridData4D & dataInitialNode =
 			pPatch->GetDataState(iDataInitial, DataLocation_Node);
-
-		const GridData4D & dataInitialREdge =
-			pPatch->GetDataState(iDataInitial, DataLocation_REdge);
 
 		GridData4D & dataUpdateNode =
 			pPatch->GetDataState(iDataUpdate, DataLocation_Node);
 
+		const GridData4D & dataRefREdge =
+			pPatch->GetReferenceState(DataLocation_REdge);
+
+		const GridData4D & dataInitialREdge =
+			pPatch->GetDataState(iDataInitial, DataLocation_REdge);
+
 		GridData4D & dataUpdateREdge =
 			pPatch->GetDataState(iDataUpdate, DataLocation_REdge);
 
+		// Auxiliary data storing Exner pressure
+		const GridData3D & dataExnerNode =
+			pPatch->GetVerticalDynamicsAuxData(0, DataLocation_Node);
+
+		const GridData3D & dataExnerREdge =
+			pPatch->GetVerticalDynamicsAuxData(0, DataLocation_REdge);
+
+		const GridData3D & dataDiffExnerNode =
+			pPatch->GetVerticalDynamicsAuxData(1, DataLocation_Node);
+
+		const GridData3D & dataDiffExnerREdge =
+			pPatch->GetVerticalDynamicsAuxData(1, DataLocation_REdge);
+
+		// Pointwise topography
+		const DataMatrix<double> & dataTopography = pPatch->GetTopography();
+
+#pragma message "Perform update as in StepImplicit to reduce computational cost"
 		// Loop over all nodes
 		for (int i = box.GetAInteriorBegin(); i < box.GetAInteriorEnd(); i++) {
 		for (int j = box.GetBInteriorBegin(); j < box.GetBInteriorEnd(); j++) {
+
+			// Update thermodynamic variables
+			if (m_fFullyExplicit) {
+
+				int iA = i;
+				int iB = j;
+
+				SetupReferenceColumn(
+					iA, iB,
+					dataTopography,
+					dataRefNode,
+					dataInitialNode,
+					dataRefREdge,
+					dataInitialREdge,
+					dataExnerNode,
+					dataDiffExnerNode,
+					dataExnerREdge,
+					dataDiffExnerREdge);
+
+                Evaluate(m_dColumnState, m_dSoln);
+
+				// Apply updated state
+				int ix = 0;
+
+				// Apply update to theta
+				if (pGrid->GetVarLocation(TIx) == DataLocation_REdge) {
+					for (int k = 0; k <= pGrid->GetRElements(); k++) {
+						dataUpdateREdge[TIx][k][iA][iB] -=
+							dDeltaT * m_dSoln[ix++];
+					}
+				} else {
+					for (int k = 0; k < pGrid->GetRElements(); k++) {
+						dataUpdateNode[TIx][k][iA][iB] -=
+							dDeltaT * m_dSoln[ix++];
+					}
+				}
+
+				// Apply update to W
+				if (pGrid->GetVarLocation(WIx) == DataLocation_REdge) {
+					for (int k = 0; k <= pGrid->GetRElements(); k++) {
+						dataUpdateREdge[WIx][k][iA][iB] -=
+							dDeltaT * m_dSoln[ix++];
+					}
+				} else {
+					for (int k = 0; k < pGrid->GetRElements(); k++) {
+						dataUpdateNode[WIx][k][iA][iB] -=
+							dDeltaT * m_dSoln[ix++];
+					}
+				}
+
+				// Apply update to rho
+				for (int k = 0; k < pGrid->GetRElements(); k++) {
+					dataUpdateNode[RIx][k][iA][iB] -=
+						dDeltaT * m_dSoln[ix++];
+				}
+			}
 
 			// Store W in State structure
 			if (pGrid->GetVarLocation(WIx) == DataLocation_Node) {
@@ -913,6 +1079,11 @@ void VerticalDynamicsFEM::StepImplicit(
 	const Time & time,
 	double dDeltaT
 ) {
+	// If fully explicit do nothing
+	if (m_fFullyExplicit) {
+		return;
+	}
+
 	// Get a copy of the grid
 	Grid * pGrid = m_model.GetGrid();
 
@@ -1008,6 +1179,18 @@ void VerticalDynamicsFEM::StepImplicit(
 			int iA = box.GetAInteriorBegin() + a * m_nHorizontalOrder + i;
 			int iB = box.GetBInteriorBegin() + b * m_nHorizontalOrder + j;
 
+			SetupReferenceColumn(
+				iA, iB,
+				dataTopography,
+				dataRefNode,
+				dataInitialNode,
+				dataRefREdge,
+				dataInitialREdge,
+				dataExnerNode,
+				dataDiffExnerNode,
+				dataExnerREdge,
+				dataDiffExnerREdge);
+/*
 			int ix;
 
 			// Store domain height
@@ -1068,6 +1251,7 @@ void VerticalDynamicsFEM::StepImplicit(
 				m_dExnerRefREdge[k] = dataExnerREdge[k][iA][iB];
 				m_dDiffExnerRefREdge[k] = dataDiffExnerREdge[k][iA][iB];
 			}
+*/
 
 #ifdef USE_PETSC
 			// Use PetSc to solve
@@ -1142,7 +1326,7 @@ void VerticalDynamicsFEM::StepImplicit(
 #endif
 
 			// Apply updated state
-			ix = 0;
+			int ix = 0;
 
 			// Apply updated state to theta
 			if (pGrid->GetVarLocation(TIx) == DataLocation_REdge) {
@@ -1171,6 +1355,8 @@ void VerticalDynamicsFEM::StepImplicit(
 				dataUpdateNode[RIx][k][iA][iB] = m_dSoln[ix++];
 			}
 
+#pragma message "Vertical pressure gradient influence on horizontal velocities"
+/*
 			// Compute vertical pressure gradient on nodes for
 			// potential temperature (theta) on interfaces
 			if (pGrid->GetVarLocation(TIx) == DataLocation_REdge) {
@@ -1214,6 +1400,7 @@ void VerticalDynamicsFEM::StepImplicit(
 				dataUpdateNode[VIx][k][iA][iB] -=
 					dContraMetricB[k][iA][iB][2] * dPressureTerm;
 			}
+*/
 /*
             // Compute vertical pressure gradient on nodes for
             // potential temperature (theta) on interfaces

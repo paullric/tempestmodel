@@ -23,6 +23,9 @@
 #include "VerticalDynamics.h"
 #include "JacobianFreeNewtonKrylov.h"
 #include "DataVector.h"
+#include "DataMatrix.h"
+#include "GridData3D.h"
+#include "GridData4D.h"
 
 #ifdef USE_PETSC
 #include <petscsnes.h>
@@ -48,6 +51,7 @@ public:
 		Model & model,
 		int nHorizontalOrder,
 		int nVerticalOrder,
+		bool fFullyExplicit = false,
 		bool fExnerPressureOnLevels = true,
 		bool fMassFluxOnLevels = false
 	);
@@ -129,6 +133,23 @@ protected:
 
 public:
 	///	<summary>
+	///		Setup the reference column.
+	///	</summary>
+	void SetupReferenceColumn(
+		int iA,
+		int iB,
+		const DataMatrix<double> & dataTopography,
+		const GridData4D & dataRefNode,
+		const GridData4D & dataInitialNode,
+		const GridData4D & dataRefREdge,
+		const GridData4D & dataInitialREdge,
+		const GridData3D & dataExnerNode,
+		const GridData3D & dataDiffExnerNode,
+		const GridData3D & dataExnerREdge,
+		const GridData3D & dataDiffExnerREdge
+	);
+ 
+	///	<summary>
 	///		Advance explicit terms of the vertical column one substep.
 	///	</summary>
 	virtual void StepExplicit(
@@ -197,6 +218,11 @@ protected:
 	///		Vertical order of accuacy of the method.
 	///	</summary>
 	int m_nVerticalOrder;
+
+	///	<summary>
+	///		Execute vertical solve as fully explicit.
+	///	</summary>
+	bool m_fFullyExplicit;
 
 	///	<summary>
 	///		Flag indicating that Exner pressure should be stored on model
