@@ -174,31 +174,6 @@ public:
 		double dDeltaT
 	);
 
-protected:
-	///	<summary>
-	///		Evaluate the RHS when all variables are on model levels.
-	///	</summary>
-	void EvaluateDG(
-		const double * dX,
-		double * dF
-	);
-
-	///	<summary>
-	///		Evaluate the RHS when all variables are on model interfaces.
-	///	</summary>
-	void EvaluateSE(
-		const double * dX,
-		double * dF
-	);
-
-	///	<summary>
-	///		Evaluate the RHS when rho is on model levels.
-	///	</summary>
-	void EvaluateMixed(
-		const double * dX,
-		double * dF
-	);
-
 public:
 	///	<summary>
 	///		Evaluate the RHS (used by JacobianFreeNewtonKrylov)

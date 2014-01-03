@@ -1190,68 +1190,6 @@ void VerticalDynamicsFEM::StepImplicit(
 				dataDiffExnerNode,
 				dataExnerREdge,
 				dataDiffExnerREdge);
-/*
-			int ix;
-
-			// Store domain height
-			m_dDomainHeight = pGrid->GetZtop() - dataTopography[iA][iB];
-
-			// Construct column of state variables
-			ix = 0;
-
-			// Copy over Theta
-			if (pGrid->GetVarLocation(TIx) == DataLocation_REdge) {
-				for (int k = 0; k <= pGrid->GetRElements(); k++) {
-					m_dColumnState[ix] = dataInitialREdge[TIx][k][iA][iB];
-					ix++;
-				}
-			} else {
-				for (int k = 0; k < pGrid->GetRElements(); k++) {
-					m_dColumnState[ix] = dataInitialNode[TIx][k][iA][iB];
-					ix++;
-				}
-			}
-
-			// Copy over W
-			if (pGrid->GetVarLocation(WIx) == DataLocation_REdge) {
-				for (int k = 0; k <= pGrid->GetRElements(); k++) {
-					m_dColumnState[ix] = dataInitialREdge[WIx][k][iA][iB];
-					ix++;
-				}
-			} else {
-				for (int k = 0; k < pGrid->GetRElements(); k++) {
-					m_dColumnState[ix] = dataInitialNode[WIx][k][iA][iB];
-					ix++;
-				}
-			}
-
-			// Copy over rho
-			for (int k = 0; k < pGrid->GetRElements(); k++) {
-				m_dColumnState[ix] = dataInitialNode[RIx][k][iA][iB];
-				ix++;
-			}
-
-			// Construct reference column
-			for (int k = 0; k < pGrid->GetRElements(); k++) {
-				m_dStateRefNode[RIx][k] = dataRefNode[RIx][k][iA][iB];
-				m_dStateRefNode[TIx][k] = dataRefNode[TIx][k][iA][iB];
-			}
-			for (int k = 0; k <= pGrid->GetRElements(); k++) {
-				m_dStateRefREdge[RIx][k] = dataRefREdge[RIx][k][iA][iB];
-				m_dStateRefREdge[TIx][k] = dataRefREdge[TIx][k][iA][iB];
-			}
-
-			// Build the Exner pressure reference
-			for (int k = 0; k < pGrid->GetRElements(); k++) {
-				m_dExnerRefNode[k] = dataExnerNode[k][iA][iB];
-				m_dDiffExnerRefNode[k] = dataDiffExnerNode[k][iA][iB];
-			}
-
-			for (int k = 0; k <= pGrid->GetRElements(); k++) {
-				m_dExnerRefREdge[k] = dataExnerREdge[k][iA][iB];
-				m_dDiffExnerRefREdge[k] = dataDiffExnerREdge[k][iA][iB];
-			}
-*/
 
 #ifdef USE_PETSC
 			// Use PetSc to solve
@@ -1540,210 +1478,7 @@ void VerticalDynamicsFEM::StepImplicit(
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void VerticalDynamicsFEM::EvaluateDG(
-	const double * dX,
-	double * dF
-) {
-	// Indices of EquationSet variables
-	const int UIx = 0;
-	const int VIx = 1;
-	const int TIx = 2;
-	const int WIx = 3;
-	const int RIx = 4;
-
-	// Finite element grid spacing
-	const Grid * pGrid = m_model.GetGrid();
-
-	// Physical constants
-	const PhysicalConstants & phys = m_model.GetPhysicalConstants();
-
-	// Number of radial elements
-	int nRElements = pGrid->GetRElements();
-
-	// Zero F
-	memset(dF, 0, m_nColumnStateSize * sizeof(double));
-
-	// Compute Exner function on nodes
-	for (int k = 0; k < nRElements; k++) {
-		m_dExnerPertNode[k] =
-			phys.GetCp() * exp(phys.GetR() / phys.GetCv()
-				* log(phys.GetR() / phys.GetP0()
-					* dX[m_ixRBegin+k] * dX[m_ixTBegin+k]));
-
-		m_dExnerPertNode[k] -= m_dExnerRefNode[k];
-	}
-
-	// Compute derivatives of Exner function on nodes
-	DifferentiateNodeToNode(
-		m_dExnerPertNode,
-		m_dDiffExnerPertNode);
-
-	// Compute update to W
-	for (int k = 0; k < nRElements; k++) {
-		double dTheta = dX[m_ixTBegin + k];
-		double dThetaPert = dX[m_ixTBegin + k] - m_dStateRefNode[TIx][k];
-
-		dF[m_ixWBegin+k] += 1.0 / (m_dDomainHeight * m_dDomainHeight) * (
-			+ dThetaPert * m_dDiffExnerRefNode[k]
-			+ dTheta * m_dDiffExnerPertNode[k]);
-	}
-
-	// If no vertical reference state is specified, gravity must be included
-	if (!pGrid->HasReferenceState()) {
-		for (int k = 0; k < nRElements; k++) {
-			dF[m_ixWBegin+k] += phys.GetG() / m_dDomainHeight;
-		}
-	}
-
-	// Compute mass flux on model levels
-	for (int k = 0; k < nRElements; k++) {
-		m_dMassFluxNode[k] = dX[m_ixRBegin+k] * dX[m_ixWBegin+k];
-	}
-/*
-	for (int k = 0; k < nRElements; k++) {
-		m_dMassFluxNode[k] = sin(M_PI * pGrid->GetREtaLevel(k));
-	}
-	DataVector<double> dDiffREdge;
-	dDiffREdge.Initialize(nRElements+1);
-	DifferentiateNodeToREdge(m_dMassFluxNode, dDiffREdge, true);
-	double dNorm = 0.0;
-	for (int k = 0; k <= nRElements; k++) {
-		double dValue = M_PI * cos(M_PI * pGrid->GetREtaInterface(k));
-		printf("%1.5e %1.5e\n", dDiffREdge[k], dValue);
-		dNorm += (dDiffREdge[k] - dValue) * (dDiffREdge[k] - dValue);
-	}
-	printf("%1.5e\n", sqrt(dNorm / (nRElements+1)));
-	_EXCEPTION();
-*/
-	// Compute derivatives of mass flux on nodes
-	DifferentiateNodeToNode(
-		m_dMassFluxNode,
-		m_dDiffMassFluxNode,
-		true);
-
-	// Compute update on rho
-	memcpy(&(dF[m_ixRBegin]), m_dDiffMassFluxNode, nRElements * sizeof(double));
-	//for (int k = 0; k < nRElements; k++) {
-	//	dF[m_ixRBegin+k] = m_dDiffMassFluxNode[k];
-	//}
-
-	// Compute derivatives of theta on nodes
-	DifferentiateNodeToNode(
-		&(dX[m_ixTBegin]),
-		m_dStateAuxDiff);
-
-	// Compute update on theta
-	for (int k = 0; k < nRElements; k++) {
-		dF[m_ixTBegin+k] = dX[m_ixWBegin+k] * m_dStateAuxDiff[k];
-	}
-
-	// Construct the time-dependent component of the RHS
-	//double dNorm = 0.0;
-	for (int i = 0; i < m_nColumnStateSize; i++) {
-		dF[i] += (dX[i] - m_dColumnState[i]) / m_dDeltaT;
-
-		//printf("%1.5e\n", dF[i]);
-
-		//if ((i >= m_ixWBegin) && (i < m_ixRBegin)) {
-		//	dNorm += (dF[i] + 9.80616e4) * (dF[i] + 9.80616e4);
-		//}
-	}
-	//printf("%1.5e\n", sqrt(dNorm / nRElements));
-
-	//_EXCEPTION();
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
-void VerticalDynamicsFEM::EvaluateSE(
-	const double * dX,
-	double * dF
-) {
-	// Indices of EquationSet variables
-	const int UIx = 0;
-	const int VIx = 1;
-	const int TIx = 2;
-	const int WIx = 3;
-	const int RIx = 4;
-
-	// Finite element grid spacing
-	const Grid * pGrid = m_model.GetGrid();
-
-	// Physical constants
-	const PhysicalConstants & phys = m_model.GetPhysicalConstants();
-
-	// Number of radial elements
-	int nRElements = pGrid->GetRElements();
-
-	// Zero F
-	memset(dF, 0, m_nColumnStateSize * sizeof(double));
-
-	// Compute Exner function on nodes
-	for (int k = 0; k <= nRElements; k++) {
-		m_dExnerPertREdge[k] =
-			phys.GetCp() * exp(phys.GetR() / phys.GetCv()
-				* log(phys.GetR() / phys.GetP0()
-					* dX[m_ixRBegin+k] * dX[m_ixTBegin+k]));
-
-		m_dExnerPertREdge[k] -= m_dExnerRefREdge[k];
-	}
-
-	// Compute derivatives of Exner function on nodes
-	DifferentiateREdgeToREdge(
-		m_dExnerPertREdge,
-		m_dDiffExnerPertREdge);
-
-	// Compute update to W
-	for (int k = 1; k < nRElements; k++) {
-		double dTheta = dX[m_ixTBegin + k];
-		double dThetaPert = dX[m_ixTBegin + k] - m_dStateRefNode[TIx][k];
-
-		dF[m_ixWBegin+k] += 1.0 / (m_dDomainHeight * m_dDomainHeight) * (
-			+ dThetaPert * m_dDiffExnerRefREdge[k]
-			+ dTheta * m_dDiffExnerPertREdge[k]);
-	}
-
-	// If no vertical reference state is specified, gravity must be included
-	if (!pGrid->HasReferenceState()) {
-		for (int k = 1; k < nRElements; k++) {
-			dF[m_ixWBegin+k] += phys.GetG() / m_dDomainHeight;
-		}
-	}
-
-	// Compute mass flux on model interfaces
-	for (int k = 1; k < nRElements; k++) {
-		m_dMassFluxREdge[k] = dX[m_ixRBegin+k] * dX[m_ixWBegin+k];
-	}
-
-	// Compute derivatives of mass flux on interfaces
-	DifferentiateREdgeToREdge(
-		m_dMassFluxREdge,
-		m_dDiffMassFluxREdge);
-
-	// Compute update on rho
-	for (int k = 1; k < nRElements; k++) {
-		dF[m_ixRBegin+k] = m_dDiffMassFluxREdge[k];
-	}
-
-	// Compute derivatives of theta on nodes
-	DifferentiateREdgeToREdge(
-		&(dX[m_ixTBegin]),
-		m_dStateAuxDiff);
-
-	// Compute update on theta
-	for (int k = 1; k < nRElements; k++) {
-		dF[m_ixTBegin+k] = dX[m_ixWBegin+k] * m_dStateAuxDiff[k];
-	}
-
-	// Construct the time-dependent component of the RHS
-	for (int i = 0; i < m_nColumnStateSize; i++) {
-		dF[i] += (dX[i] - m_dColumnState[i]) / m_dDeltaT;
-	}
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
-void VerticalDynamicsFEM::EvaluateMixed(
+void VerticalDynamicsFEM::Evaluate(
 	const double * dX,
 	double * dF
 ) {
@@ -1922,6 +1657,19 @@ void VerticalDynamicsFEM::EvaluateMixed(
 	// Calculate mass flux on model interfaces
 	} else {
 		for (int k = 1; k < nRElements; k++) {
+/*
+#pragma message "DEBUG: FIX"
+			if (m_dStateREdge[WIx][k] > 0.0) {
+				m_dMassFluxREdge[k] =
+					  m_dStateNode[RIx][k-1]
+					* m_dStateREdge[WIx][k];
+			} else {
+				m_dMassFluxREdge[k] =
+					  m_dStateNode[RIx][k]
+					* m_dStateREdge[WIx][k];
+			}
+*/
+
 			m_dMassFluxREdge[k] =
 				  m_dStateREdge[RIx][k]
 				* m_dStateREdge[WIx][k];
@@ -2053,49 +1801,6 @@ void VerticalDynamicsFEM::EvaluateMixed(
 	// Construct the time-dependent component of the RHS
 	for (int i = 0; i < m_nColumnStateSize; i++) {
 		dF[i] += (dX[i] - m_dColumnState[i]) / m_dDeltaT;
-	}
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
-void VerticalDynamicsFEM::Evaluate(
-	const double * dX,
-	double * dF
-) {
-	// Finite element grid spacing
-	const Grid * pGrid = m_model.GetGrid();
-
-	// Indices of EquationSet variables
-	const int UIx = 0;
-	const int VIx = 1;
-	const int TIx = 2;
-	const int WIx = 3;
-	const int RIx = 4;
-
-	// Fully DG evaluation (all variables on model levels)
-	if ((pGrid->GetVarLocation(TIx) == DataLocation_Node) &&
-		(pGrid->GetVarLocation(WIx) == DataLocation_Node) &&
-		(pGrid->GetVarLocation(RIx) == DataLocation_Node)
-	) {
-		EvaluateDG(dX, dF);
-
-	// Fully SE evaluation (all variables on model interfaces)
-	} else if (
-		(pGrid->GetVarLocation(TIx) == DataLocation_REdge) &&
-		(pGrid->GetVarLocation(WIx) == DataLocation_REdge) &&
-		(pGrid->GetVarLocation(RIx) == DataLocation_REdge)
-	) {
-		EvaluateSE(dX, dF);
-
-	// Partial staggering (Rho on model levels)
-	} else if (
-		pGrid->GetVarLocation(RIx) == DataLocation_Node
-	) {
-		EvaluateMixed(dX, dF);
-
-	// Invalid staggering (unimplemented)
-	} else {
-		_EXCEPTIONT("Invalid staggering.");
 	}
 }
 
