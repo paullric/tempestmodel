@@ -70,7 +70,7 @@ private:
 	///		Parameter factor for temperature disturbance
 	///	</summary>
 	double m_dThetaC;
-	
+
 	///	<summary>
 	///		Parameter reference bubble radius
 	///	</summary>
@@ -80,7 +80,7 @@ private:
 	///		Parameter reference length x for temperature disturbance
 	///	</summary>
 	double m_dxC;
-	
+
 	///	<summary>
 	///		Parameter reference length z for temperature disturbance
 	///	</summary>
@@ -133,7 +133,7 @@ public:
 	///		Get the altitude of the model cap.
 	///	</summary>
 	virtual double GetZtop() const {
-		return 1000.0;
+		return m_dGDim[5];
 	}
 
 	///	<summary>
@@ -156,8 +156,8 @@ public:
 	///		Evaluate the topography at the given point. (cartesian version)
 	///	</summary>
 	virtual double EvaluateTopography(
-	   double dxp,
-	   double dyp
+	   double dXp,
+	   double dYp
 	) const {
 		// This test case has no topography associated with it
 		return 0.0;
@@ -168,19 +168,19 @@ public:
 	///	</summary>
 	double EvaluateTPrime(
 		const PhysicalConstants & phys,
-		double dxP,
-		double dzP
+		double dXp,
+		double dZp
 	) const {
 
 		// Potential temperature perturbation bubble using radius
-		double xL2 = (dxP - m_dxC) * (dxP - m_dxC);
-		double zL2 = (dzP - m_dzC) * (dzP - m_dzC);
-		double drP = sqrt(xL2 + zL2);
-		
+		double xL2 = (dXp - m_dxC) * (dXp - m_dxC);
+		double zL2 = (dZp - m_dzC) * (dZp - m_dzC);
+		double dRp = sqrt(xL2 + zL2);
+
 		double dThetaHat = 1.0;
-		if (drP <= m_drC) {
-			dThetaHat = 0.5 * m_dThetaC * (1.0 + cos(m_dpiC * drP / m_drC));
-		} else if (drP > m_drC) {
+		if (dRp <= m_drC) {
+			dThetaHat = 0.5 * m_dThetaC * (1.0 + cos(m_dpiC * dRp / m_drC));
+		} else if (dRp > m_drC) {
 			dThetaHat = 0.0;
 		}
 
@@ -192,9 +192,9 @@ public:
 	///	</summary>
 	virtual void EvaluateReferenceState(
 		const PhysicalConstants & phys,
-		double dzP,
-		double dxP,
-		double dyP,
+		double dZp,
+		double dXp,
+		double dYp,
 		double * dState
 	) const {
 		// Set the uniform U, V, W field for all time
@@ -207,7 +207,7 @@ public:
 
 		// Set the initial density based on the Exner pressure
 		double dExnerP =
-			- phys.GetG() / (phys.GetCp() * m_dThetaBar) * dzP + 1.0;
+			- phys.GetG() / (phys.GetCp() * m_dThetaBar) * dZp + 1.0;
 		double dRho =
 			phys.GetP0() / (phys.GetR() * m_dThetaBar) *
 			  pow(dExnerP, (phys.GetCv() / phys.GetR()));
@@ -221,9 +221,9 @@ public:
 	virtual void EvaluatePointwiseState(
 		const PhysicalConstants & phys,
 		const Time & time,
-		double dzP,
-		double dxP,
-		double dyP,
+		double dZp,
+		double dXp,
+		double dYp,
 		double * dState,
 		double * dTracer
 	) const {
@@ -231,13 +231,13 @@ public:
 		dState[0] = 0.0;
 		dState[1] = 0.0;
 		dState[3] = 0.0;
-		
+
 		// Set the initial potential temperature field
-		dState[2] = m_dThetaBar + EvaluateTPrime(phys, dxP, dzP);;
+		dState[2] = m_dThetaBar + EvaluateTPrime(phys, dXp, dZp);;
 
 		// Set the initial density based on the Exner pressure
 		double dExnerP =
-			- phys.GetG() / (phys.GetCp() * m_dThetaBar) * dzP + 1.0;
+			- phys.GetG() / (phys.GetCp() * m_dThetaBar) * dZp + 1.0;
 		double dRho =
 			phys.GetP0() / (phys.GetR() * m_dThetaBar) *
 			  pow(dExnerP, (phys.GetCv() / phys.GetR()));
@@ -341,18 +341,18 @@ try {
 	AnnounceStartBlock("Creating model");
 	Model model(EquationSet::PrimitiveNonhydrostaticEquations);
 	AnnounceEndBlock("Done");
-	
+
 	// Set the parameters for the model
 	AnnounceStartBlock("Initializing parameters");
 	model.SetParameters(&params);
 	AnnounceEndBlock("Done");
-	
+
 	// Set the timestep scheme
 	TimestepSchemeStrang timestep(model, dOffCentering);
 	AnnounceStartBlock("Initializing timestep scheme");
 	model.SetTimestepScheme(&timestep);
 	AnnounceEndBlock("Done");
-	
+
 	// Set the horizontal dynamics
 	HorizontalDynamicsFEM::Type eHorizontalDynamicsType;
 	STLStringHelper::ToLower(strHorizontalDynamics);
@@ -402,7 +402,7 @@ try {
 
 	model.SetGrid(&grid);
 	AnnounceEndBlock("Done");
-	
+
 	// Set the reference output manager for the model
 	AnnounceStartBlock("Creating reference output manager");
 	OutputManagerReference outmanRef(
@@ -418,7 +418,7 @@ try {
 
 	model.AttachOutputManager(&outmanRef);
 	AnnounceEndBlock("Done");
-	
+
 	// Set the composite output manager for the model
 	AnnounceStartBlock("Creating composite output manager");
 	OutputManagerComposite outmanComp(
@@ -428,7 +428,7 @@ try {
 		strOutputPrefix);
 	model.AttachOutputManager(&outmanComp);
 	AnnounceEndBlock("Done");
-	
+
 	// Set the checksum output manager for the model
 	AnnounceStartBlock("Creating checksum output manager");
 	OutputManagerChecksum outmanChecksum(grid, dOutputDeltaT);
