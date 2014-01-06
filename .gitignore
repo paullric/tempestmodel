@@ -17,3 +17,5 @@ test/ShallowWaterEddyTest
 test/InertialGravityCartesianXZTest
 
 test/ThermalBubbleCartesianTest
+
+test/ScharMountainCartesianTest

@@ -187,7 +187,7 @@ public:
 	///		Evaluate the topography at the given point. (cartesian version)
 	///	</summary>
 	virtual double EvaluateTopography(
-       PhysicalConstants & phys,
+       const PhysicalConstants & phys,
 	   double dXp,
 	   double dYp
 	) const {
