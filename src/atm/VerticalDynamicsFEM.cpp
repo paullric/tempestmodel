@@ -59,10 +59,13 @@ VerticalDynamicsFEM::VerticalDynamicsFEM(
 	}
 
 	if (nHyperdiffusionOrder == 2) {
-		m_dHyperdiffusionCoeff = 10.0;
+		m_dHyperdiffusionCoeff = 0.2;
+
+	} else if (nHyperdiffusionOrder == 4) {
+		m_dHyperdiffusionCoeff = -0.02;
 
 	} else {
-		_EXCEPTIONT("UNIMPLEMENTED: Vertical hyperdiffusion order > 2");
+		_EXCEPTIONT("UNIMPLEMENTED: Vertical hyperdiffusion order > 4");
 	}
 
 }
@@ -1884,13 +1887,25 @@ void VerticalDynamicsFEM::Evaluate(
 	) {
 		double dScaledNu =
 			m_dHyperdiffusionCoeff
-			* dDeltaXi
-			* dDeltaXi;
+			* exp(static_cast<double>(m_nHyperdiffusionOrder - 1)
+				* log(dDeltaXi));
 
 		DiffDiffREdgeToREdge(
 			m_dStateREdge[TIx],
 			m_dStateAuxDiff
 		);
+
+		for (int h = 2; h < m_nHyperdiffusionOrder; h += 2) {
+			memcpy(
+				m_dStateAux,
+				m_dStateAuxDiff,
+				(nRElements + 1) * sizeof(double));
+
+			DiffDiffREdgeToREdge(
+				m_dStateAux,
+				m_dStateAuxDiff
+			);
+		}
 
 		for (int k = 0; k <= nRElements; k++) {
 			dF[m_ixTBegin+k] -=
@@ -1899,14 +1914,7 @@ void VerticalDynamicsFEM::Evaluate(
 				* m_dStateAuxDiff[k];
 		}
 	}
-/*
-	for (int k = 1; k < nRElements; k++) {
-		dF[m_ixTBegin+k] -= 0.5 * 20.0 * fabs(m_dStateREdge[WIx][k])
-			* (m_dStateREdge[TIx][k+1]
-				- 2.0 * m_dStateREdge[TIx][k]
-				+ m_dStateREdge[TIx][k-1]);
-	}
-*/
+
 	// Construct the time-dependent component of the RHS
 	for (int i = 0; i < m_nColumnStateSize; i++) {
 		dF[i] += (dX[i] - m_dColumnState[i]) / m_dDeltaT;
