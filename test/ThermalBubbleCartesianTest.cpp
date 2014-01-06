@@ -293,6 +293,9 @@ try {
 	// No reference state
 	bool fNoReferenceState;
 
+	// Vertical hyperdiffusion
+	int nVerticalHyperdiffOrder;
+
 	// Solve vertical using a fully explicit method
 	bool fFullyExplicitVertical;
 
@@ -323,6 +326,7 @@ try {
 		CommandLineStringD(strHorizontalDynamics, "method", "SE", "(SE | DG)");
 		CommandLineBool(fNoHyperviscosity, "nohypervis");
 		CommandLineBool(fNoReferenceState, "norefstate");
+		CommandLineInt(nVerticalHyperdiffOrder, "verticaldifforder", 0);
 		CommandLineBool(fFullyExplicitVertical, "explicitvertical");
 		CommandLineBool(fExnerPressureOnREdges, "exneredges");
 		CommandLineBool(fMassFluxOnLevels, "massfluxlevels");
@@ -331,11 +335,6 @@ try {
 	EndCommandLine(argv)
 
 	AnnounceBanner("INITIALIZATION");
-
-	// Create a new test case object
-	AnnounceStartBlock("Creating test case");
-
-	AnnounceEndBlock("Done");
 
 	// Construct a model
 	AnnounceStartBlock("Creating model");
@@ -375,6 +374,7 @@ try {
 		model,
 		nHorizontalOrder,
 		nVerticalOrder,
+		nVerticalHyperdiffOrder,
 		fFullyExplicitVertical,
 		!fExnerPressureOnREdges,
 		fMassFluxOnLevels);
