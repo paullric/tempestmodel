@@ -40,6 +40,7 @@ VerticalDynamicsFEM::VerticalDynamicsFEM(
 	Model & model,
 	int nHorizontalOrder,
 	int nVerticalOrder,
+	int nHyperdiffusionOrder,
 	bool fFullyExplicit,
 	bool fExnerPressureOnLevels,
 	bool fMassFluxOnLevels
@@ -49,8 +50,21 @@ VerticalDynamicsFEM::VerticalDynamicsFEM(
 	m_nVerticalOrder(nVerticalOrder),
 	m_fFullyExplicit(fFullyExplicit),
 	m_fExnerPressureOnLevels(fExnerPressureOnLevels),
-	m_fMassFluxOnLevels(fMassFluxOnLevels)
+	m_fMassFluxOnLevels(fMassFluxOnLevels),
+	m_nHyperdiffusionOrder(nHyperdiffusionOrder),
+	m_dHyperdiffusionCoeff(0.0)
 {
+	if (m_nHyperdiffusionOrder % 2 == 1) {
+		_EXCEPTIONT("Vertical hyperdiffusion order must be even.");
+	}
+
+	if (nHyperdiffusionOrder == 2) {
+		m_dHyperdiffusionCoeff = 10.0;
+
+	} else {
+		_EXCEPTIONT("UNIMPLEMENTED: Vertical hyperdiffusion order > 2");
+	}
+
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -169,12 +183,13 @@ void VerticalDynamicsFEM::Initialize() {
 	DataVector<double> dG;
 	DataVector<double> dGL;
 	DataVector<double> dW;
+	DataVector<double> dWL;
 
 	// Reference element [0,1] model levels
 	GaussQuadrature::GetPoints(m_nVerticalOrder, 0.0, 1.0, dG, dW);
 
 	// Reference element [0,1] model interfaces
-	GaussLobattoQuadrature::GetPoints(m_nVerticalOrder+1, 0.0, 1.0, dGL, dW);
+	GaussLobattoQuadrature::GetPoints(m_nVerticalOrder+1, 0.0, 1.0, dGL, dWL);
 
 	// State vector at levels
 	m_dStateNode.Initialize(
@@ -251,6 +266,23 @@ void VerticalDynamicsFEM::Initialize() {
 		for (int m = 0; m < m_nVerticalOrder; m++) {
 			m_dDiffNodeToREdge[n][m] /= dElementDeltaXi;
 		}
+	}
+
+	// Compute second differentiation coefficients
+	m_dDiffDiffREdgeToREdge.Initialize(
+		m_nVerticalOrder+1, m_nVerticalOrder+1);
+
+	for (int n = 0; n <= m_nVerticalOrder; n++) {
+	for (int m = 0; m <= m_nVerticalOrder; m++) {
+		m_dDiffDiffREdgeToREdge[n][m] = 0.0;
+		for (int s = 0; s <= m_nVerticalOrder; s++) {
+			m_dDiffDiffREdgeToREdge[n][m] -=
+				  m_dDiffREdgeToREdge[s][n]
+				* m_dDiffREdgeToREdge[s][m]
+				* dWL[s];
+		}
+		m_dDiffDiffREdgeToREdge[n][m] /= dWL[n];
+	}
 	}
 
 	// Get derivatives of flux reconstruction function and scale to the
@@ -666,7 +698,41 @@ void VerticalDynamicsFEM::DifferentiateREdgeToREdge(
 
 	// Halve interior element interface values
 	for (int a = 1; a < nFiniteElements; a++) {
-		m_dStateAuxDiff[a * m_nVerticalOrder] *= 0.5;
+		dDiffREdge[a * m_nVerticalOrder] *= 0.5;
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void VerticalDynamicsFEM::DiffDiffREdgeToREdge(
+	const double * dDataREdge,
+	double * dDiffDiffREdge
+) {
+	// Number of radial elements
+	int nRElements = m_model.GetGrid()->GetRElements();
+
+	int nFiniteElements = nRElements / m_nVerticalOrder;
+
+	// Zero the data
+	memset(dDiffDiffREdge, 0, (nRElements+1) * sizeof(double));
+
+	// Apply all interfaces values to all interfaces within element
+	for (int a = 0; a < nFiniteElements; a++) {
+	for (int l = 0; l <= m_nVerticalOrder; l++) {
+
+		int lBegin = a * m_nVerticalOrder;
+
+		for (int m = 0; m <= m_nVerticalOrder; m++) {
+			dDiffDiffREdge[lBegin + l] +=
+				  m_dDiffDiffREdgeToREdge[l][m]
+				* dDataREdge[lBegin + m];
+		}
+	}
+	}
+
+	// Halve interior element interface values
+	for (int a = 1; a < nFiniteElements; a++) {
+		dDiffDiffREdge[a * m_nVerticalOrder] *= 0.5;
 	}
 }
 
@@ -1498,6 +1564,13 @@ void VerticalDynamicsFEM::Evaluate(
 	// Number of radial elements
 	int nRElements = pGrid->GetRElements();
 
+	// Grid spacing
+	double dElementDeltaXi =
+		  pGrid->GetREtaInterface(m_nVerticalOrder)
+		- pGrid->GetREtaInterface(0);
+
+	double dDeltaXi = dElementDeltaXi / static_cast<double>(m_nVerticalOrder);
+
 	// Zero F
 	memset(dF, 0, m_nColumnStateSize * sizeof(double));
 
@@ -1671,8 +1744,15 @@ void VerticalDynamicsFEM::Evaluate(
 */
 
 			m_dMassFluxREdge[k] =
-				  m_dStateREdge[RIx][k]
-				* m_dStateREdge[WIx][k];
+				  m_dStateREdge[RIx][k] * m_dStateREdge[WIx][k]
+				  - 0.5 * 50.0 * fabs(m_dStateREdge[WIx][k])
+				  		* (m_dStateNode[RIx][k] - m_dStateNode[RIx][k-1]);
+
+/*
+			m_dMassFluxREdge[k] = 7.0 * m_dStateREdge[WIx][k]
+				- 0.5 * m_dStateREdge[WIx][k]
+					* (m_dStateNode[RIx][k] - m_dStateNode[RIx][k-1]);
+*/
 		}
 		m_dMassFluxREdge[0] = 0.0;
 		m_dMassFluxREdge[nRElements] = 0.0;
@@ -1702,7 +1782,11 @@ void VerticalDynamicsFEM::Evaluate(
 
 			m_dExnerPertNode[k] -= m_dExnerRefNode[k];
 		}
-
+/*
+		for (int k = 0; k < nRElements; k++) {
+			m_dExnerPertNode[k] = 7.0 * (m_dStateNode[RIx][k] - m_dStateRefNode[RIx][k]);
+		}
+*/
 		// Calculate derivative of Exner pressure on interfaces
 		if (pGrid->GetVarLocation(WIx) == DataLocation_REdge) {
 			DifferentiateNodeToREdge(
@@ -1766,10 +1850,6 @@ void VerticalDynamicsFEM::Evaluate(
 				+ dTheta * m_dDiffExnerPertREdge[k]);
 		}
 
-		// Zero boundary conditions for W
-		dF[m_ixWBegin] = dX[m_ixWBegin];
-		dF[m_ixWBegin + nRElements] = dX[m_ixWBegin + nRElements];
-
 		// If no vertical reference state is specified,
 		// gravity must be included
 		if (!pGrid->HasReferenceState()) {
@@ -1798,6 +1878,35 @@ void VerticalDynamicsFEM::Evaluate(
 		}
 	}
 
+	// Apply diffusion to theta
+	if ((pGrid->GetVarLocation(TIx) == DataLocation_REdge) &&
+		(m_nHyperdiffusionOrder > 0)
+	) {
+		double dScaledNu =
+			m_dHyperdiffusionCoeff
+			* dDeltaXi
+			* dDeltaXi;
+
+		DiffDiffREdgeToREdge(
+			m_dStateREdge[TIx],
+			m_dStateAuxDiff
+		);
+
+		for (int k = 0; k <= nRElements; k++) {
+			dF[m_ixTBegin+k] -=
+				dScaledNu
+				* fabs(m_dStateREdge[WIx][k])
+				* m_dStateAuxDiff[k];
+		}
+	}
+/*
+	for (int k = 1; k < nRElements; k++) {
+		dF[m_ixTBegin+k] -= 0.5 * 20.0 * fabs(m_dStateREdge[WIx][k])
+			* (m_dStateREdge[TIx][k+1]
+				- 2.0 * m_dStateREdge[TIx][k]
+				+ m_dStateREdge[TIx][k-1]);
+	}
+*/
 	// Construct the time-dependent component of the RHS
 	for (int i = 0; i < m_nColumnStateSize; i++) {
 		dF[i] += (dX[i] - m_dColumnState[i]) / m_dDeltaT;

@@ -51,6 +51,7 @@ public:
 		Model & model,
 		int nHorizontalOrder,
 		int nVerticalOrder,
+		int nHyperdiffusionOrder = 0,
 		bool fFullyExplicit = false,
 		bool fExnerPressureOnLevels = true,
 		bool fMassFluxOnLevels = false
@@ -90,7 +91,7 @@ protected:
 	);
 
 	///	<summary>
-	///		Interpolate a state variable from nodes to finite-element edges.
+	///		Interpolate a variable from nodes to finite-element edges.
 	///	</summary>
 	void InterpolateNodeToFEEdges(
 		const double * dDataNode,
@@ -98,7 +99,7 @@ protected:
 	);
 
 	///	<summary>
-	///		Differentiate a state variable from nodes to nodes.
+	///		Differentiate a variable from nodes to nodes.
 	///	</summary>
 	void DifferentiateNodeToNode(
 		const double * dDataNode,
@@ -107,7 +108,7 @@ protected:
 	);
 
 	///	<summary>
-	///		Differentiate a state varaible from interfaces to interfaces.
+	///		Differentiate a variable from interfaces to interfaces.
 	///	</summary>
 	void DifferentiateNodeToREdge(
 		const double * dDataNode,
@@ -116,7 +117,7 @@ protected:
 	);
 
 	///	<summary>
-	///		Differentiate a state varaible from interfaces to interfaces.
+	///		Differentiate a variable from interfaces to interfaces.
 	///	</summary>
 	void DifferentiateREdgeToNode(
 		const double * dDataREdge,
@@ -124,11 +125,19 @@ protected:
 	);
 
 	///	<summary>
-	///		Differentiate a state varaible from interfaces to interfaces.
+	///		Differentiate a variable from interfaces to interfaces.
 	///	</summary>
 	void DifferentiateREdgeToREdge(
 		const double * dDataREdge,
 		double * dDiffREdge
+	);
+
+	///	<summary>
+	///		Second derivative of a variable from interfaces to interfaces.
+	///	</summary>
+	void DiffDiffREdgeToREdge(
+		const double * dDataREdge,
+		double * dDiffDiffREdge
 	);
 
 public:
@@ -212,6 +221,16 @@ protected:
 	bool m_fMassFluxOnLevels;
 
 	///	<summary>
+	///		Hyperdiffusion coefficient.
+	///	</summary>
+	double m_dHyperdiffusionCoeff;
+
+	///	<summary>
+	///		Order of hyperdiffusion to apply (must be even).
+	///	</summary>
+	int m_nHyperdiffusionOrder;
+
+	///	<summary>
 	///		Timestep size.
 	///	</summary>
 	double m_dDeltaT;
@@ -226,6 +245,7 @@ protected:
 	///	</summary>
 	int m_nColumnStateSize;
 
+protected:
 	///	<summary>
 	///		First index of theta in the column state vector.
 	///	</summary>
@@ -392,6 +412,11 @@ protected:
 	///		Derivatives of reconstruction polynomial on interfaces.
 	///	</summary>
 	DataVector<double> m_dDiffReconsPolyREdge;
+
+	///	<summary>
+	///		Second differentiation coefficients from edges to edges.
+	///	</summary>
+	DataMatrix<double> m_dDiffDiffREdgeToREdge;
 
 #ifdef USE_PETSC
 private:
