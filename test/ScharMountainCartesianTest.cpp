@@ -1,8 +1,8 @@
 ///////////////////////////////////////////////////////////////////////////////
 ///
-///	\file    ThermalBubbleCartesianTest.cpp
+///	\file    ScharMountainCartesianTest.cpp
 ///	\author  Paul Ullrich, Jorge Guerra
-///	\version December 18, 2013
+///	\version January 4, 2014
 ///
 ///	<remarks>
 ///		Copyright 2000-2010 Paul Ullrich
@@ -19,7 +19,7 @@
 #include "STLStringHelper.h"
 
 #include "Model.h"
-#include "TimestepSchemeStrang.h"
+#include "TimestepSchemeARK4.h"
 #include "HorizontalDynamicsFEM.h"
 #include "VerticalDynamicsFEM.h"
 
@@ -40,9 +40,9 @@
 ///	<summary>
 ///		Giraldo et al. (2007)
 ///
-///		Thermal rising bubble test case.
+///		Schar Mountain Uniform Flow test case.
 ///	</summary>
-class ThermalBubbleCartesianTest : public TestCase {
+class ScharMountainCartesianTest : public TestCase {
 
 public:
 	/// <summary>
@@ -57,14 +57,39 @@ private:
 	double m_dH0;
 
 	///	<summary>
+	///		Uniform +X flow field.
+	///	</summary>
+	double m_dU0;
+
+	///	<summary>
 	///		Reference surface pressure.
 	///	</summary>
 	double m_dP0;
 
 	///	<summary>
-	///		Reference constant background pontential temperature
+	///		Specific heat of air at constant pressure.
 	///	</summary>
-	double m_dThetaBar;
+	double m_dCp;
+
+	///	<summary>
+	///		Specific heat of air at constant volume.
+	///	</summary>
+	double m_dCv;
+
+	///	<summary>
+	///		Gas constant of air.
+	///	</summary>
+	double m_dR;
+
+	///	<summary>
+	///		Brunt-Vaisala frequency
+	///	</summary>
+	double m_dNbar;
+
+	///	<summary>
+	///		Reference pontential temperature
+	///	</summary>
+	double m_dTheta0;
 
 	///	<summary>
 	///		Parameter factor for temperature disturbance
@@ -72,19 +97,19 @@ private:
 	double m_dThetaC;
 
 	///	<summary>
-	///		Parameter reference bubble radius
+	///		Parameter reference height for temperature disturbance
 	///	</summary>
-	double m_drC;
+	double m_dhC;
 
 	///	<summary>
-	///		Parameter reference length x for temperature disturbance
+	///		Parameter reference length a for temperature disturbance
 	///	</summary>
-	double m_dxC;
+	double m_daC;
 
 	///	<summary>
-	///		Parameter reference length z for temperature disturbance
+	///		Parameter reference length for mountain profile
 	///	</summary>
-	double m_dzC;
+	double m_dlC;
 
 	///	<summary>
 	///		Parameter Archimede's Constant (essentially Pi but to some digits)
@@ -100,25 +125,31 @@ public:
 	///	<summary>
 	///		Constructor. (with physical constants defined privately here)
 	///	</summary>
-	ThermalBubbleCartesianTest(
+	ScharMountainCartesianTest(
 		bool fNoReferenceState
 	) :
-		m_dH0(10000.),
-		m_dThetaBar(300.0),
-		m_dThetaC(0.5),
-		m_drC(250.),
-		m_dxC(500.),
-		m_dzC(350.),
+		m_dH0(21000.),
+		m_dU0(10.),
+		m_dP0(1.0E5),
+		m_dCp(1005.0),
+		m_dCv(718.0),
+		m_dR(287.058),
+		m_dNbar(0.01),
+		m_dTheta0(280.0),
+		m_dThetaC(1.0),
+		m_dhC(250.),
+		m_daC(5000.),
+		m_dlC(4000.),
 		m_dpiC(3.14159265),
 		m_fNoReferenceState(fNoReferenceState)
 	{
 		// Set the dimensions of the box
-		m_dGDim[0] = 0.0;
-		m_dGDim[1] = 1000.0;
+		m_dGDim[0] = -25000.;
+		m_dGDim[1] = 25000.0;
 		m_dGDim[2] = -1000.0;
 		m_dGDim[3] = 1000.0;
 		m_dGDim[4] = 0.0;
-		m_dGDim[5] = 1000.0;
+		m_dGDim[5] = 21000.0;
 	}
 
 public:
@@ -156,35 +187,15 @@ public:
 	///		Evaluate the topography at the given point. (cartesian version)
 	///	</summary>
 	virtual double EvaluateTopography(
+       const PhysicalConstants & phys,
 	   double dXp,
 	   double dYp
 	) const {
-		// This test case has no topography associated with it
-		return 0.0;
-	}
-
-	///	<summary>
-	///		Evaluate the potential temperature field perturbation.
-	///	</summary>
-	double EvaluateTPrime(
-		const PhysicalConstants & phys,
-		double dXp,
-		double dZp
-	) const {
-
-		// Potential temperature perturbation bubble using radius
-		double xL2 = (dXp - m_dxC) * (dXp - m_dxC);
-		double zL2 = (dZp - m_dzC) * (dZp - m_dzC);
-		double dRp = sqrt(xL2 + zL2);
-
-		double dThetaHat = 1.0;
-		if (dRp <= m_drC) {
-			dThetaHat = 0.5 * m_dThetaC * (1.0 + cos(m_dpiC * dRp / m_drC));
-		} else if (dRp > m_drC) {
-			dThetaHat = 0.0;
-		}
-
-		return dThetaHat;
+		// Specify the Schar Mountain (Test case 5 from Giraldo et al. 2008)
+		double hsm = m_dhC * exp(-dXp/m_daC * dXp/m_daC) *
+                     cos(m_dpiC * dXp / m_dlC) * cos(m_dpiC * dXp / m_dlC);
+        std::cout << hsm << "\n";
+		return hsm;
 	}
 
 	///	<summary>
@@ -197,21 +208,25 @@ public:
 		double dYp,
 		double * dState
 	) const {
+		// Base potential temperature field
+		double dG = phys.GetG();
+		double dThetaBar = m_dTheta0 * exp(m_dNbar * m_dNbar / dG * dZp);
+
 		// Set the uniform U, V, W field for all time
 		dState[0] = 0.0;
 		dState[1] = 0.0;
 		dState[3] = 0.0;
 
 		// Set the initial potential temperature field
-		dState[2] = m_dThetaBar;
+		dState[2] = dThetaBar;
 
 		// Set the initial density based on the Exner pressure
-		double dExnerP =
-			- phys.GetG() / (phys.GetCp() * m_dThetaBar) * dZp + 1.0;
-		double dRho =
-			phys.GetP0() / (phys.GetR() * m_dThetaBar) *
-			  pow(dExnerP, (phys.GetCv() / phys.GetR()));
-
+		double gsi = phys.GetG();
+		double dExnerP = pow(gsi,2.0) / (m_dCp * m_dTheta0 *
+                                        (m_dNbar * m_dNbar));
+		dExnerP *= (exp(-pow(m_dNbar,2.0)/gsi * dZp) - 1.0);
+		dExnerP += 1.0;
+		double dRho = m_dP0 / (m_dR * dThetaBar) * pow(dExnerP,(m_dCv / m_dR));
 		dState[4] = dRho;
 	}
 
@@ -227,21 +242,25 @@ public:
 		double * dState,
 		double * dTracer
 	) const {
+		// Base potential temperature field
+		double dG = phys.GetG();
+		double dThetaBar = m_dTheta0 * exp(m_dNbar * m_dNbar / dG * dZp);
+
 		// Set the uniform U, V, W field for all time
-		dState[0] = 0.0;
+		dState[0] = m_dU0;
 		dState[1] = 0.0;
 		dState[3] = 0.0;
 
 		// Set the initial potential temperature field
-		dState[2] = m_dThetaBar + EvaluateTPrime(phys, dXp, dZp);;
+		dState[2] = dThetaBar;
 
 		// Set the initial density based on the Exner pressure
-		double dExnerP =
-			- phys.GetG() / (phys.GetCp() * m_dThetaBar) * dZp + 1.0;
-		double dRho =
-			phys.GetP0() / (phys.GetR() * m_dThetaBar) *
-			  pow(dExnerP, (phys.GetCv() / phys.GetR()));
-
+		double gsi = phys.GetG();
+		double dExnerP = (gsi * gsi) / (m_dCp * m_dTheta0 *
+                                        (m_dNbar * m_dNbar));
+		dExnerP *= (exp(-(m_dNbar * m_dNbar)/gsi * dZp) - 1.0);
+		dExnerP += 1.0;
+		double dRho = m_dP0 / (m_dR * dThetaBar) * pow(dExnerP,(m_dCv / m_dR));
 		dState[4] = dRho;
 	}
 };
@@ -275,9 +294,6 @@ try {
 	// Vertical Order
 	int nVerticalOrder;
 
-	// Off-centering
-	double dOffCentering;
-
 	// Grid rotation angle
 	double dAlpha;
 
@@ -293,12 +309,6 @@ try {
 	// No reference state
 	bool fNoReferenceState;
 
-	// Vertical hyperdiffusion
-	int nVerticalHyperdiffOrder;
-
-	// Solve vertical using a fully explicit method
-	bool fFullyExplicitVertical;
-
 	// Store Exner pressure on edges (advanced)
 	bool fExnerPressureOnREdges;
 
@@ -311,23 +321,21 @@ try {
 	// Parse the command line
 	BeginCommandLine()
 		CommandLineString(strOutputDir, "output_dir",
-			"outThermalBubbleCartesianTest");
+			"outScharMountainCartesianTest");
 		CommandLineString(strOutputPrefix, "output_prefix", "out");
 		CommandLineInt(nOutputsPerFile, "output_perfile", -1);
 		CommandLineString(params.m_strRestartFile, "restart_file", "");
-		CommandLineInt(nResolution, "resolution", 40);
-		CommandLineInt(nLevels, "levels", 40);
+		CommandLineInt(nResolution, "resolution", 20);
+		CommandLineInt(nLevels, "levels", 20);
 		CommandLineInt(nHorizontalOrder, "order", 4);
 		CommandLineInt(nVerticalOrder, "vertorder", 5);
-		CommandLineDouble(dOffCentering, "offcentering", 0.0);
-		CommandLineDouble(params.m_dDeltaT, "dt", 10.0);
-		CommandLineDouble(params.m_dEndTime, "endtime", 10.0);
-		CommandLineDouble(dOutputDeltaT, "outputtime", 10.0);
+		CommandLineDouble(dAlpha, "alpha", 0.0);
+		CommandLineDouble(params.m_dDeltaT, "dt", 0.5);
+		CommandLineDouble(params.m_dEndTime, "endtime", 1800.0);
+		CommandLineDouble(dOutputDeltaT, "outputtime", 300.0);
 		CommandLineStringD(strHorizontalDynamics, "method", "SE", "(SE | DG)");
 		CommandLineBool(fNoHyperviscosity, "nohypervis");
 		CommandLineBool(fNoReferenceState, "norefstate");
-		CommandLineInt(nVerticalHyperdiffOrder, "verticaldifforder", 0);
-		CommandLineBool(fFullyExplicitVertical, "explicitvertical");
 		CommandLineBool(fExnerPressureOnREdges, "exneredges");
 		CommandLineBool(fMassFluxOnLevels, "massfluxlevels");
 
@@ -335,6 +343,11 @@ try {
 	EndCommandLine(argv)
 
 	AnnounceBanner("INITIALIZATION");
+
+	// Create a new test case object
+	AnnounceStartBlock("Creating test case");
+
+	AnnounceEndBlock("Done");
 
 	// Construct a model
 	AnnounceStartBlock("Creating model");
@@ -347,7 +360,7 @@ try {
 	AnnounceEndBlock("Done");
 
 	// Set the timestep scheme
-	TimestepSchemeStrang timestep(model, dOffCentering);
+	TimestepSchemeARK4 timestep(model);
 	AnnounceStartBlock("Initializing timestep scheme");
 	model.SetTimestepScheme(&timestep);
 	AnnounceEndBlock("Done");
@@ -374,8 +387,6 @@ try {
 		model,
 		nHorizontalOrder,
 		nVerticalOrder,
-		nVerticalHyperdiffOrder,
-		fFullyExplicitVertical,
 		!fExnerPressureOnREdges,
 		fMassFluxOnLevels);
 
@@ -385,7 +396,7 @@ try {
 
 	// Generate a new cartesian GLL grid
 	// Initialize the test case here (to have grid dimensions available)
-	ThermalBubbleCartesianTest test(fNoReferenceState);
+	ScharMountainCartesianTest test(fNoReferenceState);
 
 	AnnounceStartBlock("Constructing grid");
 	GridCartesianGLL grid(
@@ -397,8 +408,6 @@ try {
 		nVerticalOrder,
 		nLevels,
 		test.m_dGDim);
-
-	grid.SetReferenceLength(1100000.0);
 
 	model.SetGrid(&grid);
 	AnnounceEndBlock("Done");
@@ -412,10 +421,7 @@ try {
 		strOutputPrefix,
 		nOutputsPerFile,
 		nResolution * (nHorizontalOrder - 1),
-		1,
-		false,  // Output variables in natural locations
-		true);  // Remove reference profile in output
-
+		1);
 	model.AttachOutputManager(&outmanRef);
 	AnnounceEndBlock("Done");
 
@@ -436,7 +442,7 @@ try {
 	AnnounceEndBlock("Done");
 
 	// Set the test case for the model
-	ThermalBubbleCartesianTest ctest(fNoReferenceState);
+	ScharMountainCartesianTest ctest(fNoReferenceState);
 	AnnounceStartBlock("Initializing test case");
 	model.SetTestCase(&ctest);
 	AnnounceEndBlock("Done");
