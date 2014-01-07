@@ -54,11 +54,17 @@ VerticalDynamicsFEM::VerticalDynamicsFEM(
 	m_nHyperdiffusionOrder(nHyperdiffusionOrder),
 	m_dHyperdiffusionCoeff(0.0)
 {
-	if (m_nHyperdiffusionOrder % 2 == 1) {
+	if (nHyperdiffusionOrder % 2 == 1) {
 		_EXCEPTIONT("Vertical hyperdiffusion order must be even.");
 	}
 
-	if (nHyperdiffusionOrder == 2) {
+	if (nHyperdiffusionOrder < 0) {
+		_EXCEPTIONT("Vertical hyperdiffusion order must be positive.");
+	}
+
+	if (nHyperdiffusionOrder == 0) {
+
+	} else if (nHyperdiffusionOrder == 2) {
 		m_dHyperdiffusionCoeff = 0.2;
 
 	} else if (nHyperdiffusionOrder == 4) {
