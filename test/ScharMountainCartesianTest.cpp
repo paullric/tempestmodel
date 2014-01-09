@@ -194,7 +194,7 @@ public:
 		// Specify the Schar Mountain (Test case 5 from Giraldo et al. 2008)
 		double hsm = m_dhC * exp(-dXp/m_daC * dXp/m_daC) *
                      cos(m_dpiC * dXp / m_dlC) * cos(m_dpiC * dXp / m_dlC);
-        std::cout << hsm << "\n";
+        //std::cout << hsm << "\n";
 		return hsm;
 	}
 
@@ -309,6 +309,12 @@ try {
 	// No reference state
 	bool fNoReferenceState;
 
+	// Vertical hyperdiffusion
+	int nVerticalHyperdiffOrder;
+
+	// Solve vertical using a fully explicit method
+	bool fFullyExplicitVertical;
+
 	// Store Exner pressure on edges (advanced)
 	bool fExnerPressureOnREdges;
 
@@ -326,16 +332,18 @@ try {
 		CommandLineInt(nOutputsPerFile, "output_perfile", -1);
 		CommandLineString(params.m_strRestartFile, "restart_file", "");
 		CommandLineInt(nResolution, "resolution", 20);
-		CommandLineInt(nLevels, "levels", 20);
+		CommandLineInt(nLevels, "levels", 40);
 		CommandLineInt(nHorizontalOrder, "order", 4);
-		CommandLineInt(nVerticalOrder, "vertorder", 5);
+		CommandLineInt(nVerticalOrder, "vertorder", 4);
 		CommandLineDouble(dAlpha, "alpha", 0.0);
 		CommandLineDouble(params.m_dDeltaT, "dt", 0.5);
-		CommandLineDouble(params.m_dEndTime, "endtime", 1800.0);
-		CommandLineDouble(dOutputDeltaT, "outputtime", 300.0);
+		CommandLineDouble(params.m_dEndTime, "endtime", 3600.0);
+		CommandLineDouble(dOutputDeltaT, "outputtime", 600.0);
 		CommandLineStringD(strHorizontalDynamics, "method", "SE", "(SE | DG)");
 		CommandLineBool(fNoHyperviscosity, "nohypervis");
 		CommandLineBool(fNoReferenceState, "norefstate");
+		CommandLineInt(nVerticalHyperdiffOrder, "verticaldifforder", 0);
+		CommandLineBool(fFullyExplicitVertical, "explicitvertical");
 		CommandLineBool(fExnerPressureOnREdges, "exneredges");
 		CommandLineBool(fMassFluxOnLevels, "massfluxlevels");
 
@@ -387,6 +395,8 @@ try {
 		model,
 		nHorizontalOrder,
 		nVerticalOrder,
+		nVerticalHyperdiffOrder,
+		fFullyExplicitVertical,
 		!fExnerPressureOnREdges,
 		fMassFluxOnLevels);
 
