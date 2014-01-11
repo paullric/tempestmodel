@@ -1231,42 +1231,6 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusion(
 			}
 			}
 		}
-/*
-			// Pointwise fluxes within spectral element
-			for (int i = 0; i < m_nHorizontalOrder; i++) {
-			for (int j = 0; j < m_nHorizontalOrder; j++) {
-
-				double dDaGradient = 0.0;
-				double dDbGradient = 0.0;
-
-				for (int s = 0; s < m_nHorizontalOrder; s++) {
-					dDaGradient +=
-						m_dGradient[0][s][j]
-						* m_dDxBasis1D[s][i];
-
-					dDbGradient +=
-						m_dGradient[1][i][s]
-						* m_dDxBasis1D[s][j];
-				}
-
-				dDaGradient /= dElementDeltaA;
-				dDbGradient /= dElementDeltaB;
-
-				//printf("%1.10e %1.10e\n", dDaGradient, dDbGradient);
-
-				// Update this variable
-				int iA = a * m_nHorizontalOrder + i + box.GetHaloElements();
-				int iB = b * m_nHorizontalOrder + j + box.GetHaloElements();
-
-				dataUpdate[iC][k][iA][iB] +=
-					dCoeff * (dDaGradient + dDbGradient) / dJacobian[k][iA][iB];
-			}
-			}
-
-		}
-		}
-		}
-*/
 	}
 }
 
