@@ -575,7 +575,7 @@ void VerticalDynamicsFEM::InterpolateREdgeToNode(
 		// Apply interface values to nodes
 		for (int l = 0; l <= m_nVerticalOrder; l++) {
 			dDataNode[k] +=
-				(*m_pInterpREdgeToNode)[m][l] * 
+				(*m_pInterpREdgeToNode)[m][l] *
 					(dDataREdge[lBegin + l] - dDataRefREdge[lBegin + l]);
 		}
 	}
@@ -1019,8 +1019,8 @@ void VerticalDynamicsFEM::StepExplicit(
 	int nFiniteElements = nRElements / m_nVerticalOrder;
 
 	// Reset the reference state
-	memset(m_dStateRefNode[WIx],  0,  nRElements   *sizeof(double)); 
-	memset(m_dStateRefREdge[WIx], 0, (nRElements+1)*sizeof(double)); 
+	memset(m_dStateRefNode[WIx],  0,  nRElements   *sizeof(double));
+	memset(m_dStateRefREdge[WIx], 0, (nRElements+1)*sizeof(double));
 
 	// Perform local update
 	for (int n = 0; n < pGrid->GetActivePatchCount(); n++) {
