@@ -171,7 +171,7 @@ public:
 	///	<summary>
 	///		Build the Jacobian matrix.
 	///	</summary>
-	void BuildJacobian();
+	void BootstrapJacobian();
 
 	///	<summary>
 	///		Advance implicit terms of the vertical column one substep.
@@ -185,7 +185,31 @@ public:
 
 public:
 	///	<summary>
-	///		Evaluate the RHS (used by JacobianFreeNewtonKrylov)
+	///		Prepare interpolated and differentiated column data.
+	///	</summary>
+	void PrepareColumn(
+		const double * dX
+	);
+
+	///	<summary>
+	///		Evaluate the zero equations.
+	///	</summary>
+	void BuildF(
+		const double * dX,
+		double * dF
+	);
+
+	///	<summary>
+	///		Build the Jacobian matrix.
+	///	</summary>
+	void BuildJacobianF(
+		const double * dX,
+		double ** dDG
+	);
+
+	///	<summary>
+	///		Prepare the column then evaluate the zero equations
+	///		(used by JacobianFreeNewtonKrylov)
 	///	</summary>
 	void Evaluate(
 		const double * dX,
@@ -287,14 +311,19 @@ protected:
 	DataMatrix<double> m_dStateREdge;
 
 	///	<summary>
-	///		Auxiliary state, used by StepImplicit
+	///		Auxiliary state, used by StepExplicit.
 	///	</summary>
 	DataVector<double> m_dStateAux;
 
 	///	<summary>
-	///		Derivative of auxiliary state, used by StepImplicit
+	///		Derivative of auxiliary state, used by StepExplicit.
 	///	</summary>
 	DataVector<double> m_dStateAuxDiff;
+
+	///	<summary>
+	///		Auxiliary storage for derivative of theta.
+	///	</summary>
+	DataVector<double> m_dDiffTheta;
 
 	///	<summary>
 	///		State variable evaluated on finite element interfaces (left,
@@ -399,6 +428,25 @@ protected:
 	DataMatrix<double> m_dDiffNodeToREdge;
 
 	///	<summary>
+	///		Amalgamated differentiation coefficients from nodes to interfaces;
+	///		includes both interior derivative terms and derivatives from
+	///		reconstruction polynomial.
+	///	</summary>
+	DataMatrix<double> m_dDiffNodeToREdgeAmal;
+
+	///	<summary>
+	///		Amalgamated differentiation coefficients from nodes to interfaces
+	///		at left edge with extrapolated boundary conditions.
+	///	</summary>
+	DataMatrix<double> m_dDiffNodeToREdgeLeft;
+
+	///	<summary>
+	///		Amalgamated differentiation coefficients from nodes to interfaces
+	///		at right edge with extrapolated boundary conditions.
+	///	</summary>
+	DataMatrix<double> m_dDiffNodeToREdgeRight;
+
+	///	<summary>
 	///		Differentiation coefficients from nodes to nodes.
 	///	</summary>
 	DataMatrix<double> m_dDiffNodeToNode;
@@ -439,7 +487,30 @@ private:
 	///		PetSc vector for storing the function value.
 	///	</summary>
 	Vec m_vecR;
+#endif
+#ifdef USE_DIRECTSOLVE_APPROXJ
+private:
+	///	<summary>
+	///		Jacobian matrix used in direct solve.
+	///	</summary>
+	DataMatrix<double> m_matJacobianF;
 
+	///	<summary>
+	///		Pivot matrix used in direct solve.
+	///	</summary>
+	DataVector<int> m_vecIPiv;
+#endif
+#ifdef USE_DIRECTSOLVE
+private:
+	///	<summary>
+	///		Jacobian matrix used in direct solve.
+	///	</summary>
+	DataMatrix<double> m_matJacobianF;
+
+	///	<summary>
+	///		Pivot matrix used in direct solve.
+	///	</summary>
+	DataVector<int> m_vecIPiv;
 #endif
 };
 

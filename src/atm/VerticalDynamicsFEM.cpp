@@ -32,7 +32,7 @@
 ///	<summary>
 ///		Type of flux reconstruction function to use (see Huynh 2007)
 ///	</summary>
-static const int ParamFluxReconstructionType = 1;
+static const int ParamFluxReconstructionType = 2;
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -173,9 +173,24 @@ void VerticalDynamicsFEM::Initialize() {
 
 	// Set the SNES context from options
 	SNESSetFromOptions(m_snes);
-#else
+#endif
+#ifdef USE_GMRES
 	// Initialize JFNK
 	InitializeJFNK(m_nColumnStateSize, m_nColumnStateSize);
+#endif
+#ifdef USE_DIRECTSOLVE_APPROXJ
+	// Initialize Jacobian matrix
+	m_matJacobianF.Initialize(m_nColumnStateSize, m_nColumnStateSize);
+
+	// Initialize pivot vector
+	m_vecIPiv.Initialize(m_nColumnStateSize);
+#endif
+#ifdef USE_DIRECTSOLVE
+	// Initialize Jacobian matrix
+	m_matJacobianF.Initialize(m_nColumnStateSize, m_nColumnStateSize);
+
+	// Initialize pivot vector
+	m_vecIPiv.Initialize(m_nColumnStateSize);
 #endif
 
 	// Allocate column for JFNK
@@ -218,6 +233,8 @@ void VerticalDynamicsFEM::Initialize() {
 
 	m_dStateAux.Initialize(nRElements+1);
 	m_dStateAuxDiff.Initialize(nRElements+1);
+
+	m_dDiffTheta.Initialize(nRElements+1);
 
 	m_dStateFEEdge.Initialize(nFiniteElements+1, 2);
 
@@ -298,17 +315,91 @@ void VerticalDynamicsFEM::Initialize() {
 	// element [0, dElementDeltaXi]
 	FluxReconstructionFunction::GetDerivatives(
 		ParamFluxReconstructionType,
-		m_nVerticalOrder, dG, m_dDiffReconsPolyNode);
+		m_nVerticalOrder+1, dG, m_dDiffReconsPolyNode);
 
 	FluxReconstructionFunction::GetDerivatives(
 		ParamFluxReconstructionType,
-		m_nVerticalOrder, dGL, m_dDiffReconsPolyREdge);
+		m_nVerticalOrder+1, dGL, m_dDiffReconsPolyREdge);
 
 	for (int n = 0; n < m_dDiffReconsPolyNode.GetRows(); n++) {
 		m_dDiffReconsPolyNode[n] /= dElementDeltaXi;
 	}
 	for (int n = 0; n < m_dDiffReconsPolyREdge.GetRows(); n++) {
 		m_dDiffReconsPolyREdge[n] /= dElementDeltaXi;
+	}
+
+	// Compute amalgamated differentiation coefficients
+	m_dDiffNodeToREdgeAmal.Initialize(
+		m_nVerticalOrder+1, 3*m_nVerticalOrder);
+
+	m_dDiffNodeToREdgeLeft.Initialize(
+		m_nVerticalOrder+1, 2*m_nVerticalOrder);
+
+	m_dDiffNodeToREdgeRight.Initialize(
+		m_nVerticalOrder+1, 2*m_nVerticalOrder);
+
+	for (int n = 0; n <= m_nVerticalOrder; n++) {
+	for (int m = 0; m < m_nVerticalOrder; m++) {
+		m_dDiffNodeToREdgeAmal[n][m_nVerticalOrder + m] =
+			m_dDiffNodeToREdge[n][m];
+		m_dDiffNodeToREdgeLeft[n][m] =
+			m_dDiffNodeToREdge[n][m];
+		m_dDiffNodeToREdgeRight[n][m_nVerticalOrder + m] =
+			m_dDiffNodeToREdge[n][m];
+	}
+	}
+
+	// Overlay differentiation stencils
+	for (int m = 0; m < 2 * m_nVerticalOrder; m++) {
+		m_dDiffNodeToREdgeAmal[0][m] = 0.5 * (
+			  m_dDiffNodeToREdgeAmal[0][m]
+			+ m_dDiffNodeToREdgeAmal[m_nVerticalOrder][m_nVerticalOrder+m]);
+
+		m_dDiffNodeToREdgeAmal[m_nVerticalOrder][m_nVerticalOrder+m] =
+			m_dDiffNodeToREdgeAmal[0][m];
+	}
+
+	// Contributions due to interface values
+	for (int n = 0; n <= m_nVerticalOrder; n++) {
+	for (int m = 0; m < m_nVerticalOrder; m++) {
+		// Contribution from element on the right
+		m_dDiffNodeToREdgeAmal[n][m_nVerticalOrder + m] -=
+			0.5 * (*m_pInterpNodeToREdge)[m_nVerticalOrder][m]
+			* m_dDiffReconsPolyREdge[n];
+
+		m_dDiffNodeToREdgeAmal[n][2 * m_nVerticalOrder + m] +=
+			0.5 * (*m_pInterpNodeToREdge)[0][m]
+			* m_dDiffReconsPolyREdge[n];
+
+		m_dDiffNodeToREdgeLeft[n][m] -=
+			0.5 * (*m_pInterpNodeToREdge)[m_nVerticalOrder][m] * (
+				m_dDiffReconsPolyREdge[n]
+				+ m_dDiffReconsPolyREdge[m_nVerticalOrder - n]);
+
+		m_dDiffNodeToREdgeLeft[n][m_nVerticalOrder + m] +=
+			0.5 * (*m_pInterpNodeToREdge)[0][m] * (
+				m_dDiffReconsPolyREdge[n]
+				+ m_dDiffReconsPolyREdge[m_nVerticalOrder - n]);
+
+		// Contribution from element on the left
+		m_dDiffNodeToREdgeAmal[n][m] +=
+			- 0.5 * (*m_pInterpNodeToREdge)[m_nVerticalOrder][m]
+			* m_dDiffReconsPolyREdge[m_nVerticalOrder - n];
+
+		m_dDiffNodeToREdgeAmal[n][m_nVerticalOrder + m] -=
+			- 0.5* (*m_pInterpNodeToREdge)[0][m]
+			* m_dDiffReconsPolyREdge[m_nVerticalOrder - n];
+
+		m_dDiffNodeToREdgeRight[n][m] +=
+			- 0.5 * (*m_pInterpNodeToREdge)[m_nVerticalOrder][m] * (
+				m_dDiffReconsPolyREdge[m_nVerticalOrder - n]
+				+ m_dDiffReconsPolyREdge[n]);
+
+		m_dDiffNodeToREdgeRight[n][m_nVerticalOrder + m] -=
+			- 0.5 * (*m_pInterpNodeToREdge)[0][m] * (
+				m_dDiffReconsPolyREdge[m_nVerticalOrder - n]
+				+ m_dDiffReconsPolyREdge[n]);
+	}
 	}
 
 	// Calculate Exner pressure reference profile
@@ -609,6 +700,27 @@ void VerticalDynamicsFEM::DifferentiateNodeToREdge(
 	// Zero the output
 	memset(dDiffREdge, 0, (nRElements+1) * sizeof(double));
 
+	// Handle the single element case
+	if (nFiniteElements == 1) {
+		for (int k = 0; k < m_nVerticalOrder; k++) {
+		for (int l = 0; l <= m_nVerticalOrder; l++) {
+			dDiffREdge[l] +=
+				m_dDiffNodeToREdge[l][k]
+				* dDataNode[k];
+		}
+		}
+
+		return;
+	}
+
+	if (nFiniteElements == 2) {
+		_EXCEPTIONT("UNIMPLEMENTED: Still working on this...");
+	}
+
+	if (fZeroBoundaries) {
+		_EXCEPTIONT("UNIMPLEMENTED: Still working on transitioning this...");
+	}
+
 	// Interpolate nodes to finite-element edges
 	InterpolateNodeToFEEdges(dDataNode, fZeroBoundaries);
 
@@ -645,6 +757,54 @@ void VerticalDynamicsFEM::DifferentiateNodeToREdge(
 	for (int a = 1; a < nFiniteElements; a++) {
 		dDiffREdge[a * m_nVerticalOrder] *= 0.5;
 	}
+
+#pragma message "Doesn't work with ReconstructionFunctionType = 1"
+/*
+	// Compute interior derivatives
+	{
+		int kBegin = m_nVerticalOrder;
+		int kLast = (nFiniteElements - 1) * m_nVerticalOrder;
+
+		for (int k = kBegin; k <= kLast; k++) {
+			int a = k / m_nVerticalOrder;
+			int l = k % m_nVerticalOrder;
+			if (k == kLast) {
+				a--;
+				l = m_nVerticalOrder;
+			}
+
+			int lPrev = (a-1) * m_nVerticalOrder;
+
+			for (int m = 0; m < 3 * m_nVerticalOrder; m++) {
+				dDiffREdge[k] +=
+					m_dDiffNodeToREdgeAmal[l][m]
+					* dDataNode[lPrev + m];
+			}
+		}
+	}
+
+	// Compute derivatives at left boundary
+	for (int l = 0; l < m_nVerticalOrder; l++) {
+	for (int m = 0; m < 2 * m_nVerticalOrder; m++) {
+		dDiffREdge[l] +=
+			m_dDiffNodeToREdgeLeft[l][m]
+			* dDataNode[m];
+	}
+	}
+
+	// Compute derivatives at right boundary
+	{
+		int lBegin = (nFiniteElements - 1) * m_nVerticalOrder;
+		int lEnd = lBegin + m_nVerticalOrder;
+		for (int l = 1; l <= m_nVerticalOrder; l++) {
+		for (int m = 0; m < 2 * m_nVerticalOrder; m++) {
+			dDiffREdge[lBegin + l] +=
+				m_dDiffNodeToREdgeRight[l][m]
+				* dDataNode[lBegin - m_nVerticalOrder + m];
+		}
+		}
+	}
+*/
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1089,7 +1249,7 @@ void VerticalDynamicsFEM::StepExplicit(
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void VerticalDynamicsFEM::BuildJacobian() {
+void VerticalDynamicsFEM::BootstrapJacobian() {
 
 	static const double Epsilon = 1.0e-5;
 
@@ -1123,7 +1283,7 @@ void VerticalDynamicsFEM::BuildJacobian() {
 	std::cout << "DeltaT: " << m_dDeltaT << std::endl;
 
 	FILE * fp;
-	fp = fopen("DG.txt", "w");
+	fp = fopen("DGRef.txt", "w");
 	for (int i = 0; i < nDim; i++) {
 		for (int j = 0; j < nDim; j++) {
 			fprintf(fp, "%1.15e", dJacobian[i][j]);
@@ -1143,6 +1303,22 @@ void VerticalDynamicsFEM::BuildJacobian() {
 		}
 	}
 	fclose(fp);
+
+	BuildJacobianF(m_dSoln, dJacobian);
+
+	fp = fopen("DG.txt", "w");
+	for (int i = 0; i < nDim; i++) {
+		for (int j = 0; j < nDim; j++) {
+			fprintf(fp, "%1.15e", dJacobian[i][j]);
+			if (j != nDim-1) {
+				fprintf(fp, " ");
+			}
+		}
+		fprintf(fp, "\n");
+	}
+	fclose(fp);
+
+
 	_EXCEPTION();
 }
 
@@ -1305,12 +1481,12 @@ void VerticalDynamicsFEM::StepImplicit(
 			VecGetArray(m_vecX, &dX);
 			memcpy(m_dSoln, dX, m_nColumnStateSize * sizeof(double));
 			VecRestoreArray(m_vecX, &dX);
-
-#else
+#endif
+#ifdef USE_GMRES
 			// Use Jacobian-Free Newton-Krylov to solve
 			m_dSoln = m_dColumnState;
 
-			//BuildJacobian();
+			//BootstrapJacobian();
 
 			double dError =
 				PerformJFNK_NewtonStep_Safe(
@@ -1336,6 +1512,61 @@ void VerticalDynamicsFEM::StepImplicit(
                 _EXCEPTIONT("Inversion failure");
             }
 
+#endif
+#ifdef USE_DIRECTSOLVE_APPROXJ
+			static const double Epsilon = 1.0e-5;
+
+			// Prepare the column
+			PrepareColumn(m_dColumnState);
+
+			// Build the F vector
+			BuildF(m_dColumnState, m_dSoln);
+
+			DataVector<double> dJC;
+			dJC.Initialize(m_dColumnState.GetRows());
+
+			DataVector<double> dG;
+			dG.Initialize(m_dColumnState.GetRows());
+
+			DataVector<double> dJCref;
+			dJCref.Initialize(m_dColumnState.GetRows());
+
+			Evaluate(m_dColumnState, dJCref);
+
+			for (int i = 0; i < m_dColumnState.GetRows(); i++) {
+				dG = m_dColumnState;
+				dG[i] = dG[i] + Epsilon;
+
+				Evaluate(dG, dJC);
+
+				for (int j = 0; j < m_dColumnState.GetRows(); j++) {
+					m_matJacobianF[i][j] = (dJC[j] - dJCref[j]) / Epsilon;
+				}
+			}
+
+			// Use direct solver
+			LAPACK::DGESV(m_matJacobianF, m_dSoln, m_vecIPiv);
+
+			for (int k = 0; k < m_dSoln.GetRows(); k++) {
+				m_dSoln[k] = m_dColumnState[k] - m_dSoln[k];
+			}
+#endif
+#ifdef USE_DIRECTSOLVE
+			// Prepare the column
+			PrepareColumn(m_dColumnState);
+
+			// Build the F vector
+			BuildF(m_dColumnState, m_dSoln);
+
+			// Build the Jacobian
+			BuildJacobianF(m_dColumnState, m_matJacobianF);
+
+			// Use direct solver
+			LAPACK::DGESV(m_matJacobianF, m_dSoln, m_vecIPiv);
+
+			for (int k = 0; k < m_dSoln.GetRows(); k++) {
+				m_dSoln[k] = m_dColumnState[k] - m_dSoln[k];
+			}
 #endif
 
 			// Apply updated state
@@ -1553,9 +1784,8 @@ void VerticalDynamicsFEM::StepImplicit(
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void VerticalDynamicsFEM::Evaluate(
-	const double * dX,
-	double * dF
+void VerticalDynamicsFEM::PrepareColumn(
+	const double * dX
 ) {
 	// Indices of EquationSet variables
 	const int UIx = 0;
@@ -1571,17 +1801,7 @@ void VerticalDynamicsFEM::Evaluate(
 	const PhysicalConstants & phys = m_model.GetPhysicalConstants();
 
 	// Number of radial elements
-	int nRElements = pGrid->GetRElements();
-
-	// Grid spacing
-	double dElementDeltaXi =
-		  pGrid->GetREtaInterface(m_nVerticalOrder)
-		- pGrid->GetREtaInterface(0);
-
-	double dDeltaXi = dElementDeltaXi / static_cast<double>(m_nVerticalOrder);
-
-	// Zero F
-	memset(dF, 0, m_nColumnStateSize * sizeof(double));
+	const int nRElements = pGrid->GetRElements();
 
 	// W on model interfaces
 	if (pGrid->GetVarLocation(WIx) == DataLocation_REdge) {
@@ -1631,11 +1851,7 @@ void VerticalDynamicsFEM::Evaluate(
 		// Calculate update for T
 		DifferentiateREdgeToREdge(
 			&(dX[m_ixTBegin]),
-			m_dStateAuxDiff);
-
-		for (int k = 0; k <= nRElements; k++) {
-			dF[m_ixTBegin+k] = m_dStateREdge[WIx][k] * m_dStateAuxDiff[k];
-		}
+			m_dDiffTheta);
 
 		// T is needed on model levels
 		if ((m_fExnerPressureOnLevels) ||
@@ -1658,11 +1874,7 @@ void VerticalDynamicsFEM::Evaluate(
 		// Calculate update for T
 		DifferentiateNodeToNode(
 			&(dX[m_ixTBegin]),
-			m_dStateAuxDiff);
-
-		for (int k = 0; k < nRElements; k++) {
-			dF[m_ixTBegin+k] = m_dStateNode[WIx][k] * m_dStateAuxDiff[k];
-		}
+			m_dDiffTheta);
 
 		// T is needed on model interfaces
 		if ((!m_fExnerPressureOnLevels) ||
@@ -1712,6 +1924,52 @@ void VerticalDynamicsFEM::Evaluate(
 				m_dStateRefREdge[RIx]);
 		}
 	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void VerticalDynamicsFEM::BuildF(
+	const double * dX,
+	double * dF
+) {
+	// Indices of EquationSet variables
+	const int UIx = 0;
+	const int VIx = 1;
+	const int TIx = 2;
+	const int WIx = 3;
+	const int RIx = 4;
+
+	// Finite element grid spacing
+	const Grid * pGrid = m_model.GetGrid();
+
+	// Physical constants
+	const PhysicalConstants & phys = m_model.GetPhysicalConstants();
+
+	// Number of radial elements
+	const int nRElements = pGrid->GetRElements();
+
+	// Grid spacing
+	double dElementDeltaXi =
+		  pGrid->GetREtaInterface(m_nVerticalOrder)
+		- pGrid->GetREtaInterface(0);
+
+	double dDeltaXi = dElementDeltaXi / static_cast<double>(m_nVerticalOrder);
+
+	// Zero F
+	memset(dF, 0, m_nColumnStateSize * sizeof(double));
+
+	// T on model interfaces
+	if (pGrid->GetVarLocation(TIx) == DataLocation_REdge) {
+		for (int k = 0; k <= nRElements; k++) {
+			dF[m_ixTBegin+k] = m_dStateREdge[WIx][k] * m_dDiffTheta[k];
+		}
+
+	// T on model levels
+	} else {
+		for (int k = 0; k < nRElements; k++) {
+			dF[m_ixTBegin+k] = m_dStateNode[WIx][k] * m_dDiffTheta[k];
+		}
+	}
 
 	// Calculate mass flux on model levels
 	if (m_fMassFluxOnLevels) {
@@ -1739,28 +1997,11 @@ void VerticalDynamicsFEM::Evaluate(
 	// Calculate mass flux on model interfaces
 	} else {
 		for (int k = 1; k < nRElements; k++) {
-/*
-#pragma message "DEBUG: FIX"
-			if (m_dStateREdge[WIx][k] > 0.0) {
-				m_dMassFluxREdge[k] =
-					  m_dStateNode[RIx][k-1]
-					* m_dStateREdge[WIx][k];
-			} else {
-				m_dMassFluxREdge[k] =
-					  m_dStateNode[RIx][k]
-					* m_dStateREdge[WIx][k];
-			}
-*/
-
 			m_dMassFluxREdge[k] =
-				  m_dStateREdge[RIx][k] * m_dStateREdge[WIx][k]
+				  m_dStateREdge[RIx][k] * m_dStateREdge[WIx][k];
+/*
 				  - 0.5 * 50.0 * fabs(m_dStateREdge[WIx][k])
 				  		* (m_dStateNode[RIx][k] - m_dStateNode[RIx][k-1]);
-
-/*
-			m_dMassFluxREdge[k] = 7.0 * m_dStateREdge[WIx][k]
-				- 0.5 * m_dStateREdge[WIx][k]
-					* (m_dStateNode[RIx][k] - m_dStateNode[RIx][k-1]);
 */
 		}
 		m_dMassFluxREdge[0] = 0.0;
@@ -1791,11 +2032,7 @@ void VerticalDynamicsFEM::Evaluate(
 
 			m_dExnerPertNode[k] -= m_dExnerRefNode[k];
 		}
-/*
-		for (int k = 0; k < nRElements; k++) {
-			m_dExnerPertNode[k] = 7.0 * (m_dStateNode[RIx][k] - m_dStateRefNode[RIx][k]);
-		}
-*/
+
 		// Calculate derivative of Exner pressure on interfaces
 		if (pGrid->GetVarLocation(WIx) == DataLocation_REdge) {
 			DifferentiateNodeToREdge(
@@ -1891,6 +2128,7 @@ void VerticalDynamicsFEM::Evaluate(
 	if ((pGrid->GetVarLocation(TIx) == DataLocation_REdge) &&
 		(m_nHyperdiffusionOrder > 0)
 	) {
+		_EXCEPTION();
 		double dScaledNu =
 			m_dHyperdiffusionCoeff
 			* exp(static_cast<double>(m_nHyperdiffusionOrder - 1)
@@ -1898,18 +2136,18 @@ void VerticalDynamicsFEM::Evaluate(
 
 		DiffDiffREdgeToREdge(
 			m_dStateREdge[TIx],
-			m_dStateAuxDiff
+			m_dDiffTheta
 		);
 
 		for (int h = 2; h < m_nHyperdiffusionOrder; h += 2) {
 			memcpy(
 				m_dStateAux,
-				m_dStateAuxDiff,
+				m_dDiffTheta,
 				(nRElements + 1) * sizeof(double));
 
 			DiffDiffREdgeToREdge(
 				m_dStateAux,
-				m_dStateAuxDiff
+				m_dDiffTheta
 			);
 		}
 
@@ -1917,7 +2155,7 @@ void VerticalDynamicsFEM::Evaluate(
 			dF[m_ixTBegin+k] -=
 				dScaledNu
 				* fabs(m_dStateREdge[WIx][k])
-				* m_dStateAuxDiff[k];
+				* m_dDiffTheta[k];
 		}
 	}
 
@@ -1925,6 +2163,266 @@ void VerticalDynamicsFEM::Evaluate(
 	for (int i = 0; i < m_nColumnStateSize; i++) {
 		dF[i] += (dX[i] - m_dColumnState[i]) / m_dDeltaT;
 	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void VerticalDynamicsFEM::BuildJacobianF(
+	const double * dX,
+	double ** dDG
+) {
+	// Indices of EquationSet variables
+	const int UIx = 0;
+	const int VIx = 1;
+	const int TIx = 2;
+	const int WIx = 3;
+	const int RIx = 4;
+
+	// Finite element grid
+	const Grid * pGrid = m_model.GetGrid();
+
+	if ((pGrid->GetVarLocation(UIx) != DataLocation_Node) ||
+		(pGrid->GetVarLocation(VIx) != DataLocation_Node) ||
+		(pGrid->GetVarLocation(TIx) != DataLocation_REdge) ||
+		(pGrid->GetVarLocation(WIx) != DataLocation_REdge) ||
+		(pGrid->GetVarLocation(RIx) != DataLocation_Node) ||
+		(m_fMassFluxOnLevels) ||
+		(!m_fExnerPressureOnLevels)
+	) {
+		_EXCEPTIONT("Not implemented");
+	}
+
+	// Physical constants
+	const PhysicalConstants & phys = m_model.GetPhysicalConstants();
+
+	// Number of radial elements
+	const int nRElements = pGrid->GetRElements();
+
+	// Grid spacing
+	double dElementDeltaXi =
+		  pGrid->GetREtaInterface(m_nVerticalOrder)
+		- pGrid->GetREtaInterface(0);
+
+	double dDeltaXi = dElementDeltaXi / static_cast<double>(m_nVerticalOrder);
+
+	// Zero DG
+	memset(dDG[0], 0,
+		m_nColumnStateSize * m_nColumnStateSize * sizeof(double));
+
+	// dT_k/dT
+	int nFiniteElements = nRElements / m_nVerticalOrder;
+	for (int a = 0; a < nFiniteElements; a++) {
+	for (int l = 0; l <= m_nVerticalOrder; l++) {
+		int lBegin = a * m_nVerticalOrder;
+
+		for (int k = 0; k <= m_nVerticalOrder; k++) {
+			dDG[m_ixTBegin+lBegin+l][m_ixTBegin+lBegin+k] +=
+				m_dDiffREdgeToREdge[k][l]
+				* m_dStateREdge[WIx][lBegin+k];
+		}
+	}
+	}
+
+	for (int a = 1; a < nFiniteElements; a++) {
+		int k = a * m_nVerticalOrder;
+		int lBegin = k - m_nVerticalOrder;
+		int lEnd   = k + m_nVerticalOrder + 1;
+		for (int l = lBegin; l < lEnd; l++) {
+			dDG[m_ixTBegin+l][m_ixTBegin+k] *= 0.5;
+		}
+	}
+
+	// dT_k/dW
+	for (int k = 0; k <= nRElements; k++) {
+		dDG[m_ixWBegin+k][m_ixTBegin+k] = m_dDiffTheta[k];
+	}
+
+	if ((nFiniteElements == 1) || (nFiniteElements == 2)) {
+		_EXCEPTIONT("UNIMPLEMENTED: At least three elements needed");
+	}
+
+	int kBegin;
+	int kEnd;
+
+	// dW_k/dT_l (bottom element)
+	for (int k = 1; k < m_nVerticalOrder; k++) {
+		double dRHSWCoeff = 
+			1.0 / (m_dDomainHeight * m_dDomainHeight)
+			* m_dStateREdge[TIx][k]
+			* phys.GetR() / phys.GetCv();
+
+		for (int m = 0; m < 2 * m_nVerticalOrder; m++) {
+			double dTEntry =
+				dRHSWCoeff 
+				* m_dDiffNodeToREdgeLeft[k][m]
+				* m_dExnerPertNode[m]
+					/ m_dStateNode[TIx][m];
+
+			int mx = m % m_nVerticalOrder;
+
+			for (int l = 0; l <= m_nVerticalOrder; l++) {
+				dDG[m_ixTBegin+l][m_ixWBegin+k] +=
+					dTEntry * (*m_pInterpREdgeToNode)[mx][l];
+			}
+
+			dDG[m_ixRBegin+m][m_ixWBegin+k] +=
+				dRHSWCoeff
+				* m_dDiffNodeToREdgeLeft[k][m]
+				* m_dExnerPertNode[m]
+					/ m_dStateNode[RIx][m];
+		}
+	}
+
+	// dW_k/dT_l and dW_k/dR_m (middle elements)
+	int kLast = (nFiniteElements-1) * m_nVerticalOrder;
+	for (int k = m_nVerticalOrder; k <= kLast; k++) {
+		int kx = k % m_nVerticalOrder;
+		int a = k / m_nVerticalOrder;
+		if (k == kLast) {
+			a--;
+			kx = m_nVerticalOrder;
+		}
+
+		int lPrev = (a-1) * m_nVerticalOrder;
+		int lBegin = lPrev + m_nVerticalOrder;
+
+		double dRHSWCoeff = 
+			1.0 / (m_dDomainHeight * m_dDomainHeight)
+			* m_dStateREdge[TIx][k]
+			* phys.GetR() / phys.GetCv();
+
+		for (int m = 0; m < 3 * m_nVerticalOrder; m++) {
+
+			int mx = m % m_nVerticalOrder;
+			int ma = (m / m_nVerticalOrder) * m_nVerticalOrder;
+
+			double dTEntry =
+				dRHSWCoeff 
+				* m_dDiffNodeToREdgeAmal[kx][m]
+				* m_dExnerPertNode[lPrev + m]
+					/ m_dStateNode[TIx][lPrev + m];
+
+			for (int l = 0; l <= m_nVerticalOrder; l++) {
+				dDG[m_ixTBegin+lPrev+ma+l][m_ixWBegin+k] +=
+					dTEntry * (*m_pInterpREdgeToNode)[mx][l];
+			}
+
+			dDG[m_ixRBegin+lPrev+m][m_ixWBegin+k] +=
+				dRHSWCoeff
+				* m_dDiffNodeToREdgeAmal[kx][m]
+				* m_dExnerPertNode[lPrev + m]
+					/ m_dStateNode[RIx][lPrev + m];
+		}
+	}
+
+	// dW_k/dT_l (top element)
+	kBegin = (nFiniteElements-1) * m_nVerticalOrder;
+	kEnd = kBegin + m_nVerticalOrder;
+	for (int k = kBegin + 1; k < kEnd; k++) {
+		int kx = k - kBegin;
+		int lPrev = kBegin - m_nVerticalOrder;
+
+		double dRHSWCoeff = 
+			1.0 / (m_dDomainHeight * m_dDomainHeight)
+			* m_dStateREdge[TIx][k]
+			* phys.GetR() / phys.GetCv();
+
+		for (int m = 0; m < 2 * m_nVerticalOrder; m++) {
+			double dTEntry =
+				dRHSWCoeff 
+				* m_dDiffNodeToREdgeRight[kx][m]
+				* m_dExnerPertNode[lPrev + m]
+					/ m_dStateNode[TIx][lPrev + m];
+
+			int mx = m % m_nVerticalOrder;
+			int ma = (m / m_nVerticalOrder) * m_nVerticalOrder;
+
+			for (int l = 0; l <= m_nVerticalOrder; l++) {
+				dDG[m_ixTBegin+lPrev+ma+l][m_ixWBegin+k] +=
+					dTEntry * (*m_pInterpREdgeToNode)[mx][l];
+			}
+
+			dDG[m_ixRBegin+lPrev+m][m_ixWBegin+k] +=
+				dRHSWCoeff
+				* m_dDiffNodeToREdgeRight[kx][m]
+				* m_dExnerPertNode[lPrev + m]
+					/ m_dStateNode[RIx][lPrev + m];
+		}
+	}
+
+	// dW_k/dT
+	for (int k = 1; k < nRElements; k++) {
+		dDG[m_ixTBegin+k][m_ixWBegin+k] +=
+			 1.0 / (m_dDomainHeight * m_dDomainHeight)
+			 * m_dDiffExnerPertREdge[k];
+	}
+
+	// dRho
+	for (int k = 0; k < nRElements; k++) {
+		int a = k / m_nVerticalOrder;
+		int l = k % m_nVerticalOrder;
+		int lBegin = a * m_nVerticalOrder;
+
+		// dRho_k/dW
+		for (int m = 0; m <= m_nVerticalOrder; m++) {
+			dDG[m_ixWBegin+lBegin+m][m_ixRBegin+k] +=
+				m_dDiffREdgeToNode[l][m]
+				* m_dStateREdge[RIx][lBegin+m];
+		}
+
+		// dRho_k/dRho
+		if (a != 0) {
+			int lPrev = lBegin - m_nVerticalOrder;
+			for (int n = 0; n < m_nVerticalOrder; n++) {
+				dDG[m_ixRBegin+lPrev+n][m_ixRBegin+k] +=
+					m_dDiffREdgeToNode[l][0]
+					* 0.5 * (*m_pInterpNodeToREdge)[m_nVerticalOrder][n]
+					* m_dStateREdge[WIx][lBegin];
+			}
+		}
+
+		for (int m = 0; m <= m_nVerticalOrder; m++) {
+		for (int n = 0; n < m_nVerticalOrder; n++) {
+			double dMult = 1.0;
+			if ((m == 0) || (m == m_nVerticalOrder)) {
+				dMult = 0.5;
+			}
+			dDG[m_ixRBegin+lBegin+n][m_ixRBegin+k] +=
+				m_dDiffREdgeToNode[l][m]
+				* dMult * (*m_pInterpNodeToREdge)[m][n]
+				* m_dStateREdge[WIx][lBegin+m];
+		}
+		}
+
+		if (a != nFiniteElements-1) {
+			int lNext = lBegin + m_nVerticalOrder;
+			for (int n = 0; n < m_nVerticalOrder; n++) {
+				dDG[m_ixRBegin+lNext+n][m_ixRBegin+k] +=
+					m_dDiffREdgeToNode[l][m_nVerticalOrder]
+					* 0.5 * (*m_pInterpNodeToREdge)[0][n]
+					* m_dStateREdge[WIx][lNext];
+			}
+		}
+	}
+
+
+	// Add the identity components
+	for (int k = 0; k < m_nColumnStateSize; k++) {
+		dDG[k][k] += 1.0 / m_dDeltaT;
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void VerticalDynamicsFEM::Evaluate(
+	const double * dX,
+	double * dF
+) {
+	// Prepare the column
+	PrepareColumn(dX);
+
+	// Evaluate the zero equations
+	BuildF(dX, dF);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
