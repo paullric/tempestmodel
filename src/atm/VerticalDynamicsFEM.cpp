@@ -59,11 +59,14 @@ VerticalDynamicsFEM::VerticalDynamicsFEM(
 		_EXCEPTIONT("Vertical hyperdiffusion order must be even.");
 	}
 
-	if (nHyperdiffusionOrder == 2) {
+	if (nHyperdiffusionOrder == 0) {
+		m_dHyperdiffusionCoeff = 0.0;
+
+	} else if (nHyperdiffusionOrder == 2) {
 		m_dHyperdiffusionCoeff = 0.2;
 
 	} else if (nHyperdiffusionOrder == 4) {
-		m_dHyperdiffusionCoeff = -0.02;
+		m_dHyperdiffusionCoeff = -0.025;
 
 	} else {
 		_EXCEPTIONT("UNIMPLEMENTED: Vertical hyperdiffusion order > 4");
@@ -293,11 +296,11 @@ void VerticalDynamicsFEM::Initialize() {
 	// element [0, dElementDeltaXi]
 	FluxReconstructionFunction::GetDerivatives(
 		ParamFluxReconstructionType,
-		m_nVerticalOrder, dG, m_dDiffReconsPolyNode);
+		m_nVerticalOrder+1, dG, m_dDiffReconsPolyNode);
 
 	FluxReconstructionFunction::GetDerivatives(
 		ParamFluxReconstructionType,
-		m_nVerticalOrder, dGL, m_dDiffReconsPolyREdge);
+		m_nVerticalOrder+1, dGL, m_dDiffReconsPolyREdge);
 
 	for (int n = 0; n < m_dDiffReconsPolyNode.GetRows(); n++) {
 		m_dDiffReconsPolyNode[n] /= dElementDeltaXi;
@@ -1734,6 +1737,9 @@ void VerticalDynamicsFEM::Evaluate(
 	// Calculate mass flux on model interfaces
 	} else {
 		for (int k = 1; k < nRElements; k++) {
+            m_dMassFluxREdge[k] =
+                m_dStateREdge[RIx][k]
+                * m_dStateREdge[WIx][k];
 /*
 #pragma message "DEBUG: FIX"
 			if (m_dStateREdge[WIx][k] > 0.0) {
@@ -1746,12 +1752,12 @@ void VerticalDynamicsFEM::Evaluate(
 					* m_dStateREdge[WIx][k];
 			}
 */
-
+/*
 			m_dMassFluxREdge[k] =
 				  m_dStateREdge[RIx][k] * m_dStateREdge[WIx][k]
 				  - 0.5 * 50.0 * fabs(m_dStateREdge[WIx][k])
 				  		* (m_dStateNode[RIx][k] - m_dStateNode[RIx][k-1]);
-
+*/
 /*
 			m_dMassFluxREdge[k] = 7.0 * m_dStateREdge[WIx][k]
 				- 0.5 * m_dStateREdge[WIx][k]
