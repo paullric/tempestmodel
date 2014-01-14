@@ -27,7 +27,7 @@
 #include "GridData3D.h"
 #include "GridData4D.h"
 
-#ifdef USE_PETSC
+#ifdef USE_JFNK_PETSC
 #include <petscsnes.h>
 #endif
 
@@ -67,6 +67,36 @@ public:
 	///		Initializer.
 	///	</summary>
 	virtual void Initialize();
+
+protected:
+	///	<summary>
+	///		Component indices into the F vector.
+	///	</summary>
+	typedef int FComp;
+	static const FComp FTIx = 0;
+	static const FComp FWIx = 1;
+	static const FComp FRIx = 2;
+
+	///	<summary>
+	///		Get the index of the component and level of the F vector.
+	///	</summary>
+	inline int VecFIx(FComp c, int k) {
+		return (3*k + c);
+	}
+
+	///	<summary>
+	///		Get the index of for the component / level pair of the F Jacobian.
+	///		Note:  Is composed using Fortran ordering.
+	///	</summary>
+	inline int MatFIx(FComp c0, int k0, FComp c1, int k1) {
+#ifdef USE_JACOBIAN_GENERAL 
+		return (m_nColumnStateSize * (3*k0 + c0) + (3*k1 + c1));
+#endif
+#ifdef USE_JACOBIAN_DIAGONAL 
+		return (2 * m_nJacobianFKL + (3*k1 + c1) - (3*k0 + c0))
+			+ m_nColumnStateSize * (3*k0 + c0);
+#endif
+	}
 
 protected:
 	///	<summary>
@@ -204,7 +234,7 @@ public:
 	///	</summary>
 	void BuildJacobianF(
 		const double * dX,
-		double ** dDG
+		double * dDG
 	);
 
 	///	<summary>
@@ -270,6 +300,7 @@ protected:
 	int m_nColumnStateSize;
 
 protected:
+/*
 	///	<summary>
 	///		First index of theta in the column state vector.
 	///	</summary>
@@ -284,7 +315,7 @@ protected:
 	///		First index of rho in the column state vector.
 	///	</summary>
 	int m_ixRBegin;
-
+*/
 	///	<summary>
 	///		State variable column.
 	///	</summary>
@@ -466,7 +497,7 @@ protected:
 	///	</summary>
 	DataMatrix<double> m_dDiffDiffREdgeToREdge;
 
-#ifdef USE_PETSC
+#ifdef USE_JFNK_PETSC
 private:
 	///	<summary>
 	///		PetSc solver context
@@ -512,11 +543,23 @@ private:
 	///	</summary>
 	DataVector<int> m_vecIPiv;
 #endif
+#ifdef USE_JACOBIAN_DIAGONAL
+private:
+	///	<summary>
+	///		Number of sub-diagonals in Jacobian.
+	///	</summary>
+	int m_nJacobianFKL;
+
+	///	<summary>
+	///		Number of super-diagonals in Jacobian.
+	///	</summary>
+	int m_nJacobianFKU;
+#endif
 };
 
 ///////////////////////////////////////////////////////////////////////////////
 
-#ifdef USE_PETSC
+#ifdef USE_JFNK_PETSC
 PetscErrorCode VerticalDynamicsFEM_FormFunction(
 	SNES snes,
 	Vec x,

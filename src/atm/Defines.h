@@ -22,10 +22,16 @@
 ///	<summary>
 ///		Method to solve the vertical system.
 ///	</summary>
-//#define USE_PETSC
-#define USE_GMRES
+//#define USE_JFNK_PETSC
+#define USE_JFNK_GMRES
 //#define USE_DIRECTSOLVE_APPROXJ
 //#define USE_DIRECTSOLVE
+
+///	<summary>
+///		Jacobian storage form
+///	</summary>
+//#define USE_JACOBIAN_GENERAL
+#define USE_JACOBIAN_DIAGONAL
 
 ///////////////////////////////////////////////////////////////////////////////
 
