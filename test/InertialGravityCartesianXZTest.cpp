@@ -324,6 +324,12 @@ try {
 	// No reference state
 	bool fNoReferenceState;
 
+	// Vertical hyperdiffusion
+	int nVerticalHyperdiffOrder;
+
+	// Solve vertical using a fully explicit method
+	bool fFullyExplicitVertical;
+
 	// Store Exner pressure on edges (advanced)
 	bool fExnerPressureOnREdges;
 
@@ -340,17 +346,19 @@ try {
 		CommandLineString(strOutputPrefix, "output_prefix", "out");
 		CommandLineInt(nOutputsPerFile, "output_perfile", -1);
 		CommandLineString(params.m_strRestartFile, "restart_file", "");
-		CommandLineInt(nResolution, "resolution", 20);
-		CommandLineInt(nLevels, "levels", 20);
+		CommandLineInt(nResolution, "resolution", 40);
+		CommandLineInt(nLevels, "levels", 40);
 		CommandLineInt(nHorizontalOrder, "order", 4);
 		CommandLineInt(nVerticalOrder, "vertorder", 4);
 		CommandLineDouble(dAlpha, "alpha", 0.0);
-		CommandLineDouble(params.m_dDeltaT, "dt", 10.0);
-		CommandLineDouble(params.m_dEndTime, "endtime", 10.0);
-		CommandLineDouble(dOutputDeltaT, "outputtime", 10.0);
+		CommandLineDouble(params.m_dDeltaT, "dt", 5.0);
+		CommandLineDouble(params.m_dEndTime, "endtime", 3000.0);
+		CommandLineDouble(dOutputDeltaT, "outputtime", 500.0);
 		CommandLineStringD(strHorizontalDynamics, "method", "SE", "(SE | DG)");
 		CommandLineBool(fNoHyperviscosity, "nohypervis");
 		CommandLineBool(fNoReferenceState, "norefstate");
+		CommandLineInt(nVerticalHyperdiffOrder, "verticaldifforder", 4);
+		CommandLineBool(fFullyExplicitVertical, "explicitvertical");
 		CommandLineBool(fExnerPressureOnREdges, "exneredges");
 		CommandLineBool(fMassFluxOnLevels, "massfluxlevels");
 
@@ -402,6 +410,8 @@ try {
 		model,
 		nHorizontalOrder,
 		nVerticalOrder,
+		nVerticalHyperdiffOrder,
+		fFullyExplicitVertical,
 		!fExnerPressureOnREdges,
 		fMassFluxOnLevels);
 

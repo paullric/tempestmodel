@@ -30,7 +30,7 @@
 
 ///	<summary>
 ///		A data vector is a datatype that stores data in a 1D structure.
-///		Arithmatic operations are supported for this datatype.
+///		Arithmetic operations are supported for this datatype.
 ///	</summary>
 ///	<warning>
 ///		Memory is allocated using malloc and deallocated using free, so no

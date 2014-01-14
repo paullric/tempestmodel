@@ -25,8 +25,8 @@
 // Time coefficients for each stage
 const double TimestepSchemeARK4::m_timeCoeff[]
 	= { 0.0, 0.5, 0.332, 0.62, 0.85, 1.0 };
-  
-// Stage coefficients - each row is for that stage 
+
+// Stage coefficients - each row is for that stage
 const double TimestepSchemeARK4::m_dExplicitCoeff[][] = {
   {0., 0., 0., 0., 0., 0.},
   {0.5, 0., 0., 0., 0., 0.},
@@ -86,6 +86,7 @@ void TimestepSchemeARK4::Step(
 		dCarryoverCombination[0] = 1.0;
 		dCarryoverCombination[1] = 1.0;
 		pGrid->LinearCombineData(dCarryoverCombination, 0, DataType_State);
+		dCarryoverCombination.Deinitialize();
 	}
 /*
 	// Explicit RK4
@@ -128,6 +129,7 @@ void TimestepSchemeARK4::Step(
 	pGrid->LinearCombineData(dSSPRK3CombinationA, 2, DataType_State);
 	pHorizontalDynamics->StepExplicit(1, 2, time + dDeltaT, 0.25 * dDeltaT);
 	pVerticalDynamics->StepExplicit(1, 2, time + dDeltaT, 0.25 * dDeltaT);
+	dSSPRK3CombinationA.Deinitialize();
 
 	DataVector<double> dSSPRK3CombinationB;
 	dSSPRK3CombinationB.Initialize(5);
@@ -141,6 +143,7 @@ void TimestepSchemeARK4::Step(
 		2, 4, time + 0.5 * dDeltaT, (2.0/3.0) * dDeltaT);
 	pVerticalDynamics->StepExplicit(
 		2, 4, time + 0.5 * dDeltaT, (2.0/3.0) * dDeltaT);
+    dSSPRK3CombinationB.Deinitialize();
 
 	// Apply hyperdiffusion
 	pGrid->CopyData(4, 1, DataType_State);
@@ -156,6 +159,7 @@ void TimestepSchemeARK4::Step(
 		dCarryoverFinal[0] = +1.0;
 		dCarryoverFinal[1] = -1.0;
 		pGrid->LinearCombineData(dCarryoverFinal, 1, DataType_State);
+		dCarryoverFinal.Deinitialize();
 	}
 
 	//pGrid->CopyData(0, 1, DataType_State);
