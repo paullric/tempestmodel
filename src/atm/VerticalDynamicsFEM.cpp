@@ -2019,8 +2019,6 @@ void VerticalDynamicsFEM::BuildF(
 	// Calculate mass flux on model interfaces
 	} else {
 		for (int k = 1; k < nRElements; k++) {
-<<<<<<< HEAD
-=======
             m_dMassFluxREdge[k] =
                 m_dStateREdge[RIx][k]
                 * m_dStateREdge[WIx][k];
@@ -2035,22 +2033,6 @@ void VerticalDynamicsFEM::BuildF(
 					  m_dStateNode[RIx][k]
 					* m_dStateREdge[WIx][k];
 			}
-*/
-/*
->>>>>>> f6e2fbf1f2c4c55a654c6ade89d0655ff7508a17
-			m_dMassFluxREdge[k] =
-				  m_dStateREdge[RIx][k] * m_dStateREdge[WIx][k];
-/*
-				  - 0.5 * 50.0 * fabs(m_dStateREdge[WIx][k])
-				  		* (m_dStateNode[RIx][k] - m_dStateNode[RIx][k-1]);
-<<<<<<< HEAD
-=======
-*/
-/*
-			m_dMassFluxREdge[k] = 7.0 * m_dStateREdge[WIx][k]
-				- 0.5 * m_dStateREdge[WIx][k]
-					* (m_dStateNode[RIx][k] - m_dStateNode[RIx][k-1]);
->>>>>>> f6e2fbf1f2c4c55a654c6ade89d0655ff7508a17
 */
 		}
 		m_dMassFluxREdge[0] = 0.0;
