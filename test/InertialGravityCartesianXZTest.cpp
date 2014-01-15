@@ -237,8 +237,8 @@ public:
 
 		// Set the initial density based on the Exner pressure
 		double gsi = phys.GetG();
-		double dExnerP = pow(gsi,2.0) / (m_dCp * m_dTheta0 *
-                                        (m_dNbar * m_dNbar));
+		double dExnerP =
+			pow(gsi,2.0) / (m_dCp * m_dTheta0 * (m_dNbar * m_dNbar));
 		dExnerP *= (exp(-pow(m_dNbar,2.0)/gsi * dZp) - 1.0);
 		dExnerP += 1.0;
 		double dRho = m_dP0 / (m_dR * dThetaBar) * pow(dExnerP,(m_dCv / m_dR));
@@ -271,11 +271,13 @@ public:
 
 		// Set the initial density based on the Exner pressure
 		double gsi = phys.GetG();
-		double dExnerP = (gsi * gsi) / (m_dCp * m_dTheta0 *
-                                        (m_dNbar * m_dNbar));
+		double dExnerP =
+			(gsi * gsi) / (m_dCp * m_dTheta0 * (m_dNbar * m_dNbar));
 		dExnerP *= (exp(-(m_dNbar * m_dNbar)/gsi * dZp) - 1.0);
 		dExnerP += 1.0;
-		double dRho = m_dP0 / (m_dR * dThetaBar) * pow(dExnerP,(m_dCv / m_dR));
+
+		double dRho =
+			m_dP0 / (m_dR * dThetaBar) * pow(dExnerP, (m_dCv / m_dR));
 		dState[4] = dRho;
 	}
 };
@@ -357,7 +359,7 @@ try {
 		CommandLineStringD(strHorizontalDynamics, "method", "SE", "(SE | DG)");
 		CommandLineBool(fNoHyperviscosity, "nohypervis");
 		CommandLineBool(fNoReferenceState, "norefstate");
-		CommandLineInt(nVerticalHyperdiffOrder, "verticaldifforder", 4);
+		CommandLineInt(nVerticalHyperdiffOrder, "verticaldifforder", 0);
 		CommandLineBool(fFullyExplicitVertical, "explicitvertical");
 		CommandLineBool(fExnerPressureOnREdges, "exneredges");
 		CommandLineBool(fMassFluxOnLevels, "massfluxlevels");
@@ -446,7 +448,10 @@ try {
 		strOutputPrefix,
 		nOutputsPerFile,
 		nResolution * (nHorizontalOrder - 1),
-		2);
+		1,
+		false,  // Output variables in natural locations
+		true);  // Remove reference profile in output
+
 	model.AttachOutputManager(&outmanRef);
 	AnnounceEndBlock("Done");
 
