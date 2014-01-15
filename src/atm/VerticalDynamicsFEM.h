@@ -81,6 +81,7 @@ protected:
 	///		Get the index of the component and level of the F vector.
 	///	</summary>
 	inline int VecFIx(FComp c, int k) {
+		//return (51*c+k);
 		return (3*k + c);
 	}
 
@@ -89,6 +90,7 @@ protected:
 	///		Note:  Is composed using Fortran ordering.
 	///	</summary>
 	inline int MatFIx(FComp c0, int k0, FComp c1, int k1) {
+		//return (m_nColumnStateSize * (51*c0 + k0) + (51*c1 + k1));
 #ifdef USE_JACOBIAN_GENERAL 
 		return (m_nColumnStateSize * (3*k0 + c0) + (3*k1 + c1));
 #endif
@@ -300,22 +302,6 @@ protected:
 	int m_nColumnStateSize;
 
 protected:
-/*
-	///	<summary>
-	///		First index of theta in the column state vector.
-	///	</summary>
-	int m_ixTBegin;
-
-	///	<summary>
-	///		First index of W in the column state vector.
-	///	</summary>
-	int m_ixWBegin;
-
-	///	<summary>
-	///		First index of rho in the column state vector.
-	///	</summary>
-	int m_ixRBegin;
-*/
 	///	<summary>
 	///		State variable column.
 	///	</summary>
@@ -355,6 +341,11 @@ protected:
 	///		Auxiliary storage for derivative of theta.
 	///	</summary>
 	DataVector<double> m_dDiffTheta;
+
+	///	<summary>
+	///		Auxiliary storage for higher derivatives of theta.
+	///	</summary>
+	DataVector<double> m_dDiffDiffTheta;
 
 	///	<summary>
 	///		State variable evaluated on finite element interfaces (left,
@@ -496,6 +487,11 @@ protected:
 	///		Second differentiation coefficients from edges to edges.
 	///	</summary>
 	DataMatrix<double> m_dDiffDiffREdgeToREdge;
+
+	///	<summary>
+	///		Hyperviscosity coefficients from edges to edges.
+	///	</summary>
+	DataMatrix<double> m_dHypervisREdgeToREdge;
 
 #ifdef USE_JFNK_PETSC
 private:

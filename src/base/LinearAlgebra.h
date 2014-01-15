@@ -64,6 +64,9 @@ double ddot_(int *n, double *x, int *incx, double *y, int *incy);
 ///	Compute the norm of a vector
 double dnrm2_(int *n, double *x, int *incx);
 
+/// General matrix matrix multiply
+int dgemm_(char *transa, char *transb, int *m, int *n, int *k, double *alpha, double *a, int *lda, double *b, int *ldb, double *beta, double *c, int *ldc);
+
 ///	General matrix solver from CLAPACK
 int dgesv_(int *n, int *nrhs, double *a, int *lda, int *ipiv, double *b, int *ldb, int *info);
 
@@ -290,6 +293,17 @@ public:
 		return dnrm2_(&nRows, &(dX[0]), &nIncX);
 #endif
 	}
+
+	///	<summary>
+	///		Perform a multiply-add on a matrix.
+	///	</summary>
+	static void DGEMM(
+		DataMatrix<double> & dC,
+		DataMatrix<double> & dA,
+		DataMatrix<double> & dB,
+		double dAlpha,
+		double dBeta
+	);
 
 ///////////////////////////////////////////////////////////////////////////////
 // LEVEL 2 BLAS ROUTINES

@@ -22,6 +22,54 @@
 
 //////////////////////////////////////////////////////////////////////////////
 
+void LAPACK::DGEMM(
+	DataMatrix<double> & dC,
+	DataMatrix<double> & dA,
+	DataMatrix<double> & dB,
+	double dAlpha,
+	double dBeta
+) {
+	// Check dimensions
+	if ((dA.GetRows() != dB.GetColumns()) ||
+		(dA.GetColumns() != dC.GetColumns()) ||
+		(dB.GetRows() != dC.GetRows())
+	) {
+		_EXCEPTIONT("Invalid matrix / matrix dimensions");
+	}
+
+	// Store CLAPACK parameters
+	char cTransA = 'N';
+	char cTransB = 'N';
+
+	int m     = dA.GetColumns();
+	int n     = dB.GetRows();
+	int k     = dA.GetRows();
+
+	int nLDA  = m;
+	int nLDB  = k;
+	int nLDC  = m;
+
+#ifdef USEACML
+	// Call the matrix solve
+	dgemm(cTransA, cTransB, m, n, k,
+		dAlpha, &(dA[0][0]), nLDA, &(dB[0][0]), nLDB,
+		dBeta, &(dC[0][0]), nLDC);
+#endif
+#ifdef USEESSL
+	// Call the matrix solve
+	dgemm(cTransA, cTransB, m, n, k,
+		dAlpha, &(dA[0][0]), nLDA, &(dB[0][0]), nLDB,
+		dBeta, &(dC[0][0]), nLDC);
+#endif
+#if defined USEVECLIB || defined USEMKL
+	// Call the matrix solve
+	dgemm_(&cTransA, &cTransB, &m, &n, &k, &dAlpha,
+		&(dA[0][0]), &nLDA, &(dB[0][0]), &nLDB, &dBeta, &(dC[0][0]), &nLDC);
+#endif
+}
+
+//////////////////////////////////////////////////////////////////////////////
+
 int LAPACK::DGESV(
 	DataMatrix<double> & dA,
 	DataVector<double> & dBX,

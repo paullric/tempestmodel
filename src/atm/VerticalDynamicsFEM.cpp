@@ -170,9 +170,15 @@ void VerticalDynamicsFEM::Initialize() {
 	// Initialize pivot vector
 	m_vecIPiv.Initialize(m_nColumnStateSize);
 #endif
+#if defined(USE_DIRECTSOLVE_APPROXJ) || defined(USE_DIRECTSOLVE)
 #ifdef USE_JACOBIAN_DIAGONAL
 	if (ParamFluxReconstructionType != 2) {
-		_EXCEPTIONT("Formula only valid for FluxReconstructionType == 2");
+		_EXCEPTIONT("Diagonal Jacobian only implemented for "
+			"FluxReconstructionType == 2");
+	}
+	if (m_nHyperdiffusionOrder > 2) {
+		_EXCEPTIONT("Diagonal Jacobian only implemented for "
+			"Hyperdiffusion order <= 2");
 	}
 	if (m_nVerticalOrder == 1) {
 		m_nJacobianFKL = 4;
@@ -189,6 +195,7 @@ void VerticalDynamicsFEM::Initialize() {
 	} else {
 		_EXCEPTIONT("UNIMPLEMENTED: At this vertical order");
 	}
+#endif
 #endif
 
 	// Allocate column for JFNK
@@ -233,6 +240,7 @@ void VerticalDynamicsFEM::Initialize() {
 	m_dStateAuxDiff.Initialize(nRElements+1);
 
 	m_dDiffTheta.Initialize(nRElements+1);
+	m_dDiffDiffTheta.Initialize(nRElements+1);
 
 	m_dStateFEEdge.Initialize(nFiniteElements+1, 2);
 
@@ -307,6 +315,56 @@ void VerticalDynamicsFEM::Initialize() {
 		}
 		m_dDiffDiffREdgeToREdge[n][m] /= dWL[n];
 	}
+	}
+
+	// Compute hyperviscosity operator
+	m_dHypervisREdgeToREdge.Initialize(
+		nRElements+1, nRElements+1);
+
+	DataMatrix<double> dHypervisFirstBuffer;
+	dHypervisFirstBuffer.Initialize(nRElements+1, nRElements+1);
+
+	DataMatrix<double> dHypervisSecondBuffer;
+	dHypervisSecondBuffer.Initialize(nRElements+1, nRElements+1);
+
+	// Compute second derivative operator over whole column
+	for (int a = 0; a < nFiniteElements; a++) {
+		for (int n = 0; n <= m_nVerticalOrder; n++) {
+		for (int m = 0; m <= m_nVerticalOrder; m++) {
+
+			int iCol = a * m_nVerticalOrder + n;
+			int iRow = a * m_nVerticalOrder + m;
+
+			m_dHypervisREdgeToREdge[iRow][iCol] +=
+				m_dDiffDiffREdgeToREdge[n][m];
+		}
+		}
+	}
+
+	for (int n = 0; n < nRElements+1; n++) {
+		m_dHypervisREdgeToREdge[n][0] = 0.0;
+		m_dHypervisREdgeToREdge[n][nFiniteElements * m_nVerticalOrder] = 0.0;
+	}
+
+	for (int a = 1; a < nFiniteElements; a++) {
+		for (int n = 0; n < nRElements+1; n++) {
+			m_dHypervisREdgeToREdge[n][a * m_nVerticalOrder] *= 0.5;
+		}
+	}
+
+	// Compute higher powers of the second derivative operator
+	if (m_nHyperdiffusionOrder > 2) {
+		dHypervisFirstBuffer = m_dHypervisREdgeToREdge;
+
+		for (int h = 2; h < m_nHyperdiffusionOrder; h += 2) {
+			dHypervisSecondBuffer = m_dHypervisREdgeToREdge;
+
+			LAPACK::DGEMM(
+				m_dHypervisREdgeToREdge,
+				dHypervisFirstBuffer,
+				dHypervisSecondBuffer,
+				1.0, 0.0);
+		}
 	}
 
 	// Get derivatives of flux reconstruction function and scale to the
@@ -1493,7 +1551,7 @@ void VerticalDynamicsFEM::StepImplicit(
 			// Use Jacobian-Free Newton-Krylov to solve
 			m_dSoln = m_dColumnState;
 
-			BootstrapJacobian();
+			//BootstrapJacobian();
 
 			double dError =
 				PerformJFNK_NewtonStep_Safe(
@@ -1946,6 +2004,28 @@ void VerticalDynamicsFEM::PrepareColumn(
 				m_dStateRefREdge[RIx]);
 		}
 	}
+
+	// Compute higher derivatives of theta used for hyperdiffusion
+	if ((pGrid->GetVarLocation(TIx) == DataLocation_REdge) &&
+		(m_nHyperdiffusionOrder > 0)
+	) {
+		DiffDiffREdgeToREdge(
+			m_dStateREdge[TIx],
+			m_dDiffDiffTheta
+		);
+
+		for (int h = 2; h < m_nHyperdiffusionOrder; h += 2) {
+			memcpy(
+				m_dStateAux,
+				m_dDiffDiffTheta,
+				(nRElements + 1) * sizeof(double));
+
+			DiffDiffREdgeToREdge(
+				m_dStateAux,
+				m_dDiffDiffTheta
+			);
+		}
+	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -2160,34 +2240,16 @@ void VerticalDynamicsFEM::BuildF(
 	if ((pGrid->GetVarLocation(TIx) == DataLocation_REdge) &&
 		(m_nHyperdiffusionOrder > 0)
 	) {
-		_EXCEPTION();
 		double dScaledNu =
 			m_dHyperdiffusionCoeff
 			* exp(static_cast<double>(m_nHyperdiffusionOrder - 1)
 				* log(dDeltaXi));
 
-		DiffDiffREdgeToREdge(
-			m_dStateREdge[TIx],
-			m_dDiffTheta
-		);
-
-		for (int h = 2; h < m_nHyperdiffusionOrder; h += 2) {
-			memcpy(
-				m_dStateAux,
-				m_dDiffTheta,
-				(nRElements + 1) * sizeof(double));
-
-			DiffDiffREdgeToREdge(
-				m_dStateAux,
-				m_dDiffTheta
-			);
-		}
-
 		for (int k = 0; k <= nRElements; k++) {
 			dF[VecFIx(FTIx, k)] -=
 				dScaledNu
 				* fabs(m_dStateREdge[WIx][k])
-				* m_dDiffTheta[k];
+				* m_dDiffDiffTheta[k];
 		}
 	}
 
@@ -2276,7 +2338,7 @@ void VerticalDynamicsFEM::BuildJacobianF(
 	int kBegin;
 	int kEnd;
 
-	// dW_k/dT_l (bottom element)
+	// dW_k/dT_l and dW_k/dR_m (bottom element)
 	for (int k = 1; k < m_nVerticalOrder; k++) {
 		double dRHSWCoeff = 
 			1.0 / (m_dDomainHeight * m_dDomainHeight)
@@ -2287,7 +2349,7 @@ void VerticalDynamicsFEM::BuildJacobianF(
 			double dTEntry =
 				dRHSWCoeff 
 				* m_dDiffNodeToREdgeLeft[k][m]
-				* m_dExnerPertNode[m]
+				* (m_dExnerPertNode[m] + m_dExnerRefNode[m])
 					/ m_dStateNode[TIx][m];
 
 			int mx = m % m_nVerticalOrder;
@@ -2300,7 +2362,7 @@ void VerticalDynamicsFEM::BuildJacobianF(
 			dDG[MatFIx(FRIx, m, FWIx, k)] +=
 				dRHSWCoeff
 				* m_dDiffNodeToREdgeLeft[k][m]
-				* m_dExnerPertNode[m]
+				* (m_dExnerPertNode[m] + m_dExnerRefNode[m])
 					/ m_dStateNode[RIx][m];
 		}
 	}
@@ -2331,7 +2393,7 @@ void VerticalDynamicsFEM::BuildJacobianF(
 			double dTEntry =
 				dRHSWCoeff 
 				* m_dDiffNodeToREdgeAmal[kx][m]
-				* m_dExnerPertNode[lPrev + m]
+				* (m_dExnerPertNode[lPrev + m] + m_dExnerRefNode[lPrev + m])
 					/ m_dStateNode[TIx][lPrev + m];
 
 			for (int l = 0; l <= m_nVerticalOrder; l++) {
@@ -2342,12 +2404,12 @@ void VerticalDynamicsFEM::BuildJacobianF(
 			dDG[MatFIx(FRIx, lPrev+m, FWIx, k)] +=
 				dRHSWCoeff
 				* m_dDiffNodeToREdgeAmal[kx][m]
-				* m_dExnerPertNode[lPrev + m]
+				* (m_dExnerPertNode[lPrev + m] + m_dExnerRefNode[lPrev + m])
 					/ m_dStateNode[RIx][lPrev + m];
 		}
 	}
 
-	// dW_k/dT_l (top element)
+	// dW_k/dT_l and dW_k/dR_m (top element)
 	kBegin = (nFiniteElements-1) * m_nVerticalOrder;
 	kEnd = kBegin + m_nVerticalOrder;
 	for (int k = kBegin + 1; k < kEnd; k++) {
@@ -2363,7 +2425,7 @@ void VerticalDynamicsFEM::BuildJacobianF(
 			double dTEntry =
 				dRHSWCoeff 
 				* m_dDiffNodeToREdgeRight[kx][m]
-				* m_dExnerPertNode[lPrev + m]
+				* (m_dExnerPertNode[lPrev + m] + m_dExnerRefNode[lPrev + m])
 					/ m_dStateNode[TIx][lPrev + m];
 
 			int mx = m % m_nVerticalOrder;
@@ -2377,16 +2439,16 @@ void VerticalDynamicsFEM::BuildJacobianF(
 			dDG[MatFIx(FRIx, lPrev+m, FWIx, k)] +=
 				dRHSWCoeff
 				* m_dDiffNodeToREdgeRight[kx][m]
-				* m_dExnerPertNode[lPrev + m]
+				* (m_dExnerPertNode[lPrev + m] + m_dExnerRefNode[lPrev + m])
 					/ m_dStateNode[RIx][lPrev + m];
 		}
 	}
 
-	// dW_k/dT
+	// dW_k/dT (first theta in RHS)
 	for (int k = 1; k < nRElements; k++) {
 		dDG[MatFIx(FTIx, k, FWIx, k)] +=
 			 1.0 / (m_dDomainHeight * m_dDomainHeight)
-			 * m_dDiffExnerPertREdge[k];
+			 * (m_dDiffExnerRefREdge[k] + m_dDiffExnerPertREdge[k]);
 	}
 
 	// dRho
@@ -2437,9 +2499,37 @@ void VerticalDynamicsFEM::BuildJacobianF(
 		}
 	}
 
+	// Add the diffusion operator to theta
+	if ((pGrid->GetVarLocation(TIx) == DataLocation_REdge) &&
+		(m_nHyperdiffusionOrder > 0)
+	) {
+		for (int k = 0; k <= nRElements; k++) {
+
+			double dScaledNu =
+				m_dHyperdiffusionCoeff
+				* exp(static_cast<double>(m_nHyperdiffusionOrder - 1)
+					* log(dDeltaXi));
+
+			// dT_k/dW_k
+			double dSignW = -1.0;
+			if (m_dStateREdge[WIx][k] >= 0.0) {
+				dSignW = 1.0;
+			}
+
+			dDG[MatFIx(FWIx, k, FTIx, k)] -=
+				dScaledNu * dSignW * m_dDiffDiffTheta[k];
+
+			// dT_k/dT_m
+			for (int m = 0; m <= nRElements; m++) {
+				dDG[MatFIx(FTIx, m, FTIx, k)] -=
+					dScaledNu * m_dStateREdge[WIx][k]
+						* m_dHypervisREdgeToREdge[m][k];
+			}
+		}
+	}
 
 	// Add the identity components
-	for (int k = 0; k <= nRElements ; k++) {
+	for (int k = 0; k <= nRElements; k++) {
 		dDG[MatFIx(FTIx, k, FTIx, k)] += 1.0 / m_dDeltaT;
 		dDG[MatFIx(FWIx, k, FWIx, k)] += 1.0 / m_dDeltaT;
 		dDG[MatFIx(FRIx, k, FRIx, k)] += 1.0 / m_dDeltaT;

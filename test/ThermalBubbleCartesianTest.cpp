@@ -322,11 +322,11 @@ try {
 		CommandLineDouble(dOffCentering, "offcentering", 0.0);
 		CommandLineDouble(params.m_dDeltaT, "dt", 0.01);
 		CommandLineDouble(params.m_dEndTime, "endtime", 700.0);
-		CommandLineDouble(dOutputDeltaT, "outputtime", 100.0);
+		CommandLineDouble(dOutputDeltaT, "outputtime", 10.0);
 		CommandLineStringD(strHorizontalDynamics, "method", "SE", "(SE | DG)");
 		CommandLineBool(fNoHyperviscosity, "nohypervis");
 		CommandLineBool(fNoReferenceState, "norefstate");
-		CommandLineInt(nVerticalHyperdiffOrder, "verticaldifforder", 4);
+		CommandLineInt(nVerticalHyperdiffOrder, "verticaldifforder", 0);
 		CommandLineBool(fFullyExplicitVertical, "explicitvertical");
 		CommandLineBool(fExnerPressureOnREdges, "exneredges");
 		CommandLineBool(fMassFluxOnLevels, "massfluxlevels");
