@@ -213,7 +213,7 @@ public:
 		double dThetaBar = m_dTheta0 * exp(m_dNbar * m_dNbar / dG * dZp);
 
 		// Set the uniform U, V, W field for all time
-		dState[0] = 0.0;
+		dState[0] = m_dU0;
 		dState[1] = 0.0;
 		dState[3] = 0.0;
 
@@ -384,9 +384,12 @@ try {
 		_EXCEPTIONT("Invalid method: Expected \"SE\" or \"DG\"");
 	}
 
+	AnnounceStartBlock("Initializing horizontal dynamics");
 	HorizontalDynamicsFEM hdyn(
 	   model, nHorizontalOrder, eHorizontalDynamicsType, fNoHyperviscosity);
-	AnnounceStartBlock("Initializing horizontal dynamics");
+
+	hdyn.SetRayleighDamping(5.0e-3, 0.0, 0.0, 10000.0);
+
 	model.SetHorizontalDynamics(&hdyn);
 	AnnounceEndBlock("Done");
 

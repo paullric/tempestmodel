@@ -55,11 +55,15 @@ public:
 		bool fNoHyperdiffusion = false
 	);
 
-public:
 	///	<summary>
-	///		Generate the hyperdiffusion matrix of the specified order.
+	///		Set the Rayleigh damping parameters.
 	///	</summary>
-	void GenerateHyperdiffusionMatrix();
+	void SetRayleighDamping(
+		double dNuRayleigh,
+		double dRayleighAlphaWidth,
+		double dRayleighBetaWidth,
+		double dRayleighDepth
+	);
 
 public:
 	///	<summary>
@@ -146,6 +150,14 @@ protected:
 		bool fScaleNuLocally
 	);
 
+	///	<summary>
+	///		Apply Rayleigh damping.
+	///	</summary>
+	void ApplyRayleighDamping(
+		int iDataUpdate,
+		double dDeltaT
+	);
+
 public:
 	///	<summary>
 	///		Apply hyperdiffusion.
@@ -221,6 +233,7 @@ private:
 	///	</summary>
 	DataMatrix<double> m_dJGradientB;
 
+private:
 	///	<summary>
 	///		Scalar hyperviscosity coefficient (at 1 degree resolution).
 	///	</summary>
@@ -236,6 +249,26 @@ private:
 	///	</summary>
 	double m_dNuVort;
 
+private:
+	///	<summary>
+	///		Rayleigh damping coefficient.
+	///	</summary>
+	double m_dNuRayleigh;
+
+	///	<summary>
+	///		Horizontal alpha thickness of Rayleigh damping layer.
+	///	</summary>
+	double m_dRayleighAlphaWidth;
+
+	///	<summary>
+	///		Horizontal beta thickness of Rayleigh damping layer.
+	///	</summary>
+	double m_dRayleighBetaWidth;
+
+	///	<summary>
+	///		Vertical depth of Rayleigh damping layer.
+	///	</summary>
+	double m_dRayleighDepth;
 };
 
 ///////////////////////////////////////////////////////////////////////////////

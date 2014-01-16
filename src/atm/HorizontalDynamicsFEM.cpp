@@ -40,7 +40,11 @@ HorizontalDynamicsFEM::HorizontalDynamicsFEM(
 	m_fNoHyperdiffusion(fNoHyperdiffusion),
 	m_dNuScalar(1.0e15),
 	m_dNuDiv(1.0e15),
-	m_dNuVort(1.0e15)
+	m_dNuVort(1.0e15),
+	m_dNuRayleigh(0.0),
+	m_dRayleighAlphaWidth(0.0),
+	m_dRayleighBetaWidth(0.0),
+	m_dRayleighDepth(0.0)
 {
 	// Initialize the alpha and beta fluxes
 	m_dAlphaFlux.Initialize(
@@ -74,6 +78,20 @@ HorizontalDynamicsFEM::HorizontalDynamicsFEM(
 	m_dFluxDeriv1D.Initialize(m_nHorizontalOrder);
 	FluxReconstructionFunction::GetDerivatives(
 		2, m_nHorizontalOrder, dG, m_dFluxDeriv1D);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void HorizontalDynamicsFEM::SetRayleighDamping(
+	double dNuRayleigh,
+	double dRayleighAlphaWidth,
+	double dRayleighBetaWidth,
+	double dRayleighDepth
+) {
+	m_dNuRayleigh = dNuRayleigh;
+	m_dRayleighAlphaWidth = dRayleighAlphaWidth;
+	m_dRayleighBetaWidth = dRayleighBetaWidth;
+	m_dRayleighDepth = dRayleighDepth;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1397,6 +1415,138 @@ void HorizontalDynamicsFEM::ApplyVectorHyperdiffusion(
 
 ///////////////////////////////////////////////////////////////////////////////
 
+void HorizontalDynamicsFEM::ApplyRayleighDamping(
+	int iDataUpdate,
+	double dDeltaT
+) {
+	// No Rayleigh damping active
+	if (m_dNuRayleigh == 0.0) {
+		return;
+	}
+
+	// Get a copy of the GLL grid
+	GridGLL * pGrid = dynamic_cast<GridGLL*>(m_model.GetGrid());
+
+	// Physical constants
+	const PhysicalConstants & phys = m_model.GetPhysicalConstants();
+
+	// Perform local update
+	for (int n = 0; n < pGrid->GetActivePatchCount(); n++) {
+		GridPatchGLL * pPatch =
+			dynamic_cast<GridPatchGLL*>(pGrid->GetActivePatch(n));
+
+		const PatchBox & box = pPatch->GetPatchBox();
+
+		const double dZtop = pGrid->GetZtop();
+
+		// Grid data
+		GridData4D & dataUpdateNode =
+			pPatch->GetDataState(iDataUpdate, DataLocation_Node);
+
+		GridData4D & dataUpdateREdge =
+			pPatch->GetDataState(iDataUpdate, DataLocation_REdge);
+
+		// Reference state
+		const GridData4D & dataReferenceNode =
+			pPatch->GetReferenceState(DataLocation_Node);
+
+		const GridData4D & dataReferenceREdge =
+			pPatch->GetReferenceState(DataLocation_REdge);
+
+		// Z at levels and interfaces
+		const DataMatrix3D<double> & dataZLevels =
+			pPatch->GetZLevels();
+
+		const DataMatrix3D<double> & dataZInterfaces =
+			pPatch->GetZInterfaces();
+
+		// Loop over all nodes in patch
+		for (int i = box.GetAInteriorBegin(); i < box.GetAInteriorEnd(); i++) {
+		for (int j = box.GetBInteriorBegin(); j < box.GetBInteriorEnd(); j++) {
+
+#pragma message "Implement lateral boundaries"
+			// Rayleigh damping on nodes
+			for (int k = 0; k < pGrid->GetRElements(); k++) {
+
+				// Calculate damping rate away from top boundary
+				double dNuMult = 0.0;
+
+				double dZNode = dataZLevels[k][i][j];
+
+				if (dZNode > dZtop - m_dRayleighDepth) {
+					double dNormD =
+						(dZtop - dZNode) / (dZtop - m_dRayleighDepth);
+					dNuMult = 0.5 * (1.0 + cos(M_PI * dNormD));
+				}
+
+				// Backwards Euler
+				if (dNuMult == 0.0) {
+					continue;
+				}
+
+				double dNuNode =
+					1.0 / (1.0 + dDeltaT * m_dNuRayleigh * dNuMult);
+
+				// Loop over all components
+				int nComponents = m_model.GetEquationSet().GetComponents();
+				for (int c = 0; c < nComponents; c++) {
+					if (pGrid->GetVarLocation(c) == DataLocation_Node) {
+						//if ((c == 0) && (j == 1) && (i == 1)) {
+						//	printf("%1.10e : %1.10e : ", dataUpdateNode[c][k][i][j],
+						//		dataReferenceNode[c][k][i][j]);
+						//}
+						dataUpdateNode[c][k][i][j] =
+							dNuNode * dataUpdateNode[c][k][i][j]
+							+ (1.0 - dNuNode)
+								* dataReferenceNode[c][k][i][j];
+						//if ((c == 0) && (j == 1) && (i == 1)) {
+						//	printf("%1.10e\n", dataUpdateNode[c][k][i][j]);
+
+						//}
+					}
+				}
+			}
+
+			// Rayleigh damping on interfaces
+			for (int k = 0; k <= pGrid->GetRElements(); k++) {
+
+				// Calculate damping rate away from top boundary
+				double dNuMult = 0.0;
+
+				double dZREdge = dataZInterfaces[k][i][j];
+
+				if (dZREdge > dZtop - m_dRayleighDepth) {
+					double dNormD =
+						(dZtop - dZREdge) / (dZtop - m_dRayleighDepth);
+					dNuMult = 0.5 * (1.0 + cos(M_PI * dNormD));
+				}
+
+				// Backwards Euler
+				if (dNuMult == 0.0) {
+					continue;
+				}
+
+				double dNuREdge =
+					1.0 / (1.0 + dDeltaT * m_dNuRayleigh * dNuMult);
+
+				// Loop over all components
+				int nComponents = m_model.GetEquationSet().GetComponents();
+				for (int c = 0; c < nComponents; c++) {
+					if (pGrid->GetVarLocation(c) == DataLocation_REdge) {
+						dataUpdateREdge[c][k][i][j] =
+							dNuREdge * dataUpdateREdge[c][k][i][j]
+							+ (1.0 - dNuREdge)
+								* dataReferenceREdge[c][k][i][j];
+					}
+				}
+			}
+		}
+		}
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
 void HorizontalDynamicsFEM::StepAfterSubCycle(
 	int iDataInitial,
 	int iDataUpdate,
@@ -1404,10 +1554,6 @@ void HorizontalDynamicsFEM::StepAfterSubCycle(
 	const Time & time,
 	double dDeltaT
 ) {
-	// Only proceed if hyperdiffusion is applied
-	if (m_fNoHyperdiffusion) {
-		return;
-	}
 
 	// Check indices
 	if (iDataInitial == iDataWorking) {
@@ -1419,28 +1565,35 @@ void HorizontalDynamicsFEM::StepAfterSubCycle(
 			"-- working and update data must be distinct");
 	}
 
-#pragma message "Altering the horizontal velocities should also modify the vertical velocities"
-
-	// Apply Direct Stiffness Summation (DSS) procedure
+	// Get the GLL grid
 	GridGLL * pGrid = dynamic_cast<GridGLL*>(m_model.GetGrid());
 
-	// Apply vector Laplacian (first application)
-	pGrid->ZeroData(iDataWorking, DataType_State);
+	// Apply hyperdiffusion
+	if (!m_fNoHyperdiffusion) {
 
-	ApplyScalarHyperdiffusion(
-		iDataInitial, iDataWorking, 1.0, 1.0, false);
-	ApplyVectorHyperdiffusion(
-		iDataInitial, iDataWorking, 1.0, 1.0, 1.0, false);
+#pragma message "Altering the horizontal velocities should also modify the vertical velocities"
 
-	pGrid->ApplyDSS(iDataWorking);
+		// Apply scalar and vector hyperdiffusion (first application)
+		pGrid->ZeroData(iDataWorking, DataType_State);
 
-	// Apply vector Laplacian (second application)
-	ApplyScalarHyperdiffusion(
-		iDataWorking, iDataUpdate, -dDeltaT, m_dNuScalar, true);
-	ApplyVectorHyperdiffusion(
-		iDataWorking, iDataUpdate, -dDeltaT, m_dNuDiv, m_dNuVort, true);
+		ApplyScalarHyperdiffusion(
+			iDataInitial, iDataWorking, 1.0, 1.0, false);
+		ApplyVectorHyperdiffusion(
+			iDataInitial, iDataWorking, 1.0, 1.0, 1.0, false);
 
-	pGrid->ApplyDSS(iDataUpdate);
+		pGrid->ApplyDSS(iDataWorking);
+
+		// Apply scalar and vector hyperdiffusion (second application)
+		ApplyScalarHyperdiffusion(
+			iDataWorking, iDataUpdate, -dDeltaT, m_dNuScalar, true);
+		ApplyVectorHyperdiffusion(
+			iDataWorking, iDataUpdate, -dDeltaT, m_dNuDiv, m_dNuVort, true);
+
+		pGrid->ApplyDSS(iDataUpdate);
+	}
+
+	// Apply Rayleigh damping
+	ApplyRayleighDamping(iDataUpdate, dDeltaT);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
