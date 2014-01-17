@@ -88,19 +88,7 @@ public:
 		const double * dDataRefREdge,
 		bool fZeroBoundaries = false
 	) const;
-/*
-	///	<summary>
-	///		Interpolate a variable from nodes to a finite-element edge.
-	///	</summary>
-	void InterpolateNodeToFEEdge(
-		const double * dDataNode,
-		int iElementEdge,
-		bool fZeroBoundaries,
-		double & dDataLeft,
-		double & dDataRight,
-		double & dDataAvg
-	) const;
-*/
+
 	///	<summary>
 	///		Interpolate one column of data from interfaces to nodes.
 	///	</summary>

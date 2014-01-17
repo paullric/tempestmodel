@@ -63,16 +63,15 @@ void GridGLL::Initialize() {
 		GridSpacingMixedGaussLobatto(dDeltaElement, 0.0, m_nVerticalOrder)
 	);
 
-	// Get quadrature points for Gauss quadrature
+	// Quadrature points for Gauss and Gauss-Lobatto quadrature
 	DataVector<double> dG;
 	DataVector<double> dW;
 
-	GaussQuadrature::GetPoints(m_nHorizontalOrder, 0.0, 1.0, dG, dW);
-
-	// Get quadrature points for Gauss-Lobatto quadrature
 	DataVector<double> dGL;
 	DataVector<double> dWL;
 
+	///////////////////////////////////////////////////////////////////////////
+	// Get quadrature points for Gauss-Lobatto quadrature (horizontal)
 	GaussLobattoQuadrature::GetPoints(m_nHorizontalOrder, 0.0, 1.0, dGL, dWL);
 
 	// Derivatives of the 1D basis functions at each point on the reference
@@ -95,7 +94,14 @@ void GridGLL::Initialize() {
 		}
 	}
 
-	// Grid spacing
+	///////////////////////////////////////////////////////////////////////////
+	// Get quadrature points for Gauss quadrature (vertical)
+	GaussQuadrature::GetPoints(m_nVerticalOrder, 0.0, 1.0, dG, dW);
+
+	// Get quadrature points for Gauss-Lobatto quadrature (vertical)
+	GaussLobattoQuadrature::GetPoints(m_nVerticalOrder+1, 0.0, 1.0, dGL, dWL);
+
+	// Vertical grid spacing
 	double dElementDeltaXi =
 		  GetREtaInterface(m_nVerticalOrder) - GetREtaInterface(0);
 
@@ -418,7 +424,7 @@ void GridGLL::DifferentiateNodeToNode(
 	memset(dDiffNode, 0, nRElements * sizeof(double));
 
 	// Interpolate nodes to finite-element edges
-	//InterpolateNodeToFEEdges(dDataNode, fZeroBoundaries);
+	InterpolateNodeToFEEdges(dDataNode, fZeroBoundaries);
 
 	// Calculate derivative at each node
 	for (int k = 0; k < nRElements; k++) {
