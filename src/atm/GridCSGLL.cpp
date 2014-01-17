@@ -62,98 +62,13 @@ GridCSGLL::GridCSGLL(
 void GridCSGLL::Initialize() {
 
 	// Call up the stack
-	Grid::Initialize();
-
-	// Initialize the vertical coordinate
-	double dDeltaElement =
-		static_cast<double>(m_nVerticalOrder)
-		/ static_cast<double>(m_nRElements);
-
-	InitializeVerticalCoordinate(
-		GridSpacingMixedGaussLobatto(dDeltaElement, 0.0, m_nVerticalOrder)
-	);
-
-	// Interpolation coefficients from nodes to interfaces and vice versa
-	m_dInterpNodeToREdge.Initialize(m_nVerticalOrder+1, m_nVerticalOrder);
-	m_dInterpREdgeToNode.Initialize(m_nVerticalOrder, m_nVerticalOrder+1);
-
-	for (int n = 0; n < m_nVerticalOrder+1; n++) {
-		PolynomialInterp::LagrangianPolynomialCoeffs(
-			m_nVerticalOrder,
-			m_dREtaLevels,
-			m_dInterpNodeToREdge[n],
-			m_dREtaInterfaces[n]);
-	}
-	for (int n = 0; n < m_nVerticalOrder; n++) {
-		PolynomialInterp::LagrangianPolynomialCoeffs(
-			m_nVerticalOrder+1,
-			m_dREtaInterfaces,
-			m_dInterpREdgeToNode[n],
-			m_dREtaLevels[n]);
-	}
+	GridGLL::Initialize();
 
 	// Distribute patches to processors
 	Grid::DistributePatches();
 
 	// Set up connectivity
 	Grid::InitializeConnectivity();
-/*
-	// Set up connectivity
-#pragma message "FIX"
-	int nProcsPerDirection = 1;
-	int nProcsPerPanel = 1;
-
-	for (int n = 0; n < GetActivePatchCount(); n++) {
-		int iDestPanel;
-		int iDestI;
-		int iDestJ;
-		bool fSwitchAB;
-		bool fSwitchPar;
-		bool fSwitchPerp;
-
-		GridPatch * pActivePatch = GetActivePatch(n);
-
-		int iPatchIx = pActivePatch->GetPatchIndex();
-
-		int iSrcPanel = iPatchIx / nProcsPerPanel;
-		int iSrcI = (iPatchIx % nProcsPerPanel) / nProcsPerDirection;
-		int iSrcJ = (iPatchIx % nProcsPerPanel) % nProcsPerDirection;
-
-		int iDestN;
-
-		// Loop through all directions
-		for (int iDir = 0; iDir < 8; iDir++) {
-			Direction dir = (Direction)(iDir);
-
-			// Find the panel index in this direction
-			int iSrcInew = iSrcI;
-			int iSrcJnew = iSrcJ;
-
-			DirectionIncrement(dir, iSrcInew, iSrcJnew);
-
-			CubedSphereTrans::RelativeCoord(
-				nProcsPerDirection,
-				iSrcPanel, iSrcInew, iSrcJnew,
-				iDestPanel, iDestI, iDestJ,
-				fSwitchAB, fSwitchPar, fSwitchPerp);
-
-			if (iDestPanel == InvalidPanel) {
-				continue;
-			}
-
-			iDestN =
-				iDestPanel * nProcsPerPanel
-				+ iDestI * nProcsPerDirection
-				+ iDestJ;
-
-			// Set up the exterior connection
-			Connectivity::ExteriorConnect(
-				pActivePatch,
-				dir,
-				GetPatch(iDestN));
-		}
-	}
-*/
 }
 
 ///////////////////////////////////////////////////////////////////////////////

@@ -101,6 +101,7 @@ protected:
 	}
 
 protected:
+/*
 	///	<summary>
 	///		Interpolate one column of data from nodes to interfaces.
 	///	</summary>
@@ -163,7 +164,7 @@ protected:
 		const double * dDataREdge,
 		double * dDiffREdge
 	);
-
+*/
 	///	<summary>
 	///		Second derivative of a variable from interfaces to interfaces.
 	///	</summary>
@@ -348,12 +349,6 @@ protected:
 	DataVector<double> m_dDiffDiffTheta;
 
 	///	<summary>
-	///		State variable evaluated on finite element interfaces (left,
-	///		right and average components)
-	///	</summary>
-	DataMatrix<double> m_dStateFEEdge;
-
-	///	<summary>
 	///		Mass flux on model levels.
 	///	</summary>
 	DataVector<double> m_dMassFluxNode;
@@ -417,7 +412,7 @@ protected:
 	///		Solution vector from the implicit solve.
 	///	</summary>
 	DataVector<double> m_dSoln;
-
+/*
 	///	<summary>
 	///		Interpolation coefficients from nodes to interfaces.
 	///	</summary>
@@ -427,13 +422,8 @@ protected:
 	///		Interpolation coefficients from interfaces to nodes.
 	///	</summary>
 	const DataMatrix<double> * m_pInterpREdgeToNode;
-
-	///	<summary>
-	///		Differentiation coefficients from extended levels (levels plus
-	///		the element endpoints) to levels.
-	///	</summary>
-	DataMatrix<double> m_dDiffExtToLevel;
-
+*/
+/*
 	///	<summary>
 	///		Differentiation coefficients from interfaces to nodes.
 	///	</summary>
@@ -448,6 +438,21 @@ protected:
 	///		Differentiation coefficients from nodes to interfaces.
 	///	</summary>
 	DataMatrix<double> m_dDiffNodeToREdge;
+
+	///	<summary>
+	///		Differentiation coefficients from nodes to nodes.
+	///	</summary>
+	DataMatrix<double> m_dDiffNodeToNode;
+
+	///	<summary>
+	///		Derivatives of reconstruction polynomial on nodes.
+	///	</summary>
+	DataVector<double> m_dDiffReconsPolyNode;
+
+	///	<summary>
+	///		Derivatives of reconstruction polynomial on interfaces.
+	///	</summary>
+	DataVector<double> m_dDiffReconsPolyREdge;
 
 	///	<summary>
 	///		Amalgamated differentiation coefficients from nodes to interfaces;
@@ -467,22 +472,7 @@ protected:
 	///		at right edge with extrapolated boundary conditions.
 	///	</summary>
 	DataMatrix<double> m_dDiffNodeToREdgeRight;
-
-	///	<summary>
-	///		Differentiation coefficients from nodes to nodes.
-	///	</summary>
-	DataMatrix<double> m_dDiffNodeToNode;
-
-	///	<summary>
-	///		Derivatives of reconstruction polynomial on nodes.
-	///	</summary>
-	DataVector<double> m_dDiffReconsPolyNode;
-
-	///	<summary>
-	///		Derivatives of reconstruction polynomial on interfaces.
-	///	</summary>
-	DataVector<double> m_dDiffReconsPolyREdge;
-
+*/
 	///	<summary>
 	///		Second differentiation coefficients from edges to edges.
 	///	</summary>

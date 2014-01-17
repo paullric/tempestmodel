@@ -434,10 +434,13 @@ try {
 		strOutputPrefix,
 		nOutputsPerFile,
 		nResolution * (nHorizontalOrder - 1),
-		1);
+		1,
+		false,  // Output variables in natural locations
+		true);  // Remove reference profile in output
+
 	model.AttachOutputManager(&outmanRef);
 	AnnounceEndBlock("Done");
-
+/*
 	// Set the composite output manager for the model
 	AnnounceStartBlock("Creating composite output manager");
 	OutputManagerComposite outmanComp(
@@ -447,7 +450,7 @@ try {
 		strOutputPrefix);
 	model.AttachOutputManager(&outmanComp);
 	AnnounceEndBlock("Done");
-
+*/
 	// Set the checksum output manager for the model
 	AnnounceStartBlock("Creating checksum output manager");
 	OutputManagerChecksum outmanChecksum(grid, dOutputDeltaT);

@@ -635,6 +635,23 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 		int nElementCountA = pPatch->GetElementCountA();
 		int nElementCountB = pPatch->GetElementCountB();
 
+		// Pressure data
+		GridData3D & dataPressure = pPatch->GetDataPressure();
+
+#pragma message "This can be optimized at finite element edges"
+		// Loop over all nodes and compute pressure
+		for (int k = 0; k < pGrid->GetRElements(); k++) {
+		for (int i = box.GetAInteriorBegin(); i < box.GetAInteriorEnd(); i++) {
+		for (int j = box.GetBInteriorBegin(); j < box.GetBInteriorEnd(); j++) {
+			dataPressure[k][i][j] = 
+				phys.PressureFromRhoTheta(
+						dataInitialNode[RIx][k][i][j]
+						* dataInitialNode[TIx][k][i][j]);
+		}
+		}
+		}
+
+		// Loop over all nodes
 		for (int k = 0; k < pGrid->GetRElements(); k++) {
 		for (int a = 0; a < nElementCountA; a++) {
 		for (int b = 0; b < nElementCountB; b++) {
@@ -658,10 +675,7 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 					* dataInitialNode[VIx][k][iA][iB];
 
 				// Pointwise pressure
-				m_dPressure[i][j] =
-					phys.PressureFromRhoTheta(
-						dataInitialNode[RIx][k][iA][iB]
-						* dataInitialNode[TIx][k][iA][iB]);
+				m_dPressure[i][j] = dataPressure[k][iA][iB];
 			}
 			}
 

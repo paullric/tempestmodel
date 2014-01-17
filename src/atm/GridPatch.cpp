@@ -203,19 +203,6 @@ void GridPatch::InitializeDataLocal() {
 		m_box.GetBTotalWidth(),
 		6);
 
-	// Orthonormalization components
-	m_dataOrthonormNode.Initialize(
-		m_grid.GetRElements(),
-		m_box.GetATotalWidth(),
-		m_box.GetBTotalWidth(),
-		3);
-
-	m_dataOrthonormREdge.Initialize(
-		m_grid.GetRElements()+1,
-		m_box.GetATotalWidth(),
-		m_box.GetBTotalWidth(),
-		3);
-
 	// Element area at each node
 	m_dataElementArea.Initialize(
 		m_grid.GetRElements(),
@@ -369,6 +356,15 @@ void GridPatch::InitializeDataLocal() {
 			m_box.GetBTotalWidth(),
 			m_box.GetHaloElements());
 	}
+
+	// Pressure data
+	m_dataPressure.Initialize(
+		DataType_Pressure,
+		DataLocation_Node,
+		m_grid.GetRElements(),
+		m_box.GetATotalWidth(),
+		m_box.GetBTotalWidth(),
+		m_box.GetHaloElements());
 
 	// Vorticity data
 	m_dataVorticity.Initialize(

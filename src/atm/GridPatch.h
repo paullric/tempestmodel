@@ -411,28 +411,6 @@ public:
 	}
 
 	///	<summary>
-	///		Get the orthonormalization components at nodes.
-	///	</summary>
-	const DataMatrix4D<double> & GetOrthonormNode() const {
-		if (!m_fContainsData) {
-			_EXCEPTIONT("Stub patch does not store data.");
-		}
-
-		return m_dataOrthonormNode;
-	}
-
-	///	<summary>
-	///		Get the orthonormalization components at interfaces.
-	///	</summary>
-	const DataMatrix4D<double> & GetOrthonormREdge() const {
-		if (!m_fContainsData) {
-			_EXCEPTIONT("Stub patch does not store data.");
-		}
-
-		return m_dataOrthonormREdge;
-	}
-
-	///	<summary>
 	///		Get the nodal element area matrix.
 	///	</summary>
 	const DataMatrix3D<double> & GetElementArea() const {
@@ -744,6 +722,20 @@ public:
 	}
 
 	///	<summary>
+	///		Get the pressure data.
+	///	</summary>
+	GridData3D & GetDataPressure() {
+		return m_dataPressure;
+	}
+
+	///	<summary>
+	///		Get the pressure data.
+	///	</summary>
+	const GridData3D & GetDataPressure() const {
+		return m_dataPressure;
+	}
+
+	///	<summary>
 	///		Get the vorticity data.
 	///	</summary>
 	GridData3D & GetDataVorticity() {
@@ -858,16 +850,6 @@ protected:
 	DataMatrix4D<double> m_dataChristoffelXi;
 
 	///	<summary>
-	///		Orthonormalization coefficients at each node.
-	///	</summary>
-	DataMatrix4D<double> m_dataOrthonormNode;
-
-	///	<summary>
-	///		Orthonormalization coefficients at each interface.
-	///	</summary>
-	DataMatrix4D<double> m_dataOrthonormREdge;
-
-	///	<summary>
 	///		Element area at each node.
 	///	</summary>
 	DataMatrix3D<double> m_dataElementArea;
@@ -941,6 +923,11 @@ protected:
 	///		Auxiliary grid data on model interfaces.
 	///	</summary>
 	GridData3DVectorVector m_datavecAuxREdge;
+
+	///	<summary>
+	///		Computed pointwise pressures.
+	///	</summary>
+	GridData3D m_dataPressure;
 
 	///	<summary>
 	///		Computed vorticity.

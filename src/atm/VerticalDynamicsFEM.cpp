@@ -17,7 +17,6 @@
 #include "VerticalDynamicsFEM.h"
 #include "GaussQuadrature.h"
 #include "GaussLobattoQuadrature.h"
-#include "FluxReconstructionFunction.h"
 
 #include "Model.h"
 #include "Grid.h"
@@ -26,13 +25,6 @@
 #include "TimeObj.h"
 #include "PolynomialInterp.h"
 #include "LinearAlgebra.h"
-
-///////////////////////////////////////////////////////////////////////////////
-
-///	<summary>
-///		Type of flux reconstruction function to use (see Huynh 2007)
-///	</summary>
-static const int ParamFluxReconstructionType = 2;
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -99,7 +91,10 @@ void VerticalDynamicsFEM::Initialize() {
 	const int RIx = 4;
 
 	// Pointer to grid
-	Grid * pGrid = m_model.GetGrid();
+	GridGLL * pGrid = dynamic_cast<GridGLL *>(m_model.GetGrid());
+	if (pGrid == NULL) {
+		_EXCEPTIONT("Invalid grid -- expected GridGLL");
+	}
 
 	// Physical constants
 	const PhysicalConstants & phys = m_model.GetPhysicalConstants();
@@ -110,14 +105,19 @@ void VerticalDynamicsFEM::Initialize() {
 	// Number of degrees of freedom per column in rho/w/theta
 	m_nColumnStateSize = 3 * (nRElements + 1);
 
-	// Parent grid, containing the vertical remapping information
-	const GridGLL * pGLLGrid = dynamic_cast<const GridGLL*>(pGrid);
-	if (pGLLGrid == NULL) {
-		_EXCEPTIONT("Invalid grid -- expected GridGLL");
-	}
-
-	m_pInterpNodeToREdge = &(pGLLGrid->GetInterpNodeToREdge());
-	m_pInterpREdgeToNode = &(pGLLGrid->GetInterpREdgeToNode());
+	// Get the vertical interpolation and differentiation coefficients
+	const DataMatrix<double> & dInterpNodeToREdge =
+		pGrid->GetInterpNodeToREdge();
+	const DataMatrix<double> & dInterpREdgeToNode =
+		pGrid->GetInterpREdgeToNode();
+	const DataMatrix<double> & dDiffREdgeToNode =
+		pGrid->GetDiffREdgeToNode();
+	const DataMatrix<double> & dDiffNodeToREdge =
+		pGrid->GetDiffNodeToREdge();
+	const DataMatrix<double> & dDiffNodeToNode =
+		pGrid->GetDiffNodeToNode();
+	const DataMatrix<double> & dDiffREdgeToREdge =
+		pGrid->GetDiffREdgeToREdge();
 
 #ifdef USE_JFNK_PETSC
 	// Initialize the PetSc solver context
@@ -172,9 +172,9 @@ void VerticalDynamicsFEM::Initialize() {
 #endif
 #if defined(USE_DIRECTSOLVE_APPROXJ) || defined(USE_DIRECTSOLVE)
 #ifdef USE_JACOBIAN_DIAGONAL
-	if (ParamFluxReconstructionType != 2) {
+	if (pGrid->GetReconstructionPolyType() != 2) {
 		_EXCEPTIONT("Diagonal Jacobian only implemented for "
-			"FluxReconstructionType == 2");
+			"ReconstructionPolyType == 2");
 	}
 	if (m_nHyperdiffusionOrder > 2) {
 		_EXCEPTIONT("Diagonal Jacobian only implemented for "
@@ -242,8 +242,6 @@ void VerticalDynamicsFEM::Initialize() {
 	m_dDiffTheta.Initialize(nRElements+1);
 	m_dDiffDiffTheta.Initialize(nRElements+1);
 
-	m_dStateFEEdge.Initialize(nFiniteElements+1, 2);
-
 	m_dMassFluxNode.Initialize(nRElements);
 	m_dDiffMassFluxNode.Initialize(nRElements);
 	m_dMassFluxREdge.Initialize(nRElements+1);
@@ -266,40 +264,6 @@ void VerticalDynamicsFEM::Initialize() {
 		  pGrid->GetREtaInterface(m_nVerticalOrder)
 		- pGrid->GetREtaInterface(0);
 
-	// Differentiation coefficients
-	m_dDiffREdgeToNode.Initialize(m_nVerticalOrder, m_nVerticalOrder+1);
-	m_dDiffREdgeToREdge.Initialize(m_nVerticalOrder+1, m_nVerticalOrder+1);
-	m_dDiffNodeToREdge.Initialize(m_nVerticalOrder+1, m_nVerticalOrder);
-	m_dDiffNodeToNode.Initialize(m_nVerticalOrder, m_nVerticalOrder);
-
-	// Compute differentiation coefficients
-	for (int n = 0; n < m_nVerticalOrder; n++) {
-		PolynomialInterp::DiffLagrangianPolynomialCoeffs(
-			m_nVerticalOrder+1, dGL, m_dDiffREdgeToNode[n], dG[n]);
-		PolynomialInterp::DiffLagrangianPolynomialCoeffs(
-			m_nVerticalOrder, dG, m_dDiffNodeToNode[n], dG[n]);
-
-		for (int m = 0; m <= m_nVerticalOrder; m++) {
-			m_dDiffREdgeToNode[n][m] /= dElementDeltaXi;
-		}
-		for (int m = 0; m < m_nVerticalOrder; m++) {
-			m_dDiffNodeToNode[n][m] /= dElementDeltaXi;
-		}
-	}
-	for (int n = 0; n <= m_nVerticalOrder; n++) {
-		PolynomialInterp::DiffLagrangianPolynomialCoeffs(
-			m_nVerticalOrder, dG, m_dDiffNodeToREdge[n], dGL[n]);
-		PolynomialInterp::DiffLagrangianPolynomialCoeffs(
-			m_nVerticalOrder+1, dGL, m_dDiffREdgeToREdge[n], dGL[n]);
-
-		for (int m = 0; m <= m_nVerticalOrder; m++) {
-			m_dDiffREdgeToREdge[n][m] /= dElementDeltaXi;
-		}
-		for (int m = 0; m < m_nVerticalOrder; m++) {
-			m_dDiffNodeToREdge[n][m] /= dElementDeltaXi;
-		}
-	}
-
 	// Compute second differentiation coefficients
 	m_dDiffDiffREdgeToREdge.Initialize(
 		m_nVerticalOrder+1, m_nVerticalOrder+1);
@@ -309,8 +273,8 @@ void VerticalDynamicsFEM::Initialize() {
 		m_dDiffDiffREdgeToREdge[n][m] = 0.0;
 		for (int s = 0; s <= m_nVerticalOrder; s++) {
 			m_dDiffDiffREdgeToREdge[n][m] -=
-				  m_dDiffREdgeToREdge[s][n]
-				* m_dDiffREdgeToREdge[s][m]
+				  dDiffREdgeToREdge[s][n]
+				* dDiffREdgeToREdge[s][m]
 				* dWL[s];
 		}
 		m_dDiffDiffREdgeToREdge[n][m] /= dWL[n];
@@ -365,97 +329,6 @@ void VerticalDynamicsFEM::Initialize() {
 				dHypervisSecondBuffer,
 				1.0, 0.0);
 		}
-	}
-
-	// Get derivatives of flux reconstruction function and scale to the
-	// element [0, dElementDeltaXi]
-	FluxReconstructionFunction::GetDerivatives(
-		ParamFluxReconstructionType,
-		m_nVerticalOrder+1, dG, m_dDiffReconsPolyNode);
-
-	FluxReconstructionFunction::GetDerivatives(
-		ParamFluxReconstructionType,
-		m_nVerticalOrder+1, dGL, m_dDiffReconsPolyREdge);
-
-	for (int n = 0; n < m_dDiffReconsPolyNode.GetRows(); n++) {
-		m_dDiffReconsPolyNode[n] /= dElementDeltaXi;
-	}
-	for (int n = 0; n < m_dDiffReconsPolyREdge.GetRows(); n++) {
-		m_dDiffReconsPolyREdge[n] /= dElementDeltaXi;
-	}
-
-	// Compute amalgamated differentiation coefficients
-	m_dDiffNodeToREdgeAmal.Initialize(
-		m_nVerticalOrder+1, 3*m_nVerticalOrder);
-
-	m_dDiffNodeToREdgeLeft.Initialize(
-		m_nVerticalOrder+1, 2*m_nVerticalOrder);
-
-	m_dDiffNodeToREdgeRight.Initialize(
-		m_nVerticalOrder+1, 2*m_nVerticalOrder);
-
-	for (int n = 0; n <= m_nVerticalOrder; n++) {
-	for (int m = 0; m < m_nVerticalOrder; m++) {
-		m_dDiffNodeToREdgeAmal[n][m_nVerticalOrder + m] =
-			m_dDiffNodeToREdge[n][m];
-		m_dDiffNodeToREdgeLeft[n][m] =
-			m_dDiffNodeToREdge[n][m];
-		m_dDiffNodeToREdgeRight[n][m_nVerticalOrder + m] =
-			m_dDiffNodeToREdge[n][m];
-	}
-	}
-
-	// Overlay differentiation stencils
-	for (int m = 0; m < 2 * m_nVerticalOrder; m++) {
-		m_dDiffNodeToREdgeAmal[0][m] = 0.5 * (
-			  m_dDiffNodeToREdgeAmal[0][m]
-			+ m_dDiffNodeToREdgeAmal[m_nVerticalOrder][m_nVerticalOrder+m]);
-
-		m_dDiffNodeToREdgeAmal[m_nVerticalOrder][m_nVerticalOrder+m] =
-			m_dDiffNodeToREdgeAmal[0][m];
-	}
-
-	// Contributions due to interface values
-	for (int n = 0; n <= m_nVerticalOrder; n++) {
-	for (int m = 0; m < m_nVerticalOrder; m++) {
-		// Contribution from element on the right
-		m_dDiffNodeToREdgeAmal[n][m_nVerticalOrder + m] -=
-			0.5 * (*m_pInterpNodeToREdge)[m_nVerticalOrder][m]
-			* m_dDiffReconsPolyREdge[n];
-
-		m_dDiffNodeToREdgeAmal[n][2 * m_nVerticalOrder + m] +=
-			0.5 * (*m_pInterpNodeToREdge)[0][m]
-			* m_dDiffReconsPolyREdge[n];
-
-		m_dDiffNodeToREdgeLeft[n][m] -=
-			0.5 * (*m_pInterpNodeToREdge)[m_nVerticalOrder][m] * (
-				m_dDiffReconsPolyREdge[n]
-				+ m_dDiffReconsPolyREdge[m_nVerticalOrder - n]);
-
-		m_dDiffNodeToREdgeLeft[n][m_nVerticalOrder + m] +=
-			0.5 * (*m_pInterpNodeToREdge)[0][m] * (
-				m_dDiffReconsPolyREdge[n]
-				+ m_dDiffReconsPolyREdge[m_nVerticalOrder - n]);
-
-		// Contribution from element on the left
-		m_dDiffNodeToREdgeAmal[n][m] +=
-			- 0.5 * (*m_pInterpNodeToREdge)[m_nVerticalOrder][m]
-			* m_dDiffReconsPolyREdge[m_nVerticalOrder - n];
-
-		m_dDiffNodeToREdgeAmal[n][m_nVerticalOrder + m] -=
-			- 0.5* (*m_pInterpNodeToREdge)[0][m]
-			* m_dDiffReconsPolyREdge[m_nVerticalOrder - n];
-
-		m_dDiffNodeToREdgeRight[n][m] +=
-			- 0.5 * (*m_pInterpNodeToREdge)[m_nVerticalOrder][m] * (
-				m_dDiffReconsPolyREdge[m_nVerticalOrder - n]
-				+ m_dDiffReconsPolyREdge[n]);
-
-		m_dDiffNodeToREdgeRight[n][m_nVerticalOrder + m] -=
-			- 0.5 * (*m_pInterpNodeToREdge)[0][m] * (
-				m_dDiffReconsPolyREdge[m_nVerticalOrder - n]
-				+ m_dDiffReconsPolyREdge[n]);
-	}
 	}
 
 	// Calculate Exner pressure reference profile
@@ -513,11 +386,11 @@ void VerticalDynamicsFEM::Initialize() {
 			if ((pGrid->GetVarLocation(RIx) == DataLocation_Node) &&
 				(pGrid->GetVarLocation(WIx) == DataLocation_Node)
 			) {
-				DifferentiateNodeToNode(
+				pGrid->DifferentiateNodeToNode(
 					m_dExnerRefNode,
 					m_dDiffExnerRefNode);
 
-				DifferentiateREdgeToREdge(
+				pGrid->DifferentiateREdgeToREdge(
 					m_dExnerRefREdge,
 					m_dDiffExnerRefREdge);
 
@@ -526,20 +399,20 @@ void VerticalDynamicsFEM::Initialize() {
 				(pGrid->GetVarLocation(WIx) == DataLocation_REdge)
 			) {
 				if (m_fExnerPressureOnLevels) {
-					DifferentiateNodeToNode(
+					pGrid->DifferentiateNodeToNode(
 						m_dExnerRefNode,
 						m_dDiffExnerRefNode);
 
-					DifferentiateNodeToREdge(
+					pGrid->DifferentiateNodeToREdge(
 						m_dExnerRefNode,
 						m_dDiffExnerRefREdge);
 
 				} else {
-					DifferentiateREdgeToNode(
+					pGrid->DifferentiateREdgeToNode(
 						m_dExnerRefREdge,
 						m_dDiffExnerRefNode);
 
-					DifferentiateREdgeToREdge(
+					pGrid->DifferentiateREdgeToREdge(
 						m_dExnerRefREdge,
 						m_dDiffExnerRefREdge);
 				}
@@ -559,373 +432,6 @@ void VerticalDynamicsFEM::Initialize() {
 			}
 		}
 		}
-	}
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
-void VerticalDynamicsFEM::InterpolateNodeToREdge(
-	const double * dDataNode,
-	const double * dDataRefNode,
-	double * dDataREdge,
-	const double * dDataRefREdge,
-	bool fZeroBoundaries
-) {
-	// Number of radial elements
-	int nRElements = m_model.GetGrid()->GetRElements();
-
-	int nFiniteElements = nRElements / m_nVerticalOrder;
-
-	// Zero the memory
-	memset(dDataREdge, 0, (nRElements+1) * sizeof(double));
-
-	// Loop over all nodes and apply the value to all interfaces
-	for (int k = 0; k < nRElements; k++) {
-		int a = k / m_nVerticalOrder;
-		int m = k % m_nVerticalOrder;
-		int lBegin = a * m_nVerticalOrder;
-
-		// Apply node value to interface
-		for (int l = 0; l <= m_nVerticalOrder; l++) {
-			dDataREdge[lBegin + l] +=
-				(*m_pInterpNodeToREdge)[l][m]
-					* (dDataNode[k] - dDataRefNode[k]);
-		}
-	}
-
-	// Scale interior element edges
-	for (int a = 1; a < nFiniteElements; a++) {
-		dDataREdge[a * m_nVerticalOrder] *= 0.5;
-	}
-	for (int k = 0; k <= nRElements; k++) {
-		dDataREdge[k] += dDataRefREdge[k];
-	}
-
-	// Override boundary values if zero
-	if (fZeroBoundaries) {
-		dDataREdge[0] = 0.0;
-		dDataREdge[nRElements] = 0.0;
-	}
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
-void VerticalDynamicsFEM::InterpolateREdgeToNode(
-	const double * dDataREdge,
-	const double * dDataRefREdge,
-	double * dDataNode,
-	const double * dDataRefNode
-) {
-	// Number of radial elements
-	int nRElements = m_model.GetGrid()->GetRElements();
-
-	// Zero the memory
-	memset(dDataNode, 0, nRElements * sizeof(double));
-
-	// Loop over all nodes
-	for (int k = 0; k < nRElements; k++) {
-		int a = k / m_nVerticalOrder;
-		int m = k % m_nVerticalOrder;
-		int lBegin = a * m_nVerticalOrder;
-
-		// Apply interface values to nodes
-		for (int l = 0; l <= m_nVerticalOrder; l++) {
-			dDataNode[k] +=
-				(*m_pInterpREdgeToNode)[m][l] *
-					(dDataREdge[lBegin + l] - dDataRefREdge[lBegin + l]);
-		}
-	}
-
-	// Restore the reference state
-	for (int k = 0; k < nRElements; k++) {
-		dDataNode[k] += dDataRefNode[k];
-	}
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
-void VerticalDynamicsFEM::InterpolateNodeToFEEdges(
-	const double * dDataNode,
-	bool fZeroBoundaries
-) {
-	const int Left = 0;
-	const int Right = 1;
-
-	// Number of radial elements
-	int nRElements = m_model.GetGrid()->GetRElements();
-
-	int nFiniteElements = nRElements / m_nVerticalOrder;
-
-	// Interpolate to interfaces (left and right)
-	m_dStateFEEdge.Zero();
-
-	for (int k = 0; k < nRElements; k++) {
-		int a = k / m_nVerticalOrder;
-		int m = k % m_nVerticalOrder;
-
-		// Apply node value to left side of interface
-		m_dStateFEEdge[a+1][Left] +=
-			(*m_pInterpNodeToREdge)[m_nVerticalOrder][m] * dDataNode[k];
-
-		// Apply node value to right side of interface
-		m_dStateFEEdge[a][Right] +=
-			(*m_pInterpNodeToREdge)[0][m] * dDataNode[k];
-	}
-
-	// Calculate average interpolant
-	for (int a = 1; a < nFiniteElements; a++) {
-		double dAvg = 0.5 * (m_dStateFEEdge[a][0] + m_dStateFEEdge[a][1]);
-
-		m_dStateFEEdge[a][Left] -= dAvg;
-		m_dStateFEEdge[a][Right] -= dAvg;
-	}
-
-#pragma message "Understand why this works for free boundaries"
-	// Ignore contributions due to upper and lower boundary
-	// NOTE: This needs to be changed for W to enforce boundary conditions
-	if (fZeroBoundaries) {
-
-	} else if (nFiniteElements == 1) {
-		m_dStateFEEdge[0][Right] = 0.0;
-		m_dStateFEEdge[nFiniteElements][Left] = 0.0;
-
-	} else {
-		m_dStateFEEdge[0][Right] =
-			- m_dStateFEEdge[1][Left];
-		m_dStateFEEdge[nFiniteElements][Left] =
-			- m_dStateFEEdge[nFiniteElements-1][Right];
-	}
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
-void VerticalDynamicsFEM::DifferentiateNodeToNode(
-	const double * dDataNode,
-	double * dDiffNode,
-	bool fZeroBoundaries
-) {
-	const int Left = 0;
-	const int Right = 1;
-
-	// Number of radial elements
-	int nRElements = m_model.GetGrid()->GetRElements();
-
-	// Zero the output
-	memset(dDiffNode, 0, nRElements * sizeof(double));
-
-	// Interpolate nodes to finite-element edges
-	InterpolateNodeToFEEdges(dDataNode, fZeroBoundaries);
-
-	// Calculate derivative at each node
-	for (int k = 0; k < nRElements; k++) {
-		int a = k / m_nVerticalOrder;
-		int m = k % m_nVerticalOrder;
-
-		int lBegin = a * m_nVerticalOrder;
-
-		// Calculate derivatives due to internal bits
-		for (int l = 0; l < m_nVerticalOrder; l++) {
-			dDiffNode[k] += m_dDiffNodeToNode[m][l] * dDataNode[lBegin+l];
-		}
-
-		// Calculate derivatives due to interfaces
-		dDiffNode[k] -=
-			m_dDiffReconsPolyNode[m]
-			* m_dStateFEEdge[a+1][Left];
-		dDiffNode[k] +=
-			m_dDiffReconsPolyNode[m_nVerticalOrder - m - 1]
-			* m_dStateFEEdge[a][Right];
-	}
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
-void VerticalDynamicsFEM::DifferentiateNodeToREdge(
-	const double * dDataNode,
-	double * dDiffREdge,
-	bool fZeroBoundaries
-) {
-	const int Left = 0;
-	const int Right = 1;
-
-	// Number of radial elements
-	int nRElements = m_model.GetGrid()->GetRElements();
-
-	int nFiniteElements = nRElements / m_nVerticalOrder;
-
-	// Zero the output
-	memset(dDiffREdge, 0, (nRElements+1) * sizeof(double));
-/*
-	// Handle the single element case
-	if (nFiniteElements == 1) {
-		for (int k = 0; k < m_nVerticalOrder; k++) {
-		for (int l = 0; l <= m_nVerticalOrder; l++) {
-			dDiffREdge[l] +=
-				m_dDiffNodeToREdge[l][k]
-				* dDataNode[k];
-		}
-		}
-
-		return;
-	}
-
-	if (nFiniteElements == 2) {
-		_EXCEPTIONT("UNIMPLEMENTED: Still working on this...");
-	}
-
-	if (fZeroBoundaries) {
-		_EXCEPTIONT("UNIMPLEMENTED: Still working on transitioning this...");
-	}
-
-	// Interpolate nodes to finite-element edges
-	InterpolateNodeToFEEdges(dDataNode, fZeroBoundaries);
-
-	// Calculate derivatives at interfaces
-	for (int k = 0; k < nRElements; k++) {
-		int a = k / m_nVerticalOrder;
-		int m = k % m_nVerticalOrder;
-
-		int lBegin = a * m_nVerticalOrder;
-
-		// Push value of each node onto interface derivatives
-		for (int l = 0; l <= m_nVerticalOrder; l++) {
-			dDiffREdge[lBegin+l] +=
-				m_dDiffNodeToREdge[l][m]
-				* dDataNode[k];
-		}
-	}
-
-	// Calculate derivatives due to interfaces
-	for (int a = 0; a < nFiniteElements; a++) {
-		int lBegin = a * m_nVerticalOrder;
-
-		for (int l = 0; l <= m_nVerticalOrder; l++) {
-			dDiffREdge[lBegin+l] -=
-				m_dDiffReconsPolyREdge[l]
-				* m_dStateFEEdge[a+1][Left];
-			dDiffREdge[lBegin+l] +=
-				m_dDiffReconsPolyREdge[m_nVerticalOrder - l]
-				* m_dStateFEEdge[a][Right];
-		}
-	}
-
-	// Scale interior finite element edges
-	for (int a = 1; a < nFiniteElements; a++) {
-		dDiffREdge[a * m_nVerticalOrder] *= 0.5;
-	}
-*/
-#pragma message "Doesn't work with ReconstructionFunctionType = 1"
-	if (ParamFluxReconstructionType != 2) {
-		_EXCEPTIONT("UNIMPLEMENTED");
-	}
-
-	// Compute interior derivatives
-	{
-		int kBegin = m_nVerticalOrder;
-		int kLast = (nFiniteElements - 1) * m_nVerticalOrder;
-
-		for (int k = kBegin; k <= kLast; k++) {
-			int a = k / m_nVerticalOrder;
-			int l = k % m_nVerticalOrder;
-			if (k == kLast) {
-				a--;
-				l = m_nVerticalOrder;
-			}
-
-			int lPrev = (a-1) * m_nVerticalOrder;
-
-			for (int m = 0; m < 3 * m_nVerticalOrder; m++) {
-				dDiffREdge[k] +=
-					m_dDiffNodeToREdgeAmal[l][m]
-					* dDataNode[lPrev + m];
-			}
-		}
-	}
-
-	// Compute derivatives at left boundary
-	for (int l = 0; l < m_nVerticalOrder; l++) {
-	for (int m = 0; m < 2 * m_nVerticalOrder; m++) {
-		dDiffREdge[l] +=
-			m_dDiffNodeToREdgeLeft[l][m]
-			* dDataNode[m];
-	}
-	}
-
-	// Compute derivatives at right boundary
-	{
-		int lBegin = (nFiniteElements - 1) * m_nVerticalOrder;
-		int lEnd = lBegin + m_nVerticalOrder;
-		for (int l = 1; l <= m_nVerticalOrder; l++) {
-		for (int m = 0; m < 2 * m_nVerticalOrder; m++) {
-			dDiffREdge[lBegin + l] +=
-				m_dDiffNodeToREdgeRight[l][m]
-				* dDataNode[lBegin - m_nVerticalOrder + m];
-		}
-		}
-	}
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
-void VerticalDynamicsFEM::DifferentiateREdgeToNode(
-	const double * dDataREdge,
-	double * dDiffNode
-) {
-	// Number of radial elements
-	int nRElements = m_model.GetGrid()->GetRElements();
-
-	int nFiniteElements = nRElements / m_nVerticalOrder;
-
-	// Zero the data
-	memset(dDiffNode, 0, nRElements * sizeof(double));
-
-	// Loop through all nodes
-	for (int k = 0; k < nRElements; k++) {
-
-		// Differentiate from neighboring interface values
-		int a = k / m_nVerticalOrder;
-		int m = k % m_nVerticalOrder;
-		int lBegin = a * m_nVerticalOrder;
-
-		for (int l = 0; l <= m_nVerticalOrder; l++) {
-			dDiffNode[k] +=
-				  m_dDiffREdgeToNode[m][l]
-				* dDataREdge[lBegin + l];
-		}
-	}
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
-void VerticalDynamicsFEM::DifferentiateREdgeToREdge(
-	const double * dDataREdge,
-	double * dDiffREdge
-) {
-	// Number of radial elements
-	int nRElements = m_model.GetGrid()->GetRElements();
-
-	int nFiniteElements = nRElements / m_nVerticalOrder;
-
-	// Zero the data
-	memset(dDiffREdge, 0, (nRElements+1) * sizeof(double));
-
-	// Apply all interfaces values to all interfaces within element
-	for (int a = 0; a < nFiniteElements; a++) {
-	for (int l = 0; l <= m_nVerticalOrder; l++) {
-
-		int lBegin = a * m_nVerticalOrder;
-
-		for (int m = 0; m <= m_nVerticalOrder; m++) {
-			dDiffREdge[lBegin + l] +=
-				  m_dDiffREdgeToREdge[l][m]
-				* dDataREdge[lBegin + m];
-		}
-	}
-	}
-
-	// Halve interior element interface values
-	for (int a = 1; a < nFiniteElements; a++) {
-		dDiffREdge[a * m_nVerticalOrder] *= 0.5;
 	}
 }
 
@@ -1062,7 +568,7 @@ void VerticalDynamicsFEM::StepExplicit(
 	double dDeltaT
 ) {
 	// Get a copy of the grid
-	Grid * pGrid = m_model.GetGrid();
+	GridGLL * pGrid = dynamic_cast<GridGLL *>(m_model.GetGrid());
 
 	// Physical constants
 	const PhysicalConstants & phys = m_model.GetPhysicalConstants();
@@ -1206,7 +712,7 @@ void VerticalDynamicsFEM::StepExplicit(
 
 				// Obtain W on model levels
 				if (pGrid->GetVarLocation(WIx) == DataLocation_REdge) {
-					InterpolateREdgeToNode(
+					pGrid->InterpolateREdgeToNode(
 						m_dStateREdge[WIx],
 						m_dStateRefREdge[WIx],
 						m_dStateNode[WIx],
@@ -1220,7 +726,7 @@ void VerticalDynamicsFEM::StepExplicit(
 				}
 
 				// Calculate update to U
-				DifferentiateNodeToNode(
+				pGrid->DifferentiateNodeToNode(
 					m_dStateNode[UIx],
 					m_dStateAuxDiff);
 
@@ -1230,7 +736,7 @@ void VerticalDynamicsFEM::StepExplicit(
 				}
 
 				// Calculate update to V
-				DifferentiateNodeToNode(
+				pGrid->DifferentiateNodeToNode(
 					m_dStateNode[VIx],
 					m_dStateAuxDiff);
 
@@ -1250,7 +756,7 @@ void VerticalDynamicsFEM::StepExplicit(
 
 				// Obtain W on model interfaces
 				if (pGrid->GetVarLocation(WIx) == DataLocation_Node) {
-					InterpolateNodeToREdge(
+					pGrid->InterpolateNodeToREdge(
 						m_dStateNode[WIx],
 						m_dStateRefNode[WIx],
 						m_dStateREdge[WIx],
@@ -1262,7 +768,7 @@ void VerticalDynamicsFEM::StepExplicit(
 				}
 
 				// Calculate update to U
-				DifferentiateREdgeToREdge(
+				pGrid->DifferentiateREdgeToREdge(
 					m_dStateREdge[UIx],
 					m_dStateAuxDiff);
 
@@ -1272,7 +778,7 @@ void VerticalDynamicsFEM::StepExplicit(
 				}
 
 				// Calculate update to U
-				DifferentiateREdgeToREdge(
+				pGrid->DifferentiateREdgeToREdge(
 					m_dStateREdge[VIx],
 					m_dStateAuxDiff);
 
@@ -1286,7 +792,7 @@ void VerticalDynamicsFEM::StepExplicit(
 			if (pGrid->GetVarLocation(WIx) == DataLocation_Node) {
 
 				// Differentiate W on model levels
-				DifferentiateNodeToNode(
+				pGrid->DifferentiateNodeToNode(
 					m_dStateNode[WIx],
 					m_dStateAuxDiff);
 
@@ -1299,7 +805,7 @@ void VerticalDynamicsFEM::StepExplicit(
 			} else {
 
 				// Differentiate W on model interfaces
-				DifferentiateREdgeToREdge(
+				pGrid->DifferentiateREdgeToREdge(
 					m_dStateREdge[WIx],
 					m_dStateAuxDiff);
 
@@ -1686,99 +1192,6 @@ void VerticalDynamicsFEM::StepImplicit(
 			}
 
 #pragma message "Vertical pressure gradient influence on horizontal velocities"
-/*
-			// Compute vertical pressure gradient on nodes for
-			// potential temperature (theta) on interfaces
-			if (pGrid->GetVarLocation(TIx) == DataLocation_REdge) {
-				InterpolateREdgeToNode(
-					&(m_dSoln[m_ixTBegin]),
-					m_dStateRefREdge[TIx],
-					m_dStateNode[TIx],
-					m_dStateRefNode[TIx]);
-
-			// potential temperature (theta) on levels
-			} else {
-				for (int k = 0; k < pGrid->GetRElements(); k++) {
-					m_dStateNode[TIx][k] = dataUpdateNode[TIx][k][iA][iB];
-				}
-			}
-
-			// Exner function perturbation on nodes
-			for (int k = 0; k < pGrid->GetRElements(); k++) {
-				m_dExnerPertNode[k] =
-					phys.GetCp() * exp(phys.GetR() / phys.GetCv()
-						* log(phys.GetR() / phys.GetP0()
-							* dataUpdateNode[RIx][k][iA][iB]
-							* m_dStateNode[TIx][k]));
-
-				m_dExnerPertNode[k] -= m_dExnerRefNode[k];
-			}
-
-			// Differentiate Exner function
-			DifferentiateNodeToNode(
-				m_dExnerPertNode,
-				m_dDiffExnerPertNode);
-
-			// Apply Exner gradient term to horizontal velocities
-			for (int k = 0; k < pGrid->GetRElements(); k++) {
-				double dPressureTerm = dDeltaT * m_dStateNode[TIx][k] * (
-					m_dDiffExnerRefNode[k] + m_dDiffExnerPertNode[k]);
-
-				dataUpdateNode[UIx][k][iA][iB] -=
-					dContraMetricA[k][iA][iB][2] * dPressureTerm;
-
-				dataUpdateNode[VIx][k][iA][iB] -=
-					dContraMetricB[k][iA][iB][2] * dPressureTerm;
-			}
-*/
-/*
-            // Compute vertical pressure gradient on nodes for
-            // potential temperature (theta) on interfaces
-            if (pGrid->GetVarLocation(TIx) == DataLocation_REdge) {
-                InterpolateNodeToREdge(
-                    &(m_dSoln[m_ixRBegin]),
-                    m_dStateRefNode[RIx],
-                    m_dStateREdge[RIx],
-                    m_dStateRefREdge[RIx]
-                );
-
-                for (int k = 0; k <= pGrid->GetRElements(); k++) {
-                    m_dStateAux[k] =
-                        phys.PressureFromRhoTheta(
-                            m_dStateREdge[RIx][k] * m_dSoln[m_ixTBegin+k]);
-                }
-
-                DifferentiateREdgeToNode(
-                    m_dStateAux,
-                    m_dStateAuxDiff);
-
-            // potential temperature (theta) on levels
-            } else {
-                for (int k = 0; k < pGrid->GetRElements(); k++) {
-                    m_dStateAux[k] =
-                        phys.PressureFromRhoTheta(
-                            m_dSoln[m_ixRBegin+k] * m_dSoln[m_ixTBegin+k]);
-                }
-
-                DifferentiateNodeToNode(
-                    m_dStateAux,
-                    m_dStateAuxDiff);
-            }
-
-            // Apply vertical pressure gradient term to horizontal velocities
-            for (int k = 0; k < pGrid->GetRElements(); k++) {
-                double dUpdateGradP =
-                    dDeltaT
-                    * m_dStateAuxDiff[k]
-                    / dataUpdateNode[RIx][k][iA][iB];
-
-                dataUpdateNode[UIx][k][iA][iB] -=
-                    dUpdateGradP * dContraMetricA[k][iA][iB][2];
-
-                dataUpdateNode[VIx][k][iA][iB] -=
-                    dUpdateGradP * dContraMetricB[k][iA][iB][2];
-            }
-*/
 		}
 		}
 
@@ -1881,7 +1294,7 @@ void VerticalDynamicsFEM::PrepareColumn(
 	const int RIx = 4;
 
 	// Finite element grid spacing
-	const Grid * pGrid = m_model.GetGrid();
+	const GridGLL * pGrid = dynamic_cast<const GridGLL *>(m_model.GetGrid());
 
 	// Physical constants
 	const PhysicalConstants & phys = m_model.GetPhysicalConstants();
@@ -1899,7 +1312,7 @@ void VerticalDynamicsFEM::PrepareColumn(
 		if ((m_fMassFluxOnLevels) ||
 			(pGrid->GetVarLocation(TIx) == DataLocation_Node)
 		) {
-			InterpolateREdgeToNode(
+			pGrid->InterpolateREdgeToNode(
 				m_dStateREdge[WIx],
 				m_dStateRefREdge[WIx],
 				m_dStateNode[WIx],
@@ -1916,7 +1329,7 @@ void VerticalDynamicsFEM::PrepareColumn(
 		if ((!m_fMassFluxOnLevels) ||
 			(pGrid->GetVarLocation(TIx) == DataLocation_REdge)
 		) {
-			InterpolateNodeToREdge(
+			pGrid->InterpolateNodeToREdge(
 				m_dStateNode[WIx],
 				m_dStateRefNode[WIx],
 				m_dStateREdge[WIx],
@@ -1932,7 +1345,7 @@ void VerticalDynamicsFEM::PrepareColumn(
 		}
 
 		// Calculate update for T
-		DifferentiateREdgeToREdge(
+		pGrid->DifferentiateREdgeToREdge(
 			m_dStateREdge[TIx],
 			m_dDiffTheta);
 
@@ -1940,7 +1353,7 @@ void VerticalDynamicsFEM::PrepareColumn(
 		if ((m_fExnerPressureOnLevels) ||
 			(pGrid->GetVarLocation(WIx) == DataLocation_Node)
 		) {
-			InterpolateREdgeToNode(
+			pGrid->InterpolateREdgeToNode(
 				m_dStateREdge[TIx],
 				m_dStateRefREdge[TIx],
 				m_dStateNode[TIx],
@@ -1954,7 +1367,7 @@ void VerticalDynamicsFEM::PrepareColumn(
 		}
 
 		// Calculate update for T
-		DifferentiateNodeToNode(
+		pGrid->DifferentiateNodeToNode(
 			m_dStateNode[TIx],
 			m_dDiffTheta);
 
@@ -1962,7 +1375,7 @@ void VerticalDynamicsFEM::PrepareColumn(
 		if ((!m_fExnerPressureOnLevels) ||
 			(pGrid->GetVarLocation(WIx) == DataLocation_REdge)
 		) {
-			InterpolateNodeToREdge(
+			pGrid->InterpolateNodeToREdge(
 				m_dStateNode[TIx],
 				m_dStateRefNode[TIx],
 				m_dStateREdge[TIx],
@@ -1980,7 +1393,7 @@ void VerticalDynamicsFEM::PrepareColumn(
 		if ((m_fMassFluxOnLevels) ||
 			(m_fExnerPressureOnLevels)
 		) {
-			InterpolateREdgeToNode(
+			pGrid->InterpolateREdgeToNode(
 				m_dStateREdge[RIx],
 				m_dStateRefREdge[RIx],
 				m_dStateNode[RIx],
@@ -1997,7 +1410,7 @@ void VerticalDynamicsFEM::PrepareColumn(
 		if ((!m_fMassFluxOnLevels) ||
 			(!m_fExnerPressureOnLevels)
 		) {
-			InterpolateNodeToREdge(
+			pGrid->InterpolateNodeToREdge(
 				m_dStateNode[RIx],
 				m_dStateRefNode[RIx],
 				m_dStateREdge[RIx],
@@ -2042,7 +1455,7 @@ void VerticalDynamicsFEM::BuildF(
 	const int RIx = 4;
 
 	// Finite element grid spacing
-	const Grid * pGrid = m_model.GetGrid();
+	const GridGLL * pGrid = dynamic_cast<const GridGLL *>(m_model.GetGrid());
 
 	// Physical constants
 	const PhysicalConstants & phys = m_model.GetPhysicalConstants();
@@ -2083,14 +1496,14 @@ void VerticalDynamicsFEM::BuildF(
 
 		// Calculate derivative of mass flux on interfaces
 		if (pGrid->GetVarLocation(RIx) == DataLocation_REdge) {
-			DifferentiateNodeToREdge(
+			pGrid->DifferentiateNodeToREdge(
 				m_dMassFluxNode,
 				m_dDiffMassFluxREdge,
 				true);
 
 		// Calculate derivative of mass flux on levels
 		} else {
-			DifferentiateNodeToNode(
+			pGrid->DifferentiateNodeToNode(
 				m_dMassFluxNode,
 				m_dDiffMassFluxNode,
 				true);
@@ -2120,13 +1533,13 @@ void VerticalDynamicsFEM::BuildF(
 
 		// Calculate derivative of mass flux on interfaces
 		if (pGrid->GetVarLocation(RIx) == DataLocation_REdge) {
-			DifferentiateREdgeToREdge(
+			pGrid->DifferentiateREdgeToREdge(
 				m_dMassFluxNode,
 				m_dDiffMassFluxREdge);
 
 		// Calculate derivative of mass flux on levels
 		} else {
-			DifferentiateREdgeToNode(
+			pGrid->DifferentiateREdgeToNode(
 				m_dMassFluxREdge,
 				m_dDiffMassFluxNode);
 		}
@@ -2146,13 +1559,13 @@ void VerticalDynamicsFEM::BuildF(
 
 		// Calculate derivative of Exner pressure on interfaces
 		if (pGrid->GetVarLocation(WIx) == DataLocation_REdge) {
-			DifferentiateNodeToREdge(
+			pGrid->DifferentiateNodeToREdge(
 				m_dExnerPertNode,
 				m_dDiffExnerPertREdge);
 
 		// Calculate derivative of Exner pressure on levels
 		} else {
-			DifferentiateNodeToNode(
+			pGrid->DifferentiateNodeToNode(
 				m_dExnerPertNode,
 				m_dDiffExnerPertNode);
 		}
@@ -2171,13 +1584,13 @@ void VerticalDynamicsFEM::BuildF(
 
 		// Calculate derivative of Exner pressure on interfaces
 		if (pGrid->GetVarLocation(WIx) == DataLocation_REdge) {
-			DifferentiateREdgeToREdge(
+			pGrid->DifferentiateREdgeToREdge(
 				m_dExnerPertREdge,
 				m_dDiffExnerPertREdge);
 
 		// Calculate derivative of Exner pressure on levels
 		} else {
-			DifferentiateREdgeToNode(
+			pGrid->DifferentiateREdgeToNode(
 				m_dExnerPertREdge,
 				m_dDiffExnerPertNode);
 		}
@@ -2273,7 +1686,7 @@ void VerticalDynamicsFEM::BuildJacobianF(
 	const int RIx = 4;
 
 	// Finite element grid
-	const Grid * pGrid = m_model.GetGrid();
+	const GridGLL * pGrid = dynamic_cast<const GridGLL *>(m_model.GetGrid());
 
 	if ((pGrid->GetVarLocation(UIx) != DataLocation_Node) ||
 		(pGrid->GetVarLocation(VIx) != DataLocation_Node) ||
@@ -2285,6 +1698,26 @@ void VerticalDynamicsFEM::BuildJacobianF(
 	) {
 		_EXCEPTIONT("Not implemented");
 	}
+
+	// Get the vertical interpolation and differentiation coefficients
+	const DataMatrix<double> & dInterpNodeToREdge =
+		pGrid->GetInterpNodeToREdge();
+	const DataMatrix<double> & dInterpREdgeToNode =
+		pGrid->GetInterpREdgeToNode();
+	const DataMatrix<double> & dDiffREdgeToNode =
+		pGrid->GetDiffREdgeToNode();
+	const DataMatrix<double> & dDiffNodeToREdge =
+		pGrid->GetDiffNodeToREdge();
+	const DataMatrix<double> & dDiffNodeToNode =
+		pGrid->GetDiffNodeToNode();
+	const DataMatrix<double> & dDiffREdgeToREdge =
+		pGrid->GetDiffREdgeToREdge();
+	const DataMatrix<double> & dDiffNodeToREdgeAmal =
+		pGrid->GetDiffNodeToREdgeAmal();
+	const DataMatrix<double> & dDiffNodeToREdgeLeft =
+		pGrid->GetDiffNodeToREdgeLeft();
+	const DataMatrix<double> & dDiffNodeToREdgeRight =
+		pGrid->GetDiffNodeToREdgeRight();
 
 	// Physical constants
 	const PhysicalConstants & phys = m_model.GetPhysicalConstants();
@@ -2311,7 +1744,7 @@ void VerticalDynamicsFEM::BuildJacobianF(
 
 		for (int k = 0; k <= m_nVerticalOrder; k++) {
 			dDG[MatFIx(FTIx, lBegin+l, FTIx, lBegin+k)] +=
-				m_dDiffREdgeToREdge[k][l]
+				dDiffREdgeToREdge[k][l]
 				* m_dStateREdge[WIx][lBegin+k];
 		}
 	}
@@ -2348,7 +1781,7 @@ void VerticalDynamicsFEM::BuildJacobianF(
 		for (int m = 0; m < 2 * m_nVerticalOrder; m++) {
 			double dTEntry =
 				dRHSWCoeff 
-				* m_dDiffNodeToREdgeLeft[k][m]
+				* dDiffNodeToREdgeLeft[k][m]
 				* (m_dExnerPertNode[m] + m_dExnerRefNode[m])
 					/ m_dStateNode[TIx][m];
 
@@ -2356,12 +1789,12 @@ void VerticalDynamicsFEM::BuildJacobianF(
 
 			for (int l = 0; l <= m_nVerticalOrder; l++) {
 				dDG[MatFIx(FTIx, l, FWIx, k)] +=
-					dTEntry * (*m_pInterpREdgeToNode)[mx][l];
+					dTEntry * dInterpREdgeToNode[mx][l];
 			}
 
 			dDG[MatFIx(FRIx, m, FWIx, k)] +=
 				dRHSWCoeff
-				* m_dDiffNodeToREdgeLeft[k][m]
+				* dDiffNodeToREdgeLeft[k][m]
 				* (m_dExnerPertNode[m] + m_dExnerRefNode[m])
 					/ m_dStateNode[RIx][m];
 		}
@@ -2392,18 +1825,18 @@ void VerticalDynamicsFEM::BuildJacobianF(
 
 			double dTEntry =
 				dRHSWCoeff 
-				* m_dDiffNodeToREdgeAmal[kx][m]
+				* dDiffNodeToREdgeAmal[kx][m]
 				* (m_dExnerPertNode[lPrev + m] + m_dExnerRefNode[lPrev + m])
 					/ m_dStateNode[TIx][lPrev + m];
 
 			for (int l = 0; l <= m_nVerticalOrder; l++) {
 				dDG[MatFIx(FTIx, lPrev+ma+l, FWIx, k)] +=
-					dTEntry * (*m_pInterpREdgeToNode)[mx][l];
+					dTEntry * dInterpREdgeToNode[mx][l];
 			}
 
 			dDG[MatFIx(FRIx, lPrev+m, FWIx, k)] +=
 				dRHSWCoeff
-				* m_dDiffNodeToREdgeAmal[kx][m]
+				* dDiffNodeToREdgeAmal[kx][m]
 				* (m_dExnerPertNode[lPrev + m] + m_dExnerRefNode[lPrev + m])
 					/ m_dStateNode[RIx][lPrev + m];
 		}
@@ -2424,7 +1857,7 @@ void VerticalDynamicsFEM::BuildJacobianF(
 		for (int m = 0; m < 2 * m_nVerticalOrder; m++) {
 			double dTEntry =
 				dRHSWCoeff 
-				* m_dDiffNodeToREdgeRight[kx][m]
+				* dDiffNodeToREdgeRight[kx][m]
 				* (m_dExnerPertNode[lPrev + m] + m_dExnerRefNode[lPrev + m])
 					/ m_dStateNode[TIx][lPrev + m];
 
@@ -2433,12 +1866,12 @@ void VerticalDynamicsFEM::BuildJacobianF(
 
 			for (int l = 0; l <= m_nVerticalOrder; l++) {
 				dDG[MatFIx(FTIx, lPrev+ma+l, FWIx, k)] +=
-					dTEntry * (*m_pInterpREdgeToNode)[mx][l];
+					dTEntry * dInterpREdgeToNode[mx][l];
 			}
 
 			dDG[MatFIx(FRIx, lPrev+m, FWIx, k)] +=
 				dRHSWCoeff
-				* m_dDiffNodeToREdgeRight[kx][m]
+				* dDiffNodeToREdgeRight[kx][m]
 				* (m_dExnerPertNode[lPrev + m] + m_dExnerRefNode[lPrev + m])
 					/ m_dStateNode[RIx][lPrev + m];
 		}
@@ -2460,7 +1893,7 @@ void VerticalDynamicsFEM::BuildJacobianF(
 		// dRho_k/dW
 		for (int m = 0; m <= m_nVerticalOrder; m++) {
 			dDG[MatFIx(FWIx, lBegin+m, FRIx, k)] +=
-				m_dDiffREdgeToNode[l][m]
+				dDiffREdgeToNode[l][m]
 				* m_dStateREdge[RIx][lBegin+m];
 		}
 
@@ -2469,8 +1902,8 @@ void VerticalDynamicsFEM::BuildJacobianF(
 			int lPrev = lBegin - m_nVerticalOrder;
 			for (int n = 0; n < m_nVerticalOrder; n++) {
 				dDG[MatFIx(FRIx, lPrev+n, FRIx, k)] +=
-					m_dDiffREdgeToNode[l][0]
-					* 0.5 * (*m_pInterpNodeToREdge)[m_nVerticalOrder][n]
+					dDiffREdgeToNode[l][0]
+					* 0.5 * dInterpNodeToREdge[m_nVerticalOrder][n]
 					* m_dStateREdge[WIx][lBegin];
 			}
 		}
@@ -2482,8 +1915,8 @@ void VerticalDynamicsFEM::BuildJacobianF(
 				dMult = 0.5;
 			}
 			dDG[MatFIx(FRIx, lBegin+n, FRIx, k)] +=
-				m_dDiffREdgeToNode[l][m]
-				* dMult * (*m_pInterpNodeToREdge)[m][n]
+				dDiffREdgeToNode[l][m]
+				* dMult * dInterpNodeToREdge[m][n]
 				* m_dStateREdge[WIx][lBegin+m];
 		}
 		}
@@ -2492,8 +1925,8 @@ void VerticalDynamicsFEM::BuildJacobianF(
 			int lNext = lBegin + m_nVerticalOrder;
 			for (int n = 0; n < m_nVerticalOrder; n++) {
 				dDG[MatFIx(FRIx, lNext+n, FRIx, k)] +=
-					m_dDiffREdgeToNode[l][m_nVerticalOrder]
-					* 0.5 * (*m_pInterpNodeToREdge)[0][n]
+					dDiffREdgeToNode[l][m_nVerticalOrder]
+					* 0.5 * dInterpNodeToREdge[0][n]
 					* m_dStateREdge[WIx][lNext];
 			}
 		}

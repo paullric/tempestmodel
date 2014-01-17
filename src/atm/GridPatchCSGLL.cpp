@@ -519,20 +519,6 @@ void GridPatchCSGLL::EvaluateGeometricTerms() {
 			m_dataChristoffelXi[k][iA][iB][3] /= dDxR;
 			m_dataChristoffelXi[k][iA][iB][4] /= dDxR;
 			m_dataChristoffelXi[k][iA][iB][5] /= dDxR;
-
-			// Orthonormalization coefficients
-			m_dataOrthonormNode[k][iA][iB][0] =
-				- dDaZs * (m_grid.GetZtop() - dZ)
-				/ (m_grid.GetZtop() - dZs)
-				/ (m_grid.GetZtop() - dZs);
-
-			m_dataOrthonormNode[k][iA][iB][1] =
-				- dDbZs * (m_grid.GetZtop() - dZ)
-				/ (m_grid.GetZtop() - dZs)
-				/ (m_grid.GetZtop() - dZs);
-
-			m_dataOrthonormNode[k][iA][iB][2] =
-				m_grid.GetZtop() / (m_grid.GetZtop() - dZs);
 		}
 
 		// Metric terms at vertical interfaces
@@ -565,20 +551,6 @@ void GridPatchCSGLL::EvaluateGeometricTerms() {
 			if ((k != 0) && (k != m_grid.GetRElements()) && (kx == 0)) {
 				m_dataElementAreaREdge[k][iA][iB] *= 2.0;
 			}
-
-			// Orthonormalization coefficients
-			m_dataOrthonormREdge[k][iA][iB][0] =
-				- dDaZs * (m_grid.GetZtop() - dZ)
-				/ (m_grid.GetZtop() - dZs)
-				/ (m_grid.GetZtop() - dZs);
-
-			m_dataOrthonormREdge[k][iA][iB][1] =
-				- dDbZs * (m_grid.GetZtop() - dZ)
-				/ (m_grid.GetZtop() - dZs)
-				/ (m_grid.GetZtop() - dZs);
-
-			m_dataOrthonormREdge[k][iA][iB][2] =
-				m_grid.GetZtop() / (m_grid.GetZtop() - dZs);
 		}
 	}
 	}

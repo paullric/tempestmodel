@@ -70,35 +70,7 @@ GridCartesianGLL::GridCartesianGLL(
 void GridCartesianGLL::Initialize() {
 
 	// Call up the stack
-	Grid::Initialize();
-
-	// Initialize the vertical coordinate
-	double dDeltaElement =
-		static_cast<double>(m_nVerticalOrder)
-		/ static_cast<double>(m_nRElements);
-
-	InitializeVerticalCoordinate(
-		GridSpacingMixedGaussLobatto(dDeltaElement, 0.0, m_nVerticalOrder)
-	);
-
-	// Interpolation coefficients from nodes to interfaces and vice versa
-	m_dInterpNodeToREdge.Initialize(m_nVerticalOrder+1, m_nVerticalOrder);
-	m_dInterpREdgeToNode.Initialize(m_nVerticalOrder, m_nVerticalOrder+1);
-
-	for (int n = 0; n < m_nVerticalOrder+1; n++) {
-		PolynomialInterp::LagrangianPolynomialCoeffs(
-			m_nVerticalOrder,
-			m_dREtaLevels,
-			m_dInterpNodeToREdge[n],
-			m_dREtaInterfaces[n]);
-	}
-	for (int n = 0; n < m_nVerticalOrder; n++) {
-		PolynomialInterp::LagrangianPolynomialCoeffs(
-			m_nVerticalOrder+1,
-			m_dREtaInterfaces,
-			m_dInterpREdgeToNode[n],
-			m_dREtaLevels[n]);
-	}
+	GridGLL::Initialize();
 
 	// Distribute patches to processors
 	Grid::DistributePatches();
