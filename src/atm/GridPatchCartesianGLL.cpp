@@ -234,32 +234,27 @@ void GridPatchCartesianGLL::EvaluateGeometricTerms() {
 				m_dataJacobian[k][iA][iB] =
 					dDxZ * m_dataJacobian2D[iA][iB];
 
-				//std::cout << m_dataJacobian[k][iA][iB] << "\n";
-
 				// Element area associated with each model level GLL node
 				m_dataElementArea[k][iA][iB] =
 					m_dataJacobian[k][iA][iB]
 					* dWL[i] * GetElementDeltaA()
 					* dWL[j] * GetElementDeltaB()
 					* dWNode[kx] * dElementDeltaXi;
-				//std::cout << m_dataElementArea[k][iA][iB] << "\n";
 
 				// Contravariant metric components
-				double dContraMetricScale = 1.0;
-
 				m_dataContraMetricA[k][iA][iB][0] =
 					m_dataContraMetric2DA[iA][iB][0];
 				m_dataContraMetricA[k][iA][iB][1] =
 					m_dataContraMetric2DA[iA][iB][1];
 				m_dataContraMetricA[k][iA][iB][2] =
-					- dContraMetricScale * dDaZ / dDxZ;
+					- dDaZ / dDxZ;
 
 				m_dataContraMetricB[k][iA][iB][0] =
 					m_dataContraMetric2DB[iA][iB][0];
 				m_dataContraMetricB[k][iA][iB][1] =
 					m_dataContraMetric2DB[iA][iB][1];
 				m_dataContraMetricB[k][iA][iB][2] =
-					- dContraMetricScale * dDbZ / dDxZ;
+					- dDbZ / dDxZ;
 
 				m_dataContraMetricXi[k][iA][iB][0] =
 					- dContraMetricScale * dDaZ / dDxZ;
