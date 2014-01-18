@@ -46,6 +46,13 @@ HorizontalDynamicsFEM::HorizontalDynamicsFEM(
 	m_dRayleighBetaWidth(0.0),
 	m_dRayleighDepth(0.0)
 {
+
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void HorizontalDynamicsFEM::Initialize() {
+
 	// Initialize the alpha and beta fluxes
 	m_dAlphaFlux.Initialize(
 		m_nHorizontalOrder,
@@ -58,6 +65,10 @@ HorizontalDynamicsFEM::HorizontalDynamicsFEM(
 	m_dPressure.Initialize(
 		m_nHorizontalOrder,
 		m_nHorizontalOrder);
+
+	m_dColumnPressure.Initialize(m_model.GetGrid()->GetRElements());
+
+	m_dColumnDxPressure.Initialize(m_model.GetGrid()->GetRElements());
 
 	// Initialize buffers for derivatives of Jacobian
 	m_dJGradientA.Initialize(
@@ -78,6 +89,7 @@ HorizontalDynamicsFEM::HorizontalDynamicsFEM(
 	m_dFluxDeriv1D.Initialize(m_nHorizontalOrder);
 	FluxReconstructionFunction::GetDerivatives(
 		2, m_nHorizontalOrder, dG, m_dFluxDeriv1D);
+
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -637,17 +649,30 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 
 		// Pressure data
 		GridData3D & dataPressure = pPatch->GetDataPressure();
+		GridData3D & dataDiffPressure = pPatch->GetDataDiffPressure();
 
 #pragma message "This can be optimized at finite element edges"
 		// Loop over all nodes and compute pressure
-		for (int k = 0; k < pGrid->GetRElements(); k++) {
 		for (int i = box.GetAInteriorBegin(); i < box.GetAInteriorEnd(); i++) {
 		for (int j = box.GetBInteriorBegin(); j < box.GetBInteriorEnd(); j++) {
-			dataPressure[k][i][j] = 
-				phys.PressureFromRhoTheta(
-						dataInitialNode[RIx][k][i][j]
-						* dataInitialNode[TIx][k][i][j]);
-		}
+			for (int k = 0; k < pGrid->GetRElements(); k++) {
+				m_dColumnPressure[k] =
+					phys.PressureFromRhoTheta(
+							dataInitialNode[RIx][k][i][j]
+							* dataInitialNode[TIx][k][i][j]);
+
+				dataPressure[k][i][j] = m_dColumnPressure[k];
+			}
+
+			// Differentiate pressures
+			pGrid->DifferentiateNodeToNode(
+				m_dColumnPressure,
+				m_dColumnDxPressure);
+
+			for (int k = 0; k < pGrid->GetRElements(); k++) {
+				dataDiffPressure[k][i][j] =
+					m_dColumnDxPressure[k];
+			}
 		}
 		}
 
@@ -698,6 +723,7 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 				// Derivatives of the pressure field
 				double dDaP = 0.0;
 				double dDbP = 0.0;
+				double dDxP = 0.0;
 
 				// Aliases for alpha and beta velocities
 				const double dUa = dataInitialNode[UIx][k][iA][iB];
@@ -772,6 +798,9 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 				dDbUb /= dElementDeltaB;
 				dDbP  /= dElementDeltaB;
 
+#pragma message "Reference state?"
+				dDxP  = dataDiffPressure[k][iA][iB];
+
 				// Momentum advection terms
 				double dLocalUpdateUa = 0.0;
 				double dLocalUpdateUb = 0.0;
@@ -795,12 +824,14 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 #pragma message "What about metric terms affected by vertical pressure derivative?"
 				dLocalUpdateUa -=
 						( dContraMetricA[k][iA][iB][0] * dDaP
-						+ dContraMetricA[k][iA][iB][1] * dDbP)
+						+ dContraMetricA[k][iA][iB][1] * dDbP
+						+ dContraMetricA[k][iA][iB][2] * dDxP)
 							/ dataInitialNode[RIx][k][iA][iB];
 
 				dLocalUpdateUb -=
 						( dContraMetricB[k][iA][iB][0] * dDaP
-						+ dContraMetricB[k][iA][iB][1] * dDbP)
+						+ dContraMetricB[k][iA][iB][1] * dDbP
+						+ dContraMetricB[k][iA][iB][2] * dDxP)
 							/ dataInitialNode[RIx][k][iA][iB];
 
 				// Coriolis forces

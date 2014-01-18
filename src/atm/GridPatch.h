@@ -736,6 +736,20 @@ public:
 	}
 
 	///	<summary>
+	///		Get the pressure derivative data.
+	///	</summary>
+	GridData3D & GetDataDiffPressure() {
+		return m_dataDiffPressure;
+	}
+
+	///	<summary>
+	///		Get the pressure derivative data.
+	///	</summary>
+	const GridData3D & GetDataDiffPressure() const {
+		return m_dataDiffPressure;
+	}
+
+	///	<summary>
 	///		Get the vorticity data.
 	///	</summary>
 	GridData3D & GetDataVorticity() {
@@ -928,6 +942,11 @@ protected:
 	///		Computed pointwise pressures.
 	///	</summary>
 	GridData3D m_dataPressure;
+
+	///	<summary>
+	///		Computed pointwise vertical pressure derivatives.
+	///	</summary>
+	GridData3D m_dataDiffPressure;
 
 	///	<summary>
 	///		Computed vorticity.

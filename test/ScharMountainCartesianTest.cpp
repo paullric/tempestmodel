@@ -19,7 +19,7 @@
 #include "STLStringHelper.h"
 
 #include "Model.h"
-#include "TimestepSchemeARK4.h"
+#include "TimestepSchemeStrang.h"
 #include "HorizontalDynamicsFEM.h"
 #include "VerticalDynamicsFEM.h"
 
@@ -129,7 +129,7 @@ public:
 		bool fNoReferenceState
 	) :
 		m_dH0(21000.),
-		m_dU0(10.),
+		m_dU0(10.0),
 		m_dP0(1.0E5),
 		m_dCp(1005.0),
 		m_dCv(718.0),
@@ -368,7 +368,7 @@ try {
 	AnnounceEndBlock("Done");
 
 	// Set the timestep scheme
-	TimestepSchemeARK4 timestep(model);
+	TimestepSchemeStrang timestep(model);
 	AnnounceStartBlock("Initializing timestep scheme");
 	model.SetTimestepScheme(&timestep);
 	AnnounceEndBlock("Done");

@@ -366,6 +366,14 @@ void GridPatch::InitializeDataLocal() {
 		m_box.GetBTotalWidth(),
 		m_box.GetHaloElements());
 
+	m_dataDiffPressure.Initialize(
+		DataType_Pressure,
+		DataLocation_Node,
+		m_grid.GetRElements(),
+		m_box.GetATotalWidth(),
+		m_box.GetBTotalWidth(),
+		m_box.GetHaloElements());
+
 	// Vorticity data
 	m_dataVorticity.Initialize(
 		DataType_Vorticity,

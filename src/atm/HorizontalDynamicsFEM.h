@@ -56,6 +56,11 @@ public:
 	);
 
 	///	<summary>
+	///		Initializer.
+	///	</summary>
+	virtual void Initialize();
+
+	///	<summary>
 	///		Set the Rayleigh damping parameters.
 	///	</summary>
 	void SetRayleighDamping(
@@ -72,15 +77,7 @@ public:
 	virtual int GetHaloElements() const {
 		return 1;
 	}
-/*
-protected:
-	///	<summary>
-	///		Apply the DSS procedure.
-	///	</summary>
-	void ApplyDSS(
-		int iDataUpdate
-	);
-*/
+
 public:
 	///	<summary>
 	///		Perform one Forward Euler step for the interior terms of the
@@ -201,6 +198,16 @@ private:
 	///		Nodal pointwise pressures.
 	///	</summary>
 	DataMatrix<double> m_dPressure;
+
+	///	<summary>
+	///		Nodal pointwise pressures in a column.
+	///	</summary>
+	DataVector<double> m_dColumnPressure;
+
+	///	<summary>
+	///		Nodal pointwise pressure derivatives in a column.
+	///	</summary>
+	DataVector<double> m_dColumnDxPressure;
 
 	///	<summary>
 	///		Map from model interfaces to model levels.
