@@ -54,12 +54,6 @@ GridPatchCartesianGLL::GridPatchCartesianGLL(
 	m_dGDim[0] = dGDim[0]; m_dGDim[1] = dGDim[1];
 	m_dGDim[2] = dGDim[2]; m_dGDim[3] = dGDim[3];
 	m_dGDim[4] = dGDim[4]; m_dGDim[5] = dGDim[5];
-
-	m_ixNeighborPanel.resize(8);
-	m_ixNeighborPanel[0] = 0.; m_ixNeighborPanel[1] = 0.;
-	m_ixNeighborPanel[2] = 0.; m_ixNeighborPanel[3] = 0.;
-	m_ixNeighborPanel[4] = 0.; m_ixNeighborPanel[5] = 0.;
-	m_ixNeighborPanel[6] = 0.; m_ixNeighborPanel[7] = 0.;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -190,13 +184,11 @@ void GridPatchCartesianGLL::EvaluateGeometricTerms() {
 			m_dataJacobian2D[iA][iB] = 1.0;
 
 			// Initialize 2D contravariant metric
-			double dContraMetricScale = 1.0;
-
-			m_dataContraMetric2DA[iA][iB][0] = dContraMetricScale;
+			m_dataContraMetric2DA[iA][iB][0] = 1.0;
 			m_dataContraMetric2DA[iA][iB][1] = 0.0;
 
 			m_dataContraMetric2DB[iA][iB][0] = 0.0;
-			m_dataContraMetric2DB[iA][iB][1] = dContraMetricScale;
+			m_dataContraMetric2DB[iA][iB][1] = 1.0;
 
 			// Christoffel symbol components at each node
 			// (off-diagonal element are doubled due to symmetry)
@@ -219,11 +211,11 @@ void GridPatchCartesianGLL::EvaluateGeometricTerms() {
 
 				// Gal-Chen and Somerville (1975) linear terrain
 				// following coord
-				double dDaZ = (1.0 - m_grid.GetREtaLevel(k)) * dDaZs;
-				double dDbZ = (1.0 - m_grid.GetREtaLevel(k)) * dDbZs;
-				double dDaaZ = (1.0 - m_grid.GetREtaLevel(k)) * dDaaZs;
-				double dDabZ = (1.0 - m_grid.GetREtaLevel(k)) * dDabZs;
-				double dDbbZ = (1.0 - m_grid.GetREtaLevel(k)) * dDbbZs;
+				double dDaZ = (1.0 - dREta) * dDaZs;
+				double dDbZ = (1.0 - dREta) * dDbZs;
+				double dDaaZ = (1.0 - dREta) * dDaaZs;
+				double dDabZ = (1.0 - dREta) * dDabZs;
+				double dDbbZ = (1.0 - dREta) * dDbbZs;
 
 				double dDxZ = m_grid.GetZtop() - dZs;
 				double dDaxZ = - dDaZs;
@@ -256,27 +248,32 @@ void GridPatchCartesianGLL::EvaluateGeometricTerms() {
 				m_dataContraMetricB[k][iA][iB][2] =
 					- dDbZ / dDxZ;
 
-				m_dataContraMetricXi[k][iA][iB][0] =
-					- dContraMetricScale * dDaZ / dDxZ;
-				m_dataContraMetricXi[k][iA][iB][1] =
-					- dContraMetricScale * dDbZ / dDxZ;
-				m_dataContraMetricXi[k][iA][iB][2] =
-					(1.0 + dDaZ * dDaZ + dDbZ * dDbZ) / (dDxZ * dDxZ);
+				// Store terms relevant to W evolution equation
+				if (m_grid.GetVarLocation(3) == DataLocation_Node) {
+					// Contravariant metric components
+					m_dataContraMetricXi[k][iA][iB][0] =
+						- dDaZ / dDxZ;
+					m_dataContraMetricXi[k][iA][iB][1] =
+						- dDbZ / dDxZ;
+					m_dataContraMetricXi[k][iA][iB][2] =
+						(1.0 + dDaZ * dDaZ + dDbZ * dDbZ) / (dDxZ * dDxZ);
 
-				// Vertical Christoffel symbol components
-				m_dataChristoffelXi[k][iA][iB][0] = dDaaZ;
-				m_dataChristoffelXi[k][iA][iB][1] = dDabZ;
-				m_dataChristoffelXi[k][iA][iB][2] = dDaxZ;
-				m_dataChristoffelXi[k][iA][iB][3] = dDbbZ;
-				m_dataChristoffelXi[k][iA][iB][4] = dDbxZ;
-				m_dataChristoffelXi[k][iA][iB][5] = dDxxZ;
+					// Vertical Christoffel symbol components
+					// (off-diagonal elements are doubled due to symmetry)
+					m_dataChristoffelXi[k][iA][iB][0] = dDaaZ;
+					m_dataChristoffelXi[k][iA][iB][1] = 2.0 * dDabZ;
+					m_dataChristoffelXi[k][iA][iB][2] = 2.0 * dDaxZ;
+					m_dataChristoffelXi[k][iA][iB][3] = dDbbZ;
+					m_dataChristoffelXi[k][iA][iB][4] = 2.0 * dDbxZ;
+					m_dataChristoffelXi[k][iA][iB][5] = dDxxZ;
 
-				m_dataChristoffelXi[k][iA][iB][0] /= dDxZ;
-				m_dataChristoffelXi[k][iA][iB][1] /= dDxZ;
-				m_dataChristoffelXi[k][iA][iB][2] /= dDxZ;
-				m_dataChristoffelXi[k][iA][iB][3] /= dDxZ;
-				m_dataChristoffelXi[k][iA][iB][4] /= dDxZ;
-				m_dataChristoffelXi[k][iA][iB][5] /= dDxZ;
+					m_dataChristoffelXi[k][iA][iB][0] /= dDxZ;
+					m_dataChristoffelXi[k][iA][iB][1] /= dDxZ;
+					m_dataChristoffelXi[k][iA][iB][2] /= dDxZ;
+					m_dataChristoffelXi[k][iA][iB][3] /= dDxZ;
+					m_dataChristoffelXi[k][iA][iB][4] /= dDxZ;
+					m_dataChristoffelXi[k][iA][iB][5] /= dDxZ;
+				}
 			}
 
 			// Metric terms at vertical interfaces
@@ -287,8 +284,18 @@ void GridPatchCartesianGLL::EvaluateGeometricTerms() {
 				double dREta = m_grid.GetREtaInterface(k);
 				double dZ = dZs + (m_grid.GetZtop() - dZs) * dREta;
 
-				// Gal-Chen and Somerville (1975) linear terrain-following coord
+				// Gal-Chen and Somerville (1975) linear terrain
+				// following coord
+				double dDaZ = (1.0 - dREta) * dDaZs;
+				double dDbZ = (1.0 - dREta) * dDbZs;
+				double dDaaZ = (1.0 - dREta) * dDaaZs;
+				double dDabZ = (1.0 - dREta) * dDabZs;
+				double dDbbZ = (1.0 - dREta) * dDbbZs;
+
 				double dDxZ = m_grid.GetZtop() - dZs;
+				double dDaxZ = - dDaZs;
+				double dDbxZ = - dDbZs;
+				double dDxxZ = 0.0;
 
 				// Calculate pointwise Jacobian
 				double dJacobian = dDxZ;
@@ -302,6 +309,33 @@ void GridPatchCartesianGLL::EvaluateGeometricTerms() {
 
 				if ((k != 0) && (k != m_grid.GetRElements()) && (kx == 0)) {
 					m_dataElementAreaREdge[k][iA][iB] *= 2.0;
+				}
+
+				// Store terms relevant to W evolution equation
+				if (m_grid.GetVarLocation(3) == DataLocation_REdge) {
+					// Contravariant metric components
+					m_dataContraMetricXi[k][iA][iB][0] =
+						- dDaZ / dDxZ;
+					m_dataContraMetricXi[k][iA][iB][1] =
+						- dDbZ / dDxZ;
+					m_dataContraMetricXi[k][iA][iB][2] =
+						(1.0 + dDaZ * dDaZ + dDbZ * dDbZ) / (dDxZ * dDxZ);
+
+					// Vertical Christoffel symbol components
+					// (off-diagonal elements are doubled due to symmetry)
+					m_dataChristoffelXi[k][iA][iB][0] = dDaaZ;
+					m_dataChristoffelXi[k][iA][iB][1] = 2.0 * dDabZ;
+					m_dataChristoffelXi[k][iA][iB][2] = 2.0 * dDaxZ;
+					m_dataChristoffelXi[k][iA][iB][3] = dDbbZ;
+					m_dataChristoffelXi[k][iA][iB][4] = 2.0 * dDbxZ;
+					m_dataChristoffelXi[k][iA][iB][5] = dDxxZ;
+
+					m_dataChristoffelXi[k][iA][iB][0] /= dDxZ;
+					m_dataChristoffelXi[k][iA][iB][1] /= dDxZ;
+					m_dataChristoffelXi[k][iA][iB][2] /= dDxZ;
+					m_dataChristoffelXi[k][iA][iB][3] /= dDxZ;
+					m_dataChristoffelXi[k][iA][iB][4] /= dDxZ;
+					m_dataChristoffelXi[k][iA][iB][5] /= dDxZ;
 				}
 			}
 		}

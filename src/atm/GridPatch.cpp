@@ -366,7 +366,23 @@ void GridPatch::InitializeDataLocal() {
 		m_box.GetBTotalWidth(),
 		m_box.GetHaloElements());
 
-	m_dataDiffPressure.Initialize(
+	m_dataDaPressure.Initialize(
+		DataType_Pressure,
+		DataLocation_Node,
+		m_grid.GetRElements(),
+		m_box.GetATotalWidth(),
+		m_box.GetBTotalWidth(),
+		m_box.GetHaloElements());
+
+	m_dataDbPressure.Initialize(
+		DataType_Pressure,
+		DataLocation_Node,
+		m_grid.GetRElements(),
+		m_box.GetATotalWidth(),
+		m_box.GetBTotalWidth(),
+		m_box.GetHaloElements());
+
+	m_dataDxPressure.Initialize(
 		DataType_Pressure,
 		DataLocation_Node,
 		m_grid.GetRElements(),

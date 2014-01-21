@@ -32,7 +32,8 @@ HorizontalDynamicsFEM::HorizontalDynamicsFEM(
 	Model & model,
 	int nHorizontalOrder,
 	HorizontalDynamicsFEM::Type eHorizontalDynamicsType,
-	bool fNoHyperdiffusion
+	bool fNoHyperdiffusion,
+	bool fNoRayleighDamping
 ) :
 	HorizontalDynamics(model),
 	m_nHorizontalOrder(nHorizontalOrder),
@@ -42,6 +43,7 @@ HorizontalDynamicsFEM::HorizontalDynamicsFEM(
 	m_dNuDiv(1.0e15),
 	m_dNuVort(1.0e15),
 	m_dNuRayleigh(0.0),
+	m_fNoRayleighDamping(fNoRayleighDamping),
 	m_dRayleighAlphaWidth(0.0),
 	m_dRayleighBetaWidth(0.0),
 	m_dRayleighDepth(0.0)
@@ -52,6 +54,8 @@ HorizontalDynamicsFEM::HorizontalDynamicsFEM(
 ///////////////////////////////////////////////////////////////////////////////
 
 void HorizontalDynamicsFEM::Initialize() {
+
+	int nRElements = m_model.GetGrid()->GetRElements();
 
 	// Initialize the alpha and beta fluxes
 	m_dAlphaFlux.Initialize(
@@ -66,9 +70,17 @@ void HorizontalDynamicsFEM::Initialize() {
 		m_nHorizontalOrder,
 		m_nHorizontalOrder);
 
-	m_dColumnPressure.Initialize(m_model.GetGrid()->GetRElements());
+	// Column storage
+	m_dZeroColumn.Initialize(nRElements + 1);
 
-	m_dColumnDxPressure.Initialize(m_model.GetGrid()->GetRElements());
+	m_dColumnPressure.Initialize(nRElements);
+
+	m_dColumnDaPressure.Initialize(nRElements);
+	m_dColumnDbPressure.Initialize(nRElements);
+	m_dColumnDxPressure.Initialize(nRElements);
+
+	m_dColumnDaPressureREdge.Initialize(nRElements + 1);
+	m_dColumnDbPressureREdge.Initialize(nRElements + 1);
 
 	// Initialize buffers for derivatives of Jacobian
 	m_dJGradientA.Initialize(
@@ -622,13 +634,18 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 		// Perform interpolations as required due to vertical staggering
 		if (pGrid->GetVarsAtLocation(DataLocation_REdge) != 0) {
 
-			// Interpolate U and V to model interfaces
-			pPatch->InterpolateNodeToREdge(UIx, iDataInitial);
-			pPatch->InterpolateNodeToREdge(VIx, iDataInitial);
-
 			// Interpolate Theta to model levels
 			if (pGrid->GetVarLocation(TIx) == DataLocation_REdge) {
 				pPatch->InterpolateREdgeToNode(TIx, iDataInitial);
+			}
+
+			// Interpolate U, V and Rho to model interfaces
+			if ((pGrid->GetVarLocation(RIx) == DataLocation_Node) &&
+				(pGrid->GetVarLocation(WIx) == DataLocation_REdge)
+			) {
+				pPatch->InterpolateNodeToREdge(UIx, iDataInitial);
+				pPatch->InterpolateNodeToREdge(VIx, iDataInitial);
+				pPatch->InterpolateNodeToREdge(RIx, iDataInitial);
 			}
 		}
 
@@ -649,7 +666,9 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 
 		// Pressure data
 		GridData3D & dataPressure = pPatch->GetDataPressure();
-		GridData3D & dataDiffPressure = pPatch->GetDataDiffPressure();
+		GridData3D & dataDaPressure = pPatch->GetDataDaPressure();
+		GridData3D & dataDbPressure = pPatch->GetDataDbPressure();
+		GridData3D & dataDxPressure = pPatch->GetDataDxPressure();
 
 #pragma message "This can be optimized at finite element edges"
 		// Loop over all nodes and compute pressure
@@ -670,7 +689,7 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 				m_dColumnDxPressure);
 
 			for (int k = 0; k < pGrid->GetRElements(); k++) {
-				dataDiffPressure[k][i][j] =
+				dataDxPressure[k][i][j] =
 					m_dColumnDxPressure[k];
 			}
 		}
@@ -799,7 +818,11 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 				dDbP  /= dElementDeltaB;
 
 #pragma message "Reference state?"
-				dDxP  = dataDiffPressure[k][iA][iB];
+				dDxP  = dataDxPressure[k][iA][iB];
+
+				// Store local horizontal pressure derivatives
+				dataDaPressure[k][iA][iB] = dDaP;
+				dataDbPressure[k][iA][iB] = dDbP;
 
 				// Momentum advection terms
 				double dLocalUpdateUa = 0.0;
@@ -821,7 +844,6 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 						+ dChristoffelB[iA][iB][2] * dUb * dUb;
 
 				// Pressure derivatives
-#pragma message "What about metric terms affected by vertical pressure derivative?"
 				dLocalUpdateUa -=
 						( dContraMetricA[k][iA][iB][0] * dDaP
 						+ dContraMetricA[k][iA][iB][1] * dDbP
@@ -833,7 +855,14 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 						+ dContraMetricB[k][iA][iB][1] * dDbP
 						+ dContraMetricB[k][iA][iB][2] * dDxP)
 							/ dataInitialNode[RIx][k][iA][iB];
-
+/*
+				if ((k < 2) && (iA == 91) && (iB == 1)) {
+					printf("%i %1.10e %1.10e : %1.10e\n", k,
+							dContraMetricA[k][iA][iB][0] * dDaP,
+							dContraMetricA[k][iA][iB][2] * dDxP,
+							dLocalUpdateUa);
+				}
+*/
 				// Coriolis forces
 				double dDomainHeight = dZtop - dTopography[iA][iB];
 
@@ -900,8 +929,24 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 					dataUpdateNode[WIx][k][iA][iB] -=
 						dDeltaT * dCurvatureXi;
 
-#pragma message "MISSING"
 					// Horizontal pressure derivatives applied to W velocity
+					double dPressureXi =
+						( dContraMetricXi[k][iA][iB][0] * dDaP
+						+ dContraMetricXi[k][iA][iB][1] * dDbP)
+							/ dataInitialNode[RIx][k][iA][iB];
+
+					dataUpdateNode[WIx][k][iA][iB] -=
+						dDeltaT * dPressureXi;
+/*
+					if ((iA == 41) && (iB == 1)) {
+						printf("(k = %i) Advection: %1.10e\n", k, dUa * dDaUx);
+						printf("(k = %i) Curvature: %1.10e\n", k, dCurvatureXi);
+						printf("(k = %i) Pressure:  %1.10e\n", k, dPressureXi);
+					}
+*/
+
+#pragma message "MISSING"
+					// Coriolis terms as applied to W velocity
 
 				}
 
@@ -937,7 +982,6 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 		}
 
 		// Update quantities on model interfaces
-		for (int k = 0; k <= pGrid->GetRElements(); k++) {
 		for (int a = 0; a < nElementCountA; a++) {
 		for (int b = 0; b < nElementCountB; b++) {
 
@@ -951,14 +995,36 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 				int iElementA = a * m_nHorizontalOrder + box.GetHaloElements();
 				int iElementB = b * m_nHorizontalOrder + box.GetHaloElements();
 
+				// Store pressure derivatives in column
+				for (int k = 0; k < pGrid->GetRElements(); k++) {
+					m_dColumnDaPressure[k] = dataDaPressure[k][iA][iB];
+					m_dColumnDbPressure[k] = dataDbPressure[k][iA][iB];
+				}
+
+				pGrid->InterpolateNodeToREdge(
+					m_dColumnDaPressure,
+					m_dZeroColumn,
+					m_dColumnDaPressureREdge,
+					m_dZeroColumn);
+
+				pGrid->InterpolateNodeToREdge(
+					m_dColumnDbPressure,
+					m_dZeroColumn,
+					m_dColumnDbPressureREdge,
+					m_dZeroColumn);
+
 				// Update the vertical velocity (on model interfaces)
-				if (pGrid->GetVarLocation(WIx) == DataLocation_REdge) {
+				for (int k = 1; k < pGrid->GetRElements(); k++) {
+					if (pGrid->GetVarLocation(WIx) != DataLocation_REdge) {
+						break;
+					}
+
 					double dDaUx = 0.0;
 					double dDbUx = 0.0;
 
-					const double dUaREdge = dataInitialREdge[UIx][k][iA][iB];
-					const double dUbREdge = dataInitialREdge[VIx][k][iA][iB];
-					const double dUxREdge = dataInitialREdge[WIx][k][iA][iB];
+					double dUaREdge = dataInitialREdge[UIx][k][iA][iB];
+					double dUbREdge = dataInitialREdge[VIx][k][iA][iB];
+					double dUxREdge = dataInitialREdge[WIx][k][iA][iB];
 
 					for (int s = 0; s < m_nHorizontalOrder; s++) {
 						// Derivative of xi velocity with respect to alpha
@@ -992,13 +1058,24 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 					dataUpdateREdge[WIx][k][iA][iB] -=
 						dDeltaT * dCurvatureXi;
 
-#pragma message "MISSING"
 					// Horizontal pressure derivatives applied to W velocity
+					double dPressureXi =
+						( dContraMetricXi[k][iA][iB][0]
+							* m_dColumnDaPressureREdge[k]
+						+ dContraMetricXi[k][iA][iB][1]
+							* m_dColumnDbPressureREdge[k]
+						) / dataInitialREdge[RIx][k][iA][iB];
 
+					dataUpdateREdge[WIx][k][iA][iB] -=
+						dDeltaT * dPressureXi;
 				}
 
 				// Update the potential temperature (on model interfaces)
-				if (pGrid->GetVarLocation(TIx) == DataLocation_REdge) {
+				for (int k = 0; k <= pGrid->GetRElements(); k++) {
+					if (pGrid->GetVarLocation(TIx) != DataLocation_REdge) {
+						break;
+					}
+
 					double dDaTheta = 0.0;
 					double dDbTheta = 0.0;
 
@@ -1027,7 +1104,6 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 				}
 			}
 			}
-		}
 		}
 		}
 	}
@@ -1072,60 +1148,6 @@ void HorizontalDynamicsFEM::StepExplicit(
 		pGrid->ApplyDSS(iDataUpdate);
 	}
 }
-
-///////////////////////////////////////////////////////////////////////////////
-// OUTPUT INSTRUCTIONS FOR DEBUGGING
-
-/*
-				if (((n == 0) && (iA == box.GetAInteriorEnd()-1) && (iB == box.GetBInteriorEnd()-1)) ||
-					((n == 1) && (iA == box.GetAInteriorBegin()) && (iB == box.GetBInteriorEnd()-1)) ||
-					((n == 4) && (iA == box.GetAInteriorEnd()-1) && (iB == box.GetBInteriorBegin()))
-				) {
-					printf(" DP %i: %1.10e %1.10e\n", n, dDaP, dDbP);
-				}
-*/
-/*
-				if ((n == 0) && (iA == 3) && (iB == 3)) {
-					printf(" AB: %1.10e %1.10e\n",
-						box.GetANode(iA), box.GetBNode(iB));
-					printf("  H: %1.10e\n", dataInitialNode[0][k][iA][iB] / dJacobian[k][iA][iB]);
-					printf("  U: %1.10e %1.10e\n", dUa, dUb);
-					printf("DaU: %1.10e %1.10e\n", dDaUa, dDaUb);
-					printf("DbU: %1.10e %1.10e\n", dDbUa, dDbUb);
-					printf(" DP: %1.10e %1.10e\n", dDaP, dDbP);
-					printf("GammaA: %1.10e %1.10e %1.10e\n",
-						dChristoffel[iA][iB][0],
-						dChristoffel[iA][iB][1],
-						dChristoffel[iA][iB][2]);
-					printf("GammaB: %1.10e %1.10e %1.10e\n",
-						dChristoffel[iA][iB][3],
-						dChristoffel[iA][iB][4],
-						dChristoffel[iA][iB][5]);
-					printf("Mome: %1.10e %1.10e\n",
-						(dUa * dDaUa + dUb * dDbUa), 
-						(dUa * dDaUb + dUb * dDbUb));
-					printf("Curv: %1.10e %1.10e\n",
-						( dChristoffel[iA][iB][0] * dUa * dUa
-						+ dChristoffel[iA][iB][1] * dUa * dUb
-						+ dChristoffel[iA][iB][2] * dUb * dUb),
-						( dChristoffel[iA][iB][3] * dUa * dUa
-						+ dChristoffel[iA][iB][4] * dUa * dUb
-						+ dChristoffel[iA][iB][5] * dUb * dUb));
-					printf("Pres: %1.10e %1.10e\n",
-						( dContraMetric[iA][iB][0] * dDaP
-						+ dContraMetric[iA][iB][1] * dDbP),
-						( dContraMetric[iA][iB][1] * dDaP
-						+ dContraMetric[iA][iB][2] * dDbP));
-					printf("Cori: %1.10e %1.10e\n",
-						dF * dJacobian[k][iA][iB] * (
-						+ dContraMetric[iA][iB][1] * dUa
-						- dContraMetric[iA][iB][0] * dUb),
-						dF * dJacobian[k][iA][iB] * (
-						+ dContraMetric[iA][iB][2] * dUa
-						- dContraMetric[iA][iB][1] * dUb));
-
-				}
-*/
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -1638,7 +1660,9 @@ void HorizontalDynamicsFEM::StepAfterSubCycle(
 	}
 
 	// Apply Rayleigh damping
-	ApplyRayleighDamping(iDataUpdate, dDeltaT);
+	if (!m_fNoRayleighDamping) {
+		ApplyRayleighDamping(iDataUpdate, dDeltaT);
+	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////

@@ -292,7 +292,7 @@ void GridPatchCSGLL::EvaluateGeometricTerms() {
 			dContraMetricScale * (1.0 + dX * dX);
 
 		// Christoffel symbol components at each node
-		// (off-diagonal element are doubled due to symmetry)
+		// (off-diagonal elements are doubled due to symmetry)
 		m_dataChristoffelA[iA][iB][0] =
 			2.0 * dX * dY * dY / dDelta2;
 		m_dataChristoffelA[iA][iB][1] =
@@ -353,6 +353,7 @@ void GridPatchCSGLL::EvaluateGeometricTerms() {
 				- dContraMetricScale / dDxR * (
 					dX * dY * dDaR + (1.0 + dX * dX) * dDbR);
 
+#pragma message "Move these terms to the REdge evaluation when W is on interfaces"
 			m_dataContraMetricXi[k][iA][iB][0] = 
 				- dContraMetricScale / dDxR
 					* ((1.0 + dY * dY) * dDaR + dX * dY * dDbR);

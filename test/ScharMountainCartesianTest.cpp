@@ -131,16 +131,12 @@ public:
 		m_dH0(21000.),
 		m_dU0(10.0),
 		m_dP0(1.0E5),
-		m_dCp(1005.0),
-		m_dCv(718.0),
-		m_dR(287.058),
 		m_dNbar(0.01),
 		m_dTheta0(280.0),
 		m_dThetaC(1.0),
 		m_dhC(250.),
 		m_daC(5000.),
 		m_dlC(4000.),
-		m_dpiC(3.14159265),
 		m_fNoReferenceState(fNoReferenceState)
 	{
 		// Set the dimensions of the box
@@ -193,7 +189,7 @@ public:
 	) const {
 		// Specify the Schar Mountain (Test case 5 from Giraldo et al. 2008)
 		double hsm = m_dhC * exp(-dXp/m_daC * dXp/m_daC) *
-                     cos(m_dpiC * dXp / m_dlC) * cos(m_dpiC * dXp / m_dlC);
+                     cos(M_PI * dXp / m_dlC) * cos(M_PI * dXp / m_dlC);
         //std::cout << hsm << "\n";
 		return hsm;
 	}
@@ -208,8 +204,12 @@ public:
 		double dYp,
 		double * dState
 	) const {
+		const double dG = phys.GetG();
+		const double dCv = phys.GetCv();
+		const double dCp = phys.GetCp();
+		const double dRd = phys.GetR();
+
 		// Base potential temperature field
-		double dG = phys.GetG();
 		double dThetaBar = m_dTheta0 * exp(m_dNbar * m_dNbar / dG * dZp);
 
 		// Set the uniform U, V, W field for all time
@@ -221,12 +221,10 @@ public:
 		dState[2] = dThetaBar;
 
 		// Set the initial density based on the Exner pressure
-		double gsi = phys.GetG();
-		double dExnerP = pow(gsi,2.0) / (m_dCp * m_dTheta0 *
-                                        (m_dNbar * m_dNbar));
-		dExnerP *= (exp(-pow(m_dNbar,2.0)/gsi * dZp) - 1.0);
+		double dExnerP = (dG * dG) / (dCp * m_dTheta0 * m_dNbar * m_dNbar);
+		dExnerP *= (exp(-m_dNbar * m_dNbar / dG * dZp) - 1.0);
 		dExnerP += 1.0;
-		double dRho = m_dP0 / (m_dR * dThetaBar) * pow(dExnerP,(m_dCv / m_dR));
+		double dRho = m_dP0 / (dRd * dThetaBar) * pow(dExnerP,(dCv / dRd));
 		dState[4] = dRho;
 	}
 
@@ -242,8 +240,12 @@ public:
 		double * dState,
 		double * dTracer
 	) const {
+		const double dG = phys.GetG();
+		const double dCv = phys.GetCv();
+		const double dCp = phys.GetCp();
+		const double dRd = phys.GetR();
+
 		// Base potential temperature field
-		double dG = phys.GetG();
 		double dThetaBar = m_dTheta0 * exp(m_dNbar * m_dNbar / dG * dZp);
 
 		// Set the uniform U, V, W field for all time
@@ -255,12 +257,10 @@ public:
 		dState[2] = dThetaBar;
 
 		// Set the initial density based on the Exner pressure
-		double gsi = phys.GetG();
-		double dExnerP = (gsi * gsi) / (m_dCp * m_dTheta0 *
-                                        (m_dNbar * m_dNbar));
-		dExnerP *= (exp(-(m_dNbar * m_dNbar)/gsi * dZp) - 1.0);
+		double dExnerP = (dG * dG) / (dCp * m_dTheta0 * m_dNbar * m_dNbar);
+		dExnerP *= (exp(-m_dNbar * m_dNbar / dG * dZp) - 1.0);
 		dExnerP += 1.0;
-		double dRho = m_dP0 / (m_dR * dThetaBar) * pow(dExnerP,(m_dCv / m_dR));
+		double dRho = m_dP0 / (dRd * dThetaBar) * pow(dExnerP,(dCv / dRd));
 		dState[4] = dRho;
 	}
 };
@@ -306,6 +306,9 @@ try {
 	// Use hyperdiffusion
 	bool fNoHyperviscosity;
 
+	// No Rayleigh damping
+	bool fNoRayleighDamping;
+
 	// No reference state
 	bool fNoReferenceState;
 
@@ -341,6 +344,7 @@ try {
 		CommandLineDouble(dOutputDeltaT, "outputtime", 600.0);
 		CommandLineStringD(strHorizontalDynamics, "method", "SE", "(SE | DG)");
 		CommandLineBool(fNoHyperviscosity, "nohypervis");
+		CommandLineBool(fNoRayleighDamping, "norayleigh");
 		CommandLineBool(fNoReferenceState, "norefstate");
 		CommandLineInt(nVerticalHyperdiffOrder, "verticaldifforder", 0);
 		CommandLineBool(fFullyExplicitVertical, "explicitvertical");
@@ -386,7 +390,11 @@ try {
 
 	AnnounceStartBlock("Initializing horizontal dynamics");
 	HorizontalDynamicsFEM hdyn(
-	   model, nHorizontalOrder, eHorizontalDynamicsType, fNoHyperviscosity);
+	   model,
+	   nHorizontalOrder,
+	   eHorizontalDynamicsType,
+	   fNoHyperviscosity,
+	   fNoRayleighDamping);
 
 	hdyn.SetRayleighDamping(5.0e-3, 0.0, 0.0, 10000.0);
 

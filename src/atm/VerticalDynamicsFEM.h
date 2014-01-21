@@ -101,70 +101,6 @@ protected:
 	}
 
 protected:
-/*
-	///	<summary>
-	///		Interpolate one column of data from nodes to interfaces.
-	///	</summary>
-	void InterpolateNodeToREdge(
-		const double * dDataNode,
-		const double * dDataRefNode,
-		double * dDataREdge,
-		const double * dDataRefREdge,
-		bool fZeroBoundaries = false
-	);
-
-	///	<summary>
-	///		Interpolate one column of data from interfaces to nodes.
-	///	</summary>
-	void InterpolateREdgeToNode(
-		const double * dDataREdge,
-		const double * dDataRefREdge,
-		double * dDataNode,
-		const double * dDataRefNode
-	);
-
-	///	<summary>
-	///		Interpolate a variable from nodes to finite-element edges.
-	///	</summary>
-	void InterpolateNodeToFEEdges(
-		const double * dDataNode,
-		bool fZeroBoundaries
-	);
-
-	///	<summary>
-	///		Differentiate a variable from nodes to nodes.
-	///	</summary>
-	void DifferentiateNodeToNode(
-		const double * dDataNode,
-		double * dDiffNode,
-		bool fZeroBoundaries = false
-	);
-
-	///	<summary>
-	///		Differentiate a variable from interfaces to interfaces.
-	///	</summary>
-	void DifferentiateNodeToREdge(
-		const double * dDataNode,
-		double * dDiffREdge,
-		bool fZeroBoundaries = false
-	);
-
-	///	<summary>
-	///		Differentiate a variable from interfaces to interfaces.
-	///	</summary>
-	void DifferentiateREdgeToNode(
-		const double * dDataREdge,
-		double * dDiffNode
-	);
-
-	///	<summary>
-	///		Differentiate a variable from interfaces to interfaces.
-	///	</summary>
-	void DifferentiateREdgeToREdge(
-		const double * dDataREdge,
-		double * dDiffREdge
-	);
-*/
 	///	<summary>
 	///		Second derivative of a variable from interfaces to interfaces.
 	///	</summary>
@@ -188,7 +124,8 @@ public:
 		const GridData3D & dataExnerNode,
 		const GridData3D & dataDiffExnerNode,
 		const GridData3D & dataExnerREdge,
-		const GridData3D & dataDiffExnerREdge
+		const GridData3D & dataDiffExnerREdge,
+		const DataMatrix4D<double> & dataContraMetricXi
 	);
  
 	///	<summary>
@@ -304,6 +241,11 @@ protected:
 
 protected:
 	///	<summary>
+	///		Column of contravariant metric components.
+	///	</summary>
+	DataVector<double> m_dColumnContraMetricXiXi;
+
+	///	<summary>
 	///		State variable column.
 	///	</summary>
 	DataVector<double> m_dColumnState;
@@ -412,67 +354,7 @@ protected:
 	///		Solution vector from the implicit solve.
 	///	</summary>
 	DataVector<double> m_dSoln;
-/*
-	///	<summary>
-	///		Interpolation coefficients from nodes to interfaces.
-	///	</summary>
-	const DataMatrix<double> * m_pInterpNodeToREdge;
 
-	///	<summary>
-	///		Interpolation coefficients from interfaces to nodes.
-	///	</summary>
-	const DataMatrix<double> * m_pInterpREdgeToNode;
-*/
-/*
-	///	<summary>
-	///		Differentiation coefficients from interfaces to nodes.
-	///	</summary>
-	DataMatrix<double> m_dDiffREdgeToNode;
-
-	///	<summary>
-	///		Differentiation coefficients from interfaces to interfaces.
-	///	</summary>
-	DataMatrix<double> m_dDiffREdgeToREdge;
-
-	///	<summary>
-	///		Differentiation coefficients from nodes to interfaces.
-	///	</summary>
-	DataMatrix<double> m_dDiffNodeToREdge;
-
-	///	<summary>
-	///		Differentiation coefficients from nodes to nodes.
-	///	</summary>
-	DataMatrix<double> m_dDiffNodeToNode;
-
-	///	<summary>
-	///		Derivatives of reconstruction polynomial on nodes.
-	///	</summary>
-	DataVector<double> m_dDiffReconsPolyNode;
-
-	///	<summary>
-	///		Derivatives of reconstruction polynomial on interfaces.
-	///	</summary>
-	DataVector<double> m_dDiffReconsPolyREdge;
-
-	///	<summary>
-	///		Amalgamated differentiation coefficients from nodes to interfaces;
-	///		includes both interior derivative terms and derivatives from
-	///		reconstruction polynomial.
-	///	</summary>
-	DataMatrix<double> m_dDiffNodeToREdgeAmal;
-
-	///	<summary>
-	///		Amalgamated differentiation coefficients from nodes to interfaces
-	///		at left edge with extrapolated boundary conditions.
-	///	</summary>
-	DataMatrix<double> m_dDiffNodeToREdgeLeft;
-
-	///	<summary>
-	///		Amalgamated differentiation coefficients from nodes to interfaces
-	///		at right edge with extrapolated boundary conditions.
-	///	</summary>
-	DataMatrix<double> m_dDiffNodeToREdgeRight;
-*/
 	///	<summary>
 	///		Second differentiation coefficients from edges to edges.
 	///	</summary>

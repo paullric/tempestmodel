@@ -198,6 +198,9 @@ void VerticalDynamicsFEM::Initialize() {
 #endif
 #endif
 
+	// Allocate column for contravariant metric components
+	m_dColumnContraMetricXiXi.Initialize(nRElements+1);
+
 	// Allocate column for JFNK
 	m_dColumnState.Initialize(m_nColumnStateSize);
 
@@ -482,7 +485,8 @@ void VerticalDynamicsFEM::SetupReferenceColumn(
 	const GridData3D & dataExnerNode,
 	const GridData3D & dataDiffExnerNode,
 	const GridData3D & dataExnerREdge,
-	const GridData3D & dataDiffExnerREdge
+	const GridData3D & dataDiffExnerREdge,
+	const DataMatrix4D<double> & dataContraMetricXi
 ) {
 
 	// Indices of EquationSet variables
@@ -557,6 +561,12 @@ void VerticalDynamicsFEM::SetupReferenceColumn(
 		m_dExnerRefREdge[k] = dataExnerREdge[k][iA][iB];
 		m_dDiffExnerRefREdge[k] = dataDiffExnerREdge[k][iA][iB];
 	}
+
+	// Copy over the contravariant metric components
+	for (int k = 0; k < dataContraMetricXi.GetSize(0); k++) {
+		m_dColumnContraMetricXiXi[k] = dataContraMetricXi[k][iA][iB][2];
+	}
+
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -628,6 +638,10 @@ void VerticalDynamicsFEM::StepExplicit(
 		const GridData3D & dataDiffExnerREdge =
 			pPatch->GetVerticalDynamicsAuxData(1, DataLocation_REdge);
 
+		// Contravariant metric components
+		const DataMatrix4D<double> & dataContraMetricXi =
+			pPatch->GetContraMetricXi();
+
 		// Pointwise topography
 		const DataMatrix<double> & dataTopography = pPatch->GetTopography();
 
@@ -652,7 +666,8 @@ void VerticalDynamicsFEM::StepExplicit(
 					dataExnerNode,
 					dataDiffExnerNode,
 					dataExnerREdge,
-					dataDiffExnerREdge);
+					dataDiffExnerREdge,
+					dataContraMetricXi);
 
                 Evaluate(m_dColumnState, m_dSoln);
 
@@ -682,6 +697,13 @@ void VerticalDynamicsFEM::StepExplicit(
 					}
 				}
 
+/*
+				if ((iA == 41) && (iB == 1)) {
+					for (int k = 0; k < pGrid->GetRElements(); k++) {
+						printf("(k = %i) Vertical: %1.10e\n", k, m_dSoln[VecFIx(FWIx, k)]);
+					}
+				}
+*/
 				// Apply update to Rho
 				if (pGrid->GetVarLocation(RIx) == DataLocation_REdge) {
 					for (int k = 0; k <= pGrid->GetRElements(); k++) {
@@ -777,7 +799,7 @@ void VerticalDynamicsFEM::StepExplicit(
 						dDeltaT * m_dStateREdge[WIx][k] * m_dStateAuxDiff[k];
 				}
 
-				// Calculate update to U
+				// Calculate update to V
 				pGrid->DifferentiateREdgeToREdge(
 					m_dStateREdge[VIx],
 					m_dStateAuxDiff);
@@ -966,6 +988,10 @@ void VerticalDynamicsFEM::StepImplicit(
 		const GridData3D & dataDiffExnerREdge =
 			pPatch->GetVerticalDynamicsAuxData(1, DataLocation_REdge);
 
+		// Contravariant metric components
+		const DataMatrix4D<double> & dataContraMetricXi =
+			pPatch->GetContraMetricXi();
+
 		// Pointwise topography
 		const DataMatrix<double> & dataTopography = pPatch->GetTopography();
 
@@ -1011,7 +1037,8 @@ void VerticalDynamicsFEM::StepImplicit(
 				dataExnerNode,
 				dataDiffExnerNode,
 				dataExnerREdge,
-				dataDiffExnerREdge);
+				dataDiffExnerREdge,
+				dataContraMetricXi);
 
 #ifdef USE_JFNK_PETSC
 			// Use PetSc to solve
@@ -1515,18 +1542,6 @@ void VerticalDynamicsFEM::BuildF(
             m_dMassFluxREdge[k] =
                 m_dStateREdge[RIx][k]
                 * m_dStateREdge[WIx][k];
-/*
-#pragma message "DEBUG: FIX"
-			if (m_dStateREdge[WIx][k] > 0.0) {
-				m_dMassFluxREdge[k] =
-					  m_dStateNode[RIx][k-1]
-					* m_dStateREdge[WIx][k];
-			} else {
-				m_dMassFluxREdge[k] =
-					  m_dStateNode[RIx][k]
-					* m_dStateREdge[WIx][k];
-			}
-*/
 		}
 		m_dMassFluxREdge[0] = 0.0;
 		m_dMassFluxREdge[nRElements] = 0.0;
@@ -1616,7 +1631,7 @@ void VerticalDynamicsFEM::BuildF(
 			double dThetaPert = dTheta - m_dStateRefREdge[TIx][k];
 
 			dF[VecFIx(FWIx, k)] +=
-				1.0 / (m_dDomainHeight * m_dDomainHeight) * (
+				m_dColumnContraMetricXiXi[k] * (
 					  dThetaPert * m_dDiffExnerRefREdge[k]
 					+ dTheta * m_dDiffExnerPertREdge[k]);
 		}
@@ -1627,6 +1642,16 @@ void VerticalDynamicsFEM::BuildF(
 			for (int k = 1; k < nRElements; k++) {
 				dF[VecFIx(FWIx, k)] += phys.GetG() / m_dDomainHeight;
 			}
+
+		} else {
+			for (int k = 1; k < nRElements; k++) {
+				double dLocalMetricDiff =
+					1.0 / m_dDomainHeight
+					- m_dDomainHeight * m_dColumnContraMetricXiXi[k];
+
+				dF[VecFIx(FWIx, k)] +=
+					dLocalMetricDiff * phys.GetG();
+			}
 		}
 
 	// Compute update to W on model levels
@@ -1635,7 +1660,8 @@ void VerticalDynamicsFEM::BuildF(
 			double dTheta = m_dStateNode[TIx][k];
 			double dThetaPert = dTheta - m_dStateRefNode[TIx][k];
 
-			dF[VecFIx(FWIx, k)] += 1.0 / (m_dDomainHeight * m_dDomainHeight) * (
+			dF[VecFIx(FWIx, k)] += //1.0 / (m_dDomainHeight * m_dDomainHeight) * (
+				m_dColumnContraMetricXiXi[k] * (
 				+ dThetaPert * m_dDiffExnerRefNode[k]
 				+ dTheta * m_dDiffExnerPertNode[k]);
 		}
@@ -1645,6 +1671,16 @@ void VerticalDynamicsFEM::BuildF(
 		if (!pGrid->HasReferenceState()) {
 			for (int k = 0; k < nRElements; k++) {
 				dF[VecFIx(FWIx, k)] += phys.GetG() / m_dDomainHeight;
+			}
+
+		} else {
+			for (int k = 0; k < nRElements; k++) {
+				double dLocalMetricDiff =
+					1.0 / m_dDomainHeight
+					- m_dDomainHeight * m_dColumnContraMetricXiXi[k];
+
+				dF[VecFIx(FWIx, k)] +=
+					dLocalMetricDiff * phys.GetG();
 			}
 		}
 	}
@@ -1774,7 +1810,7 @@ void VerticalDynamicsFEM::BuildJacobianF(
 	// dW_k/dT_l and dW_k/dR_m (bottom element)
 	for (int k = 1; k < m_nVerticalOrder; k++) {
 		double dRHSWCoeff = 
-			1.0 / (m_dDomainHeight * m_dDomainHeight)
+			m_dColumnContraMetricXiXi[k]
 			* m_dStateREdge[TIx][k]
 			* phys.GetR() / phys.GetCv();
 
@@ -1814,7 +1850,7 @@ void VerticalDynamicsFEM::BuildJacobianF(
 		int lBegin = lPrev + m_nVerticalOrder;
 
 		double dRHSWCoeff = 
-			1.0 / (m_dDomainHeight * m_dDomainHeight)
+			m_dColumnContraMetricXiXi[k]
 			* m_dStateREdge[TIx][k]
 			* phys.GetR() / phys.GetCv();
 
@@ -1850,7 +1886,7 @@ void VerticalDynamicsFEM::BuildJacobianF(
 		int lPrev = kBegin - m_nVerticalOrder;
 
 		double dRHSWCoeff = 
-			1.0 / (m_dDomainHeight * m_dDomainHeight)
+			m_dColumnContraMetricXiXi[k]
 			* m_dStateREdge[TIx][k]
 			* phys.GetR() / phys.GetCv();
 
@@ -1880,7 +1916,7 @@ void VerticalDynamicsFEM::BuildJacobianF(
 	// dW_k/dT (first theta in RHS)
 	for (int k = 1; k < nRElements; k++) {
 		dDG[MatFIx(FTIx, k, FWIx, k)] +=
-			 1.0 / (m_dDomainHeight * m_dDomainHeight)
+			 m_dColumnContraMetricXiXi[k]
 			 * (m_dDiffExnerRefREdge[k] + m_dDiffExnerPertREdge[k]);
 	}
 

@@ -736,17 +736,45 @@ public:
 	}
 
 	///	<summary>
-	///		Get the pressure derivative data.
+	///		Get the alpha direction pressure derivative data.
 	///	</summary>
-	GridData3D & GetDataDiffPressure() {
-		return m_dataDiffPressure;
+	GridData3D & GetDataDaPressure() {
+		return m_dataDaPressure;
+	}
+
+	///	<summary>
+	///		Get the alpha direction pressure derivative data.
+	///	</summary>
+	const GridData3D & GetDataDaPressure() const {
+		return m_dataDaPressure;
+	}
+
+	///	<summary>
+	///		Get the beta direction pressure derivative data.
+	///	</summary>
+	GridData3D & GetDataDbPressure() {
+		return m_dataDbPressure;
+	}
+
+	///	<summary>
+	///		Get the beta direction pressure derivative data.
+	///	</summary>
+	const GridData3D & GetDataDbPressure() const {
+		return m_dataDbPressure;
 	}
 
 	///	<summary>
 	///		Get the pressure derivative data.
 	///	</summary>
-	const GridData3D & GetDataDiffPressure() const {
-		return m_dataDiffPressure;
+	GridData3D & GetDataDxPressure() {
+		return m_dataDxPressure;
+	}
+
+	///	<summary>
+	///		Get the pressure derivative data.
+	///	</summary>
+	const GridData3D & GetDataDxPressure() const {
+		return m_dataDxPressure;
 	}
 
 	///	<summary>
@@ -944,9 +972,19 @@ protected:
 	GridData3D m_dataPressure;
 
 	///	<summary>
+	///		Computed pointwise alpha pressure derivatives.
+	///	</summary>
+	GridData3D m_dataDaPressure;
+
+	///	<summary>
+	///		Computed pointwise beta pressure derivatives.
+	///	</summary>
+	GridData3D m_dataDbPressure;
+
+	///	<summary>
 	///		Computed pointwise vertical pressure derivatives.
 	///	</summary>
-	GridData3D m_dataDiffPressure;
+	GridData3D m_dataDxPressure;
 
 	///	<summary>
 	///		Computed vorticity.

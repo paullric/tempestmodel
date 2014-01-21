@@ -52,7 +52,8 @@ public:
 		Model & model,
 		int nHorizontalOrder,
 		Type eHorizontalDynamicsType = SpectralElement,
-		bool fNoHyperdiffusion = false
+		bool fNoHyperdiffusion = false,
+		bool fNoRayleighDamping = false
 	);
 
 	///	<summary>
@@ -200,30 +201,50 @@ private:
 	DataMatrix<double> m_dPressure;
 
 	///	<summary>
+	///		Zero vector of length RElements+1.
+	///	</summary>
+	DataVector<double> m_dZeroColumn;
+
+	///	<summary>
 	///		Nodal pointwise pressures in a column.
 	///	</summary>
 	DataVector<double> m_dColumnPressure;
 
 	///	<summary>
-	///		Nodal pointwise pressure derivatives in a column.
+	///		Nodal pointwise pressure alpha derivatives in a column.
+	///	</summary>
+	DataVector<double> m_dColumnDaPressure;
+
+	///	<summary>
+	///		Nodal pointwise pressure beta derivatives in a column.
+	///	</summary>
+	DataVector<double> m_dColumnDbPressure;
+
+	///	<summary>
+	///		Nodal pointwise pressure xi derivatives in a column.
 	///	</summary>
 	DataVector<double> m_dColumnDxPressure;
 
 	///	<summary>
-	///		Map from model interfaces to model levels.
+	///		Nodal pointwise pressure alpha derivatives in a column.
 	///	</summary>
-	DataMatrix<double> m_matInterfaceToLevel;
+	DataVector<double> m_dColumnDaPressureREdge;
 
 	///	<summary>
-	///		Map from model levels to interfaces.
+	///		Nodal pointwise pressure beta derivatives in a column.
 	///	</summary>
-	DataMatrix<double> m_matLevelToInterface;
+	DataVector<double> m_dColumnDbPressureREdge;
 
 private:
 	///	<summary>
 	///		Flag indicating whether or not hyperdiffusion should be used.
 	///	</summary>
 	bool m_fNoHyperdiffusion;
+
+	///	<summary>
+	///		Flag indicating whether or not Rayleigh damping should be used.
+	///	</summary>
+	bool m_fNoRayleighDamping;
 
 	///	<summary>
 	///		Nodal pointwise gradient.
