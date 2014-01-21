@@ -117,16 +117,22 @@ private:
 	double m_dpiC;
 
 	///	<summary>
-	///		Flag indicating that the reference profile should be used.
+	///		Flag indicating that the reference profile should not be used.
 	///	</summary>
 	bool m_fNoReferenceState;
+
+	///	<summary>
+	///		Flag indicating that Rayleigh friction is inactive.
+	///	</summary>
+	bool m_fNoRayleighFriction;
 
 public:
 	///	<summary>
 	///		Constructor. (with physical constants defined privately here)
 	///	</summary>
 	ScharMountainCartesianTest(
-		bool fNoReferenceState
+		bool fNoReferenceState,
+		bool fNoRayleighFriction
 	) :
 		m_dH0(21000.),
 		m_dU0(10.0),
@@ -137,7 +143,8 @@ public:
 		m_dhC(250.),
 		m_daC(5000.),
 		m_dlC(4000.),
-		m_fNoReferenceState(fNoReferenceState)
+		m_fNoReferenceState(fNoReferenceState),
+		m_fNoRayleighFriction(fNoRayleighFriction)
 	{
 		// Set the dimensions of the box
 		m_dGDim[0] = -25000.;
@@ -164,13 +171,6 @@ public:
 	}
 
 	///	<summary>
-	///		Flag indicating that a reference state is available.
-	///	</summary>
-	virtual bool HasReferenceState() const {
-		return !m_fNoReferenceState;
-	}
-
-	///	<summary>
 	///		Obtain test case specific physical constants.
 	///	</summary>
 	virtual void EvaluatePhysicalConstants(
@@ -192,6 +192,58 @@ public:
                      cos(M_PI * dXp / m_dlC) * cos(M_PI * dXp / m_dlC);
         //std::cout << hsm << "\n";
 		return hsm;
+	}
+
+	///	<summary>
+	///		Flag indicating whether or not Rayleigh friction strength is given.
+	///	</summary>
+	virtual bool HasRayleighFriction() const {
+		return !m_fNoRayleighFriction;
+	}
+
+	///	<summary>
+	///		Evaluate the Rayleigh friction strength at the given point.
+	///	</summary>
+	virtual double EvaluateRayleighStrength(
+		double dZ,
+		double dXp,
+		double dYp
+	) const {
+		const double dRayleighStrength = 8.0e-3;
+		const double dRayleighDepth = 10000.0;
+		const double dRayleighWidth = 10000.0;
+
+		double dNuDepth = 0.0;
+		double dNuRight = 0.0;
+		double dNuLeft  = 0.0;
+
+		if (dZ > m_dGDim[5] - dRayleighDepth) {
+			double dNormZ = (m_dGDim[5] - dZ) / dRayleighDepth;
+			dNuDepth = 0.5 * dRayleighStrength * (1.0 + cos(M_PI * dNormZ));
+		}
+		if (dXp > m_dGDim[1] - dRayleighWidth) {
+			double dNormX = (m_dGDim[1] - dXp) / dRayleighWidth;
+			dNuRight = 0.5 * dRayleighStrength * (1.0 + cos(M_PI * dNormX));
+		}
+		if (dXp < m_dGDim[0] + dRayleighWidth) {
+			double dNormX = 1.0 - (dXp - m_dGDim[0]) / dRayleighWidth;
+			dNuLeft = 0.5 * dRayleighStrength * (1.0 + cos(M_PI * dNormX));
+		}
+
+		if ((dNuDepth >= dNuRight) && (dNuDepth >= dNuLeft)) {
+			return dNuDepth;
+		}
+		if (dNuRight >= dNuLeft) {
+			return dNuRight;
+		}
+		return dNuLeft;
+	}
+
+	///	<summary>
+	///		Flag indicating that a reference state is available.
+	///	</summary>
+	virtual bool HasReferenceState() const {
+		return !m_fNoReferenceState;
 	}
 
 	///	<summary>
@@ -306,8 +358,8 @@ try {
 	// Use hyperdiffusion
 	bool fNoHyperviscosity;
 
-	// No Rayleigh damping
-	bool fNoRayleighDamping;
+	// No Rayleigh friction
+	bool fNoRayleighFriction;
 
 	// No reference state
 	bool fNoReferenceState;
@@ -344,7 +396,7 @@ try {
 		CommandLineDouble(dOutputDeltaT, "outputtime", 600.0);
 		CommandLineStringD(strHorizontalDynamics, "method", "SE", "(SE | DG)");
 		CommandLineBool(fNoHyperviscosity, "nohypervis");
-		CommandLineBool(fNoRayleighDamping, "norayleigh");
+		CommandLineBool(fNoRayleighFriction, "norayleigh");
 		CommandLineBool(fNoReferenceState, "norefstate");
 		CommandLineInt(nVerticalHyperdiffOrder, "verticaldifforder", 0);
 		CommandLineBool(fFullyExplicitVertical, "explicitvertical");
@@ -393,10 +445,7 @@ try {
 	   model,
 	   nHorizontalOrder,
 	   eHorizontalDynamicsType,
-	   fNoHyperviscosity,
-	   fNoRayleighDamping);
-
-	hdyn.SetRayleighDamping(5.0e-3, 0.0, 0.0, 10000.0);
+	   fNoHyperviscosity);
 
 	model.SetHorizontalDynamics(&hdyn);
 	AnnounceEndBlock("Done");
@@ -417,7 +466,7 @@ try {
 
 	// Generate a new cartesian GLL grid
 	// Initialize the test case here (to have grid dimensions available)
-	ScharMountainCartesianTest test(fNoReferenceState);
+	ScharMountainCartesianTest test(fNoReferenceState, fNoRayleighFriction);
 
 	AnnounceStartBlock("Constructing grid");
 	GridCartesianGLL grid(
@@ -466,7 +515,7 @@ try {
 	AnnounceEndBlock("Done");
 
 	// Set the test case for the model
-	ScharMountainCartesianTest ctest(fNoReferenceState);
+	ScharMountainCartesianTest ctest(fNoReferenceState, fNoRayleighFriction);
 	AnnounceStartBlock("Initializing test case");
 	model.SetTestCase(&ctest);
 	AnnounceEndBlock("Done");

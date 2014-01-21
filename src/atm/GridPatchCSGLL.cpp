@@ -480,6 +480,28 @@ void GridPatchCSGLL::EvaluateTestCase(
 	}
 	}
 
+	// Initialize the Rayleigh friction strength at each node
+	if (test.HasRayleighFriction()) {
+		for (int i = 0; i < m_box.GetATotalWidth(); i++) {
+		for (int j = 0; j < m_box.GetBTotalWidth(); j++) {
+			for (int k = 0; k < m_grid.GetRElements(); k++) {
+				m_dataRayleighStrengthNode[k][i][j] =
+					test.EvaluateRayleighStrength(
+						m_dataZLevels[k][i][j],
+						m_dataLon[i][j],
+						m_dataLat[i][j]);
+			}
+			for (int k = 0; k < m_grid.GetRElements(); k++) {
+				m_dataRayleighStrengthREdge[k][i][j] =
+					test.EvaluateRayleighStrength(
+						m_dataZInterfaces[k][i][j],
+						m_dataLon[i][j],
+						m_dataLat[i][j]);
+			}
+		}
+		}
+	}
+
 	// Buffer vector for storing pointwise states
 	int nComponents = m_grid.GetModel().GetEquationSet().GetComponents();
 	int nTracers = m_grid.GetModel().GetEquationSet().GetTracers();

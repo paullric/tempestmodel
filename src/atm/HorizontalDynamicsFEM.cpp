@@ -32,8 +32,7 @@ HorizontalDynamicsFEM::HorizontalDynamicsFEM(
 	Model & model,
 	int nHorizontalOrder,
 	HorizontalDynamicsFEM::Type eHorizontalDynamicsType,
-	bool fNoHyperdiffusion,
-	bool fNoRayleighDamping
+	bool fNoHyperdiffusion
 ) :
 	HorizontalDynamics(model),
 	m_nHorizontalOrder(nHorizontalOrder),
@@ -41,12 +40,7 @@ HorizontalDynamicsFEM::HorizontalDynamicsFEM(
 	m_fNoHyperdiffusion(fNoHyperdiffusion),
 	m_dNuScalar(1.0e15),
 	m_dNuDiv(1.0e15),
-	m_dNuVort(1.0e15),
-	m_dNuRayleigh(0.0),
-	m_fNoRayleighDamping(fNoRayleighDamping),
-	m_dRayleighAlphaWidth(0.0),
-	m_dRayleighBetaWidth(0.0),
-	m_dRayleighDepth(0.0)
+	m_dNuVort(1.0e15)
 {
 
 }
@@ -102,20 +96,6 @@ void HorizontalDynamicsFEM::Initialize() {
 	FluxReconstructionFunction::GetDerivatives(
 		2, m_nHorizontalOrder, dG, m_dFluxDeriv1D);
 
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
-void HorizontalDynamicsFEM::SetRayleighDamping(
-	double dNuRayleigh,
-	double dRayleighAlphaWidth,
-	double dRayleighBetaWidth,
-	double dRayleighDepth
-) {
-	m_dNuRayleigh = dNuRayleigh;
-	m_dRayleighAlphaWidth = dRayleighAlphaWidth;
-	m_dRayleighBetaWidth = dRayleighBetaWidth;
-	m_dRayleighDepth = dRayleighDepth;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1482,15 +1462,10 @@ void HorizontalDynamicsFEM::ApplyVectorHyperdiffusion(
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void HorizontalDynamicsFEM::ApplyRayleighDamping(
+void HorizontalDynamicsFEM::ApplyRayleighFriction(
 	int iDataUpdate,
 	double dDeltaT
 ) {
-	// No Rayleigh damping active
-	if (m_dNuRayleigh == 0.0) {
-		return;
-	}
-
 	// Get a copy of the GLL grid
 	GridGLL * pGrid = dynamic_cast<GridGLL*>(m_model.GetGrid());
 
@@ -1503,8 +1478,6 @@ void HorizontalDynamicsFEM::ApplyRayleighDamping(
 			dynamic_cast<GridPatchGLL*>(pGrid->GetActivePatch(n));
 
 		const PatchBox & box = pPatch->GetPatchBox();
-
-		const double dZtop = pGrid->GetZtop();
 
 		// Grid data
 		GridData4D & dataUpdateNode =
@@ -1520,56 +1493,37 @@ void HorizontalDynamicsFEM::ApplyRayleighDamping(
 		const GridData4D & dataReferenceREdge =
 			pPatch->GetReferenceState(DataLocation_REdge);
 
-		// Z at levels and interfaces
-		const DataMatrix3D<double> & dataZLevels =
-			pPatch->GetZLevels();
+		// Rayleigh friction strength
+		const GridData3D & dataRayleighStrengthNode =
+			pPatch->GetRayleighStrength(DataLocation_Node);
 
-		const DataMatrix3D<double> & dataZInterfaces =
-			pPatch->GetZInterfaces();
+		const GridData3D & dataRayleighStrengthREdge =
+			pPatch->GetRayleighStrength(DataLocation_REdge);
 
 		// Loop over all nodes in patch
 		for (int i = box.GetAInteriorBegin(); i < box.GetAInteriorEnd(); i++) {
 		for (int j = box.GetBInteriorBegin(); j < box.GetBInteriorEnd(); j++) {
 
-#pragma message "Implement lateral boundaries"
 			// Rayleigh damping on nodes
 			for (int k = 0; k < pGrid->GetRElements(); k++) {
 
-				// Calculate damping rate away from top boundary
-				double dNuMult = 0.0;
-
-				double dZNode = dataZLevels[k][i][j];
-
-				if (dZNode > dZtop - m_dRayleighDepth) {
-					double dNormD =
-						(dZtop - dZNode) / (dZtop - m_dRayleighDepth);
-					dNuMult = 0.5 * (1.0 + cos(M_PI * dNormD));
-				}
+				double dNu = dataRayleighStrengthNode[k][i][j];
 
 				// Backwards Euler
-				if (dNuMult == 0.0) {
+				if (dNu == 0.0) {
 					continue;
 				}
 
-				double dNuNode =
-					1.0 / (1.0 + dDeltaT * m_dNuRayleigh * dNuMult);
+				double dNuNode = 1.0 / (1.0 + dDeltaT * dNu);
 
 				// Loop over all components
 				int nComponents = m_model.GetEquationSet().GetComponents();
 				for (int c = 0; c < nComponents; c++) {
 					if (pGrid->GetVarLocation(c) == DataLocation_Node) {
-						//if ((c == 0) && (j == 1) && (i == 1)) {
-						//	printf("%1.10e : %1.10e : ", dataUpdateNode[c][k][i][j],
-						//		dataReferenceNode[c][k][i][j]);
-						//}
 						dataUpdateNode[c][k][i][j] =
 							dNuNode * dataUpdateNode[c][k][i][j]
 							+ (1.0 - dNuNode)
 								* dataReferenceNode[c][k][i][j];
-						//if ((c == 0) && (j == 1) && (i == 1)) {
-						//	printf("%1.10e\n", dataUpdateNode[c][k][i][j]);
-
-						//}
 					}
 				}
 			}
@@ -1577,24 +1531,14 @@ void HorizontalDynamicsFEM::ApplyRayleighDamping(
 			// Rayleigh damping on interfaces
 			for (int k = 0; k <= pGrid->GetRElements(); k++) {
 
-				// Calculate damping rate away from top boundary
-				double dNuMult = 0.0;
-
-				double dZREdge = dataZInterfaces[k][i][j];
-
-				if (dZREdge > dZtop - m_dRayleighDepth) {
-					double dNormD =
-						(dZtop - dZREdge) / (dZtop - m_dRayleighDepth);
-					dNuMult = 0.5 * (1.0 + cos(M_PI * dNormD));
-				}
+				double dNu = dataRayleighStrengthREdge[k][i][j];
 
 				// Backwards Euler
-				if (dNuMult == 0.0) {
+				if (dNu == 0.0) {
 					continue;
 				}
 
-				double dNuREdge =
-					1.0 / (1.0 + dDeltaT * m_dNuRayleigh * dNuMult);
+				double dNuREdge = 1.0 / (1.0 + dDeltaT * dNu);
 
 				// Loop over all components
 				int nComponents = m_model.GetEquationSet().GetComponents();
@@ -1660,8 +1604,8 @@ void HorizontalDynamicsFEM::StepAfterSubCycle(
 	}
 
 	// Apply Rayleigh damping
-	if (!m_fNoRayleighDamping) {
-		ApplyRayleighDamping(iDataUpdate, dDeltaT);
+	if (pGrid->HasRayleighFriction()) {
+		ApplyRayleighFriction(iDataUpdate, dDeltaT);
 	}
 }
 

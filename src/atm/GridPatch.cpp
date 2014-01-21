@@ -408,6 +408,24 @@ void GridPatch::InitializeDataLocal() {
 		m_box.GetBTotalWidth(),
 		m_box.GetHaloElements());
 
+	// Rayleigh friction strength
+	m_dataRayleighStrengthNode.Initialize(
+		DataType_None,
+		DataLocation_Node,
+		m_grid.GetRElements(),
+		m_box.GetATotalWidth(),
+		m_box.GetBTotalWidth(),
+		m_box.GetHaloElements());
+
+	// Rayleigh friction strength
+	m_dataRayleighStrengthREdge.Initialize(
+		DataType_None,
+		DataLocation_REdge,
+		m_grid.GetRElements(),
+		m_box.GetATotalWidth(),
+		m_box.GetBTotalWidth(),
+		m_box.GetHaloElements());
+
 }
 
 ///////////////////////////////////////////////////////////////////////////////

@@ -522,6 +522,13 @@ public:
 		return m_fHasReferenceState;
 	}
 
+	///	<summary>
+	///		Get the active Rayleigh friction flag.
+	///	</summary>
+	bool HasRayleighFriction() const {
+		return m_fHasRayleighFriction;
+	}
+
 public:
 	///	<summary>
 	///		Get the specified cumulative patch 2D node index.
@@ -666,6 +673,11 @@ protected:
 	///		Flag indicating whether or not a reference state is available.
 	///	</summary>
 	bool m_fHasReferenceState;
+
+	///	<summary>
+	///		Flag indicating whether or not Rayleigh friction is used.
+	///	</summary>
+	bool m_fHasRayleighFriction;
 
 private:
 	///	<summary>

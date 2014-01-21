@@ -805,6 +805,36 @@ public:
 		return m_dataDivergence;
 	}
 
+	///	<summary>
+	///		Get the Rayleigh friction strength.
+	///	</summary>
+	GridData3D & GetRayleighStrength(
+		DataLocation loc = DataLocation_Node
+	) {
+		if (loc == DataLocation_Node) {
+			return m_dataRayleighStrengthNode;
+		} else if (loc == DataLocation_REdge) {
+			return m_dataRayleighStrengthREdge;
+		} else {
+			_EXCEPTIONT("Invalid location");
+		}
+	}
+
+	///	<summary>
+	///		Get the Rayleigh friction strength.
+	///	</summary>
+	const GridData3D & GetRayleighStrength(
+		DataLocation loc = DataLocation_Node
+	) const {
+		if (loc == DataLocation_Node) {
+			return m_dataRayleighStrengthNode;
+		} else if (loc == DataLocation_REdge) {
+			return m_dataRayleighStrengthREdge;
+		} else {
+			_EXCEPTIONT("Invalid location");
+		}
+	}
+
 protected:
 	///	<summary>
 	///		Reference to parent grid.
@@ -995,6 +1025,17 @@ protected:
 	///		Computed divergence.
 	///	</summary>
 	GridData3D m_dataDivergence;
+
+	///	<summary>
+	///		Rayleigh friction strength on nodes.
+	///	</summary>
+	GridData3D m_dataRayleighStrengthNode;
+
+	///	<summary>
+	///		Rayleigh friction strength on interfaces.
+	///	</summary>
+	GridData3D m_dataRayleighStrengthREdge;
+
 };
 
 ///////////////////////////////////////////////////////////////////////////////

@@ -54,13 +54,6 @@ public:
 	}
 
 	///	<summary>
-	///		Flag indicating whether or not a reference state is available.
-	///	</summary>
-	virtual bool HasReferenceState() const {
-		return false;
-	}
-
-	///	<summary>
 	///		Obtain test case specific physical constants.
 	///	</summary>
 	virtual void EvaluatePhysicalConstants(
@@ -77,6 +70,31 @@ public:
 		double dLat
 	) const {
 		return 0.0;
+	}
+
+	///	<summary>
+	///		Flag indicating whether or not Rayleigh friction strength is given.
+	///	</summary>
+	virtual bool HasRayleighFriction() const {
+		return false;
+	}
+
+	///	<summary>
+	///		Evaluate the Rayleigh friction strength at the given point.
+	///	</summary>
+	virtual double EvaluateRayleighStrength(
+		double dZ,
+		double dLon,
+		double dLat
+	) const {
+		return 0.0;
+	}
+
+	///	<summary>
+	///		Flag indicating whether or not a reference state is available.
+	///	</summary>
+	virtual bool HasReferenceState() const {
+		return false;
 	}
 
 	///	<summary>

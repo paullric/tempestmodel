@@ -46,7 +46,8 @@ Grid::Grid(
 	m_nRElements(nRElements),
 	m_dZtop(1.0),
 	m_nDegreesOfFreedomPerColumn(0),
-	m_fHasReferenceState(false)
+	m_fHasReferenceState(false),
+	m_fHasRayleighFriction(false)
 {
 }
 
@@ -206,6 +207,9 @@ void Grid::EvaluateTestCase(
 
 	// Store the reference state flag
 	m_fHasReferenceState = test.HasReferenceState();
+
+	// Store the Rayleigh friction flag
+	m_fHasRayleighFriction = test.HasRayleighFriction();
 
 	// Evaluate the pointwise values of the test
 	for (int n = 0; n < m_vecActiveGridPatches.size(); n++) {

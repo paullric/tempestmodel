@@ -37,7 +37,8 @@ enum DataType {
 	DataType_Z,
 	DataType_Pressure,
 	DataType_Vorticity,
-	DataType_Divergence
+	DataType_Divergence,
+	DataType_None
 };
 
 ///////////////////////////////////////////////////////////////////////////////

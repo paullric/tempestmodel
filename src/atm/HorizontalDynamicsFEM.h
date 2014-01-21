@@ -52,24 +52,13 @@ public:
 		Model & model,
 		int nHorizontalOrder,
 		Type eHorizontalDynamicsType = SpectralElement,
-		bool fNoHyperdiffusion = false,
-		bool fNoRayleighDamping = false
+		bool fNoHyperdiffusion = false
 	);
 
 	///	<summary>
 	///		Initializer.
 	///	</summary>
 	virtual void Initialize();
-
-	///	<summary>
-	///		Set the Rayleigh damping parameters.
-	///	</summary>
-	void SetRayleighDamping(
-		double dNuRayleigh,
-		double dRayleighAlphaWidth,
-		double dRayleighBetaWidth,
-		double dRayleighDepth
-	);
 
 public:
 	///	<summary>
@@ -151,7 +140,7 @@ protected:
 	///	<summary>
 	///		Apply Rayleigh damping.
 	///	</summary>
-	void ApplyRayleighDamping(
+	void ApplyRayleighFriction(
 		int iDataUpdate,
 		double dDeltaT
 	);
@@ -242,11 +231,6 @@ private:
 	bool m_fNoHyperdiffusion;
 
 	///	<summary>
-	///		Flag indicating whether or not Rayleigh damping should be used.
-	///	</summary>
-	bool m_fNoRayleighDamping;
-
-	///	<summary>
 	///		Nodal pointwise gradient.
 	///	</summary>
 	DataMatrix3D<double> m_dGradient;
@@ -276,27 +260,6 @@ private:
 	///		Vortical hyperviscosity coefficient (at 1 degree resolution).
 	///	</summary>
 	double m_dNuVort;
-
-private:
-	///	<summary>
-	///		Rayleigh damping coefficient.
-	///	</summary>
-	double m_dNuRayleigh;
-
-	///	<summary>
-	///		Horizontal alpha thickness of Rayleigh damping layer.
-	///	</summary>
-	double m_dRayleighAlphaWidth;
-
-	///	<summary>
-	///		Horizontal beta thickness of Rayleigh damping layer.
-	///	</summary>
-	double m_dRayleighBetaWidth;
-
-	///	<summary>
-	///		Vertical depth of Rayleigh damping layer.
-	///	</summary>
-	double m_dRayleighDepth;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
