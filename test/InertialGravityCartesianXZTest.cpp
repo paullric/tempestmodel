@@ -414,6 +414,7 @@ try {
 		nVerticalOrder,
 		nVerticalHyperdiffOrder,
 		fFullyExplicitVertical,
+		true,
 		!fExnerPressureOnREdges,
 		fMassFluxOnLevels);
 

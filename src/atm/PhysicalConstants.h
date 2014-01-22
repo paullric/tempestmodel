@@ -390,6 +390,22 @@ public:
 		return exp(log(dPressure / m_dPressureScaling) / m_dGamma);
 	}
 
+public:
+	///	<summary>
+	///		Calculate the Exner pressure from potential temperature density.
+	///	</summary>
+	inline double ExnerPressureFromRhoTheta(double dRhoTheta) const {
+		return m_dCp * exp(m_dR / (m_dCp - m_dR) * log(m_dR / m_dP0 * dRhoTheta));
+	}
+
+	///	<summary>
+	///		Calculate the potential temperature density from the Exner
+	///		pressure.
+	///	</summary>
+	inline double RhoThetaFromExnerPressure(double dPi) const {
+		return m_dP0 / m_dR * exp((m_dCp - m_dR) / m_dR * log(dPi / m_dCp));
+	}
+
 #ifdef NETCDFENABLED
 public:
 	///	<summary>

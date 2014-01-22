@@ -375,7 +375,8 @@ try {
 		nHorizontalOrder,
 		nVerticalOrder,
 		nVerticalHyperdiffOrder,
-		fFullyExplicitVertical,
+		fFullyExplicitVertical, 
+		true,
 		!fExnerPressureOnREdges,
 		fMassFluxOnLevels);
 

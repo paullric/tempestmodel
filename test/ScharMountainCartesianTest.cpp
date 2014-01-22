@@ -117,11 +117,6 @@ private:
 	double m_dpiC;
 
 	///	<summary>
-	///		Flag indicating that the reference profile should not be used.
-	///	</summary>
-	bool m_fNoReferenceState;
-
-	///	<summary>
 	///		Flag indicating that Rayleigh friction is inactive.
 	///	</summary>
 	bool m_fNoRayleighFriction;
@@ -131,7 +126,6 @@ public:
 	///		Constructor. (with physical constants defined privately here)
 	///	</summary>
 	ScharMountainCartesianTest(
-		bool fNoReferenceState,
 		bool fNoRayleighFriction
 	) :
 		m_dH0(21000.),
@@ -143,7 +137,6 @@ public:
 		m_dhC(250.),
 		m_daC(5000.),
 		m_dlC(4000.),
-		m_fNoReferenceState(fNoReferenceState),
 		m_fNoRayleighFriction(fNoRayleighFriction)
 	{
 		// Set the dimensions of the box
@@ -243,7 +236,7 @@ public:
 	///		Flag indicating that a reference state is available.
 	///	</summary>
 	virtual bool HasReferenceState() const {
-		return !m_fNoReferenceState;
+		return true;
 	}
 
 	///	<summary>
@@ -457,6 +450,7 @@ try {
 		nVerticalOrder,
 		nVerticalHyperdiffOrder,
 		fFullyExplicitVertical,
+		!fNoReferenceState,
 		!fExnerPressureOnREdges,
 		fMassFluxOnLevels);
 
@@ -466,7 +460,7 @@ try {
 
 	// Generate a new cartesian GLL grid
 	// Initialize the test case here (to have grid dimensions available)
-	ScharMountainCartesianTest test(fNoReferenceState, fNoRayleighFriction);
+	ScharMountainCartesianTest test(fNoRayleighFriction);
 
 	AnnounceStartBlock("Constructing grid");
 	GridCartesianGLL grid(
@@ -515,7 +509,7 @@ try {
 	AnnounceEndBlock("Done");
 
 	// Set the test case for the model
-	ScharMountainCartesianTest ctest(fNoReferenceState, fNoRayleighFriction);
+	ScharMountainCartesianTest ctest(fNoRayleighFriction);
 	AnnounceStartBlock("Initializing test case");
 	model.SetTestCase(&ctest);
 	AnnounceEndBlock("Done");

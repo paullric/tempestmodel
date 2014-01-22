@@ -53,6 +53,7 @@ public:
 		int nVerticalOrder,
 		int nHyperdiffusionOrder = 0,
 		bool fFullyExplicit = false,
+		bool fUseReferenceState = true,
 		bool fExnerPressureOnLevels = true,
 		bool fMassFluxOnLevels = false
 	);
@@ -201,6 +202,12 @@ protected:
 	///		Execute vertical solve as fully explicit.
 	///	</summary>
 	bool m_fFullyExplicit;
+
+	///	<summary>
+	///		Use the background reference profile when computing vertical
+	///		derivatives.
+	///	</summary>
+	bool m_fUseReferenceState;
 
 	///	<summary>
 	///		Flag indicating that Exner pressure should be stored on model

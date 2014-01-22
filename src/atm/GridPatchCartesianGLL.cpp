@@ -141,8 +141,6 @@ void GridPatchCartesianGLL::EvaluateGeometricTerms() {
 		m_grid.GetREtaInterface(m_nVerticalOrder)
 		- m_grid.GetREtaInterface(0);
 
-	//std::cout << "Evaluating Metric Terms! \n";
-
 	// Initialize metric and Christoffel symbols in terrain-following coords
 	for (int a = 0; a < GetElementCountA(); a++) {
 	for (int b = 0; b < GetElementCountB(); b++) {
@@ -178,6 +176,20 @@ void GridPatchCartesianGLL::EvaluateGeometricTerms() {
 			double dDaaZs = 0.0;
 			double dDabZs = 0.0;
 			double dDbbZs = 0.0;
+
+			for (int s = 0; s < m_nHorizontalOrder; s++) {
+			for (int t = 0; t < m_nHorizontalOrder; t++) {
+				dDaaZs += dDxBasis1D[t][i] * dDxBasis1D[s][t]
+					* m_dataTopography[iElementA+s][iB];
+				dDabZs += dDxBasis1D[s][i] * dDxBasis1D[t][j]
+					* m_dataTopography[iElementA+s][iElementB+t];
+				dDbbZs += dDxBasis1D[t][j] * dDxBasis1D[s][t]
+					* m_dataTopography[iA][iElementB+s];
+			}
+			}
+			dDaaZs /= GetElementDeltaA() * GetElementDeltaA();
+			dDabZs /= GetElementDeltaA() * GetElementDeltaB();
+			dDbbZs /= GetElementDeltaB() * GetElementDeltaB();
 
 			#pragma message "FIX second derivatives"
 			// Initialize 2D Jacobian
@@ -980,6 +992,13 @@ void GridPatchCartesianGLL::InterpolateData(
 				pData = (const double ***)(double ***)(m_dataDivergence);
 			}
 
+			// Convert vertical velocity to primitive velocity separately
+			if ((eDataType == DataType_State) && (c == 3) &&
+				(fConvertToPrimitive)
+			) {
+				continue;
+			}
+
 			// Perform interpolation on all levels
 			for (int k = 0; k < nRElements; k++) {
 
@@ -1018,6 +1037,64 @@ void GridPatchCartesianGLL::InterpolateData(
 						}
 						}
 					}
+				}
+			}
+		}
+
+		// Convert coordinate vertical velocity to vertical velocity
+		if ((eDataType == DataType_State) &&
+			(fConvertToPrimitive) &&
+			(nComponents > 3)
+		) {
+			if ((eDataLocation == DataLocation_Node) &&
+				(m_grid.GetVarLocation(3) == DataLocation_Node)
+			) {
+				for (int k = 0; k < nRElements; k++) {
+				for (int m = 0; m < m_nHorizontalOrder; m++) {
+				for (int n = 0; n < m_nHorizontalOrder; n++) {
+					double dUa = m_datavecStateNode[0][0][k][iA+m][iB+n];
+					double dUb = m_datavecStateNode[0][1][k][iA+m][iB+n];
+					double dUx = m_datavecStateNode[0][3][k][iA+m][iB+n];
+
+					double dDomainHeight =
+						m_grid.GetZtop() - m_dataTopography[iA+m][iB+n];
+
+					double dUr = dDomainHeight * (dUx
+						- m_dataContraMetricXi[k][iA+m][iB+n][0] * dUa
+						- m_dataContraMetricXi[k][iA+m][iB+n][1] * dUb);
+
+					dInterpData[3][k][i] +=
+						  dAInterpCoeffs[m]
+						* dBInterpCoeffs[n]
+						* dUr;
+				}
+				}
+				}
+
+			} else if (
+				(eDataLocation == DataLocation_REdge) &&
+				(m_grid.GetVarLocation(3) == DataLocation_REdge)
+			) {
+				for (int k = 0; k < nRElements; k++) {
+				for (int m = 0; m < m_nHorizontalOrder; m++) {
+				for (int n = 0; n < m_nHorizontalOrder; n++) {
+					double dUa = m_datavecStateREdge[0][0][k][iA+m][iB+n];
+					double dUb = m_datavecStateREdge[0][1][k][iA+m][iB+n];
+					double dUx = m_datavecStateREdge[0][3][k][iA+m][iB+n];
+
+					double dDomainHeight =
+						m_grid.GetZtop() - m_dataTopography[iA+m][iB+n];
+
+					double dUr = dDomainHeight * (dUx
+						- m_dataContraMetricXi[k][iA+m][iB+n][0] * dUa
+						- m_dataContraMetricXi[k][iA+m][iB+n][1] * dUb);
+
+					dInterpData[3][k][i] +=
+						  dAInterpCoeffs[m]
+						* dBInterpCoeffs[n]
+						* dUr;
+				}
+				}
 				}
 			}
 		}

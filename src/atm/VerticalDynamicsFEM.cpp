@@ -34,6 +34,7 @@ VerticalDynamicsFEM::VerticalDynamicsFEM(
 	int nVerticalOrder,
 	int nHyperdiffusionOrder,
 	bool fFullyExplicit,
+	bool fUseReferenceState,
 	bool fExnerPressureOnLevels,
 	bool fMassFluxOnLevels
 ) :
@@ -41,6 +42,7 @@ VerticalDynamicsFEM::VerticalDynamicsFEM(
 	m_nHorizontalOrder(nHorizontalOrder),
 	m_nVerticalOrder(nVerticalOrder),
 	m_fFullyExplicit(fFullyExplicit),
+	m_fUseReferenceState(fUseReferenceState),
 	m_fExnerPressureOnLevels(fExnerPressureOnLevels),
 	m_fMassFluxOnLevels(fMassFluxOnLevels),
 	m_nHyperdiffusionOrder(nHyperdiffusionOrder),
@@ -366,10 +368,9 @@ void VerticalDynamicsFEM::Initialize() {
 			// Initialize reference Exner pressure at model levels
 			for (int k = 0; k < nRElements; k++) {
 				dataExnerNode[k][i][j] =
-					phys.GetCp() * exp(phys.GetR() / phys.GetCv()
-						* log(phys.GetR() / phys.GetP0()
-							* dataRefNode[TIx][k][i][j]
-							* dataRefNode[RIx][k][i][j]));
+					phys.ExnerPressureFromRhoTheta(
+						  dataRefNode[TIx][k][i][j]
+						* dataRefNode[RIx][k][i][j]);
 
 				m_dExnerRefNode[k] = dataExnerNode[k][i][j];
 			}
@@ -377,10 +378,9 @@ void VerticalDynamicsFEM::Initialize() {
 			// Initialize reference Exner pressure at model interfaces
 			for (int k = 0; k <= nRElements; k++) {
 				dataExnerREdge[k][i][j] =
-					phys.GetCp() * exp(phys.GetR() / phys.GetCv()
-						* log(phys.GetR() / phys.GetP0()
-							* dataRefREdge[TIx][k][i][j]
-							* dataRefREdge[RIx][k][i][j]));
+					phys.ExnerPressureFromRhoTheta(
+						  dataRefREdge[TIx][k][i][j]
+						* dataRefREdge[RIx][k][i][j]);
 
 				m_dExnerRefREdge[k] = dataExnerREdge[k][i][j];
 			}
@@ -542,24 +542,26 @@ void VerticalDynamicsFEM::SetupReferenceColumn(
 	}
 
 	// Construct reference column
-	for (int k = 0; k < pGrid->GetRElements(); k++) {
-		m_dStateRefNode[RIx][k] = dataRefNode[RIx][k][iA][iB];
-		m_dStateRefNode[TIx][k] = dataRefNode[TIx][k][iA][iB];
-	}
-	for (int k = 0; k <= pGrid->GetRElements(); k++) {
-		m_dStateRefREdge[RIx][k] = dataRefREdge[RIx][k][iA][iB];
-		m_dStateRefREdge[TIx][k] = dataRefREdge[TIx][k][iA][iB];
-	}
+	if (m_fUseReferenceState) {
+		for (int k = 0; k < pGrid->GetRElements(); k++) {
+			m_dStateRefNode[RIx][k] = dataRefNode[RIx][k][iA][iB];
+			m_dStateRefNode[TIx][k] = dataRefNode[TIx][k][iA][iB];
+		}
+		for (int k = 0; k <= pGrid->GetRElements(); k++) {
+			m_dStateRefREdge[RIx][k] = dataRefREdge[RIx][k][iA][iB];
+			m_dStateRefREdge[TIx][k] = dataRefREdge[TIx][k][iA][iB];
+		}
 
-	// Build the Exner pressure reference
-	for (int k = 0; k < pGrid->GetRElements(); k++) {
-		m_dExnerRefNode[k] = dataExnerNode[k][iA][iB];
-		m_dDiffExnerRefNode[k] = dataDiffExnerNode[k][iA][iB];
-	}
+		// Build the Exner pressure reference
+		for (int k = 0; k < pGrid->GetRElements(); k++) {
+			m_dExnerRefNode[k] = dataExnerNode[k][iA][iB];
+			m_dDiffExnerRefNode[k] = dataDiffExnerNode[k][iA][iB];
+		}
 
-	for (int k = 0; k <= pGrid->GetRElements(); k++) {
-		m_dExnerRefREdge[k] = dataExnerREdge[k][iA][iB];
-		m_dDiffExnerRefREdge[k] = dataDiffExnerREdge[k][iA][iB];
+		for (int k = 0; k <= pGrid->GetRElements(); k++) {
+			m_dExnerRefREdge[k] = dataExnerREdge[k][iA][iB];
+			m_dDiffExnerRefREdge[k] = dataDiffExnerREdge[k][iA][iB];
+		}
 	}
 
 	// Copy over the contravariant metric components
@@ -1564,10 +1566,9 @@ void VerticalDynamicsFEM::BuildF(
 	if (m_fExnerPressureOnLevels) {
 		for (int k = 0; k < nRElements; k++) {
 			m_dExnerPertNode[k] =
-				phys.GetCp() * exp(phys.GetR() / phys.GetCv()
-					* log(phys.GetR() / phys.GetP0()
-						* m_dStateNode[RIx][k]
-						* m_dStateNode[TIx][k]));
+				phys.ExnerPressureFromRhoTheta(
+					  m_dStateNode[RIx][k]
+					* m_dStateNode[TIx][k]);
 
 			m_dExnerPertNode[k] -= m_dExnerRefNode[k];
 		}
@@ -1589,10 +1590,9 @@ void VerticalDynamicsFEM::BuildF(
 	} else {
 		for (int k = 0; k <= nRElements; k++) {
 			m_dExnerPertREdge[k] =
-				phys.GetCp() * exp(phys.GetR() / phys.GetCv()
-					* log(phys.GetR() / phys.GetP0()
-						* m_dStateREdge[RIx][k]
-						* m_dStateREdge[TIx][k]));
+				phys.ExnerPressureFromRhoTheta(
+					  m_dStateREdge[RIx][k]
+					* m_dStateREdge[TIx][k]);
 
 			m_dExnerPertREdge[k] -= m_dExnerRefREdge[k];
 		}
@@ -1638,7 +1638,7 @@ void VerticalDynamicsFEM::BuildF(
 
 		// If no vertical reference state is specified,
 		// gravity must be included
-		if (!pGrid->HasReferenceState()) {
+		if (!m_fUseReferenceState) {
 			for (int k = 1; k < nRElements; k++) {
 				dF[VecFIx(FWIx, k)] += phys.GetG() / m_dDomainHeight;
 			}
@@ -1668,7 +1668,7 @@ void VerticalDynamicsFEM::BuildF(
 
 		// If no vertical reference state is specified,
 		// gravity must be included
-		if (!pGrid->HasReferenceState()) {
+		if (!m_fUseReferenceState) {
 			for (int k = 0; k < nRElements; k++) {
 				dF[VecFIx(FWIx, k)] += phys.GetG() / m_dDomainHeight;
 			}

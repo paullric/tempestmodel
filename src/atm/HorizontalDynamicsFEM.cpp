@@ -618,6 +618,11 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 			if (pGrid->GetVarLocation(TIx) == DataLocation_REdge) {
 				pPatch->InterpolateREdgeToNode(TIx, iDataInitial);
 			}
+			if ((pGrid->GetVarLocation(TIx) == DataLocation_Node) &&
+				(pGrid->GetVarLocation(WIx) == DataLocation_REdge)
+			) {
+				pPatch->InterpolateNodeToREdge(TIx, iDataInitial);
+			}
 
 			// Interpolate U, V and Rho to model interfaces
 			if ((pGrid->GetVarLocation(RIx) == DataLocation_Node) &&
@@ -656,9 +661,9 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 		for (int j = box.GetBInteriorBegin(); j < box.GetBInteriorEnd(); j++) {
 			for (int k = 0; k < pGrid->GetRElements(); k++) {
 				m_dColumnPressure[k] =
-					phys.PressureFromRhoTheta(
-							dataInitialNode[RIx][k][i][j]
-							* dataInitialNode[TIx][k][i][j]);
+					phys.ExnerPressureFromRhoTheta(
+						  dataInitialNode[RIx][k][i][j]
+						* dataInitialNode[TIx][k][i][j]);
 
 				dataPressure[k][i][j] = m_dColumnPressure[k];
 			}
@@ -828,13 +833,13 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 						( dContraMetricA[k][iA][iB][0] * dDaP
 						+ dContraMetricA[k][iA][iB][1] * dDbP
 						+ dContraMetricA[k][iA][iB][2] * dDxP)
-							/ dataInitialNode[RIx][k][iA][iB];
+							* dataInitialNode[TIx][k][iA][iB];
 
 				dLocalUpdateUb -=
 						( dContraMetricB[k][iA][iB][0] * dDaP
 						+ dContraMetricB[k][iA][iB][1] * dDbP
 						+ dContraMetricB[k][iA][iB][2] * dDxP)
-							/ dataInitialNode[RIx][k][iA][iB];
+							* dataInitialNode[TIx][k][iA][iB];
 /*
 				if ((k < 2) && (iA == 91) && (iB == 1)) {
 					printf("%i %1.10e %1.10e : %1.10e\n", k,
@@ -913,7 +918,7 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 					double dPressureXi =
 						( dContraMetricXi[k][iA][iB][0] * dDaP
 						+ dContraMetricXi[k][iA][iB][1] * dDbP)
-							/ dataInitialNode[RIx][k][iA][iB];
+							* dataInitialNode[TIx][k][iA][iB];
 
 					dataUpdateNode[WIx][k][iA][iB] -=
 						dDeltaT * dPressureXi;
@@ -1044,7 +1049,7 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 							* m_dColumnDaPressureREdge[k]
 						+ dContraMetricXi[k][iA][iB][1]
 							* m_dColumnDbPressureREdge[k]
-						) / dataInitialREdge[RIx][k][iA][iB];
+						) * dataInitialREdge[TIx][k][iA][iB];
 
 					dataUpdateREdge[WIx][k][iA][iB] -=
 						dDeltaT * dPressureXi;
