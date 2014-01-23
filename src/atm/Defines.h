@@ -30,6 +30,7 @@
 ///	<summary>
 ///		Jacobian storage form
 ///	</summary>
+//#define USE_JACOBIAN_DEBUG
 //#define USE_JACOBIAN_GENERAL
 #define USE_JACOBIAN_DIAGONAL
 

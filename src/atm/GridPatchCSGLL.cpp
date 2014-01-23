@@ -352,8 +352,7 @@ void GridPatchCSGLL::EvaluateGeometricTerms() {
 			m_dataContraMetricB[k][iA][iB][2] =
 				- dContraMetricScale / dDxR * (
 					dX * dY * dDaR + (1.0 + dX * dX) * dDbR);
-
-#pragma message "Move these terms to the REdge evaluation when W is on interfaces"
+/*
 			m_dataContraMetricXi[k][iA][iB][0] = 
 				- dContraMetricScale / dDxR
 					* ((1.0 + dY * dY) * dDaR + dX * dY * dDbR);
@@ -391,6 +390,16 @@ void GridPatchCSGLL::EvaluateGeometricTerms() {
 			m_dataChristoffelXi[k][iA][iB][3] /= dDxR;
 			m_dataChristoffelXi[k][iA][iB][4] /= dDxR;
 			m_dataChristoffelXi[k][iA][iB][5] /= dDxR;
+*/
+			// Orthonormalization coefficients
+			m_dataOrthonormNode[k][iA][iB][0] =
+				- (1.0 - dREta) * dDaZs / (m_grid.GetZtop() - dZs);
+
+			m_dataOrthonormNode[k][iA][iB][1] =
+				- (1.0 - dREta) * dDbZs / (m_grid.GetZtop() - dZ);
+
+			m_dataOrthonormNode[k][iA][iB][2] =
+				1.0 / (m_grid.GetZtop() - dZs);
 		}
 
 		// Metric terms at vertical interfaces
@@ -423,6 +432,17 @@ void GridPatchCSGLL::EvaluateGeometricTerms() {
 			if ((k != 0) && (k != m_grid.GetRElements()) && (kx == 0)) {
 				m_dataElementAreaREdge[k][iA][iB] *= 2.0;
 			}
+
+			// Orthonormalization coefficients
+			m_dataOrthonormREdge[k][iA][iB][0] =
+				- (1.0 - dREta) * dDaZs / (m_grid.GetZtop() - dZs);
+
+			m_dataOrthonormREdge[k][iA][iB][1] =
+				- (1.0 - dREta) * dDbZs / (m_grid.GetZtop() - dZs);
+
+			m_dataOrthonormREdge[k][iA][iB][2] =
+				1.0 / (m_grid.GetZtop() - dZs);
+
 		}
 	}
 	}

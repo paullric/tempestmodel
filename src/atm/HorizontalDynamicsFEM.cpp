@@ -901,7 +901,7 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 					// Update vertical velocity
 					dataUpdateNode[WIx][k][iA][iB] -=
 						dDeltaT * (dUa * dDaUx + dUb * dDbUx);
-
+/*
 					// Curvature terms
 					double dCurvatureXi =
 						+ dChristoffelXi[k][iA][iB][0] * dUa * dUa
@@ -922,6 +922,7 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 
 					dataUpdateNode[WIx][k][iA][iB] -=
 						dDeltaT * dPressureXi;
+*/
 /*
 					if ((iA == 41) && (iB == 1)) {
 						printf("(k = %i) Advection: %1.10e\n", k, dUa * dDaUx);
@@ -1030,7 +1031,7 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 					// Update vertical velocity
 					dataUpdateREdge[WIx][k][iA][iB] -=
 						dDeltaT * (dUaREdge * dDaUx + dUbREdge * dDbUx);
-
+/*
 					// Curvature terms
 					double dCurvatureXi =
 						+ dChristoffelXi[k][iA][iB][0] * dUaREdge * dUaREdge
@@ -1053,6 +1054,7 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 
 					dataUpdateREdge[WIx][k][iA][iB] -=
 						dDeltaT * dPressureXi;
+*/
 				}
 
 				// Update the potential temperature (on model interfaces)

@@ -259,7 +259,7 @@ void GridPatchCartesianGLL::EvaluateGeometricTerms() {
 					m_dataContraMetric2DB[iA][iB][1];
 				m_dataContraMetricB[k][iA][iB][2] =
 					- dDbZ / dDxZ;
-
+/*
 				// Store terms relevant to W evolution equation
 				if (m_grid.GetVarLocation(3) == DataLocation_Node) {
 					// Contravariant metric components
@@ -286,6 +286,17 @@ void GridPatchCartesianGLL::EvaluateGeometricTerms() {
 					m_dataChristoffelXi[k][iA][iB][4] /= dDxZ;
 					m_dataChristoffelXi[k][iA][iB][5] /= dDxZ;
 				}
+*/
+
+				// Orthonormalization coefficients
+				m_dataOrthonormNode[k][iA][iB][0] =
+					- (1.0 - dREta) * dDaZs / (m_grid.GetZtop() - dZs);
+
+				m_dataOrthonormNode[k][iA][iB][1] =	
+					- (1.0 - dREta) * dDbZs / (m_grid.GetZtop() - dZ);
+
+				m_dataOrthonormNode[k][iA][iB][2] =
+					1.0 / (m_grid.GetZtop() - dZs);
 			}
 
 			// Metric terms at vertical interfaces
@@ -322,7 +333,7 @@ void GridPatchCartesianGLL::EvaluateGeometricTerms() {
 				if ((k != 0) && (k != m_grid.GetRElements()) && (kx == 0)) {
 					m_dataElementAreaREdge[k][iA][iB] *= 2.0;
 				}
-
+/*
 				// Store terms relevant to W evolution equation
 				if (m_grid.GetVarLocation(3) == DataLocation_REdge) {
 					// Contravariant metric components
@@ -349,6 +360,18 @@ void GridPatchCartesianGLL::EvaluateGeometricTerms() {
 					m_dataChristoffelXi[k][iA][iB][4] /= dDxZ;
 					m_dataChristoffelXi[k][iA][iB][5] /= dDxZ;
 				}
+*/
+
+				// Orthonormalization coefficients
+				m_dataOrthonormREdge[k][iA][iB][0] =
+					- (1.0 - dREta) * dDaZs / (m_grid.GetZtop() - dZs);
+
+				m_dataOrthonormREdge[k][iA][iB][1] =
+					- (1.0 - dREta) * dDbZs / (m_grid.GetZtop() - dZs);
+
+				m_dataOrthonormREdge[k][iA][iB][2] =
+					1.0 / (m_grid.GetZtop() - dZs);
+
 			}
 		}
 		}
@@ -991,14 +1014,14 @@ void GridPatchCartesianGLL::InterpolateData(
 			} else if (eDataType == DataType_Divergence) {
 				pData = (const double ***)(double ***)(m_dataDivergence);
 			}
-
+/*
 			// Convert vertical velocity to primitive velocity separately
 			if ((eDataType == DataType_State) && (c == 3) &&
 				(fConvertToPrimitive)
 			) {
 				continue;
 			}
-
+*/
 			// Perform interpolation on all levels
 			for (int k = 0; k < nRElements; k++) {
 
@@ -1040,7 +1063,7 @@ void GridPatchCartesianGLL::InterpolateData(
 				}
 			}
 		}
-
+/*
 		// Convert coordinate vertical velocity to vertical velocity
 		if ((eDataType == DataType_State) &&
 			(fConvertToPrimitive) &&
@@ -1098,6 +1121,7 @@ void GridPatchCartesianGLL::InterpolateData(
 				}
 			}
 		}
+*/
 	}
 }
 

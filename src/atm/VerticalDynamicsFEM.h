@@ -31,6 +31,7 @@
 #include <petscsnes.h>
 #endif
 
+class GridPatch;
 class Time;
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -82,8 +83,11 @@ protected:
 	///		Get the index of the component and level of the F vector.
 	///	</summary>
 	inline int VecFIx(FComp c, int k) {
-		//return (51*c+k);
+#if defined(USE_JACOBIAN_DEBUG)
+		return (41*c+k);
+#else
 		return (3*k + c);
+#endif
 	}
 
 	///	<summary>
@@ -91,13 +95,15 @@ protected:
 	///		Note:  Is composed using Fortran ordering.
 	///	</summary>
 	inline int MatFIx(FComp c0, int k0, FComp c1, int k1) {
-		//return (m_nColumnStateSize * (51*c0 + k0) + (51*c1 + k1));
-#ifdef USE_JACOBIAN_GENERAL 
+#if defined(USE_JACOBIAN_DEBUG)
+		return (m_nColumnStateSize * (41*c0 + k0) + (41*c1 + k1));
+#elif defined(USE_JACOBIAN_GENERAL)
 		return (m_nColumnStateSize * (3*k0 + c0) + (3*k1 + c1));
-#endif
-#ifdef USE_JACOBIAN_DIAGONAL 
+#elif defined(USE_JACOBIAN_DIAGONAL)
 		return (2 * m_nJacobianFKL + (3*k1 + c1) - (3*k0 + c0))
 			+ m_nColumnStateSize * (3*k0 + c0);
+#else
+		_EXCEPTION();
 #endif
 	}
 
@@ -115,6 +121,7 @@ public:
 	///		Setup the reference column.
 	///	</summary>
 	void SetupReferenceColumn(
+		GridPatch * pPatch,
 		int iA,
 		int iB,
 		const DataMatrix<double> & dataTopography,
@@ -242,16 +249,26 @@ protected:
 	double m_dDomainHeight;
 
 	///	<summary>
+	///		Pointer to active patch.
+	///	</summary>
+	GridPatch * m_pPatch;
+
+	///	<summary>
+	///		Active alpha index on m_pPatch.
+	///	</summary>
+	int m_iA;
+
+	///	<summary>
+	///		Active beta index on m_pPatch.
+	///	</summary>
+	int m_iB;
+
+	///	<summary>
 	///		Number of degrees of freedom in vertical solution vector.
 	///	</summary>
 	int m_nColumnStateSize;
 
 protected:
-	///	<summary>
-	///		Column of contravariant metric components.
-	///	</summary>
-	DataVector<double> m_dColumnContraMetricXiXi;
-
 	///	<summary>
 	///		State variable column.
 	///	</summary>
@@ -286,6 +303,16 @@ protected:
 	///		Derivative of auxiliary state, used by StepExplicit.
 	///	</summary>
 	DataVector<double> m_dStateAuxDiff;
+
+	///	<summary>
+	///		Velocity across xi surfaces (xi_dot) at nodes.
+	///	</summary>
+	DataVector<double> m_dXiDotNode;
+
+	///	<summary>
+	///		Velocity across xi surfaces (xi_dot) at interfaces.
+	///	</summary>
+	DataVector<double> m_dXiDotREdge;
 
 	///	<summary>
 	///		Auxiliary storage for derivative of theta.
