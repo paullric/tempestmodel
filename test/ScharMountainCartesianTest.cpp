@@ -219,7 +219,7 @@ public:
 			dNuRight = 0.5 * dRayleighStrength * (1.0 + cos(M_PI * dNormX));
 		}
 		if (dXp < m_dGDim[0] + dRayleighWidth) {
-			double dNormX = 1.0 - (dXp - m_dGDim[0]) / dRayleighWidth;
+			double dNormX = (dXp - m_dGDim[0]) / dRayleighWidth;
 			dNuLeft = 0.5 * dRayleighStrength * (1.0 + cos(M_PI * dNormX));
 		}
 
