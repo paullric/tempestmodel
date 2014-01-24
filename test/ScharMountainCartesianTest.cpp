@@ -62,26 +62,6 @@ private:
 	double m_dU0;
 
 	///	<summary>
-	///		Reference surface pressure.
-	///	</summary>
-	double m_dP0;
-
-	///	<summary>
-	///		Specific heat of air at constant pressure.
-	///	</summary>
-	double m_dCp;
-
-	///	<summary>
-	///		Specific heat of air at constant volume.
-	///	</summary>
-	double m_dCv;
-
-	///	<summary>
-	///		Gas constant of air.
-	///	</summary>
-	double m_dR;
-
-	///	<summary>
 	///		Brunt-Vaisala frequency
 	///	</summary>
 	double m_dNbar;
@@ -130,7 +110,6 @@ public:
 	) :
 		m_dH0(21000.),
 		m_dU0(10.0),
-		m_dP0(1.0E5),
 		m_dNbar(0.01),
 		m_dTheta0(280.0),
 		m_dThetaC(1.0),
@@ -253,6 +232,7 @@ public:
 		const double dCv = phys.GetCv();
 		const double dCp = phys.GetCp();
 		const double dRd = phys.GetR();
+		const double dP0 = phys.GetP0();
 
 		// Base potential temperature field
 		double dThetaBar = m_dTheta0 * exp(m_dNbar * m_dNbar / dG * dZp);
@@ -269,7 +249,7 @@ public:
 		double dExnerP = (dG * dG) / (dCp * m_dTheta0 * m_dNbar * m_dNbar);
 		dExnerP *= (exp(-m_dNbar * m_dNbar / dG * dZp) - 1.0);
 		dExnerP += 1.0;
-		double dRho = m_dP0 / (dRd * dThetaBar) * pow(dExnerP,(dCv / dRd));
+		double dRho = dP0 / (dRd * dThetaBar) * pow(dExnerP,(dCv / dRd));
 		dState[4] = dRho;
 	}
 
@@ -289,6 +269,7 @@ public:
 		const double dCv = phys.GetCv();
 		const double dCp = phys.GetCp();
 		const double dRd = phys.GetR();
+		const double dP0 = phys.GetP0();
 
 		// Base potential temperature field
 		double dThetaBar = m_dTheta0 * exp(m_dNbar * m_dNbar / dG * dZp);
@@ -305,7 +286,7 @@ public:
 		double dExnerP = (dG * dG) / (dCp * m_dTheta0 * m_dNbar * m_dNbar);
 		dExnerP *= (exp(-m_dNbar * m_dNbar / dG * dZp) - 1.0);
 		dExnerP += 1.0;
-		double dRho = m_dP0 / (dRd * dThetaBar) * pow(dExnerP,(dCv / dRd));
+		double dRho = dP0 / (dRd * dThetaBar) * pow(dExnerP,(dCv / dRd));
 		dState[4] = dRho;
 	}
 };
@@ -379,19 +360,19 @@ try {
 		CommandLineString(strOutputPrefix, "output_prefix", "out");
 		CommandLineInt(nOutputsPerFile, "output_perfile", -1);
 		CommandLineString(params.m_strRestartFile, "restart_file", "");
-		CommandLineInt(nResolution, "resolution", 20);
-		CommandLineInt(nLevels, "levels", 40);
+		CommandLineInt(nResolution, "resolution", 48);
+		CommandLineInt(nLevels, "levels", 48);
 		CommandLineInt(nHorizontalOrder, "order", 4);
 		CommandLineInt(nVerticalOrder, "vertorder", 4);
 		CommandLineDouble(dAlpha, "alpha", 0.0);
-		CommandLineDouble(params.m_dDeltaT, "dt", 0.5);
+		CommandLineDouble(params.m_dDeltaT, "dt", 0.1);
 		CommandLineDouble(params.m_dEndTime, "endtime", 3600.0);
-		CommandLineDouble(dOutputDeltaT, "outputtime", 600.0);
+		CommandLineDouble(dOutputDeltaT, "outputtime", 300.0);
 		CommandLineStringD(strHorizontalDynamics, "method", "SE", "(SE | DG)");
 		CommandLineBool(fNoHyperviscosity, "nohypervis");
 		CommandLineBool(fNoRayleighFriction, "norayleigh");
 		CommandLineBool(fNoReferenceState, "norefstate");
-		CommandLineInt(nVerticalHyperdiffOrder, "verticaldifforder", 0);
+		CommandLineInt(nVerticalHyperdiffOrder, "verticaldifforder", 2);
 		CommandLineBool(fFullyExplicitVertical, "explicitvertical");
 		CommandLineBool(fExnerPressureOnREdges, "exneredges");
 		CommandLineBool(fMassFluxOnLevels, "massfluxlevels");

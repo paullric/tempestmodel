@@ -1,8 +1,8 @@
 ///////////////////////////////////////////////////////////////////////////////
 ///
-///	\file    InertialGravityCartesianXZTest.cpp
+///	\file    HydrostaticMountainCartesianTest.cpp
 ///	\author  Paul Ullrich, Jorge Guerra
-///	\version October 2, 2013
+///	\version January 23, 2014
 ///
 ///	<remarks>
 ///		Copyright 2000-2010 Paul Ullrich
@@ -19,7 +19,7 @@
 #include "STLStringHelper.h"
 
 #include "Model.h"
-#include "TimestepSchemeARK4.h"
+#include "TimestepSchemeStrang.h"
 #include "HorizontalDynamicsFEM.h"
 #include "VerticalDynamicsFEM.h"
 
@@ -40,9 +40,9 @@
 ///	<summary>
 ///		Giraldo et al. (2007)
 ///
-///		Intertia-gravity waves test case.
+///		Hydrostatic Mountain Uniform Flow test case.
 ///	</summary>
-class InertialGravityCartesianXZTest : public TestCase {
+class HydrostaticMountainCartesianTest : public TestCase {
 
 public:
 	/// <summary>
@@ -52,9 +52,9 @@ public:
 
 private:
 	///	<summary>
-	///		Background height field.
+	///		Background temperature field.
 	///	</summary>
-	double m_dH0;
+	double m_dT0;
 
 	///	<summary>
 	///		Uniform +X flow field.
@@ -62,24 +62,14 @@ private:
 	double m_dU0;
 
 	///	<summary>
-	///		Brunt-Vaisala frequency
-	///	</summary>
-	double m_dNbar;
-
-	///	<summary>
-	///		Reference pontential temperature
-	///	</summary>
-	double m_dTheta0;
-
-	///	<summary>
-	///		Parameter factor for temperature disturbance
-	///	</summary>
-	double m_dThetaC;
-
-	///	<summary>
 	///		Parameter reference height for temperature disturbance
 	///	</summary>
 	double m_dhC;
+
+	///	<summary>
+	///		Parameter reference length for temperature disturbance
+	///	</summary>
+	double m_dxC;
 
 	///	<summary>
 	///		Parameter reference length a for temperature disturbance
@@ -87,45 +77,36 @@ private:
 	double m_daC;
 
 	///	<summary>
-	///		Parameter reference length x for temperature disturbance
-	///	</summary>
-	double m_dxC;
-
-	///	<summary>
 	///		Parameter Archimede's Constant (essentially Pi but to some digits)
 	///	</summary>
 	double m_dpiC;
 
 	///	<summary>
-	///		Flag indicating that the reference profile should be used.
+	///		Flag indicating that Rayleigh friction is inactive.
 	///	</summary>
-	bool m_fNoReferenceState;
+	bool m_fNoRayleighFriction;
 
 public:
 	///	<summary>
 	///		Constructor. (with physical constants defined privately here)
 	///	</summary>
-	InertialGravityCartesianXZTest(
-		bool fNoReferenceState
+	HydrostaticMountainCartesianTest(
+		bool fNoRayleighFriction
 	) :
-		m_dH0(10000.),
-		m_dU0(20.),
-		m_dNbar(0.01),
-		m_dTheta0(300.0),
-		m_dThetaC(1.0),
-		m_dhC(10000.),
-		m_daC(5000.),
-		m_dxC(1.0E+5),
-		m_dpiC(3.14159265),
-		m_fNoReferenceState(fNoReferenceState)
+		m_dT0(250.),
+		m_dU0(20.0),
+		m_dhC(1.0),
+		m_dxC(120000.),
+		m_daC(10000.),
+		m_fNoRayleighFriction(fNoRayleighFriction)
 	{
 		// Set the dimensions of the box
 		m_dGDim[0] = 0.0;
-		m_dGDim[1] = 300000.0;
-		m_dGDim[2] = -100000.0;
-		m_dGDim[3] = 100000.0;
+		m_dGDim[1] = 240000.0;
+		m_dGDim[2] = -1000.0;
+		m_dGDim[3] = 1000.0;
 		m_dGDim[4] = 0.0;
-		m_dGDim[5] = 10000.0;
+		m_dGDim[5] = 30000.0;
 	}
 
 public:
@@ -144,13 +125,6 @@ public:
 	}
 
 	///	<summary>
-	///		Flag indicating that a reference state is available.
-	///	</summary>
-	virtual bool HasReferenceState() const {
-		return !m_fNoReferenceState;
-	}
-
-	///	<summary>
 	///		Obtain test case specific physical constants.
 	///	</summary>
 	virtual void EvaluatePhysicalConstants(
@@ -163,30 +137,67 @@ public:
 	///		Evaluate the topography at the given point. (cartesian version)
 	///	</summary>
 	virtual double EvaluateTopography(
-	   double dxp,
-	   double dyp
+       const PhysicalConstants & phys,
+	   double dXp,
+	   double dYp
 	) const {
-		// This test case has no topography associated with it
-		return 0.0;
+		// Specify the Hydrostatic Mountain (case 6 from Giraldo et al. 2008)
+		double hsm = m_dhC / (1.0 + ((dXp - m_dxC)/m_daC) *
+                                    ((dXp - m_dxC)/m_daC));
+        //std::cout << hsm << "\n";
+		return hsm;
 	}
 
 	///	<summary>
-	///		Evaluate the potential temperature field perturbation.
+	///		Flag indicating whether or not Rayleigh friction strength is given.
 	///	</summary>
-	double EvaluateTPrime(
-		const PhysicalConstants & phys,
+	virtual bool HasRayleighFriction() const {
+		return !m_fNoRayleighFriction;
+	}
+
+	///	<summary>
+	///		Evaluate the Rayleigh friction strength at the given point.
+	///	</summary>
+	virtual double EvaluateRayleighStrength(
+		double dZ,
 		double dXp,
-		double dZp
+		double dYp
 	) const {
-		double dG = phys.GetG();
+		const double dRayleighStrength = 8.0e-3;
+		const double dRayleighDepth = 10000.0;
+		const double dRayleighWidth = 10000.0;
 
-		// Potential temperature perturbation
-		double dThetaHat1 = m_dThetaC * sin(m_dpiC * dZp / m_dhC);
-		double argX = (dXp - m_dxC)/m_daC;
-		double dThetaHat2 = (1.0 + argX * argX);
-		double dThetaHat = dThetaHat1 / dThetaHat2;
+		double dNuDepth = 0.0;
+		double dNuRight = 0.0;
+		double dNuLeft  = 0.0;
 
-		return dThetaHat;
+		if (dZ > m_dGDim[5] - dRayleighDepth) {
+			double dNormZ = (m_dGDim[5] - dZ) / dRayleighDepth;
+			dNuDepth = 0.5 * dRayleighStrength * (1.0 + cos(M_PI * dNormZ));
+		}
+		if (dXp > m_dGDim[1] - dRayleighWidth) {
+			double dNormX = (m_dGDim[1] - dXp) / dRayleighWidth;
+			dNuRight = 0.5 * dRayleighStrength * (1.0 + cos(M_PI * dNormX));
+		}
+		if (dXp < m_dGDim[0] + dRayleighWidth) {
+			double dNormX = 1.0 - (dXp - m_dGDim[0]) / dRayleighWidth;
+			dNuLeft = 0.5 * dRayleighStrength * (1.0 + cos(M_PI * dNormX));
+		}
+
+		if ((dNuDepth >= dNuRight) && (dNuDepth >= dNuLeft)) {
+			return dNuDepth;
+		}
+		if (dNuRight >= dNuLeft) {
+			return dNuRight;
+		}
+		return dNuLeft;
+	}
+
+	///	<summary>
+	///		Flag indicating that a reference state is available.
+	///	</summary>
+	virtual bool HasReferenceState() const {
+		return true;
 	}
 
 	///	<summary>
@@ -199,13 +210,18 @@ public:
 		double dYp,
 		double * dState
 	) const {
-		// Base potential temperature field
 		const double dG = phys.GetG();
 		const double dCv = phys.GetCv();
 		const double dCp = phys.GetCp();
 		const double dRd = phys.GetR();
 		const double dP0 = phys.GetP0();
-		double dThetaBar = m_dTheta0 * exp(m_dNbar * m_dNbar / dG * dZp);
+
+		// The Brunt-Vaisala frequency
+		const double dNbar = dG / sqrt(dCp * m_dT0);
+
+		// Base potential temperature field
+		const double dTheta0 = m_dT0;
+		double dThetaBar = dTheta0 * exp(dNbar * dNbar / dG * dZp);
 
 		// Set the uniform U, V, W field for all time
 		dState[0] = m_dU0;
@@ -216,9 +232,7 @@ public:
 		dState[2] = dThetaBar;
 
 		// Set the initial density based on the Exner pressure
-		double dExnerP = (dG * dG) / (dCp * m_dTheta0 * (m_dNbar * m_dNbar));
-		dExnerP *= (exp(-pow(m_dNbar,2.0)/dG * dZp) - 1.0);
-		dExnerP += 1.0;
+		double dExnerP = exp(-dG / (dCp * m_dT0) * dZp);
 		double dRho = dP0 / (dRd * dThetaBar) * pow(dExnerP,(dCv / dRd));
 		dState[4] = dRho;
 	}
@@ -235,13 +249,18 @@ public:
 		double * dState,
 		double * dTracer
 	) const {
-		// Base potential temperature field
 		const double dG = phys.GetG();
 		const double dCv = phys.GetCv();
 		const double dCp = phys.GetCp();
 		const double dRd = phys.GetR();
 		const double dP0 = phys.GetP0();
-		double dThetaBar = m_dTheta0 * exp(m_dNbar * m_dNbar / dG * dZp);
+
+		// The Brunt-Vaisala frequency
+		const double dNbar = dG / sqrt(dCp * m_dT0);
+
+		// Base potential temperature field
+		const double dTheta0 = m_dT0;
+		double dThetaBar = dTheta0 * exp(dNbar * dNbar / dG * dZp);
 
 		// Set the uniform U, V, W field for all time
 		dState[0] = m_dU0;
@@ -249,16 +268,11 @@ public:
 		dState[3] = 0.0;
 
 		// Set the initial potential temperature field
-		dState[2] = dThetaBar + EvaluateTPrime(phys, dXp, dZp);
+		dState[2] = dThetaBar;
 
 		// Set the initial density based on the Exner pressure
-		double dExnerP =
-			(dG * dG) / (dCp * m_dTheta0 * (m_dNbar * m_dNbar));
-		dExnerP *= (exp(-(m_dNbar * m_dNbar)/dG * dZp) - 1.0);
-		dExnerP += 1.0;
-
-		double dRho =
-			dP0 / (dRd * dThetaBar) * pow(dExnerP, (dCv / dRd));
+		double dExnerP = exp(-dG / (dCp * m_dT0) * dZp);
+		double dRho = dP0 / (dRd * dThetaBar) * pow(dExnerP,(dCv / dRd));
 		dState[4] = dRho;
 	}
 };
@@ -304,6 +318,9 @@ try {
 	// Use hyperdiffusion
 	bool fNoHyperviscosity;
 
+	// No Rayleigh friction
+	bool fNoRayleighFriction;
+
 	// No reference state
 	bool fNoReferenceState;
 
@@ -325,20 +342,21 @@ try {
 	// Parse the command line
 	BeginCommandLine()
 		CommandLineString(strOutputDir, "output_dir",
-			"outInertialGravityCartesianXZTest");
+			"outHydrostaticMountainCartesianTest");
 		CommandLineString(strOutputPrefix, "output_prefix", "out");
 		CommandLineInt(nOutputsPerFile, "output_perfile", -1);
 		CommandLineString(params.m_strRestartFile, "restart_file", "");
 		CommandLineInt(nResolution, "resolution", 40);
 		CommandLineInt(nLevels, "levels", 48);
 		CommandLineInt(nHorizontalOrder, "order", 4);
-		CommandLineInt(nVerticalOrder, "vertorder", 3);
+		CommandLineInt(nVerticalOrder, "vertorder", 4);
 		CommandLineDouble(dAlpha, "alpha", 0.0);
-		CommandLineDouble(params.m_dDeltaT, "dt", 0.5);
-		CommandLineDouble(params.m_dEndTime, "endtime", 3000.0);
-		CommandLineDouble(dOutputDeltaT, "outputtime", 250.0);
+		CommandLineDouble(params.m_dDeltaT, "dt", 1.0);
+		CommandLineDouble(params.m_dEndTime, "endtime", 36000.0);
+		CommandLineDouble(dOutputDeltaT, "outputtime", 1800.0);
 		CommandLineStringD(strHorizontalDynamics, "method", "SE", "(SE | DG)");
 		CommandLineBool(fNoHyperviscosity, "nohypervis");
+		CommandLineBool(fNoRayleighFriction, "norayleigh");
 		CommandLineBool(fNoReferenceState, "norefstate");
 		CommandLineInt(nVerticalHyperdiffOrder, "verticaldifforder", 2);
 		CommandLineBool(fFullyExplicitVertical, "explicitvertical");
@@ -366,7 +384,7 @@ try {
 	AnnounceEndBlock("Done");
 
 	// Set the timestep scheme
-	TimestepSchemeARK4 timestep(model);
+	TimestepSchemeStrang timestep(model);
 	AnnounceStartBlock("Initializing timestep scheme");
 	model.SetTimestepScheme(&timestep);
 	AnnounceEndBlock("Done");
@@ -382,9 +400,13 @@ try {
 		_EXCEPTIONT("Invalid method: Expected \"SE\" or \"DG\"");
 	}
 
-	HorizontalDynamicsFEM hdyn(
-	   model, nHorizontalOrder, eHorizontalDynamicsType, fNoHyperviscosity);
 	AnnounceStartBlock("Initializing horizontal dynamics");
+	HorizontalDynamicsFEM hdyn(
+	   model,
+	   nHorizontalOrder,
+	   eHorizontalDynamicsType,
+	   fNoHyperviscosity);
+
 	model.SetHorizontalDynamics(&hdyn);
 	AnnounceEndBlock("Done");
 
@@ -395,7 +417,7 @@ try {
 		nVerticalOrder,
 		nVerticalHyperdiffOrder,
 		fFullyExplicitVertical,
-		true,
+		!fNoReferenceState,
 		!fExnerPressureOnREdges,
 		fMassFluxOnLevels);
 
@@ -405,7 +427,7 @@ try {
 
 	// Generate a new cartesian GLL grid
 	// Initialize the test case here (to have grid dimensions available)
-	InertialGravityCartesianXZTest test(fNoReferenceState);
+	HydrostaticMountainCartesianTest test(fNoRayleighFriction);
 
 	AnnounceStartBlock("Constructing grid");
 	GridCartesianGLL grid(
@@ -436,7 +458,7 @@ try {
 
 	model.AttachOutputManager(&outmanRef);
 	AnnounceEndBlock("Done");
-
+/*
 	// Set the composite output manager for the model
 	AnnounceStartBlock("Creating composite output manager");
 	OutputManagerComposite outmanComp(
@@ -446,7 +468,7 @@ try {
 		strOutputPrefix);
 	model.AttachOutputManager(&outmanComp);
 	AnnounceEndBlock("Done");
-
+*/
 	// Set the checksum output manager for the model
 	AnnounceStartBlock("Creating checksum output manager");
 	OutputManagerChecksum outmanChecksum(grid, dOutputDeltaT);
@@ -454,7 +476,7 @@ try {
 	AnnounceEndBlock("Done");
 
 	// Set the test case for the model
-	InertialGravityCartesianXZTest ctest(fNoReferenceState);
+	HydrostaticMountainCartesianTest ctest(fNoRayleighFriction);
 	AnnounceStartBlock("Initializing test case");
 	model.SetTestCase(&ctest);
 	AnnounceEndBlock("Done");

@@ -57,11 +57,6 @@ private:
 	double m_dH0;
 
 	///	<summary>
-	///		Reference surface pressure.
-	///	</summary>
-	double m_dP0;
-
-	///	<summary>
 	///		Reference constant background pontential temperature
 	///	</summary>
 	double m_dThetaBar;
@@ -197,6 +192,11 @@ public:
 		double dYp,
 		double * dState
 	) const {
+	    const double dG = phys.GetG();
+		const double dCv = phys.GetCv();
+		const double dCp = phys.GetCp();
+		const double dRd = phys.GetR();
+		const double dP0 = phys.GetP0();
 		// Set the uniform U, V, W field for all time
 		dState[0] = 0.0;
 		dState[1] = 0.0;
@@ -207,10 +207,10 @@ public:
 
 		// Set the initial density based on the Exner pressure
 		double dExnerP =
-			- phys.GetG() / (phys.GetCp() * m_dThetaBar) * dZp + 1.0;
+			- dG / (dCp * m_dThetaBar) * dZp + 1.0;
 		double dRho =
-			phys.GetP0() / (phys.GetR() * m_dThetaBar) *
-			  pow(dExnerP, (phys.GetCv() / phys.GetR()));
+			dP0 / (dRd * m_dThetaBar) *
+			  pow(dExnerP, (dCv / dRd));
 
 		dState[4] = dRho;
 	}
@@ -227,6 +227,11 @@ public:
 		double * dState,
 		double * dTracer
 	) const {
+	    const double dG = phys.GetG();
+		const double dCv = phys.GetCv();
+		const double dCp = phys.GetCp();
+		const double dRd = phys.GetR();
+		const double dP0 = phys.GetP0();
 		// Set the uniform U, V, W field for all time
 		dState[0] = 0.0;
 		dState[1] = 0.0;
@@ -237,10 +242,10 @@ public:
 
 		// Set the initial density based on the Exner pressure
 		double dExnerP =
-			- phys.GetG() / (phys.GetCp() * m_dThetaBar) * dZp + 1.0;
+			- dG / (dCp * m_dThetaBar) * dZp + 1.0;
 		double dRho =
-			phys.GetP0() / (phys.GetR() * m_dThetaBar) *
-			  pow(dExnerP, (phys.GetCv() / phys.GetR()));
+			dP0 / (dRd * m_dThetaBar) *
+			  pow(dExnerP, (dCv / dRd));
 
 		dState[4] = dRho;
 	}
@@ -318,11 +323,11 @@ try {
 		CommandLineInt(nResolution, "resolution", 36);
 		CommandLineInt(nLevels, "levels", 72);
 		CommandLineInt(nHorizontalOrder, "order", 4);
-		CommandLineInt(nVerticalOrder, "vertorder", 4);
+		CommandLineInt(nVerticalOrder, "vertorder", 2);
 		CommandLineDouble(dOffCentering, "offcentering", 0.0);
 		CommandLineDouble(params.m_dDeltaT, "dt", 0.01);
 		CommandLineDouble(params.m_dEndTime, "endtime", 700.0);
-		CommandLineDouble(dOutputDeltaT, "outputtime", 10.0);
+		CommandLineDouble(dOutputDeltaT, "outputtime", 50.0);
 		CommandLineStringD(strHorizontalDynamics, "method", "SE", "(SE | DG)");
 		CommandLineBool(fNoHyperviscosity, "nohypervis");
 		CommandLineBool(fNoReferenceState, "norefstate");
@@ -375,7 +380,7 @@ try {
 		nHorizontalOrder,
 		nVerticalOrder,
 		nVerticalHyperdiffOrder,
-		fFullyExplicitVertical, 
+		fFullyExplicitVertical,
 		true,
 		!fExnerPressureOnREdges,
 		fMassFluxOnLevels);
