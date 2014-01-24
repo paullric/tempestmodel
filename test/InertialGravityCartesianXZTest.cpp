@@ -62,26 +62,6 @@ private:
 	double m_dU0;
 
 	///	<summary>
-	///		Reference surface pressure.
-	///	</summary>
-	double m_dP0;
-
-	///	<summary>
-	///		Specific heat of air at constant pressure.
-	///	</summary>
-	double m_dCp;
-
-	///	<summary>
-	///		Specific heat of air at constant volume.
-	///	</summary>
-	double m_dCv;
-
-	///	<summary>
-	///		Gas constant of air.
-	///	</summary>
-	double m_dR;
-
-	///	<summary>
 	///		Brunt-Vaisala frequency
 	///	</summary>
 	double m_dNbar;
@@ -130,10 +110,6 @@ public:
 	) :
 		m_dH0(10000.),
 		m_dU0(20.),
-		m_dP0(1.0E5),
-		m_dCp(1005.0),
-		m_dCv(718.0),
-		m_dR(287.058),
 		m_dNbar(0.01),
 		m_dTheta0(300.0),
 		m_dThetaC(1.0),
@@ -224,7 +200,11 @@ public:
 		double * dState
 	) const {
 		// Base potential temperature field
-		double dG = phys.GetG();
+		const double dG = phys.GetG();
+		const double dCv = phys.GetCv();
+		const double dCp = phys.GetCp();
+		const double dRd = phys.GetR();
+		const double dP0 = phys.GetP0();
 		double dThetaBar = m_dTheta0 * exp(m_dNbar * m_dNbar / dG * dZp);
 
 		// Set the uniform U, V, W field for all time
@@ -236,12 +216,10 @@ public:
 		dState[2] = dThetaBar;
 
 		// Set the initial density based on the Exner pressure
-		double gsi = phys.GetG();
-		double dExnerP =
-			pow(gsi,2.0) / (m_dCp * m_dTheta0 * (m_dNbar * m_dNbar));
-		dExnerP *= (exp(-pow(m_dNbar,2.0)/gsi * dZp) - 1.0);
+		double dExnerP = (dG * dG) / (dCp * m_dTheta0 * (m_dNbar * m_dNbar));
+		dExnerP *= (exp(-pow(m_dNbar,2.0)/dG * dZp) - 1.0);
 		dExnerP += 1.0;
-		double dRho = m_dP0 / (m_dR * dThetaBar) * pow(dExnerP,(m_dCv / m_dR));
+		double dRho = dP0 / (dRd * dThetaBar) * pow(dExnerP,(dCv / dRd));
 		dState[4] = dRho;
 	}
 
@@ -258,7 +236,11 @@ public:
 		double * dTracer
 	) const {
 		// Base potential temperature field
-		double dG = phys.GetG();
+		const double dG = phys.GetG();
+		const double dCv = phys.GetCv();
+		const double dCp = phys.GetCp();
+		const double dRd = phys.GetR();
+		const double dP0 = phys.GetP0();
 		double dThetaBar = m_dTheta0 * exp(m_dNbar * m_dNbar / dG * dZp);
 
 		// Set the uniform U, V, W field for all time
@@ -270,14 +252,13 @@ public:
 		dState[2] = dThetaBar + EvaluateTPrime(phys, dXp, dZp);
 
 		// Set the initial density based on the Exner pressure
-		double gsi = phys.GetG();
 		double dExnerP =
-			(gsi * gsi) / (m_dCp * m_dTheta0 * (m_dNbar * m_dNbar));
-		dExnerP *= (exp(-(m_dNbar * m_dNbar)/gsi * dZp) - 1.0);
+			(dG * dG) / (dCp * m_dTheta0 * (m_dNbar * m_dNbar));
+		dExnerP *= (exp(-(m_dNbar * m_dNbar)/dG * dZp) - 1.0);
 		dExnerP += 1.0;
 
 		double dRho =
-			m_dP0 / (m_dR * dThetaBar) * pow(dExnerP, (m_dCv / m_dR));
+			dP0 / (dRd * dThetaBar) * pow(dExnerP, (dCv / dRd));
 		dState[4] = dRho;
 	}
 };
@@ -349,17 +330,17 @@ try {
 		CommandLineInt(nOutputsPerFile, "output_perfile", -1);
 		CommandLineString(params.m_strRestartFile, "restart_file", "");
 		CommandLineInt(nResolution, "resolution", 40);
-		CommandLineInt(nLevels, "levels", 40);
+		CommandLineInt(nLevels, "levels", 48);
 		CommandLineInt(nHorizontalOrder, "order", 4);
-		CommandLineInt(nVerticalOrder, "vertorder", 4);
+		CommandLineInt(nVerticalOrder, "vertorder", 3);
 		CommandLineDouble(dAlpha, "alpha", 0.0);
-		CommandLineDouble(params.m_dDeltaT, "dt", 5.0);
+		CommandLineDouble(params.m_dDeltaT, "dt", 0.5);
 		CommandLineDouble(params.m_dEndTime, "endtime", 3000.0);
-		CommandLineDouble(dOutputDeltaT, "outputtime", 500.0);
+		CommandLineDouble(dOutputDeltaT, "outputtime", 250.0);
 		CommandLineStringD(strHorizontalDynamics, "method", "SE", "(SE | DG)");
 		CommandLineBool(fNoHyperviscosity, "nohypervis");
 		CommandLineBool(fNoReferenceState, "norefstate");
-		CommandLineInt(nVerticalHyperdiffOrder, "verticaldifforder", 0);
+		CommandLineInt(nVerticalHyperdiffOrder, "verticaldifforder", 2);
 		CommandLineBool(fFullyExplicitVertical, "explicitvertical");
 		CommandLineBool(fExnerPressureOnREdges, "exneredges");
 		CommandLineBool(fMassFluxOnLevels, "massfluxlevels");
