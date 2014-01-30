@@ -21,7 +21,7 @@ include $(TEMPESTBASEDIR)/mk/Make.defs
 ##
 ## Build instructions
 ##
-all: atm SWTest2 BarotropicInstabilityTest BaroclinicWaveJWTest BaroclinicWaveUMJSTest InertialGravityCartesianXZTest ThermalBubbleCartesianTest ShallowWaterEddyTest ScharMountainCartesianTest HydrostaticMountainCartesianTest
+all: atm SWTest2 BarotropicInstabilityTest BaroclinicWaveJWTest BaroclinicWaveUMJSTest InertialGravityCartesianXZTest ThermalBubbleCartesianTest ShallowWaterEddyTest ScharMountainCartesianTest HydrostaticMountainCartesianTest NonHydroMountainCartesianTest
 atm:
 	cd $(TEMPESTBASEDIR)/src/base; make
 	cd $(TEMPESTBASEDIR)/src/atm; make
@@ -56,6 +56,9 @@ ScharMountainCartesianTest: $(BUILDDIR)/ScharMountainCartesianTest.o $(FILES:%.c
 HydrostaticMountainCartesianTest: $(BUILDDIR)/HydrostaticMountainCartesianTest.o $(FILES:%.cpp=$(BUILDDIR)/%.o) $(TEMPESTLIBS)
 	$(CC) $(LDFLAGS) -o $@ $(BUILDDIR)/HydrostaticMountainCartesianTest.o $(FILES:%.cpp=$(BUILDDIR)/%.o) $(LDFILES)
 
+NonHydroMountainCartesianTest: $(BUILDDIR)/NonHydroMountainCartesianTest.o $(FILES:%.cpp=$(BUILDDIR)/%.o) $(TEMPESTLIBS)
+	$(CC) $(LDFLAGS) -o $@ $(BUILDDIR)/NonHydroMountainCartesianTest.o $(FILES:%.cpp=$(BUILDDIR)/%.o) $(LDFILES)
+
 ##
 ## Clean
 ##
@@ -68,6 +71,7 @@ clean:
 	rm -f IntertialGravityCartesianXZTest
 	rm -f ScharMountainCartesianTest
 	rm -f HydrostaticMountainCartesianTest
+	rm -f NonHydroMountainCartesianTest
 	rm -rf $(DEPDIR)
 	rm -rf $(BUILDDIR)
 
