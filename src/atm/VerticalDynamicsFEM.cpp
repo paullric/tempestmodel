@@ -193,6 +193,9 @@ void VerticalDynamicsFEM::Initialize() {
 	} else if (m_nVerticalOrder == 4) {
 		m_nJacobianFKL = 22;
 		m_nJacobianFKU = 22;
+	} else if (m_nVerticalOrder == 5) {
+		m_nJacobianFKL = 30;
+		m_nJacobianFKU = 30;
 	} else {
 		_EXCEPTIONT("UNIMPLEMENTED: At this vertical order");
 	}
