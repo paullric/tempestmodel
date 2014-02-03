@@ -51,37 +51,37 @@
 
 \subsection{Terrain-Following Cartesian Geometry}
 
-For a given vertical coordinate transform $Z = Z(\alpha, \beta, \xi)$.  For example, Gal-Chen and Somerville (1975) coordinates:
+For a given vertical coordinate transform $z = z(\alpha, \beta, \xi)$.  For example, Gal-Chen and Somerville (1975) coordinates:
 \begin{equation}
-Z(\alpha, \beta, \xi) = \xi \left[ z_{top} - z_s(\alpha, \beta) \right] + z_s(\alpha, \beta).
+z(\alpha, \beta, \xi) = \xi \left[ z_{top} - z_s(\alpha, \beta) \right] + z_s(\alpha, \beta).
 \end{equation}
 
 \begin{equation}
-g_{ij} = \left( \begin{array}{ccc} 1 & 0 & 0 \\[2.0ex] 0 & 1 & 0 \\[2.0ex] 0 & 0 & 0 \end{array} \right) + \left( \begin{array}{c} \pdiff{Z}{\alpha} \\[2.0ex] \pdiff{Z}{\beta} \\[2.0ex] \pdiff{Z}{\xi} \end{array} \right) \left( \begin{array}{ccc} \pdiff{Z}{\alpha} & \pdiff{Z}{\beta} & \pdiff{Z}{\xi} \end{array} \right)
+g_{ij} = \left( \begin{array}{ccc} 1 & 0 & 0 \\[2.0ex] 0 & 1 & 0 \\[2.0ex] 0 & 0 & 0 \end{array} \right) + \left( \begin{array}{c} \pdiff{z}{\alpha} \\[2.0ex] \pdiff{z}{\beta} \\[2.0ex] \pdiff{z}{\xi} \end{array} \right) \left( \begin{array}{ccc} \pdiff{z}{\alpha} & \pdiff{z}{\beta} & \pdiff{z}{\xi} \end{array} \right)
 \end{equation}
 \begin{equation}
-J = \left( \pdiff{Z}{\xi} \right)
+J = \left( \pdiff{z}{\xi} \right)
 \end{equation}
 \begin{equation}
-g^{ij} = \left( \begin{array}{ccc} 1 & 0 & - \left( \pdiff{Z}{\xi} \right)^{-1} \left( \pdiff{Z}{\alpha} \right) \\[2.0ex] 0 & 1 & - \left( \pdiff{Z}{\xi} \right)^{-1} \left( \pdiff{Z}{\beta} \right) \\[2.0ex] - \left( \pdiff{Z}{\xi} \right)^{-1} \left( \pdiff{Z}{\alpha} \right) & - \left( \pdiff{Z}{\xi} \right)^{-1} \left( \pdiff{Z}{\beta} \right) & \left( \pdiff{Z}{\xi} \right)^{-2} \left[ 1 + \left( \pdiff{Z}{\alpha} \right)^2 + \left( \pdiff{Z}{\beta} \right)^2 \right] \end{array} \right)
+g^{ij} = \left( \begin{array}{ccc} 1 & 0 & - \left( \pdiff{z}{\xi} \right)^{-1} \left( \pdiff{z}{\alpha} \right) \\[2.0ex] 0 & 1 & - \left( \pdiff{z}{\xi} \right)^{-1} \left( \pdiff{z}{\beta} \right) \\[2.0ex] - \left( \pdiff{z}{\xi} \right)^{-1} \left( \pdiff{z}{\alpha} \right) & - \left( \pdiff{z}{\xi} \right)^{-1} \left( \pdiff{z}{\beta} \right) & \left( \pdiff{z}{\xi} \right)^{-2} \left[ 1 + \left( \pdiff{z}{\alpha} \right)^2 + \left( \pdiff{z}{\beta} \right)^2 \right] \end{array} \right)
 \end{equation}
 \begin{align}
-\Gamma^{\alpha}_{\ i j} &= \vb{0}, & \Gamma^{\beta}_{\ i j} &= \vb{0}, & \Gamma^{\xi}_{\ i j} = \left( \pdiff{Z}{\xi} \right)^{-1} \left( \begin{array}{ccc} \frac{\partial^2 Z}{\partial \alpha^2} & \frac{\partial^2 Z}{\partial \alpha \partial \beta} & \frac{\partial^2 Z}{\partial \alpha \partial \xi} \\[2.0ex] \frac{\partial^2 Z}{\partial \alpha \partial \beta} & \frac{\partial^2 Z}{\partial \beta^2} & \frac{\partial^2 Z}{\partial \xi \partial \beta} \\[2.0ex] \frac{\partial^2 Z}{\partial \xi \partial \alpha} & \frac{\partial^2 Z}{\partial \xi \partial \beta} & \frac{\partial^2 Z}{\partial \xi^2} \end{array} \right) 
+\Gamma^{\alpha}_{\ i j} &= \vb{0}, & \Gamma^{\beta}_{\ i j} &= \vb{0}, & \Gamma^{\xi}_{\ i j} = \left( \pdiff{z}{\xi} \right)^{-1} \left( \begin{array}{ccc} \frac{\partial^2 z}{\partial \alpha^2} & \frac{\partial^2 z}{\partial \alpha \partial \beta} & \frac{\partial^2 z}{\partial \alpha \partial \xi} \\[2.0ex] \frac{\partial^2 z}{\partial \alpha \partial \beta} & \frac{\partial^2 z}{\partial \beta^2} & \frac{\partial^2 z}{\partial \xi \partial \beta} \\[2.0ex] \frac{\partial^2 z}{\partial \xi \partial \alpha} & \frac{\partial^2 z}{\partial \xi \partial \beta} & \frac{\partial^2 z}{\partial \xi^2} \end{array} \right) 
 \end{align}
 
-\subsection{Terrain-Following Cubed-Sphere Geometry}
+\subsection{Terrain-Following Shallow-Atmosphere Cubed-Sphere Geometry}
 
-For a given vertical coordinate transform $r = R(\alpha, \beta, \xi)$.  For example, Gal-Chen and Somerville (1975) coordinates:
+For a given vertical coordinate transform $r = r(\alpha, \beta, \xi)$.  For example, Gal-Chen and Somerville (1975) coordinates:
 \begin{equation}
-R(\alpha, \beta, \xi) = \xi \left[ z_{top} - z_s(\alpha, \beta) \right] + a + z_s(\alpha, \beta).
+r(\alpha, \beta, \xi) = \xi \left[ z_{top} - z_s(\alpha, \beta) \right] + a + z_s(\alpha, \beta).
+\end{equation}  These equations are further subject to the shallow-water approximation, which removes any vertical dependence of the horizontal basis vectors.  This approximation results in many instances of $r$ being replaced with $a$ throughout the equations of motion.
+
+\begin{equation}
+g_{ij} = \frac{a^2 (1+X^2) (1+Y^2)}{\delta^4} \left( \begin{array}{ccc} 1+X^2 & - X Y & 0 \\[2.0ex] - X Y & 1+Y^2 & 0 \\[2.0ex] 0 & 0 & 0 \end{array} \right) + \left( \begin{array}{c} \pdiff{r}{\alpha} \\[2.0ex] \pdiff{r}{\beta} \\[2.0ex] \pdiff{r}{\xi} \end{array} \right) \left( \begin{array}{ccc} \pdiff{r}{\alpha} & \pdiff{r}{\beta} & \pdiff{r}{\xi} \end{array} \right)
 \end{equation}
 
 \begin{equation}
-g_{ij} = \frac{a^2 (1+X^2) (1+Y^2)}{\delta^4} \left( \begin{array}{ccc} 1+X^2 & - X Y & 0 \\[2.0ex] - X Y & 1+Y^2 & 0 \\[2.0ex] 0 & 0 & 0 \end{array} \right) + \left( \begin{array}{c} \pdiff{R}{\alpha} \\[2.0ex] \pdiff{R}{\beta} \\[2.0ex] \pdiff{R}{\xi} \end{array} \right) \left( \begin{array}{ccc} \pdiff{R}{\alpha} & \pdiff{R}{\beta} & \pdiff{R}{\xi} \end{array} \right)
-\end{equation}
-
-\begin{equation}
-J = \frac{1}{\delta^3} \left( \pdiff{R}{\xi} \right) a^2 (1+X^2) (1+Y^2)
+J = \frac{1}{\delta^3} \left( \pdiff{r}{\xi} \right) a^2 (1+X^2) (1+Y^2)
 \end{equation}
 
 \begin{equation}
@@ -91,9 +91,9 @@ g^{ij} = \frac{\delta^2}{a^2 (1+X^2) (1+Y^2)} \left( \begin{array}{ccc} 1+Y^2 & 
 \tilde{g}^{\alpha \alpha} &= 0 \\
 \tilde{g}^{\alpha \beta} &= 0 \\
 \tilde{g}^{\beta \beta} &= 0 \\
-\tilde{g}^{\alpha \xi} &= - \frac{\delta^2}{a^2 (1+X^2) (1+Y^2)} \left( \pdiff{R}{\xi} \right)^{-1} \left[ (1+Y^2) \left( \pdiff{R}{\alpha} \right) + X Y \left( \pdiff{R}{\beta} \right) \right] \\
-\tilde{g}^{\beta \xi} &= - \frac{\delta^2}{a^2 (1+X^2) (1+Y^2)} \left( \pdiff{R}{\xi} \right)^{-1} \left[ X Y \left( \pdiff{R}{\alpha} \right) + (1+X^2) \left( \pdiff{R}{\beta} \right) \right] \\
-\tilde{g}^{\xi \xi} &= \left( \pdiff{R}{\xi} \right)^{-2} + \frac{\delta^2}{a^2 (1+X^2) (1+Y^2)} \left( \pdiff{R}{\xi} \right)^{-2} \left[ (1+Y^2) \left( \pdiff{R}{\alpha} \right)^2 + 2 X Y \left( \pdiff{R}{\alpha} \right) \left( \pdiff{R}{\beta} \right) + (1+X^2) \left( \pdiff{R}{\beta} \right)^2 \right]
+\tilde{g}^{\alpha \xi} &= - \frac{\delta^2}{a^2 (1+X^2) (1+Y^2)} \left( \pdiff{r}{\xi} \right)^{-1} \left[ (1+Y^2) \left( \pdiff{r}{\alpha} \right) + X Y \left( \pdiff{r}{\beta} \right) \right] \\
+\tilde{g}^{\beta \xi} &= - \frac{\delta^2}{a^2 (1+X^2) (1+Y^2)} \left( \pdiff{r}{\xi} \right)^{-1} \left[ X Y \left( \pdiff{r}{\alpha} \right) + (1+X^2) \left( \pdiff{r}{\beta} \right) \right] \\
+\tilde{g}^{\xi \xi} &= \left( \pdiff{r}{\xi} \right)^{-2} + \frac{\delta^2}{a^2 (1+X^2) (1+Y^2)} \left( \pdiff{r}{\xi} \right)^{-2} \left[ (1+Y^2) \left( \pdiff{r}{\alpha} \right)^2 + 2 X Y \left( \pdiff{r}{\alpha} \right) \left( \pdiff{r}{\beta} \right) + (1+X^2) \left( \pdiff{r}{\beta} \right)^2 \right]
 \end{align}
 
 \begin{equation}
@@ -101,24 +101,33 @@ g^{ij} = \frac{\delta^2}{a^2 (1+X^2) (1+Y^2)} \left( \begin{array}{ccc} 1+Y^2 & 
 \end{equation}
 
 \begin{equation}
-\Gamma^{\xi}_{\ i j} = \left( \pdiff{R}{\xi} \right)^{-1} \left( \begin{array}{ccc} \displaystyle - \frac{2 X Y^2}{\delta^2} \left( \pdiff{R}{\alpha} \right) + \left( \frac{\partial^2 R}{\partial \alpha^2} \right) & \displaystyle \frac{Y (1+Y^2)}{\delta^2} \left( \pdiff{R}{\alpha} \right) + \frac{X (1+X^2)}{\delta^2} \left( \pdiff{R}{\beta} \right) + \left( \frac{\partial^2 R}{\partial \alpha \partial \beta} \right) & \displaystyle \left( \frac{\partial^2 R}{\partial \alpha \partial \xi} \right) \\[4.0ex] \cdots & \displaystyle - \frac{2 X^2 Y}{\delta^2} \left( \pdiff{R}{\beta} \right) + \left( \frac{\partial^2 R}{\partial \beta^2} \right) & \displaystyle \left( \frac{\partial^2 R}{\partial \beta \partial \xi} \right) \\[4.0ex] \cdots & \cdots & \displaystyle \left( \frac{\partial^2 R}{\partial \xi^2} \right)  \end{array} \right)
+\Gamma^{\xi}_{\ i j} = \left( \pdiff{r}{\xi} \right)^{-1} \left( \begin{array}{ccc} \displaystyle - \frac{2 X Y^2}{\delta^2} \left( \pdiff{r}{\alpha} \right) + \left( \frac{\partial^2 r}{\partial \alpha^2} \right) & \displaystyle \frac{Y (1+Y^2)}{\delta^2} \left( \pdiff{r}{\alpha} \right) + \frac{X (1+X^2)}{\delta^2} \left( \pdiff{r}{\beta} \right) + \left( \frac{\partial^2 r}{\partial \alpha \partial \beta} \right) & \displaystyle \left( \frac{\partial^2 r}{\partial \alpha \partial \xi} \right) \\[4.0ex] \cdots & \displaystyle - \frac{2 X^2 Y}{\delta^2} \left( \pdiff{r}{\beta} \right) + \left( \frac{\partial^2 r}{\partial \beta^2} \right) & \displaystyle \left( \frac{\partial^2 r}{\partial \beta \partial \xi} \right) \\[4.0ex] \cdots & \cdots & \displaystyle \left( \frac{\partial^2 r}{\partial \xi^2} \right)  \end{array} \right)
 \end{equation}
 
 \section{Hydrodynamics}
+
+There is some flexibility in the choice of vertical velocity variable.  Since the use of $u^\xi$ as a vertical velocity variable would require perfect balance between several metric terms (and hence is more liable to set up a computational mode analogous to the one described in Klemp (2003)), we instead make use of the physical vertical velocity $w$.  This choice further simplifies the vertical velocity evolution equation, but requires that $u^\xi$ is recalculated when needed.
 
 The system of equations describing the hydrodynamic system in arbitrary geometry is as follows:
 \begin{align}
 \pdiff{u^\alpha}{t} + u^\alpha \nabla_\alpha u^\alpha + u^\beta \nabla_\beta u^\alpha + u^\xi \nabla_\xi u^\alpha + \theta \nabla^\alpha \Pi + f g^{\alpha j} \epsilon_{j \xi k} u^k &= 0 \\
 \pdiff{u^\beta}{t} + u^\alpha \nabla_\alpha u^\beta + u^\beta \nabla_\beta u^\beta + u^\xi \nabla_\xi u^\beta + \theta \nabla^\beta \Pi + f g^{\beta j} \epsilon_{j \xi k} u^k &= 0 \\
 \pdiff{\theta}{t} + u^\alpha \pdiff{\theta}{\alpha} + u^\beta \pdiff{\theta}{\beta} &= - u^\xi \pdiff{\theta}{\xi} \\
-\pdiff{u^\xi}{t} + u^\alpha \nabla_\alpha u^\xi + u^\beta \nabla_\beta u^\xi + u^\xi \nabla_\xi u^\xi &= - \theta \nabla^\xi \Pi \\
-\pdiff{\rho}{t} + \frac{1}{J} \pdiff{}{\alpha} (J \rho u^\alpha) + \frac{1}{J} \pdiff{}{\beta} (J \rho u^\beta) &= - \frac{1}{J} \pdiff{}{\xi} (J \rho u^\xi)
-\end{align}
+\pdiff{w}{t} + u^\alpha \nabla_\alpha w + u^\beta \nabla_\beta w + u^\xi \nabla_\xi w &= - \theta \left( \pdiff{r}{\xi} \right)^{-1} \pdiff{\Pi}{\xi} - g \\
+%\pdiff{u^\xi}{t} + u^\alpha \nabla_\alpha u^\xi + u^\beta \nabla_\beta u^\xi + u^\xi \nabla_\xi u^\xi &= - \theta \nabla^\xi \Pi - \frac{g}{a} \\
+\pdiff{\rho}{t} + \frac{1}{J} \pdiff{}{\alpha} (J \rho u^\alpha) + \frac{1}{J} \pdiff{}{\beta} (J \rho u^\beta) &= - \frac{1}{J} \pdiff{}{\xi} (J \rho u^\xi),
+\end{align} with Exner function
+\begin{equation}
+\Pi(\rho, \theta) = c_p \left( \frac{R \rho \theta}{p_0} \right)^{R/c_v}
+\end{equation} and coordinate velocity
+\begin{equation}
+u^\xi(w, u^\alpha, u^\beta) = \left( \pdiff{r}{\xi} \right)^{-1} \left[w - \left( \pdiff{r}{\alpha} \right)^{-1} u^\alpha - \left( \pdiff{r}{\beta} \right)^{-1} u^\beta \right]
+\end{equation}
 Advection and geometry:
 \begin{align}
 u^\alpha \nabla_\alpha u^k &= u^\alpha \left[ \pdiff{u^k}{\alpha} + \Gamma^k_{\ \alpha \alpha} u^\alpha + \Gamma^k_{\ \alpha \beta} u^\beta + \Gamma^k_{\ \alpha \xi} u^\xi \right] \\
 u^\beta \nabla_\beta u^k &= u^\beta \left[ \pdiff{u^k}{\beta} + \Gamma^k_{\ \beta \alpha} u^\alpha + \Gamma^k_{\ \beta \beta} u^\beta + \Gamma^k_{\ \beta \xi} u^\xi \right] \\
-u^\xi \nabla_\xi u^k &= u^\xi \left[ \pdiff{u^k}{\xi} + \Gamma^k_{\ \xi \alpha} u^\alpha + \Gamma^k_{\ \xi \beta} u^\beta + \Gamma^k_{\ \xi \xi} u^\xi \right]
+%u^\xi \nabla_\xi u^k &= u^\xi \left[ \pdiff{u^k}{\xi} + \Gamma^k_{\ \xi \alpha} u^\alpha + \Gamma^k_{\ \xi \beta} u^\beta + \Gamma^k_{\ \xi \xi} u^\xi \right]
 \end{align}
 Pressure gradient:
 \begin{align}
@@ -134,37 +143,6 @@ f g^{\beta j} \epsilon_{j \xi k} u^k &= - f g^{\beta \alpha} J u^\beta + f g^{\b
 %\vb{u} &= u^\alpha \vb{g}_\alpha + u^\beta \vb{g}_\beta + u^\xi \vb{g}_\xi \\
 %&= u^\alpha (\vb{\tilde{g}}_{\alpha} + \frac{1-\xi}{z_{top}-z_s} \pdiff{z_s}{\alpha} \vb{\tilde{g}}_{\xi})
 %\end{align}
-
-\subsection{Vertical-orthogonal coordinates}
-
-Vertical-orthogonal coordinates $\alpha, \beta, \xi$ with corresponding terrain-following coordinates $\tilde{\alpha}, \tilde{\beta}, \tilde{\xi}$ with
-\begin{align}
-\alpha &= \tilde{\alpha}, &\qquad \beta &= \tilde{\beta}, &\qquad \xi &= \xi_s(\alpha, \beta) + (1 - \xi_s(\alpha,\beta)) \tilde{\xi}, \\
-\tilde{\alpha} &= \alpha, &\qquad \tilde{\beta} &= \beta, &\qquad \tilde{\xi} &= \frac{\xi - \xi_s(\alpha, \beta)}{1 - \xi_s(\alpha, \beta)}.
-\end{align}
-
-\begin{align}
-\pdiff{}{\xi} &= \pdiff{\tilde{\xi}}{\xi} \pdiff{}{\tilde{\xi}} = \frac{1}{(1 - \xi_s(\alpha,\beta))} \pdiff{}{\tilde{\xi}}, \\
-%\pdiff{\xi_s}{\alpha} &= \pdiff{}{\alpha}\left( \frac{z_s}{z_{top}} \right) = \frac{1}{z_{top}} \pdiff{z_s}{\alpha}, \\
-\pdiff{}{\alpha} &= \pdiff{}{\tilde{\alpha}} + \pdiff{\tilde{\xi}}{\alpha} \pdiff{}{\tilde{\xi}} = \pdiff{}{\tilde{\alpha}} - \frac{(1 - \xi)}{(1 - \xi_s(\alpha, \beta))^2} \left( \pdiff{\xi_s}{\alpha} \right) \pdiff{}{\tilde{\xi}}, \\
-\pdiff{}{\beta} &= \pdiff{}{\tilde{\beta}} + \pdiff{\tilde{\xi}}{\beta} \pdiff{}{\tilde{\xi}} = \pdiff{}{\tilde{\beta}} - \frac{(1 - \xi)}{(1 - \xi_s(\alpha, \beta))^2} \left( \pdiff{\xi_s}{\beta} \right) \pdiff{}{\tilde{\xi}},
-\end{align}
-
-Define:
-\begin{align}
-A_\alpha &= \pdiff{\tilde{\xi}}{\alpha}, & A_\beta &= \pdiff{\tilde{\xi}}{\beta}, & A_\xi &= \pdiff{\tilde{\xi}}{\xi}
-\end{align}
-
-Hydrodynamics (assuming $A_\alpha$, $A_\beta$ and $A_\xi$ are not functions of $\tilde{\xi}$):
-\begin{align}
-\pdiff{u^\alpha}{t} & + u^\alpha \pdiff{u^\alpha}{\tilde{\alpha}} + u^\beta \pdiff{u^\alpha}{\tilde{\beta}} + \Gamma^{\alpha}_{\ \alpha \alpha} u^\alpha u^\alpha + 2\ \Gamma^{\alpha}_{\ \alpha \beta} u^\alpha u^\beta + \Gamma^{\alpha}_{\ \beta \beta} u^\beta u^\beta \nonumber \\ &  + \frac{1}{\rho} \left[ g^{\alpha \alpha} \pdiff{p}{\tilde{\alpha}} + g^{\alpha \beta} \pdiff{p}{\tilde{\beta}} \right] + f J \left[ - g^{\alpha \alpha} u^\beta + g^{\alpha \beta} u^\alpha \right] \nonumber \\
-& + \left[A_\alpha u^\alpha + A_\beta u^\beta + A_\xi u^\xi \right] \pdiff{u^\alpha}{\tilde{\xi}} + \frac{1}{\rho} \left[ g^{\alpha \alpha} A_\alpha + g^{\alpha \beta} A_\beta \right] \pdiff{p}{\tilde{\xi}} = 0, \\
-\pdiff{u^\beta}{t} & + u^\alpha \pdiff{u^\beta}{\tilde{\alpha}} + u^\beta \pdiff{u^\beta}{\tilde{\beta}} + \Gamma^{\beta}_{\ \alpha \alpha} u^\alpha u^\alpha + 2\ \Gamma^{\beta}_{\ \alpha \beta} u^\alpha u^\beta + \Gamma^{\beta}_{\ \beta \beta} u^\beta u^\beta \nonumber \\ &  + \frac{1}{\rho} \left[ g^{\beta \alpha} \pdiff{p}{\tilde{\alpha}} + g^{\beta \beta} \pdiff{p}{\tilde{\beta}} \right] + f J \left[ - g^{\beta \alpha} u^\beta + g^{\beta \beta} u^\alpha \right] \nonumber \\
-& + \left[A_\alpha u^\alpha + A_\beta u^\beta + A_\xi u^\xi \right] \pdiff{u^\beta}{\tilde{\xi}} + \frac{1}{\rho} \left[ g^{\beta \alpha} A_\alpha + g^{\beta \beta} A_\beta \right] \pdiff{p}{\tilde{\xi}} = 0, \\
-\pdiff{\theta}{t} & + u^\alpha \pdiff{\theta}{\tilde{\alpha}} + u^\beta \pdiff{\theta}{\tilde{\beta}} = - \left[ A_\alpha u^\alpha + A_\beta u^\beta + A_\xi u^\xi \right] \pdiff{\theta}{\tilde{\xi}}, \\
-\pdiff{u^\xi}{t} & + u^\alpha \pdiff{u^\xi}{\tilde{\alpha}} + u^\beta \pdiff{u^\xi}{\tilde{\beta}} + \left[ A_\alpha u^\alpha + A_\beta u^\beta + A_\xi u^\xi \right] \pdiff{u^\xi}{\tilde{\xi}} = - \frac{1}{\rho} A_\xi \pdiff{p}{\tilde{\xi}}, \\
-\pdiff{\rho}{t} & + \frac{1}{J} \pdiff{}{\tilde{\alpha}} \left( J \rho u^\alpha \right) + \frac{1}{J} \pdiff{}{\tilde{\beta}} \left( J \rho u^\beta \right) = - \frac{1}{J} \pdiff{}{\tilde{\xi}} \left[ J \rho \left( A_\alpha u^\alpha + A_\beta u^\beta + A_\xi u^\xi \right) \right].
-\end{align}
 
 \section{Horizontal Discretization}
 
@@ -239,12 +217,9 @@ $\mathcal{D}^e_e$ & Differentiate from edges to edges \\
 \end{tabular}
 \end{center}
 
-Exner function:
-\begin{equation}
-\Pi(\rho, \theta) = c_p \left( \frac{R \rho \theta}{p_0} \right)^{R/c_v}
-\end{equation}
-
 Vertical discretizations:
+
+For given variable $q$ we denote $q$ defined on edges by $q_e$ and $q$ defined on nodes by $q_n$.
 
 \begin{center}
 \begin{tabular}{cc|ccc}
@@ -252,11 +227,23 @@ Vertical discretizations:
 Variable & Operator & DG $(\rho_n \theta_n u^\xi_n)$ & $(\rho_n \theta_n, u^\xi_e)$ & $(\rho_n, u^\xi_e \theta_e)$ \\
 \hline \hline & $\displaystyle \Pi_n$ & $\Pi_n(\rho_n, \theta_n)$ & $\Pi_n(\rho_n, \theta_n)$ & $\Pi_n(\rho_n, \mathcal{I}_n^e \theta_e)$ \\[2.5ex]
 $\theta$ & $\displaystyle u^\xi \pdiff{\theta}{\xi}$ & $(u^\xi_n) \mathcal{D}_n^n \theta_n$ & $(\mathcal{I}_n^e u^\xi_e) (\mathcal{D}_n^n \theta)$ & $(u^\xi_e) (\mathcal{D}_e^e \theta_e)$ \\[2.5ex]
-$u^\xi$ & $\displaystyle \theta \pdiff{\Pi}{\xi}$ & $\theta_n \mathcal{D}^n_n \Pi_n$ & $(\mathcal{I}_n^e \theta_n) (\mathcal{D}^n_e \Pi_n)$ & $\theta_e (\mathcal{D}^n_e \Pi_n)$ \\[2.5ex]
+$w$ & $\displaystyle \theta \pdiff{\Pi}{\xi}$ & $\theta_n \mathcal{D}^n_n \Pi_n$ & $(\mathcal{I}_n^e \theta_n) (\mathcal{D}^n_e \Pi_n)$ & $\theta_e (\mathcal{D}^n_e \Pi_n)$ \\[2.5ex]
 $\rho$ & $\displaystyle \frac{1}{J} \pdiff{}{\xi} (J \rho u^\xi)$ & $\displaystyle \frac{1}{J_n} \mathcal{D}^n_n (J_n \rho_n u^\xi_n)$ & $\displaystyle \frac{1}{J_n} \mathcal{D}^e_n \left[ J_e (\mathcal{I}_e^n \rho_n) u^\xi_e \right]$ & $\displaystyle \frac{1}{J_n} \mathcal{D}^e_n \left[ J_e (\mathcal{I}_e^n \rho_n) u^\xi_e \right]$ \\[2.5ex]
 \hline
 \end{tabular}
 \end{center}
+
+Define basis $\tilde{\phi}_{(m)}(\xi)$ as the usual 1D GLL basis function at node $m \in (0, \ldots, n_v)$ and basis $\tilde{\varphi}_{(m)}(\xi)$ as the usual 1D GL basis function at node $m \in (0, \ldots, n_v-1)$ on the reference element $[0,1]$.  Within element $i$ with bounds $[\xi_i, \xi_{i+1}]$ and width $\Delta \xi_i = \xi_{i+1} - \xi_i$ the continuous reconstruction over nodes takes the form
+\begin{equation} \label{eq:VerticalNodeReconstruction}
+q_i(\xi) = \sum_{p=0}^{n_v-1} (q_n)_p \cdot \tilde{\varphi}_{(p)}\!\left( \frac{\xi - \xi_i}{\Delta \xi_i} \right),
+\end{equation} and over edges
+\begin{equation} \label{eq:VerticalEdgeReconstruction}
+q_i(\xi) = \sum_{p=0}^{n_v} (q_e)_p \cdot \tilde{\phi}_{(p)}\!\left( \frac{\xi - \xi_i}{\Delta \xi_i} \right).
+\end{equation}
+
+\subsection{Interpolation}
+
+Interpolation is carried out in the usual manner by evaluation the continuous reconstruction (\ref{eq:VerticalNodeReconstruction}) or (\ref{eq:VerticalEdgeReconstruction}).  However, for the special case of interpolation of nodal values to a finite element edge, the reconstruction is averaged at the target point.
 
 \section{Hyperviscosity}
 
