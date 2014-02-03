@@ -1,8 +1,8 @@
 ///////////////////////////////////////////////////////////////////////////////
 ///
-///	\file    ScharMountainCartesianTest.cpp
+///	\file    HydrostaticMountainCartesianTest.cpp
 ///	\author  Paul Ullrich, Jorge Guerra
-///	\version January 4, 2014
+///	\version January 23, 2014
 ///
 ///	<remarks>
 ///		Copyright 2000-2010 Paul Ullrich
@@ -40,9 +40,9 @@
 ///	<summary>
 ///		Giraldo et al. (2007)
 ///
-///		Schar Mountain Uniform Flow test case.
+///		Hydrostatic Mountain Uniform Flow test case.
 ///	</summary>
-class ScharMountainCartesianTest : public TestCase {
+class HydrostaticMountainCartesianTest : public TestCase {
 
 public:
 	/// <summary>
@@ -52,9 +52,9 @@ public:
 
 private:
 	///	<summary>
-	///		Background height field.
+	///		Background temperature field.
 	///	</summary>
-	double m_dH0;
+	double m_dT0;
 
 	///	<summary>
 	///		Uniform +X flow field.
@@ -62,34 +62,19 @@ private:
 	double m_dU0;
 
 	///	<summary>
-	///		Brunt-Vaisala frequency
-	///	</summary>
-	double m_dNbar;
-
-	///	<summary>
-	///		Reference pontential temperature
-	///	</summary>
-	double m_dTheta0;
-
-	///	<summary>
-	///		Parameter factor for temperature disturbance
-	///	</summary>
-	double m_dThetaC;
-
-	///	<summary>
 	///		Parameter reference height for temperature disturbance
 	///	</summary>
 	double m_dhC;
 
 	///	<summary>
+	///		Parameter reference length for temperature disturbance
+	///	</summary>
+	double m_dxC;
+
+	///	<summary>
 	///		Parameter reference length a for temperature disturbance
 	///	</summary>
 	double m_daC;
-
-	///	<summary>
-	///		Parameter reference length for mountain profile
-	///	</summary>
-	double m_dlC;
 
 	///	<summary>
 	///		Parameter Archimede's Constant (essentially Pi but to some digits)
@@ -105,26 +90,23 @@ public:
 	///	<summary>
 	///		Constructor. (with physical constants defined privately here)
 	///	</summary>
-	ScharMountainCartesianTest(
+	HydrostaticMountainCartesianTest(
 		bool fNoRayleighFriction
 	) :
-		m_dH0(21000.),
-		m_dU0(10.0),
-		m_dNbar(0.01),
-		m_dTheta0(280.0),
-		m_dThetaC(1.0),
-		m_dhC(250.),
-		m_daC(5000.),
-		m_dlC(4000.),
+		m_dT0(250.),
+		m_dU0(20.0),
+		m_dhC(1.0),
+		m_dxC(120000.),
+		m_daC(10000.),
 		m_fNoRayleighFriction(fNoRayleighFriction)
 	{
 		// Set the dimensions of the box
-		m_dGDim[0] = -25000.;
-		m_dGDim[1] = 25000.0;
+		m_dGDim[0] = 0.0;
+		m_dGDim[1] = 240000.0;
 		m_dGDim[2] = -1000.0;
 		m_dGDim[3] = 1000.0;
 		m_dGDim[4] = 0.0;
-		m_dGDim[5] = 21000.0;
+		m_dGDim[5] = 30000.0;
 	}
 
 public:
@@ -159,9 +141,9 @@ public:
 	   double dXp,
 	   double dYp
 	) const {
-		// Specify the Schar Mountain (Test case 5 from Giraldo et al. 2008)
-		double hsm = m_dhC * exp(-dXp/m_daC * dXp/m_daC) *
-                     cos(M_PI * dXp / m_dlC) * cos(M_PI * dXp / m_dlC);
+		// Specify the Hydrostatic Mountain (case 6 from Giraldo et al. 2008)
+		double hsm = m_dhC / (1.0 + ((dXp - m_dxC)/m_daC) *
+                                    ((dXp - m_dxC)/m_daC));
         //std::cout << hsm << "\n";
 		return hsm;
 	}
@@ -198,7 +180,7 @@ public:
 			dNuRight = 0.5 * dRayleighStrength * (1.0 + cos(M_PI * dNormX));
 		}
 		if (dXp < m_dGDim[0] + dRayleighWidth) {
-			double dNormX = (dXp - m_dGDim[0]) / dRayleighWidth;
+			double dNormX = 1.0 - (dXp - m_dGDim[0]) / dRayleighWidth;
 			dNuLeft = 0.5 * dRayleighStrength * (1.0 + cos(M_PI * dNormX));
 		}
 
@@ -234,8 +216,12 @@ public:
 		const double dRd = phys.GetR();
 		const double dP0 = phys.GetP0();
 
+		// The Brunt-Vaisala frequency
+		const double dNbar = dG / sqrt(dCp * m_dT0);
+
 		// Base potential temperature field
-		double dThetaBar = m_dTheta0 * exp(m_dNbar * m_dNbar / dG * dZp);
+		const double dTheta0 = m_dT0;
+		double dThetaBar = dTheta0 * exp(dNbar * dNbar / dG * dZp);
 
 		// Set the uniform U, V, W field for all time
 		dState[0] = m_dU0;
@@ -246,9 +232,7 @@ public:
 		dState[2] = dThetaBar;
 
 		// Set the initial density based on the Exner pressure
-		double dExnerP = (dG * dG) / (dCp * m_dTheta0 * m_dNbar * m_dNbar);
-		dExnerP *= (exp(-m_dNbar * m_dNbar / dG * dZp) - 1.0);
-		dExnerP += 1.0;
+		double dExnerP = exp(-dG / (dCp * m_dT0) * dZp);
 		double dRho = dP0 / (dRd * dThetaBar) * pow(dExnerP,(dCv / dRd));
 		dState[4] = dRho;
 	}
@@ -271,8 +255,12 @@ public:
 		const double dRd = phys.GetR();
 		const double dP0 = phys.GetP0();
 
+		// The Brunt-Vaisala frequency
+		const double dNbar = dG / sqrt(dCp * m_dT0);
+
 		// Base potential temperature field
-		double dThetaBar = m_dTheta0 * exp(m_dNbar * m_dNbar / dG * dZp);
+		const double dTheta0 = m_dT0;
+		double dThetaBar = dTheta0 * exp(dNbar * dNbar / dG * dZp);
 
 		// Set the uniform U, V, W field for all time
 		dState[0] = m_dU0;
@@ -283,9 +271,7 @@ public:
 		dState[2] = dThetaBar;
 
 		// Set the initial density based on the Exner pressure
-		double dExnerP = (dG * dG) / (dCp * m_dTheta0 * m_dNbar * m_dNbar);
-		dExnerP *= (exp(-m_dNbar * m_dNbar / dG * dZp) - 1.0);
-		dExnerP += 1.0;
+		double dExnerP = exp(-dG / (dCp * m_dT0) * dZp);
 		double dRho = dP0 / (dRd * dThetaBar) * pow(dExnerP,(dCv / dRd));
 		dState[4] = dRho;
 	}
@@ -356,18 +342,18 @@ try {
 	// Parse the command line
 	BeginCommandLine()
 		CommandLineString(strOutputDir, "output_dir",
-			"outScharMountainCartesianTest");
+			"outHydrostaticMountainCartesianTest");
 		CommandLineString(strOutputPrefix, "output_prefix", "out");
 		CommandLineInt(nOutputsPerFile, "output_perfile", -1);
 		CommandLineString(params.m_strRestartFile, "restart_file", "");
 		CommandLineInt(nResolution, "resolution", 40);
-		CommandLineInt(nLevels, "levels", 40);
+		CommandLineInt(nLevels, "levels", 48);
 		CommandLineInt(nHorizontalOrder, "order", 4);
 		CommandLineInt(nVerticalOrder, "vertorder", 4);
 		CommandLineDouble(dAlpha, "alpha", 0.0);
-		CommandLineDouble(params.m_dDeltaT, "dt", 0.1);
-		CommandLineDouble(params.m_dEndTime, "endtime", 3600.0);
-		CommandLineDouble(dOutputDeltaT, "outputtime", 300.0);
+		CommandLineDouble(params.m_dDeltaT, "dt", 1.0);
+		CommandLineDouble(params.m_dEndTime, "endtime", 36000.0);
+		CommandLineDouble(dOutputDeltaT, "outputtime", 1800.0);
 		CommandLineStringD(strHorizontalDynamics, "method", "SE", "(SE | DG)");
 		CommandLineBool(fNoHyperviscosity, "nohypervis");
 		CommandLineBool(fNoRayleighFriction, "norayleigh");
@@ -441,7 +427,7 @@ try {
 
 	// Generate a new cartesian GLL grid
 	// Initialize the test case here (to have grid dimensions available)
-	ScharMountainCartesianTest test(fNoRayleighFriction);
+	HydrostaticMountainCartesianTest test(fNoRayleighFriction);
 
 	AnnounceStartBlock("Constructing grid");
 	GridCartesianGLL grid(
@@ -490,7 +476,7 @@ try {
 	AnnounceEndBlock("Done");
 
 	// Set the test case for the model
-	ScharMountainCartesianTest ctest(fNoRayleighFriction);
+	HydrostaticMountainCartesianTest ctest(fNoRayleighFriction);
 	AnnounceStartBlock("Initializing test case");
 	model.SetTestCase(&ctest);
 	AnnounceEndBlock("Done");
