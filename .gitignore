@@ -21,3 +21,7 @@ test/ThermalBubbleCartesianTest
 test/ScharMountainCartesianTest
 
 test/InertiaGravityWaveTest
+
+test/HydrostaticMountainCartesianTest
+
+test/NonHydroMountainCartesianTest
