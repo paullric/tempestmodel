@@ -149,9 +149,6 @@ void GridPatchCSGLL::InitializeDataLocal() {
 	// Allocate data
 	GridPatch::InitializeDataLocal();
 
-	// Physical constants
-	const PhysicalConstants & phys = m_grid.GetModel().GetPhysicalConstants();
-
 	// Initialize the longitude and latitude at each node
 	for (int i = 0; i < m_box.GetATotalWidth(); i++) {
 	for (int j = 0; j < m_box.GetBTotalWidth(); j++) {
@@ -161,8 +158,6 @@ void GridPatchCSGLL::InitializeDataLocal() {
 			m_box.GetPanel(),
 			m_dataLon[i][j],
 			m_dataLat[i][j]);
-
-		m_dataCoriolisF[i][j] = 2.0 * phys.GetOmega() * sin(m_dataLat[i][j]);
 	}
 	}
 }
@@ -479,6 +474,13 @@ void GridPatchCSGLL::EvaluateTestCase(
 
 	// Physical constants
 	const PhysicalConstants & phys = m_grid.GetModel().GetPhysicalConstants();
+
+	// Initialize the Coriolis force at each node
+	for (int i = 0; i < m_box.GetATotalWidth(); i++) {
+	for (int j = 0; j < m_box.GetBTotalWidth(); j++) {
+		m_dataCoriolisF[i][j] = 2.0 * phys.GetOmega() * sin(m_dataLat[i][j]);
+	}
+	}
 
 	// Initialize the topography at each node
 	for (int i = 0; i < m_box.GetATotalWidth(); i++) {
