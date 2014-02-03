@@ -74,25 +74,18 @@ protected:
 	///	</summary>
 	double m_dZtop;
 
-	///	<summary>
-	///		Flag indicating that the reference profile should be used.
-	///	</summary>
-	bool m_fNoReferenceState;
-
 public:
 	///	<summary>
 	///		Constructor.
 	///	</summary>
 	InertiaGravityWaveTest(
-		double dEarthRadiusScaling,
-		bool fNoReferenceState
+		double dEarthRadiusScaling
 	) :
 		ParamT0(250.0),
 		ParamZtop(10000.0),
 		ParamThetaP(1.0),
 
-		m_dEarthRadiusScaling(dEarthRadiusScaling),
-		m_fNoReferenceState(fNoReferenceState)
+		m_dEarthRadiusScaling(dEarthRadiusScaling)
 	{ }
 
 public:
@@ -114,7 +107,7 @@ public:
 	///		Flag indicating that a reference state is available.
 	///	</summary>
 	virtual bool HasReferenceState() const {
-		return !m_fNoReferenceState;
+		return true;
 	}
 
 	///	<summary>
@@ -124,6 +117,7 @@ public:
 		PhysicalConstants & phys
 	) const {
 		phys.SetOmega(0.0);
+		phys.SetEarthRadius(phys.GetEarthRadius() / m_dEarthRadiusScaling);
 	}
 
 	///	<summary>
@@ -185,12 +179,12 @@ public:
 
 		// Calculate the potential temperature
 		double dTheta = phys.RhoThetaFromPressure(dPressure) / dRho;
-/*
+
 		// Add the perturbation
 		dTheta += ParamThetaP
 			* exp(-100.0 * dLat * dLat)
 			* sin(M_PI * dZ / ParamZtop);
-*/
+
 		// Store the state
 		dState[0] = 0.0;
 		dState[1] = 0.0;
@@ -342,7 +336,10 @@ try {
 		strOutputDir,
 		strOutputPrefix,
 		nOutputsPerFile,
-		360, 180);
+		360, 180,
+		false,   // Output variables in natural locations
+		true);   // Remove reference profile in output
+
 	outmanRef.OutputVorticity();
 	outmanRef.OutputDivergence();
 	model.AttachOutputManager(&outmanRef);
@@ -355,9 +352,7 @@ try {
 	AnnounceEndBlock("Done");
 
 	// Set the test case for the model
-	InertiaGravityWaveTest test(
-		dEarthRadiusScaling,
-		fNoReferenceState);
+	InertiaGravityWaveTest test(dEarthRadiusScaling);
 
 	AnnounceStartBlock("Initializing test case");
 	model.SetTestCase(&test);
