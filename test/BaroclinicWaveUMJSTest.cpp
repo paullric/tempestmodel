@@ -151,11 +151,6 @@ protected:
 	double m_dZtop;
 
 	///	<summary>
-	///		Flag indicating that the reference profile should be used.
-	///	</summary>
-	bool m_fNoReferenceState;
-
-	///	<summary>
 	///		Type of perturbation.
 	///	</summary>
 	PerturbationType m_ePerturbationType;
@@ -169,7 +164,6 @@ public:
 		bool fDeepAtmosphere,
 		bool fTracerOn,
 		double dZtop,
-		bool fNoReferenceState,
 		PerturbationType ePerturbationType = PerturbationType_None
 	) :
 		ParamEarthRadiusScaling(1.0),
@@ -191,7 +185,6 @@ public:
 		m_fDeepAtmosphere(fDeepAtmosphere),
 		m_fTracerOn(fTracerOn),
 		m_dZtop(dZtop),
-		m_fNoReferenceState(fNoReferenceState),
 		m_ePerturbationType(ePerturbationType)
 	{ }
 
@@ -214,7 +207,7 @@ public:
 	///		Flag indicating that a reference state is available.
 	///	</summary>
 	virtual bool HasReferenceState() const {
-		return !m_fNoReferenceState;
+		return true;
 	}
 
 	///	<summary>
@@ -696,7 +689,14 @@ try {
 	AnnounceEndBlock("Done");
 
 	// Set the vertical dynamics
-	VerticalDynamicsFEM vdyn(model, nHorizontalOrder, nVerticalOrder);
+	VerticalDynamicsFEM vdyn(
+		model,
+		nHorizontalOrder,
+		nVerticalOrder,
+		0,
+		false, // Implicit vertical
+		!fNoReferenceState);
+
 	AnnounceStartBlock("Initializing vertical dynamics");
 	model.SetVerticalDynamics(&vdyn);
 	AnnounceEndBlock("Done");
@@ -760,7 +760,6 @@ try {
 		fDeepAtmosphere,
 		fTracersOn,
 		dZtop,
-		fNoReferenceState,
 		ePerturbationType);
 
 	AnnounceStartBlock("Initializing test case");

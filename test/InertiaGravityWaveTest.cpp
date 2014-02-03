@@ -185,12 +185,12 @@ public:
 
 		// Calculate the potential temperature
 		double dTheta = phys.RhoThetaFromPressure(dPressure) / dRho;
-
+/*
 		// Add the perturbation
 		dTheta += ParamThetaP
 			* exp(-100.0 * dLat * dLat)
 			* sin(M_PI * dZ / ParamZtop);
-
+*/
 		// Store the state
 		dState[0] = 0.0;
 		dState[1] = 0.0;
@@ -309,7 +309,14 @@ try {
 	AnnounceEndBlock("Done");
 
 	// Set the vertical dynamics
-	VerticalDynamicsFEM vdyn(model, nHorizontalOrder, nVerticalOrder);
+	VerticalDynamicsFEM vdyn(
+		model,
+		nHorizontalOrder,
+		nVerticalOrder,
+		0,
+		false, // Implicit vertical
+		!fNoReferenceState);
+
 	AnnounceStartBlock("Initializing vertical dynamics");
 	model.SetVerticalDynamics(&vdyn);
 	AnnounceEndBlock("Done");
