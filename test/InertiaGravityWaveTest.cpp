@@ -231,6 +231,9 @@ try {
 	// Use reference state flag
 	bool fNoReferenceState;
 
+	// Solve vertical using a fully explicit method
+	bool fFullyExplicitVertical;
+
 	// Earth radius scaling
 	double dEarthRadiusScaling;
 
@@ -263,6 +266,7 @@ try {
 		CommandLineDouble(dOutputDeltaT, "outputtime", 21600.0);
 		CommandLineStringD(strHorizontalDynamics, "method", "SE", "(SE | DG)");
 		CommandLineBool(fNoHyperviscosity, "nohypervis");
+		CommandLineBool(fFullyExplicitVertical, "explicitvertical");
 
 		ParseCommandLine(argc, argv);
 	EndCommandLine(argv)
@@ -296,9 +300,13 @@ try {
 		_EXCEPTIONT("Invalid method: Expected \"SE\" or \"DG\"");
 	}
 
-	HorizontalDynamicsFEM hdyn(
-		model, nHorizontalOrder, eHorizontalDynamicsType, fNoHyperviscosity);
 	AnnounceStartBlock("Initializing horizontal dynamics");
+	HorizontalDynamicsFEM hdyn(
+		model,
+		nHorizontalOrder,
+		eHorizontalDynamicsType,
+		fNoHyperviscosity);
+
 	model.SetHorizontalDynamics(&hdyn);
 	AnnounceEndBlock("Done");
 
@@ -308,7 +316,7 @@ try {
 		nHorizontalOrder,
 		nVerticalOrder,
 		0,
-		false, // Implicit vertical
+		fFullyExplicitVertical,
 		!fNoReferenceState);
 
 	AnnounceStartBlock("Initializing vertical dynamics");
@@ -324,6 +332,8 @@ try {
 		nHorizontalOrder,
 		nVerticalOrder,
 		nLevels);
+
+	grid.SetReferenceLength(0.5 * M_PI / 30.0 * dEarthRadiusScaling);
 
 	model.SetGrid(&grid);
 	AnnounceEndBlock("Done");
