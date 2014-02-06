@@ -56,6 +56,7 @@ OutputManagerReference::OutputManagerReference(
 	m_pActiveNcOutput(NULL),
 	m_fOutputVorticity(false),
 	m_fOutputDivergence(false),
+	m_fOutputTemperature(false),
 	m_fOutputAllVarsOnNodes(fOutputAllVarsOnNodes),
 	m_fRemoveReferenceProfile(fRemoveReferenceProfile)
 {
