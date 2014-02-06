@@ -421,6 +421,15 @@ void GridPatch::InitializeDataLocal() {
 		m_box.GetBTotalWidth(),
 		m_box.GetHaloElements());
 
+	// Temperature data
+	m_dataTemperature.Initialize(
+		DataType_Temperature,
+		DataLocation_Node,
+		m_grid.GetRElements(),
+		m_box.GetATotalWidth(),
+		m_box.GetBTotalWidth(),
+		m_box.GetHaloElements());
+
 	// Rayleigh friction strength
 	m_dataRayleighStrengthNode.Initialize(
 		DataType_None,
@@ -481,6 +490,78 @@ void GridPatch::DeinitializeData() {
 	}
 
 	m_dataVorticity.Deinitialize();
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void GridPatch::ComputeTemperature(
+	int iDataIndex,
+	DataLocation loc
+) {
+	const PhysicalConstants & phys = m_grid.GetModel().GetPhysicalConstants();
+
+	// Indices of EquationSet variables
+	const int UIx = 0;
+	const int VIx = 1;
+	const int TIx = 2;
+	const int WIx = 3;
+	const int RIx = 4;
+
+	if (m_grid.GetModel().GetEquationSet().GetComponents() < 5) {
+		_EXCEPTIONT("Invalid EquationSet.");
+	}
+
+	int k;
+	int i;
+	int j;
+
+	// Calculate temperature on nodes
+	if (loc == DataLocation_Node) {
+		if (m_grid.GetVarLocation(TIx) == DataLocation_REdge) {
+			InterpolateREdgeToNode(TIx, iDataIndex);
+		}
+		if (m_grid.GetVarLocation(RIx) == DataLocation_REdge) {
+			InterpolateREdgeToNode(RIx, iDataIndex);
+		}
+
+		const GridData4D & dataState = m_datavecStateNode[iDataIndex];
+
+		for (k = 0; k < m_grid.GetRElements(); k++) {
+		for (i = m_box.GetAInteriorBegin(); i < m_box.GetAInteriorEnd(); i++) {
+		for (j = m_box.GetBInteriorBegin(); j < m_box.GetBInteriorEnd(); j++) {
+			m_dataTemperature[k][i][j] =
+				phys.PressureFromRhoTheta(
+					dataState[RIx][k][i][j] * dataState[TIx][k][i][j])
+				/ (dataState[RIx][k][i][j] * phys.GetR());
+		}
+		}
+		}
+	}
+
+	// Calculate temperature on interfaces
+	if (loc == DataLocation_REdge) {
+		_EXCEPTIONT("Temperature not implemented on interfaces");
+
+		if (m_grid.GetVarLocation(TIx) == DataLocation_Node) {
+			InterpolateNodeToREdge(TIx, iDataIndex);
+		}
+		if (m_grid.GetVarLocation(RIx) == DataLocation_Node) {
+			InterpolateNodeToREdge(RIx, iDataIndex);
+		}
+
+		const GridData4D & dataState = m_datavecStateREdge[iDataIndex];
+
+		for (k = 0; k <= m_grid.GetRElements(); k++) {
+		for (i = m_box.GetAInteriorBegin(); i < m_box.GetAInteriorEnd(); i++) {
+		for (j = m_box.GetBInteriorBegin(); j < m_box.GetBInteriorEnd(); j++) {
+			m_dataTemperature[k][i][j] =
+				phys.PressureFromRhoTheta(
+					dataState[RIx][k][i][j] * dataState[TIx][k][i][j])
+				/ (dataState[RIx][k][i][j] * phys.GetR());
+		}
+		}
+		}
+	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -669,9 +750,14 @@ void GridPatch::Send(
 		m_connect.Pack(m_dataVorticity);
 		m_connect.Send();
 
-	// Vorticity data
+	// Divergence data
 	} else if (eDataType == DataType_Divergence) {
 		m_connect.Pack(m_dataDivergence);
+		m_connect.Send();
+
+	// Temperature data
+	} else if (eDataType == DataType_Temperature) {
+		m_connect.Pack(m_dataTemperature);
 		m_connect.Send();
 
 	// Invalid data
@@ -721,6 +807,13 @@ void GridPatch::Receive(
 		Neighbor * pNeighbor;
 		while ((pNeighbor = m_connect.WaitReceive()) != NULL) {
 			pNeighbor->Unpack(m_dataDivergence);
+		}
+
+	// Temperature data
+	} else if (eDataType == DataType_Temperature) {
+		Neighbor * pNeighbor;
+		while ((pNeighbor = m_connect.WaitReceive()) != NULL) {
+			pNeighbor->Unpack(m_dataTemperature);
 		}
 
 	// Invalid data

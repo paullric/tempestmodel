@@ -38,6 +38,7 @@ enum DataType {
 	DataType_Pressure,
 	DataType_Vorticity,
 	DataType_Divergence,
+	DataType_Temperature,
 	DataType_None
 };
 

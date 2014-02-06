@@ -61,7 +61,7 @@ protected:
 	///	<summary>
 	///		Potential temperature perturbation.
 	///	</summary>
-	double ParamThetaP;
+	double ParamPertMagnitude;
 
 protected:
 	///	<summary>
@@ -81,9 +81,9 @@ public:
 	InertiaGravityWaveTest(
 		double dEarthRadiusScaling
 	) :
-		ParamT0(250.0),
+		ParamT0(300.0),
 		ParamZtop(10000.0),
-		ParamThetaP(1.0),
+		ParamPertMagnitude(1.0),
 
 		m_dEarthRadiusScaling(dEarthRadiusScaling)
 	{ }
@@ -172,19 +172,40 @@ public:
 
 		// Calculate the isothermal pressure
 		double dPressure =
-			phys.GetP0() * exp(- phys.GetG() * dZ / phys.GetR() / ParamT0);
+			phys.GetP0() * exp(- phys.GetG() * dZ / (phys.GetR() * ParamT0));
 
 		// Calculate exact density
 		double dRho = dPressure / (phys.GetR() * ParamT0);
 
-		// Calculate the potential temperature
-		double dTheta = phys.RhoThetaFromPressure(dPressure) / dRho;
+		// Calculate exact temperature
+		double dTemperature = dPressure / (dRho * phys.GetR());
 
-		// Add the perturbation
-		dTheta += ParamThetaP
+		dTemperature += ParamPertMagnitude
 			* exp(-100.0 * dLat * dLat)
 			* sin(M_PI * dZ / ParamZtop);
 
+		// Recalculate Rho
+		dRho = dPressure / (phys.GetR() * dTemperature);
+
+/*
+		// Add the perturbation
+		double dTb = ParamPertMagnitude
+			* exp(100.0 * (sin(dLat) - 1.0))
+			* sin(M_PI * dZ / ParamZtop);
+
+		double dRhob =
+			phys.GetP0() / (phys.GetR() * ParamT0) * (-dTb / ParamT0);
+
+		dRho += exp(- 0.5 * phys.GetG() * dZ / phys.GetR() / ParamT0) * dRhob;
+*/
+		// Calculate the potential temperature
+		double dTheta = phys.RhoThetaFromPressure(dPressure) / dRho;
+/*
+		// Add the perturbation
+		dTheta += ParamPertMagnitude
+			* exp(-100.0 * dLat * dLat)
+			* sin(M_PI * dZ / ParamZtop);
+*/
 		// Store the state
 		dState[0] = 0.0;
 		dState[1] = 0.0;
@@ -352,6 +373,7 @@ try {
 
 	outmanRef.OutputVorticity();
 	outmanRef.OutputDivergence();
+	outmanRef.OutputTemperature();
 	model.AttachOutputManager(&outmanRef);
 	AnnounceEndBlock("Done");
 

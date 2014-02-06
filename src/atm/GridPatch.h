@@ -143,6 +143,14 @@ public:
 		_EXCEPTIONT("Unimplemented");
 	}
 
+	///	<summary>
+	///		Compute temperature on the grid.
+	///	</summary>
+	virtual void ComputeTemperature(
+		int iDataIndex,
+		DataLocation loc = DataLocation_Node
+	);
+
 public:
 	///	<summary>
 	///		Add local masses to checksum total.
@@ -872,10 +880,24 @@ public:
 	}
 
 	///	<summary>
-	///		Get the vorticity data.
+	///		Get the divergence data.
 	///	</summary>
 	const GridData3D & GetDataDivergence() const {
 		return m_dataDivergence;
+	}
+
+	///	<summary>
+	///		Get the temperature data.
+	///	</summary>
+	GridData3D & GetDataTemperature() {
+		return m_dataTemperature;
+	}
+
+	///	<summary>
+	///		Get the temperature data.
+	///	</summary>
+	const GridData3D & GetDataTemperature() const {
+		return m_dataTemperature;
 	}
 
 	///	<summary>
@@ -1108,6 +1130,11 @@ protected:
 	///		Computed divergence.
 	///	</summary>
 	GridData3D m_dataDivergence;
+
+	///	<summary>
+	///		Computed temperature.
+	///	</summary>
+	GridData3D m_dataTemperature;
 
 	///	<summary>
 	///		Rayleigh friction strength on nodes.

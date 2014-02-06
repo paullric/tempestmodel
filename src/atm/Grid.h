@@ -203,6 +203,13 @@ public:
 	);
 
 	///	<summary>
+	///		Compute temperature on the grid.
+	///	</summary>
+	virtual void ComputeTemperature(
+		int iDataIndex
+	);
+
+	///	<summary>
 	///		Interpolate data vertically from Nodes to REdges.
 	///	</summary>
 	void InterpolateNodeToREdge(

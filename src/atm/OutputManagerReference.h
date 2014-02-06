@@ -75,6 +75,14 @@ public:
 		bool fOutputDivergence = true
 	);
 
+	///	<summary>
+	///		Modify the flag which indicates whether temperature should be
+	///		computed and output.
+	///	</summary>
+	void OutputTemperature(
+		bool fOutputTemperature = true
+	);
+
 private:
 	///	<summary>
 	///		Calculate the patch coordinates of the reference points.
@@ -219,6 +227,21 @@ private:
 	///		Computed divergence on the reference grid.
 	///	</summary>
 	DataMatrix3D<double> m_dataDivergence;
+
+	///	<summary>
+	///		Flag indicating whether temperature should be computed and output.
+	///	</summary>
+	bool m_fOutputTemperature;
+
+	///	<summary>
+	///		Temperature output variable.
+	///	</summary>
+	NcVar * m_varTemperature;
+
+	///	<summary>
+	///		Computed temperature on the reference grid.
+	///	</summary>
+	DataMatrix3D<double> m_dataTemperature;
 
 };
 

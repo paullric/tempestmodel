@@ -695,6 +695,17 @@ void Grid::ComputeVorticityDivergence(
 
 ///////////////////////////////////////////////////////////////////////////////
 
+void Grid::ComputeTemperature(
+	int iDataIndex
+) {
+	// Loop over all grid patches
+	for (int n = 0; n < m_vecActiveGridPatches.size(); n++) {
+		m_vecActiveGridPatches[n]->ComputeTemperature(iDataIndex);
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
 void Grid::InterpolateNodeToREdge(
 	int iVar,
 	int iDataIndex
@@ -763,6 +774,12 @@ void Grid::ReduceInterpolate(
 	}
 
 	if ((eDataType == DataType_Divergence) &&
+		(dInterpData.GetRows() != 1)
+	) {
+		_EXCEPTIONT("InterpData dimension mismatch (0)");
+	}
+
+	if ((eDataType == DataType_Temperature) &&
 		(dInterpData.GetRows() != 1)
 	) {
 		_EXCEPTIONT("InterpData dimension mismatch (0)");

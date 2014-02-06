@@ -1027,6 +1027,8 @@ void GridPatchCSGLL::InterpolateData(
 			nComponents = 1;
 		} else if (eDataType == DataType_Divergence) {
 			nComponents = 1;
+		} else if (eDataType == DataType_Temperature) {
+			nComponents = 1;
 		} else {
 			_EXCEPTIONT("Invalid DataType");
 		}
@@ -1047,6 +1049,8 @@ void GridPatchCSGLL::InterpolateData(
 				pData = (const double ***)(double ***)(m_dataVorticity);
 			} else if (eDataType == DataType_Divergence) {
 				pData = (const double ***)(double ***)(m_dataDivergence);
+			} else if (eDataType == DataType_Temperature) {
+				pData = (const double ***)(double ***)(m_dataTemperature);
 			}
 
 			// Perform interpolation on all levels

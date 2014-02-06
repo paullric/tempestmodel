@@ -117,6 +117,18 @@ void OutputManagerReference::OutputDivergence(
 
 ///////////////////////////////////////////////////////////////////////////////
 
+void OutputManagerReference::OutputTemperature(
+	bool fOutputTemperature
+) {
+	m_fOutputTemperature = fOutputTemperature;
+
+	if (!fOutputTemperature) {
+		m_dataTemperature.Deinitialize();
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
 void OutputManagerReference::CalculatePatchCoordinates() {
 
 	if (m_grid.GetGridStamp() == m_iGridStamp) {
@@ -184,6 +196,13 @@ void OutputManagerReference::CalculatePatchCoordinates() {
 
 	if (m_fOutputDivergence) {
 		m_dataDivergence.Initialize(
+			1,
+			m_grid.GetRElements(),
+			m_dAlpha.GetRows());
+	}
+
+	if (m_fOutputTemperature) {
+		m_dataTemperature.Initialize(
 			1,
 			m_grid.GetRElements(),
 			m_dAlpha.GetRows());
@@ -299,7 +318,7 @@ bool OutputManagerReference::OpenFile(
 					ncDouble, dimTime, dimLev, dimLat, dimLon));
 		}
 
-		// Divergence variable
+		// Vorticity variable
 		if (m_fOutputVorticity) {
 			m_varVorticity =
 				m_pActiveNcOutput->add_var(
@@ -311,6 +330,13 @@ bool OutputManagerReference::OpenFile(
 			m_varDivergence =
 				m_pActiveNcOutput->add_var(
 					"DELTA", ncDouble, dimTime, dimLev, dimLat, dimLon);
+		}
+
+		// Temperature variable
+		if (m_fOutputTemperature) {
+			m_varTemperature =
+				m_pActiveNcOutput->add_var(
+					"T", ncDouble, dimTime, dimLev, dimLat, dimLon);
 		}
 
 		// Output longitudes and latitudes
@@ -455,6 +481,16 @@ void OutputManagerReference::Output(
 		}
 	}
 
+	// Perform Interpolate / Reduction on temperature
+	if (m_fOutputTemperature) {
+		m_grid.ComputeTemperature(0);
+
+		m_grid.ReduceInterpolate(
+			m_dAlpha, m_dBeta, m_iPatch,
+			DataType_Temperature, DataLocation_Node, false,
+			m_dataTemperature);
+	}
+
 	// Store state variable data
 	if (nRank == 0) {
 		for (int c = 0; c < eqn.GetComponents(); c++) {
@@ -514,6 +550,18 @@ void OutputManagerReference::Output(
 				m_dYCoord.GetRows(),
 				m_dXCoord.GetRows());
 		}
+
+		// Store temperature data
+		if (m_fOutputTemperature) {
+			m_varTemperature->set_cur(m_ixOutputTime, 0, 0, 0);
+			m_varTemperature->put(
+				&(m_dataTemperature[0][0][0]),
+				1,
+				m_dataTemperature.GetColumns(),
+				m_dYCoord.GetRows(),
+				m_dXCoord.GetRows());
+		}
+
 	}
 
 	// Barrier
