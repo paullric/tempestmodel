@@ -40,13 +40,6 @@ public:
 	}
 
 	///	<summary>
-	///		Get the number of tracers used in this test.
-	///	</summary>
-	virtual int GetTracerCount() const {
-		return 0;
-	}
-
-	///	<summary>
 	///		Get the altitude of the model cap.
 	///	</summary>
 	virtual double GetZtop() const {

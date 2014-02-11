@@ -64,7 +64,7 @@ void OutputManagerChecksum::Output(
 	m_grid.Checksum(DataType_Tracers, dChecksum);
 	if (nRank == 0) {
 		for (int c = 0; c < eqn.GetTracers(); c++) {
-			Announce("Checksum (%s): %1.15e\n",
+			Announce("..Checksum (%s): %1.15e\n",
 				eqn.GetTracerShortName(c).c_str(), dChecksum[c]);
 		}
 	}

@@ -28,7 +28,8 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 Model::Model(
-	EquationSet::Type eEquationSetType
+	EquationSet::Type eEquationSetType,
+	int nTracers
 ) :
 	m_pParam(NULL),
 	m_pGrid(NULL),
@@ -36,7 +37,7 @@ Model::Model(
 	m_pHorizontalDynamics(NULL),
 	m_pVerticalDynamics(NULL),
 	m_pTestCase(NULL),
-	m_eqn(eEquationSetType),
+	m_eqn(eEquationSetType, nTracers),
 	m_time(0, 0, 0, 0.0)
 {
 	// Initialize staggering from equation set

@@ -55,23 +55,28 @@ public:
 	///		Constructor.
 	///	</summary>
 	EquationSet(
-		Type eEquationSetType
+		Type eEquationSetType,
+		int nTracers = 0
 	) :
-		m_eEquationSetType(eEquationSetType)
+		m_eEquationSetType(eEquationSetType),
+		m_nTracers(nTracers)
 	{
+		// Check tracer count
+		if (nTracers < 0) {
+			_EXCEPTIONT("Negative tracer values not allowed");
+		}
+
 		// Advection equations
 		if (eEquationSetType == AdvectionEquations) {
 			m_nDimensionality = 3;
 
 			m_nComponents = 0;
-			m_nTracers = 0;
 
 		// Shallow water equations
 		} else if (eEquationSetType == ShallowWaterEquations) {
 			m_nDimensionality = 2;
 
 			m_nComponents = 3;
-			m_nTracers = 0;
 
 			m_strComponentShortNames.push_back("U");
 			m_strComponentShortNames.push_back("V");
@@ -86,7 +91,6 @@ public:
 			m_nDimensionality = 3;
 
 			m_nComponents = 5;
-			m_nTracers = 0;
 
 			m_strComponentShortNames.push_back("U");
 			m_strComponentShortNames.push_back("V");
@@ -103,6 +107,18 @@ public:
 		// Invalid equation set
 		} else {
 			_EXCEPTIONT("Invalid equation set.");
+		}
+
+		// Initialize tracers
+		for (int c = 0; c < nTracers; c++) {
+			char szTracerShortName[80];
+			sprintf(szTracerShortName, "Q%i", c);
+
+			char szTracerFullName[80];
+			sprintf(szTracerFullName, "Tracer %i", c);
+
+			m_strTracerShortNames.push_back(szTracerShortName);
+			m_strTracerFullNames.push_back(szTracerFullName);
 		}
 	}
 

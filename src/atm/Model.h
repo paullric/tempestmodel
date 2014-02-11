@@ -94,7 +94,8 @@ public:
 	///		Constructor.
 	///	</summary>
 	Model(
-		EquationSet::Type eEquationSetType
+		EquationSet::Type eEquationSetType,
+		int nTracers = 0
 	);
 
 public:

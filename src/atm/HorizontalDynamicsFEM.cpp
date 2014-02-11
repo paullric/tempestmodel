@@ -840,14 +840,7 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 						+ dContraMetricB[k][iA][iB][1] * dDbP
 						+ dContraMetricB[k][iA][iB][2] * dDxP)
 							* dataInitialNode[TIx][k][iA][iB];
-/*
-				if ((k < 2) && (iA == 91) && (iB == 1)) {
-					printf("%i %1.10e %1.10e : %1.10e\n", k,
-							dContraMetricA[k][iA][iB][0] * dDaP,
-							dContraMetricA[k][iA][iB][2] * dDxP,
-							dLocalUpdateUa);
-				}
-*/
+
 				// Coriolis forces
 				double dDomainHeight = dZtop - dTopography[iA][iB];
 
@@ -901,39 +894,6 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 					// Update vertical velocity
 					dataUpdateNode[WIx][k][iA][iB] -=
 						dDeltaT * (dUa * dDaUx + dUb * dDbUx);
-/*
-					// Curvature terms
-					double dCurvatureXi =
-						+ dChristoffelXi[k][iA][iB][0] * dUa * dUa
-						+ dChristoffelXi[k][iA][iB][1] * dUa * dUb
-						+ dChristoffelXi[k][iA][iB][2] * dUa * dUx
-						+ dChristoffelXi[k][iA][iB][3] * dUb * dUb
-						+ dChristoffelXi[k][iA][iB][4] * dUb * dUx
-						+ dChristoffelXi[k][iA][iB][5] * dUx * dUx;
-
-					dataUpdateNode[WIx][k][iA][iB] -=
-						dDeltaT * dCurvatureXi;
-
-					// Horizontal pressure derivatives applied to W velocity
-					double dPressureXi =
-						( dContraMetricXi[k][iA][iB][0] * dDaP
-						+ dContraMetricXi[k][iA][iB][1] * dDbP)
-							* dataInitialNode[TIx][k][iA][iB];
-
-					dataUpdateNode[WIx][k][iA][iB] -=
-						dDeltaT * dPressureXi;
-*/
-/*
-					if ((iA == 41) && (iB == 1)) {
-						printf("(k = %i) Advection: %1.10e\n", k, dUa * dDaUx);
-						printf("(k = %i) Curvature: %1.10e\n", k, dCurvatureXi);
-						printf("(k = %i) Pressure:  %1.10e\n", k, dPressureXi);
-					}
-*/
-
-#pragma message "MISSING"
-					// Coriolis terms as applied to W velocity
-
 				}
 
 				// Update the potential temperature (on model levels)
@@ -961,6 +921,8 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 					dataUpdateNode[TIx][k][iA][iB] -=
 						dDeltaT * (dUa * dDaTheta + dUb * dDbTheta);
 				}
+
+				// Update tracers
 			}
 			}
 		}
@@ -1031,30 +993,6 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 					// Update vertical velocity
 					dataUpdateREdge[WIx][k][iA][iB] -=
 						dDeltaT * (dUaREdge * dDaUx + dUbREdge * dDbUx);
-/*
-					// Curvature terms
-					double dCurvatureXi =
-						+ dChristoffelXi[k][iA][iB][0] * dUaREdge * dUaREdge
-						+ dChristoffelXi[k][iA][iB][1] * dUaREdge * dUbREdge
-						+ dChristoffelXi[k][iA][iB][2] * dUaREdge * dUxREdge
-						+ dChristoffelXi[k][iA][iB][3] * dUbREdge * dUbREdge
-						+ dChristoffelXi[k][iA][iB][4] * dUbREdge * dUxREdge
-						+ dChristoffelXi[k][iA][iB][5] * dUxREdge * dUxREdge;
-
-					dataUpdateREdge[WIx][k][iA][iB] -=
-						dDeltaT * dCurvatureXi;
-
-					// Horizontal pressure derivatives applied to W velocity
-					double dPressureXi =
-						( dContraMetricXi[k][iA][iB][0]
-							* m_dColumnDaPressureREdge[k]
-						+ dContraMetricXi[k][iA][iB][1]
-							* m_dColumnDbPressureREdge[k]
-						) * dataInitialREdge[TIx][k][iA][iB];
-
-					dataUpdateREdge[WIx][k][iA][iB] -=
-						dDeltaT * dPressureXi;
-*/
 				}
 
 				// Update the potential temperature (on model interfaces)

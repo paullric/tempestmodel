@@ -582,29 +582,52 @@ void GridPatch::Checksum(
 		_EXCEPTIONT("Checksum called on uninitialized GridPatch");
 	}
 
-	// Implement
-	if (eDataType == DataType_Tracers) {
-		_EXCEPTIONT("Not implemented.");
-	}
-
-	const GridData4D & dataNode  = m_datavecStateNode[iDataIndex];
-	const GridData4D & dataREdge = m_datavecStateREdge[iDataIndex];
-
-	// Variables on nodes
-#pragma "Construct a Grid vector of vectors indicating all variables at each location"
-	int nComponents = m_grid.GetModel().GetEquationSet().GetComponents();
+	// State variables
+	GridData4D const * pDataNode;
+	GridData4D const * pDataREdge;
 
 	std::vector<int> nodevars;
 	std::vector<int> redgevars;
-	for (int c = 0; c < nComponents; c++) {
-		if (m_grid.GetVarLocation(c) == DataLocation_Node) {
-			nodevars.push_back(c);
-		} else if (m_grid.GetVarLocation(c) == DataLocation_REdge) {
-			redgevars.push_back(c);
-		} else {
-			_EXCEPTIONT("Not implemented.");
+
+	// State data
+	if (eDataType == DataType_State) {
+		pDataNode  = &(m_datavecStateNode[iDataIndex]);
+		pDataREdge = &(m_datavecStateREdge[iDataIndex]);
+
+		// Variables on nodes
+		int nComponents = m_grid.GetModel().GetEquationSet().GetComponents();
+		for (int c = 0; c < nComponents; c++) {
+			if (m_grid.GetVarLocation(c) == DataLocation_Node) {
+				nodevars.push_back(c);
+			} else if (m_grid.GetVarLocation(c) == DataLocation_REdge) {
+				redgevars.push_back(c);
+			} else {
+				_EXCEPTIONT("Not implemented.");
+			}
 		}
+
+		if (dChecksums.GetRows() < nComponents) {
+			_EXCEPTIONT("Invalid Checksum count");
+		}
+
+	// Tracer data
+	} else if (eDataType == DataType_Tracers) {
+		pDataNode  = &(m_datavecTracers[iDataIndex]);
+		pDataREdge = NULL;
+
+		int nTracers = m_grid.GetModel().GetEquationSet().GetTracers();
+		for (int c = 0; c < nTracers; c++) {
+			nodevars.push_back(c);
+		}
+
+		if (dChecksums.GetRows() < nTracers) {
+			_EXCEPTIONT("Invalid Checksum count");
+		}
+
+	} else {
+		_EXCEPTIONT("Invalid DataType.");
 	}
+
 
 	// ChecksumType_Sum
 	if (eChecksumType == ChecksumType_Sum) {
@@ -613,7 +636,7 @@ void GridPatch::Checksum(
 		for (i = m_box.GetAInteriorBegin(); i < m_box.GetAInteriorEnd(); i++) {
 		for (j = m_box.GetBInteriorBegin(); j < m_box.GetBInteriorEnd(); j++) {
 			dChecksums[nodevars[c]] +=
-				  dataNode[nodevars[c]][k][i][j]
+				  (*pDataNode)[nodevars[c]][k][i][j]
 				* m_dataElementArea[k][i][j];
 		}
 		}
@@ -624,7 +647,7 @@ void GridPatch::Checksum(
 		for (i = m_box.GetAInteriorBegin(); i < m_box.GetAInteriorEnd(); i++) {
 		for (j = m_box.GetBInteriorBegin(); j < m_box.GetBInteriorEnd(); j++) {
 			dChecksums[redgevars[c]] +=
-				  dataREdge[redgevars[c]][k][i][j]
+				  (*pDataREdge)[redgevars[c]][k][i][j]
 				* m_dataElementAreaREdge[k][i][j];
 		}
 		}
@@ -637,7 +660,7 @@ void GridPatch::Checksum(
 		for (k = 0; k < m_grid.GetRElements(); k++) {
 		for (i = m_box.GetAInteriorBegin(); i < m_box.GetAInteriorEnd(); i++) {
 		for (j = m_box.GetBInteriorBegin(); j < m_box.GetBInteriorEnd(); j++) {
-			double dValue = fabs(dataNode[nodevars[c]][k][i][j]);
+			double dValue = fabs((*pDataNode)[nodevars[c]][k][i][j]);
 			dChecksums[nodevars[c]] +=
 				dValue * m_dataElementArea[k][i][j];
 		}
@@ -648,7 +671,7 @@ void GridPatch::Checksum(
 		for (k = 0; k <= m_grid.GetRElements(); k++) {
 		for (i = m_box.GetAInteriorBegin(); i < m_box.GetAInteriorEnd(); i++) {
 		for (j = m_box.GetBInteriorBegin(); j < m_box.GetBInteriorEnd(); j++) {
-			double dValue = fabs(dataREdge[redgevars[c]][k][i][j]);
+			double dValue = fabs((*pDataREdge)[redgevars[c]][k][i][j]);
 			dChecksums[redgevars[c]] +=
 				dValue * m_dataElementAreaREdge[k][i][j];
 		}
@@ -662,7 +685,7 @@ void GridPatch::Checksum(
 		for (k = 0; k < m_grid.GetRElements(); k++) {
 		for (i = m_box.GetAInteriorBegin(); i < m_box.GetAInteriorEnd(); i++) {
 		for (j = m_box.GetBInteriorBegin(); j < m_box.GetBInteriorEnd(); j++) {
-			double dValue = dataNode[nodevars[c]][k][i][j];
+			double dValue = (*pDataNode)[nodevars[c]][k][i][j];
 			dChecksums[nodevars[c]] +=
 				dValue * dValue * m_dataElementArea[k][i][j];
 		}
@@ -673,7 +696,7 @@ void GridPatch::Checksum(
 		for (k = 0; k <= m_grid.GetRElements(); k++) {
 		for (i = m_box.GetAInteriorBegin(); i < m_box.GetAInteriorEnd(); i++) {
 		for (j = m_box.GetBInteriorBegin(); j < m_box.GetBInteriorEnd(); j++) {
-			double dValue = dataREdge[redgevars[c]][k][i][j];
+			double dValue = (*pDataREdge)[redgevars[c]][k][i][j];
 			dChecksums[redgevars[c]] +=
 				dValue * dValue * m_dataElementAreaREdge[k][i][j];
 		}
@@ -687,7 +710,7 @@ void GridPatch::Checksum(
 		for (k = 0; k < m_grid.GetRElements(); k++) {
 		for (i = m_box.GetAInteriorBegin(); i < m_box.GetAInteriorEnd(); i++) {
 		for (j = m_box.GetBInteriorBegin(); j < m_box.GetBInteriorEnd(); j++) {
-			double dValue = dataNode[nodevars[c]][k][i][j];
+			double dValue = (*pDataNode)[nodevars[c]][k][i][j];
 			if (fabs(dValue) > dChecksums[nodevars[c]]) {
 				dChecksums[nodevars[c]] = fabs(dValue);
 			}
@@ -699,7 +722,7 @@ void GridPatch::Checksum(
 		for (k = 0; k <= m_grid.GetRElements(); k++) {
 		for (i = m_box.GetAInteriorBegin(); i < m_box.GetAInteriorEnd(); i++) {
 		for (j = m_box.GetBInteriorBegin(); j < m_box.GetBInteriorEnd(); j++) {
-			double dValue = dataREdge[redgevars[c]][k][i][j];
+			double dValue = (*pDataREdge)[redgevars[c]][k][i][j];
 			if (fabs(dValue) > dChecksums[redgevars[c]]) {
 				dChecksums[redgevars[c]] = fabs(dValue);
 			}
