@@ -165,7 +165,7 @@ public:
 	) const {
 		const double dRayleighStrength = 8.0e-3;
 		const double dRayleighDepth = 10000.0;
-		const double dRayleighWidth = 10000.0;
+		const double dRayleighWidth = 20000.0;
 
 		double dNuDepth = 0.0;
 		double dNuRight = 0.0;

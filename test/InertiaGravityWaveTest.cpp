@@ -20,7 +20,7 @@
 #include "STLStringHelper.h"
 
 #include "Model.h"
-#include "TimestepSchemeARK4.h"
+#include "TimestepSchemeStrang.h"
 #include "HorizontalDynamicsFEM.h"
 #include "VerticalDynamicsFEM.h"
 
@@ -305,7 +305,7 @@ try {
 	AnnounceEndBlock("Done");
 
 	// Set the timestep scheme
-	TimestepSchemeARK4 timestep(model);
+	TimestepSchemeStrang timestep(model);
 	AnnounceStartBlock("Initializing timestep scheme");
 	model.SetTimestepScheme(&timestep);
 	AnnounceEndBlock("Done");

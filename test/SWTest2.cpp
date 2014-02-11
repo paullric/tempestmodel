@@ -19,7 +19,7 @@
 #include "STLStringHelper.h"
 
 #include "Model.h"
-#include "TimestepSchemeARK4.h"
+#include "TimestepSchemeStrang.h"
 #include "HorizontalDynamicsFEM.h"
 #include "VerticalDynamicsStub.h"
 
@@ -85,7 +85,7 @@ public:
 	///	<summary>
 	///		Number of tracers used in this test.
 	///	</summary>
-	virtual int GetTracerCount() const {
+	int GetTracerCount() const {
 		return (m_fTracerOn)?(1):(0);
 	}
 
@@ -255,12 +255,14 @@ try {
 
 	// Create a new test case object
 	AnnounceStartBlock("Creating test case");
-	
+	ShallowWaterTestCase2 test(dH0, dU0, dAlpha, fTracersOn);
 	AnnounceEndBlock("Done");
 
 	// Construct a model
 	AnnounceStartBlock("Creating model");
-	Model model(EquationSet::ShallowWaterEquations);
+	Model model(
+		EquationSet::ShallowWaterEquations,
+		test.GetTracerCount());
 	AnnounceEndBlock("Done");
 
 	// Set the parameters for the model
@@ -269,7 +271,7 @@ try {
 	AnnounceEndBlock("Done");
 
 	// Set the timestep scheme
-	TimestepSchemeARK4 timestep(model);
+	TimestepSchemeStrang timestep(model);
 	AnnounceStartBlock("Initializing timestep scheme");
 	model.SetTimestepScheme(&timestep);
 	AnnounceEndBlock("Done");
@@ -339,7 +341,6 @@ try {
 	AnnounceEndBlock("Done");
 
 	// Set the test case for the model
-	ShallowWaterTestCase2 test(dH0, dU0, dAlpha, fTracersOn);
 	AnnounceStartBlock("Initializing test case");
 	model.SetTestCase(&test);
 	AnnounceEndBlock("Done");
