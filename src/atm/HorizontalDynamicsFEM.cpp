@@ -24,7 +24,11 @@
 #include "GridGLL.h"
 #include "GridPatchGLL.h"
 
-#define DIFFERENTIAL_FORM
+//#define DIFFERENTIAL_FORM
+
+#ifdef DIFFERENTIAL_FORM
+#pragma message "WARNING: DIFFERENTIAL_FORM will lose mass over topography"
+#endif
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -1067,11 +1071,13 @@ void HorizontalDynamicsFEM::StepExplicit(
 		_EXCEPTIONT("Invalid EquationSet");
 	}
 
+/*
 	// Apply Direct Stiffness Summation (DSS) procedure
 	if (m_eHorizontalDynamicsType == SpectralElement) {
 		GridGLL * pGrid = dynamic_cast<GridGLL*>(m_model.GetGrid());
 		pGrid->ApplyDSS(iDataUpdate);
 	}
+*/
 }
 
 ///////////////////////////////////////////////////////////////////////////////

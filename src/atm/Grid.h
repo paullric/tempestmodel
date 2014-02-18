@@ -105,6 +105,18 @@ protected:
 
 public:
 	///	<summary>
+	///		Perform post-processing of variables on the grid after each
+	///		TimeStep substage.
+	///	</summary>
+	virtual void PostProcessSubstage(
+		int iDataUpdate,
+		DataType eDataType = DataType_State
+	) {
+		_EXCEPTIONT("Unimplemented");
+	}
+
+public:
+	///	<summary>
 	///		Perform checksum calculation on all state variables.
 	///	</summary>
 	void Checksum(

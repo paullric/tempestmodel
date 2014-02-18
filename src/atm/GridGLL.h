@@ -51,6 +51,17 @@ public:
 
 public:
 	///	<summary>
+	///		Perform post-processing of variables on the grid after each
+	///		TimeStep substage.
+	///	</summary>
+	virtual void PostProcessSubstage(
+		int iDataUpdate,
+		DataType eDataType = DataType_State
+	) {
+		ApplyDSS(iDataUpdate, eDataType);
+	}
+
+	///	<summary>
 	///		Apply the direct stiffness summation (DSS) operation on the grid.
 	///	</summary>
 	virtual void ApplyDSS(

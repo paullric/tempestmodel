@@ -58,14 +58,20 @@ void TimestepSchemeStrang::Step(
 		pGrid->CopyData(0, 1, DataType_State);
 		pHorizontalDynamics->StepExplicit(0, 1, time, dHalfDeltaT);
 		pVerticalDynamics->StepExplicit(0, 1, time, dHalfDeltaT);
+		pGrid->PostProcessSubstage(1, DataType_State);
+		pGrid->PostProcessSubstage(1, DataType_Tracers);
 
 		pGrid->CopyData(0, 2, DataType_State);
 		pHorizontalDynamics->StepExplicit(1, 2, time + dHalfDeltaT, dHalfDeltaT);
 		pVerticalDynamics->StepExplicit(1, 2, time + dHalfDeltaT, dHalfDeltaT);
+		pGrid->PostProcessSubstage(2, DataType_State);
+		pGrid->PostProcessSubstage(2, DataType_Tracers);
 
 		pGrid->CopyData(0, 3, DataType_State);
 		pHorizontalDynamics->StepExplicit(2, 3, time + dDeltaT, dDeltaT);
 		pVerticalDynamics->StepExplicit(2, 3, time + dDeltaT, dDeltaT);
+		pGrid->PostProcessSubstage(3, DataType_State);
+		pGrid->PostProcessSubstage(3, DataType_Tracers);
 
 		DataVector<double> dRK4Combination;
 		dRK4Combination.Initialize(5);
@@ -79,12 +85,16 @@ void TimestepSchemeStrang::Step(
 			3, 4, time + dDeltaT / 6.0, dDeltaT / 6.0);
 		pVerticalDynamics->StepExplicit(
 			3, 4, time + dDeltaT / 6.0, dDeltaT / 6.0);
+		pGrid->PostProcessSubstage(4, DataType_State);
+		pGrid->PostProcessSubstage(4, DataType_Tracers);
 
 	// Explicit strong stability preserving third-order Runge-Kutta
 	} else if (m_eExplicitDiscretization == RungeKuttaSSP3) {
 		pGrid->CopyData(0, 1, DataType_State);
 		pHorizontalDynamics->StepExplicit(0, 1, time, dDeltaT);
 		pVerticalDynamics->StepExplicit(0, 1, time, dDeltaT);
+		pGrid->PostProcessSubstage(1, DataType_State);
+		pGrid->PostProcessSubstage(1, DataType_Tracers);
 
 		DataVector<double> dSSPRK3CombinationA;
 		dSSPRK3CombinationA.Initialize(3);
@@ -94,6 +104,8 @@ void TimestepSchemeStrang::Step(
 		pGrid->LinearCombineData(dSSPRK3CombinationA, 2, DataType_State);
 		pHorizontalDynamics->StepExplicit(1, 2, time + dDeltaT, 0.25 * dDeltaT);
 		pVerticalDynamics->StepExplicit(1, 2, time + dDeltaT, 0.25 * dDeltaT);
+		pGrid->PostProcessSubstage(2, DataType_State);
+		pGrid->PostProcessSubstage(2, DataType_Tracers);
 
 		DataVector<double> dSSPRK3CombinationB;
 		dSSPRK3CombinationB.Initialize(5);
@@ -107,6 +119,8 @@ void TimestepSchemeStrang::Step(
 			2, 4, time + 0.5 * dDeltaT, (2.0/3.0) * dDeltaT);
 		pVerticalDynamics->StepExplicit(
 			2, 4, time + 0.5 * dDeltaT, (2.0/3.0) * dDeltaT);
+		pGrid->PostProcessSubstage(4, DataType_State);
+		pGrid->PostProcessSubstage(4, DataType_Tracers);
 
 	// Invalid explicit discretization
 	} else {
