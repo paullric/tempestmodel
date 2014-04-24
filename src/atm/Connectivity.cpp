@@ -21,6 +21,8 @@
 #include "Model.h"
 #include "EquationSet.h"
 
+//#define NOEXCHANGE
+
 ///////////////////////////////////////////////////////////////////////////////
 // Neighbor
 ///////////////////////////////////////////////////////////////////////////////
@@ -38,17 +40,17 @@ void Neighbor::InitializeBuffers(
 
 ///////////////////////////////////////////////////////////////////////////////
 
-bool Neighbor::CheckReceive() const {
+bool Neighbor::CheckReceive() {
 
 	// Check if message already received and processed
 	if (m_fComplete) {
 		return false;
 	}
 
-	// Check receive status
+	// Test receive request
 	int fRecvWaiting;
 	MPI_Status status;
-	MPI_Request_get_status(m_reqRecv, &fRecvWaiting, &status);
+	MPI_Test(&m_reqRecv, &fRecvWaiting, &status);
 	if (!fRecvWaiting) {
 		return false;
 	}
@@ -78,6 +80,7 @@ void ExteriorNeighbor::PrepareExchange() {
 	// Tag of the received message
 	int nTag = (m_ixNeighbor << 16) + (ixPatch << 4) + (int)(m_dir);
 
+#ifndef NOEXCHANGE
 	// Prepare an asynchronous receive
 	MPI_Irecv(
 		&(m_vecRecvBuffer[0]),
@@ -87,6 +90,7 @@ void ExteriorNeighbor::PrepareExchange() {
 		nTag,
 		MPI_COMM_WORLD,
 		&m_reqRecv);
+#endif
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -467,7 +471,9 @@ void ExteriorNeighbor::Send() {
 
 	int nTag = (ixPatch << 16) + (m_ixNeighbor << 4) + (int)(m_dirOpposite);
 
+#ifndef NOEXCHANGE
 #pragma message "Move MPI_TAG processing to Connectivity"
+
 	MPI_Isend(
 		&(m_vecSendBuffer[0]),
 		m_ixSendBuffer,
@@ -476,6 +482,16 @@ void ExteriorNeighbor::Send() {
 		nTag,
 		MPI_COMM_WORLD,
 		&m_reqSend);
+/*
+	MPI_Send(
+		&(m_vecSendBuffer[0]),
+		m_ixSendBuffer,
+		MPI_DOUBLE,
+		iProcessor,
+		nTag,
+		MPI_COMM_WORLD);
+*/
+#endif
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -483,14 +499,16 @@ void ExteriorNeighbor::Send() {
 void ExteriorNeighbor::Unpack(
 	GridData3D & data
 ) {
+/*
 	// Check receive status
 	int fRecvWaiting;
 	MPI_Status status;
-	MPI_Request_get_status(m_reqRecv, &fRecvWaiting, &status);
+	MPI_Test(&m_reqRecv, &fRecvWaiting, &status);
 	if (!fRecvWaiting) {
 		_EXCEPTIONT("Receive buffer access error");
 	}
-
+	std::cout << "Test: " << status.MPI_TAG << std::endl;
+*/
 	// Model grid
 	const Grid & grid = m_pConnect->GetGridPatch().GetGrid();
 
@@ -726,6 +744,17 @@ void ExteriorNeighbor::Unpack(
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+
+void ExteriorNeighbor::WaitSend() {
+
+#ifndef NOEXCHANGE
+	MPI_Status status;
+	MPI_Wait(&m_reqSend, &status);
+#endif
+
+}
+
+///////////////////////////////////////////////////////////////////////////////
 // Connectivity
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -738,175 +767,6 @@ Connectivity::~Connectivity() {
 		delete m_vecNestedNeighbors[n];
 	}
 */
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
-void Connectivity::ExteriorConnect(
-	GridPatch * pPatchFirst,
-	Direction dirFirst,
-	const GridPatch * pPatchSecond
-) {
-	// First patch coordinate index
-	int ixFirst;
-	int ixSecond;
-
-	if ((dirFirst == Direction_Right) ||
-		(dirFirst == Direction_Left)
-	) {
-		ixFirst  = pPatchFirst->GetPatchBox().GetBInteriorBegin();
-		ixSecond = pPatchFirst->GetPatchBox().GetBInteriorEnd();
-
-	} else if (
-		(dirFirst == Direction_Top) ||
-		(dirFirst == Direction_Bottom)
-	) {
-		ixFirst  = pPatchFirst->GetPatchBox().GetAInteriorBegin();
-		ixSecond = pPatchFirst->GetPatchBox().GetAInteriorEnd();
-
-	} else if (dirFirst == Direction_TopRight) {
-		ixFirst  = pPatchFirst->GetPatchBox().GetAInteriorEnd()-1;
-		ixSecond = pPatchFirst->GetPatchBox().GetBInteriorEnd()-1;
-
-	} else if (dirFirst == Direction_TopLeft) {
-		ixFirst  = pPatchFirst->GetPatchBox().GetAInteriorBegin();
-		ixSecond = pPatchFirst->GetPatchBox().GetBInteriorEnd()-1;
-
-	} else if (dirFirst == Direction_BottomLeft) {
-		ixFirst  = pPatchFirst->GetPatchBox().GetAInteriorBegin();
-		ixSecond = pPatchFirst->GetPatchBox().GetBInteriorBegin();
-
-	} else if (dirFirst == Direction_BottomRight) {
-		ixFirst  = pPatchFirst->GetPatchBox().GetAInteriorEnd()-1;
-		ixSecond = pPatchFirst->GetPatchBox().GetBInteriorBegin();
-
-	} else {
-		_EXCEPTIONT("Invalid direction");
-	}
-
-	// Exterior connect
-	ExteriorConnect(
-		pPatchFirst,
-		dirFirst,
-		pPatchSecond,
-		ixFirst,
-		ixSecond);
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
-void Connectivity::ExteriorConnect(
-	GridPatch * pPatchFirst,
-	Direction dirFirst,
-	const GridPatch * pPatchSecond,
-	int ixFirst,
-	int ixSecond
-) {
-	// Check for NULL patches (do nothing)
-	if ((pPatchFirst == NULL) || (pPatchSecond == NULL)) {
-		return;
-	}
-
-	// Get number of components
-	const PatchBox & box = pPatchFirst->GetPatchBox();
-
-	const Grid & grid = pPatchFirst->GetGrid();
-
-	const Model & model = grid.GetModel();
-
-	const EquationSet & eqn = model.GetEquationSet();
-
-	int nStateTracerMaxVariables;
-	if (eqn.GetComponents() > eqn.GetTracers()) {
-		nStateTracerMaxVariables = eqn.GetComponents();
-	} else {
-		nStateTracerMaxVariables = eqn.GetTracers();
-	}
-
-	int nRElements = grid.GetRElements();
-
-	int nHaloElements = model.GetHaloElements();
-
-	// Get the opposing direction
-	Direction dirOpposing = Direction_Unreachable;
-	bool fReverseDirection = false;
-
-	grid.GetOpposingDirection(
-		box.GetPanel(),
-		pPatchSecond->GetPatchBox().GetPanel(),
-		dirFirst,
-		dirOpposing,
-		fReverseDirection);
-
-	// DEBUG
-	//std::cout << dirFirst << " : " << dirOpposing << " : " << pPatchFirst->GetPatchIndex() << " : " << pPatchSecond->GetPatchIndex() << std::endl;
-
-	// Get connectivities of individual patches
-	Connectivity & connectFirst = pPatchFirst->GetConnectivity();
-
-	// Determine the size of the boundary (number of elements along exterior
-	// edge).  Used in computing the size of the send/recv buffers.
-	int nBoundarySize;
-	if ((dirFirst == Direction_Right) ||
-		(dirFirst == Direction_Top) ||
-		(dirFirst == Direction_Left) ||
-		(dirFirst == Direction_Bottom)
-	) {
-		nBoundarySize = ixSecond - ixFirst;
-	} else {
-		nBoundarySize = nHaloElements;
-	}
-
-	if ((dirFirst == Direction_TopRight) && (
-		(ixFirst < box.GetAInteriorBegin() + nBoundarySize - 1) ||
-		(ixSecond < box.GetBInteriorBegin() + nBoundarySize - 1)
-	)) {
-		_EXCEPTIONT("Insufficient interior elements to build "
-			"diagonal connection.");
-	}
-
-	if ((dirFirst == Direction_TopLeft) && (
-		(ixFirst > box.GetAInteriorEnd() - nBoundarySize) ||
-		(ixSecond < box.GetBInteriorBegin() + nBoundarySize - 1)
-	)) {
-		_EXCEPTIONT("Insufficient interior elements to build "
-			"diagonal connection.");
-	}
-
-	if ((dirFirst == Direction_BottomLeft) && (
-		(ixFirst > box.GetAInteriorEnd() - nBoundarySize) ||
-		(ixSecond > box.GetBInteriorEnd() - nBoundarySize)
-	)) {
-		_EXCEPTIONT("Insufficient interior elements to build "
-			"diagonal connection.");
-	}
-
-	if ((dirFirst == Direction_BottomRight) && (
-		(ixFirst < box.GetAInteriorBegin() + nBoundarySize - 1) ||
-		(ixSecond > box.GetBInteriorEnd() - nBoundarySize)
-	)) {
-		_EXCEPTIONT("Insufficient interior elements to build "
-			"diagonal connection.");
-	}
-
-	// Add an external neighbor to the patch
-	ExteriorNeighbor * pNeighbor =
-		new ExteriorNeighbor(
-			&connectFirst,
-			dirFirst,
-			dirOpposing,
-			pPatchSecond->GetPatchIndex(),
-			fReverseDirection,
-			nBoundarySize,
-			ixFirst,
-			ixSecond);
-
-	pNeighbor->InitializeBuffers(
-		nRElements,
-		nHaloElements,
-		nStateTracerMaxVariables);
-
-	connectFirst.m_vecExteriorNeighbors.push_back(pNeighbor);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -924,7 +784,7 @@ void Connectivity::PrepareExchange() {
 void Connectivity::Pack(
 	const GridData3D & data
 ) {
-	// Send data to exterior neighbors
+	// Pack data to exterior neighbors
 	for (int m = 0; m < m_vecExteriorNeighbors.size(); m++) {
 		m_vecExteriorNeighbors[m]->Pack(data);
 	}
@@ -935,7 +795,7 @@ void Connectivity::Pack(
 void Connectivity::Pack(
 	const GridData4D & data
 ) {
-	// Send data to exterior neighbors
+	// Pack data to exterior neighbors
 	for (int m = 0; m < m_vecExteriorNeighbors.size(); m++) {
 		m_vecExteriorNeighbors[m]->Pack(data);
 	}
@@ -944,6 +804,7 @@ void Connectivity::Pack(
 ///////////////////////////////////////////////////////////////////////////////
 
 void Connectivity::Send() {
+
 	// Send data to exterior neighbors
 	for (int m = 0; m < m_vecExteriorNeighbors.size(); m++) {
 		m_vecExteriorNeighbors[m]->Send();
@@ -954,6 +815,7 @@ void Connectivity::Send() {
 
 Neighbor * Connectivity::WaitReceive() {
 
+#ifndef NOEXCHANGE
 	// Receive data from exterior neighbors
 	int nRecvMessageCount = 0;
 
@@ -971,8 +833,19 @@ Neighbor * Connectivity::WaitReceive() {
 			}
 		}
 	}
+#endif
 
 	return NULL;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void Connectivity::WaitSend() {
+
+	// Wait for all asynchronous send requests to complete
+	for (int m = 0; m < m_vecExteriorNeighbors.size(); m++) {
+		m_vecExteriorNeighbors[m]->WaitSend();
+	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////

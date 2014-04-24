@@ -80,7 +80,7 @@ public:
 	///	<summary>
 	///		Check if data has been received by this neighbor.
 	///	</summary>
-	bool CheckReceive() const;
+	bool CheckReceive();
 
 	///	<summary>
 	///		Set the complete flag.
@@ -140,6 +140,11 @@ public:
 	virtual void Unpack(
 		GridData4D & data
 	) = 0;
+
+	///	<summary>
+	///		Wait for the send request to complete.
+	///	</summary>
+	virtual void WaitSend() = 0;
 
 public:
 	///	<summary>
@@ -269,6 +274,11 @@ public:
 		GridData4D & data
 	);
 
+	///	<summary>
+	///		Wait for the send request to complete.
+	///	</summary>
+	virtual void WaitSend();
+
 public:
 	///	<summary>
 	///		Direction on this block towards neighbor block.
@@ -347,6 +357,12 @@ public:
 		const GridData4D & data
 	) {
 	}
+
+	///	<summary>
+	///		Wait for the send request to complete.
+	///	</summary>
+	virtual void WaitSend() {
+	}
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -382,6 +398,16 @@ public:
 
 public:
 	///	<summary>
+	///		Add a new exterior neighbor.
+	///	</summary>
+	void AddExteriorNeighbor(
+		ExteriorNeighbor * pNeighbor
+	) {
+		m_vecExteriorNeighbors.push_back(pNeighbor);
+	}
+/*
+public:
+	///	<summary>
 	///		Connect one patch to a second along entire edge.
 	///	</summary>
 	static void ExteriorConnect(
@@ -408,7 +434,7 @@ public:
 		int ixFirst,
 		int ixSecond
 	);
-
+*/
 public:
 	///	<summary>
 	///		Prepare for the exchange of data between processors.
@@ -439,6 +465,11 @@ public:
 	///		to the neighbor when one has been received.
 	///	</summary>
 	Neighbor * WaitReceive();
+
+	///	<summary>
+	///		Wait for all asynchronous send requests to complete.
+	///	</summary>
+	void WaitSend();
 
 public:
 	///	<summary>

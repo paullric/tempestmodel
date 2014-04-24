@@ -22,6 +22,7 @@
 
 #include "FunctionTimer.h"
 #include "Announce.h"
+#include "MemoryTools.h"
 
 #include <cfloat>
 
@@ -252,6 +253,8 @@ void Model::Go() {
 
 	// Loop
 	for(;;) {
+
+		PrintMemoryLine();
 
 		FunctionTimer timerLoop("Loop");
 

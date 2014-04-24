@@ -19,7 +19,8 @@ FILES= Preferences.cpp \
 	Announce.cpp \
 	LinearAlgebra.cpp \
 	LegendrePolynomial.cpp \
-	PolynomialInterp.cpp
+	PolynomialInterp.cpp \
+	MemoryTools.cpp
 
 ##
 ## Build instructions

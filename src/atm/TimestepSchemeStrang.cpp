@@ -22,6 +22,60 @@
 
 ///////////////////////////////////////////////////////////////////////////////
 
+TimestepSchemeStrang::TimestepSchemeStrang(
+	Model & model,
+	double dOffCentering,
+	ExplicitDiscretization eExplicitDiscretization
+) :
+	TimestepScheme(model),
+	m_dOffCentering(dOffCentering),
+	m_eExplicitDiscretization(eExplicitDiscretization)
+{
+	// Check bounds of OffCentering parameter
+	if ((m_dOffCentering < 0.0) || (m_dOffCentering > 1.0)) {
+		_EXCEPTIONT("OffCentering parameter out of range [0,1]");
+	}
+
+	// Carryover combination
+	m_dCarryoverCombination.Initialize(2);
+	m_dCarryoverCombination[0] = 1.0;
+	m_dCarryoverCombination[1] = 1.0;
+
+	// Off-centering combination
+	m_dOffCenteringCombination.Initialize(2);
+	m_dOffCenteringCombination[0] = (2.0 - m_dOffCentering) / 2.0;
+	m_dOffCenteringCombination[1] = m_dOffCentering / 2.0;
+
+	// Final carryover combination
+	m_dCarryoverFinal.Initialize(2);
+	m_dCarryoverFinal[0] = +1.0;
+	m_dCarryoverFinal[1] = -1.0;
+
+	// RK4 combination
+	m_dRK4Combination.Initialize(5);
+	m_dRK4Combination[0] = - 1.0 / 3.0;
+	m_dRK4Combination[1] = + 1.0 / 3.0;
+	m_dRK4Combination[2] = + 2.0 / 3.0;
+	m_dRK4Combination[3] = + 1.0 / 3.0;
+
+	// SSPRK3 combination A
+	m_dSSPRK3CombinationA.Initialize(3);
+	m_dSSPRK3CombinationA[0] = 3.0 / 4.0;
+	m_dSSPRK3CombinationA[1] = 1.0 / 4.0;
+	m_dSSPRK3CombinationA[2] = 0.0;
+
+	// SSPRK3 combination B
+	m_dSSPRK3CombinationB.Initialize(5);
+	m_dSSPRK3CombinationB[0] = 1.0 / 3.0;
+	m_dSSPRK3CombinationB[1] = 0.0;
+	m_dSSPRK3CombinationB[2] = 2.0 / 3.0;
+	m_dSSPRK3CombinationB[3] = 0.0;
+	m_dSSPRK3CombinationB[4] = 0.0;
+
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
 void TimestepSchemeStrang::Step(
 	bool fFirstStep,
 	bool fLastStep,
@@ -46,11 +100,7 @@ void TimestepSchemeStrang::Step(
 		pVerticalDynamics->StepImplicit(0, 1, time, dHalfDeltaT);
 
 	} else {
-		DataVector<double> dCarryoverCombination;
-		dCarryoverCombination.Initialize(2);
-		dCarryoverCombination[0] = 1.0;
-		dCarryoverCombination[1] = 1.0;
-		pGrid->LinearCombineData(dCarryoverCombination, 0, DataType_State);
+		pGrid->LinearCombineData(m_dCarryoverCombination, 0, DataType_State);
 	}
 
 	// Explicit fourth-order Runge-Kutta
@@ -73,13 +123,7 @@ void TimestepSchemeStrang::Step(
 		pGrid->PostProcessSubstage(3, DataType_State);
 		pGrid->PostProcessSubstage(3, DataType_Tracers);
 
-		DataVector<double> dRK4Combination;
-		dRK4Combination.Initialize(5);
-		dRK4Combination[0] = - 1.0 / 3.0;
-		dRK4Combination[1] = + 1.0 / 3.0;
-		dRK4Combination[2] = + 2.0 / 3.0;
-		dRK4Combination[3] = + 1.0 / 3.0;
-		pGrid->LinearCombineData(dRK4Combination, 4, DataType_State);
+		pGrid->LinearCombineData(m_dRK4Combination, 4, DataType_State);
 
 		pHorizontalDynamics->StepExplicit(
 			3, 4, time + dDeltaT / 6.0, dDeltaT / 6.0);
@@ -90,31 +134,20 @@ void TimestepSchemeStrang::Step(
 
 	// Explicit strong stability preserving third-order Runge-Kutta
 	} else if (m_eExplicitDiscretization == RungeKuttaSSP3) {
+
 		pGrid->CopyData(0, 1, DataType_State);
 		pHorizontalDynamics->StepExplicit(0, 1, time, dDeltaT);
 		pVerticalDynamics->StepExplicit(0, 1, time, dDeltaT);
 		pGrid->PostProcessSubstage(1, DataType_State);
 		pGrid->PostProcessSubstage(1, DataType_Tracers);
 
-		DataVector<double> dSSPRK3CombinationA;
-		dSSPRK3CombinationA.Initialize(3);
-		dSSPRK3CombinationA[0] = 3.0 / 4.0;
-		dSSPRK3CombinationA[1] = 1.0 / 4.0;
-		dSSPRK3CombinationA[2] = 0.0;
-		pGrid->LinearCombineData(dSSPRK3CombinationA, 2, DataType_State);
+		pGrid->LinearCombineData(m_dSSPRK3CombinationA, 2, DataType_State);
 		pHorizontalDynamics->StepExplicit(1, 2, time + dDeltaT, 0.25 * dDeltaT);
 		pVerticalDynamics->StepExplicit(1, 2, time + dDeltaT, 0.25 * dDeltaT);
 		pGrid->PostProcessSubstage(2, DataType_State);
 		pGrid->PostProcessSubstage(2, DataType_Tracers);
 
-		DataVector<double> dSSPRK3CombinationB;
-		dSSPRK3CombinationB.Initialize(5);
-		dSSPRK3CombinationB[0] = 1.0 / 3.0;
-		dSSPRK3CombinationB[1] = 0.0;
-		dSSPRK3CombinationB[2] = 2.0 / 3.0;
-		dSSPRK3CombinationB[3] = 0.0;
-		dSSPRK3CombinationB[4] = 0.0;
-		pGrid->LinearCombineData(dSSPRK3CombinationB, 4, DataType_State);
+		pGrid->LinearCombineData(m_dSSPRK3CombinationB, 4, DataType_State);
 		pHorizontalDynamics->StepExplicit(
 			2, 4, time + 0.5 * dDeltaT, (2.0/3.0) * dDeltaT);
 		pVerticalDynamics->StepExplicit(
@@ -137,18 +170,10 @@ void TimestepSchemeStrang::Step(
 	pGrid->CopyData(1, 0, DataType_State);
 	pVerticalDynamics->StepImplicit(0, 0, time, dOffCenterDeltaT);
 
-	DataVector<double> dOffCenteringCombination;
-	dOffCenteringCombination.Initialize(2);
-	dOffCenteringCombination[0] = (2.0 - m_dOffCentering) / 2.0;
-	dOffCenteringCombination[1] = m_dOffCentering / 2.0;
-	pGrid->LinearCombineData(dOffCenteringCombination, 0, DataType_State);
+	pGrid->LinearCombineData(m_dOffCenteringCombination, 0, DataType_State);
 
 	if (!fLastStep) {
-		DataVector<double> dCarryoverFinal;
-		dCarryoverFinal.Initialize(2);
-		dCarryoverFinal[0] = +1.0;
-		dCarryoverFinal[1] = -1.0;
-		pGrid->LinearCombineData(dCarryoverFinal, 1, DataType_State);
+		pGrid->LinearCombineData(m_dCarryoverFinal, 1, DataType_State);
 	}
 
 	//pGrid->CopyData(0, 1, DataType_State);

@@ -19,6 +19,7 @@
 
 #include "TimestepScheme.h"
 #include "Exception.h"
+#include "DataVector.h"
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -49,16 +50,7 @@ public:
 		Model & model,
 		double dOffCentering = 0.0,
 		ExplicitDiscretization eExplicitDiscretization = RungeKuttaSSP3
-	) :
-		TimestepScheme(model),
-		m_dOffCentering(dOffCentering),
-		m_eExplicitDiscretization(eExplicitDiscretization)
-	{
-		// Check bounds of OffCentering parameter
-		if ((m_dOffCentering < 0.0) || (m_dOffCentering > 1.0)) {
-			_EXCEPTIONT("OffCentering parameter out of range [0,1]");
-		}
-	}
+	);
 
 public:
 	///	<summary>
@@ -96,6 +88,36 @@ private:
 	///		Explicit time discretization to use.
 	///	</summary>
 	ExplicitDiscretization m_eExplicitDiscretization;
+
+	///	<summary>
+	///		Carryover combination.
+	///	</summary>
+	DataVector<double> m_dCarryoverCombination;
+
+	///	<summary>
+	///		Off-centering combination.
+	///	</summary>
+	DataVector<double> m_dOffCenteringCombination;
+
+	///	<summary>
+	///		Final carryover combination.
+	///	</summary>
+	DataVector<double> m_dCarryoverFinal;
+
+	///	<summary>
+	///		Linear combination coefficients used by RK4.
+	///	</summary>
+	DataVector<double> m_dRK4Combination;
+
+	///	<summary>
+	///		Linear combination coefficients used by SSPRK3 (combination A).
+	///	</summary>
+	DataVector<double> m_dSSPRK3CombinationA;
+
+	///	<summary>
+	///		Linear combination coefficients used by SSPRK3 (combination B).
+	///	</summary>
+	DataVector<double> m_dSSPRK3CombinationB;
 };
 
 ///////////////////////////////////////////////////////////////////////////////

@@ -22,6 +22,7 @@
 #include "DataMatrix3D.h"
 #include "GridData3D.h"
 #include "GridData4D.h"
+#include "FluxBuffer.h"
 #include "PatchBox.h"
 #include "Connectivity.h"
 #include "ChecksumType.h"
@@ -124,6 +125,33 @@ public:
 
 public:
 	///	<summary>
+	///		Connect one patch to a second along entire edge.
+	///	</summary>
+	void ExteriorConnect(
+		Direction dirFirst,
+		const GridPatch * pPatchSecond
+	);
+
+	///	<summary>
+	///		Add an exterior connection to another patch.
+	///	</summary>
+	///	<param name="ixFirst">
+	///		First index (begin node for Right, Top, Left, Bottom and alpha
+	///		coordinate for TopRight, TopLeft, BottomLeft, BottomRight)
+	///	</param>
+	///	<param name="ixSecond">
+	///		Second index (end node for Right, Top, Left, Bottom and beta
+	///		coordinate for TopRight, TopLeft, BottomLeft, BottomRight)
+	///	</param>
+	void ExteriorConnect(
+		Direction dirFirst,
+		const GridPatch * pPatchSecond,
+		int ixFirst,
+		int ixSecond
+	);
+
+public:
+	///	<summary>
 	///		Compute the radial component of the curl on the grid given two
 	///		contravariant vector fields.
 	///	</summary>
@@ -183,6 +211,11 @@ public:
 		DataType eDataType,
 		int iDataIndex
 	);
+
+	///	<summary>
+	///		Complete the exchange of data between processors.
+	///	</summary>
+	void CompleteExchange();
 
 public:
 	///	<summary>
@@ -930,6 +963,33 @@ public:
 		}
 	}
 
+	///	<summary>
+	///		Get the count of FluxBuffers.
+	///	</summary>
+	inline int GetFluxBufferCount() const {
+		return static_cast<int>(m_vecFluxBuffers.size());
+	}
+
+	///	<summary>
+	///		Get the specified FluxBuffer.
+	///	</summary>
+	FluxBuffer & GetFluxBuffer(int ix) {
+		if ((ix < 0) || (ix >= GetFluxBufferCount())) {
+			_EXCEPTIONT("FluxBuffer index out of range");
+		}
+		return m_vecFluxBuffers[ix];
+	}
+
+	///	<summary>
+	///		Get the specified FluxBuffer.
+	///	</summary>
+	const FluxBuffer & GetFluxBuffer(int ix) const {
+		if ((ix < 0) || (ix >= GetFluxBufferCount())) {
+			_EXCEPTIONT("FluxBuffer index out of range");
+		}
+		return m_vecFluxBuffers[ix];
+	}
+
 protected:
 	///	<summary>
 	///		Reference to parent grid.
@@ -1145,6 +1205,11 @@ protected:
 	///		Rayleigh friction strength on interfaces.
 	///	</summary>
 	GridData3D m_dataRayleighStrengthREdge;
+
+	///	<summary>
+	///		Vector of flux buffers.
+	///	</summary>
+	FluxBufferVector m_vecFluxBuffers;
 
 };
 

@@ -138,6 +138,15 @@ protected:
 	);
 
 	///	<summary>
+	///		Calculate diffusive fluxes along element boundaries.
+	///	</summary>
+	void CalculateScalarDiffusiveFluxes(
+		int iDataState,
+		int iDataAFlux,
+		int iDataBFlux
+	);
+
+	///	<summary>
 	///		Apply Rayleigh damping.
 	///	</summary>
 	void ApplyRayleighFriction(

@@ -315,6 +315,12 @@ void Grid::Exchange(
 	for (int n = 0; n < m_vecActiveGridPatches.size(); n++) {
 		m_vecActiveGridPatches[n]->Receive(eDataType, iDataIndex);
 	}
+
+	// Wait for send requests to complete
+	for (int n = 0; n < m_vecActiveGridPatches.size(); n++) {
+		m_vecActiveGridPatches[n]->CompleteExchange();
+	}
+
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -506,7 +512,7 @@ void Grid::ConsolidateDataAtRoot(
 void Grid::ConsolidateDataToRoot(
 	ConsolidationStatus & status
 ) const {
-
+	
 	// Get process id
 	int nRank;
 	MPI_Comm_rank(MPI_COMM_WORLD, &nRank);
@@ -1372,8 +1378,7 @@ void Grid::InitializeConnectivity() {
 
 		// Add connectivity to bottom-left corner
 		if (vecPatch[ix] != GridPatch::InvalidIndex) {
-			Connectivity::ExteriorConnect(
-				pPatch,
+			pPatch->ExteriorConnect(
 				Direction_BottomLeft,
 				m_vecGridPatches[vecPatch[ix]]);
 		}
@@ -1394,16 +1399,14 @@ void Grid::InitializeConnectivity() {
 					const GridPatch * pPatchBottom
 						= m_vecGridPatches[iCurrentPatch];
 
-					Connectivity::ExteriorConnect(
-						pPatch,
+					pPatch->ExteriorConnect(
 						Direction_Bottom,
 						pPatchBottom,
 						ixFirstBegin,
 						i);
 
 					if (i != box.GetAInteriorEnd()) {
-						Connectivity::ExteriorConnect(
-							pPatch,
+						pPatch->ExteriorConnect(
 							Direction_BottomLeft,
 							pPatchBottom,
 							i,
@@ -1413,8 +1416,7 @@ void Grid::InitializeConnectivity() {
 						iCurrentPatch = vecPatch[ix];
 						pPatchBottom = m_vecGridPatches[iCurrentPatch];
 
-						Connectivity::ExteriorConnect(
-							pPatch,
+						pPatch->ExteriorConnect(
 							Direction_BottomRight,
 							pPatchBottom,
 							i - 1,
@@ -1429,8 +1431,7 @@ void Grid::InitializeConnectivity() {
 
 		// Add connectivity to bottom-right corner
 		if (vecPatch[ix] != GridPatch::InvalidIndex) {
-			Connectivity::ExteriorConnect(
-				pPatch,
+			pPatch->ExteriorConnect(
 				Direction_BottomRight,
 				m_vecGridPatches[vecPatch[ix]]);
 		}
@@ -1449,16 +1450,14 @@ void Grid::InitializeConnectivity() {
 					const GridPatch * pPatchRight
 						= m_vecGridPatches[iCurrentPatch];
 
-					Connectivity::ExteriorConnect(
-						pPatch,
+					pPatch->ExteriorConnect(
 						Direction_Right,
 						pPatchRight,
 						ixFirstBegin,
 						j);
 
 					if (j != box.GetBInteriorEnd()) {
-						Connectivity::ExteriorConnect(
-							pPatch,
+						pPatch->ExteriorConnect(
 							Direction_BottomRight,
 							pPatchRight,
 							box.GetAInteriorEnd()-1,
@@ -1468,8 +1467,7 @@ void Grid::InitializeConnectivity() {
 						iCurrentPatch = vecPatch[ix];
 						pPatchRight = m_vecGridPatches[iCurrentPatch];
 
-						Connectivity::ExteriorConnect(
-							pPatch,
+						pPatch->ExteriorConnect(
 							Direction_TopRight,
 							pPatchRight,
 							box.GetAInteriorEnd()-1,
@@ -1484,8 +1482,7 @@ void Grid::InitializeConnectivity() {
 
 		// Add connectivity to top-right corner
 		if (vecPatch[ix] != GridPatch::InvalidIndex) {
-			Connectivity::ExteriorConnect(
-				pPatch,
+			pPatch->ExteriorConnect(
 				Direction_TopRight,
 				m_vecGridPatches[vecPatch[ix]]);
 		}
@@ -1504,16 +1501,14 @@ void Grid::InitializeConnectivity() {
 					const GridPatch * pPatchTop =
 						m_vecGridPatches[iCurrentPatch];
 
-					Connectivity::ExteriorConnect(
-						pPatch,
+					pPatch->ExteriorConnect(
 						Direction_Top,
 						pPatchTop,
 						i + 1,
 						ixFirstEnd);
 
 					if (i != box.GetAInteriorBegin()-1) {
-						Connectivity::ExteriorConnect(
-							pPatch,
+						pPatch->ExteriorConnect(
 							Direction_TopRight,
 							pPatchTop,
 							i,
@@ -1523,8 +1518,7 @@ void Grid::InitializeConnectivity() {
 						iCurrentPatch = vecPatch[ix];
 						pPatchTop = m_vecGridPatches[iCurrentPatch];
 
-						Connectivity::ExteriorConnect(
-							pPatch,
+						pPatch->ExteriorConnect(
 							Direction_TopLeft,
 							pPatchTop,
 							i + 1,
@@ -1539,8 +1533,7 @@ void Grid::InitializeConnectivity() {
 
 		// Add connectivity to top-left corner
 		if (vecPatch[ix] != GridPatch::InvalidIndex) {
-			Connectivity::ExteriorConnect(
-				pPatch,
+			pPatch->ExteriorConnect(
 				Direction_TopLeft,
 				m_vecGridPatches[vecPatch[ix]]);
 		}
@@ -1559,16 +1552,14 @@ void Grid::InitializeConnectivity() {
 					const GridPatch * pPatchLeft =
 						m_vecGridPatches[iCurrentPatch];
 
-					Connectivity::ExteriorConnect(
-						pPatch,
+					pPatch->ExteriorConnect(
 						Direction_Left,
 						pPatchLeft,
 						j + 1,
 						ixFirstEnd);
 
 					if (j != box.GetBInteriorBegin()-1) {
-						Connectivity::ExteriorConnect(
-							pPatch,
+						pPatch->ExteriorConnect(
 							Direction_TopLeft,
 							pPatchLeft,
 							box.GetAInteriorBegin(),
@@ -1578,8 +1569,7 @@ void Grid::InitializeConnectivity() {
 						iCurrentPatch = vecPatch[ix];
 						pPatchLeft = m_vecGridPatches[iCurrentPatch];
 
-						Connectivity::ExteriorConnect(
-							pPatch,
+						pPatch->ExteriorConnect(
 							Direction_BottomLeft,
 							pPatchLeft,
 							box.GetAInteriorBegin(),

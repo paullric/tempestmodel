@@ -1413,6 +1413,163 @@ void HorizontalDynamicsFEM::ApplyVectorHyperdiffusion(
 
 ///////////////////////////////////////////////////////////////////////////////
 
+void HorizontalDynamicsFEM::CalculateScalarDiffusiveFluxes(
+	int iDataState,
+	int iDataAFlux,
+	int iDataBFlux
+) {
+	// Get a copy of the GLL grid
+	GridGLL * pGrid = dynamic_cast<GridGLL*>(m_model.GetGrid());
+
+	// Number of components
+	int nComponents = m_model.GetEquationSet().GetComponents();
+
+	// Physical constants
+	const PhysicalConstants & phys = m_model.GetPhysicalConstants();
+
+	// Loop over all patches
+	for (int n = 0; n < pGrid->GetActivePatchCount(); n++) {
+		GridPatchGLL * pPatch =
+			dynamic_cast<GridPatchGLL*>(pGrid->GetActivePatch(n));
+
+		const PatchBox & box = pPatch->GetPatchBox();
+
+		const DataMatrix3D<double> & dJacobian =
+			pPatch->GetJacobian();
+		const DataMatrix4D<double> & dContraMetricA =
+			pPatch->GetContraMetricA();
+		const DataMatrix4D<double> & dContraMetricB =
+			pPatch->GetContraMetricB();
+
+		// Data
+		GridData4D & dataStateNode =
+			pPatch->GetDataState(iDataState, DataLocation_Node);
+
+		GridData4D & dataAFluxNode =
+			pPatch->GetDataState(iDataAFlux, DataLocation_Node);
+
+		GridData4D & dataBFluxNode =
+			pPatch->GetDataState(iDataBFlux, DataLocation_Node);
+
+		GridData4D & dataStateREdge =
+			pPatch->GetDataState(iDataState, DataLocation_REdge);
+
+		GridData4D & dataAFluxREdge =
+			pPatch->GetDataState(iDataAFlux, DataLocation_REdge);
+
+		GridData4D & dataBFluxREdge =
+			pPatch->GetDataState(iDataBFlux, DataLocation_REdge);
+
+		// Element grid spacing and derivative coefficients
+		const double dElementDeltaA = pPatch->GetElementDeltaA();
+		const double dElementDeltaB = pPatch->GetElementDeltaB();
+
+		const DataMatrix<double> & dDxBasis1D = pGrid->GetDxBasis1D();
+		const DataMatrix<double> & dStiffness1D = pGrid->GetStiffness1D();
+
+		// Get number of finite elements in each coordinate direction
+		int nElementCountA = pPatch->GetElementCountA();
+		int nElementCountB = pPatch->GetElementCountB();
+
+		// Loop over perimeter of all elements
+		for (int c = 2; c < m_nHorizontalOrder; c++) {
+
+			int nElementCountR;
+
+			double *** pDataState;
+			double *** pDataAFlux;
+			double *** pDataBFlux;
+			if (pGrid->GetVarLocation(c) == DataLocation_Node) {
+				pDataState = dataStateNode[c];
+				pDataAFlux = dataAFluxNode[c];
+				pDataBFlux = dataBFluxNode[c];
+				nElementCountR = dataStateNode.GetRElements();
+
+			} else if (pGrid->GetVarLocation(c) == DataLocation_REdge) {
+				pDataState = dataStateREdge[c];
+				pDataAFlux = dataAFluxREdge[c];
+				pDataBFlux = dataBFluxREdge[c];
+				nElementCountR = dataStateREdge.GetRElements();
+
+			} else {
+				_EXCEPTIONT("UNIMPLEMENTED");
+			}
+
+			// Loop over all finite elements
+			for (int k = 0; k < nElementCountR; k++) {
+			for (int a = 0; a < nElementCountA; a++) {
+			for (int b = 0; b < nElementCountB; b++) {
+
+				// Pointwise update of horizontal velocities
+				for (int i = 0; i < m_nHorizontalOrder; i++) {
+				for (int j = 0; j < m_nHorizontalOrder; j++) {
+
+					// Only perform computation on perimeter elements
+					if ((i != 0) && (i != m_nHorizontalOrder-1) &&
+						(j != 0) && (j != m_nHorizontalOrder-1)
+					) {
+						continue;
+					}
+
+					// Local indices
+					int iA = a * m_nHorizontalOrder + i + box.GetHaloElements();
+					int iB = b * m_nHorizontalOrder + j + box.GetHaloElements();
+
+					int iElementA =
+						a * m_nHorizontalOrder + box.GetHaloElements();
+					int iElementB =
+						b * m_nHorizontalOrder + box.GetHaloElements();
+
+					// Calculate local derivatives
+					double dDaPsi = 0.0;
+					double dDbPsi = 0.0;
+
+					for (int s = 0; s < m_nHorizontalOrder; s++) {
+						// Derivative with respect to alpha
+						dDaPsi +=
+							pDataState[k][iElementA+s][iB]
+							* dDxBasis1D[s][i];
+
+						// Derivative with respect to beta
+						dDbPsi +=
+							pDataState[k][iA][iElementB+s]
+							* dDxBasis1D[s][j];
+					}
+
+					dDaPsi /= dElementDeltaA;
+					dDbPsi /= dElementDeltaB;
+
+					// Calculate contravariant derivative
+					if ((i == 0) || (i == m_nHorizontalOrder-1)) {
+						pDataAFlux[k][iA][iB] =
+							  dContraMetricA[k][iA][iB][0] * dDaPsi
+							+ dContraMetricA[k][iA][iB][1] * dDbPsi;
+					}
+
+					if ((j == 0) || (j == m_nHorizontalOrder-1)) {
+						pDataBFlux[k][iA][iB] =
+							  dContraMetricB[k][iA][iB][0] * dDaPsi
+							+ dContraMetricB[k][iA][iB][1] * dDbPsi;
+					}
+				}
+				}
+			}
+			}
+			}
+		}
+	}
+
+	// Perform a global exchange
+	pGrid->Exchange(DataType_State, iDataAFlux);
+	pGrid->Exchange(DataType_State, iDataBFlux);
+
+	// Post-process velocities received during exchange
+	//pPatch->TransformHaloVelocities(iDataInitial);
+
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
 void HorizontalDynamicsFEM::ApplyRayleighFriction(
 	int iDataUpdate,
 	double dDeltaT
