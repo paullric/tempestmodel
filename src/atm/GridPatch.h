@@ -962,7 +962,7 @@ public:
 			_EXCEPTIONT("Invalid location");
 		}
 	}
-
+/*
 	///	<summary>
 	///		Get the count of FluxBuffers.
 	///	</summary>
@@ -989,7 +989,7 @@ public:
 		}
 		return m_vecFluxBuffers[ix];
 	}
-
+*/
 protected:
 	///	<summary>
 	///		Reference to parent grid.

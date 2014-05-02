@@ -16,6 +16,7 @@
 
 #include "GridGLL.h"
 #include "Model.h"
+#include "HorizontalDynamicsFEM.h"
 
 #include "Direction.h"
 #include "FluxReconstructionFunction.h"
@@ -256,6 +257,27 @@ void GridGLL::Initialize() {
 				m_dDiffReconsPolyREdge[m_nVerticalOrder - n]
 				+ m_dDiffReconsPolyREdge[n]);
 	}
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void GridGLL::PostProcessSubstage(
+	int iDataUpdate,
+	DataType eDataType
+) {
+	// Get the pointer to the HorizontalDynamics object
+	const HorizontalDynamicsFEM * pHorizontalDynamics =
+		dynamic_cast<const HorizontalDynamicsFEM *>(
+			m_model.GetHorizontalDynamics());
+
+	// If SpectralElement dynamics are used, apply direct stiffness summation
+	if (pHorizontalDynamics != NULL) {
+		if (pHorizontalDynamics->GetType() ==
+			HorizontalDynamicsFEM::SpectralElement
+		) {
+			ApplyDSS(iDataUpdate, eDataType);
+		}
 	}
 }
 

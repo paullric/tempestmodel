@@ -57,9 +57,7 @@ public:
 	virtual void PostProcessSubstage(
 		int iDataUpdate,
 		DataType eDataType = DataType_State
-	) {
-		ApplyDSS(iDataUpdate, eDataType);
-	}
+	);
 
 	///	<summary>
 	///		Apply the direct stiffness summation (DSS) operation on the grid.

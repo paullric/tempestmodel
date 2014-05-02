@@ -68,6 +68,13 @@ public:
 		return 1;
 	}
 
+	///	<summary>
+	///		Get the HorizontalDynamicsType.
+	///	</summary>
+	Type GetType() const {
+		return m_eHorizontalDynamicsType;
+	}
+
 public:
 	///	<summary>
 	///		Perform one Forward Euler step for the interior terms of the
