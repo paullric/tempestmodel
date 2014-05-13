@@ -331,7 +331,8 @@ void GridCSGLL::GetOpposingDirection(
 	int ixPanelDest,
 	Direction dir,
 	Direction & dirOpposing,
-	bool & fSwitchParallel
+	bool & fSwitchParallel,
+	bool & fSwitchPerpendicular
 ) const {
 	if ((ixPanelSrc < 0) || (ixPanelSrc > 5)) {
 		_EXCEPTIONT("Invalid value for ixPanelSrc: Out of range");
@@ -367,6 +368,30 @@ void GridCSGLL::GetOpposingDirection(
 		((ixPanelDest == 2) || (ixPanelDest == 1))
 	) {
 		fSwitchParallel = true;
+	}
+
+	// Check panel indices to determine perpendicular switch of vectors
+	fSwitchPerpendicular = false;
+	if ((ixPanelSrc == 1) && (ixPanelDest == 4)) {
+		fSwitchPerpendicular = true;
+
+	} else if ((ixPanelSrc == 2) && (ixPanelDest > 3)) {
+		fSwitchPerpendicular = true;
+
+	} else if ((ixPanelSrc == 3) && (ixPanelDest == 5)) {
+		fSwitchPerpendicular = true;
+
+	} else if (
+		(ixPanelSrc == 4) &&
+		((ixPanelDest == 1) || (ixPanelDest == 2))
+	) {
+		fSwitchPerpendicular = true;
+
+	} else if (
+		(ixPanelSrc == 5) &&
+		((ixPanelDest == 3) || (ixPanelDest == 2))
+	) {
+		fSwitchPerpendicular = true;
 	}
 }
 

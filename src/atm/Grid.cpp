@@ -325,6 +325,34 @@ void Grid::Exchange(
 
 ///////////////////////////////////////////////////////////////////////////////
 
+void Grid::ExchangeBuffers() {
+
+	// Verify all processors are prepared to exchange
+	MPI_Barrier(MPI_COMM_WORLD);
+
+	// Set up asynchronous recvs
+	for (int n = 0; n < m_vecActiveGridPatches.size(); n++) {
+		m_vecActiveGridPatches[n]->PrepareExchange();
+	}
+
+	// Send data
+	for (int n = 0; n < m_vecActiveGridPatches.size(); n++) {
+		m_vecActiveGridPatches[n]->SendBuffers();
+	}
+
+	// Receive data
+	for (int n = 0; n < m_vecActiveGridPatches.size(); n++) {
+		m_vecActiveGridPatches[n]->ReceiveBuffers();
+	}
+
+	// Wait for send requests to complete
+	for (int n = 0; n < m_vecActiveGridPatches.size(); n++) {
+		m_vecActiveGridPatches[n]->CompleteExchange();
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
 int Grid::GetLongestActivePatchPerimeter() const {
 
 	// Longest perimeter
@@ -1586,6 +1614,9 @@ void Grid::InitializeConnectivity() {
 		if (ix != box.GetInteriorPerimeter() + 4) {
 			_EXCEPTIONT("Index mismatch");
 		}
+
+		// Initialize flux connectivity for patch
+		pPatch->GetConnectivity().BuildFluxConnectivity();
 	}
 }
 

@@ -145,12 +145,26 @@ protected:
 	);
 
 	///	<summary>
-	///		Calculate diffusive fluxes along element boundaries.
+	///		Apply the scalar Laplacian operator across element boundaries.
 	///	</summary>
-	void CalculateScalarDiffusiveFluxes(
+	void ApplyScalarHyperdiffusionToBoundary(
 		int iDataState,
-		int iDataAFlux,
-		int iDataBFlux
+		int iDataUpdate,
+		double dDeltaT,
+		double dNu,
+		bool fScaleNuLocally
+	);
+
+	///	<summary>
+	///		Apply the vector Laplacian operator across element boundaries.
+	///	</summary>
+	void ApplyVectorHyperdiffusionToBoundary(
+		int iDataState,
+		int iDataUpdate,
+		double dDeltaT,
+		double dNuDiff,
+		double dNuVort,
+		bool fScaleNuLocally
 	);
 
 	///	<summary>

@@ -249,13 +249,13 @@ Interpolation is carried out in the usual manner by evaluation the continuous re
 
 Hyperviscosity is formulated in variational form.
 
-\subsection{Fourth-Order Scalar Hyperviscosity}
+\subsection{Fourth-Order Scalar Hyperviscosity} \label{sec:VariationalScalarHyperviscosity}
 
 Fourth-order scalar hyperviscosity is implemented using a two stage procedure:
 \begin{align}
 f &= \mathcal{H}(1) \psi^n, \\
 \psi^{n+1} &= \psi^n - \Delta t \mathcal{H}(\nu) f.
-\end{align}  The hyperdiffusion operator is defined implicitly via
+\end{align}  The hyperviscosity operator is defined implicitly via
 \begin{align}
 f = \mathcal{H}(\nu) \psi \quad \Longleftrightarrow \quad \iint f \phi_{(i,j)} dA = \nu \iint \nabla \phi_{(i,j)} \cdot \nabla \psi dA,
 \end{align} where $dA = J d\alpha d\beta$.  Here
@@ -286,7 +286,7 @@ Fourth-order vector hyperviscosity is implemented using a two stage procedure:
 \begin{align}
 \vb{f} &= \mathcal{H}(1,1) \vb{u}^n, \\
 \vb{u}^{n+1} &= \vb{u}^n - \Delta t \mathcal{H}(\nu_d, \nu_v) \vb{f}.
-\end{align}  The hyperdiffusion operator is defined implicitly via
+\end{align}  The hyperviscosity operator is defined implicitly via
 \begin{align}
 \vb{f} = \mathcal{H}(\nu_d, \nu_v) \vb{u^n} \quad \Longleftrightarrow \quad \iint \vb{f} \cdot \vg{\phi} dA = \iint \nu_d (\nabla \cdot \vg{\phi}) (\nabla \cdot \vb{u}^n) + \nu_v (\nabla \times \vg{\phi})^r (\nabla \times \vb{u}^n)_r dA,
 \end{align} where $dA = J d\alpha d\beta$ and
@@ -387,5 +387,53 @@ f^{\beta}_{(i,j)} &= \frac{\nu_d}{J(\alpha_i, \beta_j) w_i} \sum_{m=0}^{n_p-1} \
 & \qquad + \frac{\nu_d}{J(\alpha_i, \beta_j) w_j} \sum_{n=0}^{n_p-1} \left. J g^{\beta \beta} \diff{\tilde{\phi}_{(j)}}{\beta} (\nabla \cdot \vb{u}) w_n \right\vert_{\alpha = \alpha_i, \beta = \beta_n} \nonumber \\
 & \qquad + \frac{\nu_v}{J(\alpha_i, \beta_j) w_i} \sum_{m=0}^{n_p-1} \left. \diff{\tilde{\phi}_{(i)}}{\alpha} (\nabla \times \vb{u})_r w_m \right\vert_{\alpha = \alpha_m, \beta = \beta_j}
 \end{align}
+
+\subsection{Fourth-Order Scalar Hyperviscosity for DG}
+
+Fourth-order scalar hyperviscosity is implemented using a two stage procedure:
+\begin{align}
+f &= \mathcal{H}(1) \psi^n, \\
+\psi^{n+1} &= \psi^n - \Delta t \mathcal{H}(\nu) f.
+\end{align}  The hyperviscosity operator is defined implicitly via
+\begin{align}
+f = \mathcal{H}(\nu) \psi \quad \Longleftrightarrow \quad \iint f \phi_{(i,j)} dA = \nu \left[ \oint \phi_{(i,j)} \nabla \psi \cdot d\vb{S} - \iint \nabla \phi_{(i,j)} \cdot \nabla \psi dA \right],
+\end{align} where $dA = J d\alpha d\beta$.  The area-integral term is handled as in section \ref{sec:VariationalScalarHyperviscosity}.  Here
+\begin{align}
+\iint f \phi_{(i,j)} dA = \iint f \tilde{\phi}_{(i)}(\alpha) \tilde{\phi}_{(j)}(\beta) dA = f_{(i,j)} w_i w_j J \Delta \alpha \Delta \beta.
+\end{align}  The contour integral takes the form
+\begin{align}
+\oint \phi_{(i,j)} \nabla \psi \cdot d\vb{S} &= \int_R \phi_{(i,j)} \nabla \psi \cdot d\vb{S} + \int_T \phi_{(i,j)} \nabla \psi \cdot d\vb{S} + \int_L \phi_{(i,j)} \nabla \psi \cdot d\vb{S} + \int_B \phi_{(i,j)} \nabla \psi \cdot d\vb{S},
+\end{align} where $R$, $T$, $L$ and $B$ denote the right, top, left and bottom edges, respectively.  The covariant components of the face normals at the right edge are
+\begin{align}
+N_\alpha = \frac{1}{\sqrt{g^{\alpha \alpha}}}, \qquad N_\beta = 0,
+\end{align} and so
+\begin{align}
+\int_R \phi_{(i,j)} \nabla \psi \cdot d\vb{S} &= \delta^i_{n_p-1} \sum_{n=0}^{n_p-1} \left. \tilde{\phi}_{(j)}(\beta) \nabla^\alpha \psi N_\alpha w_n \sqrt{g_{\beta \beta}} \Delta \beta \right\vert_{\alpha = \alpha_{n_p-1}, \beta = \beta_n} \\
+&= \Delta \beta w_j \delta_{i,n_p-1} \left. J \nabla^\alpha \psi \right\vert_{\alpha = \alpha_{n_p-1}, \beta = \beta_j},
+\end{align} leading to
+\begin{equation}
+f_{(i,j)} = \frac{\delta_{i,n_p-1}}{w_i \Delta \alpha} \left[ g^{\alpha \alpha} \sum_{m=0}^{n_p-1} \psi \left. \diff{\tilde{\phi}_{(m)}}{\alpha} \right\vert_{\alpha = \alpha_m, \beta = \beta_j} + g^{\alpha \beta} \sum_{n=0}^{n_p-1} \psi \left. \diff{\tilde{\phi}_{(n)}}{\beta} \right\vert_{\alpha = \alpha_{n_p-1}, \beta = \beta_n} \right].
+\end{equation}
+
+\subsection{Fourth-Order Vector Hyperviscosity for DG}
+\begin{equation}
+\vb{f} = \nu_d \nabla (\nabla \cdot \vb{u}) - \nu_v \nabla \times (\nabla \times \vb{u}).
+\end{equation}  To verify that this expression correctly separates divergence and vorticity damping,
+\begin{align}
+\pdiff{}{t} (\nabla \cdot \vb{u}) &= \nu_d \nabla^2 (\nabla \cdot \vb{u}), \\
+\pdiff{}{t} (\nabla \times \vb{u}) &= - \nu_v \nabla \times (\nabla \times (\nabla \times \vb{u})) = \nu_v \nabla^2 (\nabla \times \vb{u})
+\end{align}  For divergence damping,
+\begin{align}
+\iint \vg{\phi} \cdot \vb{f} dV &= \nu_d \iint \vg{\phi} \cdot \nabla (\nabla \cdot \vb{u}), \\
+&= \nu_d \left[ \oint (\nabla \cdot \vb{u}) \vg{\phi} \cdot d\vb{S} - \iint (\nabla \cdot \vg{\phi}) (\nabla \cdot \vb{u}) dV \right].
+\end{align}  For vorticity damping,
+\begin{align}
+\iint \vg{\phi} \cdot \vb{f} dV &= - \nu_v \iint \vg{\phi} \cdot \nabla \times (\nabla \times \vb{u}) dV, \\
+&= - \nu_v \left[ \oint (\nabla \times \vb{u}) \times \phi \cdot d\vb{S} + \iint (\nabla \times \vg{\phi}) \cdot (\nabla \times \vb{u}) dV \right]
+\end{align}
+
+%\vb{n} \cdot \vb{g}_\beta = 0
+%n_2 = 0
+%n_1 = 1/sqrt(g^{11})
 
 \end{document}

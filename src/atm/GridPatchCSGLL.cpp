@@ -540,20 +540,35 @@ void GridPatchCSGLL::EvaluateTestCase(
 	}
 
 	// Evaluate the state on model levels
+	//double dMaxWaveSpeed = 0.0;
+
 	for (int k = 0; k < m_grid.GetRElements(); k++) {
 	for (int i = 0; i < m_box.GetATotalWidth(); i++) {
 	for (int j = 0; j < m_box.GetBTotalWidth(); j++) {
 
 		// Evaluate pointwise state
 		test.EvaluatePointwiseState(
-			m_grid.GetModel().GetPhysicalConstants(),
+			phys,
 			time,
 			m_dataZLevels[k][i][j],
 			m_dataLon[i][j],
 			m_dataLat[i][j],
 			dPointwiseState,
 			dPointwiseTracers);
+/*
+		double dPressure =
+			phys.PressureFromRhoTheta(
+				dPointwiseState[2] * dPointwiseState[4]);
 
+		double dLocalWaveSpeed =
+			sqrt(phys.GetGamma() * dPressure / dPointwiseState[4])
+				+ sqrt(dPointwiseState[0] * dPointwiseState[0]
+					+ dPointwiseState[1] * dPointwiseState[1]);
+
+		if (dLocalWaveSpeed > dMaxWaveSpeed) {
+			dMaxWaveSpeed = dLocalWaveSpeed;
+		}
+*/
 		for (int c = 0; c < dPointwiseState.GetRows(); c++) {
 			m_datavecStateNode[iDataIndex][c][k][i][j] = dPointwiseState[c];
 		}
@@ -612,6 +627,8 @@ void GridPatchCSGLL::EvaluateTestCase(
 	}
 	}
 	}
+
+	//printf("Maximum wave speed: %1.5e\n", dMaxWaveSpeed);
 
 	// Evaluate the state on model interfaces
 	for (int k = 0; k <= m_grid.GetRElements(); k++) {

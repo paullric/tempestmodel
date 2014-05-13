@@ -135,6 +135,11 @@ public:
 		int iDataIndex
 	);
 
+	///	<summary>
+	///		Exchange connectivity buffers between processors.
+	///	</summary>
+	void ExchangeBuffers();
+
 public:
 	///	<summary>
 	///		Get the total number of patches on the grid.
@@ -305,7 +310,8 @@ public:
 		int ixPanelDest,
 		Direction dir,
 		Direction & dirOpposing,
-		bool & fSwitchParallel
+		bool & fSwitchParallel,
+		bool & fSwitchPerpendicular
 	) const {
 		_EXCEPTIONT("Not implemented.");
 	}

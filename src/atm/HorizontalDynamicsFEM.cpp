@@ -1238,7 +1238,7 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusion(
 					double dInvJacobian =
 						1.0 / (dJacobian[iA][iB] * dDomainHeight);
 
-					pDataUpdate[k][iA][iB] +=
+					pDataUpdate[k][iA][iB] -=
 						dDeltaT * dInvJacobian * dLocalNu
 							* (dUpdateA + dUpdateB);
 				}
@@ -1413,10 +1413,12 @@ void HorizontalDynamicsFEM::ApplyVectorHyperdiffusion(
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void HorizontalDynamicsFEM::CalculateScalarDiffusiveFluxes(
+void HorizontalDynamicsFEM::ApplyScalarHyperdiffusionToBoundary(
 	int iDataState,
-	int iDataAFlux,
-	int iDataBFlux
+	int iDataUpdate,
+	double dDeltaT,
+	double dNu,
+	bool fScaleNuLocally
 ) {
 	// Get a copy of the GLL grid
 	GridGLL * pGrid = dynamic_cast<GridGLL*>(m_model.GetGrid());
@@ -1434,31 +1436,28 @@ void HorizontalDynamicsFEM::CalculateScalarDiffusiveFluxes(
 
 		const PatchBox & box = pPatch->GetPatchBox();
 
-		const DataMatrix3D<double> & dJacobian =
-			pPatch->GetJacobian();
 		const DataMatrix4D<double> & dContraMetricA =
 			pPatch->GetContraMetricA();
 		const DataMatrix4D<double> & dContraMetricB =
 			pPatch->GetContraMetricB();
+		const DataMatrix<double> & dTopography =
+			pPatch->GetTopography();
+
+		const double dZtop = pGrid->GetZtop();
+
+		// Connectivity for patch
+		Connectivity & connect = pPatch->GetConnectivity();
 
 		// Data
 		GridData4D & dataStateNode =
 			pPatch->GetDataState(iDataState, DataLocation_Node);
-
-		GridData4D & dataAFluxNode =
-			pPatch->GetDataState(iDataAFlux, DataLocation_Node);
-
-		GridData4D & dataBFluxNode =
-			pPatch->GetDataState(iDataBFlux, DataLocation_Node);
+		GridData4D & dataUpdateNode =
+			pPatch->GetDataState(iDataUpdate, DataLocation_Node);
 
 		GridData4D & dataStateREdge =
 			pPatch->GetDataState(iDataState, DataLocation_REdge);
-
-		GridData4D & dataAFluxREdge =
-			pPatch->GetDataState(iDataAFlux, DataLocation_REdge);
-
-		GridData4D & dataBFluxREdge =
-			pPatch->GetDataState(iDataBFlux, DataLocation_REdge);
+		GridData4D & dataUpdateREdge =
+			pPatch->GetDataState(iDataUpdate, DataLocation_REdge);
 
 		// Element grid spacing and derivative coefficients
 		const double dElementDeltaA = pPatch->GetElementDeltaA();
@@ -1466,36 +1465,43 @@ void HorizontalDynamicsFEM::CalculateScalarDiffusiveFluxes(
 
 		const DataMatrix<double> & dDxBasis1D = pGrid->GetDxBasis1D();
 		const DataMatrix<double> & dStiffness1D = pGrid->GetStiffness1D();
+		const DataVector<double> & dGLLWeights1D = pGrid->GetGLLWeights1D();
 
 		// Get number of finite elements in each coordinate direction
 		int nElementCountA = pPatch->GetElementCountA();
 		int nElementCountB = pPatch->GetElementCountB();
 
-		// Loop over perimeter of all elements
-		for (int c = 2; c < m_nHorizontalOrder; c++) {
+		// Compute new hyperviscosity coefficient
+		double dLocalNu  = dNu;
+
+		if (fScaleNuLocally) {
+			double dReferenceLength = pGrid->GetReferenceLength();
+			dLocalNu *= pow(dElementDeltaA / dReferenceLength, 3.2);
+		}
+
+		// Loop over all scalar components
+		int nComponents = m_model.GetEquationSet().GetComponents();
+		for (int c = 2; c < nComponents; c++) {
 
 			int nElementCountR;
 
 			double *** pDataState;
-			double *** pDataAFlux;
-			double *** pDataBFlux;
+			double *** pDataUpdate;
 			if (pGrid->GetVarLocation(c) == DataLocation_Node) {
 				pDataState = dataStateNode[c];
-				pDataAFlux = dataAFluxNode[c];
-				pDataBFlux = dataBFluxNode[c];
+				pDataUpdate = dataUpdateNode[c];
 				nElementCountR = dataStateNode.GetRElements();
 
 			} else if (pGrid->GetVarLocation(c) == DataLocation_REdge) {
 				pDataState = dataStateREdge[c];
-				pDataAFlux = dataAFluxREdge[c];
-				pDataBFlux = dataBFluxREdge[c];
+				pDataUpdate = dataUpdateREdge[c];
 				nElementCountR = dataStateREdge.GetRElements();
 
 			} else {
 				_EXCEPTIONT("UNIMPLEMENTED");
 			}
 
-			// Loop over all finite elements
+			// Loop over perimeter of all elements
 			for (int k = 0; k < nElementCountR; k++) {
 			for (int a = 0; a < nElementCountA; a++) {
 			for (int b = 0; b < nElementCountB; b++) {
@@ -1540,16 +1546,75 @@ void HorizontalDynamicsFEM::CalculateScalarDiffusiveFluxes(
 					dDbPsi /= dElementDeltaB;
 
 					// Calculate contravariant derivative
-					if ((i == 0) || (i == m_nHorizontalOrder-1)) {
-						pDataAFlux[k][iA][iB] =
-							  dContraMetricA[k][iA][iB][0] * dDaPsi
-							+ dContraMetricA[k][iA][iB][1] * dDbPsi;
+					double dGradDaPsi;
+					double dGradDbPsi;
+
+					dGradDaPsi =
+						  dContraMetricA[k][iA][iB][0] * dDaPsi
+						+ dContraMetricA[k][iA][iB][1] * dDbPsi;
+
+					dGradDbPsi =
+						  dContraMetricB[k][iA][iB][0] * dDaPsi
+						+ dContraMetricB[k][iA][iB][1] * dDbPsi;
+
+					// Calculate update
+					double dUpdateA =
+						0.5 * dDeltaT * dLocalNu * dGradDaPsi
+							/ (dGLLWeights1D[i] * dElementDeltaA);
+
+					double dUpdateB =
+						0.5 * dDeltaT * dLocalNu * dGradDbPsi
+							/ (dGLLWeights1D[j] * dElementDeltaB);
+
+					// Either set up communication with neighbor or apply
+					// scalar hyperdiffusion along right edge.
+					if (i == m_nHorizontalOrder-1) {
+						if (a == nElementCountA-1) {
+							connect.SetSendBuffer(
+								Direction_Right, c, k, iB, dUpdateA);
+
+						} else {
+							pDataUpdate[k][iA+1][iB] -= dUpdateA;
+						}
+						pDataUpdate[k][iA][iB] += dUpdateA;
 					}
 
-					if ((j == 0) || (j == m_nHorizontalOrder-1)) {
-						pDataBFlux[k][iA][iB] =
-							  dContraMetricB[k][iA][iB][0] * dDaPsi
-							+ dContraMetricB[k][iA][iB][1] * dDbPsi;
+					// Either set up communication with neighbor or apply
+					// scalar hyperdiffusion along top edge.
+					if (j == m_nHorizontalOrder-1) {
+						if (b == nElementCountB-1) {
+							connect.SetSendBuffer(
+								Direction_Top, c, k, iA, dUpdateB);
+
+						} else {
+							pDataUpdate[k][iA][iB+1] -= dUpdateB;
+						}
+						pDataUpdate[k][iA][iB] += dUpdateB;
+					}
+
+					// Either set up communication with neighbor or apply
+					// scalar hyperdiffusion along left edge.
+					if (i == 0) {
+						if (a == 0) {
+							connect.SetSendBuffer(
+								Direction_Left, c, k, iB, dUpdateA);
+						} else {
+							pDataUpdate[k][iA-1][iB] += dUpdateA;
+						}
+						pDataUpdate[k][iA][iB] -= dUpdateA;
+					}
+
+					// Either set up communication with neighbor or apply
+					// scalar hyperdiffusion along bottom edge.
+					if (j == 0) {
+						if (b == 0) {
+							connect.SetSendBuffer(
+								Direction_Bottom, c, k, iA, dUpdateB);
+
+						} else {
+							pDataUpdate[k][iA][iB-1] += dUpdateB;
+						}
+						pDataUpdate[k][iA][iB] -= dUpdateB;
 					}
 				}
 				}
@@ -1560,12 +1625,115 @@ void HorizontalDynamicsFEM::CalculateScalarDiffusiveFluxes(
 	}
 
 	// Perform a global exchange
-	pGrid->Exchange(DataType_State, iDataAFlux);
-	pGrid->Exchange(DataType_State, iDataBFlux);
+	pGrid->ExchangeBuffers();
+	pGrid->ExchangeBuffers();
 
-	// Post-process velocities received during exchange
-	//pPatch->TransformHaloVelocities(iDataInitial);
+	// Loop over all patches
+	for (int n = 0; n < pGrid->GetActivePatchCount(); n++) {
+		GridPatchGLL * pPatch =
+			dynamic_cast<GridPatchGLL*>(pGrid->GetActivePatch(n));
 
+		const PatchBox & box = pPatch->GetPatchBox();
+
+		// Connectivity for patch
+		Connectivity & connect = pPatch->GetConnectivity();
+
+		// Data
+		GridData4D & dataUpdateNode =
+			pPatch->GetDataState(iDataUpdate, DataLocation_Node);
+		GridData4D & dataUpdateREdge =
+			pPatch->GetDataState(iDataUpdate, DataLocation_REdge);
+
+		// Loop over all scalar components
+		int nComponents = m_model.GetEquationSet().GetComponents();
+		for (int c = 2; c < nComponents; c++) {
+
+
+			int nElementCountR;
+
+			double *** pDataState;
+			double *** pDataUpdate;
+			if (pGrid->GetVarLocation(c) == DataLocation_Node) {
+				pDataUpdate = dataUpdateNode[c];
+				nElementCountR = dataUpdateNode.GetRElements();
+
+			} else if (pGrid->GetVarLocation(c) == DataLocation_REdge) {
+				pDataUpdate = dataUpdateREdge[c];
+				nElementCountR = dataUpdateREdge.GetRElements();
+
+			} else {
+				_EXCEPTIONT("UNIMPLEMENTED");
+			}
+
+			// Apply scalar hyperviscosity to right edge
+			for (int k = 0; k < nElementCountR; k++) {
+			for (int j = box.GetBInteriorBegin(); j < box.GetBInteriorEnd(); j++) {
+				double dUpdateA =
+					connect.GetRecvBuffer(Direction_Right, c, k, j);
+
+				if (connect.IsCoordinateFlipped(Direction_Right, j)) {
+					dUpdateA *= -1.0;
+				}
+
+				pDataUpdate[k][box.GetAInteriorEnd() - 1][j] += dUpdateA;
+			}
+			}
+
+			// Apply scalar hyperviscosity to top edge
+			for (int k = 0; k < nElementCountR; k++) {
+			for (int i = box.GetAInteriorBegin(); i < box.GetAInteriorEnd(); i++) {
+				double dUpdateB =
+					connect.GetRecvBuffer(Direction_Top, c, k, i);
+
+				if (connect.IsCoordinateFlipped(Direction_Top, i)) {
+					dUpdateB *= -1.0;
+				}
+
+				pDataUpdate[k][i][box.GetBInteriorEnd()-1] += dUpdateB;
+			}
+			}
+
+			// Apply scalar hyperviscosity to left edge
+			for (int k = 0; k < nElementCountR; k++) {
+			for (int j = box.GetBInteriorBegin(); j < box.GetBInteriorEnd(); j++) {
+				double dUpdateA =
+					connect.GetRecvBuffer(Direction_Left, c, k, j);
+
+				if (connect.IsCoordinateFlipped(Direction_Left, j)) {
+					dUpdateA *= -1.0;
+				}
+
+				pDataUpdate[k][box.GetAInteriorBegin()][j] -= dUpdateA;
+			}
+			}
+
+			// Apply scalar hyperviscosity to bottom edge
+			for (int k = 0; k < nElementCountR; k++) {
+			for (int i = box.GetAInteriorBegin(); i < box.GetAInteriorEnd(); i++) {
+				double dUpdateB =
+					connect.GetRecvBuffer(Direction_Bottom, c, k, i);
+
+				if (connect.IsCoordinateFlipped(Direction_Bottom, i)) {
+					dUpdateB *= -1.0;
+				}
+
+				pDataUpdate[k][i][box.GetBInteriorBegin()] -= dUpdateB;
+			}
+			}
+		}
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void HorizontalDynamicsFEM::ApplyVectorHyperdiffusionToBoundary(
+	int iDataState,
+	int iDataUpdate,
+	double dDeltaT,
+	double dNuDiff,
+	double dNuVort,
+	bool fScaleNuLocally
+) {
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1690,8 +1858,6 @@ void HorizontalDynamicsFEM::StepAfterSubCycle(
 	// Apply hyperdiffusion
 	if (!m_fNoHyperdiffusion) {
 
-#pragma message "Altering the horizontal velocities should also modify the vertical velocities"
-
 		// Apply scalar and vector hyperdiffusion (first application)
 		pGrid->ZeroData(iDataWorking, DataType_State);
 
@@ -1700,15 +1866,40 @@ void HorizontalDynamicsFEM::StepAfterSubCycle(
 		ApplyVectorHyperdiffusion(
 			iDataInitial, iDataWorking, 1.0, 1.0, 1.0, false);
 
-		pGrid->ApplyDSS(iDataWorking);
+		// For the spectral element method apply DSS
+		if (m_eHorizontalDynamicsType == SpectralElement) {
+			pGrid->ApplyDSS(iDataWorking);
+
+		// For Discontinous Galerkin apply hyperdiffusive fluxes
+		// along boundaries
+		} else if (m_eHorizontalDynamicsType == DiscontinuousGalerkin) {
+			ApplyScalarHyperdiffusionToBoundary(
+				iDataInitial, iDataWorking, 1.0, 1.0, false);
+			ApplyVectorHyperdiffusionToBoundary(
+				iDataInitial, iDataWorking, 1.0, 1.0, 1.0, false);
+		}
+		//pGrid->CopyData(iDataWorking, iDataUpdate, DataType_State);
+
+#pragma message "Check sign of VectorHyperdiffusion"
 
 		// Apply scalar and vector hyperdiffusion (second application)
 		ApplyScalarHyperdiffusion(
-			iDataWorking, iDataUpdate, -dDeltaT, m_dNuScalar, true);
+			iDataWorking, iDataUpdate, dDeltaT, m_dNuScalar, true);
 		ApplyVectorHyperdiffusion(
 			iDataWorking, iDataUpdate, -dDeltaT, m_dNuDiv, m_dNuVort, true);
 
-		pGrid->ApplyDSS(iDataUpdate);
+		// For the spectral element method apply DSS
+		if (m_eHorizontalDynamicsType == SpectralElement) {
+			pGrid->ApplyDSS(iDataUpdate);
+
+		// For Discontinous Galerkin apply hyperdiffusive fluxes
+		// along boundaries
+		} else if (m_eHorizontalDynamicsType == DiscontinuousGalerkin) {
+			ApplyScalarHyperdiffusionToBoundary(
+				iDataWorking, iDataUpdate, dDeltaT, m_dNuScalar, true);
+			ApplyVectorHyperdiffusionToBoundary(
+				iDataWorking, iDataUpdate, -dDeltaT, m_dNuDiv, m_dNuVort, true);
+		}
 	}
 
 	// Apply Rayleigh damping

@@ -321,7 +321,8 @@ void GridCartesianGLL::GetOpposingDirection(
 	int ixPanelDest,
 	Direction dir,
 	Direction & dirOpposing,
-	bool & fSwitchParallel
+	bool & fSwitchParallel,
+	bool & fSwitchPerpendicular
 ) const {
 	if ((ixPanelSrc < 0) || (ixPanelSrc > 5)) {
 		_EXCEPTIONT("Invalid value for ixPanelSrc: Out of range");
@@ -355,6 +356,7 @@ void GridCartesianGLL::GetOpposingDirection(
 
 	// Do not switch directions across this edge
 	fSwitchParallel = false;
+	fSwitchPerpendicular = false;
 }
 
 ///////////////////////////////////////////////////////////////////////////////

@@ -584,13 +584,15 @@ void GridPatch::ExteriorConnect(
 	// Get the opposing direction
 	Direction dirOpposing = Direction_Unreachable;
 	bool fReverseDirection = false;
+	bool fFlippedCoordinate = false;
 
 	m_grid.GetOpposingDirection(
 		m_box.GetPanel(),
 		pPatchSecond->GetPatchBox().GetPanel(),
 		dirFirst,
 		dirOpposing,
-		fReverseDirection);
+		fReverseDirection,
+		fFlippedCoordinate);
 
 	// Determine the size of the boundary (number of elements along exterior
 	// edge).  Used in computing the size of the send/recv buffers.
@@ -645,6 +647,7 @@ void GridPatch::ExteriorConnect(
 			dirOpposing,
 			pPatchSecond->GetPatchIndex(),
 			fReverseDirection,
+			fFlippedCoordinate,
 			nBoundarySize,
 			ixFirst,
 			ixSecond);
@@ -1008,6 +1011,19 @@ void GridPatch::Receive(
 	} else {
 		_EXCEPTIONT("Invalid DataType");
 	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void GridPatch::SendBuffers() {
+	m_connect.SendBuffers();
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void GridPatch::ReceiveBuffers() {
+	Neighbor * pNeighbor;
+	while ((pNeighbor = m_connect.WaitReceive()) != NULL);
 }
 
 ///////////////////////////////////////////////////////////////////////////////

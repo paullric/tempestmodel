@@ -159,7 +159,7 @@ public:
 
 	///	<summary>
 	///		Get the derivatives of the basis functions at nodal points on the
-	///		horizontal reference element.
+	///		1D reference element.
 	///	</summary>
 	const DataMatrix<double> & GetDxBasis1D() const {
 		return m_dDxBasis1D;
@@ -167,10 +167,17 @@ public:
 
 	///	<summary>
 	///		Get the stiffness matrix coefficients at nodal points on the
-	///		horizontal reference element.
+	///		1D reference element.
 	///	</summary>
 	const DataMatrix<double> & GetStiffness1D() const {
 		return m_dStiffness1D;
+	}
+
+	///	<summary>
+	///		Get the GLL weights at nodal points on the 1D reference element.
+	///	</summary>
+	const DataVector<double> & GetGLLWeights1D() const {
+		return m_dGLLWeights1D;
 	}
 
 	///	<summary>
@@ -289,6 +296,12 @@ protected:
 	///		horizontal reference element.
 	///	</summary>
 	DataMatrix<double> m_dStiffness1D;
+
+	///	<summary>
+	///		Pointwise GLL weights at nodal points on the 1D
+	///		reference element.
+	///	</summary>
+	DataVector<double> m_dGLLWeights1D;
 
 	///	<summary>
 	///		Interpolation coefficients from levels to interfaces.

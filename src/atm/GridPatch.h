@@ -213,6 +213,16 @@ public:
 	);
 
 	///	<summary>
+	///		Send buffers to other processors.
+	///	</summary>
+	void SendBuffers();
+
+	///	<summary>
+	///		Receive buffers from other processors.
+	///	</summary>
+	void ReceiveBuffers();
+
+	///	<summary>
 	///		Complete the exchange of data between processors.
 	///	</summary>
 	void CompleteExchange();

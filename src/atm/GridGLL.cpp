@@ -95,6 +95,9 @@ void GridGLL::Initialize() {
 		}
 	}
 
+	// Store GLL weights
+	m_dGLLWeights1D = dWL;
+
 	///////////////////////////////////////////////////////////////////////////
 	// Get quadrature points for Gauss quadrature (vertical)
 	GaussQuadrature::GetPoints(m_nVerticalOrder, 0.0, 1.0, dG, dW);

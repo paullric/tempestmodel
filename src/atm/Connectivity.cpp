@@ -21,8 +21,6 @@
 #include "Model.h"
 #include "EquationSet.h"
 
-//#define NOEXCHANGE
-
 ///////////////////////////////////////////////////////////////////////////////
 // Neighbor
 ///////////////////////////////////////////////////////////////////////////////
@@ -30,12 +28,19 @@
 void Neighbor::InitializeBuffers(
 	int nRElements,
 	int nHaloElements,
-	int nVariables
+	int nComponents
 ) {
+
+	// Store buffer size
+	m_nMaxRElements = nRElements + 1;
+	m_nHaloElements = nHaloElements;
+	m_nComponents = nComponents;
+
+	// Resize buffers
 	m_vecSendBuffer.Initialize(
-		m_nBoundarySize * (nRElements+1) * nHaloElements * nVariables);
+		m_nBoundarySize * m_nMaxRElements * m_nHaloElements * m_nComponents);
 	m_vecRecvBuffer.Initialize(
-		m_nBoundarySize * (nRElements+1) * nHaloElements * nVariables);
+		m_nBoundarySize * m_nMaxRElements * m_nHaloElements * m_nComponents);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -80,7 +85,6 @@ void ExteriorNeighbor::PrepareExchange() {
 	// Tag of the received message
 	int nTag = (m_ixNeighbor << 16) + (ixPatch << 4) + (int)(m_dir);
 
-#ifndef NOEXCHANGE
 	// Prepare an asynchronous receive
 	MPI_Irecv(
 		&(m_vecRecvBuffer[0]),
@@ -90,7 +94,6 @@ void ExteriorNeighbor::PrepareExchange() {
 		nTag,
 		MPI_COMM_WORLD,
 		&m_reqRecv);
-#endif
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -459,11 +462,7 @@ void ExteriorNeighbor::Send() {
 	int ixPatch = patch.GetPatchIndex();
 
 	int iProcessor = grid.GetPatch(m_ixNeighbor)->GetProcessor();
-/*
-	if (grid.GetPatch(m_ixNeighbor)->GetPatchIndex() == 0) {
-		std::cout << ixPatch << " sending to patch 0" << std::endl;
-	}
-*/
+
 	// Tag
 	if (m_ixNeighbor >= (2 << 12)) {
 		_EXCEPTIONT("Maximum neighbor index exceeded.");
@@ -471,7 +470,6 @@ void ExteriorNeighbor::Send() {
 
 	int nTag = (ixPatch << 16) + (m_ixNeighbor << 4) + (int)(m_dirOpposite);
 
-#ifndef NOEXCHANGE
 #pragma message "Move MPI_TAG processing to Connectivity"
 
 	MPI_Isend(
@@ -491,7 +489,6 @@ void ExteriorNeighbor::Send() {
 		nTag,
 		MPI_COMM_WORLD);
 */
-#endif
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -747,10 +744,8 @@ void ExteriorNeighbor::Unpack(
 
 void ExteriorNeighbor::WaitSend() {
 
-#ifndef NOEXCHANGE
 	MPI_Status status;
 	MPI_Wait(&m_reqSend, &status);
-#endif
 
 }
 
@@ -767,6 +762,79 @@ Connectivity::~Connectivity() {
 		delete m_vecNestedNeighbors[n];
 	}
 */
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void Connectivity::BuildFluxConnectivity() {
+
+	// PatchBox
+	const PatchBox & box = m_patch.GetPatchBox();
+
+	// Allocate space for edges
+	m_vecExteriorEdge[0].resize(box.GetBTotalWidth(), NULL);
+	m_vecExteriorEdge[1].resize(box.GetATotalWidth(), NULL);
+	m_vecExteriorEdge[2].resize(box.GetBTotalWidth(), NULL);
+	m_vecExteriorEdge[3].resize(box.GetATotalWidth(), NULL);
+	m_vecExteriorEdge[4].resize(1, NULL);
+	m_vecExteriorEdge[5].resize(1, NULL);
+	m_vecExteriorEdge[6].resize(1, NULL);
+	m_vecExteriorEdge[7].resize(1, NULL);
+
+	// Loop over all exterior edges, hook up pointers to ExteriorNeighbors
+	for (int n = 0; n < m_vecExteriorNeighbors.size(); n++) {
+
+		ExteriorNeighbor * pNeighbor = m_vecExteriorNeighbors[n];
+
+		int iDir = static_cast<int>(pNeighbor->m_dir);
+
+		// Right or Left side of this PatchBox
+		if ((pNeighbor->m_dir == Direction_Right) || 
+		    (pNeighbor->m_dir == Direction_Left)
+		) {
+			int j = pNeighbor->m_ixFirst;
+			for (; j < pNeighbor->m_ixSecond; j++) {
+				if ((j < box.GetBInteriorBegin()) ||
+					(j >= box.GetBInteriorEnd())
+				) {
+					_EXCEPTIONT("Edge index out of range");
+				}
+
+				m_vecExteriorEdge[iDir][j] = pNeighbor;
+			}
+
+		// Top or Bottom side of this PatchBox
+		} else if (
+		    (pNeighbor->m_dir == Direction_Top) ||
+		    (pNeighbor->m_dir == Direction_Bottom)
+		) {
+			int i = pNeighbor->m_ixFirst;
+			for (; i < pNeighbor->m_ixSecond; i++) {
+				if ((i < box.GetAInteriorBegin()) ||
+					(i >= box.GetAInteriorEnd())
+				) {
+					_EXCEPTIONT("Edge index out of range");
+				}
+
+				m_vecExteriorEdge[iDir][i] = pNeighbor;
+			}
+
+		// Corners of this PatchBox
+		} else if (
+		    (pNeighbor->m_dir == Direction_TopRight) ||
+		    (pNeighbor->m_dir == Direction_TopLeft) ||
+		    (pNeighbor->m_dir == Direction_BottomRight) ||
+		    (pNeighbor->m_dir == Direction_BottomLeft)
+		) {
+			if (m_vecExteriorEdge[iDir][0] != NULL) {
+				_EXCEPTION1("Corner patch %i already set", iDir);
+			}
+			m_vecExteriorEdge[iDir][0] = pNeighbor;
+
+		} else {
+			_EXCEPTIONT("Invalid direction");
+		}
+	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -813,9 +881,19 @@ void Connectivity::Send() {
 
 ///////////////////////////////////////////////////////////////////////////////
 
+void Connectivity::SendBuffers() {
+
+	// Send data to exterior neighbors
+	for (int m = 0; m < m_vecExteriorNeighbors.size(); m++) {
+		m_vecExteriorNeighbors[m]->ResetSendBufferSize();
+		m_vecExteriorNeighbors[m]->Send();
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
 Neighbor * Connectivity::WaitReceive() {
 
-#ifndef NOEXCHANGE
 	// Receive data from exterior neighbors
 	int nRecvMessageCount = 0;
 
@@ -833,7 +911,6 @@ Neighbor * Connectivity::WaitReceive() {
 			}
 		}
 	}
-#endif
 
 	return NULL;
 }

@@ -102,7 +102,8 @@ public:
 		int ixPanelDest,
 		Direction dir,
 		Direction & dirOpposing,
-		bool & fSwitchParallel
+		bool & fSwitchParallel,
+		bool & fSwitchPerpendicular
 	) const;
 
 public:

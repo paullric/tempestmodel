@@ -45,12 +45,17 @@ public:
 		const Connectivity * pConnect,
 		int ixNeighbor,
 		bool fReverseDirection,
+		bool fFlippedCoordinate,
 		int nBoundarySize
 	) : 
 		m_pConnect(pConnect),
 		m_ixNeighbor(ixNeighbor),
 		m_fReverseDirection(fReverseDirection),
+		m_fFlippedCoordinate(fFlippedCoordinate),
 		m_nBoundarySize(nBoundarySize),
+		m_nMaxRElements(0),
+		m_nHaloElements(0),
+		m_nComponents(0),
 		m_fComplete(false),
 		m_ixSendBuffer(0),
 		m_ixRecvBuffer(0)
@@ -73,7 +78,7 @@ public:
 	void InitializeBuffers(
 		int nRElements,
 		int nHaloElements,
-		int nVariables
+		int nComponents
 	);
 
 public:
@@ -121,6 +126,17 @@ public:
 	virtual void Pack(
 		const GridData4D & data
 	) = 0;
+
+	///	<summary>
+	///		Reset the send buffer size.
+	///	</summary>
+	void ResetSendBufferSize() {
+		m_ixSendBuffer =
+			  m_nBoundarySize
+			* m_nMaxRElements
+			* m_nHaloElements
+			* m_nComponents;
+	}
 
 	///	<summary>
 	///		Send data to other processors.
@@ -171,9 +187,30 @@ public:
 	bool m_fReverseDirection;
 
 	///	<summary>
+	///		Indicator of whether or not the direction of increasing coordinate
+	///		indices flips across the edge.
+	///	</summary>
+	bool m_fFlippedCoordinate;
+
+	///	<summary>
 	///		Number of independent grid cells along boundary.
 	///	</summary>
 	int m_nBoundarySize;
+
+	///	<summary>
+	///		Number of radial elements.
+	///	</summary>
+	int m_nMaxRElements;
+
+	///	<summary>
+	///		Number of halo elements.
+	///	</summary>
+	int m_nHaloElements;
+
+	///	<summary>
+	///		Number of variables.
+	///	</summary>
+	int m_nComponents;
 
 	///	<summary>
 	///		Flag indicating if this neighbor has been received and processed.
@@ -220,6 +257,7 @@ public:
 		Direction dirOpposite,
 		int ixNeighbor,
 		bool fReverseDirection,
+		bool fFlippedCoordinate,
 		int nBoundarySize,
 		int ixFirst,
 		int ixSecond
@@ -230,10 +268,47 @@ public:
 			pConnect,
 			ixNeighbor,
 			fReverseDirection,
+			fFlippedCoordinate,
 			nBoundarySize),
 		m_ixFirst(ixFirst),
 		m_ixSecond(ixSecond)
 	{ }
+
+public:
+	///	<summary>
+	///		Set a value in the SendBuffer directly.
+	///	</summary>
+	inline void SetSendBuffer(
+		int iC,
+		int iK,
+		int iA,
+		double dValue
+	) {
+		int ix = (iC * m_nMaxRElements + iK) * m_nBoundarySize;
+
+		if (m_fReverseDirection) {
+			ix += m_ixSecond - iA - 1;
+		} else {
+			ix += iA - m_ixFirst;
+		}
+
+		m_vecSendBuffer[ix] = dValue;
+	}
+
+	///	<summary>
+	///		Get a value in the RecvBuffer directly.
+	///	</summary>
+	inline double GetRecvBuffer(
+		int iC,
+		int iK,
+		int iA
+	) const {
+		int ix =
+			(iC * m_nMaxRElements + iK) * m_nBoundarySize
+				+ (iA - m_ixFirst);
+
+		return m_vecRecvBuffer[ix];
+	}
 
 public:
 	///	<summary>
@@ -291,14 +366,14 @@ public:
 	Direction m_dirOpposite;
 
 	///	<summary>
-	///		First index (begin node for Right, Top, Left, Bottom and alpha
-	///		coordinate for TopRight, TopLeft, BottomLeft, BottomRight)
+	///		First local index (begin node for Right, Top, Left, Bottom and
+	///		alpha coordinate for TopRight, TopLeft, BottomLeft, BottomRight)
 	///	</summary>
 	int m_ixFirst;
 
 	///	<summary>
-	///		Second index (end node for Right, Top, Left, Bottom and beta
-	///		coordinate for TopRight, TopLeft, BottomLeft, BottomRight)
+	///		Second local index (end node for Right, Top, Left, Bottom and
+	///		beta coordinate for TopRight, TopLeft, BottomLeft, BottomRight)
 	///	</summary>
 	int m_ixSecond;
 };
@@ -405,36 +480,13 @@ public:
 	) {
 		m_vecExteriorNeighbors.push_back(pNeighbor);
 	}
-/*
+
 public:
 	///	<summary>
-	///		Connect one patch to a second along entire edge.
+	///		Done adding new exterior neighbors.  Set up flux connectivity.
 	///	</summary>
-	static void ExteriorConnect(
-		GridPatch * pPatchFirst,
-		Direction dirFirst,
-		const GridPatch * pPatchSecond
-	);
+	void BuildFluxConnectivity();
 
-	///	<summary>
-	///		Connect one patch to a second along part of the edge.
-	///	</summary>
-	///	<param name="ixFirst">
-	///		First index (begin node for Right, Top, Left, Bottom and alpha
-	///		coordinate for TopRight, TopLeft, BottomLeft, BottomRight)
-	///	</param>
-	///	<param name="ixSecond">
-	///		Second index (end node for Right, Top, Left, Bottom and beta
-	///		coordinate for TopRight, TopLeft, BottomLeft, BottomRight)
-	///	</param>
-	static void ExteriorConnect(
-		GridPatch * pPatchFirst,
-		Direction dirFirst,
-		const GridPatch * pPatchSecond,
-		int ixFirst,
-		int ixSecond
-	);
-*/
 public:
 	///	<summary>
 	///		Prepare for the exchange of data between processors.
@@ -459,6 +511,11 @@ public:
 	///		Send data to other processors.
 	///	</summary>
 	void Send();
+
+	///	<summary>
+	///		Send buffers to other processors.
+	///	</summary>
+	void SendBuffers();
 
 	///	<summary>
 	///		Wait for a neighbor to receive a message and return a pointer
@@ -506,6 +563,48 @@ public:
 	///	</summary>
 	int GetExpectedMessageCount() const;
 
+	///	<summary>
+	///		Set a value directly in send buffer (one halo element).
+	///	</summary>
+	///	<param name="iA">
+	///		Interior index along edge (index 0 corresponds to InteriorBegin)
+	///	</param>
+	inline void SetSendBuffer(
+		Direction dir,
+		int iC,
+		int iK,
+		int iA,
+		double dValue
+	) {
+		m_vecExteriorEdge[(int)(dir)][iA]->SetSendBuffer(iC, iK, iA, dValue);
+	}
+
+	///	<summary>
+	///		Get a value directly in recv buffer (one halo element).
+	///	</summary>
+	///	<param name="iA">
+	///		Interior index along edge (index 0 corresponds to InteriorBegin)
+	///	</param>
+	inline double GetRecvBuffer(
+		Direction dir,
+		int iC,
+		int iK,
+		int iA
+	) {
+		return m_vecExteriorEdge[(int)(dir)][iA]->GetRecvBuffer(iC, iK, iA);
+	}
+
+	///	<summary>
+	///		Determine if the direction of increasing coordinate is flipped
+	///		across the edge.
+	///	</summary>
+	inline bool IsCoordinateFlipped(
+		Direction dir,
+		int iA
+	) const {
+		return m_vecExteriorEdge[(int)(dir)][iA]->m_fFlippedCoordinate;
+	}
+
 private:
 	///	<summary>
 	///		Reference to parent object.
@@ -526,6 +625,11 @@ private:
 	///		Array indicating the panel in the specified direction.
 	///	</summary>
 	std::vector<int> m_ixPanelDirection;
+
+	///	<summary>
+	///		Pointer to exterior neighbors along edges, by index.
+	///	</summary>
+	std::vector<ExteriorNeighbor *> m_vecExteriorEdge[8];
 };
 
 ///////////////////////////////////////////////////////////////////////////////
