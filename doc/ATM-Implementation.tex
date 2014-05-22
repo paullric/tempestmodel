@@ -280,7 +280,7 @@ f_{(i,j)} &= \frac{1}{w_i J(\alpha_i, \beta_j)} \sum_{m=0}^{n_p-1} \pdiff{\tilde
 \end{align}
 
 
-\subsection{Fourth-Order Vector Hyperviscosity}
+\subsection{Fourth-Order Vector Hyperviscosity} \label{sec:VectorHyperviscosity}
 
 Fourth-order vector hyperviscosity is implemented using a two stage procedure:
 \begin{align}
@@ -403,16 +403,20 @@ f = \mathcal{H}(\nu) \psi \quad \Longleftrightarrow \quad \iint f \phi_{(i,j)} d
 \end{align}  The contour integral takes the form
 \begin{align}
 \oint \phi_{(i,j)} \nabla \psi \cdot d\vb{S} &= \int_R \phi_{(i,j)} \nabla \psi \cdot d\vb{S} + \int_T \phi_{(i,j)} \nabla \psi \cdot d\vb{S} + \int_L \phi_{(i,j)} \nabla \psi \cdot d\vb{S} + \int_B \phi_{(i,j)} \nabla \psi \cdot d\vb{S},
-\end{align} where $R$, $T$, $L$ and $B$ denote the right, top, left and bottom edges, respectively.  The covariant components of the face normals at the right edge are
+\end{align} where $R$, $T$, $L$ and $B$ denote the right, top, left and bottom edges, respectively.  Throughout we will make use of contravariant derivatives, which are defined via
 \begin{align}
-N_\alpha = \frac{1}{\sqrt{g^{\alpha \alpha}}}, \qquad N_\beta = 0,
+\left. \nabla^\alpha \psi \right\vert_{\alpha = \alpha_i, \beta = \beta_j} &= g^{\alpha \alpha} \sum_{m=0}^{n_p-1} \psi(\alpha, \beta) \left. \diff{\tilde{\phi}_{(m)}}{\alpha} \right\vert_{\alpha = \alpha_m, \beta = \beta_j} + g^{\alpha \beta} \sum_{n=0}^{n_p-1} \psi(\alpha, \beta) \left. \diff{\tilde{\phi}_{(n)}}{\beta} \right\vert_{\alpha = \alpha_{i}, \beta = \beta_n}, \\
+\left. \nabla^\beta \psi \right\vert_{\alpha = \alpha_i, \beta = \beta_j} &= g^{\beta \alpha} \sum_{m=0}^{n_p-1} \psi(\alpha, \beta) \left. \diff{\tilde{\phi}_{(m)}}{\alpha} \right\vert_{\alpha = \alpha_m, \beta = \beta_j} + g^{\beta \beta} \sum_{n=0}^{n_p-1} \psi(\alpha, \beta) \left. \diff{\tilde{\phi}_{(n)}}{\beta} \right\vert_{\alpha = \alpha_{i}, \beta = \beta_n},
+\end{align}  The covariant components of the face normals at the right edge are
+\begin{align} \label{eq:CovariantNormal}
+N^R_\alpha = \frac{1}{\sqrt{g^{\alpha \alpha}}}, \qquad N^R_\beta = 0,
 \end{align} and so
 \begin{align}
-\int_R \phi_{(i,j)} \nabla \psi \cdot d\vb{S} &= \delta^i_{n_p-1} \sum_{n=0}^{n_p-1} \left. \tilde{\phi}_{(j)}(\beta) \nabla^\alpha \psi N_\alpha w_n \sqrt{g_{\beta \beta}} \Delta \beta \right\vert_{\alpha = \alpha_{n_p-1}, \beta = \beta_n} \\
-&= \Delta \beta w_j \delta_{i,n_p-1} \left. J \nabla^\alpha \psi \right\vert_{\alpha = \alpha_{n_p-1}, \beta = \beta_j},
-\end{align} leading to
+\int_R \phi_{(i,j)} \nabla \psi \cdot d\vb{S} &= \delta_{i,n_p-1} \sum_{n=0}^{n_p-1} \left. \tilde{\phi}_{(j)}(\beta) \nabla^\alpha \psi N^R_\alpha w_n \sqrt{g_{\beta \beta}} \Delta \beta \right\vert_{\alpha = \alpha_{n_p-1}, \beta = \beta_n} \\
+&= \Delta \beta w_j \delta_{i,n_p-1} \left. J \nabla^\alpha \psi \right\vert_{\alpha = \alpha_{n_p-1}, \beta = \beta_j}.
+\end{align}  Repeating this procedure for all edges
 \begin{equation}
-f_{(i,j)} = \frac{\delta_{i,n_p-1}}{w_i \Delta \alpha} \left[ g^{\alpha \alpha} \sum_{m=0}^{n_p-1} \psi \left. \diff{\tilde{\phi}_{(m)}}{\alpha} \right\vert_{\alpha = \alpha_m, \beta = \beta_j} + g^{\alpha \beta} \sum_{n=0}^{n_p-1} \psi \left. \diff{\tilde{\phi}_{(n)}}{\beta} \right\vert_{\alpha = \alpha_{n_p-1}, \beta = \beta_n} \right].
+f_{(i,j)} = \nu \left[ \underbrace{\frac{\delta_{i,n_p-1}}{w_i \Delta \alpha} \nabla^\alpha \psi}_{\mbox{Right}} + \underbrace{\frac{\delta_{j,n_p-1}}{w_j \Delta \beta} \nabla^\beta \psi}_{\mbox{Top}} - \underbrace{\frac{\delta_{i,0}}{w_i \Delta \alpha} \nabla^\alpha \psi}_{\mbox{Left}} - \underbrace{\frac{\delta_{j,0}}{w_j \Delta \beta} \nabla^\beta \psi}_{\mbox{Bottom}} \right].
 \end{equation}
 
 \subsection{Fourth-Order Vector Hyperviscosity for DG}
@@ -430,10 +434,76 @@ f_{(i,j)} = \frac{\delta_{i,n_p-1}}{w_i \Delta \alpha} \left[ g^{\alpha \alpha} 
 \begin{align}
 \iint \vg{\phi} \cdot \vb{f} dV &= - \nu_v \iint \vg{\phi} \cdot \nabla \times (\nabla \times \vb{u}) dV, \\
 &= - \nu_v \left[ \oint (\nabla \times \vb{u}) \times \phi \cdot d\vb{S} + \iint (\nabla \times \vg{\phi}) \cdot (\nabla \times \vb{u}) dV \right]
+\end{align}  The area integral is handled as in section \ref{sec:VectorHyperviscosity}.
+
+For divergence damping, the contour integral reads
+\begin{equation}
+\oint (\nabla \cdot \vb{u}) \vg{\phi} \cdot d\vb{S} = \int_R (\nabla \cdot \vb{u}) \vg{\phi} \cdot d\vb{S} + \int_T (\nabla \cdot \vb{u}) \vg{\phi} \cdot d\vb{S} + \int_L (\nabla \cdot \vb{u}) \vg{\phi} \cdot d\vb{S} + \int_B (\nabla \cdot \vb{u}) \vg{\phi} \cdot d\vb{S}.
+\end{equation}  Along the right edge this is
+\begin{align}
+\int_R (\nabla \cdot \vb{u}) \vg{\phi}_{(i,j)} \cdot d\vb{S} &= \delta_{i,n_p-1} \sum_{n=0}^{n_p-1} \left. (\nabla \cdot \vb{u}) g^{pq} \phi_{(i,j) p} N^R_q w_n \sqrt{g_{\beta \beta}} \Delta \beta \right\vert_{\alpha = \alpha_i, \beta = \beta_n} \\
+&= \delta_{i,n_p-1} \left. (\nabla \cdot \vb{u}) g^{pq} \phi_{(i,j)p} N^R_q w_j  \sqrt{g_{\beta \beta}} \Delta \beta \right\vert_{\alpha = \alpha_i, \beta = \beta_j}. \label{eq:DGDivHyperviscosityContourIntegral}
+\end{align}  Along the top edge this is
+\begin{align}
+\int_T (\nabla \cdot \vb{u}) \vg{\phi}_{(i,j)} \cdot d\vb{S} = \delta_{j,n_p-1} \left. (\nabla \cdot \vb{u}) g^{pq} \phi_{(i,j)p} N^T_q w_i \sqrt{g_{\alpha \alpha}} \Delta \alpha \right\vert_{\alpha = \alpha_i, \beta = \beta_j}
 \end{align}
 
-%\vb{n} \cdot \vb{g}_\beta = 0
-%n_2 = 0
-%n_1 = 1/sqrt(g^{11})
+For vorticity damping, the contour integral reads
+\begin{equation}
+\oint (\nabla \times \vb{u}) \times \vg{\phi} \cdot d\vb{S} = \int_R (\nabla \times \vb{u}) \times \phi \cdot d\vb{S} + \int_T (\nabla \times \vb{u}) \times \phi \cdot d\vb{S} + \int_L (\nabla \times \vb{u}) \times \phi \cdot d\vb{S} + \int_B (\nabla \times \vb{u}) \times \phi \cdot d\vb{S}.
+\end{equation}  Along the right edge this is
+\begin{align}
+\int_R (\nabla \times \vb{u}) \times \vg{\phi} \cdot d\vb{S} &= \delta_{i,n_p-1} \sum_{n=0}^{n_p-1} \left. \epsilon^{prq} (\nabla \times \vb{u})_r \phi_{(i,j)q} N^R_p w_n \sqrt{g_{\beta \beta}} \Delta \beta \right\vert_{\alpha = \alpha_i, \beta = \beta_n}, \\
+&= \delta_{i,n_p-1} \left. \epsilon^{prq} (\nabla \times \vb{u})_r \phi_{(i,j)q} N^R_p w_j \sqrt{g_{\beta \beta}} \Delta \beta \right\vert_{\alpha = \alpha_{n_p-1}, \beta = \beta_j}. \label{eq:DGVortHyperviscosityContourIntegral}
+\end{align}  Along the top edge, this is
+\begin{align} \label{eq:DGVortHyperviscosityContourIntegralTop}
+\int_T (\nabla \times \vb{u}) \times \phi \cdot d\vb{S} &= \delta_{j,n_p-1} \left. \epsilon^{prq} (\nabla \times \vb{u})_r \phi_{(i,j) q} N^T_p w_i \sqrt{g_{\alpha \alpha}} \Delta \alpha \right\vert_{\alpha = \alpha_i, \beta = \beta_{n_p-1}}.
+\end{align}
+
+\subsubsection{Vector basis with zero $\beta$ component}
+
+\paragraph{Divergence Damping:}  For $\phi_{(i,j)\beta} = 0$, and using (\ref{eq:CovariantNormal}), (\ref{eq:DGDivHyperviscosityContourIntegral}) becomes
+\begin{align}
+\int_R (\nabla \cdot \vb{u}) \vg{\phi}_{(i,j)} \cdot d\vb{S} = \delta_{i,n_p-1} \left. (\nabla \cdot \vb{u}) g^{\alpha \alpha} J w_j \Delta \beta \right\vert_{\alpha = \alpha_{n_p-1}, \beta = \beta_j}.
+\end{align}  Repeating for all edges,
+\begin{align}
+f^\alpha = \nu_d \left[ \underbrace{\frac{\delta_{i,n_p-1} g^{\alpha \alpha} (\nabla \cdot \vb{u})}{w_i \Delta \alpha}}_{\mbox{Right}} + \underbrace{\frac{\delta_{j,n_p-1} g^{\alpha \beta} (\nabla \cdot \vb{u})}{w_j \Delta \beta}}_{\mbox{Top}} - \underbrace{\frac{\delta_{i,0} g^{\alpha \alpha} (\nabla \cdot \vb{u})}{w_i \Delta \alpha}}_{\mbox{Left}} - \underbrace{\frac{\delta_{j,0} g^{\alpha \beta} (\nabla \cdot \vb{u})}{w_j \Delta \beta}}_{\mbox{Bottom}} \right].
+\end{align}
+
+\paragraph{Vorticity Damping:}  Further, along the right edge (\ref{eq:DGVortHyperviscosityContourIntegral}) reads
+\begin{align}
+\int_R (\nabla \times \vb{u}) \times \vg{\phi} \cdot d\vb{S} &= \delta_{i,n_p-1} \left. \epsilon^{\beta r \alpha} (\nabla \times \vb{u})_r \phi_{(i,j) \alpha} N_\beta w_j \sqrt{g_{\beta \beta}} \Delta \beta \right\vert_{\alpha = \alpha_{n_p-1}, \beta = \beta_j} = 0.
+\end{align}  Along the top edge, (\ref{eq:DGVortHyperviscosityContourIntegralTop}) reads
+\begin{align}
+\int_T (\nabla \times \vb{u}) \times \vg{\phi} \cdot d\vb{S} &= \delta_{j,n_p-1} \left. \epsilon^{\beta r \alpha} (\nabla \times \vb{u})_r \phi_{(i,j) \alpha} N_\beta w_i \sqrt{g_{\alpha \alpha}} \Delta \alpha \right\vert_{\alpha = \alpha_i, \beta = \beta_{n_p-1}}, \\
+&= \delta_{j,n_p-1} (\nabla \times \vb{u})_r w_i \Delta \alpha.
+\end{align}  Repeating for all edges,
+\begin{align}
+f^\alpha &= \nu_v  \left[\underbrace{- \frac{\delta_{j,n_p-1} (\nabla \times \vb{u})_r}{J w_j \Delta \beta}}_{\mbox{Top}} \underbrace{+ \frac{\delta_{j,0} (\nabla \times \vb{u})_r}{J w_j \Delta \beta}}_{\mbox{Bottom}} \right]
+\end{align}
+
+\subsubsection{Vector basis with zero $\alpha$ component}
+
+\paragraph{Divergence Damping:}  For $\phi_{(i,j)\alpha} = 0$,
+\begin{align}
+\int_R (\nabla \cdot \vb{u}) \vg{\phi}_{(i,j)} \cdot d\vb{S} = \delta_{i,n_p-1} \left. (\nabla \cdot \vb{u}) g^{\beta \alpha} J w_j \Delta \beta \right\vert_{\alpha = \alpha_{n_p-1}, \beta = \beta_j}.
+\end{align}  Repeating for all edges,
+\begin{align}
+f^\beta = \nu_d \left[ \underbrace{\frac{\delta_{i,n_p-1} g^{\beta \alpha} (\nabla \cdot \vb{u})}{w_i \Delta \alpha}}_{\mbox{Right}} + \underbrace{\frac{\delta_{j,n_p-1} g^{\beta \beta} (\nabla \cdot \vb{u})}{w_j \Delta \beta}}_{\mbox{Top}} - \underbrace{\frac{\delta_{i,0} g^{\beta \alpha} (\nabla \cdot \vb{u})}{w_i \Delta \alpha}}_{\mbox{Left}} - \underbrace{\frac{\delta_{j,0} g^{\beta \beta} (\nabla \cdot \vb{u})}{w_j \Delta \beta}}_{\mbox{Bottom}} \right].
+\end{align}
+
+\paragraph{Vorticity Damping:}  Along the right edge,
+\begin{align}
+\int_R (\nabla \times \vb{u}) \times \vg{\phi} \cdot d\vb{S} &= \delta_{i,n_p-1} \left. \epsilon^{\alpha r \beta} (\nabla \times \vb{u})_r \phi_{(i,j) \beta} N_\alpha w_j \sqrt{g_{\beta \beta}} \Delta \beta \right\vert_{\alpha = \alpha_{n_p-1}, \beta = \beta_j} \\
+&= - \delta_{i,n_p-1} \left. (\nabla \times \vb{u})_r w_j \Delta \beta \right\vert_{\alpha = \alpha_{n_p-1}, \beta = \beta_j}.
+\end{align}  Along the top edge,
+\begin{align}
+\int_T (\nabla \times \vb{u}) \times \vg{\phi} \cdot d\vb{S} &= \delta_{i,n_p-1} \left. \epsilon^{\beta r \alpha} (\nabla \times \vb{u})_r \phi_{(i,j) \alpha} N_\beta w_j \sqrt{g_{\alpha \alpha}} \Delta \alpha  \right\vert_{\alpha = \alpha_{i}, \beta = \beta_{n_p-1}} = 0.
+\end{align}  Repeating for all edges,
+\begin{align}
+f^\beta = \nu_v \left[ \underbrace{\frac{\delta_{i,n_p-1} (\nabla \times \vb{u})_r}{J w_i \Delta \alpha}}_{\mbox{Right}} \underbrace{- \frac{\delta_{i,0} (\nabla \times \vb{u})_r}{J w_i \Delta \alpha}}_{\mbox{Left}} \right]
+\end{align}
 
 \end{document}
+
+

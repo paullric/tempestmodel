@@ -140,6 +140,14 @@ public:
 	///	</summary>
 	void ExchangeBuffers();
 
+	///	<summary>
+	///		Exchange connectivity buffers between processors.
+	///	</summary>
+	void ExchangeBuffersAndUnpack(
+		DataType eDataType,
+		int iDataIndex
+	);
+
 public:
 	///	<summary>
 	///		Get the total number of patches on the grid.

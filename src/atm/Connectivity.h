@@ -284,7 +284,7 @@ public:
 		int iA,
 		double dValue
 	) {
-		int ix = (iC * m_nMaxRElements + iK) * m_nBoundarySize;
+		int ix = (iC * (m_nMaxRElements-1) + iK) * m_nBoundarySize;
 
 		if (m_fReverseDirection) {
 			ix += m_ixSecond - iA - 1;
@@ -304,7 +304,7 @@ public:
 		int iA
 	) const {
 		int ix =
-			(iC * m_nMaxRElements + iK) * m_nBoundarySize
+			(iC * (m_nMaxRElements-1) + iK) * m_nBoundarySize
 				+ (iA - m_ixFirst);
 
 		return m_vecRecvBuffer[ix];

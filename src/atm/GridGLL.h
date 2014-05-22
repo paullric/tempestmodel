@@ -166,6 +166,14 @@ public:
 	}
 
 	///	<summary>
+	///		Get the derivatives of the flux reconstruction function, which
+	///		is used for DiscontinuousGalerkin dynamics.
+	///	</summary>
+	const DataVector<double> & GetFluxDeriv1D() const {
+		return m_dFluxDeriv1D;
+	}
+
+	///	<summary>
 	///		Get the stiffness matrix coefficients at nodal points on the
 	///		1D reference element.
 	///	</summary>
@@ -302,6 +310,12 @@ protected:
 	///		reference element.
 	///	</summary>
 	DataVector<double> m_dGLLWeights1D;
+
+	///	<summary>
+	///		Derivatives of the flux reconstruction function (used by
+	///		discontinuous Galerkin dynamics).
+	///	</summary>
+	DataVector<double> m_dFluxDeriv1D;
 
 	///	<summary>
 	///		Interpolation coefficients from levels to interfaces.

@@ -353,6 +353,37 @@ void Grid::ExchangeBuffers() {
 
 ///////////////////////////////////////////////////////////////////////////////
 
+void Grid::ExchangeBuffersAndUnpack(
+	DataType eDataType,
+	int iDataIndex
+) {
+
+	// Verify all processors are prepared to exchange
+	MPI_Barrier(MPI_COMM_WORLD);
+
+	// Set up asynchronous recvs
+	for (int n = 0; n < m_vecActiveGridPatches.size(); n++) {
+		m_vecActiveGridPatches[n]->PrepareExchange();
+	}
+
+	// Send data
+	for (int n = 0; n < m_vecActiveGridPatches.size(); n++) {
+		m_vecActiveGridPatches[n]->SendBuffers();
+	}
+
+	// Receive data
+	for (int n = 0; n < m_vecActiveGridPatches.size(); n++) {
+		m_vecActiveGridPatches[n]->Receive(eDataType, iDataIndex);
+	}
+
+	// Wait for send requests to complete
+	for (int n = 0; n < m_vecActiveGridPatches.size(); n++) {
+		m_vecActiveGridPatches[n]->CompleteExchange();
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
 int Grid::GetLongestActivePatchPerimeter() const {
 
 	// Longest perimeter

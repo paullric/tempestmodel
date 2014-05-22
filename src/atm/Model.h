@@ -241,8 +241,22 @@ public:
 	///	<summary>
 	///		Get a pointer to the HorizontalDynamics.
 	///	</summary>
+	const HorizontalDynamics * GetHorizontalDynamics() const {
+		return m_pHorizontalDynamics;
+	}
+
+	///	<summary>
+	///		Get a pointer to the HorizontalDynamics.
+	///	</summary>
 	HorizontalDynamics * GetHorizontalDynamics() {
 		return m_pHorizontalDynamics;
+	}
+
+	///	<summary>
+	///		Get a pointer to the VerticalDynamics.
+	///	</summary>
+	const VerticalDynamics * GetVerticalDynamics() const {
+		return m_pVerticalDynamics;
 	}
 
 	///	<summary>

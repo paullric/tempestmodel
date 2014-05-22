@@ -135,7 +135,10 @@ public:
 
 		// Pointwise meridional component of velocity
 		dState[1] = - m_dU0 * sin(dLon) * sin(m_dAlpha);
-
+/*
+		dState[0] += cos(2.0 * dLon) * cos(dLat) * cos(dLat);
+		dState[1] += sin(2.0 * dLat);
+*/
 		// Height field
 		double dHTrig =
 			- cos(dLon) * cos(dLat) * sin(m_dAlpha)
@@ -321,6 +324,8 @@ try {
 		strOutputPrefix,
 		nOutputsPerFile,
 		720, 360);
+	outmanRef.OutputDivergence();
+	outmanRef.OutputVorticity();
 	model.AttachOutputManager(&outmanRef);
 	AnnounceEndBlock("Done");
 

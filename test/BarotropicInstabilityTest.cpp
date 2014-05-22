@@ -183,6 +183,7 @@ public:
 		double dLonP,
 		double dLatP
 	) const {
+
 		if (dLatP < m_dTheta0) {
 			return 0.0;
 
@@ -301,6 +302,12 @@ public:
 
 		dState[0] = dUlon;
 		dState[1] = dUlat;
+/*
+		// Overwrite velocities
+		dState[0] = cos(20.0 * dLon) * cos(dLat) * cos(dLat);
+		dState[1] = 0.0; //cos(17.0 * dLon) * cos(40 * dLat) * cos(40 * dLat);
+		dState[2] = 1000.0;
+*/
 	}
 
 };

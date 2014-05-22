@@ -254,7 +254,7 @@ void Model::Go() {
 	// Loop
 	for(;;) {
 
-		PrintMemoryLine();
+		//PrintMemoryLine();
 
 		FunctionTimer timerLoop("Loop");
 

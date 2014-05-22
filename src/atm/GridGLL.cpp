@@ -98,6 +98,12 @@ void GridGLL::Initialize() {
 	// Store GLL weights
 	m_dGLLWeights1D = dWL;
 
+	// Get the derivatives of the flux reconstruction function
+	// ONLY FOR USE WITH TYPE 2 FLUXRECONSTRUCTIONFUNCTION
+	m_dFluxDeriv1D.Initialize(m_nHorizontalOrder);
+	FluxReconstructionFunction::GetDerivatives(
+		2, m_nHorizontalOrder, dGL, m_dFluxDeriv1D);
+
 	///////////////////////////////////////////////////////////////////////////
 	// Get quadrature points for Gauss quadrature (vertical)
 	GaussQuadrature::GetPoints(m_nVerticalOrder, 0.0, 1.0, dG, dW);
@@ -295,6 +301,7 @@ void GridGLL::ComputeVorticityDivergence(
 	// Apply DSS
 	ApplyDSS(0, DataType_Vorticity);
 	ApplyDSS(0, DataType_Divergence);
+
 }
 
 ///////////////////////////////////////////////////////////////////////////////

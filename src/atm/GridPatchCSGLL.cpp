@@ -19,6 +19,7 @@
 #include "Model.h"
 #include "TestCase.h"
 #include "GridSpacing.h"
+#include "HorizontalDynamicsFEM.h"
 
 #include "Direction.h"
 #include "CubedSphereTrans.h"
@@ -258,11 +259,6 @@ void GridPatchCSGLL::EvaluateGeometricTerms() {
 		dDaZs /= GetElementDeltaA();
 		dDbZs /= GetElementDeltaB();
 
-		double dDaaZs = 0.0;
-		double dDabZs = 0.0;
-		double dDbbZs = 0.0;
-#pragma message "FIX second derivatives"
-
 		// Initialize 2D Jacobian
 		m_dataJacobian2D[iA][iB] =
 			(1.0 + dX * dX) * (1.0 + dY * dY) / (dDelta * dDelta * dDelta);
@@ -312,9 +308,6 @@ void GridPatchCSGLL::EvaluateGeometricTerms() {
 			// Gal-Chen and Somerville (1975) linear terrain-following coord
 			double dDaR = (1.0 - m_grid.GetREtaLevel(k)) * dDaZs;
 			double dDbR = (1.0 - m_grid.GetREtaLevel(k)) * dDbZs;
-			double dDaaR = (1.0 - m_grid.GetREtaLevel(k)) * dDaaZs;
-			double dDabR = (1.0 - m_grid.GetREtaLevel(k)) * dDabZs;
-			double dDbbR = (1.0 - m_grid.GetREtaLevel(k)) * dDbbZs;
 
 			double dDxR = m_grid.GetZtop() - dZs;
 			double dDaxR = - dDaZs;
@@ -708,8 +701,26 @@ void GridPatchCSGLL::ComputeCurlAndDiv(
 	// Parent grid
 	const GridCSGLL & gridCSGLL = dynamic_cast<const GridCSGLL &>(m_grid);
 
-	// Compute derivatives of the field
+	// Get the pointer to the HorizontalDynamics object
+	const HorizontalDynamicsFEM * pHorizontalDynamics =
+		dynamic_cast<const HorizontalDynamicsFEM *>(
+			m_grid.GetModel().GetHorizontalDynamics());
+
+	// If SpectralElement dynamics are used, apply direct stiffness summation
+	bool fDiscontinuous = false;
+	if (pHorizontalDynamics != NULL) {
+		if (pHorizontalDynamics->GetType() ==
+			HorizontalDynamicsFEM::DiscontinuousGalerkin
+		) {
+			fDiscontinuous = true;
+		}
+	}
+
+	// Get derivatives of the basis functions
 	const DataMatrix<double> & dDxBasis1D = gridCSGLL.GetDxBasis1D();
+
+	// Get derivatives of the flux reconstruction function
+	const DataVector<double> & dFluxDeriv1D = gridCSGLL.GetFluxDeriv1D();
 
 	// Number of finite elements in each direction
 	int nAFiniteElements = m_box.GetAInteriorWidth() / m_nHorizontalOrder;
@@ -721,15 +732,18 @@ void GridPatchCSGLL::ComputeCurlAndDiv(
 	for (int b = 0; b < nBFiniteElements; b++) {
 
 		// Index of lower-left corner node
-		int iA = a * m_nHorizontalOrder + m_box.GetHaloElements();
-		int iB = b * m_nHorizontalOrder + m_box.GetHaloElements();
+		int iElementA = a * m_nHorizontalOrder + m_box.GetHaloElements();
+		int iElementB = b * m_nHorizontalOrder + m_box.GetHaloElements();
 
 		for (int i = 0; i < m_nHorizontalOrder; i++) {
 		for (int j = 0; j < m_nHorizontalOrder; j++) {
 
+			int iA = iElementA + i;
+			int iB = iElementB + j;
+
 			// Pointwise field values
-			double dUa = dataUa[k][iA+i][iB+j];
-			double dUb = dataUb[k][iA+i][iB+j];
+			double dUa = dataUa[k][iA][iB];
+			double dUb = dataUb[k][iA][iB];
 
 			// Compute derivatives at each node
 			double dDaUa = 0.0;
@@ -741,19 +755,19 @@ void GridPatchCSGLL::ComputeCurlAndDiv(
 			double dDbJUb = 0.0;
 
 			for (int s = 0; s < m_nHorizontalOrder; s++) {
-				dDaUa += dataUa[k][iA+s][iB+j] * dDxBasis1D[s][i];
-				dDaUb += dataUb[k][iA+s][iB+j] * dDxBasis1D[s][i];
-				dDbUa += dataUa[k][iA+i][iB+s] * dDxBasis1D[s][j];
-				dDbUb += dataUb[k][iA+i][iB+s] * dDxBasis1D[s][j];
+				dDaUa += dataUa[k][iElementA+s][iB] * dDxBasis1D[s][i];
+				dDaUb += dataUb[k][iElementA+s][iB] * dDxBasis1D[s][i];
+				dDbUa += dataUa[k][iA][iElementB+s] * dDxBasis1D[s][j];
+				dDbUb += dataUb[k][iA][iElementB+s] * dDxBasis1D[s][j];
 /*
 				dDaJUa +=
-					m_dataJacobian2D[iA+s][iB+j]
-					* dataUa[k][iA+s][iB+j]
+					m_dataJacobian2D[iElementA+s][iB]
+					* dataUa[k][iElementA+s][iB]
 					* dDxBasis1D[s][i];
 
 				dDbJUb +=
-					m_dataJacobian2D[iA+i][iB+s]
-					* dataUb[k][iA+i][iB+s]
+					m_dataJacobian2D[iA][iElementB+s]
+					* dataUb[k][iA][iElementB+s]
 					* dDxBasis1D[s][j];
 */
 			}
@@ -766,34 +780,78 @@ void GridPatchCSGLL::ComputeCurlAndDiv(
 			//dDaJUa /= GetElementDeltaA();
 			//dDbJUb /= GetElementDeltaA();
 
+			if (fDiscontinuous) {
+				double dUpdateDerivA =
+					  dFluxDeriv1D[m_nHorizontalOrder-1] / GetElementDeltaA();
+				double dUpdateDerivB =
+					  dFluxDeriv1D[m_nHorizontalOrder-1] / GetElementDeltaB();
+
+				if (i == 0) {
+					double dUaL = dataUa[k][iA-1][iB];
+					double dUaR = dataUa[k][iA  ][iB];
+					double dUbL = dataUb[k][iA-1][iB];
+					double dUbR = dataUb[k][iA  ][iB];
+
+					dDaUa += 0.5 * dUpdateDerivA * (dUaR - dUaL);
+					dDaUb += 0.5 * dUpdateDerivA * (dUbR - dUbL);
+				}
+				if (i == m_nHorizontalOrder-1) {
+					double dUaL = dataUa[k][iA  ][iB];
+					double dUaR = dataUa[k][iA+1][iB];
+					double dUbL = dataUb[k][iA  ][iB];
+					double dUbR = dataUb[k][iA+1][iB];
+
+					dDaUa += 0.5 * dUpdateDerivA * (dUaR - dUaL);
+					dDaUb += 0.5 * dUpdateDerivA * (dUbR - dUbL);
+				}
+				if (j == 0) {
+					double dUaL = dataUa[k][iA][iB-1];
+					double dUaR = dataUa[k][iA][iB  ];
+					double dUbL = dataUb[k][iA][iB-1];
+					double dUbR = dataUb[k][iA][iB  ];
+
+					dDbUa += 0.5 * dUpdateDerivB * (dUaR - dUaL);
+					dDbUb += 0.5 * dUpdateDerivB * (dUbR - dUbL);
+				}
+				if (j == m_nHorizontalOrder-1) {
+					double dUaL = dataUa[k][iA][iB  ];
+					double dUaR = dataUa[k][iA][iB+1];
+					double dUbL = dataUb[k][iA][iB  ];
+					double dUbR = dataUb[k][iA][iB+1];
+
+					dDbUa += 0.5 * dUpdateDerivB * (dUaR - dUaL);
+					dDbUb += 0.5 * dUpdateDerivB * (dUbR - dUbL);
+				}
+			}
+
 			// Compute covariant derivatives at node
 			double dCovDaUa = dDaUa
-				+ m_dataChristoffelA[iA+i][iB+j][0] * dUa
-				+ m_dataChristoffelA[iA+i][iB+j][1] * 0.5 * dUb;
+				+ m_dataChristoffelA[iA][iB][0] * dUa
+				+ m_dataChristoffelA[iA][iB][1] * 0.5 * dUb;
 
 			double dCovDaUb = dDaUb
-				+ m_dataChristoffelB[iA+i][iB+j][0] * dUa
-				+ m_dataChristoffelB[iA+i][iB+j][1] * 0.5 * dUb;
+				+ m_dataChristoffelB[iA][iB][0] * dUa
+				+ m_dataChristoffelB[iA][iB][1] * 0.5 * dUb;
 
 			double dCovDbUa = dDbUa
-				+ m_dataChristoffelA[iA+i][iB+j][1] * 0.5 * dUa
-				+ m_dataChristoffelA[iA+i][iB+j][2] * dUb;
+				+ m_dataChristoffelA[iA][iB][1] * 0.5 * dUa
+				+ m_dataChristoffelA[iA][iB][2] * dUb;
 
 			double dCovDbUb = dDbUb
-				+ m_dataChristoffelB[iA+i][iB+j][1] * 0.5 * dUa
-				+ m_dataChristoffelB[iA+i][iB+j][2] * dUb;
+				+ m_dataChristoffelB[iA][iB][1] * 0.5 * dUa
+				+ m_dataChristoffelB[iA][iB][2] * dUb;
 
 			// Compute curl at node
-			m_dataVorticity[k][iA+i][iB+j] = m_dataJacobian2D[iA+i][iB+j] * (
-				+ m_dataContraMetric2DA[iA+i][iB+j][0] * dCovDaUb
-				+ m_dataContraMetric2DA[iA+i][iB+j][1] * dCovDbUb
-				- m_dataContraMetric2DB[iA+i][iB+j][0] * dCovDaUa
-				- m_dataContraMetric2DB[iA+i][iB+j][1] * dCovDbUa);
+			m_dataVorticity[k][iA][iB] = m_dataJacobian2D[iA][iB] * (
+				+ m_dataContraMetric2DA[iA][iB][0] * dCovDaUb
+				+ m_dataContraMetric2DA[iA][iB][1] * dCovDbUb
+				- m_dataContraMetric2DB[iA][iB][0] * dCovDaUa
+				- m_dataContraMetric2DB[iA][iB][1] * dCovDbUa);
 
 			// Compute the divergence at node
-			m_dataDivergence[k][iA+i][iB+j] = dCovDaUa + dCovDbUb;
-			//double dInvJacobian = 1.0 / m_dataJacobian2D[iA+i][iB+j];
-			//m_dataDivergence[k][iA+i][iB+j] =
+			m_dataDivergence[k][iA][iB] = dCovDaUa + dCovDbUb;
+			//double dInvJacobian = 1.0 / m_dataJacobian2D[iA][iB];
+			//m_dataDivergence[k][iA][iB] =
 			//	dInvJacobian * (dDaJUa + dDbJUb);
 		}
 		}

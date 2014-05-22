@@ -192,12 +192,12 @@ public:
 
 public:
 	///	<summary>
-	///		Prepare for the exchange of data between processors.
+	///		Prepare for the exchange of halo data between processors.
 	///	</summary>
 	void PrepareExchange();
 
 	///	<summary>
-	///		Send data to other processors.
+	///		Send halo data to other processors.
 	///	</summary>
 	void Send(
 		DataType eDataType,
@@ -205,7 +205,7 @@ public:
 	);
 
 	///	<summary>
-	///		Receive data from other processors.
+	///		Receive halo data from other processors.
 	///	</summary>
 	void Receive(
 		DataType eDataType,

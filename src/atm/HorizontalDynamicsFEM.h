@@ -145,6 +145,13 @@ protected:
 	);
 
 	///	<summary>
+	///		Initialize the application of hyperdiffusion to the boundary.
+	///	</summary>
+	void InitializeApplyHyperdiffusionToBoundary(
+		int iDataInitial
+	);
+
+	///	<summary>
 	///		Apply the scalar Laplacian operator across element boundaries.
 	///	</summary>
 	void ApplyScalarHyperdiffusionToBoundary(
@@ -162,9 +169,17 @@ protected:
 		int iDataState,
 		int iDataUpdate,
 		double dDeltaT,
-		double dNuDiff,
+		double dNuDiv,
 		double dNuVort,
 		bool fScaleNuLocally
+	);
+
+	///	<summary>
+	///		Finalize the application of hyperdiffusion to the boundary.
+	///	</summary>
+	void FinalizeApplyHyperdiffusionToBoundary(
+		int iDataState,
+		int iDataUpdate
 	);
 
 	///	<summary>
@@ -197,12 +212,6 @@ private:
 	///		Spatial order of accuracy.
 	///	</summary>
 	int m_nHorizontalOrder;
-
-	///	<summary>
-	///		Derivatives of the flux reconstruction function (used by
-	///		discontinuous Galerkin dynamics).
-	///	</summary>
-	DataVector<double> m_dFluxDeriv1D;
 
 	///	<summary>
 	///		Nodal alpha fluxes.
