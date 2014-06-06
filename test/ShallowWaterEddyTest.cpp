@@ -14,35 +14,14 @@
 ///		or implied warranty.
 ///	</remarks>
 
-#include "CommandLine.h"
-#include "Announce.h"
-#include "STLStringHelper.h"
-
-#include "Model.h"
-#include "TimestepSchemeStrang.h"
-#include "HorizontalDynamicsFEM.h"
-#include "VerticalDynamicsStub.h"
-
-#include "PhysicalConstants.h"
-#include "TestCase.h"
-#include "OutputManagerComposite.h"
-#include "OutputManagerReference.h"
-#include "OutputManagerChecksum.h"
-#include "GridData4D.h"
-#include "EquationSet.h"
-
-#include "GridCSGLL.h"
-
-#include "mpi.h"
+#include "Tempest.h"
 
 ///////////////////////////////////////////////////////////////////////////////
 
 ///	<summary>
-///		Galewsky et al. (2004)
-///
-///		Barotropic instability test case.
+///		Shallow water eddy test.
 ///	</summary>
-class BarotropicInstabilityTestCase : public TestCase {
+class ShallowWaterEddyTest : public TestCase {
 
 private:
 	///	<summary>
@@ -99,7 +78,7 @@ public:
 	///	<summary>
 	///		Constructor.
 	///	</summary>
-	BarotropicInstabilityTestCase(
+	ShallowWaterEddyTest(
 		double dAlpha
 	) :
 		m_dH0(10158.18617045463179),
@@ -310,164 +289,45 @@ public:
 
 int main(int argc, char** argv) {
 
-	// Initialize MPI
-	MPI_Init(&argc, &argv);
+	// Initialize Tempest
+	TempestInitialize(&argc, &argv);
 
 try {
-	// Output directory
-	std::string strOutputDir;
-
-	// Output file prefix
-	std::string strOutputPrefix;
-
-	// Number of outputs per reference file
-	int nOutputsPerFile;
-
-	// Resolution
-	int nResolution;
-
-	// Order
-	int nOrder;
 
 	// Grid rotation angle
 	double dAlpha;
 
-	// Output time
-	double dOutputDeltaT;
-
-	// Numerical method
-	std::string strHorizontalDynamics;
-
-	// Use hyperdiffusion
-	bool fNoHyperviscosity;
-
-	// Model parameters
-	ModelParameters params;
-
 	// Parse the command line
-	BeginCommandLine()
-		CommandLineString(strOutputDir, "output_dir",
-			"outShallowWaterEddyTest");
-		CommandLineString(strOutputPrefix, "output_prefix", "out");
-		CommandLineInt(nOutputsPerFile, "output_perfile", -1);
-		CommandLineString(params.m_strRestartFile, "restart_file", "");
-		CommandLineInt(nResolution, "resolution", 30);
-		CommandLineInt(nOrder, "order", 4);
+	BeginTempestCommandLine("SWTest2")
+		SetDefaultResolution(40);
+		SetDefaultLevels(1);
+		SetDefaultOutputTime(200.0);
+		SetDefaultDeltaT(200.0);
+		SetDefaultEndTime(200.0);
+		SetDefaultHorizontalOrder(4);
+		SetDefaultVerticalOrder(1);
+
 		CommandLineDouble(dAlpha, "alpha", 0.0);
-		CommandLineDouble(params.m_dDeltaT, "dt", 200.0);
-		CommandLineDouble(params.m_dEndTime, "endtime", 200.0);//86400.0 * 5.0);
-		CommandLineDouble(dOutputDeltaT, "outputtime", 86400.0);
-		CommandLineStringD(strHorizontalDynamics, "method", "SE", "(SE | DG)");
-		CommandLineBool(fNoHyperviscosity, "nohypervis");
 
 		ParseCommandLine(argc, argv);
-	EndCommandLine(argv)
+	EndTempestCommandLine(argv)
 
-	AnnounceBanner("INITIALIZATION");
+	// Setup the Model
+	AnnounceBanner("MODEL SETUP");
 
-	// Create a new test case object
-	AnnounceStartBlock("Creating test case");
-	
-	AnnounceEndBlock("Done");
-
-	// Construct a model
-	AnnounceStartBlock("Creating model");
 	Model model(EquationSet::ShallowWaterEquations);
-	AnnounceEndBlock("Done");
 
-	// Generate a new cubed-sphere GLL grid
-	AnnounceStartBlock("Creating grid");
-	GridCSGLL grid(
-		model,
-		nResolution,
-		4,
-		nOrder,
-		1,
-		1);
-
-	AnnounceEndBlock("Done");
-
-	// Set the parameters for the model
-	AnnounceStartBlock("Initializing parameters");
-	model.SetParameters(&params);
-	AnnounceEndBlock("Done");
-
-	// Set the timestep scheme
-	TimestepSchemeStrang timestep(model);
-	AnnounceStartBlock("Initializing timestep scheme");
-	model.SetTimestepScheme(&timestep);
-	AnnounceEndBlock("Done");
-
-	// Set the horizontal dynamics
-	HorizontalDynamicsFEM::Type eHorizontalDynamicsType;
-	STLStringHelper::ToLower(strHorizontalDynamics);
-	if (strHorizontalDynamics == "se") {
-		eHorizontalDynamicsType = HorizontalDynamicsFEM::SpectralElement;
-	} else if (strHorizontalDynamics == "dg") {
-		eHorizontalDynamicsType = HorizontalDynamicsFEM::DiscontinuousGalerkin;
-	} else {
-		_EXCEPTIONT("Invalid method: Expected \"SE\" or \"DG\"");
-	}
-
-	HorizontalDynamicsFEM hdyn(
-		model, nOrder, eHorizontalDynamicsType, fNoHyperviscosity);
-	AnnounceStartBlock("Initializing horizontal dynamics");
-	model.SetHorizontalDynamics(&hdyn);
-	AnnounceEndBlock("Done");
-
-	// Set the vertical dynamics
-	VerticalDynamicsStub vdyn(model);
-	AnnounceStartBlock("Initializing vertical dynamics");
-	model.SetVerticalDynamics(&vdyn);
-	AnnounceEndBlock("Done");
-
-	// Set the grid for the model
-	AnnounceStartBlock("Initializing grid");
-	model.SetGrid(&grid);
-	AnnounceEndBlock("Done");
-
-	// Set the reference output manager for the model
-	AnnounceStartBlock("Creating reference output manager");
-	OutputManagerReference outmanRef(
-		grid,
-		dOutputDeltaT,
-		strOutputDir,
-		strOutputPrefix,
-		nOutputsPerFile,
-		720, 360);
-	outmanRef.OutputVorticity();
-	outmanRef.OutputDivergence();
-	model.AttachOutputManager(&outmanRef);
-	AnnounceEndBlock("Done");
-
-	// Set the composite output manager for the model
-	AnnounceStartBlock("Creating composite output manager");
-	OutputManagerComposite outmanComp(
-		grid,
-		dOutputDeltaT * static_cast<double>(nOutputsPerFile),
-		strOutputDir,
-		strOutputPrefix);
-	model.AttachOutputManager(&outmanComp);
-	AnnounceEndBlock("Done");
-
-	// Set the checksum output manager for the model
-	AnnounceStartBlock("Creating checksum output manager");
-	OutputManagerChecksum outmanChecksum(grid, dOutputDeltaT);
-	model.AttachOutputManager(&outmanChecksum);
-	AnnounceEndBlock("Done");
+	TempestSetupCubedSphereModel(model);
 
 	// Set the test case for the model
-	BarotropicInstabilityTestCase test(dAlpha);
 	AnnounceStartBlock("Initializing test case");
-	model.SetTestCase(&test);
+	model.SetTestCase(
+		new ShallowWaterEddyTest(dAlpha));
 	AnnounceEndBlock("Done");
 
 	// Begin execution
 	AnnounceBanner("SIMULATION");
 	model.Go();
-
-	// Execution complete
-	//AnnounceBanner("Execution completed successfully");
 
 	// Compute error norms
 	AnnounceBanner("RESULTS");
@@ -478,8 +338,8 @@ try {
 	std::cout << e.ToString() << std::endl;
 }
 
-	// Finalize MPI
-	MPI_Finalize();
+	// Deinitialize Tempest
+	TempestDeinitialize();
 }
 
 ///////////////////////////////////////////////////////////////////////////////

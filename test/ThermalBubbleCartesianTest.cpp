@@ -14,26 +14,7 @@
 ///		or implied warranty.
 ///	</remarks>
 
-#include "CommandLine.h"
-#include "Announce.h"
-#include "STLStringHelper.h"
-
-#include "Model.h"
-#include "TimestepSchemeStrang.h"
-#include "HorizontalDynamicsFEM.h"
-#include "VerticalDynamicsFEM.h"
-
-#include "PhysicalConstants.h"
-#include "TestCase.h"
-#include "OutputManagerComposite.h"
-#include "OutputManagerReference.h"
-#include "OutputManagerChecksum.h"
-#include "GridData4D.h"
-#include "EquationSet.h"
-
-#include "GridCartesianGLL.h"
-
-#include "mpi.h"
+#include "Tempest.h"
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -86,26 +67,18 @@ private:
 	///	</summary>
 	double m_dpiC;
 
-	///	<summary>
-	///		Flag indicating that the reference profile should be used.
-	///	</summary>
-	bool m_fNoReferenceState;
-
 public:
 	///	<summary>
 	///		Constructor. (with physical constants defined privately here)
 	///	</summary>
-	ThermalBubbleCartesianTest(
-		bool fNoReferenceState
-	) :
+	ThermalBubbleCartesianTest() :
 		m_dH0(10000.),
 		m_dThetaBar(300.0),
 		m_dThetaC(0.5),
 		m_drC(250.),
 		m_dxC(500.),
 		m_dzC(350.),
-		m_dpiC(3.14159265),
-		m_fNoReferenceState(fNoReferenceState)
+		m_dpiC(3.14159265)
 	{
 		// Set the dimensions of the box
 		m_dGDim[0] = 0.0;
@@ -135,7 +108,7 @@ public:
 	///		Flag indicating that a reference state is available.
 	///	</summary>
 	virtual bool HasReferenceState() const {
-		return !m_fNoReferenceState;
+		return true;
 	}
 
 	///	<summary>
@@ -255,204 +228,44 @@ public:
 
 int main(int argc, char** argv) {
 
-	// Initialize MPI
-	MPI_Init(&argc, &argv);
+	// Initialize Tempest
+	TempestInitialize(&argc, &argv);
 
 try {
-	// Output directory
-	std::string strOutputDir;
-
-	// Output file prefix
-	std::string strOutputPrefix;
-
-	// Number of outputs per reference file
-	int nOutputsPerFile;
-
-	// Resolution
-	int nResolution;
-
-	// Levels
-	int nLevels;
-
-	// Horizontal Order
-	int nHorizontalOrder;
-
-	// Vertical Order
-	int nVerticalOrder;
-
-	// Off-centering
-	double dOffCentering;
-
-	// Grid rotation angle
-	double dAlpha;
-
-	// Output time
-	double dOutputDeltaT;
-
-	// Numerical method
-	std::string strHorizontalDynamics;
-
-	// Use hyperdiffusion
-	bool fNoHyperviscosity;
-
-	// No reference state
-	bool fNoReferenceState;
-
-	// Vertical hyperdiffusion
-	int nVerticalHyperdiffOrder;
-
-	// Solve vertical using a fully explicit method
-	bool fFullyExplicitVertical;
-
-	// Store Exner pressure on edges (advanced)
-	bool fExnerPressureOnREdges;
-
-	// Store mass flux on levels (advanced)
-	bool fMassFluxOnLevels;
-
-	// Model parameters
-	ModelParameters params;
 
 	// Parse the command line
-	BeginCommandLine()
-		CommandLineString(strOutputDir, "output_dir",
-			"outThermalBubbleCartesianTest");
-		CommandLineString(strOutputPrefix, "output_prefix", "out");
-		CommandLineInt(nOutputsPerFile, "output_perfile", -1);
-		CommandLineString(params.m_strRestartFile, "restart_file", "");
-		CommandLineInt(nResolution, "resolution", 36);
-		CommandLineInt(nLevels, "levels", 72);
-		CommandLineInt(nHorizontalOrder, "order", 4);
-		CommandLineInt(nVerticalOrder, "vertorder", 2);
-		CommandLineDouble(dOffCentering, "offcentering", 0.0);
-		CommandLineDouble(params.m_dDeltaT, "dt", 0.01);
-		CommandLineDouble(params.m_dEndTime, "endtime", 700.0);
-		CommandLineDouble(dOutputDeltaT, "outputtime", 50.0);
-		CommandLineStringD(strHorizontalDynamics, "method", "SE", "(SE | DG)");
-		CommandLineBool(fNoHyperviscosity, "nohypervis");
-		CommandLineBool(fNoReferenceState, "norefstate");
-		CommandLineInt(nVerticalHyperdiffOrder, "verticaldifforder", 0);
-		CommandLineBool(fFullyExplicitVertical, "explicitvertical");
-		CommandLineBool(fExnerPressureOnREdges, "exneredges");
-		CommandLineBool(fMassFluxOnLevels, "massfluxlevels");
+	BeginTempestCommandLine("ThermalBubbleCartesianTest");
+		SetDefaultResolutionX(36);
+		SetDefaultResolutionY(1);
+		SetDefaultLevels(72);
+		SetDefaultOutputTime(50.0);
+		SetDefaultDeltaT(0.01);
+		SetDefaultEndTime(700.0);
+		SetDefaultHorizontalOrder(4);
+		SetDefaultVerticalOrder(1);
 
 		ParseCommandLine(argc, argv);
 	EndCommandLine(argv)
 
-	AnnounceBanner("INITIALIZATION");
+	// Create a new instance of the test
+	ThermalBubbleCartesianTest * test =
+		new ThermalBubbleCartesianTest();
 
-	// Construct a model
-	AnnounceStartBlock("Creating model");
+	// Setup the Model
+	AnnounceBanner("MODEL SETUP");
+
 	Model model(EquationSet::PrimitiveNonhydrostaticEquations);
-	AnnounceEndBlock("Done");
 
-	// Set the parameters for the model
-	AnnounceStartBlock("Initializing parameters");
-	model.SetParameters(&params);
-	AnnounceEndBlock("Done");
-
-	// Set the timestep scheme
-	TimestepSchemeStrang timestep(model, dOffCentering);
-	AnnounceStartBlock("Initializing timestep scheme");
-	model.SetTimestepScheme(&timestep);
-	AnnounceEndBlock("Done");
-
-	// Set the horizontal dynamics
-	HorizontalDynamicsFEM::Type eHorizontalDynamicsType;
-	STLStringHelper::ToLower(strHorizontalDynamics);
-	if (strHorizontalDynamics == "se") {
-		eHorizontalDynamicsType = HorizontalDynamicsFEM::SpectralElement;
-	} else if (strHorizontalDynamics == "dg") {
-		eHorizontalDynamicsType = HorizontalDynamicsFEM::DiscontinuousGalerkin;
-	} else {
-		_EXCEPTIONT("Invalid method: Expected \"SE\" or \"DG\"");
-	}
-
-	HorizontalDynamicsFEM hdyn(
-	   model, nHorizontalOrder, eHorizontalDynamicsType, fNoHyperviscosity);
-	AnnounceStartBlock("Initializing horizontal dynamics");
-	model.SetHorizontalDynamics(&hdyn);
-	AnnounceEndBlock("Done");
-
-	// Set the vertical dynamics
-	VerticalDynamicsFEM vdyn(
-		model,
-		nHorizontalOrder,
-		nVerticalOrder,
-		nVerticalHyperdiffOrder,
-		fFullyExplicitVertical,
-		true,
-		!fExnerPressureOnREdges,
-		fMassFluxOnLevels);
-
-	AnnounceStartBlock("Initializing vertical dynamics");
-	model.SetVerticalDynamics(&vdyn);
-	AnnounceEndBlock("Done");
-
-	// Generate a new cartesian GLL grid
-	// Initialize the test case here (to have grid dimensions available)
-	ThermalBubbleCartesianTest test(fNoReferenceState);
-
-	AnnounceStartBlock("Constructing grid");
-	GridCartesianGLL grid(
-		model,
-		nResolution,
-		1,
-		1,
-		nHorizontalOrder,
-		nVerticalOrder,
-		nLevels,
-		test.m_dGDim);
-
-	grid.SetReferenceLength(1100000.0);
-
-	model.SetGrid(&grid);
-	AnnounceEndBlock("Done");
-
-	// Set the reference output manager for the model
-	AnnounceStartBlock("Creating reference output manager");
-	OutputManagerReference outmanRef(
-		grid,
-		dOutputDeltaT,
-		strOutputDir,
-		strOutputPrefix,
-		nOutputsPerFile,
-		nResolution * (nHorizontalOrder - 1),
-		1,
-		false,  // Output variables in natural locations
-		true);  // Remove reference profile in output
-
-	model.AttachOutputManager(&outmanRef);
-	AnnounceEndBlock("Done");
-
-	// Set the composite output manager for the model
-	AnnounceStartBlock("Creating composite output manager");
-	OutputManagerComposite outmanComp(
-		grid,
-		dOutputDeltaT,
-		strOutputDir,
-		strOutputPrefix);
-	model.AttachOutputManager(&outmanComp);
-	AnnounceEndBlock("Done");
-
-	// Set the checksum output manager for the model
-	AnnounceStartBlock("Creating checksum output manager");
-	OutputManagerChecksum outmanChecksum(grid, dOutputDeltaT);
-	model.AttachOutputManager(&outmanChecksum);
-	AnnounceEndBlock("Done");
+	TempestSetupCartesianModel(model, test->m_dGDim);
 
 	// Set the test case for the model
-	ThermalBubbleCartesianTest ctest(fNoReferenceState);
 	AnnounceStartBlock("Initializing test case");
-	model.SetTestCase(&ctest);
+	model.SetTestCase(test);
 	AnnounceEndBlock("Done");
 
 	// Begin execution
 	AnnounceBanner("SIMULATION");
 	model.Go();
-
-	// Execution complete
-	//AnnounceBanner("Execution completed successfully");
 
 	// Compute error norms
 	AnnounceBanner("RESULTS");
@@ -463,8 +276,8 @@ try {
 	std::cout << e.ToString() << std::endl;
 }
 
-	// Finalize MPI
-	MPI_Finalize();
+	// Deinitialize Tempest
+	TempestDeinitialize();
 }
 
 ///////////////////////////////////////////////////////////////////////////////

@@ -37,21 +37,11 @@ class HorizontalDynamicsFEM : public HorizontalDynamics {
 
 public:
 	///	<summary>
-	///		Type of HorizontalDynamics.
-	///	</summary>
-	enum Type {
-		SpectralElement,
-		DiscontinuousGalerkin
-	};
-
-public:
-	///	<summary>
 	///		Constructor.
 	///	</summary>
 	HorizontalDynamicsFEM(
 		Model & model,
 		int nHorizontalOrder,
-		Type eHorizontalDynamicsType = SpectralElement,
 		bool fNoHyperdiffusion = false
 	);
 
@@ -68,30 +58,12 @@ public:
 		return 1;
 	}
 
-	///	<summary>
-	///		Get the HorizontalDynamicsType.
-	///	</summary>
-	Type GetType() const {
-		return m_eHorizontalDynamicsType;
-	}
-
 public:
 	///	<summary>
 	///		Perform one Forward Euler step for the interior terms of the
 	///		shallow water equations.
 	///	</summary>
 	void StepShallowWater(
-		int iDataInitial,
-		int iDataUpdate,
-		const Time & time,
-		double dDeltaT
-	);
-
-	///	<summary>
-	///		Perform one Forward Euler step for the element fluxes of the
-	///		shallow water equations.
-	///	</summary>
-	void ElementFluxesShallowWater(
 		int iDataInitial,
 		int iDataUpdate,
 		const Time & time,
@@ -145,44 +117,6 @@ protected:
 	);
 
 	///	<summary>
-	///		Initialize the application of hyperdiffusion to the boundary.
-	///	</summary>
-	void InitializeApplyHyperdiffusionToBoundary(
-		int iDataInitial
-	);
-
-	///	<summary>
-	///		Apply the scalar Laplacian operator across element boundaries.
-	///	</summary>
-	void ApplyScalarHyperdiffusionToBoundary(
-		int iDataState,
-		int iDataUpdate,
-		double dDeltaT,
-		double dNu,
-		bool fScaleNuLocally
-	);
-
-	///	<summary>
-	///		Apply the vector Laplacian operator across element boundaries.
-	///	</summary>
-	void ApplyVectorHyperdiffusionToBoundary(
-		int iDataState,
-		int iDataUpdate,
-		double dDeltaT,
-		double dNuDiv,
-		double dNuVort,
-		bool fScaleNuLocally
-	);
-
-	///	<summary>
-	///		Finalize the application of hyperdiffusion to the boundary.
-	///	</summary>
-	void FinalizeApplyHyperdiffusionToBoundary(
-		int iDataState,
-		int iDataUpdate
-	);
-
-	///	<summary>
 	///		Apply Rayleigh damping.
 	///	</summary>
 	void ApplyRayleighFriction(
@@ -202,12 +136,7 @@ public:
 		double dDeltaT
 	);
 
-private:
-	///	<summary>
-	///		Type of dynamics to use.
-	///	</summary>
-	Type m_eHorizontalDynamicsType;
-
+protected:
 	///	<summary>
 	///		Spatial order of accuracy.
 	///	</summary>
@@ -263,7 +192,7 @@ private:
 	///	</summary>
 	DataVector<double> m_dColumnDbPressureREdge;
 
-private:
+protected:
 	///	<summary>
 	///		Flag indicating whether or not hyperdiffusion should be used.
 	///	</summary>
@@ -284,7 +213,7 @@ private:
 	///	</summary>
 	DataMatrix<double> m_dJGradientB;
 
-private:
+protected:
 	///	<summary>
 	///		Scalar hyperviscosity coefficient (at 1 degree resolution).
 	///	</summary>

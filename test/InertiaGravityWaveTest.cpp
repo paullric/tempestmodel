@@ -14,31 +14,7 @@
 ///		or implied warranty.
 ///	</remarks>
 
-#include "Defines.h"
-#include "CommandLine.h"
-#include "Announce.h"
-#include "STLStringHelper.h"
-
-#include "Model.h"
-#include "TimestepSchemeStrang.h"
-#include "HorizontalDynamicsFEM.h"
-#include "VerticalDynamicsFEM.h"
-
-#include "PhysicalConstants.h"
-#include "TestCase.h"
-#include "OutputManagerComposite.h"
-#include "OutputManagerReference.h"
-#include "OutputManagerChecksum.h"
-#include "GridData4D.h"
-#include "EquationSet.h"
-
-#include "GridCSGLL.h"
-
-#ifdef USE_PETSC
-#include <petscsnes.h>
-#else
-#include "mpi.h"
-#endif
+#include "Tempest.h"
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -219,183 +195,44 @@ public:
 
 int main(int argc, char** argv) {
 
-#ifdef USE_PETSC
-	// Initialize PetSc
-	PetscInitialize(&argc,&argv, NULL, NULL);
-#else
-	// Initialize MPI
-	MPI_Init(&argc, &argv);
-#endif
+	// Initialize Tempest
+	TempestInitialize(&argc, &argv);
 
 try {
-	// Output directory
-	std::string strOutputDir;
-
-	// Output file prefix
-	std::string strOutputPrefix;
-
-	// Number of outputs per reference file
-	int nOutputsPerFile;
-
-	// Resolution
-	int nResolution;
-
-	// Vertical resolution
-	int nLevels;
-
-	// Order
-	int nHorizontalOrder;
-
-	// Vertical Order
-	int nVerticalOrder;
-
-	// Use reference state flag
-	bool fNoReferenceState;
-
-	// Solve vertical using a fully explicit method
-	bool fFullyExplicitVertical;
-
 	// Earth radius scaling
 	double dEarthRadiusScaling;
 
-	// Output time
-	double dOutputDeltaT;
-
-	// Numerical method
-	std::string strHorizontalDynamics;
-
-	// Use hyperdiffusion
-	bool fNoHyperviscosity;
-
-	// Model parameters
-	ModelParameters params;
-
 	// Parse the command line
-	BeginCommandLine()
-		CommandLineString(strOutputDir, "output_dir",
-			"outInertiaGravityWaveTest");
-		CommandLineString(strOutputPrefix, "output_prefix", "out");
-		CommandLineInt(nOutputsPerFile, "output_perfile", -1);
-		CommandLineInt(nResolution, "resolution", 20);
-		CommandLineInt(nLevels, "levels", 10);
-		CommandLineInt(nHorizontalOrder, "order", 4);
-		CommandLineInt(nVerticalOrder, "vertorder", 1);
-		CommandLineBool(fNoReferenceState, "norefstate");
+	BeginTempestCommandLine("BaroclinicWaveJW");
+		SetDefaultResolution(20);
+		SetDefaultLevels(10);
+		SetDefaultOutputTime(200.0);
+		SetDefaultDeltaT(200.0);
+		SetDefaultEndTime(200.0);
+		SetDefaultHorizontalOrder(4);
+		SetDefaultVerticalOrder(1);
+
 		CommandLineDouble(dEarthRadiusScaling, "radiusscale", 1.0);
-		CommandLineDouble(params.m_dDeltaT, "dt", 200.0);
-		CommandLineDouble(params.m_dEndTime, "endtime", 200.0);
-		CommandLineDouble(dOutputDeltaT, "outputtime", 21600.0);
-		CommandLineStringD(strHorizontalDynamics, "method", "SE", "(SE | DG)");
-		CommandLineBool(fNoHyperviscosity, "nohypervis");
-		CommandLineBool(fFullyExplicitVertical, "explicitvertical");
 
 		ParseCommandLine(argc, argv);
-	EndCommandLine(argv)
+	EndTempestCommandLine(argv)
 
-	AnnounceBanner("INITIALIZATION");
+	// Setup the Model
+	AnnounceBanner("MODEL SETUP");
 
-	// Construct a model
-	AnnounceStartBlock("Creating model");
 	Model model(EquationSet::PrimitiveNonhydrostaticEquations);
-	AnnounceEndBlock("Done");
 
-	// Set the parameters for the model
-	AnnounceStartBlock("Initializing parameters");
-	model.SetParameters(&params);
-	AnnounceEndBlock("Done");
-
-	// Set the timestep scheme
-	TimestepSchemeStrang timestep(model);
-	AnnounceStartBlock("Initializing timestep scheme");
-	model.SetTimestepScheme(&timestep);
-	AnnounceEndBlock("Done");
-
-	// Set the horizontal dynamics
-	HorizontalDynamicsFEM::Type eHorizontalDynamicsType;
-	STLStringHelper::ToLower(strHorizontalDynamics);
-	if (strHorizontalDynamics == "se") {
-		eHorizontalDynamicsType = HorizontalDynamicsFEM::SpectralElement;
-	} else if (strHorizontalDynamics == "dg") {
-		eHorizontalDynamicsType = HorizontalDynamicsFEM::DiscontinuousGalerkin;
-	} else {
-		_EXCEPTIONT("Invalid method: Expected \"SE\" or \"DG\"");
-	}
-
-	AnnounceStartBlock("Initializing horizontal dynamics");
-	HorizontalDynamicsFEM hdyn(
-		model,
-		nHorizontalOrder,
-		eHorizontalDynamicsType,
-		fNoHyperviscosity);
-
-	model.SetHorizontalDynamics(&hdyn);
-	AnnounceEndBlock("Done");
-
-	// Set the vertical dynamics
-	VerticalDynamicsFEM vdyn(
-		model,
-		nHorizontalOrder,
-		nVerticalOrder,
-		0,
-		fFullyExplicitVertical,
-		!fNoReferenceState);
-
-	AnnounceStartBlock("Initializing vertical dynamics");
-	model.SetVerticalDynamics(&vdyn);
-	AnnounceEndBlock("Done");
-
-	// Construct the cubed-sphere grid for the model
-	AnnounceStartBlock("Constructing grid");
-	GridCSGLL grid(
-		model,
-		nResolution,
-		4,
-		nHorizontalOrder,
-		nVerticalOrder,
-		nLevels);
-
-	grid.SetReferenceLength(0.5 * M_PI / 30.0 * dEarthRadiusScaling);
-
-	model.SetGrid(&grid);
-	AnnounceEndBlock("Done");
-
-	// Set the reference output manager for the model
-	AnnounceStartBlock("Creating reference output manager");
-	OutputManagerReference outmanRef(
-		grid,
-		dOutputDeltaT,
-		strOutputDir,
-		strOutputPrefix,
-		nOutputsPerFile,
-		360, 180,
-		false,   // Output variables in natural locations
-		true);   // Remove reference profile in output
-
-	outmanRef.OutputVorticity();
-	outmanRef.OutputDivergence();
-	outmanRef.OutputTemperature();
-	model.AttachOutputManager(&outmanRef);
-	AnnounceEndBlock("Done");
-
-	// Set the checksum output manager for the model
-	AnnounceStartBlock("Creating checksum output manager");
-	OutputManagerChecksum outmanChecksum(grid, dOutputDeltaT);
-	model.AttachOutputManager(&outmanChecksum);
-	AnnounceEndBlock("Done");
+	TempestSetupCubedSphereModel(model);
 
 	// Set the test case for the model
-	InertiaGravityWaveTest test(dEarthRadiusScaling);
-
 	AnnounceStartBlock("Initializing test case");
-	model.SetTestCase(&test);
+	model.SetTestCase(
+		new InertiaGravityWaveTest(dEarthRadiusScaling));
 	AnnounceEndBlock("Done");
 
 	// Begin execution
 	AnnounceBanner("SIMULATION");
 	model.Go();
-
-	// Execution complete
-	//AnnounceBanner("Execution completed successfully");
 
 	// Compute error norms
 	AnnounceBanner("RESULTS");
@@ -406,13 +243,8 @@ try {
 	std::cout << e.ToString() << std::endl;
 }
 
-#ifdef USE_PETSC
-	// Finalize PetSc
-	PetscFinalize();
-#else
-	// Finalize MPI
-	MPI_Finalize();
-#endif
+	// Deinitialize Tempest
+	TempestDeinitialize();
 }
 
 ///////////////////////////////////////////////////////////////////////////////

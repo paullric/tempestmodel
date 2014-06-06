@@ -86,10 +86,12 @@ void TimestepSchemeStrang::Step(
 	Grid * pGrid = m_model.GetGrid();
 
 	// Get a copy of the HorizontalDynamics
-	HorizontalDynamics * pHorizontalDynamics = m_model.GetHorizontalDynamics();
+	HorizontalDynamics * pHorizontalDynamics =
+		m_model.GetHorizontalDynamics();
 
 	// Get a copy of the VerticalDynamics
-	VerticalDynamics * pVerticalDynamics = m_model.GetVerticalDynamics();
+	VerticalDynamics * pVerticalDynamics =
+		m_model.GetVerticalDynamics();
 
 	// Half a time step
 	double dHalfDeltaT = 0.5 * dDeltaT;

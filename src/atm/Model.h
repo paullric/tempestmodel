@@ -21,15 +21,12 @@
 #include "EquationSet.h"
 #include "PhysicalConstants.h"
 #include "GridStaggering.h"
+#include "Grid.h"
+#include "TestCase.h"
 #include "TimestepScheme.h"
 #include "HorizontalDynamics.h"
 #include "VerticalDynamics.h"
-
-///////////////////////////////////////////////////////////////////////////////
-
-class Grid;
-class TestCase;
-class OutputManager;
+#include "OutputManager.h"
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -85,58 +82,55 @@ class Model {
 
 public:
 	///	<summary>
-	///		Vector of pointers to output managers.
-	///	</summary>
-	typedef std::vector<OutputManager*> OutputManagerVector;
-
-public:
-	///	<summary>
 	///		Constructor.
 	///	</summary>
-	Model(
-		EquationSet::Type eEquationSetType,
-		int nTracers = 0
-	);
+	Model(EquationSet::Type eEquationSetType);
 
 public:
 	///	<summary>
 	///		Virtual destructor.
 	///	</summary>
-	virtual ~Model() { }
+	virtual ~Model();
 
 public:
 	///	<summary>
 	///		Set the model parameters.
 	///	</summary>
-	void SetParameters(ModelParameters * pParam);
+	void SetParameters(const ModelParameters & param);
 
 	///	<summary>
-	///		Set the grid.
+	///		Set the Grid from a pointer.  Model assumes ownership of the
+	///		pointer once it is assigned.
 	///	</summary>
 	void SetGrid(Grid * pGrid);
 
 	///	<summary>
-	///		Set the timestep scheme.
+	///		Set the TimestepScheme from a pointer.  Model assumes ownership
+	///		of the pointer once it is assigned.
 	///	</summary>
 	void SetTimestepScheme(TimestepScheme * pTimestepScheme);
 
 	///	<summary>
-	///		Set the horizontal dynamics.
+	///		Set the HorizontalDynamics from a pointer.  Model assumes
+	///		ownership of the pointer once it is assigned.
 	///	</summary>
 	void SetHorizontalDynamics(HorizontalDynamics * pHorizontalDynamics);
 
 	///	<summary>
-	///		Set the vertical dynamics.
+	///		Set the VerticalDynamics from a pointer.  Model assumes
+	///		ownership of the pointer once it is assigned.
 	///	</summary>
 	void SetVerticalDynamics(VerticalDynamics * pVerticalDynamics);
 
 	///	<summary>
-	///		Set the test case.
+	///		Set the TestCase from a pointer.  Model assumes ownership
+	///		of the pointer once it is assigned.
 	///	</summary>
 	void SetTestCase(TestCase * pTestCase);
 
 	///	<summary>
-	///		Attach an output manager to this model.
+	///		Attach an OutputManager to this model.  Model assumes ownership
+	///		of the pointer once it is assigned.
 	///	</summary>
 	void AttachOutputManager(OutputManager * pOutMan);
 
@@ -292,34 +286,26 @@ public:
 	///		Get the start time of the simulation.
 	///	</summary>
 	const Time & GetStartTime() const {
-		return m_pParam->m_timeStart;
+		return m_param.m_timeStart;
 	}
 
 	///	<summary>
 	///		Set the start time of the simulation.
 	///	</summary>
 	void SetStartTime(const Time & timeStart) {
-		if (m_pParam == NULL) {
-			_EXCEPTIONT("No ModelParameters specified.");
-		}
-		m_pParam->m_timeStart = timeStart;
+		m_param.m_timeStart = timeStart;
 	}
 
 protected:
 	///	<summary>
-	///		Pointer to model parameters.
+	///		Model parameters.
 	///	</summary>
-	ModelParameters * m_pParam;
+	ModelParameters m_param;
 
 	///	<summary>
 	///		Pointer to grid
 	///	</summary>
 	Grid * m_pGrid;
-
-	///	<summary>
-	///		Pointer to test case.
-	///	</summary>
-	TestCase * m_pTestCase;
 
 	///	<summary>
 	///		Pointer to timestepping scheme.
@@ -340,6 +326,11 @@ protected:
 	///		Vector of output managers.
 	///	</summary>
 	OutputManagerVector m_vecOutMan;
+
+	///	<summary>
+	///		Pointer to test case.
+	///	</summary>
+	TestCase * m_pTestCase;
 
 	///	<summary>
 	///		Physical constants for model.

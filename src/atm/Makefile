@@ -20,6 +20,7 @@ FILES= CubedSphereTrans.cpp \
        TimestepSchemeStrang.cpp \
        TimestepSchemeARK4.cpp \
        HorizontalDynamicsFEM.cpp \
+       HorizontalDynamicsDG.cpp \
        VerticalDynamicsFEM.cpp \
        JacobianFreeNewtonKrylov.cpp \
        FluxReconstructionFunction.cpp \

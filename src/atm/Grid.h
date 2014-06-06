@@ -47,6 +47,27 @@ friend class Model;
 
 public:
 	///	<summary>
+	///		Type of Grid described by this equation set.
+	///	</summary>
+	typedef int Type;
+
+	///	<summary>
+	///		Single block Cartesian grid.
+	///	</summary>
+	static const Type Cartesian = 0;
+
+	///	<summary>
+	///		Multiblock Cartesian grid.
+	///	</summary>
+	static const Type MultiblockCartesian = 1;
+
+	///	<summary>
+	///		Cubed sphere grid.
+	///	</summary>
+	static const Type CubedSphere = 2;
+
+public:
+	///	<summary>
 	///		Constructor.
 	///	</summary>
 	Grid(

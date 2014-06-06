@@ -55,17 +55,11 @@ public:
 	///		Constructor.
 	///	</summary>
 	EquationSet(
-		Type eEquationSetType,
-		int nTracers = 0
+		Type eEquationSetType
 	) :
 		m_eEquationSetType(eEquationSetType),
-		m_nTracers(nTracers)
+		m_nTracers(0)
 	{
-		// Check tracer count
-		if (nTracers < 0) {
-			_EXCEPTIONT("Negative tracer values not allowed");
-		}
-
 		// Advection equations
 		if (eEquationSetType == AdvectionEquations) {
 			m_nDimensionality = 3;
@@ -108,6 +102,14 @@ public:
 		} else {
 			_EXCEPTIONT("Invalid equation set.");
 		}
+	}
+/*
+	///	<summary>
+	///		Set the Tracer count.
+	///	</summary>
+	void SetTracerCount(int nTracers) {
+
+		m_nTracers = nTracers;
 
 		// Initialize tracers
 		for (int c = 0; c < nTracers; c++) {
@@ -121,6 +123,7 @@ public:
 			m_strTracerFullNames.push_back(szTracerFullName);
 		}
 	}
+*/
 
 public:
 	///	<summary>

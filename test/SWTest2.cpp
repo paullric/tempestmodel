@@ -14,26 +14,7 @@
 ///		or implied warranty.
 ///	</remarks>
 
-#include "CommandLine.h"
-#include "Announce.h"
-#include "STLStringHelper.h"
-
-#include "Model.h"
-#include "TimestepSchemeStrang.h"
-#include "HorizontalDynamicsFEM.h"
-#include "VerticalDynamicsStub.h"
-
-#include "PhysicalConstants.h"
-#include "TestCase.h"
-#include "OutputManagerComposite.h"
-#include "OutputManagerReference.h"
-#include "OutputManagerChecksum.h"
-#include "GridData4D.h"
-#include "EquationSet.h"
-
-#include "GridCSGLL.h"
-
-#include "mpi.h"
+#include "Tempest.h"
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -72,13 +53,12 @@ public:
 	ShallowWaterTestCase2(
 		double dH0,
 		double dU0,
-		double dAlpha,
-		bool fTracerOn
+		double dAlpha
 	) :
 		m_dH0(dH0),
 		m_dU0(dU0),
 		m_dAlpha(dAlpha * M_PI / 180.0),
-		m_fTracerOn(fTracerOn)
+		m_fTracerOn(false)
 	{ }
 
 public:
@@ -184,28 +164,10 @@ public:
 
 int main(int argc, char** argv) {
 
-	// Initialize MPI
-	MPI_Init(&argc, &argv);
+	// Initialize Tempest
+	TempestInitialize(&argc, &argv);
 
 try {
-	// Output directory
-	std::string strOutputDir;
-
-	// Output file prefix
-	std::string strOutputPrefix;
-
-	// Number of outputs per reference file
-	int nOutputsPerFile;
-
-	// Restart file name
-	std::string strRestartFile;
-
-	// Resolution
-	int nResolution;
-
-	// Order
-	int nOrder;
-
 	// Background velocity
 	double dU0;
 
@@ -215,139 +177,34 @@ try {
 	// Grid rotation angle
 	double dAlpha;
 
-	// Include tracer field
-	bool fTracersOn;
-
-	// Output time
-	double dOutputDeltaT;
-
-	// End time of the simulation (in seconds)
-	double dEndTime;
-
-	// Numerical method
-	std::string strHorizontalDynamics;
-
-	// Hyperviscosity
-	bool fNoHyperviscosity;
-
-	// Model parameters
-	ModelParameters params;
-
 	// Parse the command line
-	BeginCommandLine()
-		CommandLineString(strOutputDir, "output_dir", "outSWTest2");
-		CommandLineString(strOutputPrefix, "output_prefix", "out");
-		CommandLineInt(nOutputsPerFile, "output_perfile", -1);
-		CommandLineString(params.m_strRestartFile, "restart_file", "");
-		CommandLineInt(nResolution, "resolution", 40);
-		CommandLineInt(nOrder, "order", 4);
+	BeginTempestCommandLine("SWTest2")
+		SetDefaultResolution(40);
+		SetDefaultLevels(1);
+		SetDefaultOutputTime(200.0);
+		SetDefaultDeltaT(200.0);
+		SetDefaultEndTime(200.0);
+		SetDefaultHorizontalOrder(4);
+		SetDefaultVerticalOrder(1);
+
 		CommandLineDouble(dU0, "u0", 38.61068277);
 		CommandLineDouble(dH0, "h0", 2998.104995);
 		CommandLineDouble(dAlpha, "alpha", 0.0);
-		CommandLineBool(fTracersOn, "with_tracer");
-		CommandLineDouble(params.m_dDeltaT, "dt", 200.0);
-		CommandLineDouble(params.m_dEndTime, "endtime", 200.0);//86400.0 * 5.0);
-		CommandLineDouble(dOutputDeltaT, "outputtime", 86400.0);
-		CommandLineStringD(strHorizontalDynamics, "method", "SE", "(SE | DG)");
-		CommandLineBool(fNoHyperviscosity, "nohypervis");
 
 		ParseCommandLine(argc, argv);
-	EndCommandLine(argv)
+	EndTempestCommandLine(argv)
 
-	AnnounceBanner("INITIALIZATION");
+	// Setup the Model
+	AnnounceBanner("MODEL SETUP");
 
-	// Create a new test case object
-	AnnounceStartBlock("Creating test case");
-	ShallowWaterTestCase2 test(dH0, dU0, dAlpha, fTracersOn);
-	AnnounceEndBlock("Done");
+	Model model(EquationSet::ShallowWaterEquations);
 
-	// Construct a model
-	AnnounceStartBlock("Creating model");
-	Model model(
-		EquationSet::ShallowWaterEquations,
-		test.GetTracerCount());
-	AnnounceEndBlock("Done");
-
-	// Set the parameters for the model
-	AnnounceStartBlock("Initializing parameters");
-	model.SetParameters(&params);
-	AnnounceEndBlock("Done");
-
-	// Set the timestep scheme
-	TimestepSchemeStrang timestep(model);
-	AnnounceStartBlock("Initializing timestep scheme");
-	model.SetTimestepScheme(&timestep);
-	AnnounceEndBlock("Done");
-
-	// Set the horizontal dynamics
-	HorizontalDynamicsFEM::Type eHorizontalDynamicsType;
-	STLStringHelper::ToLower(strHorizontalDynamics);
-	if (strHorizontalDynamics == "se") {
-		eHorizontalDynamicsType = HorizontalDynamicsFEM::SpectralElement;
-	} else if (strHorizontalDynamics == "dg") {
-		eHorizontalDynamicsType = HorizontalDynamicsFEM::DiscontinuousGalerkin;
-	} else {
-		_EXCEPTIONT("Invalid method: Expected \"SE\" or \"DG\"");
-	}
-
-	HorizontalDynamicsFEM hdyn(
-		model, nOrder, eHorizontalDynamicsType, fNoHyperviscosity);
-	AnnounceStartBlock("Initializing horizontal dynamics");
-	model.SetHorizontalDynamics(&hdyn);
-	AnnounceEndBlock("Done");
-
-	// Set the vertical dynamics
-	VerticalDynamicsStub vdyn(model);
-	AnnounceStartBlock("Initializing vertical dynamics");
-	model.SetVerticalDynamics(&vdyn);
-	AnnounceEndBlock("Done");
-
-	// Construct the cubed-sphere grid for the model
-	AnnounceStartBlock("Constructing grid");
-	GridCSGLL grid(
-		model,
-		nResolution,
-		4,
-		nOrder,
-		1,
-		1);
-
-	model.SetGrid(&grid);
-	AnnounceEndBlock("Done");
-
-	// Set the reference output manager for the model
-	AnnounceStartBlock("Creating reference output manager");
-	OutputManagerReference outmanRef(
-		grid,
-		dOutputDeltaT,
-		strOutputDir,
-		strOutputPrefix,
-		nOutputsPerFile,
-		720, 360);
-	outmanRef.OutputDivergence();
-	outmanRef.OutputVorticity();
-	model.AttachOutputManager(&outmanRef);
-	AnnounceEndBlock("Done");
-
-	// Set the composite output manager for the model
-	AnnounceStartBlock("Creating composite output manager");
-	OutputManagerComposite outmanComp(
-		grid,
-		dOutputDeltaT,
-		strOutputDir,
-		strOutputPrefix);
-	model.AttachOutputManager(&outmanComp);
-	AnnounceEndBlock("Done");
-
-	// Set the checksum output manager for the model
-	AnnounceStartBlock("Creating checksum output manager");
-	OutputManagerChecksum outmanChecksum(grid, dOutputDeltaT);
-	model.AttachOutputManager(&outmanChecksum);
-	AnnounceEndBlock("Done");
+	TempestSetupCubedSphereModel(model);
 
 	// Set the test case for the model
 	AnnounceStartBlock("Initializing test case");
-	model.SetTestCase(&test);
+	model.SetTestCase(
+		new ShallowWaterTestCase2(dH0, dU0, dAlpha));
 	AnnounceEndBlock("Done");
 
 	// Begin execution
@@ -363,8 +220,8 @@ try {
 	std::cout << e.ToString() << std::endl;
 }
 
-	// Finalize MPI
-	MPI_Finalize();
+	// Deinitialize
+	TempestDeinitialize();
 }
 
 ///////////////////////////////////////////////////////////////////////////////

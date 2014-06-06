@@ -14,26 +14,7 @@
 ///		or implied warranty.
 ///	</remarks>
 
-#include "CommandLine.h"
-#include "Announce.h"
-#include "STLStringHelper.h"
-
-#include "Model.h"
-#include "TimestepSchemeStrang.h"
-#include "HorizontalDynamicsFEM.h"
-#include "VerticalDynamicsFEM.h"
-
-#include "PhysicalConstants.h"
-#include "TestCase.h"
-#include "OutputManagerComposite.h"
-#include "OutputManagerReference.h"
-#include "OutputManagerChecksum.h"
-#include "GridData4D.h"
-#include "EquationSet.h"
-
-#include "GridCSGLL.h"
-
-#include "mpi.h"
+#include "Tempest.h"
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -131,7 +112,6 @@ public:
 	///	</summary>
 	BaroclinicWaveJWTest(
 		double dAlpha,
-		bool fTracerOn,
 		double dZtop,
 		PerturbationType ePerturbationType = PerturbationType_None
 	) :
@@ -147,7 +127,7 @@ public:
 		ParamPertR(0.1),
 
 		m_dAlpha(dAlpha),
-		m_fTracerOn(fTracerOn),
+		m_fTracerOn(false),
 		m_dZtop(dZtop),
 		m_ePerturbationType(ePerturbationType)
 	{ }
@@ -439,144 +419,49 @@ public:
 int main(int argc, char** argv) {
 
 	// Initialize MPI
-	MPI_Init(&argc, &argv);
+	TempestInitialize(&argc, &argv);
 
 try {
-	// Output directory
-	std::string strOutputDir;
-
-	// Output file prefix
-	std::string strOutputPrefix;
-
-	// Number of outputs per reference file
-	int nOutputsPerFile;
-
-	// Resolution
-	int nResolution;
-
-	// Number of vertical levels
-	int nLevels;
-
-	// Order
-	int nHorizontalOrder;
-
-	// Vertical order
-	int nVerticalOrder;
-
 	// Model height cap
 	double dZtop;
 
 	// Grid rotation angle
 	double dAlpha;
 
-	// Use reference state flag
-	bool fNoReferenceState;
+	// Tracers turned on
+	bool fTracersOn;
 
 	// Perturbation type
 	std::string strPerturbationType;
 
-	// Include tracer field
-	bool fTracersOn;
-
-	// Output time
-	double dOutputDeltaT;
-
-	// Numerical method
-	std::string strHorizontalDynamics;
-
-	// Use hyperdiffusion
-	bool fNoHyperviscosity;
-
-	// Model parameters
-	ModelParameters params;
-
 	// Parse the command line
-	BeginCommandLine()
-		CommandLineString(strOutputDir, "output_dir",
-			"outBaroclinicWaveJWTest");
-		CommandLineString(strOutputPrefix, "output_prefix", "out");
-		CommandLineInt(nOutputsPerFile, "output_perfile", 1);
-		CommandLineInt(nResolution, "resolution", 20);
-		CommandLineInt(nLevels, "levels", 10);
-		CommandLineInt(nHorizontalOrder, "order", 4);
-		CommandLineInt(nVerticalOrder, "vertorder", 1);
+	BeginTempestCommandLine("BaroclinicWaveJW");
+		SetDefaultResolution(20);
+		SetDefaultLevels(10);
+		SetDefaultOutputTime(200.0);
+		SetDefaultDeltaT(200.0);
+		SetDefaultEndTime(200.0);
+		SetDefaultHorizontalOrder(4);
+		SetDefaultVerticalOrder(1);
+
 		CommandLineDouble(dZtop, "ztop", 10000.0);
 		CommandLineDouble(dAlpha, "alpha", 0.0);
-		CommandLineBool(fNoReferenceState, "norefstate");
-		CommandLineBool(fTracersOn, "with_tracer");
 		CommandLineStringD(strPerturbationType, "pert",
 			"None", "(None | Exp)");
-		CommandLineDouble(params.m_dDeltaT, "dt", 200.0);
-		CommandLineDouble(params.m_dEndTime, "endtime", 200.0);
-		CommandLineDouble(dOutputDeltaT, "outputtime", 21600.0);
-		CommandLineStringD(strHorizontalDynamics, "method", "SE", "(SE | DG)");
-		CommandLineBool(fNoHyperviscosity, "nohypervis");
 
 		ParseCommandLine(argc, argv);
-	EndCommandLine(argv)
+	EndTempestCommandLine(argv)
 
-	AnnounceBanner("INITIALIZATION");
+	// Setup the Model
+	AnnounceBanner("MODEL SETUP");
 
-	// Construct a model
-	AnnounceStartBlock("Creating model");
 	Model model(EquationSet::PrimitiveNonhydrostaticEquations);
-	AnnounceEndBlock("Done");
 
-	// Set the parameters for the model
-	AnnounceStartBlock("Initializing parameters");
-	model.SetParameters(&params);
-	AnnounceEndBlock("Done");
-
-	// Set the timestep scheme
-	TimestepSchemeStrang timestep(model);
-	AnnounceStartBlock("Initializing timestep scheme");
-	model.SetTimestepScheme(&timestep);
-	AnnounceEndBlock("Done");
-
-	// Set the horizontal dynamics
-	HorizontalDynamicsFEM::Type eHorizontalDynamicsType;
-	STLStringHelper::ToLower(strHorizontalDynamics);
-	if (strHorizontalDynamics == "se") {
-		eHorizontalDynamicsType = HorizontalDynamicsFEM::SpectralElement;
-	} else if (strHorizontalDynamics == "dg") {
-		eHorizontalDynamicsType = HorizontalDynamicsFEM::DiscontinuousGalerkin;
-	} else {
-		_EXCEPTIONT("Invalid method: Expected \"SE\" or \"DG\"");
-	}
-
-	HorizontalDynamicsFEM hdyn(
-		model, nHorizontalOrder, eHorizontalDynamicsType, fNoHyperviscosity);
-	AnnounceStartBlock("Initializing horizontal dynamics");
-	model.SetHorizontalDynamics(&hdyn);
-	AnnounceEndBlock("Done");
-
-	// Set the vertical dynamics
-	VerticalDynamicsFEM vdyn(
-		model,
-		nHorizontalOrder,
-		nVerticalOrder,
-		0,
-		false, // Implicit vertical
-		!fNoReferenceState);
-
-	AnnounceStartBlock("Initializing vertical dynamics");
-	model.SetVerticalDynamics(&vdyn);
-	AnnounceEndBlock("Done");
-
-	// Construct the cubed-sphere grid for the model
-	AnnounceStartBlock("Constructing grid");
-	GridCSGLL grid(
-		model,
-		nResolution,
-		4,
-		nHorizontalOrder,
-		nVerticalOrder,
-		nLevels);
-
-	model.SetGrid(&grid);
-	AnnounceEndBlock("Done");
+	TempestSetupCubedSphereModel(model);
 
 	// Set the test case for the model
+	AnnounceStartBlock("Initializing test case");
+
 	BaroclinicWaveJWTest::PerturbationType ePerturbationType;
 	STLStringHelper::ToLower(strPerturbationType);
 	if (strPerturbationType == "none") {
@@ -588,49 +473,17 @@ try {
 			" Expected \"None\" or \"Exp\"");
 	}
 
-	BaroclinicWaveJWTest test(
-		dAlpha,
-		fTracersOn,
-		dZtop,
-		ePerturbationType);
+	model.SetTestCase(
+		new BaroclinicWaveJWTest(
+			dAlpha,
+			dZtop,
+			ePerturbationType));
 
-	AnnounceStartBlock("Initializing data");
-	model.SetTestCase(&test);
-	AnnounceEndBlock("Done");
-
-	// Set the reference output manager for the model
-	AnnounceStartBlock("Creating reference output manager");
-	OutputManagerReference outmanRef(
-		grid,
-		dOutputDeltaT,
-		strOutputDir,
-		strOutputPrefix,
-		nOutputsPerFile,
-		360, 180);
-	outmanRef.OutputVorticity();
-	outmanRef.OutputDivergence();
-	model.AttachOutputManager(&outmanRef);
-	AnnounceEndBlock("Done");
-/*
-	// Set the composite output manager for the model
-	AnnounceStartBlock("Creating composite output manager");
-	OutputManagerComposite outmanComp(
-		grid, dOutputDeltaT, strOutputDir, strOutputPrefix);
-	model.AttachOutputManager(&outmanComp);
-	AnnounceEndBlock("Done");
-*/
-	// Set the checksum output manager for the model
-	AnnounceStartBlock("Creating checksum output manager");
-	OutputManagerChecksum outmanChecksum(grid, dOutputDeltaT);
-	model.AttachOutputManager(&outmanChecksum);
 	AnnounceEndBlock("Done");
 
 	// Begin execution
 	AnnounceBanner("SIMULATION");
 	model.Go();
-
-	// Execution complete
-	//AnnounceBanner("Execution completed successfully");
 
 	// Compute error norms
 	AnnounceBanner("RESULTS");
@@ -641,8 +494,8 @@ try {
 	std::cout << e.ToString() << std::endl;
 }
 
-	// Finalize MPI
-	MPI_Finalize();
+	// Deinitialize
+	TempestDeinitialize();
 }
 
 ///////////////////////////////////////////////////////////////////////////////

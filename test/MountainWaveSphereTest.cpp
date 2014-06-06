@@ -14,25 +14,7 @@
 ///		or implied warranty.
 ///	</remarks>
 
-#include "Defines.h"
-#include "CommandLine.h"
-#include "Announce.h"
-#include "STLStringHelper.h"
-
-#include "Model.h"
-#include "TimestepSchemeStrang.h"
-#include "HorizontalDynamicsFEM.h"
-#include "VerticalDynamicsFEM.h"
-
-#include "PhysicalConstants.h"
-#include "TestCase.h"
-#include "OutputManagerComposite.h"
-#include "OutputManagerReference.h"
-#include "OutputManagerChecksum.h"
-#include "GridData4D.h"
-#include "EquationSet.h"
-
-#include "GridCSGLL.h"
+#include "Tempest.h"
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -239,62 +221,12 @@ public:
 
 int main(int argc, char** argv) {
 
-#ifdef USE_PETSC
-	// Initialize PetSc
-	PetscInitialize(&argc,&argv, NULL, NULL);
-#else
 	// Initialize MPI
-	MPI_Init(&argc, &argv);
-#endif
+	TempestInitialize(&argc, &argv);
 
 try {
-	// Output directory
-	std::string strOutputDir;
-
-	// Output file prefix
-	std::string strOutputPrefix;
-
-	// Number of outputs per reference file
-	int nOutputsPerFile;
-
-	// Resolution
-	int nResolution;
-
-	// Vertical resolution
-	int nLevels;
-
-	// Order
-	int nHorizontalOrder;
-
-	// Vertical Order
-	int nVerticalOrder;
-
-	// Model height cap
+	// Model cap
 	double dZtop;
-
-	// Include tracer field
-	bool fTracersOn;
-
-	// Deep atmosphere flag
-	bool fDeepAtmosphere;
-
-	// Use reference state flag
-	bool fNoReferenceState;
-
-	// Mountain type
-	std::string strMountainType;
-
-	// Output time
-	double dOutputDeltaT;
-
-	// Numerical method
-	std::string strHorizontalDynamics;
-
-	// Use hyperdiffusion
-	bool fNoHyperviscosity;
-
-	// Model parameters
-	ModelParameters params;
 
 	// Earth scaling parameter
 	double dEarthScaling;
@@ -308,124 +240,40 @@ try {
 	// No planetary rotation
 	bool fNoRotation;
 
+	// Mountain type
+	std::string strMountainType;
+
 	// Parse the command line
-	BeginCommandLine()
-		CommandLineString(strOutputDir, "output_dir",
-			"outMountainWaveSphereTest");
-		CommandLineString(strOutputPrefix, "output_prefix", "out");
-		CommandLineInt(nOutputsPerFile, "output_perfile", -1);
-		CommandLineString(params.m_strRestartFile, "restart_file", "");
-		CommandLineInt(nResolution, "resolution", 20);
-		CommandLineInt(nLevels, "levels", 10);
-		CommandLineInt(nHorizontalOrder, "order", 4);
-		CommandLineInt(nVerticalOrder, "vertorder", 1);
-		CommandLineDouble(dZtop, "ztop", 20000.0);
-		CommandLineBool(fNoReferenceState, "norefstate");
-		CommandLineBool(fTracersOn, "with_tracer");
-		CommandLineStringD(strMountainType, "mountaintype",
-			"None", "(None | Wave6)");
-		CommandLineDouble(params.m_dDeltaT, "dt", 200.0);
-		CommandLineDouble(params.m_dEndTime, "endtime", 200.0);
-		CommandLineDouble(dOutputDeltaT, "outputtime", 21600.0);
-		CommandLineStringD(strHorizontalDynamics, "method", "SE", "(SE | DG)");
-		CommandLineBool(fNoHyperviscosity, "nohypervis");
+	BeginTempestCommandLine("MountainWaveSphereTest");
+		SetDefaultResolution(20);
+		SetDefaultLevels(10);
+		SetDefaultOutputTime(200.0);
+		SetDefaultDeltaT(200.0);
+		SetDefaultEndTime(200.0);
+		SetDefaultHorizontalOrder(4);
+		SetDefaultVerticalOrder(1);
+
+		CommandLineDouble(dZtop, "ztop", 10000.0);
 		CommandLineDouble(dEarthScaling, "X", 1.0);
 		CommandLineDouble(dT0, "T0", 300.0);
 		CommandLineDouble(dU0, "U0", 20.0);
 		CommandLineBool(fNoRotation, "noomega");
+		CommandLineStringD(strMountainType, "mountaintype",
+			"None", "(None | Wave6)");
 
 		ParseCommandLine(argc, argv);
-	EndCommandLine(argv)
+	EndTempestCommandLine(argv)
 
-	AnnounceBanner("INITIALIZATION");
+	// Setup the Model
+	AnnounceBanner("MODEL SETUP");
 
-	// Construct a model
-	AnnounceStartBlock("Creating model");
 	Model model(EquationSet::PrimitiveNonhydrostaticEquations);
-	AnnounceEndBlock("Done");
 
-	// Set the parameters for the model
-	AnnounceStartBlock("Initializing parameters");
-	model.SetParameters(&params);
-	AnnounceEndBlock("Done");
-
-	// Set the timestep scheme
-	TimestepSchemeStrang timestep(model);
-	AnnounceStartBlock("Initializing timestep scheme");
-	model.SetTimestepScheme(&timestep);
-	AnnounceEndBlock("Done");
-
-	// Set the horizontal dynamics
-	HorizontalDynamicsFEM::Type eHorizontalDynamicsType;
-	STLStringHelper::ToLower(strHorizontalDynamics);
-	if (strHorizontalDynamics == "se") {
-		eHorizontalDynamicsType = HorizontalDynamicsFEM::SpectralElement;
-	} else if (strHorizontalDynamics == "dg") {
-		eHorizontalDynamicsType = HorizontalDynamicsFEM::DiscontinuousGalerkin;
-	} else {
-		_EXCEPTIONT("Invalid method: Expected \"SE\" or \"DG\"");
-	}
-
-	HorizontalDynamicsFEM hdyn(
-		model, nHorizontalOrder, eHorizontalDynamicsType, fNoHyperviscosity);
-	AnnounceStartBlock("Initializing horizontal dynamics");
-	model.SetHorizontalDynamics(&hdyn);
-	AnnounceEndBlock("Done");
-
-	// Set the vertical dynamics
-	VerticalDynamicsFEM vdyn(
-		model,
-		nHorizontalOrder,
-		nVerticalOrder,
-		0,
-		false, // Implicit vertical
-		!fNoReferenceState);
-
-	AnnounceStartBlock("Initializing vertical dynamics");
-	model.SetVerticalDynamics(&vdyn);
-	AnnounceEndBlock("Done");
-
-	// Construct the cubed-sphere grid for the model
-	AnnounceStartBlock("Constructing grid");
-	GridCSGLL grid(
-		model,
-		nResolution,
-		4,
-		nHorizontalOrder,
-		nVerticalOrder,
-		nLevels);
-
-	model.SetGrid(&grid);
-	AnnounceEndBlock("Done");
-
-	// Set the reference output manager for the model
-	AnnounceStartBlock("Creating reference output manager");
-	OutputManagerReference outmanRef(
-		grid,
-		dOutputDeltaT,
-		strOutputDir,
-		strOutputPrefix,
-		nOutputsPerFile,
-		360, 180);
-	outmanRef.OutputVorticity();
-	outmanRef.OutputDivergence();
-	model.AttachOutputManager(&outmanRef);
-	AnnounceEndBlock("Done");
-
-	// Set the composite output manager for the model
-	AnnounceStartBlock("Creating composite output manager");
-	OutputManagerComposite outmanComp(
-		grid, dOutputDeltaT, strOutputDir, strOutputPrefix);
-	model.AttachOutputManager(&outmanComp);
-	AnnounceEndBlock("Done");
-
-	// Set the checksum output manager for the model
-	AnnounceStartBlock("Creating checksum output manager");
-	OutputManagerChecksum outmanChecksum(grid, dOutputDeltaT);
-	model.AttachOutputManager(&outmanChecksum);
-	AnnounceEndBlock("Done");
+	TempestSetupCubedSphereModel(model);
 
 	// Set the test case for the model
+	AnnounceStartBlock("Initializing test case");
+
 	MountainWaveSphereTest::MountainType eMountainType;
 	STLStringHelper::ToLower(strMountainType);
 	if (strMountainType == "none") {
@@ -437,17 +285,15 @@ try {
 			" Expected \"None\" or \"Wave6\"");
 	}
 
-	MountainWaveSphereTest test(
-		dZtop,
-		dEarthScaling,
-		dT0,
-		dU0,
-		fNoRotation,
-		eMountainType
-	);
+	model.SetTestCase(
+		new MountainWaveSphereTest(
+			dZtop,
+			dEarthScaling,
+			dT0,
+			dU0,
+			fNoRotation,
+			eMountainType));
 
-	AnnounceStartBlock("Initializing test case");
-	model.SetTestCase(&test);
 	AnnounceEndBlock("Done");
 
 	// Begin execution
@@ -463,13 +309,8 @@ try {
 	std::cout << e.ToString() << std::endl;
 }
 
-#ifdef USE_PETSC
-	// Finalize PetSc
-	PetscFinalize();
-#else
-	// Finalize MPI
-	MPI_Finalize();
-#endif
+	// Deinitialize Tempest
+	TempestDeinitialize();
 }
 
 ///////////////////////////////////////////////////////////////////////////////

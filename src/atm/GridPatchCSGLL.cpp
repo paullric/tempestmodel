@@ -19,7 +19,7 @@
 #include "Model.h"
 #include "TestCase.h"
 #include "GridSpacing.h"
-#include "HorizontalDynamicsFEM.h"
+#include "HorizontalDynamicsDG.h"
 
 #include "Direction.h"
 #include "CubedSphereTrans.h"
@@ -702,18 +702,14 @@ void GridPatchCSGLL::ComputeCurlAndDiv(
 	const GridCSGLL & gridCSGLL = dynamic_cast<const GridCSGLL &>(m_grid);
 
 	// Get the pointer to the HorizontalDynamics object
-	const HorizontalDynamicsFEM * pHorizontalDynamics =
-		dynamic_cast<const HorizontalDynamicsFEM *>(
+	const HorizontalDynamicsDG * pHorizontalDynamicsDG =
+		dynamic_cast<const HorizontalDynamicsDG *>(
 			m_grid.GetModel().GetHorizontalDynamics());
 
 	// If SpectralElement dynamics are used, apply direct stiffness summation
 	bool fDiscontinuous = false;
-	if (pHorizontalDynamics != NULL) {
-		if (pHorizontalDynamics->GetType() ==
-			HorizontalDynamicsFEM::DiscontinuousGalerkin
-		) {
-			fDiscontinuous = true;
-		}
+	if (pHorizontalDynamicsDG != NULL) {
+		fDiscontinuous = true;
 	}
 
 	// Get derivatives of the basis functions

@@ -29,16 +29,14 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 Model::Model(
-	EquationSet::Type eEquationSetType,
-	int nTracers
+	EquationSet::Type eEquationSetType
 ) :
-	m_pParam(NULL),
 	m_pGrid(NULL),
 	m_pTimestepScheme(NULL),
 	m_pHorizontalDynamics(NULL),
 	m_pVerticalDynamics(NULL),
 	m_pTestCase(NULL),
-	m_eqn(eEquationSetType, nTracers),
+	m_eqn(eEquationSetType),
 	m_time(0, 0, 0, 0.0)
 {
 	// Initialize staggering from equation set
@@ -47,8 +45,33 @@ Model::Model(
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void Model::SetParameters(ModelParameters * pParam) {
-	m_pParam = pParam;
+Model::~Model() {
+	if (m_pGrid != NULL) {
+		delete m_pGrid;
+	}
+	if (m_pTimestepScheme != NULL) {
+		delete m_pTimestepScheme;
+	}
+	if (m_pHorizontalDynamics != NULL) {
+		delete m_pHorizontalDynamics;
+	}
+	if (m_pVerticalDynamics != NULL) {
+		delete m_pVerticalDynamics;
+	}
+
+	for (int n = 0; n < m_vecOutMan.size(); n++) {
+		delete m_vecOutMan[n];
+	}
+
+	if (m_pTestCase != NULL) {
+		delete m_pTestCase;
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void Model::SetParameters(const ModelParameters & param) {
+	m_param = param;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -56,9 +79,6 @@ void Model::SetParameters(ModelParameters * pParam) {
 void Model::SetGrid(Grid * pGrid) {
 	if (pGrid == NULL) {
 		_EXCEPTIONT("Invalid Grid (NULL)");
-	}
-	if (m_pParam == NULL) {
-		_EXCEPTIONT("Model parameters must be specified before SetGrid()");
 	}
 	if (m_pGrid != NULL) {
 		_EXCEPTIONT("Grid already specified");
@@ -68,10 +88,10 @@ void Model::SetGrid(Grid * pGrid) {
 	m_pGrid = pGrid;
 
 	// Set up patches
-	if (m_pParam->m_strRestartFile == "") {
+	if (m_param.m_strRestartFile == "") {
 		m_pGrid->AddDefaultPatches();
 	} else {
-		m_pGrid->FromFile(m_pParam->m_strRestartFile);
+		m_pGrid->FromFile(m_param.m_strRestartFile);
 	}
 
 	// Initialize the grid
@@ -126,9 +146,6 @@ void Model::SetTestCase(
 		_EXCEPTIONT(
 			"A grid must be specified before attaching a TestCase.");
 	}
-	if (m_pParam == NULL) {
-		_EXCEPTIONT("No ModelParameters have been set.");
-	}
 	if (pTestCase == NULL) {
 		_EXCEPTIONT("Invalid TestCase (NULL)");
 	}
@@ -137,13 +154,13 @@ void Model::SetTestCase(
 	m_pTestCase = pTestCase;
 
 	// Evaluate physical constants and data from TestCase
-	if (m_pParam->m_strRestartFile == "") {
+	if (m_param.m_strRestartFile == "") {
 
 		// Evaluate physical constants
 		m_pTestCase->EvaluatePhysicalConstants(m_phys);
 
 		// Initialize the topography and data
-		m_pGrid->EvaluateTestCase(*pTestCase, m_pParam->m_timeStart);
+		m_pGrid->EvaluateTestCase(*pTestCase, m_param.m_timeStart);
 	}
 }
 
@@ -162,13 +179,10 @@ void Model::AttachOutputManager(OutputManager * pOutMan) {
 ///////////////////////////////////////////////////////////////////////////////
 
 void Model::EvaluateStateFromRestartFile() {
-	if (m_pParam == NULL) {
-		_EXCEPTIONT("ModelParameters must be set before Evaluation");
-	}
 	if (m_pGrid == NULL) {
 		_EXCEPTIONT("A grid must be specified before Evaluation");
 	}
-	if (m_pParam->m_strRestartFile == "") {
+	if (m_param.m_strRestartFile == "") {
 		return;
 	}
 
@@ -177,7 +191,7 @@ void Model::EvaluateStateFromRestartFile() {
 	int n = 0;
 	for (; n < m_vecOutMan.size(); n++) {
 		if (m_vecOutMan[n]->SupportsInput()) {
-			m_time = m_vecOutMan[n]->Input(m_pParam->m_strRestartFile);
+			m_time = m_vecOutMan[n]->Input(m_param.m_strRestartFile);
 			break;
 		}
 	}
@@ -192,9 +206,6 @@ void Model::EvaluateStateFromRestartFile() {
 void Model::Go() {
 
 	// Check pointers
-	if (m_pParam == NULL) {
-		_EXCEPTIONT("ModelParameters not specified.");
-	}
 	if (m_pGrid == NULL) {
 		_EXCEPTIONT("Grid not specified.");
 	}
@@ -210,9 +221,12 @@ void Model::Go() {
 	if (m_vecOutMan.size() == 0) {
 		Announce("WARNING: No OutputManager specified.");
 	}
+	if (m_pTestCase == NULL) {
+		_EXCEPTIONT("TestCase not specified.");
+	}
 
 	// Check time step
-	if (m_pParam->m_dDeltaT == 0.0) {
+	if (m_param.m_dDeltaT == 0.0) {
 		_EXCEPTIONT("Dynamic timestepping not implemented. "
 		            "DeltaT must be non-zero.");
 	}
@@ -230,16 +244,16 @@ void Model::Go() {
 	m_pVerticalDynamics->Initialize();
 
 	// Set the end time of the simulation from number of seconds
-	if (m_pParam->m_dEndTime != 0.0) {
-		m_pParam->m_timeEnd = Time(0, 0, 0, m_pParam->m_dEndTime);
+	if (m_param.m_dEndTime != 0.0) {
+		m_param.m_timeEnd = Time(0, 0, 0, m_param.m_dEndTime);
 	}
 
 	// Check time
-	if (m_time >= m_pParam->m_timeEnd) {
+	if (m_time >= m_param.m_timeEnd) {
 		Announce("Warning: Simulation start time (%s)\n"
 			"  equals or exceeds end time (%s)",
 			m_time.ToString().c_str(),
-			m_pParam->m_timeEnd.ToString().c_str());
+			m_param.m_timeEnd.ToString().c_str());
 		return;
 	}
 
@@ -263,14 +277,14 @@ void Model::Go() {
 
 		// Next time step
 		Time timeNext = m_time;
-		timeNext.AddSeconds(m_pParam->m_dDeltaT);
+		timeNext.AddSeconds(m_param.m_dDeltaT);
 
 		// Time step size
-		double dDeltaT = m_pParam->m_dDeltaT;
+		double dDeltaT = m_param.m_dDeltaT;
 
 		// Perform a semi-timestep if necessary to align timescales
-		if (timeNext >= m_pParam->m_timeEnd) {
-			dDeltaT = m_pParam->m_timeEnd - m_time;
+		if (timeNext >= m_param.m_timeEnd) {
+			dDeltaT = m_param.m_timeEnd - m_time;
 			fLastStep = true;
 		}
 

@@ -14,26 +14,7 @@
 ///		or implied warranty.
 ///	</remarks>
 
-#include "CommandLine.h"
-#include "Announce.h"
-#include "STLStringHelper.h"
-
-#include "Model.h"
-#include "TimestepSchemeStrang.h"
-#include "HorizontalDynamicsFEM.h"
-#include "VerticalDynamicsFEM.h"
-
-#include "PhysicalConstants.h"
-#include "TestCase.h"
-#include "OutputManagerComposite.h"
-#include "OutputManagerReference.h"
-#include "OutputManagerChecksum.h"
-#include "GridData4D.h"
-#include "EquationSet.h"
-
-#include "GridCartesianGLL.h"
-
-#include "mpi.h"
+#include "Tempest.h"
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -295,212 +276,48 @@ public:
 
 int main(int argc, char** argv) {
 
-	// Initialize MPI
-	MPI_Init(&argc, &argv);
+	// Initialize Tempest
+	TempestInitialize(&argc, &argv);
 
 try {
-	// Output directory
-	std::string strOutputDir;
-
-	// Output file prefix
-	std::string strOutputPrefix;
-
-	// Number of outputs per reference file
-	int nOutputsPerFile;
-
-	// Resolution
-	int nResolution;
-
-	// Levels
-	int nLevels;
-
-	// Horizontal Order
-	int nHorizontalOrder;
-
-	// Vertical Order
-	int nVerticalOrder;
-
-	// Grid rotation angle
-	double dAlpha;
-
-	// Output time
-	double dOutputDeltaT;
-
-	// Numerical method
-	std::string strHorizontalDynamics;
-
-	// Use hyperdiffusion
-	bool fNoHyperviscosity;
-
 	// No Rayleigh friction
 	bool fNoRayleighFriction;
 
-	// No reference state
-	bool fNoReferenceState;
-
-	// Vertical hyperdiffusion
-	int nVerticalHyperdiffOrder;
-
-	// Solve vertical using a fully explicit method
-	bool fFullyExplicitVertical;
-
-	// Store Exner pressure on edges (advanced)
-	bool fExnerPressureOnREdges;
-
-	// Store mass flux on levels (advanced)
-	bool fMassFluxOnLevels;
-
-	// Model parameters
-	ModelParameters params;
-
 	// Parse the command line
-	BeginCommandLine()
-		CommandLineString(strOutputDir, "output_dir",
-			"outScharMountainCartesianTest");
-		CommandLineString(strOutputPrefix, "output_prefix", "out");
-		CommandLineInt(nOutputsPerFile, "output_perfile", -1);
-		CommandLineString(params.m_strRestartFile, "restart_file", "");
-		CommandLineInt(nResolution, "resolution", 40);
-		CommandLineInt(nLevels, "levels", 40);
-		CommandLineInt(nHorizontalOrder, "order", 4);
-		CommandLineInt(nVerticalOrder, "vertorder", 4);
-		CommandLineDouble(dAlpha, "alpha", 0.0);
-		CommandLineDouble(params.m_dDeltaT, "dt", 0.1);
-		CommandLineDouble(params.m_dEndTime, "endtime", 3600.0);
-		CommandLineDouble(dOutputDeltaT, "outputtime", 300.0);
-		CommandLineStringD(strHorizontalDynamics, "method", "SE", "(SE | DG)");
-		CommandLineBool(fNoHyperviscosity, "nohypervis");
+	BeginTempestCommandLine("HydrostaticMountainCartesianTest");
+		SetDefaultResolutionX(40);
+		SetDefaultResolutionY(1);
+		SetDefaultLevels(40);
+		SetDefaultOutputTime(300.0);
+		SetDefaultDeltaT(0.1);
+		SetDefaultEndTime(3600.0);
+		SetDefaultHorizontalOrder(4);
+		SetDefaultVerticalOrder(4);
+
 		CommandLineBool(fNoRayleighFriction, "norayleigh");
-		CommandLineBool(fNoReferenceState, "norefstate");
-		CommandLineInt(nVerticalHyperdiffOrder, "verticaldifforder", 2);
-		CommandLineBool(fFullyExplicitVertical, "explicitvertical");
-		CommandLineBool(fExnerPressureOnREdges, "exneredges");
-		CommandLineBool(fMassFluxOnLevels, "massfluxlevels");
 
 		ParseCommandLine(argc, argv);
 	EndCommandLine(argv)
 
-	AnnounceBanner("INITIALIZATION");
+	// Create a new instance of the test
+	ScharMountainCartesianTest * test =
+		new ScharMountainCartesianTest(fNoRayleighFriction);
 
-	// Create a new test case object
-	AnnounceStartBlock("Creating test case");
+	// Setup the Model
+	AnnounceBanner("MODEL SETUP");
 
-	AnnounceEndBlock("Done");
-
-	// Construct a model
-	AnnounceStartBlock("Creating model");
 	Model model(EquationSet::PrimitiveNonhydrostaticEquations);
-	AnnounceEndBlock("Done");
 
-	// Set the parameters for the model
-	AnnounceStartBlock("Initializing parameters");
-	model.SetParameters(&params);
-	AnnounceEndBlock("Done");
-
-	// Set the timestep scheme
-	TimestepSchemeStrang timestep(model);
-	AnnounceStartBlock("Initializing timestep scheme");
-	model.SetTimestepScheme(&timestep);
-	AnnounceEndBlock("Done");
-
-	// Set the horizontal dynamics
-	HorizontalDynamicsFEM::Type eHorizontalDynamicsType;
-	STLStringHelper::ToLower(strHorizontalDynamics);
-	if (strHorizontalDynamics == "se") {
-		eHorizontalDynamicsType = HorizontalDynamicsFEM::SpectralElement;
-	} else if (strHorizontalDynamics == "dg") {
-		eHorizontalDynamicsType = HorizontalDynamicsFEM::DiscontinuousGalerkin;
-	} else {
-		_EXCEPTIONT("Invalid method: Expected \"SE\" or \"DG\"");
-	}
-
-	AnnounceStartBlock("Initializing horizontal dynamics");
-	HorizontalDynamicsFEM hdyn(
-	   model,
-	   nHorizontalOrder,
-	   eHorizontalDynamicsType,
-	   fNoHyperviscosity);
-
-	model.SetHorizontalDynamics(&hdyn);
-	AnnounceEndBlock("Done");
-
-	// Set the vertical dynamics
-	VerticalDynamicsFEM vdyn(
-		model,
-		nHorizontalOrder,
-		nVerticalOrder,
-		nVerticalHyperdiffOrder,
-		fFullyExplicitVertical,
-		!fNoReferenceState,
-		!fExnerPressureOnREdges,
-		fMassFluxOnLevels);
-
-	AnnounceStartBlock("Initializing vertical dynamics");
-	model.SetVerticalDynamics(&vdyn);
-	AnnounceEndBlock("Done");
-
-	// Generate a new cartesian GLL grid
-	// Initialize the test case here (to have grid dimensions available)
-	ScharMountainCartesianTest test(fNoRayleighFriction);
-
-	AnnounceStartBlock("Constructing grid");
-	GridCartesianGLL grid(
-		model,
-		nResolution,
-		1,
-		1,
-		nHorizontalOrder,
-		nVerticalOrder,
-		nLevels,
-		test.m_dGDim);
-
-	model.SetGrid(&grid);
-	AnnounceEndBlock("Done");
-
-	// Set the reference output manager for the model
-	AnnounceStartBlock("Creating reference output manager");
-	OutputManagerReference outmanRef(
-		grid,
-		dOutputDeltaT,
-		strOutputDir,
-		strOutputPrefix,
-		nOutputsPerFile,
-		nResolution * (nHorizontalOrder - 1),
-		1,
-		false,  // Output variables in natural locations
-		true);  // Remove reference profile in output
-
-	model.AttachOutputManager(&outmanRef);
-	AnnounceEndBlock("Done");
-/*
-	// Set the composite output manager for the model
-	AnnounceStartBlock("Creating composite output manager");
-	OutputManagerComposite outmanComp(
-		grid,
-		dOutputDeltaT,
-		strOutputDir,
-		strOutputPrefix);
-	model.AttachOutputManager(&outmanComp);
-	AnnounceEndBlock("Done");
-*/
-	// Set the checksum output manager for the model
-	AnnounceStartBlock("Creating checksum output manager");
-	OutputManagerChecksum outmanChecksum(grid, dOutputDeltaT);
-	model.AttachOutputManager(&outmanChecksum);
-	AnnounceEndBlock("Done");
+	TempestSetupCartesianModel(model, test->m_dGDim);
 
 	// Set the test case for the model
-	ScharMountainCartesianTest ctest(fNoRayleighFriction);
 	AnnounceStartBlock("Initializing test case");
-	model.SetTestCase(&ctest);
+	model.SetTestCase(test);
 	AnnounceEndBlock("Done");
 
 	// Begin execution
 	AnnounceBanner("SIMULATION");
 	model.Go();
-
-	// Execution complete
-	//AnnounceBanner("Execution completed successfully");
 
 	// Compute error norms
 	AnnounceBanner("RESULTS");
@@ -511,8 +328,8 @@ try {
 	std::cout << e.ToString() << std::endl;
 }
 
-	// Finalize MPI
-	MPI_Finalize();
+	// Deinitialize Tempest
+	TempestDeinitialize();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
