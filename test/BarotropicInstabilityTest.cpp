@@ -305,7 +305,7 @@ try {
 	double dAlpha;
 
 	// Parse the command line
-	BeginTempestCommandLine()
+	BeginTempestCommandLine("BarotropicInstability")
 		SetDefaultResolution(20);
 		SetDefaultLevels(1);
 		SetDefaultOutputTime(200.0);

@@ -23,11 +23,17 @@
 #include "GridGLL.h"
 #include "GridPatchGLL.h"
 
-//#define DIFFERENTIAL_FORM
+#define DIFFERENTIAL_FORM
+
+//#define ADVECTION_ONLY
 
 #ifdef DIFFERENTIAL_FORM
 #pragma message "WARNING: DIFFERENTIAL_FORM will lose mass over topography"
 #endif
+
+///////////////////////////////////////////////////////////////////////////////
+
+static const double ParamHypervisScaling = 3.2;
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -274,11 +280,13 @@ void HorizontalDynamicsDG::StepShallowWater(
 						printf("B: %1.10e %1.10e\n", dLocalUpdateUa, dLocalUpdateUb);
 					}
 */
+#ifndef ADVECTION_ONLY
 					// Apply update
 					dataUpdateNode[UIx][k][iA][iB] +=
 						dDeltaT * (dLocalUpdateUa + dLocalUpdateUaDiff);
 					dataUpdateNode[VIx][k][iA][iB] +=
 						dDeltaT * (dLocalUpdateUb + dLocalUpdateUbDiff);
+#endif
 
 					//dataUpdateNode[UIx][k][iA][iB] += dDeltaT * dLocalUpdateUa;
 					//dataUpdateNode[VIx][k][iA][iB] += dDeltaT * dLocalUpdateUb;
@@ -900,14 +908,13 @@ void HorizontalDynamicsDG::ElementFluxesShallowWater(
 
 		// Post-process velocities received during exchange
 		pPatch->TransformHaloVelocities(iDataInitial);
-
+/*
 		// Flux reconstruction update coefficient
 		double dUpdateDeriv =
 			  dDeltaT
 			* dFluxDeriv1D[m_nHorizontalOrder-1]
-			// dGLLWeights1D[m_nHorizontalOrder-1]
 			/ dElementDeltaA;
-
+*/
 		// Loop over edges of constant alpha
 		for (int k = 0; k < pGrid->GetRElements(); k++) {
 		for (int a = 0; a <= nElementCountA; a++) {
@@ -925,8 +932,14 @@ void HorizontalDynamicsDG::ElementFluxesShallowWater(
 				double dHR  = dataInitialNode[HIx][k][i][j];
 
 				// Calculate pointwise height flux
-				double dHFL = dHL * dUaL;
-				double dHFR = dHR * dUaR;
+				double dPtJacobian;
+				if (a == nElementCountA) {
+					dPtJacobian = dJacobian[k][i-1][j];
+				} else {
+					dPtJacobian = dJacobian[k][i  ][j];
+				}
+				double dHFL = dHL * dUaL * dPtJacobian;
+				double dHFR = dHR * dUaR * dPtJacobian;
 
 				double dHF = 0.5 * (dHFL + dHFR);
 
@@ -938,62 +951,79 @@ void HorizontalDynamicsDG::ElementFluxesShallowWater(
 				double dPR = phys.GetG() * dHR;
 				double dP  = 0.5 * (dPL + dPR);
 
-#ifdef DIFFERENTIAL_FORM 
-				_EXCEPTIONT("Not implemented.");
-#else
+				// Upwinding
+				double dA = fabs(dUa) + sqrt(phys.GetG() * 0.5 * (dHL + dHR)) / phys.GetEarthRadius();
 
-				//if ((a == 0) || (a == nElementCountA)) {
-					dataUpdateNode[HIx][k][i-1][j] +=
-						- dUpdateDeriv * dHF;
+				dHF -= 0.5 * dA * dPtJacobian * (dHR - dHL);
+				double dUaF = - 0.5 * dA * dPtJacobian * (dUaR - dUaL);
+				double dUbF = - 0.5 * dA * dPtJacobian * (dUbR - dUbL);
 
-					dataUpdateNode[HIx][k][i][j] +=
-						+ dUpdateDeriv * dHF;
-/*
-				} else {
-					dataUpdateNode[HIx][k][i-1][j] +=
-						- dUpdateDeriv * (dHF - dHFL);
+#ifndef DIFFERENTIAL_FORM
+				// Update the height field
+				dataUpdateNode[HIx][k][i-1][j] +=
+					- dDeltaT
+					/ dGLLWeights1D[m_nHorizontalOrder-1]
+					/ dElementDeltaA
+					* dHF / dPtJacobian;
 
-					dataUpdateNode[HIx][k][i][j] +=
-						+ dUpdateDeriv * (dHF - dHFR);
-				}
-*/
+				dataUpdateNode[HIx][k][i][j] +=
+					+ dDeltaT
+					/ dGLLWeights1D[m_nHorizontalOrder-1]
+					/ dElementDeltaA
+					* dHF / dPtJacobian;
 #endif
 
-				// Calculate modified derivatives in alpha
-				dataUpdateNode[UIx][k][i-1][j] +=
-					- dUpdateDeriv * dUaL * (dUa - dUaL)
-					- dUpdateDeriv * dContraMetricA[k][i-1][j][0] * (dP - dPL);
+				for (int s = 0; s < m_nHorizontalOrder; s++) {
+					double dUpdateDeriv =
+						  dDeltaT
+						* dFluxDeriv1D[m_nHorizontalOrder - 1 - s]
+						/ dElementDeltaA;
 
-				dataUpdateNode[UIx][k][i][j] +=
-					+ dUpdateDeriv * dUaR * (dUa - dUaR)
-					+ dUpdateDeriv * dContraMetricA[k][i][j][0] * (dP - dPR);
+					// Calculate modified derivatives in alpha
+					if (a != 0) {
+#ifdef DIFFERENTIAL_FORM 
+						dataUpdateNode[HIx][k][i-1-s][j] +=
+							- dUpdateDeriv * (dHF - dHFL)
+							/ dJacobian[k][i-1-s][j];
+#endif
+#ifndef ADVECTION_ONLY
+						dataUpdateNode[UIx][k][i-1-s][j] +=
+							- dUpdateDeriv * (
+								dUaL * (dUa - dUaL)
+								+ dContraMetricA[k][i-1][j][0] * (dP - dPL))
+							- dUpdateDeriv * dUaF
+								/ dJacobian[k][i-1-s][j];
 
-				dataUpdateNode[VIx][k][i-1][j] +=
-					- dUpdateDeriv * dUaL * (dUb - dUbL)
-					- dUpdateDeriv * dContraMetricB[k][i-1][j][0] * (dP - dPL);
+						dataUpdateNode[VIx][k][i-1-s][j] +=
+							- dUpdateDeriv * (
+								dUaL * (dUb - dUbL)
+								+ dContraMetricB[k][i-1][j][0] * (dP - dPL))
+							- dUpdateDeriv * dUbF
+								/ dJacobian[k][i-1-s][j];
+#endif
+					}
 
-				dataUpdateNode[VIx][k][i][j] +=
-					+ dUpdateDeriv * dUaR * (dUb - dUbR)
-					+ dUpdateDeriv * dContraMetricB[k][i][j][0] * (dP - dPR);
+					if (a != nElementCountA) {
+#ifdef DIFFERENTIAL_FORM
+						dataUpdateNode[HIx][k][i+s][j] +=
+							+ dUpdateDeriv * (dHF - dHFR)
+							/ dJacobian[k][i+s][j];
+#endif
+#ifndef ADVECTION_ONLY
+						dataUpdateNode[UIx][k][i+s][j] +=
+							+ dUpdateDeriv * (
+								dUaR * (dUa - dUaR)
+								+ dContraMetricA[k][i][j][0] * (dP - dPR))
+							+ dUpdateDeriv * dUaF / dJacobian[k][i+s][j];
 
-/*
-				// Calculate modified derivatives in alpha
-				dataUpdateNode[UIx][k][i-1][j] +=
-					- dUpdateDeriv * dUaL * dUa
-					- dUpdateDeriv * dContraMetricA[k][i-1][j][0] * dP;
-
-				dataUpdateNode[UIx][k][i][j] +=
-					+ dUpdateDeriv * dUaR * dUa
-					+ dUpdateDeriv * dContraMetricA[k][i][j][0] * dP;
-
-				dataUpdateNode[VIx][k][i-1][j] +=
-					- dUpdateDeriv * dUaL * dUb
-					- dUpdateDeriv * dContraMetricB[k][i-1][j][0] * dP;
-
-				dataUpdateNode[VIx][k][i][j] +=
-					+ dUpdateDeriv * dUaR * dUb
-					+ dUpdateDeriv * dContraMetricB[k][i][j][0] * dP;
-*/
+						dataUpdateNode[VIx][k][i+s][j] +=
+							+ dUpdateDeriv * (
+								dUaR * (dUb - dUbR)
+								+ dContraMetricB[k][i][j][0] * (dP - dPR))
+							+ dUpdateDeriv * dUbF / dJacobian[k][i+s][j];
+#endif
+					}
+				}
 			}
 		}
 		}
@@ -1015,8 +1045,15 @@ void HorizontalDynamicsDG::ElementFluxesShallowWater(
 				double dHR  = dataInitialNode[HIx][k][i][j];
 
 				// Calculate pointwise height flux
-				double dHFL = dHL * dUbL;
-				double dHFR = dHR * dUbR;
+				double dPtJacobian;
+				if (b == nElementCountB) {
+					dPtJacobian = dJacobian[k][i][j-1];
+				} else {
+					dPtJacobian = dJacobian[k][i][j];
+				}
+
+				double dHFL = dHL * dUbL * dPtJacobian;
+				double dHFR = dHR * dUbR * dPtJacobian;
 
 				double dHF = 0.5 * (dHFL + dHFR);
 
@@ -1028,63 +1065,77 @@ void HorizontalDynamicsDG::ElementFluxesShallowWater(
 				double dPR = phys.GetG() * dHR;
 				double dP  = 0.5 * (dPL + dPR);
 
-#ifdef DIFFERENTIAL_FORM 
-				_EXCEPTIONT("Not implemented.");
-#else
+				// Upwinding
+				double dA = fabs(dUb) + sqrt(phys.GetG() * 0.5 * (dHL + dHR)) / phys.GetEarthRadius();
 
-				//if ((b == 0) || (b == nElementCountB)) {
-					dataUpdateNode[HIx][k][i][j-1] +=
-						- dUpdateDeriv * dHF;
+				dHF -= 0.5 * dA * dPtJacobian * (dHR - dHL);
+				double dUaF = - 0.5 * dA * dPtJacobian * (dUaR - dUaL);
+				double dUbF = - 0.5 * dA * dPtJacobian * (dUbR - dUbL);
 
-					dataUpdateNode[HIx][k][i][j] +=
-						+ dUpdateDeriv * dHF;
-/*
-				} else {
-					dataUpdateNode[HIx][k][i][j-1] +=
-						- dUpdateDeriv * (dHF - dHFL);
+#ifndef DIFFERENTIAL_FORM
+				// Update the height field
+				dataUpdateNode[HIx][k][i][j-1] +=
+					- dDeltaT
+					/ dGLLWeights1D[m_nHorizontalOrder-1]
+					/ dElementDeltaA
+					* dHF / dPtJacobian;
 
-					dataUpdateNode[HIx][k][i][j] +=
-						+ dUpdateDeriv * (dHF - dHFR);
-
-				}
-*/
+				dataUpdateNode[HIx][k][i][j] +=
+					+ dDeltaT
+					/ dGLLWeights1D[m_nHorizontalOrder-1]
+					/ dElementDeltaA
+					* dHF / dPtJacobian;
 #endif
 
-				// Calculate modified derivatives in beta
-				dataUpdateNode[UIx][k][i][j-1] +=
-					- dUpdateDeriv * dUbL * (dUa - dUaL)
-					- dUpdateDeriv * dContraMetricA[k][i][j-1][1] * (dP - dPL);
+				for (int s = 0; s < m_nHorizontalOrder; s++) {
+					double dUpdateDeriv =
+						  dDeltaT
+						* dFluxDeriv1D[m_nHorizontalOrder - 1 - s]
+						/ dElementDeltaB;
 
-				dataUpdateNode[UIx][k][i][j] +=
-					+ dUpdateDeriv * dUbR * (dUa - dUaR)
-					+ dUpdateDeriv * dContraMetricA[k][i][j][1] * (dP - dPR);
+					// Calculate modified derivatives in beta
+					if (b != 0) {
+#ifdef DIFFERENTIAL_FORM 
+						dataUpdateNode[HIx][k][i][j-1-s] +=
+							- dUpdateDeriv * (dHF - dHFL)
+							/ dJacobian[k][i][j-1-s];
+#endif
+#ifndef ADVECTION_ONLY
+						dataUpdateNode[UIx][k][i][j-1-s] +=
+							- dUpdateDeriv * (
+								dUbL * (dUa - dUaL)
+							 	+ dContraMetricA[k][i][j-1][1] * (dP - dPL))
+							- dUpdateDeriv * dUaF / dJacobian[k][i][j-1-s];
 
-				dataUpdateNode[VIx][k][i][j-1] +=
-					- dUpdateDeriv * dUbL * (dUb - dUbL)
-					- dUpdateDeriv * dContraMetricB[k][i][j-1][1] * (dP - dPL);
+						dataUpdateNode[VIx][k][i][j-1-s] +=
+							- dUpdateDeriv * (
+								dUbL * (dUb - dUbL)
+								+ dContraMetricB[k][i][j-1][1] * (dP - dPL))
+							- dUpdateDeriv * dUbF / dJacobian[k][i][j-1-s];
+#endif
+					}
 
-				dataUpdateNode[VIx][k][i][j] +=
-					+ dUpdateDeriv * dUbR * (dUb - dUbR)
-					+ dUpdateDeriv * dContraMetricB[k][i][j][1] * (dP - dPR);
+					if (b != nElementCountB) {
+#ifdef DIFFERENTIAL_FORM
+						dataUpdateNode[HIx][k][i][j+s] +=
+							+ dUpdateDeriv * (dHF - dHFR)
+							/ dJacobian[k][i][j+s];
+#endif
+#ifndef ADVECTION_ONLY
+						dataUpdateNode[UIx][k][i][j+s] +=
+							+ dUpdateDeriv * (
+								dUbR * (dUa - dUaR)
+								+ dContraMetricA[k][i][j][1] * (dP - dPR))
+							+ dUpdateDeriv * dUaF / dJacobian[k][i][j+s];
 
-/*
-				// Calculate modified derivatives in beta
-				dataUpdateNode[UIx][k][i][j-1] +=
-					- dUpdateDeriv * dUbL * dUa
-					- dUpdateDeriv * dContraMetricA[k][i][j-1][1] * dP;
-
-				dataUpdateNode[UIx][k][i][j] +=
-					+ dUpdateDeriv * dUbR * dUa
-					+ dUpdateDeriv * dContraMetricA[k][i][j][1] * dP;
-
-				dataUpdateNode[VIx][k][i][j-1] +=
-					- dUpdateDeriv * dUbL * dUb
-					- dUpdateDeriv * dContraMetricB[k][i][j-1][1] * dP;
-
-				dataUpdateNode[VIx][k][i][j] +=
-					+ dUpdateDeriv * dUbR * dUb
-					+ dUpdateDeriv * dContraMetricB[k][i][j][1] * dP;
-*/
+						dataUpdateNode[VIx][k][i][j+s] +=
+							+ dUpdateDeriv * (
+								dUbR * (dUb - dUbR)
+							 	+ dContraMetricB[k][i][j][1] * (dP - dPR))
+							+ dUpdateDeriv * dUbF / dJacobian[k][i][j+s];
+#endif
+					}
+				}
 			}
 		}
 		}
@@ -1709,7 +1760,8 @@ void HorizontalDynamicsDG::ApplyScalarHyperdiffusionToBoundary(
 
 		if (fScaleNuLocally) {
 			double dReferenceLength = pGrid->GetReferenceLength();
-			dLocalNu *= pow(dElementDeltaA / dReferenceLength, 3.2);
+			dLocalNu *=
+				pow(dElementDeltaA / dReferenceLength, ParamHypervisScaling);
 		}
 
 		// Loop over all scalar components
@@ -1958,9 +2010,11 @@ void HorizontalDynamicsDG::ApplyVectorHyperdiffusionToBoundary(
 		if (fScaleNuLocally) {
 			double dReferenceLength = pGrid->GetReferenceLength();
 			dLocalNuDiv =
-				dLocalNuDiv  * pow(dElementDeltaA / dReferenceLength, 3.2);
+				dLocalNuDiv
+				* pow(dElementDeltaA / dReferenceLength, ParamHypervisScaling);
 			dLocalNuVort =
-				dLocalNuVort * pow(dElementDeltaA / dReferenceLength, 3.2);
+				dLocalNuVort
+				* pow(dElementDeltaA / dReferenceLength, ParamHypervisScaling);
 		}
 
 		// Pointers to data
