@@ -163,7 +163,7 @@ public:
 	}
 
 	///	<summary>
-	///		Compute vorticity on the grid.
+	///		Compute vorticity on the GridPatch.
 	///	</summary>
 	virtual void ComputeVorticityDivergence(
 		int iDataIndex
@@ -172,7 +172,7 @@ public:
 	}
 
 	///	<summary>
-	///		Compute temperature on the grid.
+	///		Compute temperature on the GridPatch.
 	///	</summary>
 	virtual void ComputeTemperature(
 		int iDataIndex,
@@ -189,6 +189,20 @@ public:
 		int iDataIndex,
 		ChecksumType eChecksumType
 	) const;
+
+	///	<summary>
+	///		Compute total energy over this GridPatch.
+	///	</summary>
+	double ComputeTotalEnergy(
+		int iDataIndex
+	) const;
+
+	///	<summary>
+	///		Compute total potential enstrophy over this GridPatch.
+	///	</summary>
+	double ComputeTotalPotentialEnstrophy(
+		int iDataIndex
+	);
 
 public:
 	///	<summary>
@@ -444,6 +458,17 @@ public:
 		}
 
 		return m_dataJacobian;
+	}
+
+	///	<summary>
+	///		Get the interface Jacobian matrix.
+	///	</summary>
+	const DataMatrix3D<double> & GetJacobianREdge() const {
+		if (!m_fContainsData) {
+			_EXCEPTIONT("Stub patch does not store data.");
+		}
+
+		return m_dataJacobianREdge;
 	}
 
 	///	<summary>
@@ -1055,6 +1080,11 @@ protected:
 	///		Jacobian at each node.
 	///	</summary>
 	DataMatrix3D<double> m_dataJacobian;
+
+	///	<summary>
+	///		Jacobian at each edge.
+	///	</summary>
+	DataMatrix3D<double> m_dataJacobianREdge;
 
 	///	<summary>
 	///		Contravariant metric (alpha) components.

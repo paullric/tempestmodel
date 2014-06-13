@@ -27,6 +27,8 @@
 
 //#define ADVECTION_ONLY
 
+#define PENALIZE_DISCONTINUITY
+
 #ifdef DIFFERENTIAL_FORM
 #pragma message "WARNING: DIFFERENTIAL_FORM will lose mass over topography"
 #endif
@@ -954,9 +956,14 @@ void HorizontalDynamicsDG::ElementFluxesShallowWater(
 				// Upwinding
 				double dA = fabs(dUa) + sqrt(phys.GetG() * 0.5 * (dHL + dHR)) / phys.GetEarthRadius();
 
+				double dUaF = 0.0;
+				double dUbF = 0.0;
+
+#ifdef PENALIZE_DISCONTINUITY
 				dHF -= 0.5 * dA * dPtJacobian * (dHR - dHL);
-				double dUaF = - 0.5 * dA * dPtJacobian * (dUaR - dUaL);
-				double dUbF = - 0.5 * dA * dPtJacobian * (dUbR - dUbL);
+				dUaF = - 0.5 * dA * (dUaR - dUaL);
+				dUbF = - 0.5 * dA * (dUbR - dUbL);
+#endif
 
 #ifndef DIFFERENTIAL_FORM
 				// Update the height field
@@ -991,15 +998,13 @@ void HorizontalDynamicsDG::ElementFluxesShallowWater(
 							- dUpdateDeriv * (
 								dUaL * (dUa - dUaL)
 								+ dContraMetricA[k][i-1][j][0] * (dP - dPL))
-							- dUpdateDeriv * dUaF
-								/ dJacobian[k][i-1-s][j];
+							- dUpdateDeriv * dUaF;
 
 						dataUpdateNode[VIx][k][i-1-s][j] +=
 							- dUpdateDeriv * (
 								dUaL * (dUb - dUbL)
 								+ dContraMetricB[k][i-1][j][0] * (dP - dPL))
-							- dUpdateDeriv * dUbF
-								/ dJacobian[k][i-1-s][j];
+							- dUpdateDeriv * dUbF;
 #endif
 					}
 
@@ -1014,13 +1019,13 @@ void HorizontalDynamicsDG::ElementFluxesShallowWater(
 							+ dUpdateDeriv * (
 								dUaR * (dUa - dUaR)
 								+ dContraMetricA[k][i][j][0] * (dP - dPR))
-							+ dUpdateDeriv * dUaF / dJacobian[k][i+s][j];
+							+ dUpdateDeriv * dUaF;
 
 						dataUpdateNode[VIx][k][i+s][j] +=
 							+ dUpdateDeriv * (
 								dUaR * (dUb - dUbR)
 								+ dContraMetricB[k][i][j][0] * (dP - dPR))
-							+ dUpdateDeriv * dUbF / dJacobian[k][i+s][j];
+							+ dUpdateDeriv * dUbF;
 #endif
 					}
 				}
@@ -1068,9 +1073,14 @@ void HorizontalDynamicsDG::ElementFluxesShallowWater(
 				// Upwinding
 				double dA = fabs(dUb) + sqrt(phys.GetG() * 0.5 * (dHL + dHR)) / phys.GetEarthRadius();
 
+				double dUaF = 0.0;
+				double dUbF = 0.0;
+
+#ifdef PENALIZE_DISCONTINUITY
 				dHF -= 0.5 * dA * dPtJacobian * (dHR - dHL);
-				double dUaF = - 0.5 * dA * dPtJacobian * (dUaR - dUaL);
-				double dUbF = - 0.5 * dA * dPtJacobian * (dUbR - dUbL);
+				dUaF = - 0.5 * dA * (dUaR - dUaL);
+				dUbF = - 0.5 * dA * (dUbR - dUbL);
+#endif
 
 #ifndef DIFFERENTIAL_FORM
 				// Update the height field
@@ -1105,13 +1115,13 @@ void HorizontalDynamicsDG::ElementFluxesShallowWater(
 							- dUpdateDeriv * (
 								dUbL * (dUa - dUaL)
 							 	+ dContraMetricA[k][i][j-1][1] * (dP - dPL))
-							- dUpdateDeriv * dUaF / dJacobian[k][i][j-1-s];
+							- dUpdateDeriv * dUaF;
 
 						dataUpdateNode[VIx][k][i][j-1-s] +=
 							- dUpdateDeriv * (
 								dUbL * (dUb - dUbL)
 								+ dContraMetricB[k][i][j-1][1] * (dP - dPL))
-							- dUpdateDeriv * dUbF / dJacobian[k][i][j-1-s];
+							- dUpdateDeriv * dUbF;
 #endif
 					}
 
@@ -1126,13 +1136,13 @@ void HorizontalDynamicsDG::ElementFluxesShallowWater(
 							+ dUpdateDeriv * (
 								dUbR * (dUa - dUaR)
 								+ dContraMetricA[k][i][j][1] * (dP - dPR))
-							+ dUpdateDeriv * dUaF / dJacobian[k][i][j+s];
+							+ dUpdateDeriv * dUaF;
 
 						dataUpdateNode[VIx][k][i][j+s] +=
 							+ dUpdateDeriv * (
 								dUbR * (dUb - dUbR)
 							 	+ dContraMetricB[k][i][j][1] * (dP - dPR))
-							+ dUpdateDeriv * dUbF / dJacobian[k][i][j+s];
+							+ dUpdateDeriv * dUbF;
 #endif
 					}
 				}

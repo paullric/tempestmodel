@@ -1361,8 +1361,6 @@ void VerticalDynamicsFEM::StepImplicit(
 						m_dSoln[VecFIx(FRIx, k)];
 				}
 			}
-
-#pragma message "Vertical pressure gradient influence on horizontal velocities"
 		}
 		}
 

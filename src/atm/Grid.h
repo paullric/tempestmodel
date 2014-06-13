@@ -147,6 +147,20 @@ public:
 		ChecksumType eChecksumType = ChecksumType_Sum
 	) const;
 
+	///	<summary>
+	///		Compute total energy on the grid.
+	///	</summary>
+	double ComputeTotalEnergy(
+		int iDataIndex
+	) const;
+
+	///	<summary>
+	///		Compute total energy on the grid.
+	///	</summary>
+	double ComputeTotalPotentialEnstrophy(
+		int iDataIndex
+	);
+
 public:
 	///	<summary>
 	///		Exchange data between processors.

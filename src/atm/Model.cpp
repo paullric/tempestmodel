@@ -290,7 +290,11 @@ void Model::Go() {
 
 		// Perform one time step
 		m_pTimestepScheme->Step(fFirstStep, fLastStep, m_time, dDeltaT);
-
+/*
+		Announce("%1.10e %1.10e",
+			m_pGrid->ComputeTotalEnergy(0),
+			m_pGrid->ComputeTotalPotentialEnstrophy(0));
+*/
 		// Update the timer
 		m_time += dDeltaT;
 

@@ -158,6 +158,12 @@ void GridPatch::InitializeDataLocal() {
 		m_box.GetATotalWidth(),
 		m_box.GetBTotalWidth());
 
+	// Jacobian at each interface
+	m_dataJacobianREdge.Initialize(
+		m_grid.GetRElements()+1,
+		m_box.GetATotalWidth(),
+		m_box.GetBTotalWidth());
+
 	// Contravariant metric components at each node
 	m_dataContraMetricA.Initialize(
 		m_grid.GetRElements(),
@@ -903,6 +909,139 @@ void GridPatch::Checksum(
 	} else {
 		_EXCEPTIONT("Invalid DataType in Checksum: Expected State or Tracers");
 	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+double GridPatch::ComputeTotalEnergy(
+	int iDataIndex
+) const {
+	// Physical constants
+	const PhysicalConstants & phys = m_grid.GetModel().GetPhysicalConstants();
+
+	// Accumulated local energy
+	double dLocalEnergy = 0.0;
+
+	// Indices of EquationSet variables
+	const int UIx = 0;
+	const int VIx = 1;
+	const int HIx = 2;
+	const int TIx = 2;
+	const int WIx = 3;
+	const int RIx = 4;
+
+	// Determine type of energy to compute from EquationSet
+	EquationSet::Type eEquationSetType =
+		m_grid.GetModel().GetEquationSet().GetType();
+
+	// Grid data
+	if ((iDataIndex < 0) || (iDataIndex >= m_datavecStateNode.size())) {
+		_EXCEPTION1("iDataIndex out of range: %i", iDataIndex);
+	}
+	const GridData4D & dataNode = m_datavecStateNode[iDataIndex];
+
+	// Shallow Water Energy
+	if (eEquationSetType == EquationSet::ShallowWaterEquations) {
+
+		// Loop over all elements
+		int k;
+		int i;
+		int j;
+
+		for (k = 0; k < m_grid.GetRElements(); k++) {
+		for (i = m_box.GetAInteriorBegin(); i < m_box.GetAInteriorEnd(); i++) {
+		for (j = m_box.GetBInteriorBegin(); j < m_box.GetBInteriorEnd(); j++) {
+			double dUdotU =
+				+ m_dataContraMetric2DB[i][j][1]
+					* dataNode[UIx][k][i][j] * dataNode[UIx][k][i][j]
+				- 2.0 * m_dataContraMetric2DA[i][j][1]
+					* dataNode[UIx][k][i][j] * dataNode[VIx][k][i][j]
+				+ m_dataContraMetric2DA[i][j][0]
+					* dataNode[VIx][k][i][j] * dataNode[VIx][k][i][j];
+
+			dUdotU *= m_dataJacobian2D[i][j] * m_dataJacobian2D[i][j];
+
+			double dKineticEnergy =
+				0.5 * (dataNode[HIx][k][i][j] - m_dataTopography[i][j])
+					* dUdotU;
+
+			double dPotentialEnergy =
+				0.5 * phys.GetG()
+					* (dataNode[HIx][k][i][j] * dataNode[HIx][k][i][j]
+						- m_dataTopography[i][j] * m_dataTopography[i][j]);
+
+			dLocalEnergy += m_dataElementArea[k][i][j]
+				* (dKineticEnergy + dPotentialEnergy);
+		}
+		}
+		}
+
+	} else {
+		_EXCEPTIONT("Unimplemented");
+	}
+
+	return dLocalEnergy;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+double GridPatch::ComputeTotalPotentialEnstrophy(
+	int iDataIndex
+) {
+	// Physical constants
+	const PhysicalConstants & phys = m_grid.GetModel().GetPhysicalConstants();
+
+	// Accumulated local energy
+	double dLocalPotentialEnstrophy = 0.0;
+
+	// Indices of EquationSet variables
+	const int UIx = 0;
+	const int VIx = 1;
+	const int HIx = 2;
+	const int TIx = 2;
+	const int WIx = 3;
+	const int RIx = 4;
+
+	// Determine type of energy to compute from EquationSet
+	EquationSet::Type eEquationSetType =
+		m_grid.GetModel().GetEquationSet().GetType();
+
+	// Grid data
+	if ((iDataIndex < 0) || (iDataIndex >= m_datavecStateNode.size())) {
+		_EXCEPTION1("iDataIndex out of range: %i", iDataIndex);
+	}
+	const GridData4D & dataNode = m_datavecStateNode[iDataIndex];
+
+	// Shallow Water PotentialEnstrophy
+	if (eEquationSetType == EquationSet::ShallowWaterEquations) {
+
+		// Loop over all elements
+		int k;
+		int i;
+		int j;
+
+		for (k = 0; k < m_grid.GetRElements(); k++) {
+		for (i = m_box.GetAInteriorBegin(); i < m_box.GetAInteriorEnd(); i++) {
+		for (j = m_box.GetBInteriorBegin(); j < m_box.GetBInteriorEnd(); j++) {
+			double dPlanetaryVorticity =
+				2.0 * phys.GetOmega() * sin(m_dataLat[i][j]);
+
+			double dAbsoluteVorticity =
+				m_dataVorticity[k][i][j] + dPlanetaryVorticity;
+
+			dLocalPotentialEnstrophy +=
+				m_dataElementArea[k][i][j]
+					* 0.5 * dAbsoluteVorticity * dAbsoluteVorticity
+					/ (dataNode[HIx][k][i][j] - m_dataTopography[i][j]);
+		}
+		}
+		}
+
+	} else {
+		_EXCEPTIONT("Unimplemented");
+	}
+
+	return dLocalPotentialEnstrophy;
 }
 
 ///////////////////////////////////////////////////////////////////////////////

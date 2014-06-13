@@ -294,6 +294,64 @@ void Grid::Checksum(
 
 ///////////////////////////////////////////////////////////////////////////////
 
+double Grid::ComputeTotalEnergy(
+	int iDataIndex
+) const {
+	// Compute local energy
+	double dLocalEnergy = 0.0;
+	for (int n = 0; n < m_vecActiveGridPatches.size(); n++) {
+		dLocalEnergy +=
+			m_vecActiveGridPatches[n]->ComputeTotalEnergy(iDataIndex);
+	}
+
+	// Reduce to obtain global energy integral
+	double dGlobalEnergy = 0.0;
+	MPI_Reduce(
+		&dLocalEnergy,
+		&dGlobalEnergy,
+		1,
+		MPI_DOUBLE,
+		MPI_SUM,
+		0,
+		MPI_COMM_WORLD);
+
+	// Return global energy integral
+	return dGlobalEnergy;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+double Grid::ComputeTotalPotentialEnstrophy(
+	int iDataIndex
+) {
+	// Compute vorticity and divergence on the Grid
+	ComputeVorticityDivergence(iDataIndex);
+
+	// Compute local enstrophy
+	double dLocalPotentialEnstrophy = 0.0;
+	for (int n = 0; n < m_vecActiveGridPatches.size(); n++) {
+		dLocalPotentialEnstrophy +=
+			m_vecActiveGridPatches[n]->
+				ComputeTotalPotentialEnstrophy(iDataIndex);
+	}
+
+	// Reduce to obtain global energy integral
+	double dGlobalPotentialEnstrophy = 0.0;
+	MPI_Reduce(
+		&dLocalPotentialEnstrophy,
+		&dGlobalPotentialEnstrophy,
+		1,
+		MPI_DOUBLE,
+		MPI_SUM,
+		0,
+		MPI_COMM_WORLD);
+
+	// Return global energy integral
+	return dGlobalPotentialEnstrophy;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
 void Grid::Exchange(
 	DataType eDataType,
 	int iDataIndex

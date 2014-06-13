@@ -125,6 +125,8 @@ void HorizontalDynamicsFEM::StepShallowWater(
 			pPatch->GetChristoffelB();
 		const DataMatrix<double> & dCoriolisF =
 			pPatch->GetCoriolisF();
+		const DataMatrix<double> & dTopography =
+			pPatch->GetTopography();
 
 		// Data
 		const GridData4D & dataInitialNode =
@@ -158,12 +160,12 @@ void HorizontalDynamicsFEM::StepShallowWater(
 				// Density flux
 				m_dAlphaFlux[i][j] =
 					dJacobian[k][iA][iB]
-					* dataInitialNode[HIx][k][iA][iB]
+					* (dataInitialNode[HIx][k][iA][iB] - dTopography[iA][iB])
 					* dataInitialNode[UIx][k][iA][iB];
 
 				m_dBetaFlux[i][j] =
 					dJacobian[k][iA][iB]
-					* dataInitialNode[HIx][k][iA][iB]
+					* (dataInitialNode[HIx][k][iA][iB] - dTopography[iA][iB])
 					* dataInitialNode[VIx][k][iA][iB];
 
 				// Pointwise pressure
@@ -865,16 +867,14 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusion(
 
 		const PatchBox & box = pPatch->GetPatchBox();
 
-		const DataMatrix<double> & dJacobian =
-			pPatch->GetJacobian2D();
+		const DataMatrix3D<double> & dJacobianNode =
+			pPatch->GetJacobian();
+		const DataMatrix3D<double> & dJacobianREdge =
+			pPatch->GetJacobianREdge();
 		const DataMatrix3D<double> & dContraMetricA =
 			pPatch->GetContraMetric2DA();
 		const DataMatrix3D<double> & dContraMetricB =
 			pPatch->GetContraMetric2DB();
-		const DataMatrix<double> & dTopography =
-			pPatch->GetTopography();
-
-		const double dZtop = pGrid->GetZtop();
 
 		// Grid data
 		GridData4D & dataInitialNode =
@@ -916,15 +916,18 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusion(
 
 			double *** pDataInitial;
 			double *** pDataUpdate;
+			double *** pJacobian;
 			if (pGrid->GetVarLocation(c) == DataLocation_Node) {
 				pDataInitial = dataInitialNode[c];
 				pDataUpdate  = dataUpdateNode[c];
 				nElementCountR = dataInitialNode.GetRElements();
+				pJacobian = dJacobianNode;
 
 			} else if (pGrid->GetVarLocation(c) == DataLocation_REdge) {
 				pDataInitial = dataInitialREdge[c];
 				pDataUpdate  = dataUpdateREdge[c];
 				nElementCountR = dataInitialREdge.GetRElements();
+				pJacobian = dJacobianREdge;
 
 			} else {
 				_EXCEPTIONT("UNIMPLEMENTED");
@@ -959,14 +962,11 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusion(
 					dDaPsi /= dElementDeltaA;
 					dDbPsi /= dElementDeltaB;
 
-#pragma message "There should probably be a better method than using DomainHeight"
-					double dDomainHeight = dZtop - dTopography[iA][iB];
-
-					m_dJGradientA[i][j] = dJacobian[iA][iB] * dDomainHeight * (
+					m_dJGradientA[i][j] = pJacobian[k][iA][iB] * (
 						+ dContraMetricA[iA][iB][0] * dDaPsi
 						+ dContraMetricA[iA][iB][1] * dDbPsi);
 
-					m_dJGradientB[i][j] = dJacobian[iA][iB] * dDomainHeight * (
+					m_dJGradientB[i][j] = pJacobian[k][iA][iB] * (
 						+ dContraMetricB[iA][iB][0] * dDaPsi
 						+ dContraMetricB[iA][iB][1] * dDbPsi);
 				}
@@ -996,10 +996,7 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusion(
 					dUpdateB /= dElementDeltaB;
 
 					// Apply update
-					double dDomainHeight = dZtop - dTopography[iA][iB];
-
-					double dInvJacobian =
-						1.0 / (dJacobian[iA][iB] * dDomainHeight);
+					double dInvJacobian = 1.0 / pJacobian[k][iA][iB];
 
 					pDataUpdate[k][iA][iB] -=
 						dDeltaT * dInvJacobian * dLocalNu

@@ -182,10 +182,6 @@ void GridPatchCSGLL::EvaluateTopography(
 			dLon, dLat);
 
 		m_dataTopography[i][j] = test.EvaluateTopography(phys, dLon, dLat);
-
-		if (m_dataTopography[i][j] >= m_grid.GetZtop()) {
-			_EXCEPTIONT("TestCase topography exceeds model top.");
-		}
 	}
 	}
 }
@@ -196,6 +192,16 @@ void GridPatchCSGLL::EvaluateGeometricTerms() {
 
 	// Physical constants
 	const PhysicalConstants & phys = m_grid.GetModel().GetPhysicalConstants();
+
+	// 2D equation set
+	bool fIs2DEquationSet = false;
+	if (m_grid.GetModel().GetEquationSet().GetDimensionality() == 2) {
+		fIs2DEquationSet = true;
+	}
+
+	if ((fIs2DEquationSet) && (m_grid.GetZtop() != 1.0)) {
+		_EXCEPTIONT("Ztop must be 1.0 for 2D equation sets");
+	}
 
 	// Obtain Gauss Lobatto quadrature nodes and weights
 	DataVector<double> dGL;
@@ -258,6 +264,13 @@ void GridPatchCSGLL::EvaluateGeometricTerms() {
 		}
 		dDaZs /= GetElementDeltaA();
 		dDbZs /= GetElementDeltaB();
+
+		// 2D equations
+		if (fIs2DEquationSet) {
+			dZs = 0.0;
+			dDaZs = 0.0;
+			dDbZs = 0.0;
+		}
 
 		// Initialize 2D Jacobian
 		m_dataJacobian2D[iA][iB] =
@@ -402,17 +415,17 @@ void GridPatchCSGLL::EvaluateGeometricTerms() {
 			double dDxR = m_grid.GetZtop() - dZs;
 
 			// Calculate pointwise Jacobian
-			double dJacobian =
+			m_dataJacobianREdge[k][iA][iB] =
 				(1.0 + dX * dX) * (1.0 + dY * dY) / (dDelta * dDelta * dDelta);
 
-			dJacobian *=
+			m_dataJacobianREdge[k][iA][iB] *=
 				dDxR
 				* phys.GetEarthRadius()
 				* phys.GetEarthRadius();
 
 			// Element area associated with each model interface GLL node
 			m_dataElementAreaREdge[k][iA][iB] =
-				dJacobian
+				m_dataJacobianREdge[k][iA][iB]
 				* dWL[i] * GetElementDeltaA()
 				* dWL[j] * GetElementDeltaB()
 				* dWREdge[kx] * dElementDeltaXi;
@@ -454,10 +467,14 @@ void GridPatchCSGLL::EvaluateTestCase(
 		_EXCEPTIONT("Invalid iDataIndex (out of range)");
 	}
 
+	// 2D equation set
+	bool fIs2DEquationSet = false;
+	if (m_grid.GetModel().GetEquationSet().GetDimensionality() == 2) {
+		fIs2DEquationSet = true;
+	}
+
 	// Check dimensionality
-	if ((m_grid.GetModel().GetEquationSet().GetDimensionality() == 2) &&
-		(m_nVerticalOrder != 1)
-	) {
+	if (fIs2DEquationSet && (m_nVerticalOrder != 1)) {
 		_EXCEPTIONT("VerticalOrder / Dimensionality mismatch:\n"
 			"For 2D problems vertical order must be 1.");
 	}
@@ -475,24 +492,35 @@ void GridPatchCSGLL::EvaluateTestCase(
 	}
 	}
 
-	// Initialize the topography at each node
-	for (int i = 0; i < m_box.GetATotalWidth(); i++) {
-	for (int j = 0; j < m_box.GetBTotalWidth(); j++) {
+	// Initialize the vertical height in each node
+	if (fIs2DEquationSet) {
+		for (int i = 0; i < m_box.GetATotalWidth(); i++) {
+		for (int j = 0; j < m_box.GetBTotalWidth(); j++) {
+			m_dataZLevels[0][i][j] = 0.0;
+			m_dataZInterfaces[0][i][j] = 0.0;
+			m_dataZInterfaces[1][i][j] = 1.0;
+		}
+		}
 
-		// Gal-Chen and Sommerville vertical coordinate
-		for (int k = 0; k < m_grid.GetRElements(); k++) {
-			m_dataZLevels[k][i][j] =
-				m_dataTopography[i][j]
-					+ m_grid.GetREtaLevel(k)
-						* (m_grid.GetZtop() - m_dataTopography[i][j]);
+	} else {
+		for (int i = 0; i < m_box.GetATotalWidth(); i++) {
+		for (int j = 0; j < m_box.GetBTotalWidth(); j++) {
+
+			// Gal-Chen and Sommerville vertical coordinate
+			for (int k = 0; k < m_grid.GetRElements(); k++) {
+				m_dataZLevels[k][i][j] =
+					m_dataTopography[i][j]
+						+ m_grid.GetREtaLevel(k)
+							* (m_grid.GetZtop() - m_dataTopography[i][j]);
+			}
+			for (int k = 0; k <= m_grid.GetRElements(); k++) {
+				m_dataZInterfaces[k][i][j] =
+					m_dataTopography[i][j]
+						+ m_grid.GetREtaInterface(k)
+							* (m_grid.GetZtop() - m_dataTopography[i][j]);
+			}
 		}
-		for (int k = 0; k <= m_grid.GetRElements(); k++) {
-			m_dataZInterfaces[k][i][j] =
-				m_dataTopography[i][j]
-					+ m_grid.GetREtaInterface(k)
-						* (m_grid.GetZtop() - m_dataTopography[i][j]);
 		}
-	}
 	}
 
 	// Initialize the Rayleigh friction strength at each node
@@ -548,20 +576,7 @@ void GridPatchCSGLL::EvaluateTestCase(
 			m_dataLat[i][j],
 			dPointwiseState,
 			dPointwiseTracers);
-/*
-		double dPressure =
-			phys.PressureFromRhoTheta(
-				dPointwiseState[2] * dPointwiseState[4]);
 
-		double dLocalWaveSpeed =
-			sqrt(phys.GetGamma() * dPressure / dPointwiseState[4])
-				+ sqrt(dPointwiseState[0] * dPointwiseState[0]
-					+ dPointwiseState[1] * dPointwiseState[1]);
-
-		if (dLocalWaveSpeed > dMaxWaveSpeed) {
-			dMaxWaveSpeed = dLocalWaveSpeed;
-		}
-*/
 		for (int c = 0; c < dPointwiseState.GetRows(); c++) {
 			m_datavecStateNode[iDataIndex][c][k][i][j] = dPointwiseState[c];
 		}
@@ -620,8 +635,6 @@ void GridPatchCSGLL::EvaluateTestCase(
 	}
 	}
 	}
-
-	//printf("Maximum wave speed: %1.5e\n", dMaxWaveSpeed);
 
 	// Evaluate the state on model interfaces
 	for (int k = 0; k <= m_grid.GetRElements(); k++) {
