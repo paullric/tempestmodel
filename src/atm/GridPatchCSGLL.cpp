@@ -233,6 +233,13 @@ void GridPatchCSGLL::EvaluateGeometricTerms() {
 		  m_grid.GetREtaInterface(m_nVerticalOrder)
 		- m_grid.GetREtaInterface(0);
 
+	// Initialize the Coriolis force at each node
+	for (int i = 0; i < m_box.GetATotalWidth(); i++) {
+	for (int j = 0; j < m_box.GetBTotalWidth(); j++) {
+		m_dataCoriolisF[i][j] = 2.0 * phys.GetOmega() * sin(m_dataLat[i][j]);
+	}
+	}
+
 	// Initialize metric and Christoffel symbols in terrain-following coords
 	for (int a = 0; a < GetElementCountA(); a++) {
 	for (int b = 0; b < GetElementCountB(); b++) {
@@ -485,13 +492,6 @@ void GridPatchCSGLL::EvaluateTestCase(
 	// Physical constants
 	const PhysicalConstants & phys = m_grid.GetModel().GetPhysicalConstants();
 
-	// Initialize the Coriolis force at each node
-	for (int i = 0; i < m_box.GetATotalWidth(); i++) {
-	for (int j = 0; j < m_box.GetBTotalWidth(); j++) {
-		m_dataCoriolisF[i][j] = 2.0 * phys.GetOmega() * sin(m_dataLat[i][j]);
-	}
-	}
-
 	// Initialize the vertical height in each node
 	if (fIs2DEquationSet) {
 		for (int i = 0; i < m_box.GetATotalWidth(); i++) {
@@ -700,6 +700,89 @@ void GridPatchCSGLL::EvaluateTestCase(
 				m_dataRefStateREdge[0][k][i][j],
 				m_dataRefStateREdge[1][k][i][j]);
 		}
+	}
+	}
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void GridPatchCSGLL::EvaluateTestCase_StateOnly(
+	const TestCase & test,
+	const Time & time,
+	int iDataIndex
+) {
+	// Initialize the data at each node
+	if (m_datavecStateNode.size() == 0) {
+		_EXCEPTIONT("InitializeData must be called before InitialConditions");
+	}
+	if (iDataIndex >= m_datavecStateNode.size()) {
+		_EXCEPTIONT("Invalid iDataIndex (out of range)");
+	}
+
+	// 2D equation set
+	bool fIs2DEquationSet = false;
+	if (m_grid.GetModel().GetEquationSet().GetDimensionality() == 2) {
+		fIs2DEquationSet = true;
+	}
+
+	// Check dimensionality
+	if (fIs2DEquationSet && (m_nVerticalOrder != 1)) {
+		_EXCEPTIONT("VerticalOrder / Dimensionality mismatch:\n"
+			"For 2D problems vertical order must be 1.");
+	}
+
+	// Physical constants
+	const PhysicalConstants & phys = m_grid.GetModel().GetPhysicalConstants();
+
+	// Buffer vector for storing pointwise states
+	int nComponents = m_grid.GetModel().GetEquationSet().GetComponents();
+	int nTracers = m_grid.GetModel().GetEquationSet().GetTracers();
+
+	DataVector<double> dPointwiseState;
+	dPointwiseState.Initialize(nComponents);
+
+	DataVector<double> dPointwiseTracers;
+	if (m_datavecTracers.size() > 0) {
+		dPointwiseTracers.Initialize(nTracers);
+	}
+
+	// Loop over all nodes
+	for (int k = 0; k < m_grid.GetRElements(); k++) {
+	for (int i = 0; i < m_box.GetATotalWidth(); i++) {
+	for (int j = 0; j < m_box.GetBTotalWidth(); j++) {
+
+		// Evaluate pointwise state
+		test.EvaluatePointwiseState(
+			phys,
+			time,
+			m_dataZLevels[k][i][j],
+			m_dataLon[i][j],
+			m_dataLat[i][j],
+			dPointwiseState,
+			dPointwiseTracers);
+
+		for (int c = 0; c < dPointwiseState.GetRows(); c++) {
+			m_datavecStateNode[iDataIndex][c][k][i][j] = dPointwiseState[c];
+		}
+
+		// Transform state velocities
+		double dUlon;
+		double dUlat;
+
+		dUlon = m_datavecStateNode[iDataIndex][0][k][i][j];
+		dUlat = m_datavecStateNode[iDataIndex][1][k][i][j];
+
+		dUlon /= phys.GetEarthRadius();
+		dUlat /= phys.GetEarthRadius();
+
+		CubedSphereTrans::VecTransABPFromRLL(
+			tan(m_box.GetANode(i)),
+			tan(m_box.GetBNode(j)),
+			m_box.GetPanel(),
+			dUlon, dUlat,
+			m_datavecStateNode[iDataIndex][0][k][i][j],
+			m_datavecStateNode[iDataIndex][1][k][i][j]);
 	}
 	}
 	}

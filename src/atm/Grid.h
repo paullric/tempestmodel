@@ -111,9 +111,19 @@ protected:
 	);
 
 	///	<summary>
-	///		Evaluate the test case.
+	///		Initialize state and tracer data from a TestCase.  Also adjust
+	///		geometric quantities that are dependent on the TestCase.
 	///	</summary>
 	void EvaluateTestCase(
+		const TestCase & test,
+		const Time & time,
+		int iDataIndex = 0
+	);
+
+	///	<summary>
+	///		Initialize state and tracer data from a TestCase.
+	///	</summary>
+	void EvaluateTestCase_StateOnly(
 		const TestCase & test,
 		const Time & time,
 		int iDataIndex = 0

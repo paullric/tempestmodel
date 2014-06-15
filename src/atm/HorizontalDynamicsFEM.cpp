@@ -157,7 +157,7 @@ void HorizontalDynamicsFEM::StepShallowWater(
 				int iA = a * m_nHorizontalOrder + i + box.GetHaloElements();
 				int iB = b * m_nHorizontalOrder + j + box.GetHaloElements();
 
-				// Density flux
+				// Height flux
 				m_dAlphaFlux[i][j] =
 					dJacobian[k][iA][iB]
 					* (dataInitialNode[HIx][k][iA][iB] - dTopography[iA][iB])

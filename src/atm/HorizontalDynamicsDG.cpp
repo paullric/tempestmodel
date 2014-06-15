@@ -92,6 +92,8 @@ void HorizontalDynamicsDG::StepShallowWater(
 			pPatch->GetChristoffelB();
 		const DataMatrix<double> & dCoriolisF =
 			pPatch->GetCoriolisF();
+		const DataMatrix<double> & dTopography =
+			pPatch->GetTopography();
 
 		// Connectivity for patch
 		Connectivity & connect = pPatch->GetConnectivity();
@@ -125,15 +127,15 @@ void HorizontalDynamicsDG::StepShallowWater(
 				int iA = a * m_nHorizontalOrder + i + box.GetHaloElements();
 				int iB = b * m_nHorizontalOrder + j + box.GetHaloElements();
 
-				// Density flux
+				// Height flux
 				m_dAlphaFlux[i][j] =
 					dJacobian[k][iA][iB]
-					* dataInitialNode[HIx][k][iA][iB]
+					* (dataInitialNode[HIx][k][iA][iB] - dTopography[iA][iB])
 					* dataInitialNode[UIx][k][iA][iB];
 
 				m_dBetaFlux[i][j] =
 					dJacobian[k][iA][iB]
-					* dataInitialNode[HIx][k][iA][iB]
+					* (dataInitialNode[HIx][k][iA][iB] - dTopography[iA][iB])
 					* dataInitialNode[VIx][k][iA][iB];
 
 				// Pointwise pressure
@@ -263,592 +265,36 @@ void HorizontalDynamicsDG::StepShallowWater(
 						+ dContraMetricB[k][iA][iB][1] * dUa
 						- dContraMetricB[k][iA][iB][0] * dUb);
 
-				// Spectral Element Dynamics
-				if (1) {//m_eHorizontalDynamicsType == SpectralElement) {
+				// Interior dynamics
+				double dLocalUpdateUaDiff = 0.0;
+				double dLocalUpdateUbDiff = 0.0;
 
-					double dLocalUpdateUaDiff = 0.0;
-					double dLocalUpdateUbDiff = 0.0;
+				dLocalUpdateUaDiff +=
+					- dUa * dDaUa - dContraMetricA[k][iA][iB][0] * dDaP
+					- dUb * dDbUa - dContraMetricA[k][iA][iB][1] * dDbP;
 
-					dLocalUpdateUaDiff +=
-						- dUa * dDaUa - dContraMetricA[k][iA][iB][0] * dDaP
-						- dUb * dDbUa - dContraMetricA[k][iA][iB][1] * dDbP;
+				dLocalUpdateUbDiff +=
+					- dUa * dDaUb - dContraMetricB[k][iA][iB][0] * dDaP
+					- dUb * dDbUb - dContraMetricB[k][iA][iB][1] * dDbP;
 
-					dLocalUpdateUbDiff +=
-						- dUa * dDaUb - dContraMetricB[k][iA][iB][0] * dDaP
-						- dUb * dDbUb - dContraMetricB[k][iA][iB][1] * dDbP;
-/*
-					if ((iA == 4) && (iB == 5)) {
-						printf("A: %1.10e %1.10e\n", dLocalUpdateUaDiff, dLocalUpdateUbDiff);
-						printf("B: %1.10e %1.10e\n", dLocalUpdateUa, dLocalUpdateUb);
-					}
-*/
 #ifndef ADVECTION_ONLY
-					// Apply update
-					dataUpdateNode[UIx][k][iA][iB] +=
-						dDeltaT * (dLocalUpdateUa + dLocalUpdateUaDiff);
-					dataUpdateNode[VIx][k][iA][iB] +=
-						dDeltaT * (dLocalUpdateUb + dLocalUpdateUbDiff);
+				// Apply update
+				dataUpdateNode[UIx][k][iA][iB] +=
+					dDeltaT * (dLocalUpdateUa + dLocalUpdateUaDiff);
+				dataUpdateNode[VIx][k][iA][iB] +=
+					dDeltaT * (dLocalUpdateUb + dLocalUpdateUbDiff);
 #endif
 
-					//dataUpdateNode[UIx][k][iA][iB] += dDeltaT * dLocalUpdateUa;
-					//dataUpdateNode[VIx][k][iA][iB] += dDeltaT * dLocalUpdateUb;
+				// Update free surface height
+				dataUpdateNode[HIx][k][iA][iB] +=
+					dDeltaT * (dLocalUpdateHa + dLocalUpdateHb);
 
-					// Update free surface height
-					dataUpdateNode[HIx][k][iA][iB] +=
-						dDeltaT * (dLocalUpdateHa + dLocalUpdateHb);
-
-				// Discontinuous Galerkin Dynamics
-				} else {
-
-					// Flux reconstruction update coefficient
-					double dUpdateDeriv =
-						  dDeltaT
-						/ dGLLWeights1D[m_nHorizontalOrder-1]
-						/ dElementDeltaA;
-
-					double dLocalUpdateUaDiffA = 0.0;
-					double dLocalUpdateUaDiffB = 0.0;
-					double dLocalUpdateUbDiffA = 0.0;
-					double dLocalUpdateUbDiffB = 0.0;
-
-					dLocalUpdateUaDiffA =
-						- dUa * dDaUa - dContraMetricA[k][iA][iB][0] * dDaP;
-
-					dLocalUpdateUaDiffB =
-						- dUb * dDbUa - dContraMetricA[k][iA][iB][1] * dDbP;
-
-					dLocalUpdateUbDiffA =
-						- dUa * dDaUb - dContraMetricB[k][iA][iB][0] * dDaP;
-
-					dLocalUpdateUbDiffB =
-						- dUb * dDbUb - dContraMetricB[k][iA][iB][1] * dDbP;
-
-					dataUpdateNode[UIx][k][iA][iB] +=
-						dDeltaT * dLocalUpdateUa;
-					dataUpdateNode[VIx][k][iA][iB] +=
-						dDeltaT * dLocalUpdateUb;
-
-					if (i == 0) {
-						if (a == 0) {
-
-							double dRemoteUpdateHa = dLocalUpdateHa;
-							double dRemoteUpdateHb = dLocalUpdateHb;
-
-/*
-							connect.SetSendBuffer(
-								Direction_Left, UIx, k, iB,
-								0.5 * dDeltaT * dLocalUpdateUaDiffA);
-							connect.SetSendBuffer(
-								Direction_Left, VIx, k, iB,
-								0.5 * dDeltaT * dLocalUpdateUbDiffA);
-*/
-							connect.SetSendBuffer(
-								Direction_Left, HIx, k, iB,
-								0.5 * dDeltaT * dRemoteUpdateHa);
-
-							if (n == 0) {
-								printf("R: %1.15e\n", dLocalUpdateHa);
-							}
-
-							dataUpdateNode[UIx][k][iA][iB] +=
-								0.5 * dDeltaT * dLocalUpdateUaDiffA;
-							dataUpdateNode[VIx][k][iA][iB] +=
-								0.5 * dDeltaT * dLocalUpdateUbDiffA;
-							dataUpdateNode[HIx][k][iA][iB] +=
-								0.5 * dDeltaT * dLocalUpdateHa;
-
-						} else {
-							dataUpdateNode[UIx][k][iA-1][iB] +=
-								0.5 * dDeltaT * dLocalUpdateUaDiffA;
-							dataUpdateNode[VIx][k][iA-1][iB] +=
-								0.5 * dDeltaT * dLocalUpdateUbDiffA;
-							dataUpdateNode[HIx][k][iA-1][iB] +=
-								0.5 * dDeltaT * dLocalUpdateHa;
-						}
-
-						dataUpdateNode[UIx][k][iA][iB] +=
-							0.5 * dDeltaT * dLocalUpdateUaDiffA;
-						dataUpdateNode[VIx][k][iA][iB] +=
-							0.5 * dDeltaT * dLocalUpdateUbDiffA;
-						dataUpdateNode[HIx][k][iA][iB] +=
-							0.5 * dDeltaT * dLocalUpdateHa;
-
-					} else if (i == m_nHorizontalOrder-1) {
-
-						if (a == nElementCountA-1) {
-
-							double dRemoteUpdateHa = dLocalUpdateHa;
-							double dRemoteUpdateHb = dLocalUpdateHb;
-
-							if (n == 0) {
-								printf("L: %1.15e %1.15e\n", dLocalUpdateHa, dRemoteUpdateHa);
-							}
-
-/*
-							connect.SetSendBuffer(
-								Direction_Right, UIx, k, iB,
-								0.5 * dDeltaT * dLocalUpdateUaDiffA);
-							connect.SetSendBuffer(
-								Direction_Right, VIx, k, iB,
-								0.5 * dDeltaT * dLocalUpdateUbDiffA);
-*/
-							connect.SetSendBuffer(
-								Direction_Right, HIx, k, iB,
-								0.5 * dDeltaT * dRemoteUpdateHa);
-
-							dataUpdateNode[UIx][k][iA][iB] +=
-								0.5 * dDeltaT * dLocalUpdateUaDiffA;
-							dataUpdateNode[VIx][k][iA][iB] +=
-								0.5 * dDeltaT * dLocalUpdateUbDiffA;
-							dataUpdateNode[HIx][k][iA][iB] +=
-								0.5 * dDeltaT * dLocalUpdateHa;
-
-						} else {
-							dataUpdateNode[UIx][k][iA+1][iB] +=
-								0.5 * dDeltaT * dLocalUpdateUaDiffA;
-							dataUpdateNode[VIx][k][iA+1][iB] +=
-								0.5 * dDeltaT * dLocalUpdateUbDiffA;
-							dataUpdateNode[HIx][k][iA+1][iB] +=
-								0.5 * dDeltaT * dLocalUpdateHa;
-						}
-
-						dataUpdateNode[UIx][k][iA][iB] +=
-							0.5 * dDeltaT * dLocalUpdateUaDiffA;
-						dataUpdateNode[VIx][k][iA][iB] +=
-							0.5 * dDeltaT * dLocalUpdateUbDiffA;
-						dataUpdateNode[HIx][k][iA][iB] +=
-							0.5 * dDeltaT * dLocalUpdateHa;
-
-					} else {
-						dataUpdateNode[UIx][k][iA][iB] +=
-							dDeltaT * dLocalUpdateUaDiffA;
-						dataUpdateNode[VIx][k][iA][iB] +=
-							dDeltaT * dLocalUpdateUbDiffA;
-						dataUpdateNode[HIx][k][iA][iB] +=
-							dDeltaT * dLocalUpdateHa;
-					}
-
-					if (j == 0) {
-						if (b == 0) {
-
-							double dRemoteUpdateHa = dLocalUpdateHa;
-							double dRemoteUpdateHb = dLocalUpdateHb;
-/*
-							connect.SetSendBuffer(
-								Direction_Bottom, UIx, k, iA,
-								0.5 * dDeltaT * dLocalUpdateUaDiffB);
-							connect.SetSendBuffer(
-								Direction_Bottom, VIx, k, iA,
-								0.5 * dDeltaT * dLocalUpdateUbDiffB);
-*/
-							connect.SetSendBuffer(
-								Direction_Bottom, HIx, k, iA,
-								0.5 * dDeltaT * dRemoteUpdateHb);
-
-							dataUpdateNode[UIx][k][iA][iB] +=
-								0.5 * dDeltaT * dLocalUpdateUaDiffB;
-							dataUpdateNode[VIx][k][iA][iB] +=
-								0.5 * dDeltaT * dLocalUpdateUbDiffB;
-							dataUpdateNode[HIx][k][iA][iB] +=
-								0.5 * dDeltaT * dLocalUpdateHb;
-
-						} else {
-							dataUpdateNode[UIx][k][iA][iB-1] +=
-								0.5 * dDeltaT * dLocalUpdateUaDiffB;
-							dataUpdateNode[VIx][k][iA][iB-1] +=
-								0.5 * dDeltaT * dLocalUpdateUbDiffB;
-							dataUpdateNode[HIx][k][iA][iB-1] +=
-								0.5 * dDeltaT * dLocalUpdateHb;
-						}
-
-						dataUpdateNode[UIx][k][iA][iB] +=
-							0.5 * dDeltaT * dLocalUpdateUaDiffB;
-						dataUpdateNode[VIx][k][iA][iB] +=
-							0.5 * dDeltaT * dLocalUpdateUbDiffB;
-						dataUpdateNode[HIx][k][iA][iB] +=
-							0.5 * dDeltaT * dLocalUpdateHb;
-
-					} else if (j == m_nHorizontalOrder-1) {
-						if (b == nElementCountB-1) {
-
-							double dRemoteUpdateHa = dLocalUpdateHa;
-							double dRemoteUpdateHb = dLocalUpdateHb;
-/*
-							connect.SetSendBuffer(
-								Direction_Top, UIx, k, iA,
-								0.5 * dDeltaT * dLocalUpdateUaDiffB);
-							connect.SetSendBuffer(
-								Direction_Top, VIx, k, iA,
-								0.5 * dDeltaT * dLocalUpdateUbDiffB);
-*/
-							connect.SetSendBuffer(
-								Direction_Top, HIx, k, iA,
-								0.5 * dDeltaT * dRemoteUpdateHb);
-
-							dataUpdateNode[UIx][k][iA][iB] +=
-								0.5 * dDeltaT * dLocalUpdateUaDiffB;
-							dataUpdateNode[VIx][k][iA][iB] +=
-								0.5 * dDeltaT * dLocalUpdateUbDiffB;
-							dataUpdateNode[HIx][k][iA][iB] +=
-								0.5 * dDeltaT * dLocalUpdateHb;
-
-						} else {
-							dataUpdateNode[UIx][k][iA][iB+1] +=
-								0.5 * dDeltaT * dLocalUpdateUaDiffB;
-							dataUpdateNode[VIx][k][iA][iB+1] +=
-								0.5 * dDeltaT * dLocalUpdateUbDiffB;
-							dataUpdateNode[HIx][k][iA][iB+1] +=
-								0.5 * dDeltaT * dLocalUpdateHb;
-						}
-
-						dataUpdateNode[UIx][k][iA][iB] +=
-							0.5 * dDeltaT * dLocalUpdateUaDiffB;
-						dataUpdateNode[VIx][k][iA][iB] +=
-							0.5 * dDeltaT * dLocalUpdateUbDiffB;
-						dataUpdateNode[HIx][k][iA][iB] +=
-							0.5 * dDeltaT * dLocalUpdateHb;
-
-					} else {
-						dataUpdateNode[UIx][k][iA][iB] +=
-							dDeltaT * dLocalUpdateUaDiffB;
-						dataUpdateNode[VIx][k][iA][iB] +=
-							dDeltaT * dLocalUpdateUbDiffB;
-						dataUpdateNode[HIx][k][iA][iB] +=
-							dDeltaT * dLocalUpdateHb;
-					}
-
-/*
-					double dLocalUpdateUaDiff = 0.0;
-					double dLocalUpdateUbDiff = 0.0;
-
-					double dDaGaa = 0.0;
-					double dDaGba = 0.0;
-					double dDbGab = 0.0;
-					double dDbGbb = 0.0;
-
-					for (int s = 0; s < m_nHorizontalOrder; s++) {
-						dDaGaa +=
-							dDxBasis1D[s][i]
-							* dContraMetricA[k][iElementA+s][iB][0];
-
-						dDaGba +=
-							dDxBasis1D[s][i]
-							* dContraMetricB[k][iElementA+s][iB][0];
-
-						dDbGab +=
-							dDxBasis1D[s][j]
-							* dContraMetricA[k][iA][iElementB+s][1];
-
-						dDbGbb +=
-							dDxBasis1D[s][j]
-							* dContraMetricB[k][iA][iElementB+s][1];
-					}
-
-					dDaGaa /= dElementDeltaA;
-					dDaGba /= dElementDeltaA;
-					dDbGab /= dElementDeltaB;
-					dDbGbb /= dElementDeltaB;
-
-					for (int s = 0; s < m_nHorizontalOrder; s++) {
-						double dInteriorUaA = 
-							m_dPressure[s][j]
-								* dContraMetricA[k][iElementA+s][iB][0]
-							+ dataInitialNode[UIx][k][iElementA+s][iB]
-								* dataInitialNode[UIx][k][iElementA+s][iB];
-
-						dLocalUpdateUaDiff +=
-							dJacobian[k][iElementA+s][iB]
-							* dStiffness1D[i][s]
-							/ dElementDeltaA
-							* dInteriorUaA;
-
-						double dInteriorUaB =
-							m_dPressure[i][s]
-								* dContraMetricA[k][iA][iElementB+s][1]
-							+ dataInitialNode[UIx][k][iA][iElementB+s]
-								* dataInitialNode[VIx][k][iA][iElementB+s];
-
-						dLocalUpdateUaDiff +=
-							dJacobian[k][iA][iElementB+s]
-							* dStiffness1D[j][s]
-							/ dElementDeltaB
-							* dInteriorUaB;
-
-						if ((n == 0) && (iA == 4) && (iB == 5)) {
-							//printf("%i %1.5e %1.5e\n",
-							//	s, dStiffness1D[i][s], dLocalUpdateUaDiff);
-							//m_dPressure[s][j]
-							//	* dContraMetricA[k][iA][iB][0],
-							//+ dataInitialNode[UIx][k][iElementA+s][iB]
-							//	* dataInitialNode[UIx][k][iA][iB]);
-						}
-
-						double dInteriorUbA =
-							m_dPressure[s][j]
-								* dContraMetricB[k][iElementA+s][iB][0]
-							+ dataInitialNode[VIx][k][iElementA+s][iB]
-								* dataInitialNode[UIx][k][iElementA+s][iB];
-
-						dLocalUpdateUbDiff +=
-							dJacobian[k][iElementA+s][iB]
-							* dStiffness1D[i][s]
-							/ dElementDeltaA
-							* dInteriorUbA;
-
-						double dInteriorUbB =
-							m_dPressure[i][s]
-								* dContraMetricB[k][iA][iElementB+s][1]
-							+ dataInitialNode[VIx][k][iA][iElementB+s]
-								* dataInitialNode[VIx][k][iA][iElementB+s];
-
-						dLocalUpdateUbDiff +=
-							dJacobian[k][iA][iElementB+s]
-							* dStiffness1D[j][s]
-							/ dElementDeltaB
-							* dInteriorUbB;
-					}
-
-					dLocalUpdateUaDiff /= dJacobian[k][iA][iB];
-					dLocalUpdateUbDiff /= dJacobian[k][iA][iB];
-
-					//dLocalUpdateUaDiff +=
-					//	m_dPressure[i][j] * (dDaGaa + dDbGab)
-					//	+ dUa * (dDaUa + dDbUb);
-
-					//dLocalUpdateUbDiff +=
-					//	m_dPressure[i][j] * (dDaGba + dDbGbb)
-					//	+ dUb * (dDaUa + dDbUb);
-
-					//if ((iA == 4) && (iB == 5)) {
-					//	printf("A: %1.10e %1.10e\n", dLocalUpdateUaDiff, dLocalUpdateUbDiff);
-					//	printf("B: %1.10e %1.10e\n", dLocalUpdateUa, dLocalUpdateUb);
-					//}
-
-					// Apply update
-					dataUpdateNode[UIx][k][iA][iB] +=
-						dDeltaT * (dLocalUpdateUa + dLocalUpdateUaDiff);
-					dataUpdateNode[VIx][k][iA][iB] +=
-						dDeltaT * (dLocalUpdateUb + dLocalUpdateUbDiff);
-
-					// Update free surface height
-					dataUpdateNode[HIx][k][iA][iB] +=
-						dDeltaT * (dLocalUpdateHa + dLocalUpdateHb);
-*/
-/*
-					dataUpdateNode[UIx][k][iA][iB] += dDeltaT * dLocalUpdateUa;
-					dataUpdateNode[VIx][k][iA][iB] += dDeltaT * dLocalUpdateUb;
-
-					if ((i == 0) || (i == m_nHorizontalOrder-1)) {
-						dataUpdateNode[UIx][k][iA][iB] +=
-							0.5 * dDeltaT * dLocalUpdateDiffUa;
-						dataUpdateNode[VIx][k][iA][iB] +=
-							0.5 * dDeltaT * dLocalUpdateDiffUb;
-						dataUpdateNode[HIx][k][iA][iB] +=
-							0.5 * dDeltaT * dLocalUpdateDiffHa;
-
-						if (i == 0) {
-							if (a == 0) {
-								connect.SetSendBuffer(
-									Direction_Left, UIx, k, iB,
-									0.5 * dDeltaT * dLocalUpdateDiffUa);
-								connect.SetSendBuffer(
-									Direction_Left, VIx, k, iB,
-									0.5 * dDeltaT * dLocalUpdateDiffUb);
-								connect.SetSendBuffer(
-									Direction_Left, HIx, k, iB,
-									0.5 * dDeltaT * dLocalUpdateDiffHa);
-
-							} else {
-								dataUpdateNode[UIx][k][iA-1][iB] +=
-									0.5 * dDeltaT * dLocalUpdateDiffUa;
-								dataUpdateNode[VIx][k][iA-1][iB] +=
-									0.5 * dDeltaT * dLocalUpdateDiffUb;
-								dataUpdateNode[HIx][k][iA-1][iB] +=
-									0.5 * dDeltaT * dLocalUpdateDiffHa;
-							}
-
-						} else if (i == m_nHorizontalOrder - 1) {
-							if (a == nElementCountA - 1) {
-								connect.SetSendBuffer(
-									Direction_Right, UIx, k, iB,
-									0.5 * dDeltaT * dLocalUpdateDiffUa);
-								connect.SetSendBuffer(
-									Direction_Right, VIx, k, iB,
-									0.5 * dDeltaT * dLocalUpdateDiffUb);
-								connect.SetSendBuffer(
-									Direction_Right, HIx, k, iB,
-									0.5 * dDeltaT * dLocalUpdateDiffHa);
-
-							} else {
-								dataUpdateNode[UIx][k][iA+1][iB] +=
-									0.5 * dDeltaT * dLocalUpdateDiffUa;
-								dataUpdateNode[VIx][k][iA+1][iB] +=
-									0.5 * dDeltaT * dLocalUpdateDiffUb;
-								dataUpdateNode[HIx][k][iA+1][iB] +=
-									0.5 * dDeltaT * dLocalUpdateDiffHa;
-							}
-						}
-
-					} else {
-						dataUpdateNode[UIx][k][iA][iB] +=
-							dDeltaT * dLocalUpdateDiffUa;
-						dataUpdateNode[VIx][k][iA][iB] +=
-							dDeltaT * dLocalUpdateDiffUb;
-						dataUpdateNode[HIx][k][iA][iB] +=
-							dDeltaT * dLocalUpdateDiffHa;
-					}
-
-					if ((j == 0) || (j == m_nHorizontalOrder-1)) {
-						dataUpdateNode[UIx][k][iA][iB] +=
-							0.5 * dDeltaT * dLocalUpdateDiffUa;
-						dataUpdateNode[VIx][k][iA][iB] +=
-							0.5 * dDeltaT * dLocalUpdateDiffUb;
-						dataUpdateNode[HIx][k][iA][iB] +=
-							0.5 * dDeltaT * dLocalUpdateDiffHb;
-
-						if (j == 0) {
-							if (b == 0) {
-								connect.SetSendBuffer(
-									Direction_Bottom, UIx, k, iA,
-									0.5 * dDeltaT * dLocalUpdateDiffUa);
-								connect.SetSendBuffer(
-									Direction_Bottom, VIx, k, iA,
-									0.5 * dDeltaT * dLocalUpdateDiffUb);
-								connect.SetSendBuffer(
-									Direction_Bottom, HIx, k, iA,
-									0.5 * dDeltaT * dLocalUpdateDiffHb);
-
-							} else {
-								dataUpdateNode[UIx][k][iA][iB-1] +=
-									0.5 * dDeltaT * dLocalUpdateDiffUa;
-								dataUpdateNode[VIx][k][iA][iB-1] +=
-									0.5 * dDeltaT * dLocalUpdateDiffUb;
-								dataUpdateNode[HIx][k][iA][iB-1] +=
-									0.5 * dDeltaT * dLocalUpdateDiffHb;
-							}
-
-						} else if (j == m_nHorizontalOrder-1) {
-							if (b == nElementCountB - 1) {
-								connect.SetSendBuffer(
-									Direction_Top, UIx, k, iA,
-									0.5 * dDeltaT * dLocalUpdateDiffUa);
-								connect.SetSendBuffer(
-									Direction_Top, VIx, k, iA,
-									0.5 * dDeltaT * dLocalUpdateDiffUb);
-								connect.SetSendBuffer(
-									Direction_Top, HIx, k, iA,
-									0.5 * dDeltaT * dLocalUpdateDiffHb);
-
-							} else {
-								dataUpdateNode[UIx][k][iA][iB+1] +=
-									0.5 * dDeltaT * dLocalUpdateDiffUa;
-								dataUpdateNode[VIx][k][iA][iB+1] +=
-									0.5 * dDeltaT * dLocalUpdateDiffUb;
-								dataUpdateNode[HIx][k][iA][iB+1] +=
-									0.5 * dDeltaT * dLocalUpdateDiffHb;
-							}
-						}
-
-					} else {
-						dataUpdateNode[UIx][k][iA][iB] +=
-							dDeltaT * dLocalUpdateDiffUa;
-						dataUpdateNode[VIx][k][iA][iB] +=
-							dDeltaT * dLocalUpdateDiffUb;
-						dataUpdateNode[HIx][k][iA][iB] +=
-							dDeltaT * dLocalUpdateDiffHb;
-					}
-*/
-				}
 			}
 			}
 		}
 		}
 		}
 	}
-/*
-	// Apply updated nodal values
-	if (m_eHorizontalDynamicsType == DiscontinuousGalerkin) {
-
-		// Perform a global exchange
-		pGrid->ExchangeBuffersAndUnpack(DataType_State, iDataUpdate);
-
-		// Loop over all GridPatches
-		for (int n = 0; n < pGrid->GetActivePatchCount(); n++) {
-			GridPatchGLL * pPatch =
-				dynamic_cast<GridPatchGLL*>(pGrid->GetActivePatch(n));
-
-			const PatchBox & box = pPatch->GetPatchBox();
-
-			// Connectivity for patch
-			Connectivity & connect = pPatch->GetConnectivity();
-
-			// Data
-			GridData4D & dataInitialNode =
-				pPatch->GetDataState(iDataInitial, DataLocation_Node);
-			GridData4D & dataUpdateNode =
-				pPatch->GetDataState(iDataUpdate, DataLocation_Node);
-
-			// Post-process velocities received during exchange
-			pPatch->TransformHaloVelocities(iDataUpdate);
-
-			// Loop along top and bottom edge
-			int i;
-			int j;
-
-			for (int k = 0; k < pGrid->GetRElements(); k++) {
-			for (i = box.GetAInteriorBegin(); i < box.GetAInteriorEnd(); i++) {
-
-				j = box.GetBInteriorEnd()-1;
-				//dataUpdateNode[UIx][k][i][j] +=
-				//	dataUpdateNode[UIx][k][i][j+1];
-				//dataUpdateNode[VIx][k][i][j] +=
-				//	dataUpdateNode[VIx][k][i][j+1];
-				dataUpdateNode[HIx][k][i][j] +=
-					dataUpdateNode[HIx][k][i][j+1];
-
-				j = box.GetBInteriorBegin();
-				//dataUpdateNode[UIx][k][i][j] +=
-				//	dataUpdateNode[UIx][k][i][j-1];
-				//dataUpdateNode[VIx][k][i][j] +=
-				//	dataUpdateNode[VIx][k][i][j-1];
-				dataUpdateNode[HIx][k][i][j] +=
-					dataUpdateNode[HIx][k][i][j-1];
-			}
-			}
-
-			// Loop along left and right edge
-			for (int k = 0; k < pGrid->GetRElements(); k++) {
-			for (j = box.GetBInteriorBegin(); j < box.GetBInteriorEnd(); j++) {
-
-				i = box.GetAInteriorEnd()-1;
-				//dataUpdateNode[UIx][k][i][j] +=
-				//	dataUpdateNode[UIx][k][i+1][j];
-				//dataUpdateNode[VIx][k][i][j] +=
-				//	dataUpdateNode[VIx][k][i+1][j];
-				dataUpdateNode[HIx][k][i][j] +=
-					dataUpdateNode[HIx][k][i+1][j];
-
-				i = box.GetBInteriorBegin();
-				//dataUpdateNode[UIx][k][i][j] +=
-				//	dataUpdateNode[UIx][k][i-1][j];
-				//dataUpdateNode[VIx][k][i][j] +=
-				//	dataUpdateNode[VIx][k][i-1][j];
-				dataUpdateNode[HIx][k][i][j] +=
-					dataUpdateNode[HIx][k][i-1][j];
-			}
-			}
-
-			//for (int k = 0; k < pGrid->GetRElements(); k++) {
-			//for (i = box.GetAInteriorBegin(); i < box.GetAInteriorEnd(); i++) {
-			//for (j = box.GetBInteriorBegin(); j < box.GetBInteriorEnd(); j++) {
-			//	dataUpdateNode[HIx][k][i][j] -= dataInitialNode[HIx][k][i][j];
-			//}
-			//}
-			//}
-
-		}
-	}
-*/
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -886,6 +332,8 @@ void HorizontalDynamicsDG::ElementFluxesShallowWater(
 			pPatch->GetContraMetricA();
 		const DataMatrix4D<double> & dContraMetricB =
 			pPatch->GetContraMetricB();
+		const DataMatrix<double> & dTopography =
+			pPatch->GetTopography();
 
 		const DataVector<double> & dGLLWeights1D = pGrid->GetGLLWeights1D();
 		const DataVector<double> & dFluxDeriv1D = pGrid->GetFluxDeriv1D();
@@ -935,13 +383,17 @@ void HorizontalDynamicsDG::ElementFluxesShallowWater(
 
 				// Calculate pointwise height flux
 				double dPtJacobian;
+				double dZs;
 				if (a == nElementCountA) {
 					dPtJacobian = dJacobian[k][i-1][j];
+					dZs         = dTopography[i-1][j];
 				} else {
-					dPtJacobian = dJacobian[k][i  ][j];
+					dPtJacobian = dJacobian[k][i][j];
+					dZs         = dTopography[i][j];
 				}
-				double dHFL = dHL * dUaL * dPtJacobian;
-				double dHFR = dHR * dUaR * dPtJacobian;
+
+				double dHFL = (dHL - dZs) * dUaL * dPtJacobian;
+				double dHFR = (dHR - dZs) * dUaR * dPtJacobian;
 
 				double dHF = 0.5 * (dHFL + dHFR);
 
@@ -954,7 +406,9 @@ void HorizontalDynamicsDG::ElementFluxesShallowWater(
 				double dP  = 0.5 * (dPL + dPR);
 
 				// Upwinding
-				double dA = fabs(dUa) + sqrt(phys.GetG() * 0.5 * (dHL + dHR)) / phys.GetEarthRadius();
+				double dA = fabs(dUa)
+					+ sqrt(phys.GetG() * 0.5 * (dHL + dHR))
+						/ phys.GetEarthRadius();
 
 				double dUaF = 0.0;
 				double dUbF = 0.0;
@@ -1039,7 +493,7 @@ void HorizontalDynamicsDG::ElementFluxesShallowWater(
 
 			int i = box.GetAInteriorBegin();
 			int j = box.GetBInteriorBegin() + b * m_nHorizontalOrder;
-			for (; i < box.GetBInteriorEnd(); i++) {
+			for (; i < box.GetAInteriorEnd(); i++) {
 
 				double dUaL = dataInitialNode[UIx][k][i][j-1];
 				double dUbL = dataInitialNode[VIx][k][i][j-1];
@@ -1051,14 +505,17 @@ void HorizontalDynamicsDG::ElementFluxesShallowWater(
 
 				// Calculate pointwise height flux
 				double dPtJacobian;
+				double dZs;
 				if (b == nElementCountB) {
 					dPtJacobian = dJacobian[k][i][j-1];
+					dZs = dTopography[i][j-1];
 				} else {
 					dPtJacobian = dJacobian[k][i][j];
+					dZs = dTopography[i][j];
 				}
 
-				double dHFL = dHL * dUbL * dPtJacobian;
-				double dHFR = dHR * dUbR * dPtJacobian;
+				double dHFL = (dHL - dZs) * dUbL * dPtJacobian;
+				double dHFR = (dHR - dZs) * dUbR * dPtJacobian;
 
 				double dHF = 0.5 * (dHFL + dHFR);
 
@@ -1071,7 +528,9 @@ void HorizontalDynamicsDG::ElementFluxesShallowWater(
 				double dP  = 0.5 * (dPL + dPR);
 
 				// Upwinding
-				double dA = fabs(dUb) + sqrt(phys.GetG() * 0.5 * (dHL + dHR)) / phys.GetEarthRadius();
+				double dA = fabs(dUb)
+					+ sqrt(phys.GetG() * 0.5 * (dHL + dHR))
+						/ phys.GetEarthRadius();
 
 				double dUaF = 0.0;
 				double dUbF = 0.0;
@@ -1669,14 +1128,6 @@ void HorizontalDynamicsDG::StepExplicit(
 	} else {
 		_EXCEPTIONT("Invalid EquationSet");
 	}
-
-/*
-	// Apply Direct Stiffness Summation (DSS) procedure
-	if (m_eHorizontalDynamicsType == SpectralElement) {
-		GridGLL * pGrid = dynamic_cast<GridGLL*>(m_model.GetGrid());
-		pGrid->ApplyDSS(iDataUpdate);
-	}
-*/
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1728,10 +1179,6 @@ void HorizontalDynamicsDG::ApplyScalarHyperdiffusionToBoundary(
 			pPatch->GetContraMetricA();
 		const DataMatrix4D<double> & dContraMetricB =
 			pPatch->GetContraMetricB();
-		const DataMatrix<double> & dTopography =
-			pPatch->GetTopography();
-
-		const double dZtop = pGrid->GetZtop();
 
 		// Connectivity for patch
 		Connectivity & connect = pPatch->GetConnectivity();
@@ -1978,10 +1425,6 @@ void HorizontalDynamicsDG::ApplyVectorHyperdiffusionToBoundary(
 			pPatch->GetContraMetricA();
 		const DataMatrix4D<double> & dContraMetricB =
 			pPatch->GetContraMetricB();
-		const DataMatrix<double> & dTopography =
-			pPatch->GetTopography();
-
-		const double dZtop = pGrid->GetZtop();
 
 		// Connectivity for patch
 		Connectivity & connect = pPatch->GetConnectivity();

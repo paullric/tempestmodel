@@ -258,6 +258,11 @@ void CubedSphereTrans::RLLFromXYP(
 			_EXCEPTION1(
 				"Invalid nP coordinate.  Given: %d, Expected: [0-5].\n", nP);
 	}
+
+	// Map to the interval [0, 2 pi]
+	if (lon < 0.0) {
+		lon += 2.0 * M_PI;
+	}
 }
 
 ////////////////////////////////////////////////////////////////////////////////

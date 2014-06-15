@@ -291,9 +291,36 @@ void Model::Go() {
 		// Perform one time step
 		m_pTimestepScheme->Step(fFirstStep, fLastStep, m_time, dDeltaT);
 /*
-		Announce("%1.10e %1.10e",
-			m_pGrid->ComputeTotalEnergy(0),
-			m_pGrid->ComputeTotalPotentialEnstrophy(0));
+		// Energy and enstrophy
+		{
+			Announce("%1.10e %1.10e",
+				m_pGrid->ComputeTotalEnergy(0),
+				m_pGrid->ComputeTotalPotentialEnstrophy(0));
+		}
+*/
+/*
+		// L2 errors of the height field
+		{
+			DataVector<double> dSums;
+			DataVector<double> dNorms;
+
+			m_pGrid->EvaluateTestCase_StateOnly(*m_pTestCase, m_time, 2);
+
+			m_pGrid->CopyData(2, 3, DataType_State);
+
+			DataVector<double> dDifference;
+			dDifference.Initialize(3);
+			dDifference[0] = -1.0;
+			dDifference[1] =  0.0;
+			dDifference[2] = +1.0;
+
+			m_pGrid->LinearCombineData(dDifference, 2, DataType_State);
+
+			m_pGrid->Checksum(DataType_State, dSums, 3, ChecksumType_L2);
+			m_pGrid->Checksum(DataType_State, dNorms, 2, ChecksumType_L2);
+
+			Announce("%1.10e", dNorms[2] / dSums[2]);
+		}
 */
 		// Update the timer
 		m_time += dDeltaT;

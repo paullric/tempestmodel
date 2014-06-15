@@ -66,9 +66,19 @@ private:
 	virtual void EvaluateGeometricTerms();
 
 	///	<summary>
-	///		Initialize this grid from a TestCase.
+	///		Initialize state and tracer data from a TestCase.  Also adjust
+	///		geometric quantities that are dependent on the TestCase.
 	///	</summary>
 	virtual void EvaluateTestCase(
+		const TestCase & test,
+		const Time & time,
+		int iDataInstance = 0
+	);
+
+	///	<summary>
+	///		Initialize state and tracer data from a TestCase.
+	///	</summary>
+	virtual void EvaluateTestCase_StateOnly(
 		const TestCase & test,
 		const Time & time,
 		int iDataInstance = 0
