@@ -35,3 +35,27 @@ test/MountainWaveSphereTest
 test/MountainWaveSphereTest
 
 test/MountainRossbyTest
+
+test/nonhydro_sphere/BaroclinicWaveJWTest
+
+test/nonhydro_sphere/BaroclinicWaveUMJSTest
+
+test/nonhydro_sphere/MountainWaveSphereTest
+
+test/nonhydro_sphere/InertiaGravityWaveTest
+
+test/nonhydro_xz/HydrostaticMountainCartesianTest
+
+test/nonhydro_xz/InertialGravityCartesianXZTest
+
+test/nonhydro_xz/NonHydroMountainCartesianTest
+
+test/nonhydro_xz/ScharMountainCartesianTest
+
+test/nonhydro_xz/ThermalBubbleCartesianTest
+
+test/shallowwater_sphere/BarotropicInstabilityTest
+
+test/shallowwater_sphere/MountainRossbyTest
+
+test/shallowwater_sphere/SWTest2
