@@ -2,16 +2,47 @@
 ################################################################################
 ## SYSTEM PATH DEFINITIONS
 
-# PetSc include directory
-PETSC_INCLUDEDIR= /opt/local/petsc/include
-PETSC_LIBDIR= /opt/local/petsc/lib
-
-# NETCDF directories
+# NetCDF directory
 NETCDF_INCLUDEDIR= /opt/local/include
 NETCDF_LIBDIR= /opt/local/lib
 
+# PetSc directory
+PETSC_INCLUDEDIR= /opt/local/petsc/include
+PETSC_LIBDIR= /opt/local/petsc/lib
+
 # X11 lib directory
 X11_LIBDIR= /opt/X11/lib
+
+################################################################################
+## NON-SYSTEM SPECIFIC COMPILATION FLAGS
+
+ifndef TEMPESTBASEDIR
+  $(error TEMPESTBASEDIR undefined)
+endif
+
+# Add the base include directory to the file path
+CFLAGS+= -I$(TEMPESTBASEDIR)/include
+
+# Tempest libraries that will be linked
+TEMPESTLIBS= \
+    $(TEMPESTBASEDIR)/lib/libtempestbase.a \
+	$(TEMPESTBASEDIR)/lib/libhardcoreatm.a
+
+# Libraries needed for compilation
+LDFILES= -lhardcoreatm -ltempestbase
+LDFLAGS+= -L$(TEMPESTBASEDIR)/lib
+
+# NETCDF directories
+ifndef NO_NETCDF
+  LDFILES+= -lnetcdf -lnetcdf_c++
+  LDFLAGS+= -L$(NETCDF_LIBDIR)
+endif
+
+# PetSc include directory
+ifdef USE_PETSC
+  LDFILES+= -lX11 -lpetsc
+  LDFLAGS+= -L$(X11_LIBDIR) -L$(PETSC_LIBDIR)
+endif
 
 ################################################################################
 ## SYSTEM SPECIFIC COMPILATION FLAGS
