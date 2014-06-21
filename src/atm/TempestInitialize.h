@@ -44,6 +44,7 @@
 
 struct _TempestCommandLineVariables {
 	ModelParameters param;
+	bool fNoOutput;
 	std::string strOutputDir;
 	std::string strOutputPrefix;
 	int nOutputsPerFile;
@@ -70,6 +71,7 @@ struct _TempestCommandLineVariables {
 ///////////////////////////////////////////////////////////////////////////////
 
 #define _TempestDefineCommandLineDefault(TestCaseName) \
+	CommandLineBool(_tempestvars.fNoOutput, "output_none"); \
 	CommandLineString(_tempestvars.strOutputDir, "output_dir", "out" TestCaseName); \
 	CommandLineString(_tempestvars.strOutputPrefix, "output_prefix", "out"); \
 	CommandLineString(_tempestvars.param.m_strRestartFile, "restart_file", ""); \
@@ -189,29 +191,31 @@ void _TempestSetupOutputManagers(
 	_TempestCommandLineVariables & vars
 ) {
 	// Set the reference output manager for the model
-	AnnounceStartBlock("Creating reference output manager");
-	OutputManagerReference * pOutmanRef =
-		new OutputManagerReference(
-			*(model.GetGrid()),
-			vars.dOutputDeltaT,
-			vars.strOutputDir,
-			vars.strOutputPrefix,
-			vars.nOutputsPerFile,
-			vars.nOutputResX,
-			vars.nOutputResY);
+	if (!vars.fNoOutput) {
+		AnnounceStartBlock("Creating reference output manager");
+		OutputManagerReference * pOutmanRef =
+			new OutputManagerReference(
+				*(model.GetGrid()),
+				vars.dOutputDeltaT,
+				vars.strOutputDir,
+				vars.strOutputPrefix,
+				vars.nOutputsPerFile,
+				vars.nOutputResX,
+				vars.nOutputResY);
 
-	if (vars.fOutputVorticity) {
-		pOutmanRef->OutputVorticity();
-	}
-	if (vars.fOutputDivergence) {
-		pOutmanRef->OutputDivergence();
-	}
-	if (vars.fOutputTemperature) {
-		pOutmanRef->OutputTemperature();
-	}
+		if (vars.fOutputVorticity) {
+			pOutmanRef->OutputVorticity();
+		}
+		if (vars.fOutputDivergence) {
+			pOutmanRef->OutputDivergence();
+		}
+		if (vars.fOutputTemperature) {
+			pOutmanRef->OutputTemperature();
+		}
 
-	model.AttachOutputManager(pOutmanRef);
-	AnnounceEndBlock("Done");
+		model.AttachOutputManager(pOutmanRef);
+		AnnounceEndBlock("Done");
+	}
 
 	// Set the composite output manager for the model
 	if (vars.dOutputRestartDeltaT != 0.0) {
