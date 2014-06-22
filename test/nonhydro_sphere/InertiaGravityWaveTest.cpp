@@ -19,49 +19,94 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 ///	<summary>
-///		Ullrich, Melvin, Jablonowski and Staniforth (2013) Baroclinic wave test
+///		DCMIP 2012 Test 3-0-0.  Non-hydrostatic inertia gravity waves.
 ///	</summary>
 class InertiaGravityWaveTest : public TestCase {
 
 protected:
 	///	<summary>
-	///		Background temperature.
-	///	</summary>
-	double ParamT0;
-
-	///	<summary>
 	///		Model cap.
 	///	</summary>
-	double ParamZtop;
+	double m_dZtop;
 
-	///	<summary>
-	///		Potential temperature perturbation.
-	///	</summary>
-	double ParamPertMagnitude;
-
-protected:
 	///	<summary>
 	///		Earth radius scaling parameter.
 	///	</summary>
 	double m_dEarthRadiusScaling;
 
 	///	<summary>
-	///		Model height cap.
+	///		Earth rotation rate parameter.
 	///	</summary>
-	double m_dZtop;
+	double m_dOmega;
+
+	///	<summary>
+	///		Background wind speed.
+	///	</summary>
+	double m_dU0;
+
+	///	<summary>
+	///		Background Brunt-Vaisala frequency.
+	///	</summary>
+	double m_dN;
+
+	///	<summary>
+	///		Surface temperature at the equator.
+	///	</summary>
+	double m_dTeq;
+
+	///	<summary>
+	///		Potential temperature perturbation width parameter (m).
+	///	</summary>
+	double m_dPertWidth;
+
+	///	<summary>
+	///		Longitudinal centerpoint of the potential temperature pert.
+	///	</summary>
+	double m_dPertLonC;
+
+	///	<summary>
+	///		Latitudinal centerpoint of the potential temperature pert.
+	///	</summary>
+	double m_dPertLatC;
+
+	///	<summary>
+	///		Magnitude of the potential temperature perturbation.
+	///	</summary>
+	double m_dPertMagnitude;
+
+	///	<summary>
+	///		Vertical wavelength of the potential temperature perturbation.
+	///	</summary>
+	double m_dPertVerticalWavelength;
 
 public:
 	///	<summary>
 	///		Constructor.
 	///	</summary>
 	InertiaGravityWaveTest(
-		double dEarthRadiusScaling
+		double dZtop,
+		double dEarthRadiusScaling,
+		double dOmega,
+		double dU0,
+		double dN,
+		double dTeq,
+		double dPertWidth,
+		double dPertLonC,
+		double dPertLatC,
+		double dPertMagnitude,
+		double dPertVerticalWavelength
 	) :
-		ParamT0(300.0),
-		ParamZtop(10000.0),
-		ParamPertMagnitude(1.0),
-
-		m_dEarthRadiusScaling(dEarthRadiusScaling)
+		m_dZtop(dZtop),
+		m_dEarthRadiusScaling(dEarthRadiusScaling),
+		m_dOmega(dOmega),
+		m_dU0(dU0),
+		m_dN(dN),
+		m_dTeq(dTeq),
+		m_dPertWidth(dPertWidth),
+		m_dPertLonC(dPertLonC * M_PI / 180.0),
+		m_dPertLatC(dPertLatC * M_PI / 180.0),
+		m_dPertMagnitude(dPertMagnitude),
+		m_dPertVerticalWavelength(dPertVerticalWavelength)
 	{ }
 
 public:
@@ -76,7 +121,7 @@ public:
 	///		Get the altitude of the model cap.
 	///	</summary>
 	virtual double GetZtop() const {
-		return ParamZtop;
+		return m_dZtop;
 	}
 
 	///	<summary>
@@ -92,7 +137,7 @@ public:
 	virtual void EvaluatePhysicalConstants(
 		PhysicalConstants & phys
 	) const {
-		phys.SetOmega(0.0);
+		phys.SetOmega(m_dOmega * m_dEarthRadiusScaling);
 		phys.SetEarthRadius(phys.GetEarthRadius() / m_dEarthRadiusScaling);
 	}
 
@@ -118,15 +163,46 @@ public:
 		double * dState
 	) const {
 
-		// Calculate the isothermal pressure
-		double dPressure =
-			phys.GetP0() * exp(- phys.GetG() * dZ / phys.GetR() / ParamT0);
+		// Reference temperature
+		double dG = phys.GetG() * phys.GetG() / (m_dN * m_dN * phys.GetCp());
+
+		// Surface temperature
+		double dTsExpTerm =
+			- m_dU0 * m_dN * m_dN / 4.0 / (phys.GetG() * phys.GetG())
+				* (m_dU0 + 2.0 * phys.GetOmega() * phys.GetEarthRadius())
+				* (cos(2.0 * dLat) - 1.0);
+
+		double dTs = dG + (m_dTeq - dG) * exp(dTsExpTerm);
+
+		// 3D temperature
+		double dT = dG + (dTs - dG) * exp(m_dN * m_dN * dZ / phys.GetG());
+
+		// Surface pressure
+		double dPsTempScaling = pow(dTs / m_dTeq, 1.0 / phys.GetKappa());
+		
+		double dPsExpTerm =
+			m_dU0 / (4.0 * dG * phys.GetR())
+				* (m_dU0 + 2.0 * phys.GetOmega() * phys.GetEarthRadius())
+				* (cos(2.0 * dLat) - 1.0);
+
+		double dPs = phys.GetP0() * exp(dPsExpTerm) * dPsTempScaling;
+
+		// 3D Pressure
+		double dPVertTerm =
+			dG / dTs * exp(- m_dN * m_dN * dZ / phys.GetG()) + 1.0 - dG / dTs;
+
+		double dPressure = dPs * pow(dPVertTerm, 1.0 / phys.GetKappa());
+
+		// Check for negative pressure
+		if (dPressure < 0.0) {
+			_EXCEPTIONT("Negative pressure detected");
+		}
 
 		// Calculate exact density
-		double dRho = dPressure / (phys.GetR() * ParamT0);
+		double dRho = dPressure / (phys.GetR() * dT);
 
 		// Store the state
-		dState[0] = 0.0;
+		dState[0] = m_dU0 * cos(dLat);
 		dState[1] = 0.0;
 		dState[2] = phys.RhoThetaFromPressure(dPressure) / dRho;
 		dState[3] = 0.0;
@@ -146,48 +222,19 @@ public:
 		double * dTracer
 	) const {
 
-		// Calculate the isothermal pressure
-		double dPressure =
-			phys.GetP0() * exp(- phys.GetG() * dZ / (phys.GetR() * ParamT0));
+		// Calculate the reference state
+		EvaluateReferenceState(phys, dZ, dLon, dLat, dState);
 
-		// Calculate exact density
-		double dRho = dPressure / (phys.GetR() * ParamT0);
+		// Add in the potential temperature perturbation
+		double dR = phys.GetEarthRadius() * acos(
+			sin(m_dPertLatC) * sin(dLat)
+			+ cos(m_dPertLatC) * cos(dLat) * cos(dLon - m_dPertLonC));
 
-		// Calculate exact temperature
-		double dTemperature = dPressure / (dRho * phys.GetR());
+		double dS = m_dPertWidth * m_dPertWidth /
+			(m_dPertWidth * m_dPertWidth + dR * dR);
 
-		dTemperature += ParamPertMagnitude
-			* exp(-100.0 * dLat * dLat)
-			* sin(M_PI * dZ / ParamZtop);
-
-		// Recalculate Rho
-		dRho = dPressure / (phys.GetR() * dTemperature);
-
-/*
-		// Add the perturbation
-		double dTb = ParamPertMagnitude
-			* exp(100.0 * (sin(dLat) - 1.0))
-			* sin(M_PI * dZ / ParamZtop);
-
-		double dRhob =
-			phys.GetP0() / (phys.GetR() * ParamT0) * (-dTb / ParamT0);
-
-		dRho += exp(- 0.5 * phys.GetG() * dZ / phys.GetR() / ParamT0) * dRhob;
-*/
-		// Calculate the potential temperature
-		double dTheta = phys.RhoThetaFromPressure(dPressure) / dRho;
-/*
-		// Add the perturbation
-		dTheta += ParamPertMagnitude
-			* exp(-100.0 * dLat * dLat)
-			* sin(M_PI * dZ / ParamZtop);
-*/
-		// Store the state
-		dState[0] = 0.0;
-		dState[1] = 0.0;
-		dState[2] = dTheta;
-		dState[3] = 0.0;
-		dState[4] = dRho;
+		dState[2] += m_dPertMagnitude
+			* dS * sin(2.0 * M_PI * dZ / m_dPertVerticalWavelength);
 	}
 };
 
@@ -199,20 +246,60 @@ int main(int argc, char** argv) {
 	TempestInitialize(&argc, &argv);
 
 try {
-	// Earth radius scaling
+	// Model cap.
+	double dZtop;
+
+	// Earth radius scaling parameter.
 	double dEarthRadiusScaling;
 
+	// Earth rotation rate parameter.
+	double dOmega;
+
+	// Background wind speed.
+	double dU0;
+
+	// Background Brunt-Vaisala frequency.
+	double dN;
+
+	// Surface temperature at the equator.
+	double dTeq;
+
+	// Potential temperature perturbation width parameter (m).
+	double dPertWidth;
+
+	// Longitudinal centerpoint of the potential temperature pert.
+	double dPertLonC;
+
+	// Latitudinal centerpoint of the potential temperature pert.
+	double dPertLatC;
+
+	// Magnitude of the potential temperature perturbation.
+	double dPertMagnitude;
+
+	// Vertical wavelength of the potential temperature perturbation.
+	double dPertVerticalWavelength;
+
 	// Parse the command line
-	BeginTempestCommandLine("BaroclinicWaveJW");
+	BeginTempestCommandLine("InertiaGravityWaveTest");
 		SetDefaultResolution(20);
 		SetDefaultLevels(10);
-		SetDefaultOutputTime(200.0);
-		SetDefaultDeltaT(200.0);
-		SetDefaultEndTime(200.0);
+		SetDefaultOutputTime(1.5);
+		SetDefaultDeltaT(1.5);
+		SetDefaultEndTime(1.5);
 		SetDefaultHorizontalOrder(4);
 		SetDefaultVerticalOrder(1);
 
-		CommandLineDouble(dEarthRadiusScaling, "radiusscale", 1.0);
+		CommandLineDouble(dZtop, "ztop", 10000.0);
+		CommandLineDouble(dEarthRadiusScaling, "X", 125.0);
+		CommandLineDouble(dOmega, "omega", 0.0);
+		CommandLineDouble(dU0, "u0", 20.0);
+		CommandLineDouble(dN, "N", 0.01);
+		CommandLineDouble(dTeq, "Teq", 300.0);
+		CommandLineDouble(dPertWidth, "d", 5000.0);
+		CommandLineDouble(dPertLonC, "lon_c", 120.0);
+		CommandLineDouble(dPertLatC, "lat_c", 0.0);
+		CommandLineDouble(dPertMagnitude, "dtheta", 1.0);
+		CommandLineDouble(dPertVerticalWavelength, "Lz", 20000.0);
 
 		ParseCommandLine(argc, argv);
 	EndTempestCommandLine(argv)
@@ -227,7 +314,18 @@ try {
 	// Set the test case for the model
 	AnnounceStartBlock("Initializing test case");
 	model.SetTestCase(
-		new InertiaGravityWaveTest(dEarthRadiusScaling));
+		new InertiaGravityWaveTest(
+			dZtop,
+			dEarthRadiusScaling,
+			dOmega,
+			dU0,
+			dN,
+			dTeq,
+			dPertWidth,
+			dPertLonC,
+			dPertLatC,
+			dPertMagnitude,
+			dPertVerticalWavelength));
 	AnnounceEndBlock("Done");
 
 	// Begin execution

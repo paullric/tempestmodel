@@ -59,3 +59,5 @@ test/shallowwater_sphere/BarotropicInstabilityTest
 test/shallowwater_sphere/MountainRossbyTest
 
 test/shallowwater_sphere/SWTest2
+
+test/nonhydro_sphere/BaldaufGravityWaveTest
