@@ -206,7 +206,7 @@ public:
 			dNuDepth = dNuDepth * dNuDepth;
 		}
 
-		return dNuDepth;
+		return (dNuDepth / m_dTau0);
 	}
 
 	///	<summary>
@@ -321,13 +321,13 @@ try {
 		SetDefaultResolution(20);
 		SetDefaultLevels(60);
 		SetDefaultOutputTime(100.0);
-		SetDefaultDeltaT(300.0 / 500.0);
+		SetDefaultDeltaT(0.5);
 		SetDefaultEndTime(7200.0);
 		SetDefaultHorizontalOrder(4);
 		SetDefaultVerticalOrder(1);
 
 		CommandLineDouble(dZtop, "ztop", 30000.0);
-		CommandLineDouble(dEarthScaling, "X", 125.0);
+		CommandLineDouble(dEarthScaling, "X", 500.0);
 		CommandLineDouble(dOmega, "omega", 0.0);
 		CommandLineDouble(dLonC, "lonc", 45.0);
 		CommandLineDouble(dLatC, "latc", 0.0);
@@ -370,6 +370,9 @@ try {
 			dTau0));
 
 	AnnounceEndBlock("Done");
+
+	// Set the reference length
+	model.GetGrid()->SetReferenceLength(0.5 * M_PI / 30.0 * dEarthScaling);
 
 	// Begin execution
 	AnnounceBanner("SIMULATION");
