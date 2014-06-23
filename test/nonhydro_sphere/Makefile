@@ -10,7 +10,7 @@ include $(TEMPESTBASEDIR)/mk/Make.defs
 ##
 ## Build instructions
 ##
-all: atm BaroclinicWaveJWTest BaroclinicWaveUMJSTest MountainWaveSphereTest InertiaGravityWaveTest BaldaufGravityWaveTest
+all: atm BaroclinicWaveJWTest BaroclinicWaveUMJSTest MountainWaveSphereTest ScharMountainSphereTest InertiaGravityWaveTest BaldaufGravityWaveTest
 
 atm:
 	cd $(TEMPESTBASEDIR)/src/base; make
@@ -27,6 +27,9 @@ BaroclinicWaveUMJSTest: $(BUILDDIR)/BaroclinicWaveUMJSTest.o $(FILES:%.cpp=$(BUI
 
 MountainWaveSphereTest: $(BUILDDIR)/MountainWaveSphereTest.o $(FILES:%.cpp=$(BUILDDIR)/%.o) $(TEMPESTLIBS)
 	$(CC) $(LDFLAGS) -o $@ $(BUILDDIR)/MountainWaveSphereTest.o $(FILES:%.cpp=$(BUILDDIR)/%.o) $(LDFILES)
+
+ScharMountainSphereTest: $(BUILDDIR)/ScharMountainSphereTest.o $(FILES:%.cpp=$(BUILDDIR)/%.o) $(TEMPESTLIBS)
+	$(CC) $(LDFLAGS) -o $@ $(BUILDDIR)/ScharMountainSphereTest.o $(FILES:%.cpp=$(BUILDDIR)/%.o) $(LDFILES)
 
 InertiaGravityWaveTest: $(BUILDDIR)/InertiaGravityWaveTest.o $(FILES:%.cpp=$(BUILDDIR)/%.o) $(TEMPESTLIBS)
 	$(CC) $(LDFLAGS) -o $@ $(BUILDDIR)/InertiaGravityWaveTest.o $(FILES:%.cpp=$(BUILDDIR)/%.o) $(LDFILES)
