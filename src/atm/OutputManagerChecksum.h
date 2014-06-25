@@ -35,7 +35,7 @@ public:
 	///	</summary>
 	OutputManagerChecksum(
 		Grid & grid,
-		double dOutputDeltaT
+		const Time & timeOutputFrequency
 	);
 
 	///	<summary>

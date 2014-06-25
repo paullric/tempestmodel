@@ -35,14 +35,14 @@
 
 OutputManagerComposite::OutputManagerComposite(
 	Grid & grid,
-	double dOutputDeltaT,
+	const Time & timeOutputFrequency,
 	std::string strOutputDir,
 	std::string strOutputFormat,
 	std::string strRestartFile
 ) :
 	OutputManager(
 		grid,
-		dOutputDeltaT,
+		timeOutputFrequency,
 		strOutputDir,
 		strOutputFormat,
 		1),
@@ -105,7 +105,7 @@ bool OutputManagerComposite::OpenFile(
 
 		// Output start time and current time
 		m_pActiveNcOutput->add_att("start_time",
-			model.GetStartTime().ToShortString().c_str());
+			model.GetStartTime().ToLongString().c_str());
 
 		// Output equation set
 		const EquationSet & eqn = model.GetEquationSet();
@@ -219,7 +219,7 @@ void OutputManagerComposite::Output(
 	// Output start time and current time
 	if (nRank == 0) {
 		m_pActiveNcOutput->add_att(
-			"current_time", time.ToShortString().c_str());
+			"current_time", time.ToLongString().c_str());
 	}
 
 	// Begin data consolidation

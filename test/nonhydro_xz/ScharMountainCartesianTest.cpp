@@ -288,9 +288,9 @@ try {
 		SetDefaultResolutionX(40);
 		SetDefaultResolutionY(1);
 		SetDefaultLevels(40);
-		SetDefaultOutputTime(300.0);
-		SetDefaultDeltaT(0.1);
-		SetDefaultEndTime(3600.0);
+		SetDefaultOutputDeltaT("300s");
+		SetDefaultDeltaT("100000u");
+		SetDefaultEndTime("3600s");
 		SetDefaultHorizontalOrder(4);
 		SetDefaultVerticalOrder(4);
 

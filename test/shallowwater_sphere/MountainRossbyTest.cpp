@@ -231,9 +231,9 @@ try {
 	BeginTempestCommandLine("MountainRossbyTest")
 		SetDefaultResolution(16);
 		SetDefaultLevels(1);
-		SetDefaultOutputTime(86400.0);
-		SetDefaultDeltaT(500.0);
-		SetDefaultEndTime(1296000.0);
+		SetDefaultOutputDeltaT("1d");
+		SetDefaultDeltaT("480s");
+		SetDefaultEndTime("15d");
 		SetDefaultHorizontalOrder(4);
 		SetDefaultVerticalOrder(1);
 

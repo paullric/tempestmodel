@@ -35,7 +35,7 @@
 
 OutputManagerReference::OutputManagerReference(
 	Grid & grid,
-	double dOutputDeltaT,
+	const Time & timeOutputFrequency,
 	std::string strOutputDir,
 	std::string strOutputPrefix,
 	int nOutputsPerFile,
@@ -46,7 +46,7 @@ OutputManagerReference::OutputManagerReference(
 ) :
 	OutputManager(
 		grid,
-		dOutputDeltaT,
+		timeOutputFrequency,
 		strOutputDir,
 		strOutputPrefix,
 		nOutputsPerFile),

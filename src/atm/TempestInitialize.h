@@ -30,6 +30,7 @@
 #include "GridCSGLL.h"
 #include "GridCartesianGLL.h"
 
+#include "TimeObj.h"
 #include "Announce.h"
 #include "CommandLine.h"
 #include "STLStringHelper.h"
@@ -48,8 +49,8 @@ struct _TempestCommandLineVariables {
 	std::string strOutputDir;
 	std::string strOutputPrefix;
 	int nOutputsPerFile;
-	double dOutputDeltaT;
-	double dOutputRestartDeltaT;
+	Time timeOutputDeltaT;
+	Time timeOutputRestartDeltaT;
 	int nOutputResX;
 	int nOutputResY;
 	bool fOutputVorticity;
@@ -76,7 +77,7 @@ struct _TempestCommandLineVariables {
 	CommandLineString(_tempestvars.strOutputPrefix, "output_prefix", "out"); \
 	CommandLineString(_tempestvars.param.m_strRestartFile, "restart_file", ""); \
 	CommandLineInt(_tempestvars.nOutputsPerFile, "output_perfile", -1); \
-	CommandLineDouble(_tempestvars.dOutputRestartDeltaT, "output_restart_dt", 0.0); \
+	CommandLineTime(_tempestvars.timeOutputRestartDeltaT, "output_restart_dt", ""); \
 	CommandLineInt(_tempestvars.nOutputResX, "output_x", 360); \
 	CommandLineInt(_tempestvars.nOutputResY, "output_y", 180); \
 	CommandLineBool(_tempestvars.fOutputVorticity, "output_vort"); \
@@ -111,14 +112,14 @@ struct _TempestCommandLineVariables {
 #define SetDefaultLevels(default_levels) \
 	CommandLineInt(_tempestvars.nLevels, "levels", default_levels);
 
-#define SetDefaultOutputTime(default_outputtime) \
-	CommandLineDouble(_tempestvars.dOutputDeltaT, "outputtime", default_outputtime);
+#define SetDefaultOutputDeltaT(default_output_dt) \
+	CommandLineTime(_tempestvars.timeOutputDeltaT, "outputtime", default_output_dt);
 
-#define SetDefaultDeltaT(default_deltat) \
-	CommandLineDouble(_tempestvars.param.m_dDeltaT, "dt", default_deltat);
+#define SetDefaultDeltaT(default_dt) \
+	CommandLineTime(_tempestvars.param.m_timeDeltaT, "dt", default_dt);
 
 #define SetDefaultEndTime(default_endtime) \
-	CommandLineDouble(_tempestvars.param.m_dEndTime, "endtime", default_endtime);
+	CommandLineTime(_tempestvars.param.m_timeEnd, "endtime", default_endtime);
 
 #define SetDefaultHorizontalOrder(default_order) \
 	CommandLineInt(_tempestvars.nHorizontalOrder, "order", default_order)
@@ -196,7 +197,7 @@ void _TempestSetupOutputManagers(
 		OutputManagerReference * pOutmanRef =
 			new OutputManagerReference(
 				*(model.GetGrid()),
-				vars.dOutputDeltaT,
+				vars.timeOutputDeltaT,
 				vars.strOutputDir,
 				vars.strOutputPrefix,
 				vars.nOutputsPerFile,
@@ -218,12 +219,12 @@ void _TempestSetupOutputManagers(
 	}
 
 	// Set the composite output manager for the model
-	if (vars.dOutputRestartDeltaT != 0.0) {
+	if (! vars.timeOutputRestartDeltaT.IsZero()) {
 		AnnounceStartBlock("Creating composite output manager");
 		model.AttachOutputManager(
 			new OutputManagerComposite(
 				*(model.GetGrid()),
-				vars.dOutputRestartDeltaT,
+				vars.timeOutputRestartDeltaT,
 				vars.strOutputDir,
 				vars.strOutputPrefix));
 		AnnounceEndBlock("Done");
@@ -234,7 +235,7 @@ void _TempestSetupOutputManagers(
 	model.AttachOutputManager(
 		new OutputManagerChecksum(
 			*(model.GetGrid()),
-			vars.dOutputDeltaT));
+			vars.timeOutputDeltaT));
 	AnnounceEndBlock("Done");
 }
 

@@ -308,9 +308,9 @@ try {
 	BeginTempestCommandLine("BarotropicInstability")
 		SetDefaultResolution(20);
 		SetDefaultLevels(1);
-		SetDefaultOutputTime(200.0);
-		SetDefaultDeltaT(200.0);
-		SetDefaultEndTime(86400.0 * 6.0);
+		SetDefaultOutputDeltaT("200s");
+		SetDefaultDeltaT("3600s");
+		SetDefaultEndTime("6d");
 		SetDefaultHorizontalOrder(4);
 		SetDefaultVerticalOrder(1);
 

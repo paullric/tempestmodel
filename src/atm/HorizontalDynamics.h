@@ -17,10 +17,9 @@
 #ifndef _HORIZONTALDYNAMICS_H_
 #define _HORIZONTALDYNAMICS_H_
 
-#include "WorkflowProcess.h"
-
 ///////////////////////////////////////////////////////////////////////////////
 
+class Time;
 class Model;
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -28,7 +27,7 @@ class Model;
 ///	<summary>
 ///		Interface for atmospheric horizontal dynamics.
 ///	</summary>
-class HorizontalDynamics : public WorkflowProcess {
+class HorizontalDynamics {
 
 protected:
 	///	<summary>
@@ -38,7 +37,7 @@ protected:
 	HorizontalDynamics(
 		Model & model
 	) :
-		WorkflowProcess(model)
+		m_model(model)
 	{ }
 
 public:
@@ -52,6 +51,53 @@ public:
 	///		Get the number of halo elements needed by the model.
 	///	</summary>
 	virtual int GetHaloElements() const = 0;
+
+public:
+	///	<summary>
+	///		Initializer.  Called prior to execution.
+	///	</summary>
+	virtual void Initialize() { }
+
+public:
+	///	<summary>
+	///		Perform one explicit time step.
+	///	</summary>
+	virtual void StepExplicit(
+		int iDataInitial,
+		int iDataUpdate,
+		const Time & time,
+		double dDeltaT
+	) {
+	}
+
+	///	<summary>
+	///		Perform one implicit time step.
+	///	</summary>
+	virtual void StepImplicit(
+		int iDataInitial,
+		int iDataUpdate,
+		const Time & time,
+		double dDeltaT
+	) {
+	}
+
+	///	<summary>
+	///		Perform one time step after all sub-cycles are complete.
+	///	</summary>
+	virtual void StepAfterSubCycle(
+		int iDataInitial,
+		int iDataUpdate,
+		int iDataWorking,
+		const Time & time,
+		double dDeltaT
+	) {
+	}
+
+protected:
+	///	<summary>
+	///		Reference to the model.
+	///	</summary>
+	Model & m_model;
 };
 
 ///////////////////////////////////////////////////////////////////////////////

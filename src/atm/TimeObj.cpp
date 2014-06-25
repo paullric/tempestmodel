@@ -19,20 +19,14 @@
 
 ///////////////////////////////////////////////////////////////////////////////
 
-const double Time::SecondsEpsilon = 1.0e-12;
-
-///////////////////////////////////////////////////////////////////////////////
-
 bool Time::operator==(const Time & time) const {
 	if ((m_eCalendarType != time.m_eCalendarType) ||
-	    (m_iYear  != time.m_iYear) ||
-	    (m_iMonth != time.m_iMonth) ||
-	    (m_iDay   != time.m_iDay)
+	    (m_iYear        != time.m_iYear)          ||
+	    (m_iMonth       != time.m_iMonth)         ||
+	    (m_iDay         != time.m_iDay)           ||
+		(m_iSecond      != time.m_iSecond)        ||
+		(m_iMicroSecond != time.m_iMicroSecond)
 	) {
-		return false;
-	}
-
-	if (fabs(m_dSeconds - time.m_dSeconds) > SecondsEpsilon) {
 		return false;
 	}
 
@@ -43,8 +37,7 @@ bool Time::operator==(const Time & time) const {
 
 bool Time::operator<(const Time & time) const {
 	if (m_eCalendarType != time.m_eCalendarType) {
-		_EXCEPTIONT(
-			"Cannot compare Time objects with different calendars");
+		_EXCEPTIONT("Cannot compare Time objects with different calendars");
 	}
 
 	if (m_iYear < time.m_iYear) {
@@ -65,7 +58,19 @@ bool Time::operator<(const Time & time) const {
 		return false;
 	}
 
-	return (m_dSeconds < time.m_dSeconds - SecondsEpsilon);
+	if (m_iSecond < time.m_iSecond) {
+		return true;
+	} else if (m_iSecond > time.m_iSecond) {
+		return false;
+	}
+
+	if (m_iMicroSecond < time.m_iMicroSecond) {
+		return true;
+	} else if (m_iMicroSecond > time.m_iMicroSecond) {
+		return false;
+	}
+
+	return false;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -94,7 +99,19 @@ bool Time::operator>(const Time & time) const {
 		return false;
 	}
 
-	return (m_dSeconds > time.m_dSeconds + SecondsEpsilon);
+	if (m_iSecond > time.m_iSecond) {
+		return true;
+	} else if (m_iSecond < time.m_iSecond) {
+		return false;
+	}
+
+	if (m_iMicroSecond > time.m_iMicroSecond) {
+		return true;
+	} else if (m_iMicroSecond < time.m_iMicroSecond) {
+		return false;
+	}
+
+	return false;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -113,11 +130,14 @@ void Time::VerifyTime() {
 		if ((m_iMonth < 0) || (m_iMonth > 11)) {
 			_EXCEPTIONT("Month out of range");
 		}
-		if ((m_iDay < 0) || (m_iDay > nDaysPerMonth[m_iMonth])) {
+		if ((m_iDay < 0) || (m_iDay >= nDaysPerMonth[m_iMonth])) {
 			_EXCEPTIONT("Day out of range");
 		}
-		if ((m_dSeconds < 0.0) || (m_dSeconds > 86400.0)) {
+		if ((m_iSecond < 0) || (m_iSecond >= 86400)) {
 			_EXCEPTIONT("Seconds out of range");
+		}
+		if ((m_iMicroSecond < 0) || (m_iMicroSecond >= 1000000)) {
+			_EXCEPTIONT("MicroSecond out of range");
 		}
 
 	// Operation not permitted on this CalendarType
@@ -136,18 +156,27 @@ void Time::NormalizeTime() {
 		const int nDaysPerMonth[]
 			= {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
 
+		// Add seconds
+		int nAddedSeconds = 0;
+		if (m_iMicroSecond >= 1000000) {
+			nAddedSeconds = m_iMicroSecond / 1000000;
+
+		} else if (m_iMicroSecond < 0) {
+			nAddedSeconds = - (1000000 - m_iSecond) / 1000000;
+		}
+		m_iMicroSecond -= nAddedSeconds * 1000000;
+		m_iSecond += nAddedSeconds;
+
 		// Add days
 		int nAddedDays = 0;
-		if (m_dSeconds >= 86400.0) {
-			nAddedDays =
-				static_cast<int>(m_dSeconds / 86400.0);
+		if (m_iSecond >= 86400) {
+			nAddedDays = m_iSecond / 86400;
 
-		} else if (m_dSeconds < 0.0) {
-			nAddedDays =
-				static_cast<int>(- (86400.0 - m_dSeconds) / 86400.0);
+		} else if (m_iSecond < 0) {
+			nAddedDays = - (86400 - m_iSecond) / 86400;
 		}
 
-		m_dSeconds -= static_cast<double>(nAddedDays) * 86400.0;
+		m_iSecond -= nAddedDays * 86400;
 		m_iDay += nAddedDays;
 
 		// Add years
@@ -187,10 +216,11 @@ void Time::NormalizeTime() {
 		// Check that the result is ok
 		if ((m_iMonth < 0) || (m_iMonth >= 12) ||
 		    (m_iDay < 0) || (m_iDay >= nDaysPerMonth[m_iMonth]) ||
-		    (m_dSeconds < 0.0) || (m_dSeconds >= 86400.0)
+		    (m_iSecond < 0) || (m_iSecond >= 86400) ||
+			(m_iMicroSecond < 0) || (m_iMicroSecond >= 1e6)
 		) {
-			_EXCEPTION4("Logic error: %i %i %i %1.15e",
-				m_iYear, m_iMonth, m_iDay, m_dSeconds);
+			_EXCEPTION5("Logic error: %i %i %i %i %i",
+				m_iYear, m_iMonth, m_iDay, m_iSecond, m_iMicroSecond);
 		}
 
 	// Operation not permitted on this CalendarType
@@ -201,12 +231,25 @@ void Time::NormalizeTime() {
 
 ///////////////////////////////////////////////////////////////////////////////
 
+void Time::AddTime(const Time & timeDelta) {
+
+	m_iYear        += timeDelta.m_iYear;
+	m_iMonth       += timeDelta.m_iMonth;
+	m_iDay         += timeDelta.m_iDay;
+	m_iSecond      += timeDelta.m_iSecond;
+	m_iMicroSecond += timeDelta.m_iMicroSecond;
+
+	NormalizeTime();
+}
+
+///////////////////////////////////////////////////////////////////////////////
+/*
 Time Time::operator+(double dSeconds) const {
 	Time timeNew = (*this);
 	timeNew += dSeconds;
 	return timeNew;
 }
-
+*/
 ///////////////////////////////////////////////////////////////////////////////
 
 double Time::operator-(const Time & time) const {
@@ -221,7 +264,9 @@ double Time::operator-(const Time & time) const {
 
 		dDeltaSeconds =
 			+ static_cast<double>(m_iYear - time.m_iYear) * 31536000.0
-			+ (m_dSeconds - time.m_dSeconds);
+			+ static_cast<double>(m_iSecond - time.m_iSecond)
+			+ static_cast<double>(m_iMicroSecond - time.m_iMicroSecond)
+				* 1.0e-6;
 
 		// Remove intervening months
 		if (m_iMonth > time.m_iMonth) {
@@ -278,7 +323,18 @@ std::string Time::ToShortString() const {
 	char szBuffer[100];
 
 	sprintf(szBuffer, "%04i-%02i-%02i-%05i",
-		m_iYear, m_iMonth+1, m_iDay+1, static_cast<int>(m_dSeconds));
+		m_iYear, m_iMonth+1, m_iDay+1, m_iSecond);
+
+	return std::string(szBuffer);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+std::string Time::ToLongString() const {
+	char szBuffer[100];
+
+	sprintf(szBuffer, "%04i-%02i-%02i-%05i-%06i",
+		m_iYear, m_iMonth+1, m_iDay+1, m_iSecond, m_iMicroSecond);
 
 	return std::string(szBuffer);
 }
@@ -288,27 +344,356 @@ std::string Time::ToShortString() const {
 std::string Time::ToString() const {
 	char szBuffer[100];
 
-	sprintf(szBuffer, "%04i-%02i-%02i %02i:%02i:%02i",
-		m_iYear, m_iMonth+1, m_iDay+1,
-		static_cast<int>(m_dSeconds / 3600.0),
-		static_cast<int>(fmod(m_dSeconds, 3600.0) / 60.0),
-		static_cast<int>(fmod(m_dSeconds, 60.0)));
+	if (m_iMicroSecond == 0) {
+		sprintf(szBuffer, "%04i-%02i-%02i %02i:%02i:%02i",
+			m_iYear,
+			m_iMonth+1,
+			m_iDay+1,
+			m_iSecond / 3600,
+			(m_iSecond % 3600) / 60,
+			(m_iSecond % 60));
+
+	} else {
+		sprintf(szBuffer, "%04i-%02i-%02i %02i:%02i:%02i.%06i",
+			m_iYear,
+			m_iMonth+1,
+			m_iDay+1,
+			m_iSecond / 3600,
+			(m_iSecond % 3600) / 60,
+			(m_iSecond % 60),
+			m_iMicroSecond);
+	}
 
 	return std::string(szBuffer);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void Time::FromShortString(const std::string & strShortTime) {
-	if (strShortTime.length() != 16) {
-		_EXCEPTIONT("Invalid Time ShortString");
+std::string Time::ToFreeString() const {
+	std::string strFreeString;
+
+	char szBuffer[100];
+
+	if (m_iYear != 0) {
+		sprintf(szBuffer, "%iy", m_iYear);
+		strFreeString += szBuffer;
 	}
-	m_iYear = atoi(strShortTime.c_str());
-	m_iMonth = atoi(strShortTime.c_str()+5) - 1;
-	m_iDay = atoi(strShortTime.c_str()+8) - 1;
-	m_dSeconds = atof(strShortTime.c_str()+11);
+	if (m_iMonth != 0) {
+		sprintf(szBuffer, "%iM", m_iMonth);
+		strFreeString += szBuffer;
+	}
+	if (m_iDay != 0) {
+		sprintf(szBuffer, "%id", m_iDay);
+		strFreeString += szBuffer;
+	}
+	if (m_iSecond != 0) {
+		sprintf(szBuffer, "%is", m_iSecond);
+		strFreeString += szBuffer;
+	}
+	if (m_iMicroSecond != 0) {
+		sprintf(szBuffer, "%is", m_iMicroSecond);
+		strFreeString += szBuffer;
+	}
+
+	return strFreeString;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void Time::FromLongString(const std::string & strLongTime) {
+	if (strLongTime.length() != 23) {
+		_EXCEPTIONT("Invalid Time LongString");
+	}
+	m_iYear = atoi(strLongTime.c_str());
+	m_iMonth = atoi(strLongTime.c_str()+5) - 1;
+	m_iDay = atoi(strLongTime.c_str()+8) - 1;
+	m_iSecond = atoi(strLongTime.c_str()+11);
+	m_iMicroSecond = atoi(strLongTime.c_str()+17);
 
 	VerifyTime();
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void Time::FromFormattedString(
+	const std::string & strFormattedTime
+) {
+	const char * szYear = NULL;
+	const char * szMonth = NULL;
+	const char * szDay = NULL;
+	const char * szHour = NULL;
+	const char * szMinute = NULL;
+	const char * szSecond = NULL;
+	const char * szMicroSecond = NULL;
+
+	// Reset values
+	m_iYear = 0;
+	m_iMonth = 0;
+	m_iDay = 0;
+	m_iSecond = 0;
+	m_iMicroSecond = 0;
+
+	// Check for length zero string
+	if (strFormattedTime.length() == 0) {
+		return;
+	}
+
+	// Current state
+	enum FormatState {
+		FormatState_Date,
+		FormatState_Time,
+		FormatState_Free
+	};
+
+	FormatState state = FormatState_Date;
+
+	// Loop over all characters in string
+	int i = 0;
+	int j = 0;
+	for (; i < strFormattedTime.length(); i++) {
+
+		// Digit (ignore)
+		if ((strFormattedTime[i] >= '0') &&
+			(strFormattedTime[i] <= '9')
+		) {
+			continue;
+		}
+
+		// Record in Date format (yyyy-MM-dd-sssss)
+		if (strFormattedTime[i] == '-') {
+			if (state != FormatState_Date) {
+				_EXCEPTION1(
+					"Malformed Time string (%s): "
+						"Cannot return to Date format",
+						strFormattedTime.c_str());
+			}
+
+			if (szYear == NULL) {
+				szYear = &(strFormattedTime[j]);
+				j = i + 1;
+
+			} else if (szMonth == NULL) {
+				szMonth = &(strFormattedTime[j]);
+				j = i + 1;
+
+			} else if (szDay == NULL) {
+				szDay = &(strFormattedTime[j]);
+				j = i + 1;
+
+			} else {
+				_EXCEPTION1("Malformed Time string (%s): "
+					"Unexpected \'-\'",
+					strFormattedTime.c_str());
+			}
+
+		// Record in Time format (hh:mm:ss.uuuuuu)
+		} else if (
+			(strFormattedTime[i] == ':') ||
+			(strFormattedTime[i] == '.')
+		) {
+			if (state == FormatState_Free) {
+				_EXCEPTION1(
+					"Malformed Time string (%s): "
+						"Cannot mix formatting types",
+						strFormattedTime.c_str());
+			}
+
+			state = FormatState_Time;
+
+			if (szHour == NULL) {
+				szHour = &(strFormattedTime[j]);
+				j = i + 1;
+
+			} else if (szMinute == NULL) {
+				szMinute = &(strFormattedTime[j]);
+				j = i + 1;
+
+			} else if (szSecond == NULL) {
+				szSecond = &(strFormattedTime[j]);
+				j = i + 1;
+
+			} else {
+				_EXCEPTION1(
+					"Malformed Time string (%s): "
+						"Unexpected \':\' or \'.\'",
+						strFormattedTime.c_str());
+			}
+
+		// Record in Free format (##y##M##d##m##s##u)
+		} else {
+			if (state == FormatState_Time) {
+				_EXCEPTION1(
+					"Malformed Time string (%s): "
+						"Cannot mix Free and Time format",
+						strFormattedTime.c_str());
+			}
+			if ((state == FormatState_Date) && (j != 0)) {
+				_EXCEPTION1(
+					"Malformed Time string (%s): "
+						"Cannot mix Free and Date format",
+						strFormattedTime.c_str());
+			}
+
+			state = FormatState_Free;
+
+			// Record year
+			if (strFormattedTime[i] == 'y') {
+				if (szYear == NULL) {
+					szYear = &(strFormattedTime[j]);
+				} else {
+					_EXCEPTION1("Malformed Time string (%s): "
+						"Two instances of \'y\'",
+						strFormattedTime.c_str());
+				}
+
+			// Record month
+			} else if (strFormattedTime[i] == 'M') {
+				if (szMonth == NULL) {
+					szMonth = &(strFormattedTime[j]);
+				} else {
+					_EXCEPTION1("Malformed Time string (%s): "
+						"Two instances of \'M\'",
+						strFormattedTime.c_str());
+				}
+
+			// Record day
+			} else if (strFormattedTime[i] == 'd') {
+				if (szDay == NULL) {
+					szDay = &(strFormattedTime[j]);
+				} else {
+					_EXCEPTION1("Malformed Time string (%s): "
+						"Two instances of \'d\'",
+						strFormattedTime.c_str());
+				}
+
+			// Record hour
+			} else if (strFormattedTime[i] == 'h') {
+				if (szHour == NULL) {
+					szHour = &(strFormattedTime[j]);
+				} else {
+					_EXCEPTION1("Malformed Time string (%s): "
+						"Two instances of \'h\'",
+						strFormattedTime.c_str());
+				}
+
+			// Record minute
+			} else if (strFormattedTime[i] == 'm') {
+				if (szMinute == NULL) {
+					szMinute = &(strFormattedTime[j]);
+				} else {
+					_EXCEPTION1("Malformed Time string (%s): "
+						"Two instances of \'m\'",
+						strFormattedTime.c_str());
+				}
+
+			// Record second 
+			} else if (strFormattedTime[i] == 's') {
+				if (szSecond == NULL) {
+					szSecond = &(strFormattedTime[j]);
+				} else {
+					_EXCEPTION1("Malformed Time string (%s): "
+						"Two instances of \'s\'",
+						strFormattedTime.c_str());
+				}
+
+			// Record microsecond 
+			} else if (strFormattedTime[i] == 'u') {
+				if (szMicroSecond == NULL) {
+					szMicroSecond = &(strFormattedTime[j]);
+				} else {
+					_EXCEPTION1("Malformed Time string (%s): "
+						"Two instances of \'s\'",
+						strFormattedTime.c_str());
+				}
+
+			// Unexpected character
+			} else {
+				_EXCEPTION2("Malformed Time string (%s): "
+					"Unexpected character \'%c\'",
+					strFormattedTime.c_str(),
+					strFormattedTime[i]);
+			}
+
+			// Increment location pointer
+			j = i + 1;
+		}
+	}
+
+	// Finalize formatting
+	if (i != j) {
+
+		// Date format
+		if (state == FormatState_Date) {
+			if (szYear == NULL) {
+				szYear = &(strFormattedTime[j]);
+
+			} else if (szMonth == NULL) {
+				szMonth = &(strFormattedTime[j]);
+
+			} else if (szDay == NULL) {
+				szDay = &(strFormattedTime[j]);
+
+			} else if (szSecond == NULL) {
+				szSecond = &(strFormattedTime[j]);
+
+			} else {
+				_EXCEPTION1("Malformed time string (%s): "
+					"Extraneous value at end",
+					strFormattedTime.c_str());
+			}
+
+		// Time format
+		} else if (state == FormatState_Time) {
+			if (szMinute == NULL) {
+				szMinute = &(strFormattedTime[j]);
+
+			} else if (szSecond == NULL) {
+				szSecond = &(strFormattedTime[j]);
+
+			} else if (szMicroSecond == NULL) {
+				szMicroSecond = &(strFormattedTime[j]);
+
+			} else {
+				_EXCEPTION1("Malformed time string (%s): "
+					"Extraneous value at end",
+					strFormattedTime.c_str());
+			}
+
+		// Free format
+		} else {
+			_EXCEPTION1("Malformed time string (%s): "
+				"Dangling values not allowed in Free formatting",
+				strFormattedTime.c_str());
+		} 
+	}
+
+	// Convert
+	m_iSecond = 0;
+
+	if (szYear != NULL) {
+		m_iYear = atoi(szYear);
+	}
+	if (szMonth != NULL) {
+		m_iMonth = atoi(szMonth);
+	}
+	if (szDay != NULL) {
+		m_iDay = atoi(szDay);
+	}
+	if (szHour != NULL) {
+		m_iSecond += 3600 * atoi(szHour);
+	}
+	if (szMinute != NULL) {
+		m_iSecond += 60 * atoi(szMinute);
+	}
+	if (szSecond != NULL) {
+		m_iSecond += atoi(szSecond);
+	}
+	if (szMicroSecond != NULL) {
+		m_iMicroSecond = atoi(szMicroSecond);
+	}
+
+	// Normalize
+	NormalizeTime();
 }
 
 ///////////////////////////////////////////////////////////////////////////////

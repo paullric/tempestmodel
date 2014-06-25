@@ -283,9 +283,9 @@ try {
 	BeginTempestCommandLine("InertiaGravityWaveTest");
 		SetDefaultResolution(20);
 		SetDefaultLevels(10);
-		SetDefaultOutputTime(1.5);
-		SetDefaultDeltaT(1.5);
-		SetDefaultEndTime(1.5);
+		SetDefaultOutputDeltaT("1500000u");
+		SetDefaultDeltaT("1500000u");
+		SetDefaultEndTime("1500000u");
 		SetDefaultHorizontalOrder(4);
 		SetDefaultVerticalOrder(1);
 

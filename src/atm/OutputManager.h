@@ -41,7 +41,7 @@ public:
 	///	</summary>
 	OutputManager(
 		Grid & grid,
-		double dOutputDeltaT,
+		const Time & timeOutputFrequency,
 		std::string strOutputDir,
 		std::string strOutputPrefix,
 		int nOutputsPerFile
@@ -183,7 +183,7 @@ protected:
 	///	<summary>
 	///		Time between successive outputs (in seconds).
 	///	</summary>
-	double m_dOutputDeltaT;
+	Time m_timeOutputFrequency;
 
 	///	<summary>
 	///		Output directory.

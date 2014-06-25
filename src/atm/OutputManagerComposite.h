@@ -37,7 +37,7 @@ public:
 	///	</summary>
 	OutputManagerComposite(
 		Grid & grid,
-		double dOutputDeltaT,
+		const Time & timeOutputFrequency,
 		std::string strOutputDir,
 		std::string strOutputPrefix,
 		std::string strRestartFile = ""

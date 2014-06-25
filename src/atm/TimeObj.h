@@ -32,12 +32,6 @@ class Time {
 
 public:
 	///	<summary>
-	///		Length of time (in seconds) which is considered "concurrent"
-	///	</summary>
-	static const double SecondsEpsilon;
-
-public:
-	///	<summary>
 	///		Type of calendar.
 	///	</summary>
 	enum CalendarType {
@@ -53,7 +47,8 @@ public:
 		m_iYear(0),
 		m_iMonth(0),
 		m_iDay(0),
-		m_dSeconds(0),
+		m_iSecond(0),
+		m_iMicroSecond(0),
 		m_eCalendarType(CalendarNoLeap)
 	{ }
 
@@ -64,12 +59,14 @@ public:
 		int iYear,
 		int iMonth,
 		int iDay,
-		double dSeconds
+		int iSecond,
+		int iMicroSecond
 	) :
 		m_iYear(iYear),
 		m_iMonth(iMonth),
 		m_iDay(iDay),
-		m_dSeconds(dSeconds),
+		m_iSecond(iSecond),
+		m_iMicroSecond(iMicroSecond),
 		m_eCalendarType(CalendarNoLeap)
 	{
 		NormalizeTime();
@@ -82,10 +79,11 @@ public:
 		m_iYear(0),
 		m_iMonth(0),
 		m_iDay(0),
-		m_dSeconds(0),
+		m_iSecond(0),
+		m_iMicroSecond(0),
 		m_eCalendarType(CalendarNoLeap)
 	{
-		FromShortString(strTime);
+		FromLongString(strTime);
 	}
 
 public:
@@ -148,19 +146,33 @@ protected:
 
 public:
 	///	<summary>
+	///		Add Time to this object.
+	///	</summary>
+	void AddTime(const Time & timeDelta);
+
+	///	<summary>
+	///		Add Time to this object.
+	///	</summary>
+	inline Time & operator+=(const Time & timeDelta) {
+		AddTime(timeDelta);
+		return (*this);
+	}
+
+	///	<summary>
 	///		Add a number of seconds to the Time.
 	///	</summary>
-	inline void AddSeconds(double dSeconds) {
-		m_dSeconds += dSeconds;
+	inline void AddSeconds(int nSeconds) {
+		m_iSecond += nSeconds;
 
 		NormalizeTime();
 	}
 
 	///	<summary>
-	///		Add a number of seconds to the Time (operator version).
+	///		Add a number of seconds to the Time.
 	///	</summary>
-	inline void operator+=(double dSeconds) {
-		AddSeconds(dSeconds);
+	inline Time & operator+=(int nSeconds) {
+		AddSeconds(nSeconds);
+		return (*this);
 	}
 
 	///	<summary>
@@ -191,17 +203,34 @@ public:
 	}
 
 public:
+/*
 	///	<summary>
 	///		Add a number of seconds to the Time to produce a new Time value.
 	///	</summary>
 	Time operator+(double dSeconds) const;
-
+*/
 	///	<summary>
 	///		Determine the number of seconds between two Times.
 	///	</summary>
 	double operator-(const Time & time) const;
 
 public:
+	///	<summary>
+	///		Check if this object is zero.
+	///	</summary>
+	inline bool IsZero() const {
+		if ((m_iYear == 0) &&
+			(m_iMonth == 0) &&
+			(m_iDay == 0) &&
+			(m_iSecond == 0) &&
+			(m_iMicroSecond == 0)
+		) {
+			return true;
+		}
+
+		return false;
+	}
+
 	///	<summary>
 	///		Get the year.
 	///	</summary>
@@ -224,10 +253,17 @@ public:
 	}
 
 	///	<summary>
-	///		Get the number of seconds in the day.
+	///		Get the number of seconds.
 	///	</summary>
-	inline double GetSeconds() const {
-		return m_dSeconds;
+	inline int GetSecond() const {
+		return m_iSecond;
+	}
+
+	///	<summary>
+	///		Get the number of microseconds.
+	///	</summary>
+	inline int GetMicroSecond() const {
+		return m_iMicroSecond;
 	}
 
 	///	<summary>
@@ -259,10 +295,17 @@ public:
 	}
 
 	///	<summary>
-	///		Set the number of seconds in the day.
+	///		Set the number of seconds.
 	///	</summary>
-	inline void SetSeconds(double dSeconds) {
-		m_dSeconds = dSeconds;
+	inline void SetSecond(int iSecond) {
+		m_iSecond = iSecond;
+	}
+
+	///	<summary>
+	///		Set the number of microseconds.
+	///	</summary>
+	inline void SetMicroSecond(int iMicroSecond) {
+		m_iMicroSecond = iMicroSecond;
 	}
 
 public:
@@ -277,15 +320,41 @@ public:
 	std::string ToShortString() const;
 
 	///	<summary>
+	///		Get the Time as a long string: "YYYY-MM-DD-SSSSS-UUUUUU"
+	///	</summary>
+	std::string ToLongString() const;
+
+	///	<summary>
 	///		Get the Time as a full-length string showing hours, days
-	///		and seconds: "YYYY-MM-DD hh:mm:ss"
+	///		and seconds: "YYYY-MM-DD hh:mm:ss[.uuuuuu]"
 	///	</summary>
 	std::string ToString() const;
 
 	///	<summary>
-	///		Set the Time using a short string: "YYYY-MM-DD-SSSSS"
+	///		Get the Time as a free string.
 	///	</summary>
-	void FromShortString(const std::string & strShortTime);
+	std::string ToFreeString() const;
+
+	///	<summary>
+	///		Set the Time using a long string: "YYYY-MM-DD-SSSSS-UUUUUU"
+	///	</summary>
+	void FromLongString(const std::string & strLongTime);
+
+	///	<summary>
+	///		Set the Time using a formatted string:
+	///		- 15h (15 hours)
+	///		- 15h30s (15 hours 30 seconds)
+	///		- 7y (7 years)
+	///		- 1500s (1500 seconds)
+	///		- 2y1500u (2 years 1500 microseconds)
+	///		- yyyy
+	///		- yyyy-MM
+	///		- yyyy-MM-dd
+	///		- yyyy-MM-dd-sssss
+	///		- yyyy-MM-dd-hh:mm:ss.uuuuuu
+	///		- HH:MM:SS.UUUU
+	///	</summary>
+	void FromFormattedString(const std::string & strFormattedTime);
 
 	///	<summary>
 	///		Get the name of the calendar.
@@ -309,9 +378,14 @@ private:
 	int m_iDay;
 
 	///	<summary>
-	///		Number of seconds in the day.
+	///		The second count.
 	///	</summary>
-	double m_dSeconds;
+	int m_iSecond;
+
+	///	<summary>
+	///		The microsecond count.
+	///	</summary>
+	int m_iMicroSecond;
 
 	///	<summary>
 	///		Calendar type.

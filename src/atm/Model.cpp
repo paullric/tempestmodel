@@ -37,7 +37,7 @@ Model::Model(
 	m_pVerticalDynamics(NULL),
 	m_pTestCase(NULL),
 	m_eqn(eEquationSetType),
-	m_time(0, 0, 0, 0.0)
+	m_time()
 {
 	// Initialize staggering from equation set
 	m_stag.Initialize(m_eqn);
@@ -191,7 +191,8 @@ void Model::EvaluateStateFromRestartFile() {
 	int n = 0;
 	for (; n < m_vecOutMan.size(); n++) {
 		if (m_vecOutMan[n]->SupportsInput()) {
-			m_time = m_vecOutMan[n]->Input(m_param.m_strRestartFile);
+			m_param.m_timeStart =
+				m_vecOutMan[n]->Input(m_param.m_strRestartFile);
 			break;
 		}
 	}
@@ -226,7 +227,7 @@ void Model::Go() {
 	}
 
 	// Check time step
-	if (m_param.m_dDeltaT == 0.0) {
+	if (m_param.m_timeDeltaT.IsZero()) {
 		_EXCEPTIONT("Dynamic timestepping not implemented. "
 		            "DeltaT must be non-zero.");
 	}
@@ -243,10 +244,8 @@ void Model::Go() {
 	m_pHorizontalDynamics->Initialize();
 	m_pVerticalDynamics->Initialize();
 
-	// Set the end time of the simulation from number of seconds
-	if (m_param.m_dEndTime != 0.0) {
-		m_param.m_timeEnd = Time(0, 0, 0, m_param.m_dEndTime);
-	}
+	// Set the current time
+	m_time = m_param.m_timeStart;
 
 	// Check time
 	if (m_time >= m_param.m_timeEnd) {
@@ -266,7 +265,7 @@ void Model::Go() {
 	bool fFirstStep = true;
 
 	// Loop
-	for(;;) {
+	for(int iStep = 0;; iStep++) {
 
 		//PrintMemoryLine();
 
@@ -276,16 +275,17 @@ void Model::Go() {
 		bool fLastStep = false;
 
 		// Next time step
+		double dDeltaT;
+
 		Time timeNext = m_time;
-		timeNext.AddSeconds(m_param.m_dDeltaT);
+		timeNext += m_param.m_timeDeltaT;
 
-		// Time step size
-		double dDeltaT = m_param.m_dDeltaT;
-
-		// Perform a semi-timestep if necessary to align timescales
 		if (timeNext >= m_param.m_timeEnd) {
 			dDeltaT = m_param.m_timeEnd - m_time;
 			fLastStep = true;
+
+		} else {
+			dDeltaT = timeNext - m_time;
 		}
 
 		// Perform one time step
@@ -323,7 +323,7 @@ void Model::Go() {
 		}
 */
 		// Update the timer
-		m_time += dDeltaT;
+		m_time = timeNext;
 
 		if (fLastStep) {
 			break;

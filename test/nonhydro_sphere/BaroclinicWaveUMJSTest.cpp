@@ -564,9 +564,9 @@ try {
 	BeginTempestCommandLine("BaroclinicWaveUMJS");
 		SetDefaultResolution(20);
 		SetDefaultLevels(10);
-		SetDefaultOutputTime(200.0);
-		SetDefaultDeltaT(200.0);
-		SetDefaultEndTime(200.0);
+		SetDefaultOutputDeltaT("200s");
+		SetDefaultDeltaT("200s");
+		SetDefaultEndTime("200s");
 		SetDefaultHorizontalOrder(4);
 		SetDefaultVerticalOrder(1);
 

@@ -51,6 +51,14 @@ public:
 
 public:
 	///	<summary>
+	///		Determine if this WorkflowProcess is ready to be activated.
+	///	</summary>
+	bool IsReady(const Time & time) {
+		return false;
+	}
+
+public:
+	///	<summary>
 	///		Perform one explicit time step of sub-cycle frequency.
 	///	</summary>
 	virtual void StepExplicit(

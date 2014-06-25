@@ -27,11 +27,11 @@
 
 OutputManagerChecksum::OutputManagerChecksum(
 	Grid & grid,
-	double dOutputDeltaT
+	const Time & timeOutputFrequency
 ) :
 	OutputManager(
 		grid,
-		dOutputDeltaT,
+		timeOutputFrequency,
 		"",
 		"",
 		-1)

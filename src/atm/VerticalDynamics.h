@@ -17,10 +17,9 @@
 #ifndef _VERTICALDYNAMICS_H_
 #define _VERTICALDYNAMICS_H_
 
-#include "WorkflowProcess.h"
-
 ///////////////////////////////////////////////////////////////////////////////
 
+class Time;
 class Model;
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -28,7 +27,7 @@ class Model;
 ///	<summary>
 ///		Interface for vertical dynamics in the atmospheric model.
 ///	</summary>
-class VerticalDynamics : public WorkflowProcess {
+class VerticalDynamics {
 
 protected:
 	///	<summary>
@@ -38,8 +37,14 @@ protected:
 	VerticalDynamics(
 		Model & model
 	) :
-		WorkflowProcess(model)
+		m_model(model)
 	{ }
+
+public:
+	///	<summary>
+	///		Virtual destructor.
+	///	</summary>
+	virtual ~VerticalDynamics() { }
 
 public:
 	///	<summary>
@@ -48,6 +53,54 @@ public:
 	virtual int GetAuxDataCount() const {
 		return 2;
 	}
+
+public:
+	///	<summary>
+	///		Initializer.  Called prior to execution.
+	///	</summary>
+	virtual void Initialize() { }
+
+public:
+	///	<summary>
+	///		Perform one explicit time step.
+	///	</summary>
+	virtual void StepExplicit(
+		int iDataInitial,
+		int iDataUpdate,
+		const Time & time,
+		double dDeltaT
+	) {
+	}
+
+	///	<summary>
+	///		Perform one implicit time step.
+	///	</summary>
+	virtual void StepImplicit(
+		int iDataInitial,
+		int iDataUpdate,
+		const Time & time,
+		double dDeltaT
+	) {
+	}
+
+	///	<summary>
+	///		Perform one time step after all sub-cycles are complete.
+	///	</summary>
+	virtual void StepAfterSubCycle(
+		int iDataInitial,
+		int iDataUpdate,
+		int iDataWorking,
+		const Time & time,
+		double dDeltaT
+	) {
+	}
+
+protected:
+	///	<summary>
+	///		Reference to the model.
+	///	</summary>
+	Model & m_model;
+
 };
 
 ///////////////////////////////////////////////////////////////////////////////

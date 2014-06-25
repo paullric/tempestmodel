@@ -17,6 +17,7 @@
 #ifndef _COMMANDLINE_H_
 #define _COMMANDLINE_H_
 
+#include "TimeObj.h"
 #include "Announce.h"
 #include "Exception.h"
 
@@ -36,6 +37,7 @@ enum ParameterType {
 	ParameterTypeString,
 	ParameterTypeInt,
 	ParameterTypeDouble,
+	ParameterTypeTime
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -367,6 +369,72 @@ public:
 ///////////////////////////////////////////////////////////////////////////////
 
 ///	<summary>
+///		A command line Time
+///	</summary>
+class CommandLineParameterTime : public CommandLineParameter {
+public:
+	///	<summary>
+	///		Constructor.
+	///	</summary>
+	CommandLineParameterTime(
+		Time & ref,
+		std::string strName,
+	 	std::string strDefaultValue,
+		std::string strDescription
+	) :
+		CommandLineParameter(strName, strDescription),
+		m_timeValue(ref)
+	{
+		m_timeValue.FromFormattedString(strDefaultValue);
+	}
+
+	///	<summary>
+	///		Identify the type of parameter.
+	///	</summary>
+	virtual ParameterType GetParameterType() {
+		return ParameterTypeTime;
+	}
+
+	///	<summary>
+	///		Number of values required.
+	///	</summary>
+	virtual int GetValueCount() const {
+		return (1);
+	}
+
+	///	<summary>
+	///		Print the usage information of this parameter.
+	///	</summary>
+	virtual void PrintUsage() const {
+		Announce("  %s <time> [%s] %s",
+			m_strName.c_str(),
+			m_timeValue.ToFreeString().c_str(),
+			m_strDescription.c_str());
+	}
+
+	///	<summary>
+	///		Set the value from a string.
+	///	</summary>
+	virtual void SetValue(
+		int ix,
+		std::string strValue
+	) {
+		if (ix != 0) {
+			_EXCEPTIONT("Invalid value index.");
+		}
+		m_timeValue.FromFormattedString(strValue);
+	}
+
+public:
+	///	<summary>
+	///		Parameter value.
+	///	</summary>
+	Time & m_timeValue;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+
+///	<summary>
 ///		Begin the definition of command line parameters.
 ///	</summary>
 #define BeginCommandLine() \
@@ -428,6 +496,20 @@ public:
 #define CommandLineDoubleD(ref, name, value, desc) \
 	_vecParameters.push_back( \
 		new CommandLineParameterDouble(ref, name, value, desc));
+
+///	<summary>
+///		Define a new command line Time parameter.
+///	</summary>
+#define CommandLineTime(ref, name, value) \
+	_vecParameters.push_back( \
+		new CommandLineParameterTime(ref, name, value, ""));
+
+///	<summary>
+///		Define a new command line Time parameter with description.
+///	</summary>
+#define CommandLineTimeD(ref, name, value, desc) \
+	_vecParameters.push_back( \
+		new CommandLineParameterTime(ref, name, value, desc));
 
 ///	<summary>
 ///		Begin the loop for command line parameters.

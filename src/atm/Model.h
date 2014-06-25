@@ -40,10 +40,10 @@ public:
 	///		Constructor.
 	///	</summary>
 	ModelParameters() :
-		m_dDeltaT(0.0),
-		m_dEndTime(0.0),
-		m_timeStart(0, 0, 0, 0.0),
-		m_timeEnd(0, 0, 0, 0.0)
+		m_strRestartFile(""),
+		m_timeDeltaT(),
+		m_timeStart(),
+		m_timeEnd()
 	{ }
 
 public:
@@ -53,14 +53,9 @@ public:
 	std::string m_strRestartFile;
 
 	///	<summary>
-	///		Time step size, in seconds.
+	///		Time step size.
 	///	</summary>
-	double m_dDeltaT;
-
-	///	<summary>
-	///		End time of the simulation, in seconds.
-	///	</summary>
-	double m_dEndTime;
+	Time m_timeDeltaT;
 
 	///	<summary>
 	///		Start time of the simulation.

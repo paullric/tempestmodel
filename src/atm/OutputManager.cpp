@@ -35,7 +35,7 @@
 
 OutputManager::OutputManager(
 	Grid & grid,
-	double dOutputDeltaT,
+	const Time & timeOutputFrequency,
 	std::string strOutputDir,
 	std::string strOutputPrefix,
 	int nOutputsPerFile
@@ -45,9 +45,9 @@ OutputManager::OutputManager(
 	m_fIsFileOpen(false),
 	m_ixOutputTime(0),
 	m_ixOutputFile(0),
-	m_timeLastOutput(0, 0, 0, 0.0),
-	m_timeNextOutput(0, 0, 0, 0.0),
-	m_dOutputDeltaT(dOutputDeltaT),
+	m_timeLastOutput(),
+	m_timeNextOutput(),
+	m_timeOutputFrequency(timeOutputFrequency),
 	m_strOutputDir(strOutputDir),
 	m_strOutputPrefix(strOutputPrefix),
 	m_nOutputsPerFile(nOutputsPerFile)
@@ -80,7 +80,7 @@ bool OutputManager::IsOutputNeeded(
 	const Time & time
 ) {
 	// Only output initial and final results if no output time is set
-	if (m_dOutputDeltaT == 0.0) {
+	if (m_timeOutputFrequency.IsZero()) {
 		return false;
 	}
 
@@ -141,7 +141,7 @@ void OutputManager::ManageOutput(
 	m_timeLastOutput = time;
 
 	// Update next output time
-	m_timeNextOutput += m_dOutputDeltaT;
+	m_timeNextOutput += m_timeOutputFrequency;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -168,7 +168,7 @@ void OutputManager::InitialOutput(
 	}
 
 	m_timeNextOutput = time;
-	m_timeNextOutput += m_dOutputDeltaT;
+	m_timeNextOutput += m_timeOutputFrequency;
 }
 
 ///////////////////////////////////////////////////////////////////////////////

@@ -320,9 +320,9 @@ try {
 	BeginTempestCommandLine("ScharMountainSphereTest");
 		SetDefaultResolution(20);
 		SetDefaultLevels(60);
-		SetDefaultOutputTime(100.0);
-		SetDefaultDeltaT(0.5);
-		SetDefaultEndTime(7200.0);
+		SetDefaultOutputDeltaT("600s");
+		SetDefaultDeltaT("500000u");
+		SetDefaultEndTime("7200s");
 		SetDefaultHorizontalOrder(4);
 		SetDefaultVerticalOrder(1);
 

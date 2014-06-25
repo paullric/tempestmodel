@@ -1,8 +1,8 @@
 ///////////////////////////////////////////////////////////////////////////////
 ///
-///	\file    MountainWaveSphereTest.cpp
+///	\file    MountainRossby3DTest.cpp
 ///	\author  Paul Ullrich
-///	\version April 25, 2014
+///	\version June 24, 2014
 ///
 ///	<remarks>
 ///		Copyright 2000-2014 Paul Ullrich
@@ -19,19 +19,9 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 ///	<summary>
-///		Mountain waves on the sphere test.
+///		Mountain-induced Rossby wave train (DCMIP 2008 Test 5)
 ///	</summary>
-class MountainWaveSphereTest : public TestCase {
-
-public:
-	///	<summary>
-	///		Perturbation type.
-	///	</summary>
-	enum MountainType {
-		MountainType_Default = 0,
-		MountainType_None = MountainType_Default,
-		MountainType_Wave6 = 1,
-	};
+class MountainRossby3DTest : public TestCase {
 
 protected:
 	///	<summary>
@@ -45,43 +35,64 @@ protected:
 	const double m_dEarthScaling;
 
 	///	<summary>
-	///		Background temperature (isothermal).
+	///		Rotation rate of the Earth with X = 1.
+	///	</summary>
+	double m_dOmega;
+
+	///	<summary>
+	///		Longitude of mountain centerpoint.
+	///	</summary>
+	double m_dLonC;
+
+	///	<summary>
+	///		Latitude of mountain centerpoint.
+	///	</summary>
+	double m_dLatC;
+
+	///	<summary>
+	///		Maximum mountain height.
+	///	</summary>
+	double m_dH0;
+
+	///	<summary>
+	///		Mountain half-width.
+	///	</summary>
+	double m_dD;
+
+	///	<summary>
+	///		Isothermal atmosphere temperature.
 	///	</summary>
 	double m_dT0;
 
 	///	<summary>
-	///		Background flow velocity (isothermal).
+	///		Reference zonal wind velocity.
 	///	</summary>
 	double m_dU0;
-
-	///	<summary>
-	///		Flag indicating that rotation is disabled.
-	///	</summary>
-	bool m_fNoRotation;
-
-	///	<summary>
-	///		Type of mountain.
-	///	</summary>
-	MountainType m_eMountainType;
 
 public:
 	///	<summary>
 	///		Constructor.
 	///	</summary>
-	MountainWaveSphereTest(
+	MountainRossby3DTest(
 		double dZtop,
 		double dEarthScaling,
+		double dOmega,
+		double dLonC,
+		double dLatC,
+		double dH0,
+		double dD,
 		double dT0,
-		double dU0,
-		bool fNoRotation,
-		MountainType eMountainType = MountainType_Default
+		double dU0
 	) :
 		m_dZtop(dZtop),
 		m_dEarthScaling(dEarthScaling),
+		m_dOmega(dOmega),
+		m_dLonC(dLonC * M_PI / 180.0),
+		m_dLatC(dLatC * M_PI / 180.0),
+		m_dH0(dH0),
+		m_dD(dD),
 		m_dT0(dT0),
-		m_dU0(dU0),
-		m_fNoRotation(fNoRotation),
-		m_eMountainType(eMountainType)
+		m_dU0(dU0)
 	{
 	}
 
@@ -106,9 +117,8 @@ public:
 	virtual void EvaluatePhysicalConstants(
 		PhysicalConstants & phys
 	) const {
-		if (m_fNoRotation) {
-			phys.SetOmega(0.0);
-		}
+		phys.SetOmega(m_dOmega * m_dEarthScaling);
+		phys.SetEarthRadius(phys.GetEarthRadius() / m_dEarthScaling);
 	}
 
 	///	<summary>
@@ -119,21 +129,23 @@ public:
 		double dLon,
 		double dLat
 	) const {
-		if (m_eMountainType == MountainType_None) {
-			return 0.0;
 
-		} else if (m_eMountainType == MountainType_Wave6) {
-			return 10.0 * sin(6.0 * dLon) * cos(dLat) * cos(dLat);
-		}
+		// Great circle distance from mountain centerpoint
+		double dR = phys.GetEarthRadius() * acos(
+			sin(m_dLatC) * sin(dLat)
+				+ cos(m_dLatC) * cos(dLat) * cos(dLon - m_dLonC));
 
-		_EXCEPTIONT("Invalid MountainType");
+		// Topography height
+		double dExpTerm = exp(- dR * dR / (m_dD * m_dD));
+
+		return (m_dH0 * dExpTerm);
 	}
 
 	///	<summary>
 	///		Flag indicating whether or not Rayleigh friction strength is given.
 	///	</summary>
 	virtual bool HasRayleighFriction() const {
-		return true;
+		return false;
 	}
 
 	///	<summary>
@@ -144,17 +156,7 @@ public:
 		double dXp,
 		double dYp
 	) const {
-		const double dRayleighStrength = 8.0e-3;
-		const double dRayleighDepth = 6000.0;
-
-		double dNuDepth = 0.0;
-
-		if (dZ > m_dZtop - dRayleighDepth) {
-			double dNormZ = (m_dZtop - dZ) / dRayleighDepth;
-			dNuDepth = 0.5 * dRayleighStrength * (1.0 + cos(M_PI * dNormZ));
-		}
-
-		return dNuDepth;
+		return 0.0;
 	}
 
 	///	<summary>
@@ -175,23 +177,20 @@ public:
 		double * dState
 	) const {
 
-		// Scale height
-		double dH = phys.GetR() * m_dT0 / phys.GetG();
+		double dSin2Lat = sin(dLat) * sin(dLat);
 
-		// Froude number squared
-		double dFr2 = m_dU0 * m_dU0 / (phys.GetG() * dH);
+		// 3D temperature
+		double dT = m_dT0;
 
-		// Inverse Rossby number
-		double dInvRo = 2.0 * phys.GetEarthRadius() * phys.GetOmega() / m_dU0;
-
-		// Pressure (isothermal)
+		// 3D pressure
 		double dPressure =
-			phys.GetP0()
-				* exp(- dZ / dH)
-				* exp(- 0.5 * dFr2 * (1.0 + dInvRo) * sin(dLat) * sin(dLat));
+			phys.GetP0() * exp(
+				- m_dU0 / (2.0 * phys.GetR() * m_dT0) * (dSin2Lat - 1.0)
+					* (m_dU0 + 2.0 * phys.GetOmega() * phys.GetEarthRadius())
+				- phys.GetG() * dZ / (phys.GetR() * m_dT0));
 
-		// Density (isothermal)
-		double dRho = dPressure / (phys.GetG() * dH);
+		// 3D density
+		double dRho = dPressure / (phys.GetR() * m_dT0);
 
 		// Store the state
 		dState[0] = m_dU0 * cos(dLat);
@@ -225,41 +224,52 @@ int main(int argc, char** argv) {
 	TempestInitialize(&argc, &argv);
 
 try {
-	// Model cap
+	// Model height cap.
 	double dZtop;
 
-	// Earth scaling parameter
+	// Model scaling parameter
 	double dEarthScaling;
 
-	// Background temperature
+	// Rotation rate of the Earth with X = 1.
+	double dOmega;
+
+	// Longitude of Schar-type mountain centerpoint.
+	double dLonC;
+
+	// Latitude of Schar-type mountain centerpoint.
+	double dLatC;
+
+	// Maximum Schar-type mountain height.
+	double dH0;
+
+	// Schar-type mountain half width.
+	double dD;
+
+	// Isothermal atmosphere temperature
 	double dT0;
 
-	// Background wind speed
+	// Reference zonal wind velocity.
 	double dU0;
 
-	// No planetary rotation
-	bool fNoRotation;
-
-	// Mountain type
-	std::string strMountainType;
-
 	// Parse the command line
-	BeginTempestCommandLine("MountainWaveSphereTest");
-		SetDefaultResolution(20);
-		SetDefaultLevels(10);
-		SetDefaultOutputDeltaT("200s");
+	BeginTempestCommandLine("MountainRossby3DTest");
+		SetDefaultResolution(30);
+		SetDefaultLevels(30);
+		SetDefaultOutputDeltaT("86400s");
 		SetDefaultDeltaT("200s");
-		SetDefaultEndTime("200s");
+		SetDefaultEndTime("30d");
 		SetDefaultHorizontalOrder(4);
 		SetDefaultVerticalOrder(1);
 
-		CommandLineDouble(dZtop, "ztop", 10000.0);
+		CommandLineDouble(dZtop, "ztop", 30000.0);
 		CommandLineDouble(dEarthScaling, "X", 1.0);
-		CommandLineDouble(dT0, "T0", 300.0);
-		CommandLineDouble(dU0, "U0", 20.0);
-		CommandLineBool(fNoRotation, "noomega");
-		CommandLineStringD(strMountainType, "mountaintype",
-			"None", "(None | Wave6)");
+		CommandLineDouble(dOmega, "omega", 0.0);
+		CommandLineDouble(dLonC, "lonc", 90.0);
+		CommandLineDouble(dLatC, "latc", 30.0);
+		CommandLineDouble(dH0, "h0", 2000.0);
+		CommandLineDouble(dD, "d", 1.5e6);
+		CommandLineDouble(dT0, "t0", 288.0);
+		CommandLineDouble(dU0, "u0", 20.0);
 
 		ParseCommandLine(argc, argv);
 	EndTempestCommandLine(argv)
@@ -274,27 +284,22 @@ try {
 	// Set the test case for the model
 	AnnounceStartBlock("Initializing test case");
 
-	MountainWaveSphereTest::MountainType eMountainType;
-	STLStringHelper::ToLower(strMountainType);
-	if (strMountainType == "none") {
-		eMountainType = MountainWaveSphereTest::MountainType_None;
-	} else if (strMountainType == "wave6") {
-		eMountainType = MountainWaveSphereTest::MountainType_Wave6;
-	} else {
-		_EXCEPTIONT("Invalid mountain type:"
-			" Expected \"None\" or \"Wave6\"");
-	}
-
 	model.SetTestCase(
-		new MountainWaveSphereTest(
+		new MountainRossby3DTest(
 			dZtop,
 			dEarthScaling,
+			dOmega,
+			dLonC,
+			dLatC,
+			dH0,
+			dD,
 			dT0,
-			dU0,
-			fNoRotation,
-			eMountainType));
+			dU0));
 
 	AnnounceEndBlock("Done");
+
+	// Set the reference length
+	model.GetGrid()->SetReferenceLength(0.5 * M_PI / 30.0 * dEarthScaling);
 
 	// Begin execution
 	AnnounceBanner("SIMULATION");
