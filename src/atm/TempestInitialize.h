@@ -59,6 +59,9 @@ struct _TempestCommandLineVariables {
 	bool fNoReferenceState;
 	bool fNoTracers;
 	bool fNoHyperviscosity;
+	double dNuScalar;
+	double dNuDiv;
+	double dNuVort;
 	int nVerticalHyperdiffOrder;
 	std::string strTimestepScheme;
 	std::string strHorizontalDynamics;
@@ -86,6 +89,9 @@ struct _TempestCommandLineVariables {
 	CommandLineBool(_tempestvars.fNoReferenceState, "norefstate"); \
 	CommandLineBool(_tempestvars.fNoTracers, "notracers"); \
 	CommandLineBool(_tempestvars.fNoHyperviscosity, "nohypervis"); \
+	CommandLineDouble(_tempestvars.dNuScalar, "nu", 1.0e15); \
+	CommandLineDouble(_tempestvars.dNuDiv, "nud", 1.0e15); \
+	CommandLineDouble(_tempestvars.dNuVort, "nuv", 1.0e15); \
 	CommandLineInt(_tempestvars.nVerticalHyperdiffOrder, "verthypervisorder", 0); \
 	CommandLineString(_tempestvars.strTimestepScheme, "timescheme", "strang"); \
 	CommandLineStringD(_tempestvars.strHorizontalDynamics, "method", "SE", "(SE | DG)");
@@ -149,16 +155,30 @@ void _TempestSetupMethodOfLines(
 	// Set the horizontal dynamics
 	AnnounceStartBlock("Initializing horizontal dynamics");
 
+	if (vars.fNoHyperviscosity) {
+		vars.dNuScalar = 0.0;
+		vars.dNuDiv = 0.0;
+		vars.dNuVort = 0.0;
+	}
+
 	STLStringHelper::ToLower(vars.strHorizontalDynamics);
 	if (vars.strHorizontalDynamics == "se") {
 		model.SetHorizontalDynamics(
 			new HorizontalDynamicsFEM(
-				model, vars.nHorizontalOrder, vars.fNoHyperviscosity));
+				model,
+				vars.nHorizontalOrder,
+				vars.dNuScalar,
+				vars.dNuDiv,
+				vars.dNuVort));
 
 	} else if (vars.strHorizontalDynamics == "dg") {
 		model.SetHorizontalDynamics(
 			new HorizontalDynamicsDG(
-				model, vars.nHorizontalOrder, vars.fNoHyperviscosity));
+				model,
+				vars.nHorizontalOrder,
+				vars.dNuScalar,
+				vars.dNuDiv,
+				vars.dNuVort));
 
 	} else {
 		_EXCEPTIONT("Invalid method: Expected \"SE\" or \"DG\"");

@@ -340,10 +340,17 @@ public:
 	///		Print the usage information of this parameter.
 	///	</summary>
 	virtual void PrintUsage() const {
-		Announce("  %s <double> [%f] %s",
-			m_strName.c_str(),
-			m_dValue,
-			m_strDescription.c_str());
+		if (fabs(m_dValue) < 1.0e6) {
+			Announce("  %s <double> [%f] %s",
+				m_strName.c_str(),
+				m_dValue,
+				m_strDescription.c_str());
+		} else {
+			Announce("  %s <double> [%e] %s",
+				m_strName.c_str(),
+				m_dValue,
+				m_strDescription.c_str());
+		}
 	}
 
 	///	<summary>

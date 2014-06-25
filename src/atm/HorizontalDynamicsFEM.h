@@ -42,7 +42,9 @@ public:
 	HorizontalDynamicsFEM(
 		Model & model,
 		int nHorizontalOrder,
-		bool fNoHyperdiffusion = false
+		double dNuScalar,
+		double dNuDiv,
+		double dNuVort
 	);
 
 	///	<summary>
@@ -193,11 +195,6 @@ protected:
 	DataVector<double> m_dColumnDbPressureREdge;
 
 protected:
-	///	<summary>
-	///		Flag indicating whether or not hyperdiffusion should be used.
-	///	</summary>
-	bool m_fNoHyperdiffusion;
-
 	///	<summary>
 	///		Nodal pointwise gradient.
 	///	</summary>

@@ -42,12 +42,16 @@ static const double ParamHypervisScaling = 3.2;
 HorizontalDynamicsDG::HorizontalDynamicsDG(
 	Model & model,
 	int nHorizontalOrder,
-	bool fNoHyperdiffusion
+	double dNuScalar,
+	double dNuDiv,
+	double dNuVort
 ) :
 	HorizontalDynamicsFEM(
 		model,
 		nHorizontalOrder,
-		fNoHyperdiffusion)
+		dNuScalar,
+		dNuDiv,
+		dNuVort)
 {
 }
 
@@ -1789,8 +1793,11 @@ void HorizontalDynamicsDG::StepAfterSubCycle(
 	// Get the GLL grid
 	GridGLL * pGrid = dynamic_cast<GridGLL*>(m_model.GetGrid());
 
+	// No hyperdiffusion
+	if ((m_dNuScalar == 0.0) && (m_dNuDiv == 0.0) && (m_dNuVort == 0.0)) {
+
 	// Apply hyperdiffusion
-	if (!m_fNoHyperdiffusion) {
+	} else {
 		// Apply scalar and vector hyperdiffusion (first application)
 		pGrid->ZeroData(iDataWorking, DataType_State);
 		//pGrid->CopyData(iDataInitial, iDataWorking, DataType_State);

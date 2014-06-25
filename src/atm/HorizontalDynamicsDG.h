@@ -42,7 +42,9 @@ public:
 	HorizontalDynamicsDG(
 		Model & model,
 		int nHorizontalOrder,
-		bool fNoHyperdiffusion = false
+		double dNuScalar,
+		double dNuDiv,
+		double dNuVort
 	);
 
 public:
