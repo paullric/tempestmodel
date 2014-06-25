@@ -34,6 +34,12 @@
 //#define USE_JACOBIAN_GENERAL
 #define USE_JACOBIAN_DIAGONAL
 
+///	<summary>
+///		When to apply Rayleigh damping.
+///	</summary>
+#define APPLY_RAYLEIGH_WITH_HYPERVIS
+//#define APPLY_RAYLEIGH_WITH_VERTICALDYN
+
 ///////////////////////////////////////////////////////////////////////////////
 
 #endif

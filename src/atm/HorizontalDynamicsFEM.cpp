@@ -14,6 +14,7 @@
 ///		or implied warranty.
 ///	</remarks>
 
+#include "Defines.h"
 #include "HorizontalDynamicsFEM.h"
 #include "PhysicalConstants.h"
 #include "Model.h"
@@ -1179,6 +1180,9 @@ void HorizontalDynamicsFEM::ApplyRayleighFriction(
 	// Get a copy of the GLL grid
 	GridGLL * pGrid = dynamic_cast<GridGLL*>(m_model.GetGrid());
 
+	// Number of components to hit with friction
+	int nComponents = m_model.GetEquationSet().GetComponents();
+
 	// Perform local update
 	for (int n = 0; n < pGrid->GetActivePatchCount(); n++) {
 		GridPatchGLL * pPatch =
@@ -1224,7 +1228,6 @@ void HorizontalDynamicsFEM::ApplyRayleighFriction(
 				double dNuNode = 1.0 / (1.0 + dDeltaT * dNu);
 
 				// Loop over all components
-				int nComponents = m_model.GetEquationSet().GetComponents();
 				for (int c = 0; c < nComponents; c++) {
 					if (pGrid->GetVarLocation(c) == DataLocation_Node) {
 						dataUpdateNode[c][k][i][j] =
@@ -1248,7 +1251,6 @@ void HorizontalDynamicsFEM::ApplyRayleighFriction(
 				double dNuREdge = 1.0 / (1.0 + dDeltaT * dNu);
 
 				// Loop over all components
-				int nComponents = m_model.GetEquationSet().GetComponents();
 				for (int c = 0; c < nComponents; c++) {
 					if (pGrid->GetVarLocation(c) == DataLocation_REdge) {
 						dataUpdateREdge[c][k][i][j] =
@@ -1315,10 +1317,12 @@ void HorizontalDynamicsFEM::StepAfterSubCycle(
 		pGrid->ApplyDSS(iDataUpdate);
 	}
 
+#ifdef APPLY_RAYLEIGH_WITH_HYPERVIS
 	// Apply Rayleigh damping
 	if (pGrid->HasRayleighFriction()) {
 		ApplyRayleighFriction(iDataUpdate, dDeltaT);
 	}
+#endif
 }
 
 ///////////////////////////////////////////////////////////////////////////////

@@ -14,6 +14,7 @@
 ///		or implied warranty.
 ///	</remarks>
 
+#include "Defines.h"
 #include "VerticalDynamicsFEM.h"
 #include "GaussQuadrature.h"
 #include "GaussLobattoQuadrature.h"
@@ -1859,6 +1860,60 @@ void VerticalDynamicsFEM::BuildF(
 	} else {
 		_EXCEPTIONT("UNIMPLEMENTED");
 	}
+
+#ifdef APPLY_RAYLEIGH_WITH_VERTICALDYN
+
+	// Rayleigh friction strength
+	const GridData3D & dataRayleighStrengthNode =
+		m_pPatch->GetRayleighStrength(DataLocation_Node);
+
+	const GridData3D & dataRayleighStrengthREdge =
+		m_pPatch->GetRayleighStrength(DataLocation_REdge);
+
+	// Rayleigh damping on nodes
+	for (int k = 0; k < pGrid->GetRElements(); k++) {
+		double dNu = dataRayleighStrengthNode[k][m_iA][m_iB];
+
+		if (dNu == 0.0) {
+			continue;
+		}
+
+		if (pGrid->GetVarLocation(TIx) == DataLocation_Node) {
+			dF[VecFIx(FTIx, k)] =
+				dNu * (m_dStateNode[VIx][k] - m_dStateRefNode[VIx][k]);
+		}
+		if (pGrid->GetVarLocation(WIx) == DataLocation_Node) {
+			dF[VecFIx(FWIx, k)] =
+				dNu * (m_dStateNode[WIx][k] - m_dStateRefNode[WIx][k]);
+		}
+		if (pGrid->GetVarLocation(RIx) == DataLocation_Node) {
+			dF[VecFIx(FRIx, k)] =
+				dNu * (m_dStateNode[RIx][k] - m_dStateRefNode[RIx][k]);
+		}
+	}
+
+	// Rayleigh damping on interfaces
+	for (int k = 0; k <= pGrid->GetRElements(); k++) {
+		double dNu = dataRayleighStrengthREdge[k][m_iA][m_iB];
+
+		if (dNu == 0.0) {
+			continue;
+		}
+
+		if (pGrid->GetVarLocation(TIx) == DataLocation_REdge) {
+			dF[VecFIx(FTIx, k)] =
+				dNu * (m_dStateREdge[VIx][k] - m_dStateRefREdge[VIx][k]);
+		}
+		if (pGrid->GetVarLocation(WIx) == DataLocation_REdge) {
+			dF[VecFIx(FWIx, k)] =
+				dNu * (m_dStateREdge[WIx][k] - m_dStateRefREdge[WIx][k]);
+		}
+		if (pGrid->GetVarLocation(RIx) == DataLocation_REdge) {
+			dF[VecFIx(FRIx, k)] =
+				dNu * (m_dStateREdge[RIx][k] - m_dStateRefREdge[RIx][k]);
+		}
+	}
+#endif
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -2173,6 +2228,55 @@ void VerticalDynamicsFEM::BuildJacobianF(
 		dOrthonomREdge[0][m_iA][m_iB][2];
 	dDG[MatFIx(FWIx, nRElements, FWIx, nRElements)] =
 		dOrthonomREdge[nRElements][m_iA][m_iB][2];
+
+#ifdef APPLY_RAYLEIGH_WITH_VERTICALDYN
+
+	// Rayleigh friction strength
+	const GridData3D & dataRayleighStrengthNode =
+		m_pPatch->GetRayleighStrength(DataLocation_Node);
+
+	const GridData3D & dataRayleighStrengthREdge =
+		m_pPatch->GetRayleighStrength(DataLocation_REdge);
+
+	// Rayleigh friction on nodes
+	for (int k = 0; k < pGrid->GetRElements(); k++) {
+		double dNu = dataRayleighStrengthNode[k][m_iA][m_iB];
+
+		if (dNu == 0.0) {
+			continue;
+		}
+
+		if (pGrid->GetVarLocation(TIx) == DataLocation_Node) {
+			dDG[MatFIx(FTIx, k, FTIx, k)] += dNu;
+		}
+		if (pGrid->GetVarLocation(WIx) == DataLocation_Node) {
+			dDG[MatFIx(FWIx, k, FWIx, k)] += dNu;
+		}
+		if (pGrid->GetVarLocation(RIx) == DataLocation_Node) {
+			dDG[MatFIx(FRIx, k, FRIx, k)] += dNu;
+		}
+	}
+
+	// Rayleigh friction on interfaces
+	for (int k = 0; k <= pGrid->GetRElements(); k++) {
+		double dNu = dataRayleighStrengthREdge[k][m_iA][m_iB];
+
+		if (dNu == 0.0) {
+			continue;
+		}
+
+		if (pGrid->GetVarLocation(TIx) == DataLocation_REdge) {
+			dDG[MatFIx(FTIx, k, FTIx, k)] += dNu;
+		}
+		if (pGrid->GetVarLocation(WIx) == DataLocation_REdge) {
+			dDG[MatFIx(FWIx, k, FWIx, k)] += dNu;
+		}
+		if (pGrid->GetVarLocation(RIx) == DataLocation_REdge) {
+			dDG[MatFIx(FRIx, k, FRIx, k)] += dNu;
+		}
+	}
+
+#endif
 }
 
 ///////////////////////////////////////////////////////////////////////////////
