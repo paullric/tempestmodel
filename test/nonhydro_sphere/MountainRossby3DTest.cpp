@@ -64,6 +64,11 @@ protected:
 	///	</summary>
 	double m_dU0;
 
+	///	<summay>
+	///		True if Rayleigh damping is disabled.
+	///	</summary>
+	bool m_fNoRayleigh;
+
 public:
 	///	<summary>
 	///		Constructor.
@@ -76,7 +81,8 @@ public:
 		double dH0,
 		double dD,
 		double dT0,
-		double dU0
+		double dU0,
+		bool fNoRayleigh
 	) :
 		m_dZtop(dZtop),
 		m_dEarthScaling(dEarthScaling),
@@ -85,7 +91,8 @@ public:
 		m_dH0(dH0),
 		m_dD(dD),
 		m_dT0(dT0),
-		m_dU0(dU0)
+		m_dU0(dU0),
+		m_fNoRayleigh(fNoRayleigh)
 	{
 	}
 
@@ -138,7 +145,7 @@ public:
 	///		Flag indicating whether or not Rayleigh friction strength is given.
 	///	</summary>
 	virtual bool HasRayleighFriction() const {
-		return false;
+		return !m_fNoRayleigh;
 	}
 
 	///	<summary>
@@ -146,10 +153,20 @@ public:
 	///	</summary>
 	virtual double EvaluateRayleighStrength(
 		double dZ,
-		double dXp,
-		double dYp
+		double dLon,
+		double dLat
 	) const {
-		return 0.0;
+        const double dRayleighStrength = 4.0e-3;
+        const double dRayleighDepth = 10000.0;
+
+        double dNuDepth = 0.0;
+
+        if (dZ > m_dZtop - dRayleighDepth) {
+            double dNormZ = (m_dZtop - dZ) / dRayleighDepth;
+            dNuDepth = 0.5 * dRayleighStrength * (1.0 + cos(M_PI * dNormZ));
+        }
+
+        return dNuDepth;
 	}
 
 	///	<summary>
@@ -241,6 +258,9 @@ try {
 	// Reference zonal wind velocity.
 	double dU0;
 
+	// No Rayleigh damping
+	bool fNoRayleigh;
+
 	// Parse the command line
 	BeginTempestCommandLine("MountainRossby3DTest");
 		SetDefaultResolution(30);
@@ -259,6 +279,7 @@ try {
 		CommandLineDouble(dD, "d", 1.5e6);
 		CommandLineDouble(dT0, "t0", 288.0);
 		CommandLineDouble(dU0, "u0", 20.0);
+		CommandLineBool(fNoRayleigh, "norayleigh");
 
 		ParseCommandLine(argc, argv);
 	EndTempestCommandLine(argv)
@@ -282,7 +303,8 @@ try {
 			dH0,
 			dD,
 			dT0,
-			dU0));
+			dU0,
+			fNoRayleigh));
 
 	AnnounceEndBlock("Done");
 
