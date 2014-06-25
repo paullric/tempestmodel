@@ -39,7 +39,8 @@ public:
 	///	</sumamry>
 	enum ExplicitDiscretization {
 		RungeKutta4,
-		RungeKuttaSSP3
+		RungeKuttaSSP3,
+		KinnmarkGrayUllrich35
 	};
 
 public:
@@ -49,7 +50,7 @@ public:
 	TimestepSchemeStrang(
 		Model & model,
 		double dOffCentering = 0.0,
-		ExplicitDiscretization eExplicitDiscretization = RungeKuttaSSP3
+		ExplicitDiscretization eExplicitDiscretization = KinnmarkGrayUllrich35
 	);
 
 public:
@@ -118,6 +119,11 @@ private:
 	///		Linear combination coefficients used by SSPRK3 (combination B).
 	///	</summary>
 	DataVector<double> m_dSSPRK3CombinationB;
+
+	///	<summary>
+	///		Linear combination coefficients used by KGU35.
+	///	</summary>
+	DataVector<double> m_dKinnmarkGrayUllrichCombination;
 };
 
 ///////////////////////////////////////////////////////////////////////////////

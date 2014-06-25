@@ -72,6 +72,13 @@ TimestepSchemeStrang::TimestepSchemeStrang(
 	m_dSSPRK3CombinationB[3] = 0.0;
 	m_dSSPRK3CombinationB[4] = 0.0;
 
+	// KGU 3-5 combination
+	m_dKinnmarkGrayUllrichCombination.Initialize(5);
+	m_dKinnmarkGrayUllrichCombination[0] = - 1.0 / 4.0;
+	m_dKinnmarkGrayUllrichCombination[1] =   5.0 / 4.0;
+	m_dKinnmarkGrayUllrichCombination[2] =   0.0;
+	m_dKinnmarkGrayUllrichCombination[3] =   0.0;
+	m_dKinnmarkGrayUllrichCombination[4] =   0.0;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -150,6 +157,40 @@ void TimestepSchemeStrang::Step(
 		pGrid->LinearCombineData(m_dSSPRK3CombinationB, 4, DataType_State);
 		pHorizontalDynamics->StepExplicit(2, 4, time, (2.0/3.0) * dDeltaT);
 		pVerticalDynamics->StepExplicit(2, 4, time, (2.0/3.0) * dDeltaT);
+		pGrid->PostProcessSubstage(4, DataType_State);
+		pGrid->PostProcessSubstage(4, DataType_Tracers);
+
+	// Explicit Kinnmark, Gray and Ullrich third-order five-stage Runge-Kutta
+	} else if (m_eExplicitDiscretization == KinnmarkGrayUllrich35) {
+
+		pGrid->CopyData(0, 1, DataType_State);
+		pHorizontalDynamics->StepExplicit(0, 1, time, dDeltaT / 5.0);
+		pVerticalDynamics->StepExplicit(0, 1, time, dDeltaT / 5.0);
+		pGrid->PostProcessSubstage(1, DataType_State);
+		pGrid->PostProcessSubstage(1, DataType_Tracers);
+
+		pGrid->CopyData(0, 2, DataType_State);
+		pHorizontalDynamics->StepExplicit(1, 2, time, dDeltaT / 5.0);
+		pVerticalDynamics->StepExplicit(1, 2, time, dDeltaT / 5.0);
+		pGrid->PostProcessSubstage(2, DataType_State);
+		pGrid->PostProcessSubstage(2, DataType_Tracers);
+
+		pGrid->CopyData(0, 3, DataType_State);
+		pHorizontalDynamics->StepExplicit(2, 3, time, dDeltaT / 3.0);
+		pVerticalDynamics->StepExplicit(2, 3, time, dDeltaT / 3.0);
+		pGrid->PostProcessSubstage(3, DataType_State);
+		pGrid->PostProcessSubstage(3, DataType_Tracers);
+
+		pGrid->CopyData(0, 2, DataType_State);
+		pHorizontalDynamics->StepExplicit(3, 2, time, 2.0 * dDeltaT / 3.0);
+		pVerticalDynamics->StepExplicit(3, 2, time, 2.0 * dDeltaT / 3.0);
+		pGrid->PostProcessSubstage(2, DataType_State);
+		pGrid->PostProcessSubstage(2, DataType_Tracers);
+
+		pGrid->LinearCombineData(
+			m_dKinnmarkGrayUllrichCombination, 4, DataType_State);
+		pHorizontalDynamics->StepExplicit(2, 4, time, 3.0 * dDeltaT / 4.0);
+		pVerticalDynamics->StepExplicit(2, 4, time, 3.0 * dDeltaT / 4.0);
 		pGrid->PostProcessSubstage(4, DataType_State);
 		pGrid->PostProcessSubstage(4, DataType_Tracers);
 

@@ -35,11 +35,6 @@ protected:
 	const double m_dEarthScaling;
 
 	///	<summary>
-	///		Rotation rate of the Earth with X = 1.
-	///	</summary>
-	double m_dOmega;
-
-	///	<summary>
 	///		Longitude of mountain centerpoint.
 	///	</summary>
 	double m_dLonC;
@@ -76,7 +71,6 @@ public:
 	MountainRossby3DTest(
 		double dZtop,
 		double dEarthScaling,
-		double dOmega,
 		double dLonC,
 		double dLatC,
 		double dH0,
@@ -86,7 +80,6 @@ public:
 	) :
 		m_dZtop(dZtop),
 		m_dEarthScaling(dEarthScaling),
-		m_dOmega(dOmega),
 		m_dLonC(dLonC * M_PI / 180.0),
 		m_dLatC(dLatC * M_PI / 180.0),
 		m_dH0(dH0),
@@ -117,7 +110,7 @@ public:
 	virtual void EvaluatePhysicalConstants(
 		PhysicalConstants & phys
 	) const {
-		phys.SetOmega(m_dOmega * m_dEarthScaling);
+		phys.SetOmega(phys.GetOmega() * m_dEarthScaling);
 		phys.SetEarthRadius(phys.GetEarthRadius() / m_dEarthScaling);
 	}
 
@@ -230,9 +223,6 @@ try {
 	// Model scaling parameter
 	double dEarthScaling;
 
-	// Rotation rate of the Earth with X = 1.
-	double dOmega;
-
 	// Longitude of Schar-type mountain centerpoint.
 	double dLonC;
 
@@ -263,7 +253,6 @@ try {
 
 		CommandLineDouble(dZtop, "ztop", 30000.0);
 		CommandLineDouble(dEarthScaling, "X", 1.0);
-		CommandLineDouble(dOmega, "omega", 0.0);
 		CommandLineDouble(dLonC, "lonc", 90.0);
 		CommandLineDouble(dLatC, "latc", 30.0);
 		CommandLineDouble(dH0, "h0", 2000.0);
@@ -288,7 +277,6 @@ try {
 		new MountainRossby3DTest(
 			dZtop,
 			dEarthScaling,
-			dOmega,
 			dLonC,
 			dLatC,
 			dH0,
