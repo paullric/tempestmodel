@@ -20,6 +20,8 @@
 #include "Defines.h"
 #include "Model.h"
 #include "TimestepSchemeStrang.h"
+#include "TimestepSchemeARK2.h"
+#include "TimestepSchemeARK3.h"
 #include "HorizontalDynamicsFEM.h"
 #include "HorizontalDynamicsDG.h"
 #include "VerticalDynamicsStub.h"
@@ -147,8 +149,17 @@ void _TempestSetupMethodOfLines(
 		model.SetTimestepScheme(
 			new TimestepSchemeStrang(model));
 
+	} else if (vars.strTimestepScheme == "ark2") {
+		model.SetTimestepScheme(
+			new TimestepSchemeARK2(model));
+
+	} else if (vars.strTimestepScheme == "ark3") {
+		model.SetTimestepScheme(
+			new TimestepSchemeARK3(model));
+
 	} else {
-		_EXCEPTIONT("Invalid timescheme: Expected \"Strang\"");
+		_EXCEPTIONT("Invalid timescheme: Expected "
+			"\"Strang\", \"ARK2\", \"ARK3\"");
 	}
 	AnnounceEndBlock("Done");
 
@@ -239,7 +250,9 @@ void _TempestSetupOutputManagers(
 	}
 
 	// Set the composite output manager for the model
-	if (! vars.timeOutputRestartDeltaT.IsZero()) {
+	if ((! vars.timeOutputRestartDeltaT.IsZero()) ||
+		(vars.param.m_strRestartFile != "")
+	) {
 		AnnounceStartBlock("Creating composite output manager");
 		model.AttachOutputManager(
 			new OutputManagerComposite(
