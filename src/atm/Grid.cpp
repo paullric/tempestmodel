@@ -679,6 +679,11 @@ void Grid::ConsolidateDataToRoot(
 		const DataMatrix<double>   & dataLatitude   = pPatch->GetLatitude();
 		const DataMatrix3D<double> & dataZLevels    = pPatch->GetZLevels();
 
+		const GridData3D & dataRayleighStrengthNode =
+			pPatch->GetRayleighStrength(DataLocation_Node);
+		const GridData3D & dataRayleighStrengthREdge =
+			pPatch->GetRayleighStrength(DataLocation_REdge);
+
 		// Send state data on nodes to root process
 		if (status.Contains(DataType_State, DataLocation_Node)) {
 			MPI_Isend(
@@ -816,6 +821,37 @@ void Grid::ConsolidateDataToRoot(
 				MPI_COMM_WORLD,
 				status.GetNextSendRequest());
 		}
+
+		// Send Rayleigh strength data (on nodes) to root process
+		if (status.Contains(DataType_RayleighStrength, DataLocation_Node)) {
+			MPI_Isend(
+				(void*)(dataRayleighStrengthNode[0]),
+				dataRayleighStrengthNode.GetTotalElements(),
+				MPI_DOUBLE,
+				0,
+				ConsolidationStatus::GenerateTag(
+					pPatch->GetPatchIndex(),
+					DataType_RayleighStrength,
+					DataLocation_Node),
+				MPI_COMM_WORLD,
+				status.GetNextSendRequest());
+		}
+
+		// Send Rayleigh strength data (on interfaces) to root process
+		if (status.Contains(DataType_RayleighStrength, DataLocation_REdge)) {
+			MPI_Isend(
+				(void*)(dataRayleighStrengthREdge[0]),
+				dataRayleighStrengthREdge.GetTotalElements(),
+				MPI_DOUBLE,
+				0,
+				ConsolidationStatus::GenerateTag(
+					pPatch->GetPatchIndex(),
+					DataType_RayleighStrength,
+					DataLocation_REdge),
+				MPI_COMM_WORLD,
+				status.GetNextSendRequest());
+		}
+
 	}
 }
 
@@ -1199,6 +1235,9 @@ void Grid::FromFile(
 
 	// Open the NetCDF file
 	NcFile ncfile(strGridFile.c_str(), NcFile::ReadOnly);
+	if (!ncfile.is_valid()) {
+		_EXCEPTION1("Invalid restart file: %s", strGridFile.c_str());
+	}
 
 	// Input physical constants
 	PhysicalConstants & phys = m_model.GetPhysicalConstants();
@@ -1255,7 +1294,7 @@ void Grid::FromFile(
 	m_fHasReferenceState = (bool)(iGridInfo[4]);
 
 	// Load in floating point grid info
-	int dGridInfo[2];
+	double dGridInfo[2];
 
 	NcVar * varGridInfoFloat = ncfile.get_var("grid_info_float");
 
@@ -1263,6 +1302,7 @@ void Grid::FromFile(
 
 	m_dReferenceLength = dGridInfo[0];
 	m_dZtop = dGridInfo[1];
+
 /*
 	// Load in location of REta levels
 	NcVar * varREtaLevels = ncfile.get_var("reta_levels");

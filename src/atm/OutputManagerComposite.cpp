@@ -48,6 +48,8 @@ OutputManagerComposite::OutputManagerComposite(
 		1),
 	m_pActiveNcOutput(NULL),
 	m_varZs(NULL),
+	m_varRayleighStrengthNode(NULL),
+	m_varRayleighStrengthREdge(NULL),
 	m_strRestartFile(strRestartFile)
 {
 }
@@ -72,6 +74,8 @@ bool OutputManagerComposite::OpenFile(
 
 	// Open new NetCDF file
 	NcVar * varZs;
+	NcVar * varRayleighStrengthNode;
+	NcVar * varRayleighStrengthREdge;
 
 	if (nRank == 0) {
 
@@ -170,6 +174,15 @@ bool OutputManagerComposite::OpenFile(
 
 		// Output topography for each patch
 		m_varZs = m_pActiveNcOutput->add_var("ZS", ncDouble, dimNodeIndex2D);
+
+		// Output Rayleigh strength for each patch
+		m_varRayleighStrengthNode =
+			m_pActiveNcOutput->add_var(
+				"Rayleigh_Node", ncDouble, dimNodeIndex);
+
+		m_varRayleighStrengthREdge =
+			m_pActiveNcOutput->add_var(
+				"Rayleigh_REdge", ncDouble, dimREdgeIndex);
 	}
 
 	// Wait for all processes to complete
@@ -225,6 +238,10 @@ void OutputManagerComposite::Output(
 	// Begin data consolidation
 	std::vector<DataTypeLocationPair> vecDataTypes;
 	vecDataTypes.push_back(DataType_Topography);
+	vecDataTypes.push_back(
+		DataTypeLocationPair(DataType_RayleighStrength, DataLocation_Node));
+	vecDataTypes.push_back(
+		DataTypeLocationPair(DataType_RayleighStrength, DataLocation_REdge));
 
 	if (m_grid.GetVarsAtLocation(DataLocation_Node) != 0) {
 		vecDataTypes.push_back(
@@ -270,6 +287,45 @@ void OutputManagerComposite::Output(
 			int nPatchIx = m_grid.GetCumulativePatch2DNodeIndex(ixRecvPatch);
 			m_varZs->set_cur(nPatchIx);
 			m_varZs->put(&(m_vecRecvBuffer[0]), nRecvCount);
+
+		// Store Rayleigh strength data at nodes and edges
+		} else if (eRecvDataType == DataType_RayleighStrength) {
+			if (eRecvDataLocation == DataLocation_Node) {
+				if (nRecvCount % m_grid.GetRElements() != 0) {
+					_EXCEPTIONT("Invalid message length");
+				}
+
+			} else if (eRecvDataLocation == DataLocation_REdge) {
+				if (nRecvCount % (m_grid.GetRElements()+1) != 0) {
+					_EXCEPTIONT("Invalid message length");
+				}
+
+			} else {
+				_EXCEPTIONT("Invalid DataLocation");
+			}
+
+			int ixCumulative2DNode =
+				m_grid.GetCumulativePatch2DNodeIndex(ixRecvPatch);
+
+			int nComponentSize =
+				m_grid.GetPatch(ixRecvPatch)->GetTotalNodeCount(
+					eRecvDataLocation);
+
+			if (eRecvDataLocation == DataLocation_Node) {
+				m_varRayleighStrengthNode->set_cur(
+					ixCumulative2DNode * m_grid.GetRElements());
+				m_varRayleighStrengthNode->put(
+					&(m_vecRecvBuffer[0]), nComponentSize);
+
+			} else if (eRecvDataLocation == DataLocation_REdge) {
+				m_varRayleighStrengthREdge->set_cur(
+					ixCumulative2DNode * (m_grid.GetRElements()+1));
+				m_varRayleighStrengthREdge->put(
+					&(m_vecRecvBuffer[0]), nComponentSize);
+
+			} else {
+				_EXCEPTION();
+			}
 
 		// Store state variable data
 		} else if (eRecvDataType == DataType_State) {
@@ -451,6 +507,28 @@ Time OutputManagerComposite::Input(
 		varTopography->set_cur(nCumulative2DNodeIx);
 
 		varTopography->get(dataTopography[0], nPatchNodeCount);
+
+		// Input Rayleigh strength here
+		GridData3D & dataRayleighStrengthNode =
+			pPatch->GetRayleighStrength(DataLocation_Node);
+		GridData3D & dataRayleighStrengthREdge =
+			pPatch->GetRayleighStrength(DataLocation_REdge);
+
+		NcVar * varRayleighNode = pNcFile->get_var("Rayleigh_Node");
+		NcVar * varRayleighREdge = pNcFile->get_var("Rayleigh_REdge");
+
+		varRayleighNode->set_cur(
+			nCumulative2DNodeIx * m_grid.GetRElements());
+		varRayleighREdge->set_cur(
+			nCumulative2DNodeIx * (m_grid.GetRElements()+1));
+
+		varRayleighNode->get(
+			dataRayleighStrengthNode[0][0],
+			pPatch->GetTotalNodeCount(DataLocation_Node));
+
+		varRayleighREdge->get(
+			dataRayleighStrengthREdge[0][0],
+			pPatch->GetTotalNodeCount(DataLocation_REdge));
 
 		// Input state
 		GridData4D & dataStateNode =

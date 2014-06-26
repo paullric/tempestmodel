@@ -102,6 +102,18 @@ int GridPatch::GetTotalDegreesOfFreedom(
 	} else if (eDataType == DataType_Topography) {
 		return GetTotalNodeCount2D();
 
+	// Rayleigh strength
+	} else if (eDataType == DataType_RayleighStrength) {
+		if (eDataLocation == DataLocation_Node) {
+			return GetTotalNodeCount2D() * m_grid.GetRElements();
+
+		} else if (eDataLocation == DataLocation_REdge) {
+			return GetTotalNodeCount2D() * (m_grid.GetRElements() + 1);
+
+		} else {
+			_EXCEPTIONT("Invalid DataLocation");
+		}
+
 	// Invalid DataType
 	} else {
 		_EXCEPTIONT("(UNIMPLEMENTED) Invalid DataType");

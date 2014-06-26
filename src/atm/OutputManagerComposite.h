@@ -114,6 +114,16 @@ protected:
 	NcVar * m_varZs;
 
 	///	<summary>
+	///		Rayleigh strength variable on model levels.
+	///	</summary>
+	NcVar * m_varRayleighStrengthNode;
+
+	///	<summary>
+	///		Rayleigh strength variable on model interfaces.
+	///	</summary>
+	NcVar * m_varRayleighStrengthREdge;
+
+	///	<summary>
 	///		Vector of state variables.
 	///	</summary>
 	std::vector<NcVar *> m_vecStateVar;
