@@ -21,6 +21,7 @@
 #include "Grid.h"
 #include "GaussLobattoQuadrature.h"
 
+#include "Announce.h"
 #include "GridGLL.h"
 #include "GridPatchGLL.h"
 

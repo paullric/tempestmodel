@@ -825,7 +825,7 @@ void Grid::ConsolidateDataToRoot(
 		// Send Rayleigh strength data (on nodes) to root process
 		if (status.Contains(DataType_RayleighStrength, DataLocation_Node)) {
 			MPI_Isend(
-				(void*)(dataRayleighStrengthNode[0]),
+				(void*)(dataRayleighStrengthNode[0][0]),
 				dataRayleighStrengthNode.GetTotalElements(),
 				MPI_DOUBLE,
 				0,
@@ -840,7 +840,7 @@ void Grid::ConsolidateDataToRoot(
 		// Send Rayleigh strength data (on interfaces) to root process
 		if (status.Contains(DataType_RayleighStrength, DataLocation_REdge)) {
 			MPI_Isend(
-				(void*)(dataRayleighStrengthREdge[0]),
+				(void*)(dataRayleighStrengthREdge[0][0]),
 				dataRayleighStrengthREdge.GetTotalElements(),
 				MPI_DOUBLE,
 				0,
@@ -1125,20 +1125,21 @@ void Grid::ToFile(
 			"beta_edge_coord", ncDouble, dimBEdgeCount);
 
 	// Output integer grid information
-	int iGridInfo[5];
+	int iGridInfo[6];
 	iGridInfo[0] = m_iGridStamp;
 	iGridInfo[1] = m_nABaseResolution;
 	iGridInfo[2] = m_nBBaseResolution;
 	iGridInfo[3] = m_nRefinementRatio;
 	iGridInfo[4] = (int)(m_fHasReferenceState);
+	iGridInfo[5] = (int)(m_fHasRayleighFriction);
 
 	NcDim * dimGridInfoCount =
-		ncfile.add_dim("grid_info_count", 5);
+		ncfile.add_dim("grid_info_count", 6);
 
 	NcVar * varGridInfo =
 		ncfile.add_var("grid_info", ncInt, dimGridInfoCount);
 
-	varGridInfo->put(iGridInfo, 5);
+	varGridInfo->put(iGridInfo, 6);
 
 	// Output floating point grid information
 	double dGridInfo[2];
@@ -1281,17 +1282,18 @@ void Grid::FromFile(
 	phys.SetLvap(attPhys->as_double(0));
 
 	// Load in grid info
-	int iGridInfo[5];
+	int iGridInfo[6];
 
 	NcVar * varGridInfo = ncfile.get_var("grid_info");
 
-	varGridInfo->get(iGridInfo, 5);
+	varGridInfo->get(iGridInfo, 6);
 
 	m_iGridStamp = iGridInfo[0];
 	m_nABaseResolution = iGridInfo[1];
 	m_nBBaseResolution = iGridInfo[2];
 	m_nRefinementRatio = iGridInfo[3];
 	m_fHasReferenceState = (bool)(iGridInfo[4]);
+	m_fHasRayleighFriction = (bool)(iGridInfo[5]);
 
 	// Load in floating point grid info
 	double dGridInfo[2];
