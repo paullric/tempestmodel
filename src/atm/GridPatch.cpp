@@ -1226,6 +1226,12 @@ void GridPatch::LinearCombineData(
 	int ixDest,
 	DataType eDataType
 ) {
+	// Check bounds on Coeff array
+	if (ixDest >= dCoeff.GetRows()) {
+		_EXCEPTION2("Destination index [%i] out of coefficient bounds [0,%i]",
+			ixDest, dCoeff.GetRows()-1);
+	}
+
 	// Check bounds on ixDest for State data
 	if (eDataType == DataType_State) {
 		if ((ixDest < 0) || (ixDest >= m_datavecStateNode.size())) {
