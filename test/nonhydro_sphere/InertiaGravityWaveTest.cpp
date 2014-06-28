@@ -32,7 +32,7 @@ protected:
 	///	<summary>
 	///		Earth radius scaling parameter.
 	///	</summary>
-	double m_dEarthRadiusScaling;
+	double m_dEarthScaling;
 
 	///	<summary>
 	///		Earth rotation rate parameter.
@@ -85,7 +85,7 @@ public:
 	///	</summary>
 	InertiaGravityWaveTest(
 		double dZtop,
-		double dEarthRadiusScaling,
+		double dEarthScaling,
 		double dOmega,
 		double dU0,
 		double dN,
@@ -97,7 +97,7 @@ public:
 		double dPertVerticalWavelength
 	) :
 		m_dZtop(dZtop),
-		m_dEarthRadiusScaling(dEarthRadiusScaling),
+		m_dEarthScaling(dEarthScaling),
 		m_dOmega(dOmega),
 		m_dU0(dU0),
 		m_dN(dN),
@@ -137,8 +137,8 @@ public:
 	virtual void EvaluatePhysicalConstants(
 		PhysicalConstants & phys
 	) const {
-		phys.SetOmega(m_dOmega * m_dEarthRadiusScaling);
-		phys.SetEarthRadius(phys.GetEarthRadius() / m_dEarthRadiusScaling);
+		phys.SetOmega(m_dOmega * m_dEarthScaling);
+		phys.SetEarthRadius(phys.GetEarthRadius() / m_dEarthScaling);
 	}
 
 	///	<summary>
@@ -250,7 +250,7 @@ try {
 	double dZtop;
 
 	// Earth radius scaling parameter.
-	double dEarthRadiusScaling;
+	double dEarthScaling;
 
 	// Earth rotation rate parameter.
 	double dOmega;
@@ -290,7 +290,7 @@ try {
 		SetDefaultVerticalOrder(1);
 
 		CommandLineDouble(dZtop, "ztop", 10000.0);
-		CommandLineDouble(dEarthRadiusScaling, "X", 125.0);
+		CommandLineDouble(dEarthScaling, "X", 125.0);
 		CommandLineDouble(dOmega, "omega", 0.0);
 		CommandLineDouble(dU0, "u0", 20.0);
 		CommandLineDouble(dN, "N", 0.01);
@@ -316,7 +316,7 @@ try {
 	model.SetTestCase(
 		new InertiaGravityWaveTest(
 			dZtop,
-			dEarthRadiusScaling,
+			dEarthScaling,
 			dOmega,
 			dU0,
 			dN,
@@ -327,6 +327,9 @@ try {
 			dPertMagnitude,
 			dPertVerticalWavelength));
 	AnnounceEndBlock("Done");
+
+	// Set the reference length
+	model.GetGrid()->SetReferenceLength(0.5 * M_PI / 30.0 * dEarthScaling);
 
 	// Begin execution
 	AnnounceBanner("SIMULATION");
