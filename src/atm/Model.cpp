@@ -178,6 +178,18 @@ void Model::AttachOutputManager(OutputManager * pOutMan) {
 
 ///////////////////////////////////////////////////////////////////////////////
 
+void Model::AttachWorkflowProcess(WorkflowProcess * pWorkflowProcess) {
+	if (m_pGrid == NULL) {
+		_EXCEPTIONT(
+			"A grid must be specified before attaching an WorkflowProcess.");
+	}
+
+	// Attach output manager
+	m_vecWorkflowProcess.push_back(pWorkflowProcess);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
 void Model::EvaluateStateFromRestartFile() {
 	if (m_pGrid == NULL) {
 		_EXCEPTIONT("A grid must be specified before Evaluation");
@@ -261,6 +273,11 @@ void Model::Go() {
 		m_vecOutMan[om]->InitialOutput(m_time);
 	}
 
+	// Initialize WorkflowProcesses
+	for (int wfp = 0; wfp < m_vecWorkflowProcess.size(); wfp++) {
+		m_vecWorkflowProcess[wfp]->Initialize(m_time);
+	}
+
 	// First time step
 	bool fFirstStep = true;
 
@@ -326,28 +343,30 @@ void Model::Go() {
 		// Update the timer
 		m_time = timeNext;
 
-		if (fLastStep) {
-			break;
+		// Check for WorkflowProcesses
+		for (int wfp = 0; wfp < m_vecWorkflowProcess.size(); wfp++) {
+			if (m_vecWorkflowProcess[wfp]->IsReady(m_time)) {
+				m_vecWorkflowProcess[wfp]->Perform(m_time);
+			}
 		}
 
 		// Check for output
 		for (int om = 0; om < m_vecOutMan.size(); om++) {
-			if (m_vecOutMan[om]->IsOutputNeeded(m_time)) {
+			if (fLastStep) {
+				m_vecOutMan[om]->FinalOutput(m_time);
 
-#pragma message "Output average loop time"
-				//Announce("Loop timer: %li", timerLoop.StopTime());
-
+			} else if (m_vecOutMan[om]->IsOutputNeeded(m_time)) {
 				m_vecOutMan[om]->ManageOutput(m_time);
 			}
 		}
 
-		// First time step
-		fFirstStep = false;
-	}
+		// Exit on last step
+		if (fLastStep) {
+			break;
+		}
 
-	// Final output
-	for (int om = 0; om < m_vecOutMan.size(); om++) {
-		m_vecOutMan[om]->FinalOutput(m_time);
+		// No longer first time step
+		fFirstStep = false;
 	}
 }
 

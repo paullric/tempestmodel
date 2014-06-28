@@ -65,3 +65,5 @@ test/nonhydro_sphere/BaldaufGravityWaveTest
 test/nonhydro_sphere/ScharMountainSphereTest
 
 test/nonhydro_sphere/MountainRossby3DTest
+
+test/nonhydro_sphere/HeldSuarezTest

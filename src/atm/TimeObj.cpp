@@ -308,6 +308,39 @@ double Time::operator-(const Time & time) const {
 
 ///////////////////////////////////////////////////////////////////////////////
 
+double Time::GetSeconds() const {
+
+	double dDeltaSeconds = 0;
+
+	// Calendar with no leap years
+	if (m_eCalendarType == CalendarNoLeap) {
+
+		const int nDaysPerMonth[]
+			= {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
+
+		// Basic number of seconds
+		dDeltaSeconds =
+			+ static_cast<double>(m_iYear) * 31536000.0
+			+ static_cast<double>(m_iDay) * 86400.0
+			+ static_cast<double>(m_iSecond)
+			+ static_cast<double>(m_iMicroSecond) * 1.0e-6;
+
+		// Number of seconds from month
+		for (int i = 0; i < m_iMonth; i++) {
+			dDeltaSeconds +=
+				static_cast<double>(nDaysPerMonth[i]) * 86400.0;
+		}
+
+	// Operation not permitted on this CalendarType
+	} else {
+		_EXCEPTIONT("Invalid CalendarType");
+	}
+	
+	return dDeltaSeconds;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
 std::string Time::ToDateString() const {
 	char szBuffer[100];
 

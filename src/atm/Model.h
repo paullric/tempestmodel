@@ -27,6 +27,7 @@
 #include "HorizontalDynamics.h"
 #include "VerticalDynamics.h"
 #include "OutputManager.h"
+#include "WorkflowProcess.h"
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -128,6 +129,12 @@ public:
 	///		of the pointer once it is assigned.
 	///	</summary>
 	void AttachOutputManager(OutputManager * pOutMan);
+
+	///	<summary>
+	///		Attach a WorkflowProcess to this model.  Model assumes ownership
+	///		of the pointer once it is assigned.
+	///	</summary>
+	void AttachWorkflowProcess(WorkflowProcess * pWorkflowProcess);
 
 protected:
 	///	<summary>
@@ -278,6 +285,13 @@ public:
 
 public:
 	///	<summary>
+	///		Get the time step size.
+	///	</summary>
+	const Time & GetDeltaT() const {
+		return m_param.m_timeDeltaT;
+	}
+
+	///	<summary>
 	///		Get the start time of the simulation.
 	///	</summary>
 	const Time & GetStartTime() const {
@@ -318,7 +332,12 @@ protected:
 	VerticalDynamics * m_pVerticalDynamics;
 
 	///	<summary>
-	///		Vector of output managers.
+	///		Vector of WorkflowProcesses.
+	///	</summary>
+	WorkflowProcessVector m_vecWorkflowProcess;
+
+	///	<summary>
+	///		Vector of OutputManagers.
 	///	</summary>
 	OutputManagerVector m_vecOutMan;
 

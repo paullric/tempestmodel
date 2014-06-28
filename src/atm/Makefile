@@ -47,7 +47,9 @@ FILES= CubedSphereTrans.cpp \
        GridData3D.cpp \
        GridData4D.cpp \
        TestCase.cpp \
-	   TimeObj.cpp
+	   TimeObj.cpp \
+	   WorkflowProcess.cpp \
+	   HeldSuarezPhysics.cpp
 
 ##
 ## Build flags

@@ -214,6 +214,11 @@ public:
 	///	</summary>
 	double operator-(const Time & time) const;
 
+	///	<summary>
+	///		Determine the number of seconds between this time and 0.
+	///	</summary>
+	double GetSeconds() const;
+
 public:
 	///	<summary>
 	///		Check if this object is zero.

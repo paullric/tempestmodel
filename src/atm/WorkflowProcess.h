@@ -17,9 +17,12 @@
 #ifndef _WORKFLOWPROCESS_H_
 #define _WORKFLOWPROCESS_H_
 
+#include "TimeObj.h"
+
+#include <vector>
+
 ///////////////////////////////////////////////////////////////////////////////
 
-class Time;
 class Model;
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -32,10 +35,9 @@ protected:
 	///		WorkflowProcess.
 	///	</summary>
 	WorkflowProcess(
-		Model & model
-	) :
-		m_model(model)
-	{ }
+		Model & model,
+		const Time & timeFrequency
+	);
 
 public:
 	///	<summary>
@@ -45,52 +47,27 @@ public:
 
 public:
 	///	<summary>
-	///		Initializer.  Called prior to model execution.
+	///		Initializer.  Called prior to timestep loop.
 	///	</summary>
-	virtual void Initialize() { }
+	virtual void Initialize(
+		const Time & timeStart
+	);
 
 public:
 	///	<summary>
 	///		Determine if this WorkflowProcess is ready to be activated.
 	///	</summary>
-	bool IsReady(const Time & time) {
-		return false;
-	}
+	virtual bool IsReady(
+		const Time & time
+	);
 
 public:
 	///	<summary>
-	///		Perform one explicit time step of sub-cycle frequency.
+	///		Perform a task.
 	///	</summary>
-	virtual void StepExplicit(
-		int iDataInitial,
-		int iDataUpdate,
-		const Time & time,
-		double dDeltaT
-	) {
-	}
-
-	///	<summary>
-	///		Perform one implicit time step of sub-cycle frequency.
-	///	</summary>
-	virtual void StepImplicit(
-		int iDataInitial,
-		int iDataUpdate,
-		const Time & time,
-		double dDeltaT
-	) {
-	}
-
-	///	<summary>
-	///		Perform one time step after all sub-cycles are complete.
-	///	</summary>
-	virtual void StepAfterSubCycle(
-		int iDataInitial,
-		int iDataUpdate,
-		int iDataWorking,
-		const Time & time,
-		double dDeltaT
-	) {
-	}
+	virtual void Perform(
+		const Time & time
+	);
 
 protected:
 	///	<summary>
@@ -98,7 +75,23 @@ protected:
 	///	</summary>
 	Model & m_model;
 
+	///	<summary>
+	///		Frequency of activation of this process.
+	///	</summary>
+	Time m_timeFrequency;
+
+	///	<summary>
+	///		Time when next activation is required.
+	///	</summary>
+	Time m_timeNextPerform;
 };
+
+///////////////////////////////////////////////////////////////////////////////
+
+///	<summary>
+///		Vector of pointers to WorkflowProcesses
+///	</summary>
+typedef std::vector<WorkflowProcess *> WorkflowProcessVector;
 
 ///////////////////////////////////////////////////////////////////////////////
 
