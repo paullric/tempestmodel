@@ -475,6 +475,9 @@ Time OutputManagerComposite::Input(
 	if (pNcFile == NULL) {
 		_EXCEPTIONT("Error opening NetCDF file");
 	}
+	if (! pNcFile->is_valid()) {
+		_EXCEPTIONT("Error opening NetCDF file");
+	}
 
 	// Get the time
 	NcAtt * attCurrentTime = pNcFile->get_att("current_time");
