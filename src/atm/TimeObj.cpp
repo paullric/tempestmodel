@@ -272,7 +272,7 @@ double Time::operator-(const Time & time) const {
 		if (m_iMonth > time.m_iMonth) {
 			dDeltaSeconds +=
 				+ 86400.0 * static_cast<double>(
-					nDaysPerMonth[time.m_iMonth] - time.m_iDay - 1)
+					nDaysPerMonth[time.m_iMonth] - time.m_iDay)
 				+ 86400.0 * static_cast<double>(m_iDay);
 
 			for (int i = time.m_iMonth+1; i < m_iMonth; i++) {
@@ -284,7 +284,7 @@ double Time::operator-(const Time & time) const {
 		} else if (m_iMonth < time.m_iMonth) {
 			dDeltaSeconds -=
 				+ 86400.0 * static_cast<double>(
-					nDaysPerMonth[m_iMonth] - m_iDay - 1)
+					nDaysPerMonth[m_iMonth] - m_iDay)
 				+ 86400.0 * static_cast<double>(time.m_iDay);
 
 			for (int i = m_iMonth+1; i < time.m_iMonth; i++) {
