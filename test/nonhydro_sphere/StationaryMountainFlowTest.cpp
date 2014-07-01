@@ -138,9 +138,8 @@ public:
 		double dLat
 	) const {
 
-		// Great circle distance from mountain centerpoint
-		double dR = phys.GetEarthRadius() * acos(
-			sin(m_dLatM) * sin(dLat)
+		// Great circle distance from mountain centerpoint (radians)
+		double dR = acos(sin(m_dLatM) * sin(dLat)
 				+ cos(m_dLatM) * cos(dLat) * cos(dLon - m_dLonM));
 
 		// Topography height
@@ -271,7 +270,7 @@ try {
 		SetDefaultVerticalOrder(1);
 
 		CommandLineDouble(dZtop, "ztop", 30000.0);
-		CommandLineDouble(dEarthScaling, "X", 500.0);
+		CommandLineDouble(dEarthScaling, "X", 1.0);
 		CommandLineDouble(dOmega, "omega", 0.0);
 		CommandLineDouble(dT0, "T0", 300.0);
 		CommandLineDouble(dGamma, "Gamma", 0.0065);
