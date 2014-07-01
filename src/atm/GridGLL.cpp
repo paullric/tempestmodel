@@ -99,7 +99,6 @@ void GridGLL::Initialize() {
 	m_dGLLWeights1D = dWL;
 
 	// Get the derivatives of the flux reconstruction function
-	// ONLY FOR USE WITH TYPE 2 FLUXRECONSTRUCTIONFUNCTION
 	m_dFluxDeriv1D.Initialize(m_nHorizontalOrder);
 	FluxReconstructionFunction::GetDerivatives(
 		2, m_nHorizontalOrder, dGL, m_dFluxDeriv1D);
@@ -329,6 +328,37 @@ void GridGLL::InterpolateNodeToFEEdges(
 		m_dStateFEEdge[a][Right] +=
 			m_dInterpNodeToREdge[0][m] * dDataNode[k];
 	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void GridGLL::InterpolateCentralDiffPenalty(
+	const double * dDataNode,
+	bool fZeroBoundaries
+) const {
+	const int Left = 0;
+	const int Right = 1;
+
+	// Number of radial elements
+	int nRElements = GetRElements();
+
+	int nFiniteElements = nRElements / m_nVerticalOrder;
+
+	// Interpolate to interfaces (left and right)
+	m_dStateFEEdge.Zero();
+
+	for (int k = 0; k < nRElements; k++) {
+		int a = k / m_nVerticalOrder;
+		int m = k % m_nVerticalOrder;
+
+		// Apply node value to left side of interface
+		m_dStateFEEdge[a+1][Left] +=
+			m_dInterpNodeToREdge[m_nVerticalOrder][m] * dDataNode[k];
+
+		// Apply node value to right side of interface
+		m_dStateFEEdge[a][Right] +=
+			m_dInterpNodeToREdge[0][m] * dDataNode[k];
+	}
 
 	// Calculate average interpolant
 	for (int a = 1; a < nFiniteElements; a++) {
@@ -452,7 +482,7 @@ void GridGLL::DifferentiateNodeToNode(
 	memset(dDiffNode, 0, nRElements * sizeof(double));
 
 	// Interpolate nodes to finite-element edges
-	InterpolateNodeToFEEdges(dDataNode, fZeroBoundaries);
+	InterpolateCentralDiffPenalty(dDataNode, fZeroBoundaries);
 
 	// Calculate derivative at each node
 	for (int k = 0; k < nRElements; k++) {
@@ -516,7 +546,7 @@ void GridGLL::DifferentiateNodeToREdge(
 	}
 
 	// Interpolate nodes to finite-element edges
-	InterpolateNodeToFEEdges(dDataNode, fZeroBoundaries);
+	InterpolateCentralDiffPenalty(dDataNode, fZeroBoundaries);
 
 	// Calculate derivatives at interfaces
 	for (int k = 0; k < nRElements; k++) {
@@ -665,6 +695,51 @@ void GridGLL::DifferentiateREdgeToREdge(
 	// Halve interior element interface values
 	for (int a = 1; a < nFiniteElements; a++) {
 		dDiffREdge[a * m_nVerticalOrder] *= 0.5;
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void GridGLL::CalculateDiscontinuousPenalty(
+	const double * dWaveSpeedREdge,
+	const double * dDataNode,
+	double * dDataPenalty,
+	bool fZeroBoundaries
+) const {
+	const int Left = 0;
+	const int Right = 1;
+
+	// Number of radial elements
+	int nRElements = GetRElements();
+
+	int nFiniteElements = nRElements / m_nVerticalOrder;
+
+	// Interpolate nodes to finite-element edges
+	InterpolateNodeToFEEdges(dDataNode, fZeroBoundaries);
+
+	// Zero the memory
+	memset(dDataPenalty, 0, nRElements * sizeof(double));
+
+	// Apply penalty to all nodes
+	for (int k = 0; k < nRElements; k++) {
+		int a = k / m_nVerticalOrder;
+		int m = k % m_nVerticalOrder;
+
+		int lBegin = a * m_nVerticalOrder;
+
+		// Calculate derivatives due to interfaces
+		if (a != nFiniteElements-1) {
+			dDataPenalty[k] -=
+				m_dDiffReconsPolyNode[m]
+				* 0.5 * fabs(dWaveSpeedREdge[lBegin + m_nVerticalOrder])
+				* (m_dStateFEEdge[a+1][Right] - m_dStateFEEdge[a+1][Left]);
+		}
+		if (a != 0) {
+			dDataPenalty[k] +=
+				m_dDiffReconsPolyNode[m_nVerticalOrder - m - 1]
+				* 0.5 * fabs(dWaveSpeedREdge[lBegin])
+				* (m_dStateFEEdge[a][Right] - m_dStateFEEdge[a][Left]);
+		}
 	}
 }
 

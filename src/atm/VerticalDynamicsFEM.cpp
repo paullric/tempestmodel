@@ -29,6 +29,10 @@
 
 ///////////////////////////////////////////////////////////////////////////////
 
+#define UPWIND_HORIZONTAL_VELOCITIES
+
+///////////////////////////////////////////////////////////////////////////////
+
 VerticalDynamicsFEM::VerticalDynamicsFEM(
 	Model & model,
 	int nHorizontalOrder,
@@ -62,6 +66,7 @@ VerticalDynamicsFEM::VerticalDynamicsFEM(
 
 	} else if (nHyperdiffusionOrder == 2) {
 		m_dHyperdiffusionCoeff = 0.2;
+		//m_dHyperdiffusionCoeff = 0.002;
 
 	} else if (nHyperdiffusionOrder == 4) {
 		m_dHyperdiffusionCoeff = -0.025;
@@ -311,12 +316,12 @@ void VerticalDynamicsFEM::Initialize() {
 		}
 		}
 	}
-
+/*
 	for (int n = 0; n < nRElements+1; n++) {
 		m_dHypervisREdgeToREdge[n][0] = 0.0;
 		m_dHypervisREdgeToREdge[n][nFiniteElements * m_nVerticalOrder] = 0.0;
 	}
-
+*/
 	for (int a = 1; a < nFiniteElements; a++) {
 		for (int n = 0; n < nRElements+1; n++) {
 			m_dHypervisREdgeToREdge[n][a * m_nVerticalOrder] *= 0.5;
@@ -888,9 +893,21 @@ void VerticalDynamicsFEM::StepExplicit(
 					m_dStateNode[UIx],
 					m_dStateAuxDiff);
 
+#ifdef UPWIND_HORIZONTAL_VELOCITIES
+				pGrid->CalculateDiscontinuousPenalty(
+					m_dXiDotREdge,
+					m_dStateNode[UIx],
+					m_dStateAux);
+#endif
+
 				for (int k = 0; k < nRElements; k++) {
 					dataUpdateNode[UIx][k][i][j] -=
 						dDeltaT * m_dXiDotNode[k] * m_dStateAuxDiff[k];
+
+#ifdef UPWIND_HORIZONTAL_VELOCITIES
+					dataUpdateNode[UIx][k][i][j] -=
+						dDeltaT * m_dStateAux[k];
+#endif
 				}
 
 				// Calculate update to V
@@ -898,9 +915,21 @@ void VerticalDynamicsFEM::StepExplicit(
 					m_dStateNode[VIx],
 					m_dStateAuxDiff);
 
+#ifdef UPWIND_HORIZONTAL_VELOCITIES
+				pGrid->CalculateDiscontinuousPenalty(
+					m_dXiDotREdge,
+					m_dStateNode[VIx],
+					m_dStateAux);
+#endif
+
 				for (int k = 0; k < nRElements; k++) {
 					dataUpdateNode[VIx][k][i][j] -=
 						dDeltaT * m_dXiDotNode[k] * m_dStateAuxDiff[k];
+
+#ifdef UPWIND_HORIZONTAL_VELOCITIES
+					dataUpdateNode[VIx][k][i][j] -=
+						dDeltaT * m_dStateAux[k];
+#endif
 				}
 
 			// U and V on model interfaces
@@ -1182,9 +1211,9 @@ void VerticalDynamicsFEM::StepImplicit(
 				dataContraMetricXi);
 
 #ifdef USE_JACOBIAN_DEBUG
-			if (pGrid->GetRElements() != 40) {
-				_EXCEPTIONT("Exactly 40 vertical levels for JACOBIAN_DEBUG");
-			}
+			//if (pGrid->GetRElements() != 40) {
+			//	_EXCEPTIONT("Exactly 40 vertical levels for JACOBIAN_DEBUG");
+			//}
 			BootstrapJacobian();
 #endif
 #ifdef USE_JFNK_PETSC
@@ -1317,6 +1346,24 @@ void VerticalDynamicsFEM::StepImplicit(
 			if (iInfo != 0) {
 				_EXCEPTION1("Solution failed: %i", iInfo);
 			}
+
+			// DEBUG (check for NANs in output)
+			if (!(m_dSoln[0] == m_dSoln[0])) {
+				DataVector<double> dEval;
+				dEval.Initialize(m_dColumnState.GetRows());
+				Evaluate(m_dSoln, dEval);
+
+				for (int p = 0; p < dEval.GetRows(); p++) {
+					printf("%1.15e %1.15e %1.15e\n",
+						dEval[p], m_dSoln[p] - m_dColumnState[p], m_dColumnState[p]);
+				}
+				for (int p = 0; p < m_dExnerRefREdge.GetRows(); p++) {
+					printf("%1.15e %1.15e\n",
+						m_dExnerRefREdge[p], dataRefREdge[RIx][p][iA][iB]);
+				}
+				_EXCEPTIONT("Inversion failure");
+			}
+
 #endif
 
 			for (int k = 0; k < m_dSoln.GetRows(); k++) {
@@ -1861,6 +1908,7 @@ void VerticalDynamicsFEM::BuildF(
 		_EXCEPTIONT("UNIMPLEMENTED");
 	}
 
+/*
 #ifdef APPLY_RAYLEIGH_WITH_VERTICALDYN
 
 	// Rayleigh friction strength
@@ -1914,6 +1962,7 @@ void VerticalDynamicsFEM::BuildF(
 		}
 	}
 #endif
+*/
 }
 
 ///////////////////////////////////////////////////////////////////////////////

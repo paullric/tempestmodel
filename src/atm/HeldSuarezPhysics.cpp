@@ -94,13 +94,6 @@ void HeldSuarezPhysics::Perform(
 		GridData4D & dataREdge =
 			pPatch->GetDataState(0, DataLocation_REdge);
 
-		// Reference state
-		const GridData4D & dataReferenceNode =
-			pPatch->GetReferenceState(DataLocation_Node);
-
-		const GridData4D & dataReferenceREdge =
-			pPatch->GetReferenceState(DataLocation_REdge);
-
 		// Perform interpolations as required due to vertical staggering
 		if (pGrid->GetVarsAtLocation(DataLocation_REdge) != 0) {
 			if (pGrid->GetVarLocation(TIx) == DataLocation_REdge) {

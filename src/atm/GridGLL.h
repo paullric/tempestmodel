@@ -78,6 +78,15 @@ public:
 
 private:
 	///	<summary>
+	///		Compute the central difference penalty (difference of left and
+	///		right state from average of left and right state) at interfaces.
+	///	</summary>
+	void InterpolateCentralDiffPenalty(
+		const double * dDataNode,
+		bool fZeroBoundaries
+	) const;
+
+	///	<summary>
 	///		Compute interpolated values of a variable array at edges and
 	///		store in m_dStateFEEdge.
 	///	</summary>
@@ -140,6 +149,16 @@ public:
 	void DifferentiateREdgeToREdge(
 		const double * dDataREdge,
 		double * dDiffREdge
+	) const;
+
+	///	<summary>
+	///		Apply discontinuous penalization to nodes.
+	///	</summary>
+	void CalculateDiscontinuousPenalty(
+		const double * dWaveSpeedREdge,
+		const double * dDataNode,
+		double * dDataUpdate,
+		bool fZeroBoundaries = false
 	) const;
 
 public:
