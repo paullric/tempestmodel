@@ -40,7 +40,8 @@ public:
 	enum ExplicitDiscretization {
 		RungeKutta4,
 		RungeKuttaSSP3,
-		KinnmarkGrayUllrich35
+		KinnmarkGrayUllrich35,
+		RungeKuttaSSPRK53
 	};
 
 public:
@@ -124,6 +125,22 @@ private:
 	///		Linear combination coefficients used by KGU35.
 	///	</summary>
 	DataVector<double> m_dKinnmarkGrayUllrichCombination;
+
+	///	<summary>
+	///		Linear combination coefficients used by SSPRK53 (combination A).
+	///	</summary>
+	DataVector<double> m_dSSPRK53CombinationA;
+
+	///	<summary>
+	///		Linear combination coefficients used by SSPRK53 (combination B).
+	///	</summary>
+	DataVector<double> m_dSSPRK53CombinationB;
+
+	///	<summary>
+	///		Linear combination coefficients used by SSPRK53 (combination C).
+	///	</summary>
+	DataVector<double> m_dSSPRK53CombinationC;
+
 };
 
 ///////////////////////////////////////////////////////////////////////////////

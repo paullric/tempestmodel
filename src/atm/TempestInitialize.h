@@ -64,6 +64,7 @@ struct _TempestCommandLineVariables {
 	double dNuScalar;
 	double dNuDiv;
 	double dNuVort;
+	bool fExplicitVertical;
 	int nVerticalHyperdiffOrder;
 	std::string strTimestepScheme;
 	std::string strHorizontalDynamics;
@@ -94,6 +95,7 @@ struct _TempestCommandLineVariables {
 	CommandLineDouble(_tempestvars.dNuScalar, "nu", 1.0e15); \
 	CommandLineDouble(_tempestvars.dNuDiv, "nud", 1.0e15); \
 	CommandLineDouble(_tempestvars.dNuVort, "nuv", 1.0e15); \
+	CommandLineBool(_tempestvars.fExplicitVertical, "explicitvertical"); \
 	CommandLineInt(_tempestvars.nVerticalHyperdiffOrder, "verthypervisorder", 0); \
 	CommandLineString(_tempestvars.strTimestepScheme, "timescheme", "strang"); \
 	CommandLineStringD(_tempestvars.strHorizontalDynamics, "method", "SE", "(SE | DG)");
@@ -148,6 +150,26 @@ void _TempestSetupMethodOfLines(
 	if (vars.strTimestepScheme == "strang") {
 		model.SetTimestepScheme(
 			new TimestepSchemeStrang(model));
+
+	} else if (vars.strTimestepScheme == "strang/rk4") {
+		model.SetTimestepScheme(
+			new TimestepSchemeStrang(
+				model, 0.0, TimestepSchemeStrang::RungeKutta4));
+
+	} else if (vars.strTimestepScheme == "strang/rk3") {
+		model.SetTimestepScheme(
+			new TimestepSchemeStrang(
+				model, 0.0, TimestepSchemeStrang::RungeKuttaSSP3));
+
+	} else if (vars.strTimestepScheme == "strang/kgu35") {
+		model.SetTimestepScheme(
+			new TimestepSchemeStrang(
+				model, 0.0, TimestepSchemeStrang::KinnmarkGrayUllrich35));
+
+	} else if (vars.strTimestepScheme == "strang/ssprk53") {
+		model.SetTimestepScheme(
+			new TimestepSchemeStrang(
+				model, 0.0, TimestepSchemeStrang::RungeKuttaSSPRK53));
 
 	} else if (vars.strTimestepScheme == "ark2") {
 		model.SetTimestepScheme(
@@ -209,7 +231,7 @@ void _TempestSetupMethodOfLines(
 				vars.nHorizontalOrder,
 				vars.nVerticalOrder,
 				vars.nVerticalHyperdiffOrder,
-				false, // Implicit vertical
+				vars.fExplicitVertical,
 				!vars.fNoReferenceState));
 	}
 
