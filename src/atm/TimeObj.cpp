@@ -17,6 +17,8 @@
 #include "TimeObj.h"
 #include "Exception.h"
 
+#include <iostream>
+
 ///////////////////////////////////////////////////////////////////////////////
 
 bool Time::operator==(const Time & time) const {
@@ -424,7 +426,7 @@ std::string Time::ToFreeString() const {
 		strFreeString += szBuffer;
 	}
 	if (m_iMicroSecond != 0) {
-		sprintf(szBuffer, "%is", m_iMicroSecond);
+		sprintf(szBuffer, "%iu", m_iMicroSecond);
 		strFreeString += szBuffer;
 	}
 
