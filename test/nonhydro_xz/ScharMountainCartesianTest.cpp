@@ -87,16 +87,24 @@ public:
 	///		Constructor. (with physical constants defined privately here)
 	///	</summary>
 	ScharMountainCartesianTest(
+		double dH0,
+		double dU0,
+		double dNbar,
+		double dTheta0,
+		double dThetaC,
+		double dhC,
+		double daC,
+		double dlC,
 		bool fNoRayleighFriction
 	) :
-		m_dH0(21000.),
-		m_dU0(10.0),
-		m_dNbar(0.01),
-		m_dTheta0(280.0),
-		m_dThetaC(1.0),
-		m_dhC(250.),
-		m_daC(5000.),
-		m_dlC(4000.),
+		m_dH0(dH0),
+		m_dU0(dU0),
+		m_dNbar(dNbar),
+		m_dTheta0(dTheta0),
+		m_dThetaC(dThetaC),
+		m_dhC(dhC),
+		m_daC(daC),
+		m_dlC(dlC),
 		m_fNoRayleighFriction(fNoRayleighFriction)
 	{
 		// Set the dimensions of the box
@@ -280,11 +288,35 @@ int main(int argc, char** argv) {
 	TempestInitialize(&argc, &argv);
 
 try {
+	// Background height field.
+	double dH0;
+
+	// Uniform +X flow field.
+	double dU0;
+
+	// Brunt-Vaisala frequency
+	double dNbar;
+
+	// Reference pontential temperature
+	double dTheta0;
+
+	// Parameter factor for temperature disturbance
+	double dThetaC;
+
+	// Parameter reference height for temperature disturbance
+	double dhC;
+
+	// Parameter reference length a for temperature disturbance
+	double daC;
+
+	// Parameter reference length for mountain profile
+	double dlC;
+
 	// No Rayleigh friction
 	bool fNoRayleighFriction;
 
 	// Parse the command line
-	BeginTempestCommandLine("HydrostaticMountainCartesianTest");
+	BeginTempestCommandLine("ScharMountainCartesianTest");
 		SetDefaultResolutionX(40);
 		SetDefaultResolutionY(1);
 		SetDefaultLevels(40);
@@ -294,14 +326,30 @@ try {
 		SetDefaultHorizontalOrder(4);
 		SetDefaultVerticalOrder(4);
 
-		CommandLineBool(fNoRayleighFriction, "norayleigh");
+		CommandLineDouble(dH0, "h0", 21000.0);
+		CommandLineDouble(dU0, "u0", 10.0);
+		CommandLineDouble(dNbar, "Nbar", 0.01);
+		CommandLineDouble(dTheta0, "Theta0", 280.0);
+		CommandLineDouble(dThetaC, "ThetaC", 1.0);
+		CommandLineDouble(dhC, "hC", 250.0);
+		CommandLineDouble(daC, "aC", 5000.0);
+		CommandLineDouble(dlC, "lC", 4000.0);
 
 		ParseCommandLine(argc, argv);
 	EndCommandLine(argv)
 
 	// Create a new instance of the test
 	ScharMountainCartesianTest * test =
-		new ScharMountainCartesianTest(fNoRayleighFriction);
+		new ScharMountainCartesianTest(
+			dH0,
+			dU0,
+			dNbar,
+			dTheta0,
+			dThetaC,
+			dhC,
+			daC,
+			dlC, 
+			fNoRayleighFriction);
 
 	// Setup the Model
 	AnnounceBanner("MODEL SETUP");
