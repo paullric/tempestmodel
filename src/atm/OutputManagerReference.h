@@ -117,6 +117,11 @@ protected:
 	int m_iGridStamp;
 
 	///	<summary>
+	///		Flag indicating a fresh output file (no prior Outputs).
+	///	</summary>
+	bool m_fFreshOutputFile;
+
+	///	<summary>
 	///		Number of reference points in the X direction.
 	///	</summary>
 	int m_nXReference;

@@ -51,6 +51,7 @@ OutputManagerReference::OutputManagerReference(
 		strOutputPrefix,
 		nOutputsPerFile),
 	m_iGridStamp(-1),
+	m_fFreshOutputFile(false),
 	m_nXReference(nXReference),
 	m_nYReference(nYReference),
 	m_pActiveNcOutput(NULL),
@@ -213,6 +214,15 @@ bool OutputManagerReference::CalculatePatchCoordinates() {
 			m_grid.GetRElements(),
 			m_nXReference * m_nYReference);
 	}
+
+	// Reduce/Interpolate topography array
+	m_grid.ReduceInterpolate(
+		m_dAlpha, m_dBeta, m_iPatch,
+		DataType_Topography,
+		DataLocation_None,
+		m_fOutputAllVarsOnNodes,
+		m_dataTopography,
+		false);
 
 	// Update grid stamp
 	m_iGridStamp = m_grid.GetGridStamp();
@@ -386,6 +396,9 @@ bool OutputManagerReference::OpenFile(
 		// Topography variable
 		m_varTopography =
 			m_pActiveNcOutput->add_var("Zs", ncDouble, dimLat, dimLon);
+
+		// Fresh output file
+		m_fFreshOutputFile = true;
 	}
 
 	// Wait for all processes to complete
@@ -421,23 +434,16 @@ void OutputManagerReference::Output(
 	MPI_Comm_rank(MPI_COMM_WORLD, &nRank);
 
 	// Update reference grid
-	if (CalculatePatchCoordinates()) {
+	CalculatePatchCoordinates();
+
+	// Initial outputs to a new Output file
+	if ((nRank == 0) && (m_fFreshOutputFile)) {
 
 		// Output topography
-		m_grid.ReduceInterpolate(
-			m_dAlpha, m_dBeta, m_iPatch,
-			DataType_Topography,
-			DataLocation_None,
-			m_fOutputAllVarsOnNodes,
-			m_dataTopography,
-			false);
-
-		if (nRank == 0) {
-			m_varTopography->put(
-				&(m_dataTopography[0][0][0]),
-				m_dYCoord.GetRows(),
-				m_dXCoord.GetRows());
-		}
+		m_varTopography->put(
+			&(m_dataTopography[0][0][0]),
+			m_dYCoord.GetRows(),
+			m_dXCoord.GetRows());
 	}
 
 	// Equation set
@@ -593,6 +599,9 @@ void OutputManagerReference::Output(
 		}
 
 	}
+
+	// No longer fresh file
+	m_fFreshOutputFile = false;
 
 	// Barrier
 	MPI_Barrier(MPI_COMM_WORLD);
