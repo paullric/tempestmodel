@@ -83,52 +83,6 @@ OutputManagerReference::OutputManagerReference(
 		m_dYCoord[j] =
 			dDeltaY * (static_cast<double>(j) + 0.5) + dY0;
 	}
-
-	// Allocate data arrays
-	m_dataTopography.Initialize(
-		1,
-		1,
-		m_nXReference * m_nYReference);
-
-	m_dataStateNode.Initialize(
-		m_grid.GetModel().GetEquationSet().GetComponents(),
-		m_grid.GetRElements(),
-		m_nXReference * m_nYReference);
-
-	if (!m_fOutputAllVarsOnNodes) {
-		m_dataStateREdge.Initialize(
-			m_grid.GetModel().GetEquationSet().GetComponents(),
-			m_grid.GetRElements() + 1,
-			m_nXReference * m_nYReference);
-	}
-
-	if (m_grid.GetModel().GetEquationSet().GetTracers() != 0) {
-		m_dataTracers.Initialize(
-			m_grid.GetModel().GetEquationSet().GetTracers(),
-			m_grid.GetRElements(),
-			m_nXReference * m_nYReference);
-	}
-
-	if (m_fOutputVorticity) {
-		m_dataVorticity.Initialize(
-			1,
-			m_grid.GetRElements(),
-			m_nXReference * m_nYReference);
-	}
-
-	if (m_fOutputDivergence) {
-		m_dataDivergence.Initialize(
-			1,
-			m_grid.GetRElements(),
-			m_nXReference * m_nYReference);
-	}
-
-	if (m_fOutputTemperature) {
-		m_dataTemperature.Initialize(
-			1,
-			m_grid.GetRElements(),
-			m_nXReference * m_nYReference);
-	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -213,6 +167,52 @@ bool OutputManagerReference::CalculatePatchCoordinates() {
 		m_dAlpha,
 		m_dBeta,
 		m_iPatch);
+
+	// Allocate data arrays
+	m_dataTopography.Initialize(
+		1,
+		1,
+		m_nXReference * m_nYReference);
+
+	m_dataStateNode.Initialize(
+		m_grid.GetModel().GetEquationSet().GetComponents(),
+		m_grid.GetRElements(),
+		m_nXReference * m_nYReference);
+
+	if (!m_fOutputAllVarsOnNodes) {
+		m_dataStateREdge.Initialize(
+			m_grid.GetModel().GetEquationSet().GetComponents(),
+			m_grid.GetRElements() + 1,
+			m_nXReference * m_nYReference);
+	}
+
+	if (m_grid.GetModel().GetEquationSet().GetTracers() != 0) {
+		m_dataTracers.Initialize(
+			m_grid.GetModel().GetEquationSet().GetTracers(),
+			m_grid.GetRElements(),
+			m_nXReference * m_nYReference);
+	}
+
+	if (m_fOutputVorticity) {
+		m_dataVorticity.Initialize(
+			1,
+			m_grid.GetRElements(),
+			m_nXReference * m_nYReference);
+	}
+
+	if (m_fOutputDivergence) {
+		m_dataDivergence.Initialize(
+			1,
+			m_grid.GetRElements(),
+			m_nXReference * m_nYReference);
+	}
+
+	if (m_fOutputTemperature) {
+		m_dataTemperature.Initialize(
+			1,
+			m_grid.GetRElements(),
+			m_nXReference * m_nYReference);
+	}
 
 	// Update grid stamp
 	m_iGridStamp = m_grid.GetGridStamp();
