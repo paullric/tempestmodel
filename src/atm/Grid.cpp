@@ -940,6 +940,12 @@ void Grid::ReduceInterpolate(
 		_EXCEPTIONT("InterpData dimension mismatch (0)");
 	}
 
+	if ((eDataType == DataType_Topography) &&
+		(dInterpData.GetRows() != 1)
+	) {
+		_EXCEPTIONT("InterpData dimension mismatch (0)");
+	}
+
 	if ((eDataType == DataType_Vorticity) &&
 		(dInterpData.GetRows() != 1)
 	) {
@@ -956,6 +962,12 @@ void Grid::ReduceInterpolate(
 		(dInterpData.GetRows() != 1)
 	) {
 		_EXCEPTIONT("InterpData dimension mismatch (0)");
+	}
+
+	if ((eDataLocation == DataLocation_None) &&
+		(dInterpData.GetColumns() != 1)
+	) {
+		_EXCEPTIONT("InterpData dimension mismatch (1)");
 	}
 
 	if ((eDataLocation == DataLocation_Node) &&

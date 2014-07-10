@@ -1180,6 +1180,8 @@ void GridPatchCSGLL::InterpolateData(
 		int nComponents;
 		int nRElements = m_grid.GetRElements();
 
+		double ** pData2D;
+
 		if (eDataType == DataType_State) {
 			if (eDataLocation == DataLocation_Node) {
 				nComponents = m_datavecStateNode[0].GetComponents();
@@ -1190,17 +1192,27 @@ void GridPatchCSGLL::InterpolateData(
 
 		} else if (eDataType == DataType_Tracers) {
 			nComponents = m_datavecTracers[0].GetComponents();
+
+		} else if (eDataType == DataType_Topography) {
+			nComponents = 1;
+			pData2D = (double**)(m_dataTopography);
+
 		} else if (eDataType == DataType_Vorticity) {
 			nComponents = 1;
+
 		} else if (eDataType == DataType_Divergence) {
 			nComponents = 1;
+
 		} else if (eDataType == DataType_Temperature) {
 			nComponents = 1;
+
 		} else {
 			_EXCEPTIONT("Invalid DataType");
 		}
 
 		for (int c = 0; c < nComponents; c++) {
+
+			int nRElements = m_grid.GetRElements();
 
 			const double *** pData;
 			if (eDataType == DataType_State) {
@@ -1212,16 +1224,23 @@ void GridPatchCSGLL::InterpolateData(
 
 			} else if (eDataType == DataType_Tracers) {
 				pData = (const double ***)(m_datavecTracers[0][c]);
+
+			} else if (eDataType == DataType_Topography) {
+				pData = (const double ***)(&pData2D);
+				nRElements = 1;
+
 			} else if (eDataType == DataType_Vorticity) {
 				pData = (const double ***)(double ***)(m_dataVorticity);
+
 			} else if (eDataType == DataType_Divergence) {
 				pData = (const double ***)(double ***)(m_dataDivergence);
+
 			} else if (eDataType == DataType_Temperature) {
 				pData = (const double ***)(double ***)(m_dataTemperature);
 			}
 
 			// Perform interpolation on all levels
-			for (int k = 0; k < m_grid.GetRElements(); k++) {
+			for (int k = 0; k < nRElements; k++) {
 
 				dInterpData[c][k][i] = 0.0;
 

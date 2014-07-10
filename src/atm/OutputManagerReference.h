@@ -87,7 +87,7 @@ private:
 	///	<summary>
 	///		Calculate the patch coordinates of the reference points.
 	///	</summary>
-	void CalculatePatchCoordinates();
+	bool CalculatePatchCoordinates();
 
 protected:
 	///	<summary>
@@ -180,6 +180,17 @@ protected:
 	///		Vector of tracer variables.
 	///	</summary>
 	std::vector<NcVar *> m_vecTracersVar;
+
+private:
+	///	<summary>
+	///		Topography output variable.
+	///	</summary>
+	NcVar * m_varTopography;
+
+	///	<summary>
+	///		Interpolated topography on the reference grid.
+	///	</summary>
+	DataMatrix3D<double> m_dataTopography;
 
 private:
 	///	<summary>

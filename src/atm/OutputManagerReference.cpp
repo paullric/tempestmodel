@@ -83,6 +83,52 @@ OutputManagerReference::OutputManagerReference(
 		m_dYCoord[j] =
 			dDeltaY * (static_cast<double>(j) + 0.5) + dY0;
 	}
+
+	// Allocate data arrays
+	m_dataTopography.Initialize(
+		1,
+		1,
+		m_nXReference * m_nYReference);
+
+	m_dataStateNode.Initialize(
+		m_grid.GetModel().GetEquationSet().GetComponents(),
+		m_grid.GetRElements(),
+		m_nXReference * m_nYReference);
+
+	if (!m_fOutputAllVarsOnNodes) {
+		m_dataStateREdge.Initialize(
+			m_grid.GetModel().GetEquationSet().GetComponents(),
+			m_grid.GetRElements() + 1,
+			m_nXReference * m_nYReference);
+	}
+
+	if (m_grid.GetModel().GetEquationSet().GetTracers() != 0) {
+		m_dataTracers.Initialize(
+			m_grid.GetModel().GetEquationSet().GetTracers(),
+			m_grid.GetRElements(),
+			m_nXReference * m_nYReference);
+	}
+
+	if (m_fOutputVorticity) {
+		m_dataVorticity.Initialize(
+			1,
+			m_grid.GetRElements(),
+			m_nXReference * m_nYReference);
+	}
+
+	if (m_fOutputDivergence) {
+		m_dataDivergence.Initialize(
+			1,
+			m_grid.GetRElements(),
+			m_nXReference * m_nYReference);
+	}
+
+	if (m_fOutputTemperature) {
+		m_dataTemperature.Initialize(
+			1,
+			m_grid.GetRElements(),
+			m_nXReference * m_nYReference);
+	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -130,10 +176,10 @@ void OutputManagerReference::OutputTemperature(
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void OutputManagerReference::CalculatePatchCoordinates() {
+bool OutputManagerReference::CalculatePatchCoordinates() {
 
 	if (m_grid.GetGridStamp() == m_iGridStamp) {
-		return;
+		return false;
 	}
 
 	// Recalculate patch coordinates
@@ -168,49 +214,11 @@ void OutputManagerReference::CalculatePatchCoordinates() {
 		m_dBeta,
 		m_iPatch);
 
-	// Allocate data arrays
-	m_dataStateNode.Initialize(
-		m_grid.GetModel().GetEquationSet().GetComponents(),
-		m_grid.GetRElements(),
-		m_nXReference * m_nYReference);
-
-	if (!m_fOutputAllVarsOnNodes) {
-		m_dataStateREdge.Initialize(
-			m_grid.GetModel().GetEquationSet().GetComponents(),
-			m_grid.GetRElements() + 1,
-			m_nXReference * m_nYReference);
-	}
-
-	if (m_grid.GetModel().GetEquationSet().GetTracers() != 0) {
-		m_dataTracers.Initialize(
-			m_grid.GetModel().GetEquationSet().GetTracers(),
-			m_grid.GetRElements(),
-			m_nXReference * m_nYReference);
-	}
-
-	if (m_fOutputVorticity) {
-		m_dataVorticity.Initialize(
-			1,
-			m_grid.GetRElements(),
-			m_dAlpha.GetRows());
-	}
-
-	if (m_fOutputDivergence) {
-		m_dataDivergence.Initialize(
-			1,
-			m_grid.GetRElements(),
-			m_dAlpha.GetRows());
-	}
-
-	if (m_fOutputTemperature) {
-		m_dataTemperature.Initialize(
-			1,
-			m_grid.GetRElements(),
-			m_dAlpha.GetRows());
-	}
-
 	// Update grid stamp
 	m_iGridStamp = m_grid.GetGridStamp();
+
+	// Patch coordinates updated
+	return true;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -364,7 +372,7 @@ bool OutputManagerReference::OpenFile(
 		varLev->add_att("long_name", "level");
 		varLev->add_att("units", "level");
 
-		// Output levels
+		// Output interface levels
 		NcVar * varILev =
 			m_pActiveNcOutput->add_var("ilev", ncDouble, dimILev);
 
@@ -374,6 +382,10 @@ bool OutputManagerReference::OpenFile(
 
 		varILev->add_att("long_name", "interface level");
 		varILev->add_att("units", "level");
+
+		// Topography variable
+		m_varTopography =
+			m_pActiveNcOutput->add_var("Zs", ncDouble, dimLat, dimLon);
 	}
 
 	// Wait for all processes to complete
@@ -405,7 +417,22 @@ void OutputManagerReference::Output(
 	}
 
 	// Update reference grid
-	CalculatePatchCoordinates();
+	if (CalculatePatchCoordinates()) {
+
+		// Output topography
+		m_grid.ReduceInterpolate(
+			m_dAlpha, m_dBeta, m_iPatch,
+			DataType_Topography,
+			DataLocation_None,
+			m_fOutputAllVarsOnNodes,
+			m_dataTopography,
+			false);
+
+		m_varTopography->put(
+			&(m_dataTopography[0][0][0]),
+			m_dYCoord.GetRows(),
+			m_dXCoord.GetRows());
+	}
 
 	// Get processor rank
 	int nRank;
