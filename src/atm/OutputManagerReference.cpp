@@ -416,6 +416,10 @@ void OutputManagerReference::Output(
 		_EXCEPTIONT("No file available for output");
 	}
 
+	// Get processor rank
+	int nRank;
+	MPI_Comm_rank(MPI_COMM_WORLD, &nRank);
+
 	// Update reference grid
 	if (CalculatePatchCoordinates()) {
 
@@ -428,15 +432,13 @@ void OutputManagerReference::Output(
 			m_dataTopography,
 			false);
 
-		m_varTopography->put(
-			&(m_dataTopography[0][0][0]),
-			m_dYCoord.GetRows(),
-			m_dXCoord.GetRows());
+		if (nRank == 0) {
+			m_varTopography->put(
+				&(m_dataTopography[0][0][0]),
+				m_dYCoord.GetRows(),
+				m_dXCoord.GetRows());
+		}
 	}
-
-	// Get processor rank
-	int nRank;
-	MPI_Comm_rank(MPI_COMM_WORLD, &nRank);
 
 	// Equation set
 	const EquationSet & eqn = m_grid.GetModel().GetEquationSet();
