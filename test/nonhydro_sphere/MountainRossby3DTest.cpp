@@ -55,6 +55,11 @@ protected:
 	double m_dD;
 
 	///	<summary>
+	///		Pole pressure.
+	///	</summary>
+	double m_dPp;
+
+	///	<summary>
 	///		Isothermal atmosphere temperature.
 	///	</summary>
 	double m_dT0;
@@ -80,6 +85,7 @@ public:
 		double dLatC,
 		double dH0,
 		double dD,
+		double dPp,
 		double dT0,
 		double dU0,
 		bool fNoRayleigh
@@ -90,6 +96,7 @@ public:
 		m_dLatC(dLatC * M_PI / 180.0),
 		m_dH0(dH0),
 		m_dD(dD),
+		m_dPp(dPp),
 		m_dT0(dT0),
 		m_dU0(dU0),
 		m_fNoRayleigh(fNoRayleigh)
@@ -194,7 +201,7 @@ public:
 
 		// 3D pressure
 		double dPressure =
-			phys.GetP0() * exp(
+			m_dPp * exp(
 				- m_dU0 / (2.0 * phys.GetR() * m_dT0) * (dSin2Lat - 1.0)
 					* (m_dU0 + 2.0 * phys.GetOmega() * phys.GetEarthRadius())
 				- phys.GetG() * dZ / (phys.GetR() * m_dT0));
@@ -252,6 +259,9 @@ try {
 	// Schar-type mountain half width.
 	double dD;
 
+	// Polar pressure
+	double dPp;
+
 	// Isothermal atmosphere temperature
 	double dT0;
 
@@ -277,6 +287,7 @@ try {
 		CommandLineDouble(dLatC, "latc", 30.0);
 		CommandLineDouble(dH0, "h0", 2000.0);
 		CommandLineDouble(dD, "d", 1.5e6);
+		CommandLineDouble(dPp, "pp", 93000.0);
 		CommandLineDouble(dT0, "t0", 288.0);
 		CommandLineDouble(dU0, "u0", 20.0);
 		CommandLineBool(fNoRayleigh, "norayleigh");
@@ -302,6 +313,7 @@ try {
 			dLatC,
 			dH0,
 			dD,
+			dPp,
 			dT0,
 			dU0,
 			fNoRayleigh));
