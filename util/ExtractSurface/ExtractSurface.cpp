@@ -33,6 +33,8 @@ void InterpolationWeightsLinear(
 	int & kEnd,
 	DataVector<double> & dW
 ) {
+	const int nLev = dataP.GetRows();
+
 	if (dP > dataP[0]) {
 		kBegin = 0;
 		kEnd = 1;
@@ -49,7 +51,7 @@ void InterpolationWeightsLinear(
 				kBegin = k;
 				kEnd = k+2;
 
-				dW[k] = (dataP[k+1] - dPressureLevel)
+				dW[k] = (dataP[k+1] - dP)
 				      / (dataP[k+1] - dataP[k]);
 
 				dW[k+1] = 1.0 - dW[k];
@@ -81,8 +83,8 @@ try {
 	// List of variables to extract
 	std::string strVariables;
 
-	// Extract geopotential
-	bool fGeopotential;
+	// Extract geopotential height
+	bool fGeopotentialHeight;
 
 	// Pressure level to extract
 	double dPressureLevel;
@@ -97,9 +99,8 @@ try {
 	BeginCommandLine()
 		CommandLineString(strInputFile, "in", "");
 		CommandLineString(strOutputFile, "out", "");
-		CommandLineString(strTopographyFile, "topo", "");
 		CommandLineString(strVariables, "var", "");
-		CommandLineBool(fGeopotential, "phi");
+		CommandLineBool(fGeopotentialHeight, "output_z");
 		CommandLineDouble(dPressureLevel, "p", 0.0);
 		CommandLineBool(fExtractSurface, "surf");
 		CommandLineInt(iTime, "time", 0);
@@ -180,16 +181,14 @@ try {
 	varLev->get(&(dLev[0]), nLev);
 
 	AnnounceEndBlock("Done");
-/*
+
 	// Load topography
-	NcVar *varZs = ncdf_topo.get_var("Zs");
+	NcVar *varZs = ncdf_in.get_var("Zs");
+
 	DataMatrix<double> dZs;
 	dZs.Initialize(nLat, nLon);
 	varZs->set_cur((long)0, (long)0);
 	varZs->get(&(dZs[0][0]), nLat, nLon);
-
-	ncdf_topo.close();
-*/
 
 	// Open output file
 	AnnounceStartBlock("Constructing output file");
@@ -298,6 +297,19 @@ try {
 	varTheta->set_cur(iTime, 0, 0, 0);
 	varTheta->get(&(dataTheta[0][0][0]), 1, nLev, nLat, nLon);
 
+	// Pressure everywhere
+	DataMatrix3D<double> dataP;
+	dataP.Initialize(nLev, nLat, nLon);
+
+	for (int k = 0; k < nLev; k++) {
+	for (int i = 0; i < nLat; i++) {
+	for (int j = 0; j < nLon; j++) {
+		dataP[k][i][j] = dPressureScaling
+			* exp(log(dataRho[k][i][j] * dataTheta[k][i][j]) * dGamma);
+	}
+	}
+	}
+
 	// Input data
 	DataMatrix3D<double> dataIn;
 	dataIn.Initialize(nLev, nLat, nLon);
@@ -307,8 +319,8 @@ try {
 	dataOut.Initialize(nLat, nLon);
 
 	// Pressure in column
-	DataVector<double> dataP;
-	dataP.Initialize(nLev);
+	DataVector<double> dataColumnP;
+	dataColumnP.Initialize(nLev);
 
 	// Column weights
 	DataVector<double> dW;
@@ -333,18 +345,22 @@ try {
 		for (int i = 0; i < nLat; i++) {
 		for (int j = 0; j < nLon; j++) {
 
-			// Compute pressure in column
-			for (int k = 0; k < nLev; k++) {
-				dataP[k] = dPressureScaling
-					* exp(log(dataRho[k][i][j] * dataTheta[k][i][j]) * dGamma);
-			}
-
 			// Find weights
 			int kBegin = 0;
 			int kEnd = 0;
 
 			// On a pressure surface
 			if (dPressureLevel != 0.0) {
+				for (int k = 0; k < nLev; k++) {
+					dataColumnP[k] = dataP[k][i][j];
+				}
+
+				InterpolationWeightsLinear(
+					dPressureLevel,
+					dataColumnP,
+					kBegin,
+					kEnd,
+					dW);
 			}
 
 			// At the physical surface
@@ -380,6 +396,42 @@ try {
 		}
 
 		// Write variable
+		varOut->set_cur(0, 0);
+		varOut->put(&(dataOut[0][0]), nLat, nLon);
+	}
+
+	// Output geopotential height
+	if (fGeopotentialHeight) {
+
+		// Loop thorugh all latlon indices
+		for (int i = 0; i < nLat; i++) {
+		for (int j = 0; j < nLon; j++) {
+
+			int kBegin;
+			int kEnd;
+
+			for (int k = 0; k < nLev; k++) {
+				dataColumnP[k] = dataP[k][i][j];
+			}
+
+			InterpolationWeightsLinear(
+				dPressureLevel,
+				dataColumnP,
+				kBegin,
+				kEnd,
+				dW);
+
+			dataOut[i][j] = 0.0;
+			for (int k = kBegin; k < kEnd; k++) {
+				dataOut[i][j] += dW[k] * dLev[k];
+			}
+		}
+		}
+
+		// Write variable
+		NcVar * varOut = ncdf_out.add_var(
+			"Z", ncDouble, dimOutLat, dimOutLon);
+
 		varOut->set_cur(0, 0);
 		varOut->put(&(dataOut[0][0]), nLat, nLon);
 	}
