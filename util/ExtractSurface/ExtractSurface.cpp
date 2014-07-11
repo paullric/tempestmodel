@@ -281,6 +281,9 @@ try {
 
 	double dPressureScaling = dP0 * pow(dRd / dP0, dGamma);
 
+	NcAtt * attZtop = ncdf_in.get_att("Ztop");
+	double dZtop = attZtop->as_double(0);
+
 	// Rho
 	DataMatrix3D<double> dataRho;
 	dataRho.Initialize(nLev, nLat, nLon);
@@ -403,6 +406,8 @@ try {
 	// Output geopotential height
 	if (fGeopotentialHeight) {
 
+		Announce("Geopotential height");
+
 		// Loop thorugh all latlon indices
 		for (int i = 0; i < nLat; i++) {
 		for (int j = 0; j < nLon; j++) {
@@ -410,21 +415,35 @@ try {
 			int kBegin;
 			int kEnd;
 
-			for (int k = 0; k < nLev; k++) {
-				dataColumnP[k] = dataP[k][i][j];
+			// Interpolate onto pressure level
+			if (dPressureLevel != 0.0) {
+				for (int k = 0; k < nLev; k++) {
+					dataColumnP[k] = dataP[k][i][j];
+				}
+
+				InterpolationWeightsLinear(
+					dPressureLevel,
+					dataColumnP,
+					kBegin,
+					kEnd,
+					dW);
 			}
 
-			InterpolationWeightsLinear(
-				dPressureLevel,
-				dataColumnP,
-				kBegin,
-				kEnd,
-				dW);
+			// At the physical surface
+			if (fExtractSurface) {
+				kBegin = 0;
+				kEnd = 2;
+
+				dW[0] =   dLev[1] / (dLev[1] - dLev[0]);
+				dW[1] = - dLev[0] / (dLev[1] - dLev[0]);
+			}
 
 			dataOut[i][j] = 0.0;
 			for (int k = kBegin; k < kEnd; k++) {
 				dataOut[i][j] += dW[k] * dLev[k];
 			}
+
+			dataOut[i][j] = dZs[i][j] + dataOut[i][j] * (dZtop - dZs[i][j]);
 		}
 		}
 
