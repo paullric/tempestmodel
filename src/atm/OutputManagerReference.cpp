@@ -308,6 +308,9 @@ bool OutputManagerReference::OpenFile(
 		m_pActiveNcOutput->add_att("Mvap", phys.GetMvap());
 		m_pActiveNcOutput->add_att("Lvap", phys.GetLvap());
 
+		// Output grid parameters
+		m_pActiveNcOutput->add_att("Ztop", m_grid.GetZtop());
+
 		// Output equation set
 		const EquationSet & eqn = model.GetEquationSet();
 
