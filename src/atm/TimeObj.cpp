@@ -660,7 +660,11 @@ void Time::FromFormattedString(
 		// Date format
 		if (state == FormatState_Date) {
 			if (szYear == NULL) {
-				szYear = &(strFormattedTime[j]);
+				_EXCEPTION1("Malformed time string (%s): "
+					"No formatting characters detected",
+					strFormattedTime.c_str());
+
+				//szYear = &(strFormattedTime[j]);
 
 			} else if (szMonth == NULL) {
 				szMonth = &(strFormattedTime[j]);
