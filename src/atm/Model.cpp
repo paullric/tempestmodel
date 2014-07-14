@@ -341,7 +341,11 @@ void Model::Go() {
 		}
 */
 		// Update the timer
-		m_time = timeNext;
+		if (timeNext >= m_param.m_timeEnd) {
+			m_time = m_param.m_timeEnd;
+		} else {
+			m_time = timeNext;
+		}
 
 		// Check for WorkflowProcesses
 		for (int wfp = 0; wfp < m_vecWorkflowProcess.size(); wfp++) {
