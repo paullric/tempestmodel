@@ -125,6 +125,8 @@ public:
 		int iA,
 		int iB,
 		const DataMatrix<double> & dataTopography,
+		const DataMatrix3D<double> & dataJacobian3DNode,
+		const DataMatrix3D<double> & dataJacobian3DREdge,
 		const GridData4D & dataRefNode,
 		const GridData4D & dataInitialNode,
 		const GridData4D & dataRefREdge,
@@ -132,8 +134,7 @@ public:
 		const GridData3D & dataExnerNode,
 		const GridData3D & dataDiffExnerNode,
 		const GridData3D & dataExnerREdge,
-		const GridData3D & dataDiffExnerREdge,
-		const DataMatrix4D<double> & dataContraMetricXi
+		const GridData3D & dataDiffExnerREdge
 	);
  
 	///	<summary>
@@ -398,6 +399,16 @@ protected:
 	///		Hyperviscosity coefficients from edges to edges.
 	///	</summary>
 	DataMatrix<double> m_dHypervisREdgeToREdge;
+
+	///	<summary>
+	///		3D Jacobian in the column stored on nodes.
+	///	</summary>
+	DataVector<double> m_dJacobian3DNode;
+
+	///	<summary>
+	///		3D Jacobian in the column stored on interfaces.
+	///	</summary>
+	DataVector<double> m_dJacobian3DREdge;
 
 #ifdef USE_JFNK_PETSC
 private:

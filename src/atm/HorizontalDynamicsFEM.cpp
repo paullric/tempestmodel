@@ -356,6 +356,8 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 
 		const PatchBox & box = pPatch->GetPatchBox();
 
+		const DataMatrix<double> & dJacobian2D =
+			pPatch->GetJacobian2D();
 		const DataMatrix3D<double> & dJacobian =
 			pPatch->GetJacobian();
 		const DataMatrix4D<double> & dContraMetricA =
@@ -621,20 +623,16 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 							* dataInitialNode[TIx][k][iA][iB];
 
 				// Coriolis forces
-				double dDomainHeight = dZtop - dTopography[iA][iB];
-
 				dLocalUpdateUa -=
 					dCoriolisF[iA][iB]
-					* dJacobian[k][iA][iB]
-					/ dDomainHeight * (
-						+ dContraMetricA[k][iA][iB][1] * dUa
+					* dJacobian2D[iA][iB]
+					* ( + dContraMetricA[k][iA][iB][1] * dUa
 						- dContraMetricA[k][iA][iB][0] * dUb);
 
 				dLocalUpdateUb -=
 					dCoriolisF[iA][iB]
-					* dJacobian[k][iA][iB]
-					/ dDomainHeight * (
-						+ dContraMetricB[k][iA][iB][1] * dUa
+					* dJacobian2D[iA][iB]
+					* ( + dContraMetricB[k][iA][iB][1] * dUa
 						- dContraMetricB[k][iA][iB][0] * dUb);
 
  				// Apply update to horizontal velocity on model levels
@@ -1163,7 +1161,6 @@ void HorizontalDynamicsFEM::ApplyVectorHyperdiffusion(
 						+ dBetaDivTermA
 						+ dBetaDivTermB)
 					+ dLocalNuVort * dBetaCurlTerm);
-
 			}
 			}
 		}
@@ -1294,6 +1291,7 @@ void HorizontalDynamicsFEM::StepAfterSubCycle(
 
 	// Apply hyperdiffusion
 	} else {
+
 		// Apply scalar and vector hyperdiffusion (first application)
 		pGrid->ZeroData(iDataWorking, DataType_State);
 		//pGrid->CopyData(iDataInitial, iDataWorking, DataType_State);

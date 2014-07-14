@@ -31,6 +31,7 @@
 #include "OutputManagerChecksum.h"
 #include "GridCSGLL.h"
 #include "GridCartesianGLL.h"
+#include "VerticalStretch.h"
 
 #include "TimeObj.h"
 #include "Announce.h"
@@ -65,6 +66,7 @@ struct _TempestCommandLineVariables {
 	double dNuDiv;
 	double dNuVort;
 	bool fExplicitVertical;
+	std::string strVerticalStretch;
 	int nVerticalHyperdiffOrder;
 	std::string strTimestepScheme;
 	std::string strHorizontalDynamics;
@@ -96,6 +98,7 @@ struct _TempestCommandLineVariables {
 	CommandLineDouble(_tempestvars.dNuDiv, "nud", 1.0e15); \
 	CommandLineDouble(_tempestvars.dNuVort, "nuv", 1.0e15); \
 	CommandLineBool(_tempestvars.fExplicitVertical, "explicitvertical"); \
+	CommandLineString(_tempestvars.strVerticalStretch, "vstretch", "uniform"); \
 	CommandLineInt(_tempestvars.nVerticalHyperdiffOrder, "verthypervisorder", 0); \
 	CommandLineString(_tempestvars.strTimestepScheme, "timescheme", "strang"); \
 	CommandLineStringD(_tempestvars.strHorizontalDynamics, "method", "SE", "(SE | DG)");
@@ -308,14 +311,25 @@ void _TempestSetupCubedSphereModel(
 
 	// Construct the Grid
 	AnnounceStartBlock("Constructing grid");
-	model.SetGrid(
+	
+	Grid * pGrid =
 		new GridCSGLL(
 			model,
 			vars.nResolutionX,
 			4,
 			vars.nHorizontalOrder,
 			vars.nVerticalOrder,
-			vars.nLevels));
+			vars.nLevels);
+
+	// Set the vertical stretching function
+	STLStringHelper::ToLower(vars.strVerticalStretch);
+	if (vars.strVerticalStretch == "cubic") {
+		pGrid->SetVerticalStretchFunction(
+			new VerticalStretchCubic);
+	}
+
+	// Set the Model Grid
+	model.SetGrid(pGrid);
 
 	AnnounceEndBlock("Done");
 
@@ -338,7 +352,8 @@ void _TempestSetupCartesianModel(
 
 	// Set the model grid
 	AnnounceStartBlock("Constructing grid");
-	model.SetGrid(
+
+	Grid * pGrid = 
 		new GridCartesianGLL(
 			model,
 			vars.nResolutionX,
@@ -347,7 +362,17 @@ void _TempestSetupCartesianModel(
 			vars.nHorizontalOrder,
 			vars.nVerticalOrder,
 			vars.nLevels,
-			dGDim));
+			dGDim);
+
+	// Set the vertical stretching function
+	STLStringHelper::ToLower(vars.strHorizontalDynamics);
+	if (vars.strVerticalStretch == "cubic") {
+		pGrid->SetVerticalStretchFunction(
+			new VerticalStretchCubic);
+	}
+
+	// Set the Model Grid
+	model.SetGrid(pGrid);
 
 	AnnounceEndBlock("Done");
 

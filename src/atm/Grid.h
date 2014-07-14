@@ -33,6 +33,7 @@ class Time;
 class Model;
 class TestCase;
 class ConsolidationStatus;
+class VerticalStretchFunction;
 
 class NcFile;
 
@@ -94,6 +95,24 @@ public:
 	///		Virtual destructor.
 	///	</summary>
 	virtual ~Grid();
+
+public:
+	///	<summary>
+	///		Set the vertical stretching function.  Grid retains ownership
+	///		of the pointer after assignment.
+	///	</summary>
+	void SetVerticalStretchFunction(
+		VerticalStretchFunction * pVerticalStretchF
+	);
+
+	///	<summary>
+	///		Evaluate the vertical stretching function.
+	///	</summary>
+	void EvaluateVerticalStretchF(
+		double dREta,
+		double & dREtaStretch,
+		double & dDxREtaStretch
+	);
 
 protected:
 	///	<summary>
@@ -706,6 +725,11 @@ protected:
 	double m_dReferenceLength;
 
 protected:
+	///	<summary>
+	///		Pointer to the vertical stretching function.
+	///	</summary>
+	VerticalStretchFunction * m_pVerticalStretchF;
+
 	///	<summary>
 	///		Number of radial elements.
 	///	</summary>

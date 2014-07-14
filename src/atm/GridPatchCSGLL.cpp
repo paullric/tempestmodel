@@ -20,6 +20,7 @@
 #include "TestCase.h"
 #include "GridSpacing.h"
 #include "HorizontalDynamicsDG.h"
+#include "VerticalStretch.h"
 
 #include "Direction.h"
 #include "CubedSphereTrans.h"
@@ -223,15 +224,15 @@ void GridPatchCSGLL::EvaluateGeometricTerms() {
 	GaussLobattoQuadrature::GetPoints(
 		m_nVerticalOrder+1, 0.0, 1.0, dGREdge, dWREdge);
 
+	// Vertical elemental grid spacing
+	double dElementDeltaXi = 
+		static_cast<double>(m_nVerticalOrder)
+		/ static_cast<double>(m_grid.GetRElements());
+
 	// Derivatives of basis functions
 	GridCSGLL & gridCSGLL = dynamic_cast<GridCSGLL &>(m_grid);
 
 	const DataMatrix<double> & dDxBasis1D = gridCSGLL.GetDxBasis1D();
-
-	// Vertical grid spacing
-	double dElementDeltaXi =
-		  m_grid.GetREtaInterface(m_nVerticalOrder)
-		- m_grid.GetREtaInterface(0);
 
 	// Initialize the Coriolis force at each node
 	for (int i = 0; i < m_box.GetATotalWidth(); i++) {
@@ -321,19 +322,34 @@ void GridPatchCSGLL::EvaluateGeometricTerms() {
 			// Sub-element index
 			int kx = k % m_nVerticalOrder;
 
-			// Z coordinate
-			double dREta = m_grid.GetREtaLevel(k);
-			double dZ = dZs + (m_grid.GetZtop() - dZs) * dREta;
-
 			// Gal-Chen and Somerville (1975) linear terrain-following coord
-			double dDaR = (1.0 - m_grid.GetREtaLevel(k)) * dDaZs;
-			double dDbR = (1.0 - m_grid.GetREtaLevel(k)) * dDbZs;
+			double dREta = m_grid.GetREtaLevel(k);
+
+			double dREtaStretch;
+			double dDxREtaStretch;
+			m_grid.EvaluateVerticalStretchF(
+				dREta, dREtaStretch, dDxREtaStretch);
+
+			double dZ = dZs + (m_grid.GetZtop() - dZs) * dREtaStretch;
+
+			double dDaR = (1.0 - dREtaStretch) * dDaZs;
+			double dDbR = (1.0 - dREtaStretch) * dDbZs;
+			double dDxR = (m_grid.GetZtop() - dZs) * dDxREtaStretch;
+
+/*
+			double dDaxR = - dDaZs / (m_grid.GetZtop() - dZs) * dDxR;
+			double dDbxR = - dDbZs / (m_grid.GetZtop() - dZs) * dDxR;
+			double dDxxR = 0.0;
+*/
+/*
+			double dDaR = (1.0 - dREta) * dDaZs;
+			double dDbR = (1.0 - dREta) * dDbZs;
 
 			double dDxR = m_grid.GetZtop() - dZs;
 			double dDaxR = - dDaZs;
 			double dDbxR = - dDbZs;
 			double dDxxR = 0.0;
-
+*/
 			// Calculate pointwise Jacobian
 			m_dataJacobian[k][iA][iB] = dDxR * m_dataJacobian2D[iA][iB];
 
@@ -400,26 +416,28 @@ void GridPatchCSGLL::EvaluateGeometricTerms() {
 			m_dataChristoffelXi[k][iA][iB][5] /= dDxR;
 */
 			// Orthonormalization coefficients
-			m_dataOrthonormNode[k][iA][iB][0] =
-				- (1.0 - dREta) * dDaZs / (m_grid.GetZtop() - dZs);
-
-			m_dataOrthonormNode[k][iA][iB][1] =
-				- (1.0 - dREta) * dDbZs / (m_grid.GetZtop() - dZ);
-
-			m_dataOrthonormNode[k][iA][iB][2] =
-				1.0 / (m_grid.GetZtop() - dZs);
+			m_dataOrthonormNode[k][iA][iB][0] = - dDaR / dDxR;
+			m_dataOrthonormNode[k][iA][iB][1] = - dDbR / dDxR;
+			m_dataOrthonormNode[k][iA][iB][2] = 1.0 / dDxR;
 		}
 
 		// Metric terms at vertical interfaces
 		for (int k = 0; k <= m_grid.GetRElements(); k++) {
 			int kx = k % m_nVerticalOrder;
 
-			// Z coordinate
-			double dREta = m_grid.GetREtaInterface(k);
-			double dZ = dZs + (m_grid.GetZtop() - dZs) * dREta;
-
 			// Gal-Chen and Somerville (1975) linear terrain-following coord
-			double dDxR = m_grid.GetZtop() - dZs;
+			double dREta = m_grid.GetREtaInterface(k);
+
+			double dREtaStretch;
+			double dDxREtaStretch;
+			m_grid.EvaluateVerticalStretchF(
+				dREta, dREtaStretch, dDxREtaStretch);
+
+			double dZ = dZs + (m_grid.GetZtop() - dZs) * dREtaStretch;
+
+			double dDaR = (1.0 - dREtaStretch) * dDaZs;
+			double dDbR = (1.0 - dREtaStretch) * dDbZs;
+			double dDxR = (m_grid.GetZtop() - dZs) * dDxREtaStretch;
 
 			// Calculate pointwise Jacobian
 			m_dataJacobianREdge[k][iA][iB] =
@@ -442,15 +460,9 @@ void GridPatchCSGLL::EvaluateGeometricTerms() {
 			}
 
 			// Orthonormalization coefficients
-			m_dataOrthonormREdge[k][iA][iB][0] =
-				- (1.0 - dREta) * dDaZs / (m_grid.GetZtop() - dZs);
-
-			m_dataOrthonormREdge[k][iA][iB][1] =
-				- (1.0 - dREta) * dDbZs / (m_grid.GetZtop() - dZs);
-
-			m_dataOrthonormREdge[k][iA][iB][2] =
-				1.0 / (m_grid.GetZtop() - dZs);
-
+			m_dataOrthonormREdge[k][iA][iB][0] = - dDaR / dDxR;
+			m_dataOrthonormREdge[k][iA][iB][1] = - dDbR / dDxR;
+			m_dataOrthonormREdge[k][iA][iB][2] = 1.0 / dDxR;
 		}
 	}
 	}
@@ -506,17 +518,31 @@ void GridPatchCSGLL::EvaluateTestCase(
 		for (int i = 0; i < m_box.GetATotalWidth(); i++) {
 		for (int j = 0; j < m_box.GetBTotalWidth(); j++) {
 
-			// Gal-Chen and Sommerville vertical coordinate
+			// Gal-Chen and Sommerville (1975) vertical coordinate
 			for (int k = 0; k < m_grid.GetRElements(); k++) {
+				double dREta = m_grid.GetREtaLevel(k);
+
+				double dREtaStretch;
+				double dDxREtaStretch;
+				m_grid.EvaluateVerticalStretchF(
+					dREta, dREtaStretch, dDxREtaStretch);
+
 				m_dataZLevels[k][i][j] =
 					m_dataTopography[i][j]
-						+ m_grid.GetREtaLevel(k)
+						+ dREtaStretch
 							* (m_grid.GetZtop() - m_dataTopography[i][j]);
 			}
 			for (int k = 0; k <= m_grid.GetRElements(); k++) {
+				double dREta = m_grid.GetREtaInterface(k);
+
+				double dREtaStretch;
+				double dDxREtaStretch;
+				m_grid.EvaluateVerticalStretchF(
+					dREta, dREtaStretch, dDxREtaStretch);
+
 				m_dataZInterfaces[k][i][j] =
 					m_dataTopography[i][j]
-						+ m_grid.GetREtaInterface(k)
+						+ dREtaStretch
 							* (m_grid.GetZtop() - m_dataTopography[i][j]);
 			}
 		}
@@ -1182,6 +1208,7 @@ void GridPatchCSGLL::InterpolateData(
 
 		double ** pData2D;
 
+		// State Data: Perform interpolation on all variables
 		if (eDataType == DataType_State) {
 			if (eDataLocation == DataLocation_Node) {
 				nComponents = m_datavecStateNode[0].GetComponents();
@@ -1190,19 +1217,24 @@ void GridPatchCSGLL::InterpolateData(
 				nRElements = m_grid.GetRElements() + 1;
 			}
 
+		// Tracer Data: Perform interpolation on all variables
 		} else if (eDataType == DataType_Tracers) {
 			nComponents = m_datavecTracers[0].GetComponents();
 
+		// Topography Data: Special handling due to 2D nature of data
 		} else if (eDataType == DataType_Topography) {
 			nComponents = 1;
 			pData2D = (double**)(m_dataTopography);
 
+		// Vorticity Data
 		} else if (eDataType == DataType_Vorticity) {
 			nComponents = 1;
 
+		// Divergence Data
 		} else if (eDataType == DataType_Divergence) {
 			nComponents = 1;
 
+		// Temperature Data
 		} else if (eDataType == DataType_Temperature) {
 			nComponents = 1;
 
@@ -1214,6 +1246,7 @@ void GridPatchCSGLL::InterpolateData(
 
 			int nRElements = m_grid.GetRElements();
 
+			// Get a pointer to the 3D data structure
 			const double *** pData;
 			if (eDataType == DataType_State) {
 				if (eDataLocation == DataLocation_Node) {

@@ -110,9 +110,10 @@ void GridGLL::Initialize() {
 	// Get quadrature points for Gauss-Lobatto quadrature (vertical)
 	GaussLobattoQuadrature::GetPoints(m_nVerticalOrder+1, 0.0, 1.0, dGL, dWL);
 
-	// Vertical grid spacing
+	// Vertical elemental grid spacing
 	double dElementDeltaXi =
-		  GetREtaInterface(m_nVerticalOrder) - GetREtaInterface(0);
+		static_cast<double>(m_nVerticalOrder)
+		/ static_cast<double>(GetRElements());
 
 	// Storage for variables on element interfaces (used for computing
 	// derivatives from nodes)

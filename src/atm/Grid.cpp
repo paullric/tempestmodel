@@ -18,6 +18,7 @@
 #include "Model.h"
 #include "TestCase.h"
 #include "ConsolidationStatus.h"
+#include "VerticalStretch.h"
 
 #include "Exception.h"
 
@@ -43,12 +44,15 @@ Grid::Grid(
 	m_nBBaseResolution(nBBaseResolution),
 	m_nRefinementRatio(nRefinementRatio),
 	m_dReferenceLength(1.0),
+	m_pVerticalStretchF(NULL),
 	m_nRElements(nRElements),
 	m_dZtop(1.0),
 	m_nDegreesOfFreedomPerColumn(0),
 	m_fHasReferenceState(false),
 	m_fHasRayleighFriction(false)
 {
+	// Assign a default vertical stretching function
+	m_pVerticalStretchF = new VerticalStretchUniform;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -68,19 +72,52 @@ Grid::Grid(
 	m_nBBaseResolution(nBBaseResolution),
 	m_nRefinementRatio(nRefinementRatio),
 	m_dReferenceLength(1.0),
+	m_pVerticalStretchF(NULL),
 	m_nRElements(nRElements),
 	m_dZtop(1.0),
 	m_nDegreesOfFreedomPerColumn(0),
 	m_fHasReferenceState(false)
 {
+	// Assign a default vertical stretching function
+	m_pVerticalStretchF = new VerticalStretchUniform;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 
 Grid::~Grid() {
+	if (m_pVerticalStretchF != NULL) {
+		delete m_pVerticalStretchF;
+	}
+
 	for (int n = 0; n < m_vecGridPatches.size(); n++) {
 		delete m_vecGridPatches[n];
 	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void Grid::SetVerticalStretchFunction(
+	VerticalStretchFunction * pVerticalStretchF
+) {
+	if (m_pVerticalStretchF != NULL) {
+		delete m_pVerticalStretchF;
+	}
+
+	m_pVerticalStretchF = pVerticalStretchF;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void Grid::EvaluateVerticalStretchF(
+	double dREta,
+	double & dREtaStretch,
+	double & dDxREtaStretch
+) {
+	if (m_pVerticalStretchF == NULL) {
+		_EXCEPTIONT("No VerticalStretchFunction defined in Grid");
+	}
+
+	(*m_pVerticalStretchF)(dREta, dREtaStretch, dDxREtaStretch);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
