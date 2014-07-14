@@ -180,15 +180,16 @@ try {
 	varLev->set_cur((long)0);
 	varLev->get(&(dLev[0]), nLev);
 
-	AnnounceEndBlock("Done");
-
 	// Load topography
-	NcVar *varZs = ncdf_in.get_var("Zs");
+	Announce("Topography");
+	NcVar * varZs = ncdf_in.get_var("Zs");
 
 	DataMatrix<double> dZs;
 	dZs.Initialize(nLat, nLon);
 	varZs->set_cur((long)0, (long)0);
 	varZs->get(&(dZs[0][0]), nLat, nLon);
+
+	AnnounceEndBlock("Done");
 
 	// Open output file
 	AnnounceStartBlock("Constructing output file");
