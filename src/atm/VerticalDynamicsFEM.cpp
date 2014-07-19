@@ -1709,14 +1709,7 @@ void VerticalDynamicsFEM::BuildF(
 
 	// Number of radial elements
 	const int nRElements = pGrid->GetRElements();
-/*
-	// Grid spacing
-	double dElementDeltaXi =
-		  pGrid->GetREtaInterface(m_nVerticalOrder)
-		- pGrid->GetREtaInterface(0);
 
-	double dDeltaXi = dElementDeltaXi / static_cast<double>(m_nVerticalOrder);
-*/
 	// Zero F
 	memset(dF, 0, m_nColumnStateSize * sizeof(double));
 
@@ -2045,14 +2038,7 @@ void VerticalDynamicsFEM::BuildJacobianF(
 
 	// Number of radial elements
 	const int nRElements = pGrid->GetRElements();
-/*
-	// Grid spacing
-	double dElementDeltaXi =
-		  pGrid->GetREtaInterface(m_nVerticalOrder)
-		- pGrid->GetREtaInterface(0);
 
-	double dDeltaXi = dElementDeltaXi / static_cast<double>(m_nVerticalOrder);
-*/
 	// Zero DG
 	memset(dDG, 0,
 		m_nColumnStateSize * m_nColumnStateSize * sizeof(double));
