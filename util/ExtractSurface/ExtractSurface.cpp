@@ -425,7 +425,7 @@ try {
 
 	// Output time array
 	Announce("Time");
-	NcDim * dimOutTime = ncdf_out.add_dim("time", nTime);
+	NcDim * dimOutTime = ncdf_out.add_dim("time");
 	NcVar * varOutTime = ncdf_out.add_var("time", ncDouble, dimOutTime);
 	varOutTime->set_cur((long)0);
 	varOutTime->put(&(dTime[0]), nTime);
