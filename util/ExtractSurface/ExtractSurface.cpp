@@ -25,6 +25,94 @@
 
 #include "mpi.h"
 
+////////////////////////////////////////////////////////////////////////////////
+
+void CopyNcFileAttributes(
+	NcFile * fileIn,
+	NcFile * fileOut
+) {
+	for (int a = 0; a < fileIn->num_atts(); a++) {
+		NcAtt * att = fileIn->get_att(a);
+		long num_vals = att->num_vals();
+
+		NcValues * pValues = att->values();
+
+		if (att->type() == ncByte) {
+			fileOut->add_att(att->name(), num_vals,
+				(const ncbyte*)(pValues->base()));
+
+		} else if (att->type() == ncChar) {
+			fileOut->add_att(att->name(), num_vals,
+				(const char*)(pValues->base()));
+
+		} else if (att->type() == ncShort) {
+			fileOut->add_att(att->name(), num_vals,
+				(const short*)(pValues->base()));
+
+		} else if (att->type() == ncInt) {
+			fileOut->add_att(att->name(), num_vals,
+				(const int*)(pValues->base()));
+
+		} else if (att->type() == ncFloat) {
+			fileOut->add_att(att->name(), num_vals,
+				(const float*)(pValues->base()));
+
+		} else if (att->type() == ncDouble) {
+			fileOut->add_att(att->name(), num_vals,
+				(const double*)(pValues->base()));
+
+		} else {
+			_EXCEPTIONT("Invalid attribute type");
+		}
+
+		delete pValues;
+	}
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+void CopyNcVarAttributes(
+	NcVar * varIn,
+	NcVar * varOut
+) {
+	for (int a = 0; a < varIn->num_atts(); a++) {
+		NcAtt * att = varIn->get_att(a);
+		long num_vals = att->num_vals();
+
+		NcValues * pValues = att->values();
+
+		if (att->type() == ncByte) {
+			varOut->add_att(att->name(), num_vals,
+				(const ncbyte*)(pValues->base()));
+
+		} else if (att->type() == ncChar) {
+			varOut->add_att(att->name(), num_vals,
+				(const char*)(pValues->base()));
+
+		} else if (att->type() == ncShort) {
+			varOut->add_att(att->name(), num_vals,
+				(const short*)(pValues->base()));
+
+		} else if (att->type() == ncInt) {
+			varOut->add_att(att->name(), num_vals,
+				(const int*)(pValues->base()));
+
+		} else if (att->type() == ncFloat) {
+			varOut->add_att(att->name(), num_vals,
+				(const float*)(pValues->base()));
+
+		} else if (att->type() == ncDouble) {
+			varOut->add_att(att->name(), num_vals,
+				(const double*)(pValues->base()));
+
+		} else {
+			_EXCEPTIONT("Invalid attribute type");
+		}
+
+		delete pValues;
+	}
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 
 void ParsePressureLevels(
@@ -333,12 +421,16 @@ try {
 			strOutputFile.c_str());
 	}
 
+	CopyNcFileAttributes(&ncdf_in, &ncdf_out);
+
 	// Output time array
 	Announce("Time");
 	NcDim * dimOutTime = ncdf_out.add_dim("time", nTime);
 	NcVar * varOutTime = ncdf_out.add_var("time", ncDouble, dimOutTime);
 	varOutTime->set_cur((long)0);
 	varOutTime->put(&(dTime[0]), nTime);
+
+	CopyNcVarAttributes(varTime, varOutTime);
 
 	// Output pressure array
 	Announce("Pressure");
@@ -354,11 +446,15 @@ try {
 	varOutLat->set_cur((long)0);
 	varOutLat->put(&(dLat[0]), nLat);
 
+	CopyNcVarAttributes(varLat, varOutLat);
+
 	Announce("Longitude");
 	NcDim * dimOutLon = ncdf_out.add_dim("lon", nLon);
 	NcVar * varOutLon = ncdf_out.add_var("lon", ncDouble, dimOutLon);
 	varOutLon->set_cur((long)0);
 	varOutLon->put(&(dLon[0]), nLon);
+
+	CopyNcVarAttributes(varLon, varOutLon);
 
 	// Done
 	AnnounceEndBlock("Done");
@@ -419,6 +515,9 @@ try {
 			ncdf_out.add_var(
 				vecVariableStrings[v].c_str(), ncDouble,
 					dimOutTime, dimOutP, dimOutLat, dimOutLon));
+
+		// Copy attributes
+		CopyNcVarAttributes(vecNcVar[v], vecOutNcVar[v]);
 	}
 
 	// Loop over all times
