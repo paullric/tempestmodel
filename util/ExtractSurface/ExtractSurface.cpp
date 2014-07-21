@@ -306,12 +306,16 @@ try {
 	// Extract variables at the surface
 	bool fExtractSurface;
 
+	// Extract total energy
+	bool fExtractTotalEnergy;
+
 	// Parse the command line
 	BeginCommandLine()
 		CommandLineString(strInputFile, "in", "");
 		CommandLineString(strOutputFile, "out", "");
 		CommandLineString(strVariables, "var", "");
 		CommandLineBool(fGeopotentialHeight, "output_z");
+		CommandLineBool(fExtractTotalEnergy, "output_energy");
 		CommandLineString(strPressureLevels, "p", "0.0");
 		CommandLineBool(fExtractSurface, "surf");
 
@@ -473,6 +477,10 @@ try {
 
 	// Physical constants
 	Announce("Initializing thermodynamic variables");
+
+	NcAtt * attEarthRadius = ncdf_in.get_att("earth_radius");
+	double dEarthRadius = attEarthRadius->as_double(0);
+
 	NcAtt * attRd = ncdf_in.get_att("Rd");
 	double dRd = attRd->as_double(0);
 
@@ -518,6 +526,12 @@ try {
 
 		// Copy attributes
 		CopyNcVarAttributes(vecNcVar[v], vecOutNcVar[v]);
+	}
+
+	// Add energy variable
+	NcVar * varEnergy;
+	if (fExtractTotalEnergy) {
+		varEnergy = ncdf_out.add_var("TE", ncDouble, dimOutTime);
 	}
 
 	// Loop over all times
@@ -637,6 +651,67 @@ try {
 			}
 		}
 
+		// Extract total energy
+		if (fExtractTotalEnergy) {
+			Announce("Total Energy");
+
+			// Zonal velocity
+			DataMatrix3D<double> dataU;
+			dataU.Initialize(nLev, nLat, nLon);
+
+			NcVar * varU = ncdf_in.get_var("U");
+			varU->set_cur(t, 0, 0, 0);
+			varU->get(&(dataU[0][0][0]), 1, nLev, nLat, nLon);
+
+			// Meridional velocity
+			DataMatrix3D<double> dataV;
+			dataV.Initialize(nLev, nLat, nLon);
+
+			NcVar * varV = ncdf_in.get_var("V");
+			varV->set_cur(t, 0, 0, 0);
+			varV->get(&(dataV[0][0][0]), 1, nLev, nLat, nLon);
+
+			// Vertical velocity
+			DataMatrix3D<double> dataW;
+			dataW.Initialize(nLev, nLat, nLon);
+
+			NcVar * varW = ncdf_in.get_var("W");
+			varW->set_cur(t, 0, 0, 0);
+			varW->get(&(dataW[0][0][0]), 1, nLev, nLat, nLon);
+
+			// Calculate total energy
+			double dTotalEnergy = 0.0;
+
+			double dElementRefArea =
+				dEarthRadius * dEarthRadius
+				* M_PI / static_cast<double>(nLat)
+				* 2.0 * M_PI / static_cast<double>(nLon);
+
+			for (int k = 0; k < nLev; k++) {
+			for (int i = 0; i < nLat; i++) {
+			for (int j = 0; j < nLon; j++) {
+				double dKineticEnergy =
+					0.5 * dataRho[k][i][j] *
+						( dataU[k][i][j] * dataU[k][i][j]
+						+ dataV[k][i][j] * dataV[k][i][j]
+						+ dataW[k][i][j] * dataW[k][i][j]);
+
+				double dInternalEnergy =
+					dataP[k][i][j] / (dGamma - 1.0);
+
+				dTotalEnergy +=
+					(dKineticEnergy + dInternalEnergy)
+						* cos(M_PI * dLat[i] / 180.0) * dElementRefArea
+						* (dZtop - dZs[i][j]) / static_cast<double>(nLev);
+			}
+			}
+			}
+
+			// Put total energy into file
+			varEnergy->set_cur(t);
+			varEnergy->put(&dTotalEnergy, 1);
+		}
+
 		AnnounceEndBlock("Done");
 	}
 /*
@@ -692,6 +767,7 @@ try {
 		varOut->put(&(dataOut[0][0]), nLat, nLon);
 	}
 */
+
 	AnnounceEndBlock("Done");
 
 } catch(Exception & e) {
