@@ -275,6 +275,11 @@ void GridGLL::PostProcessSubstage(
 	int iDataUpdate,
 	DataType eDataType
 ) {
+	// Block parallel exchanges
+	if (m_fBlockParallelExchange) {
+		return;
+	}
+
 	// Get the pointer to the HorizontalDynamics object
 	const HorizontalDynamicsDG * pHorizontalDynamics =
 		dynamic_cast<const HorizontalDynamicsDG *>(
@@ -291,6 +296,11 @@ void GridGLL::PostProcessSubstage(
 void GridGLL::ComputeVorticityDivergence(
 	int iDataIndex
 ) {
+	// Block parallel exchanges
+	if (m_fBlockParallelExchange) {
+		return;
+	}
+
 	// Compute vorticity on all grid patches
 	Grid::ComputeVorticityDivergence(iDataIndex);
 

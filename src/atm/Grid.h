@@ -98,6 +98,14 @@ public:
 
 public:
 	///	<summary>
+	///		Set the flag indicating blocking of parallel exchanges.
+	///	</summary>
+	void SetBlockParallelExchange(bool fBlockParallelExchange) {
+		m_fBlockParallelExchange = fBlockParallelExchange;
+	}
+
+public:
+	///	<summary>
 	///		Set the vertical stretching function.  Grid retains ownership
 	///		of the pointer after assignment.
 	///	</summary>
@@ -698,6 +706,11 @@ protected:
 	///		Reference to the model.
 	///	</summary>
 	Model & m_model;
+
+	///	<summary>
+	///		Block exchange operations between processors.
+	///	</summary>
+	bool m_fBlockParallelExchange;
 
 	///	<summary>
 	///		Grid stamp.  This value is incremented whenever the grid changes.

@@ -40,6 +40,7 @@ Grid::Grid(
 	m_fInitialized(false),
 	m_iGridStamp(0),
 	m_model(model),
+	m_fBlockParallelExchange(false),
 	m_nABaseResolution(nABaseResolution),
 	m_nBBaseResolution(nBBaseResolution),
 	m_nRefinementRatio(nRefinementRatio),
@@ -68,6 +69,7 @@ Grid::Grid(
 	m_fInitialized(false),
 	m_iGridStamp(0),
 	m_model(model),
+	m_fBlockParallelExchange(false),
 	m_nABaseResolution(nABaseResolution),
 	m_nBBaseResolution(nBBaseResolution),
 	m_nRefinementRatio(nRefinementRatio),
@@ -407,6 +409,11 @@ void Grid::Exchange(
 	DataType eDataType,
 	int iDataIndex
 ) {
+	// Block parallel exchanges
+	if (m_fBlockParallelExchange) {
+		return;
+	}
+
 	// Verify all processors are prepared to exchange
 	MPI_Barrier(MPI_COMM_WORLD);
 
@@ -435,6 +442,11 @@ void Grid::Exchange(
 ///////////////////////////////////////////////////////////////////////////////
 
 void Grid::ExchangeBuffers() {
+
+	// Block parallel exchanges
+	if (m_fBlockParallelExchange) {
+		return;
+	}
 
 	// Verify all processors are prepared to exchange
 	MPI_Barrier(MPI_COMM_WORLD);
@@ -466,6 +478,11 @@ void Grid::ExchangeBuffersAndUnpack(
 	DataType eDataType,
 	int iDataIndex
 ) {
+
+	// Block parallel exchanges
+	if (m_fBlockParallelExchange) {
+		return;
+	}
 
 	// Verify all processors are prepared to exchange
 	MPI_Barrier(MPI_COMM_WORLD);
