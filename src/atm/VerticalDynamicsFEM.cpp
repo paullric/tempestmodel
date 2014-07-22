@@ -30,6 +30,8 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 #define UPWIND_HORIZONTAL_VELOCITIES
+//#define UPWIND_RHO
+//#define UPWIND_THETA
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -285,6 +287,18 @@ void VerticalDynamicsFEM::Initialize() {
 				* dWL[s];
 		}
 		m_dDiffDiffREdgeToREdge[n][m] /= dWL[n];
+	}
+	}
+
+	// Vertical elemental grid spacing
+	double dElementDeltaXi =
+		static_cast<double>(m_nVerticalOrder)
+		/ static_cast<double>(nRElements);
+
+	// Scale by 1/dx
+	for (int n = 0; n <= m_nVerticalOrder; n++) {
+	for (int m = 0; m <= m_nVerticalOrder; m++) {
+		m_dDiffDiffREdgeToREdge[n][m] /= dElementDeltaXi;
 	}
 	}
 
@@ -1225,9 +1239,6 @@ void VerticalDynamicsFEM::StepImplicit(
 				dataDiffExnerREdge);
 
 #ifdef USE_JACOBIAN_DEBUG
-			//if (pGrid->GetRElements() != 40) {
-			//	_EXCEPTIONT("Exactly 40 vertical levels for JACOBIAN_DEBUG");
-			//}
 			BootstrapJacobian();
 #endif
 #ifdef USE_JFNK_PETSC
@@ -1662,6 +1673,14 @@ void VerticalDynamicsFEM::PrepareColumn(
 		}
 	}
 
+#ifdef UPWIND_THETA
+	// Compute second derivatives of theta
+	DiffDiffREdgeToREdge(
+		m_dStateREdge[TIx],
+		m_dDiffDiffTheta
+	);
+#endif
+
 	// Compute higher derivatives of theta used for hyperdiffusion
 	if ((pGrid->GetVarLocation(TIx) == DataLocation_REdge) &&
 		(m_nHyperdiffusionOrder > 0)
@@ -1880,25 +1899,38 @@ void VerticalDynamicsFEM::BuildF(
 		}
 	}
 
-	// Apply diffusion to theta
-	if ((pGrid->GetVarLocation(TIx) == DataLocation_REdge) &&
-		(m_nHyperdiffusionOrder > 0)
-	) {
-		_EXCEPTIONT("Under construction");
-/*
-		double dScaledNu =
-			m_dHyperdiffusionCoeff
-			* exp(static_cast<double>(m_nHyperdiffusionOrder - 1)
-				* log(dDeltaXi));
+#ifdef UPWIND_RHO
+	if (pGrid->GetVarLocation(RIx) == DataLocation_Node) {
+		pGrid->CalculateDiscontinuousPenalty(
+			m_dXiDotREdge,
+			m_dStateNode[RIx],
+			m_dStateAux);
+
+		for (int k = 0; k < nRElements; k++) {
+			dF[VecFIx(FRIx, k)] += m_dStateAux[k];
+		}
+
+	} else {
+		_EXCEPTIONT("Upwind Rho on interfaces: Unimplemented");
+	}
+#endif
+
+#ifdef UPWIND_THETA
+	if (pGrid->GetVarLocation(TIx) == DataLocation_Node) {
+		_EXCEPTIONT("Upwind Theta on levels: Unimplemented");
+
+	} else {
+		if (pGrid->GetVarLocation(WIx) == DataLocation_Node) {
+			_EXCEPTIONT("Upwind Theta with W on levels: Unimplemented");
+		}
 
 		for (int k = 0; k <= nRElements; k++) {
 			dF[VecFIx(FTIx, k)] -=
-				dScaledNu
-				* fabs(m_dStateREdge[WIx][k])
+				0.5 * fabs(m_dXiDotREdge[k])
 				* m_dDiffDiffTheta[k];
 		}
-*/
 	}
+#endif
 
 	// Construct the time-dependent component of the RHS
 	for (int i = 0; i < m_nColumnStateSize; i++) {
@@ -2028,6 +2060,10 @@ void VerticalDynamicsFEM::BuildJacobianF(
 		pGrid->GetDiffNodeToREdgeLeft();
 	const DataMatrix<double> & dDiffNodeToREdgeRight =
 		pGrid->GetDiffNodeToREdgeRight();
+	const DataVector<double> & dDiffReconsPolyREdge =
+		pGrid->GetDiffReconsPolyREdge();
+	const DataVector<double> & dDiffReconsPolyNode =
+		pGrid->GetDiffReconsPolyNode();
 
 	// Orthonormalization coefficients
 	const DataMatrix4D<double> & dOrthonomREdge =
@@ -2208,6 +2244,24 @@ void VerticalDynamicsFEM::BuildJacobianF(
 				* dOrthonomREdge[lBegin+m][m_iA][m_iB][2];
 		}
 
+#ifdef UPWIND_RHO
+/*
+		// Diffusion of Rho (dRho_k/dW)
+		if (pGrid->GetVarLocation(RIx) == DataLocation_Node) {
+			int lBeginNext = lBegin + m_nVerticalOrder;
+
+			double dSignWL = (m_dXiDotREdge[lBegin] > 0.0)?(1.0):(-1.0);
+			double dSignWR = (m_dXiDotREdge[lBeginNext] > 0.0)?(1.0):(-1.0);
+
+			dDG[MaxFIx(FWIx, lBegin, FRIx, k)] +=
+				dDiffReconsPolyNode[l]
+
+		} else {
+			_EXCEPTIONT("Upwind Rho on interfaces: Unimplemented");
+		}
+*/
+#endif
+
 		// dRho_k/dRho
 		if (a != 0) {
 			int lPrev = lBegin - m_nVerticalOrder;
@@ -2249,37 +2303,29 @@ void VerticalDynamicsFEM::BuildJacobianF(
 		}
 	}
 
-	// Add the diffusion operator to theta
-	if ((pGrid->GetVarLocation(TIx) == DataLocation_REdge) &&
-		(m_nHyperdiffusionOrder > 0)
-	) {
-		_EXCEPTIONT("Under construction");
-/*
+#ifdef UPWIND_THETA
+	if (pGrid->GetVarLocation(TIx) == DataLocation_REdge) {
 		for (int k = 0; k <= nRElements; k++) {
-
-			double dScaledNu =
-				m_dHyperdiffusionCoeff
-				* exp(static_cast<double>(m_nHyperdiffusionOrder - 1)
-					* log(dDeltaXi));
 
 			// dT_k/dW_k
 			double dSignW = -1.0;
-			if (m_dStateREdge[WIx][k] >= 0.0) {
+			if (m_dXiDotREdge[k] >= 0.0) {
 				dSignW = 1.0;
 			}
 
 			dDG[MatFIx(FWIx, k, FTIx, k)] -=
-				dScaledNu * dSignW * m_dDiffDiffTheta[k];
+				0.5 * dOrthonomREdge[k][m_iA][m_iB][2] * dSignW
+					* m_dDiffDiffTheta[k];
 
 			// dT_k/dT_m
 			for (int m = 0; m <= nRElements; m++) {
 				dDG[MatFIx(FTIx, m, FTIx, k)] -=
-					dScaledNu * m_dStateREdge[WIx][k]
+					0.5 * fabs(m_dXiDotREdge[k])
 						* m_dHypervisREdgeToREdge[m][k];
 			}
 		}
-*/
 	}
+#endif
 
 	// Add the identity components
 	for (int k = 0; k <= nRElements; k++) {
