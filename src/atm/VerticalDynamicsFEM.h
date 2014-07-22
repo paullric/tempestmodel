@@ -31,6 +31,10 @@
 #include <petscsnes.h>
 #endif
 
+#ifdef USE_JACOBIAN_DEBUG
+#include "Model.h"
+#endif
+
 class GridPatch;
 class Time;
 
@@ -84,7 +88,8 @@ protected:
 	///	</summary>
 	inline int VecFIx(FComp c, int k) {
 #if defined(USE_JACOBIAN_DEBUG)
-		return (41*c+k);
+		int nREdges = m_model.GetGrid()->GetRElements() + 1;
+		return (nREdges * c + k);
 #else
 		return (3*k + c);
 #endif
@@ -96,7 +101,8 @@ protected:
 	///	</summary>
 	inline int MatFIx(FComp c0, int k0, FComp c1, int k1) {
 #if defined(USE_JACOBIAN_DEBUG)
-		return (m_nColumnStateSize * (41*c0 + k0) + (41*c1 + k1));
+		int nREdges = m_model.GetGrid()->GetRElements() + 1;
+		return (m_nColumnStateSize * (nREdges * c0 + k0) + (nREdges * c1 + k1));
 #elif defined(USE_JACOBIAN_GENERAL)
 		return (m_nColumnStateSize * (3*k0 + c0) + (3*k1 + c1));
 #elif defined(USE_JACOBIAN_DIAGONAL)
