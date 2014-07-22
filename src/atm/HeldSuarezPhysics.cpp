@@ -179,13 +179,20 @@ void HeldSuarezPhysics::Perform(
 			if (dTeq < ParamMinimumT) {
 				dTeq = ParamMinimumT;
 			}
-
+/*
 			// Apply temperature diffusion via backward Euler
 			double dTnew = (dT + dDeltaT * dKT * dTeq) / (1.0 + dDeltaT * dKT);
 
 			dataREdge[TIx][k][i][j] =
 				dTnew * pow(phys.GetP0() / dPressure, phys.GetKappa());
+*/
+			double dDH = - dKT / phys.GetGamma()
+				* (1.0 + (phys.GetGamma() - 1.0) * dTeq / dT);
 
+			double dH = - dKT / phys.GetGamma() * (1.0 - dTeq / dT);
+
+			dataREdge[TIx][k][i][j] *=
+				1.0 + dDeltaT / (1.0 - dDeltaT * dDH) * dH;
 		}
 		}
 		}
