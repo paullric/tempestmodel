@@ -295,10 +295,10 @@ void VerticalDynamicsFEM::Initialize() {
 		static_cast<double>(m_nVerticalOrder)
 		/ static_cast<double>(nRElements);
 
-	// Scale by 1/dx
+	// Scale by 1/dxi
 	for (int n = 0; n <= m_nVerticalOrder; n++) {
 	for (int m = 0; m <= m_nVerticalOrder; m++) {
-		m_dDiffDiffREdgeToREdge[n][m] /= dElementDeltaXi;
+		m_dDiffDiffREdgeToREdge[n][m] *= dElementDeltaXi;
 	}
 	}
 
