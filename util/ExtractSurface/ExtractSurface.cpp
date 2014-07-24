@@ -251,8 +251,12 @@ void InterpolationWeightsLinear(
 
 	if (dP > dataP[0]) {
 		kBegin = 0;
-		kEnd = 1;
-		dW[0] = 1.0;
+		kEnd = 2;
+
+		dW[0] = (dataP[1] - dP)
+		      / (dataP[1] - dataP[0]);
+
+		dW[1] = 1.0 - dW[k];
 
 	} else if (dP < dataP[nLev-1]) {
 		kBegin = nLev-1;
