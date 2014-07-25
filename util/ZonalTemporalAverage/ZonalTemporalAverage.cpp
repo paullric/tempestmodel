@@ -395,8 +395,6 @@ void EddyStatistics(
 	const std::vector< DataMatrix<double> > & dataDifference,
 	std::vector< DataMatrix3D<double> > & vecDataAverage
 ) {
-	AnnounceStartBlock("Eddy Statistics");
-
 	// Find eddy variables
 	int ixVarU = (-1);
 	int ixVarV = (-1);
@@ -550,8 +548,6 @@ void EddyStatistics(
 		}
 		}
 	}
-
-	AnnounceEndBlock("Done");
 }
 
 ///////////////////////////////////////////////////////////////////////////////
