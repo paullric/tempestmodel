@@ -147,6 +147,10 @@ public:
 
 		double dBellTerm = 0.5 * (1.0 + cos(M_PI * dR / m_dRM));
 
+		if (dR >= m_dRM) {
+			dBellTerm = 0.0;
+		}
+
 		return (m_dH0 * dBellTerm * dCosTerm * dCosTerm);
 	}
 
