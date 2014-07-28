@@ -73,3 +73,9 @@ test/nonhydro_sphere/StationaryMountainFlowTest
 util/ExtractSurface/ExtractSurface
 
 util/ZonalTemporalAverage/ZonalTemporalAverage
+
+test/nonhydro_sphere/DG.txt
+
+test/nonhydro_sphere/DGRef.txt
+
+test/nonhydro_sphere/G.txt
