@@ -71,3 +71,5 @@ test/nonhydro_sphere/HeldSuarezTest
 test/nonhydro_sphere/StationaryMountainFlowTest
 
 util/ExtractSurface/ExtractSurface
+
+util/ZonalTemporalAverage/ZonalTemporalAverage
