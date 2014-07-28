@@ -1,6 +1,9 @@
 # TempestBase directory
 TEMPESTBASEDIR= ../..
 
+# Use BLAS
+USEBLAS=True
+
 # Load system-specific defaults
 include $(TEMPESTBASEDIR)/mk/Make.defs
 

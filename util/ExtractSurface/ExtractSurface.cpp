@@ -23,6 +23,8 @@
 #include <cstdlib>
 #include <netcdfcpp.h>
 
+#include "PolynomialInterp.h"
+
 #include "mpi.h"
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -718,10 +720,13 @@ try {
 			if (fExtractSurface) {
 
 				int kBegin = 0;
-				int kEnd = 2;
+				int kEnd = 3;
 
-				dW[0] =   dLev[1] / (dLev[1] - dLev[0]);
-				dW[1] = - dLev[0] / (dLev[1] - dLev[0]);
+				PolynomialInterp::LagrangianPolynomialCoeffs(
+					3, dLev, dW, 0.0);
+
+				//dW[0] =   dLev[1] / (dLev[1] - dLev[0]);
+				//dW[1] = - dLev[0] / (dLev[1] - dLev[0]);
 
 				// Loop thorugh all latlon indices
 				for (int i = 0; i < nLat; i++) {
