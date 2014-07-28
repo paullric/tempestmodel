@@ -212,6 +212,32 @@ void Grid::InitializeVerticalCoordinate(
 		_EXCEPTIONT("Invalid dimensionality");
 	}
 
+	// Calculate stretched values of REta
+	if (m_pVerticalStretchF == NULL) {
+		m_dREtaStretchLevels = m_dREtaLevels;
+		m_dREtaStretchInterfaces = m_dREtaInterfaces;
+
+	} else {
+		double dDxREtaStretch;
+
+		m_dREtaStretchLevels.Initialize(m_dREtaLevels.GetRows());
+		m_dREtaStretchInterfaces.Initialize(m_dREtaInterfaces.GetRows());
+
+		for (int k = 0; k < m_dREtaLevels.GetRows(); k++) {
+			(*m_pVerticalStretchF)(
+				m_dREtaLevels[k],
+				m_dREtaStretchLevels[k],
+				dDxREtaStretch);
+		}
+
+		for (int k = 0; k < m_dREtaInterfaces.GetRows(); k++) {
+			(*m_pVerticalStretchF)(
+				m_dREtaInterfaces[k],
+				m_dREtaStretchInterfaces[k],
+				dDxREtaStretch);
+		}
+	}
+
 	// Convert node locations to indices in local arrays
 	m_vecVarsAtLocation.resize((int)DataLocation_Count);
 	for (int l = 0; l < (int)DataLocation_Count; l++) {
@@ -1219,7 +1245,7 @@ void Grid::ToFile(
 		ncfile.add_var("grid_info_float", ncDouble, dimGridInfoFloat);
 
 	varGridInfoFloat->put(dGridInfo, 2);
-/*
+
 	// Output REta coordinate of levels
 	NcDim * dimREtaLevels =
 		ncfile.add_dim("reta_levels", m_dREtaLevels.GetRows());
@@ -1228,7 +1254,7 @@ void Grid::ToFile(
 		ncfile.add_var("reta_levels", ncDouble, dimREtaLevels);
 
 	varREtaLevels->put(
-		&(m_dREtaLevels[0]), m_dREtaLevels.GetRows());
+		&(m_dREtaStretchLevels[0]), m_dREtaStretchLevels.GetRows());
 
 	// Output REta coordinate of interfaces
 	NcDim * dimREtaInterfaces =
@@ -1238,8 +1264,8 @@ void Grid::ToFile(
 		ncfile.add_var("reta_interfaces", ncDouble, dimREtaInterfaces);
 
 	varREtaInterfaces->put(
-		&(m_dREtaInterfaces[0]), m_dREtaInterfaces.GetRows());
-
+		&(m_dREtaStretchInterfaces[0]), m_dREtaStretchInterfaces.GetRows());
+/*
 	// Output location of each variable
 	NcDim * dimVarLocation =
 		ncfile.add_dim("component", m_vecVarLocation.size());
@@ -1371,15 +1397,14 @@ void Grid::FromFile(
 	m_dReferenceLength = dGridInfo[0];
 	m_dZtop = dGridInfo[1];
 
-/*
 	// Load in location of REta levels
 	NcVar * varREtaLevels = ncfile.get_var("reta_levels");
 
 	NcDim * dimREtaLevels = varREtaLevels->get_dim(0);
 	int nREtaLevels = static_cast<int>(dimREtaLevels->size());
 
-	m_dREtaLevels.Initialize(nREtaLevels);
-	varREtaLevels->get(m_dREtaLevels, nREtaLevels);
+	m_dREtaStretchLevels.Initialize(nREtaLevels);
+	varREtaLevels->get(m_dREtaStretchLevels, nREtaLevels);
 
 	// Load in location of REta interfaces
 	NcVar * varREtaInterfaces = ncfile.get_var("reta_interfaces");
@@ -1387,9 +1412,9 @@ void Grid::FromFile(
 	NcDim * dimREtaInterfaces = varREtaInterfaces->get_dim(0);
 	int nREtaInterfaces = static_cast<int>(dimREtaInterfaces->size());
 
-	m_dREtaInterfaces.Initialize(nREtaInterfaces);
-	varREtaInterfaces->get(m_dREtaLevels, nREtaInterfaces);
-
+	m_dREtaStretchInterfaces.Initialize(nREtaInterfaces);
+	varREtaInterfaces->get(m_dREtaStretchInterfaces, nREtaInterfaces);
+/*
 	// Load in location of variables
 	NcVar * varVarLocation = ncfile.get_var("var_location");
 

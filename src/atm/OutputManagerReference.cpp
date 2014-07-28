@@ -379,8 +379,8 @@ bool OutputManagerReference::OpenFile(
 			m_pActiveNcOutput->add_var("lev", ncDouble, dimLev);
 
 		varLev->put(
-			m_grid.GetREtaLevels(),
-			m_grid.GetREtaLevels().GetRows());
+			m_grid.GetREtaStretchLevels(),
+			m_grid.GetREtaStretchLevels().GetRows());
 
 		varLev->add_att("long_name", "level");
 		varLev->add_att("units", "level");
@@ -390,8 +390,8 @@ bool OutputManagerReference::OpenFile(
 			m_pActiveNcOutput->add_var("ilev", ncDouble, dimILev);
 
 		varILev->put(
-			m_grid.GetREtaInterfaces(),
-			m_grid.GetREtaInterfaces().GetRows());
+			m_grid.GetREtaStretchInterfaces(),
+			m_grid.GetREtaStretchInterfaces().GetRows());
 
 		varILev->add_att("long_name", "interface level");
 		varILev->add_att("units", "level");

@@ -593,6 +593,34 @@ public:
 	}
 
 	///	<summary>
+	///		Get the radial coordinate at the given level.
+	///	</summary>
+	double GetREtaStretchLevel(int ix) const {
+		return m_dREtaStretchLevels[ix];
+	}
+
+	///	<summary>
+	///		Get the vector of radial element levels.
+	///	</summary>
+	const DataVector<double> & GetREtaStretchLevels() const {
+		return m_dREtaStretchLevels;
+	}
+
+	///	<summary>
+	///		Get the radial coordinate at the given interface.
+	///	</summary>
+	double GetREtaStretchInterface(int ix) const {
+		return m_dREtaStretchInterfaces[ix];
+	}
+
+	///	<summary>
+	///		Get the vector of radial element interfaces.
+	///	</summary>
+	const DataVector<double> & GetREtaStretchInterfaces() const {
+		return m_dREtaStretchInterfaces;
+	}
+
+	///	<summary>
 	///		Get the DataLocation of the specified equation set variable.
 	///	</summary>
 	DataLocation GetVarLocation(int ix) const {
@@ -762,6 +790,16 @@ protected:
 	///		REta coordinates of interfaces along radial axis.
 	///	</summary>
 	DataVector<double> m_dREtaInterfaces;
+
+	///	<summary>
+	///		Stretched REta coordinates of levels along radial axis.
+	///	</summary>
+	DataVector<double> m_dREtaStretchLevels;
+
+	///	<summary>
+	///		Stretched REta coordinates of interfaces along radial axis.
+	///	</summary>
+	DataVector<double> m_dREtaStretchInterfaces;
 
 	///	<summary>
 	///		Location of each equation set variable.

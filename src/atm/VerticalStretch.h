@@ -27,6 +27,13 @@ class VerticalStretchFunction {
 
 public:
 	///	<summary>
+	///		Virtual destructor.
+	///	</summary>
+	virtual ~VerticalStretchFunction()
+	{ }
+
+public:
+	///	<summary>
 	///		Stretching function, returns the new xi value after stretch and
 	///		the derivative of the stretching function at that point.
 	///	</summary>
