@@ -326,6 +326,10 @@ void _TempestSetupCubedSphereModel(
 	if (vars.strVerticalStretch == "cubic") {
 		pGrid->SetVerticalStretchFunction(
 			new VerticalStretchCubic);
+
+	} else if (vars.strVerticalStretch == "pwlinear") {
+		pGrid->SetVerticalStretchFunction(
+			new VerticalStretchPiecewiseLinear);
 	}
 
 	// Set the Model Grid

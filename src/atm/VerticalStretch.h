@@ -101,5 +101,33 @@ public:
 
 ///////////////////////////////////////////////////////////////////////////////
 
+///	<summary>
+///		Piecewise linear vertical stretching.
+///	</summary>
+class VerticalStretchPiecewiseLinear : public VerticalStretchFunction {
+
+public:
+	///	<summary>
+	///		Stretching function, returns the new xi value after stretch and
+	///		the derivative of the stretching function at that point.
+	///	</summary>
+	virtual void operator()(
+		double dREta,
+		double & dREtaStretch,
+		double & dDxREtaStretch
+	) {
+		if (dREta < 2.0/3.0) {
+			dREtaStretch = 0.5 * dREta;
+			dDxREtaStretch = 0.5;
+		} else {
+			dREtaStretch = 2.0 * (dREta - 2.0/3.0) + 1.0/3.0;
+			dDxREtaStretch = 2.0;
+		}
+	}
+
+};
+
+///////////////////////////////////////////////////////////////////////////////
+
 #endif
 
