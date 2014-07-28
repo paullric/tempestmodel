@@ -115,41 +115,47 @@ void CopyNcVarAttributes(
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void ParsePressureLevels(
-	const std::string & strPressureLevels,
-	std::vector<double> & vecPressureLevels
+void ParseLevelArray(
+	const std::string & strLevels,
+	std::vector<double> & vecLevels
 ) {
-	int iPressureBegin = 0;
-	int iPressureCurrent = 0;
+	int iLevelBegin = 0;
+	int iLevelCurrent = 0;
+
+	vecLevels.clear();
+
+	if (strLevels == "") {
+		return;
+	}
 
 	// Parse pressure levels
 	bool fRangeMode = false;
 	for (;;) {
-		if ((iPressureCurrent >= strPressureLevels.length()) ||
-			(strPressureLevels[iPressureCurrent] == ',') ||
-			(strPressureLevels[iPressureCurrent] == ' ') ||
-			(strPressureLevels[iPressureCurrent] == ':')
+		if ((iLevelCurrent >= strLevels.length()) ||
+			(strLevels[iLevelCurrent] == ',') ||
+			(strLevels[iLevelCurrent] == ' ') ||
+			(strLevels[iLevelCurrent] == ':')
 		) {
 			// Range mode
 			if ((!fRangeMode) &&
-				(strPressureLevels[iPressureCurrent] == ':')
+				(strLevels[iLevelCurrent] == ':')
 			) {
-				if (vecPressureLevels.size() != 0) {
+				if (vecLevels.size() != 0) {
 					_EXCEPTIONT("Invalid set of pressure levels");
 				}
 				fRangeMode = true;
 			}
 			if (fRangeMode) {
-				if ((strPressureLevels[iPressureCurrent] != ':') &&
-					(iPressureCurrent < strPressureLevels.length())
+				if ((strLevels[iLevelCurrent] != ':') &&
+					(iLevelCurrent < strLevels.length())
 				) {
 					_EXCEPTION1("Invalid character in pressure range (%c)",
-						strPressureLevels[iPressureCurrent]);
+						strLevels[iLevelCurrent]);
 				}
 			}
 
-			if (iPressureCurrent == iPressureBegin) {
-				if (iPressureCurrent >= strPressureLevels.length()) {
+			if (iLevelCurrent == iLevelBegin) {
+				if (iLevelCurrent >= strLevels.length()) {
 					break;
 				}
 
@@ -157,50 +163,49 @@ void ParsePressureLevels(
 			}
 
 			std::string strPressureLevelSubStr = 
-				strPressureLevels.substr(
-					iPressureBegin, iPressureCurrent - iPressureBegin);
+				strLevels.substr(
+					iLevelBegin, iLevelCurrent - iLevelBegin);
 
-			vecPressureLevels.push_back(atof(strPressureLevelSubStr.c_str()));
+			vecLevels.push_back(atof(strPressureLevelSubStr.c_str()));
 			
-			iPressureBegin = iPressureCurrent + 1;
+			iLevelBegin = iLevelCurrent + 1;
 		}
 
-		iPressureCurrent++;
+		iLevelCurrent++;
 	}
 
 	// Range mode -- repopulate array
 	if (fRangeMode) {
-		if (vecPressureLevels.size() != 3) {
+		if (vecLevels.size() != 3) {
 			_EXCEPTIONT("Exactly three pressure level entries required "
 				"for range mode");
 		}
-		double dPressureBegin = vecPressureLevels[0];
-		double dPressureStep = vecPressureLevels[1];
-		double dPressureEnd = vecPressureLevels[2];
+		double dLevelBegin = vecLevels[0];
+		double dLevelStep = vecLevels[1];
+		double dLevelEnd = vecLevels[2];
 
-		if (dPressureStep == 0.0) {
-			_EXCEPTIONT("Pressure step size cannot be zero");
+		if (dLevelStep == 0.0) {
+			_EXCEPTIONT("Level step size cannot be zero");
 		}
-		if ((dPressureEnd - dPressureBegin) / dPressureStep > 10000.0) {
-			_EXCEPTIONT("Too many pressure levels in range (limit 10000)");
+		if ((dLevelEnd - dLevelBegin) / dLevelStep > 10000.0) {
+			_EXCEPTIONT("Too many levels in range (limit 10000)");
 		}
-		if ((dPressureEnd - dPressureBegin) / dPressureStep < 0.0) {
-			_EXCEPTIONT("Sign mismatch in pressure step");
+		if ((dLevelEnd - dLevelBegin) / dLevelStep < 0.0) {
+			_EXCEPTIONT("Sign mismatch in level step");
 		}
 
-		vecPressureLevels.clear();
+		vecLevels.clear();
 		for (int i = 0 ;; i++) {
-			double dPressureLevel =
-				dPressureBegin + static_cast<double>(i) * dPressureStep;
+			double dLevel = dLevelBegin + static_cast<double>(i) * dLevelStep;
 
-			if ((dPressureStep > 0.0) && (dPressureLevel > dPressureEnd)) {
+			if ((dLevelStep > 0.0) && (dLevel > dLevelEnd)) {
 				break;
 			}
-			if ((dPressureStep < 0.0) && (dPressureLevel < dPressureEnd)) {
+			if ((dLevelStep < 0.0) && (dLevel < dLevelEnd)) {
 				break;
 			}
 
-			vecPressureLevels.push_back(dPressureLevel);
+			vecLevels.push_back(dLevel);
 		}
 	}
 }
@@ -249,35 +254,55 @@ void InterpolationWeightsLinear(
 ) {
 	const int nLev = dataP.GetRows();
 
-	if (dP > dataP[0]) {
-		kBegin = 0;
-		kEnd = 2;
+	// Monotone increasing coordinate
+	if (dataP[1] > dataP[0]) {
+		if (dP < dataP[0]) {
+			kBegin = 0;
+			kEnd = 2;
 
-		dW[0] = (dataP[1] - dP)
-		      / (dataP[1] - dataP[0]);
+		} else if (dP > dataP[nLev-1]) {
+			kBegin = nLev-2;
+			kEnd = nLev;
 
-		dW[1] = 1.0 - dW[0];
+		} else {
+			for (int k = 0; k < nLev-1; k++) {
+				if (dP <= dataP[k+1]) {
+					kBegin = k;
+					kEnd = k+2;
 
-	} else if (dP < dataP[nLev-1]) {
-		kBegin = nLev-1;
-		kEnd = nLev;
-		dW[nLev-1] = 1.0;
+					break;
+				}
+			}
+		}
 
+	// Monotone decreasing coordinate
 	} else {
-		for (int k = 0; k < nLev-1; k++) {
-			if (dP >= dataP[k+1]) {
-				kBegin = k;
-				kEnd = k+2;
+		if (dP > dataP[0]) {
+			kBegin = 0;
+			kEnd = 2;
 
-				dW[k] = (dataP[k+1] - dP)
-				      / (dataP[k+1] - dataP[k]);
+		} else if (dP < dataP[nLev-1]) {
+			kBegin = nLev-2;
+			kEnd = nLev;
 
-				dW[k+1] = 1.0 - dW[k];
+		} else {
+			for (int k = 0; k < nLev-1; k++) {
+				if (dP >= dataP[k+1]) {
+					kBegin = k;
+					kEnd = k+2;
 
-				break;
+					break;
+				}
 			}
 		}
 	}
+
+	// Weights
+	dW[kBegin] =
+		  (dataP[kBegin+1] - dP)
+	    / (dataP[kBegin+1] - dataP[kBegin]);
+
+	dW[kBegin+1] = 1.0 - dW[kBegin];
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -307,6 +332,9 @@ try {
 	// Pressure levels to extract
 	std::string strPressureLevels;
 
+	// Height levels to extract
+	std::string strHeightLevels;
+
 	// Extract variables at the surface
 	bool fExtractSurface;
 
@@ -318,9 +346,10 @@ try {
 		CommandLineString(strInputFile, "in", "");
 		CommandLineString(strOutputFile, "out", "");
 		CommandLineString(strVariables, "var", "");
-		CommandLineBool(fGeopotentialHeight, "output_z");
+		CommandLineBool(fGeopotentialHeight, "output_phiz");
 		CommandLineBool(fExtractTotalEnergy, "output_energy");
-		CommandLineString(strPressureLevels, "p", "0.0");
+		CommandLineString(strPressureLevels, "p", "");
+		CommandLineString(strHeightLevels, "z", "");
 		CommandLineBool(fExtractSurface, "surf");
 
 		ParseCommandLine(argc, argv);
@@ -352,13 +381,29 @@ try {
 	// Parse pressure level string
 	std::vector<double> vecPressureLevels;
 
-	ParsePressureLevels(strPressureLevels, vecPressureLevels);
+	ParseLevelArray(strPressureLevels, vecPressureLevels);
 
 	int nPressureLevels = (int)(vecPressureLevels.size());
 
+	for (int k = 0; k < nPressureLevels; k++) {
+		if (vecPressureLevels[k] <= 0.0) {
+			_EXCEPTIONT("Non-positive pressure values not allowed");
+		}
+	}
+
+	// Parse height level string
+	std::vector<double> vecHeightLevels;
+
+	ParseLevelArray(strHeightLevels, vecHeightLevels);
+
+	int nHeightLevels = (int)(vecHeightLevels.size());
+
 	// Check pressure levels
-	if (nPressureLevels == 0) {
-		_EXCEPTIONT("No pressure levels to process");
+	if ((nPressureLevels == 0) &&
+		(nHeightLevels == 0) &&
+		(!fExtractSurface)
+	) {
+		_EXCEPTIONT("No pressure / height levels to process");
 	}
 
 	// Open input file
@@ -441,11 +486,26 @@ try {
 	CopyNcVarAttributes(varTime, varOutTime);
 
 	// Output pressure array
-	Announce("Pressure");
-	NcDim * dimOutP = ncdf_out.add_dim("p", nPressureLevels);
-	NcVar * varOutP = ncdf_out.add_var("p", ncDouble, dimOutP);
-	varOutP->set_cur((long)0);
-	varOutP->put(&(vecPressureLevels[0]), nPressureLevels);
+	NcDim * dimOutP = NULL;
+	NcVar * varOutP = NULL;
+	if (nPressureLevels > 0) {
+		Announce("Pressure");
+		dimOutP = ncdf_out.add_dim("p", nPressureLevels);
+		varOutP = ncdf_out.add_var("p", ncDouble, dimOutP);
+		varOutP->set_cur((long)0);
+		varOutP->put(&(vecPressureLevels[0]), nPressureLevels);
+	}
+
+	// Output height array
+	NcDim * dimOutZ = NULL;
+	NcVar * varOutZ = NULL;
+	if (nHeightLevels > 0) {
+		Announce("Height");
+		dimOutZ = ncdf_out.add_dim("z", nHeightLevels);
+		varOutZ = ncdf_out.add_var("z", ncDouble, dimOutZ);
+		varOutZ->set_cur((long)0);
+		varOutZ->put(&(vecHeightLevels[0]), nHeightLevels);
+	}
 
 	// Output latitude and longitude array
 	Announce("Latitude");
@@ -463,6 +523,16 @@ try {
 	varOutLon->put(&(dLon[0]), nLon);
 
 	CopyNcVarAttributes(varLon, varOutLon);
+
+	// Output topography
+	Announce("Topography");
+	NcVar * varOutZs = ncdf_out.add_var(
+		"Zs", ncDouble, dimOutLat, dimOutLon);
+
+	varOutZs->set_cur((long)0, (long)0);
+	varOutZs->put(&(dZs[0][0]), nLat, nLon);
+
+	AnnounceEndBlock("Done");
 
 	// Done
 	AnnounceEndBlock("Done");
@@ -513,6 +583,10 @@ try {
 	DataVector<double> dataColumnP;
 	dataColumnP.Initialize(nLev);
 
+	// Height in column
+	DataVector<double> dataColumnZ;
+	dataColumnZ.Initialize(nLev);
+
 	// Column weights
 	DataVector<double> dW;
 	dW.Initialize(nLev);
@@ -520,22 +594,59 @@ try {
 	// Loop through all times, pressure levels and variables
 	AnnounceStartBlock("Interpolating");
 
-	// Create new variables
-	std::vector<NcVar *> vecOutNcVar;
-	for (int v = 0; v < vecNcVar.size(); v++) {
-		vecOutNcVar.push_back(
-			ncdf_out.add_var(
-				vecVariableStrings[v].c_str(), ncDouble,
-					dimOutTime, dimOutP, dimOutLat, dimOutLon));
-
-		// Copy attributes
-		CopyNcVarAttributes(vecNcVar[v], vecOutNcVar[v]);
-	}
-
 	// Add energy variable
 	NcVar * varEnergy;
 	if (fExtractTotalEnergy) {
 		varEnergy = ncdf_out.add_var("TE", ncDouble, dimOutTime);
+	}
+
+	// Create output pressure variables
+	std::vector<NcVar *> vecOutNcVarP;
+	if (nPressureLevels > 0) {
+		for (int v = 0; v < vecVariableStrings.size(); v++) {
+			vecOutNcVarP.push_back(
+				ncdf_out.add_var(
+					vecVariableStrings[v].c_str(), ncDouble,
+						dimOutTime, dimOutP, dimOutLat, dimOutLon));
+
+			// Copy attributes
+			CopyNcVarAttributes(vecNcVar[v], vecOutNcVarP[v]);
+		}
+	}
+
+	// Create output height variables
+	std::vector<NcVar *> vecOutNcVarZ;
+	if (nHeightLevels > 0) {
+		for (int v = 0; v < vecVariableStrings.size(); v++) {
+			std::string strVarName = vecVariableStrings[v];
+			if (nPressureLevels > 0) {
+				strVarName += "z";
+			}
+			vecOutNcVarZ.push_back(
+				ncdf_out.add_var(
+					strVarName.c_str(), ncDouble,
+						dimOutTime, dimOutZ, dimOutLat, dimOutLon));
+
+			// Copy attributes
+			CopyNcVarAttributes(vecNcVar[v], vecOutNcVarZ[v]);
+		}
+	}
+
+	// Create output surface variable
+	std::vector<NcVar *> vecOutNcVarS;
+	if (fExtractSurface) {
+		for (int v = 0; v < vecVariableStrings.size(); v++) {
+			std::string strVarName = vecVariableStrings[v];
+			strVarName += "s";
+
+			vecOutNcVarS.push_back(
+				ncdf_out.add_var(
+					strVarName.c_str(), ncDouble,
+						dimOutTime, dimOutLat, dimOutLon));
+
+			// Copy attributes
+			CopyNcVarAttributes(vecNcVar[v], vecOutNcVarS[v]);
+		}
 	}
 
 	// Loop over all times
@@ -544,6 +655,10 @@ try {
 		char szAnnounce[256];
 		sprintf(szAnnounce, "Time %i", t); 
 		AnnounceStartBlock(szAnnounce);
+
+		// Pressure everywhere
+		DataMatrix3D<double> dataP;
+		dataP.Initialize(nLev, nLat, nLon);
 
 		// Rho
 		DataMatrix3D<double> dataRho;
@@ -561,85 +676,57 @@ try {
 		varTheta->set_cur(t, 0, 0, 0);
 		varTheta->get(&(dataTheta[0][0][0]), 1, nLev, nLat, nLon);
 
-		// Pressure everywhere
-		DataMatrix3D<double> dataP;
-		dataP.Initialize(nLev, nLat, nLon);
+		// Populate pressure array
+		if (nPressureLevels > 0) {
 
-		for (int k = 0; k < nLev; k++) {
-		for (int i = 0; i < nLat; i++) {
-		for (int j = 0; j < nLon; j++) {
-			dataP[k][i][j] = dPressureScaling
-				* exp(log(dataRho[k][i][j] * dataTheta[k][i][j]) * dGamma);
+			// Calculate pointwise pressure
+			for (int k = 0; k < nLev; k++) {
+			for (int i = 0; i < nLat; i++) {
+			for (int j = 0; j < nLon; j++) {
+				dataP[k][i][j] = dPressureScaling
+					* exp(log(dataRho[k][i][j] * dataTheta[k][i][j]) * dGamma);
+			}
+			}
+			}
 		}
-		}
+
+		// Height everywhere
+		DataMatrix3D<double> dataZ;
+		dataZ.Initialize(nLev, nLat, nLon);
+
+		// Populate height array
+		if (nHeightLevels > 0) {
+			for (int k = 0; k < nLev; k++) {
+			for (int i = 0; i < nLat; i++) {
+			for (int j = 0; j < nLon; j++) {
+				dataZ[k][i][j] = dZs[i][j] + dLev[k] * (dZtop - dZs[i][j]);
+			}
+			}
+			}
 		}
 
 		// Loop through all pressure levels and variables
-		for (int v = 0; v < vecOutNcVar.size(); v++) {
+		for (int v = 0; v < vecNcVar.size(); v++) {
 
 			Announce(vecVariableStrings[v].c_str());
 
-			for (int p = 0; p < nPressureLevels; p++) {
+			// Load in the data array
+			vecNcVar[v]->set_cur(t, 0, 0, 0);
+			vecNcVar[v]->get(&(dataIn[0][0][0]), 1, nLev, nLat, nLon);
 
-				// Load in the data array
-				vecNcVar[v]->set_cur(t, 0, 0, 0);
-				vecNcVar[v]->get(&(dataIn[0][0][0]), 1, nLev, nLat, nLon);
+			// At the physical surface
+			if (fExtractSurface) {
+
+				int kBegin = 0;
+				int kEnd = 2;
+
+				dW[0] =   dLev[1] / (dLev[1] - dLev[0]);
+				dW[1] = - dLev[0] / (dLev[1] - dLev[0]);
 
 				// Loop thorugh all latlon indices
 				for (int i = 0; i < nLat; i++) {
 				for (int j = 0; j < nLon; j++) {
 
-					// Find weights
-					int kBegin = 0;
-					int kEnd = 0;
-
-					// On a pressure surface
-					if (vecPressureLevels[p] != 0.0) {
-						for (int k = 0; k < nLev; k++) {
-							dataColumnP[k] = dataP[k][i][j];
-						}
-
-						InterpolationWeightsLinear(
-							vecPressureLevels[p],
-							dataColumnP,
-							kBegin,
-							kEnd,
-							dW);
-					}
-
-					// At the physical surface
-					if (fExtractSurface) {
-						kBegin = 0;
-						kEnd = 2;
-
-						dW[0] =   dLev[1] / (dLev[1] - dLev[0]);
-						dW[1] = - dLev[0] / (dLev[1] - dLev[0]);
-/*
-						kBegin = 0;
-						kEnd = 4;
-
-						dW[0] =  1.726913829;
-						dW[1] = -1.072997307;
-						dW[2] =  0.4105364237;
-						dW[3] = -0.06445294633;
-*/
-					}
-
-/*
-					// DEBUG
-					double dTestRho = 0.0;
-					double dTestTheta = 0.0;
-					double dP;
-					for (int k = kBegin; k < kEnd; k++) {
-						dTestRho += dW[k] * dataRho[k][i][j];
-						dTestTheta += dW[k] * dataTheta[k][i][j];
-					}
-
-					dP = dPressureScaling
-						* exp(log(dTestRho * dTestTheta) * dGamma);
-
-					printf("%1.5e %1.5e %1.5e\n", dataP[kBegin], dP, dataP[kEnd-1]);
-*/
 					// Interpolate in the vertical
 					dataOut[i][j] = 0.0;
 					for (int k = kBegin; k < kEnd; k++) {
@@ -649,9 +736,84 @@ try {
 				}
 
 				// Write variable
-				vecOutNcVar[v]->set_cur(t, p, 0, 0);
-				vecOutNcVar[v]->put(&(dataOut[0][0]), 1, 1, nLat, nLon);
+				vecOutNcVarS[v]->set_cur(t, 0, 0);
+				vecOutNcVarS[v]->put(&(dataOut[0][0]), 1, nLat, nLon);
 
+			}
+
+			// Loop through all pressure levels
+			for (int p = 0; p < nPressureLevels; p++) {
+
+				// Loop thorugh all latlon indices
+				for (int i = 0; i < nLat; i++) {
+				for (int j = 0; j < nLon; j++) {
+
+					// Store column pressure
+					for (int k = 0; k < nLev; k++) {
+						dataColumnP[k] = dataP[k][i][j];
+					}
+
+					// Find weights
+					int kBegin = 0;
+					int kEnd = 0;
+
+					// On a pressure surface
+					InterpolationWeightsLinear(
+						vecPressureLevels[p],
+						dataColumnP,
+						kBegin,
+						kEnd,
+						dW);
+
+					// Interpolate in the vertical
+					dataOut[i][j] = 0.0;
+					for (int k = kBegin; k < kEnd; k++) {
+						dataOut[i][j] += dW[k] * dataIn[k][i][j];
+					}
+
+				}
+				}
+
+				// Write variable
+				vecOutNcVarP[v]->set_cur(t, p, 0, 0);
+				vecOutNcVarP[v]->put(&(dataOut[0][0]), 1, 1, nLat, nLon);
+			}
+
+			// Loop through all height levels
+			for (int z = 0; z < nHeightLevels; z++) {
+
+				// Loop thorugh all latlon indices
+				for (int i = 0; i < nLat; i++) {
+				for (int j = 0; j < nLon; j++) {
+
+					// Store column height
+					for (int k = 0; k < nLev; k++) {
+						dataColumnZ[k] = dataZ[k][i][j];
+					}
+
+					// Find weights
+					int kBegin = 0;
+					int kEnd = 0;
+
+					// On a pressure surface
+					InterpolationWeightsLinear(
+						vecHeightLevels[z],
+						dataColumnZ,
+						kBegin,
+						kEnd,
+						dW);
+
+					// Interpolate in the vertical
+					dataOut[i][j] = 0.0;
+					for (int k = kBegin; k < kEnd; k++) {
+						dataOut[i][j] += dW[k] * dataIn[k][i][j];
+					}
+				}
+				}
+
+				// Write variable
+				vecOutNcVarZ[v]->set_cur(t, z, 0, 0);
+				vecOutNcVarZ[v]->put(&(dataOut[0][0]), 1, 1, nLat, nLon);
 			}
 		}
 
