@@ -34,7 +34,7 @@
 //#define UPWIND_RHO
 #define UPWIND_THETA
 
-#define CAP_VERTICAL_VELOCITY
+//#define CAP_VERTICAL_VELOCITY
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -276,7 +276,36 @@ void VerticalDynamicsFEM::Initialize() {
 	m_dDiffExnerPertREdge.Initialize(nRElements+1);
 	m_dDiffExnerRefREdge.Initialize(nRElements+1);
 
-	// Compute second differentiation coefficients
+	// Vertical elemental grid spacing
+	double dElementDeltaXi =
+		static_cast<double>(m_nVerticalOrder)
+		/ static_cast<double>(nRElements);
+
+	// Compute second differentiation coefficients from nodes to nodes
+	m_dDiffDiffNodeToNode.Initialize(
+		m_nVerticalOrder, m_nVerticalOrder);
+
+	for (int n = 0; n < m_nVerticalOrder; n++) {
+	for (int m = 0; m < m_nVerticalOrder; m++) {
+		m_dDiffDiffNodeToNode[n][m] = 0.0;
+		for (int s = 0; s < m_nVerticalOrder; s++) {
+			m_dDiffDiffNodeToNode[n][m] -=
+				  dDiffNodeToNode[s][n]
+				* dDiffNodeToNode[s][m]
+				* dW[s];
+		}
+		m_dDiffDiffNodeToNode[n][m] /= dW[n];
+	}
+	}
+
+	// Scale by 1/dxi
+	for (int n = 0; n < m_nVerticalOrder; n++) {
+	for (int m = 0; m < m_nVerticalOrder; m++) {
+		m_dDiffDiffNodeToNode[n][m] *= dElementDeltaXi;
+	}
+	}
+
+	// Compute second differentiation coefficients from edges to edges
 	m_dDiffDiffREdgeToREdge.Initialize(
 		m_nVerticalOrder+1, m_nVerticalOrder+1);
 
@@ -293,11 +322,6 @@ void VerticalDynamicsFEM::Initialize() {
 	}
 	}
 
-	// Vertical elemental grid spacing
-	double dElementDeltaXi =
-		static_cast<double>(m_nVerticalOrder)
-		/ static_cast<double>(nRElements);
-
 	// Scale by 1/dxi
 	for (int n = 0; n <= m_nVerticalOrder; n++) {
 	for (int m = 0; m <= m_nVerticalOrder; m++) {
@@ -308,12 +332,6 @@ void VerticalDynamicsFEM::Initialize() {
 	// Compute hyperviscosity operator
 	m_dHypervisREdgeToREdge.Initialize(
 		nRElements+1, nRElements+1);
-
-	DataMatrix<double> dHypervisFirstBuffer;
-	dHypervisFirstBuffer.Initialize(nRElements+1, nRElements+1);
-
-	DataMatrix<double> dHypervisSecondBuffer;
-	dHypervisSecondBuffer.Initialize(nRElements+1, nRElements+1);
 
 	// Compute second derivative operator over whole column
 	for (int a = 0; a < nFiniteElements; a++) {
@@ -339,8 +357,14 @@ void VerticalDynamicsFEM::Initialize() {
 			m_dHypervisREdgeToREdge[n][a * m_nVerticalOrder] *= 0.5;
 		}
 	}
-
+/*
 	// Compute higher powers of the second derivative operator
+	DataMatrix<double> dHypervisFirstBuffer;
+	dHypervisFirstBuffer.Initialize(nRElements+1, nRElements+1);
+
+	DataMatrix<double> dHypervisSecondBuffer;
+	dHypervisSecondBuffer.Initialize(nRElements+1, nRElements+1);
+
 	if (m_nHyperdiffusionOrder > 2) {
 		dHypervisFirstBuffer = m_dHypervisREdgeToREdge;
 
@@ -354,7 +378,7 @@ void VerticalDynamicsFEM::Initialize() {
 				1.0, 0.0);
 		}
 	}
-
+*/
 	// Calculate Exner pressure reference profile
 	for (int n = 0; n < pGrid->GetActivePatchCount(); n++) {
 		GridPatch * pPatch = pGrid->GetActivePatch(n);
@@ -1000,6 +1024,33 @@ void VerticalDynamicsFEM::StepExplicit(
 						dDeltaT * m_dStateAux[k];
 #endif
 				}
+
+#ifdef UPWIND_HORIZONTAL_VELOCITIES
+
+				// Apply second derivative
+				int nElementCount = nRElements / m_nVerticalOrder;
+
+				for (int a = 0; a < nElementCount; a++) {
+					int aBegin = a * m_nVerticalOrder;
+
+					for (int s = 0; s < m_nVerticalOrder; s++) {
+					for (int t = 0; t < m_nVerticalOrder; t++) {
+
+						dataUpdateNode[UIx][aBegin+s][i][j] -=
+							dDeltaT
+							* fabs(m_dXiDotNode[aBegin+s])
+							* m_dDiffDiffNodeToNode[s][t]
+							* dataInitialNode[UIx][aBegin+t][i][j];
+
+						dataUpdateNode[VIx][aBegin+s][i][j] -=
+							dDeltaT
+							* fabs(m_dXiDotNode[aBegin+s])
+							* m_dDiffDiffNodeToNode[s][t]
+							* dataInitialNode[VIx][aBegin+t][i][j];
+					}
+					}
+				}
+#endif
 
 			// U and V on model interfaces
 			} else {

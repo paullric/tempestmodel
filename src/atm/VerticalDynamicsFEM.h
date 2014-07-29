@@ -397,6 +397,16 @@ protected:
 	DataVector<double> m_dSoln;
 
 	///	<summary>
+	///		Second differentiation coefficients from nodes to nodes.
+	///	</summary>
+	DataMatrix<double> m_dDiffDiffNodeToNode;
+
+	///	<summary>
+	///		Hyperviscosity coefficients from nodes to nodes.
+	///	</summary>
+	DataMatrix<double> m_dHypervisNodeToNode;
+
+	///	<summary>
 	///		Second differentiation coefficients from edges to edges.
 	///	</summary>
 	DataMatrix<double> m_dDiffDiffREdgeToREdge;
