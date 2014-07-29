@@ -69,6 +69,15 @@ public:
 		return 5;
 	}
 
+	///	<summary>
+	///		Get the maximum stable Courant number for the explicit part of the
+	///		Timesteps scheme.
+	///	</summary>
+	virtual double GetMaximumStableCourantNumber(
+		TimestepScheme::MixedMethodPart eMixedMethodPart,
+		int nOrder
+	) const;
+
 protected:
 	///	<summary>
 	///		Perform one time step.

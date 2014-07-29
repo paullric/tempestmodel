@@ -106,6 +106,67 @@ TimestepSchemeStrang::TimestepSchemeStrang(
 
 ///////////////////////////////////////////////////////////////////////////////
 
+double TimestepSchemeStrang::GetMaximumStableCourantNumber(
+	TimestepScheme::MixedMethodPart eMixedMethodPart,
+	int nOrder
+) const {
+	if (m_eExplicitDiscretization == KinnmarkGrayUllrich35) {
+		if (eMixedMethodPart == TimestepScheme::ContinuousPart) {
+			if (nOrder == 2) {
+				return 3.873077;
+			} else if (nOrder == 3) {
+				return 2.582184;
+			} else if (nOrder == 4) {
+				return 2.121307;
+			} else if (nOrder == 5) {
+				return 1.851593;
+			} else if (nOrder == 6) {
+				return 1.653839;
+			} else if (nOrder == 7) {
+				return 1.491241;
+			} else if (nOrder == 8) {
+				return 1.353363;
+			} else if (nOrder == 9) {
+				return 1.234161;
+			} else if (nOrder == 10) {
+				return 1.130890;
+			} else {
+				return 0.0;
+			}
+
+		} else {
+			if (nOrder == 1) {
+				return 1.524200;
+			} else if (nOrder == 2) {
+				return 2.824432;
+			} else if (nOrder == 3) {
+				return 1.686798;
+			} else if (nOrder == 4) {
+				return 1.263824;
+			} else if (nOrder == 5) {
+				return 1.034760;
+			} else if (nOrder == 6) {
+				return 0.888092;
+			} else if (nOrder == 7) {
+				return 0.784271;
+			} else if (nOrder == 8) {
+				return 0.705719;
+			} else if (nOrder == 9) {
+				return 0.644745;
+			} else if (nOrder == 10) {
+				return 0.594757;
+			} else {
+				return 0.0;
+			}
+		}
+
+	} else {
+		return 0.0;
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
 void TimestepSchemeStrang::Step(
 	bool fFirstStep,
 	bool fLastStep,

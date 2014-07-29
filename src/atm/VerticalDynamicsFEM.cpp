@@ -16,6 +16,7 @@
 
 #include "Defines.h"
 #include "VerticalDynamicsFEM.h"
+#include "TimestepScheme.h"
 #include "GaussQuadrature.h"
 #include "GaussLobattoQuadrature.h"
 
@@ -31,7 +32,9 @@
 
 #define UPWIND_HORIZONTAL_VELOCITIES
 //#define UPWIND_RHO
-//#define UPWIND_THETA
+#define UPWIND_THETA
+
+#define CAP_VERTICAL_VELOCITY
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -903,6 +906,47 @@ void VerticalDynamicsFEM::StepExplicit(
 			}
 			m_dXiDotREdge[0] = 0.0;
 			m_dXiDotREdge[nRElements] = 0.0;
+
+#ifdef CAP_VERTICAL_VELOCITY
+			// Cap vertical velocities
+			const double ParamFudgeFactor = 0.5;
+
+			const TimestepScheme * pTimestepScheme =
+				m_model.GetTimestepScheme();
+
+			double dMaxCourantNode =
+				pTimestepScheme->GetMaximumStableCourantNumber(
+					TimestepScheme::DiscontinuousPart,
+					m_nVerticalOrder);
+
+			double dMaxCourantREdge =
+				pTimestepScheme->GetMaximumStableCourantNumber(
+					TimestepScheme::ContinuousPart,
+					m_nVerticalOrder+1);
+
+			double dElementDeltaXi =
+				  static_cast<double>(nRElements)
+				/ static_cast<double>(m_nVerticalOrder);
+
+			// Maximum xi_dot value
+			double dMaxVelocityNode =
+				dMaxCourantNode * dElementDeltaXi / dDeltaT;
+
+			double dMaxVelocityREdge =
+				dMaxCourantREdge * dElementDeltaXi / dDeltaT;
+
+			// Cap velocities
+			for (int k = 0; k < nRElements; k++) {
+				if (m_dXiDotNode[k] > dMaxVelocityNode * ParamFudgeFactor) {
+					m_dXiDotNode[k] = dMaxVelocityNode * ParamFudgeFactor;
+				}
+			}
+			for (int k = 0; k <= nRElements; k++) {
+				if (m_dXiDotREdge[k] > dMaxVelocityREdge * ParamFudgeFactor) {
+					m_dXiDotREdge[k] = dMaxVelocityREdge * ParamFudgeFactor;
+				}
+			}
+#endif
 
 			// U and V on model levels
 			if (pGrid->GetVarLocation(RIx) == DataLocation_Node) {

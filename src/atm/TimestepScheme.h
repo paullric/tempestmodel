@@ -59,6 +59,26 @@ public:
 
 public:
 	///	<summary>
+	///		Mixed method part.
+	///	</summary>
+	enum MixedMethodPart {
+		DiscontinuousPart,
+		ContinuousPart
+	};
+
+	///	<summary>
+	///		Get the maximum stable Courant number for the explicit part of the
+	///		Timesteps scheme.
+	///	</summary>
+	virtual double GetMaximumStableCourantNumber(
+		MixedMethodPart eMixedMethodPart,
+		int nOrder
+	) const {
+		return (0.0);
+	}
+
+public:
+	///	<summary>
 	///		Initializer.  Called prior to model execution.
 	///	</summary>
 	virtual void Initialize() { }
