@@ -1022,39 +1022,20 @@ void GridPatchCSGLL::InterpolateNodeToREdge(
 		_EXCEPTIONT("Logic error");
 	}
 
-	const DataMatrix<double> & dInterp = pCSGLLGrid->GetInterpNodeToREdge();
-
-	int nVerticalOrder = pCSGLLGrid->GetVerticalOrder();
-	if (dataNode.GetRElements() % nVerticalOrder != 0) {
-		_EXCEPTIONT("Logic error");
-	}
-
 	// Loop over all elements in the box
+	int nStride = dataNode.GetSize(2) * dataNode.GetSize(3);
+
+	const LinearColumnInterpFEM & opInterpNodeToREdge =
+		pCSGLLGrid->GetOpInterpNodeToREdge();
+
 	for (int i = m_box.GetAInteriorBegin(); i < m_box.GetAInteriorEnd(); i++) {
 	for (int j = m_box.GetBInteriorBegin(); j < m_box.GetBInteriorEnd(); j++) {
-		int nFiniteElements = dataNode.GetRElements() / nVerticalOrder;
 
-		for (int k = 0; k < dataREdge.GetRElements(); k++) {
-			dataREdge[iVar][k][i][j] = 0.0;
-		}
-
-		// Loop over all nodes
-		for (int k = 0; k < dataNode.GetRElements(); k++) {
-			int a = k / nVerticalOrder;
-			int m = k % nVerticalOrder;
-			int lBegin = a * nVerticalOrder;
-
-			// Apply node value to interface
-			for (int l = 0; l <= nVerticalOrder; l++) {
-				dataREdge[iVar][lBegin + l][i][j] +=
-					dInterp[l][m] * dataNode[iVar][k][i][j];
-			}
-		}
-
-		// Halve interior element interface values
-		for (int a = 1; a < nFiniteElements; a++) {
-			dataREdge[iVar][a * nVerticalOrder][i][j] *= 0.5;
-		}
+		opInterpNodeToREdge.Apply(
+			&(dataNode[iVar][0][i][j]),
+			&(dataREdge[iVar][0][i][j]),
+			nStride,
+			nStride);
 	}
 	}
 }
@@ -1076,33 +1057,21 @@ void GridPatchCSGLL::InterpolateREdgeToNode(
 		_EXCEPTIONT("Logic error");
 	}
 
-	const DataMatrix<double> & dInterp = pCSGLLGrid->GetInterpREdgeToNode();
+	// Loop over all elements in the box
+	int nStride = dataNode.GetSize(2) * dataNode.GetSize(3);
 
-	int nVerticalOrder = pCSGLLGrid->GetVerticalOrder();
-	if (dataNode.GetRElements() % nVerticalOrder != 0) {
-		_EXCEPTIONT("Logic error");
-	}
+	const LinearColumnInterpFEM & opInterpREdgeToNode =
+		pCSGLLGrid->GetOpInterpREdgeToNode();
 
 	// Loop over all elements in the box
 	for (int i = m_box.GetAInteriorBegin(); i < m_box.GetAInteriorEnd(); i++) {
 	for (int j = m_box.GetBInteriorBegin(); j < m_box.GetBInteriorEnd(); j++) {
 
-		for (int k = 0; k < dataNode.GetRElements(); k++) {
-			dataNode[iVar][k][i][j] = 0.0;
-		}
-
-		// Loop over all nodes
-		for (int k = 0; k < dataNode.GetRElements(); k++) {
-			int a = k / nVerticalOrder;
-			int m = k % nVerticalOrder;
-			int lBegin = a * nVerticalOrder;
-
-			// Apply interface values to nodes
-			for (int l = 0; l <= nVerticalOrder; l++) {
-				dataNode[iVar][k][i][j] +=
-					dInterp[m][l] * dataREdge[iVar][lBegin + l][i][j];
-			}
-		}
+		opInterpREdgeToNode.Apply(
+			&(dataREdge[iVar][0][i][j]),
+			&(dataNode[iVar][0][i][j]),
+			nStride,
+			nStride);
 	}
 	}
 }

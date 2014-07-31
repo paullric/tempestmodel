@@ -1,6 +1,6 @@
 ///////////////////////////////////////////////////////////////////////////////
 ///
-///	\file    FluxReconstructionFunction.cpp
+///	\file    FluxCorrectionFunction.cpp
 ///	\author  Paul Ullrich
 ///	\version September 11, 2013
 ///
@@ -14,7 +14,7 @@
 ///		or implied warranty.
 ///	</remarks>
 
-#include "FluxReconstructionFunction.h"
+#include "FluxCorrectionFunction.h"
 
 #include "DataVector.h"
 #include "DataMatrix.h"
@@ -22,7 +22,7 @@
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void FluxReconstructionFunction::GetDerivatives(
+void FluxCorrectionFunction::GetDerivatives(
 	int iType,
 	int nOrder,
 	const DataVector<double> & dNodes,

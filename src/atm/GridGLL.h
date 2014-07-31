@@ -18,6 +18,7 @@
 #define _GRIDGLL_H_
 
 #include "Grid.h"
+#include "LinearColumnOperatorFEM.h"
 
 #include "DataVector.h"
 #include "DataMatrix.h"
@@ -208,6 +209,20 @@ public:
 	}
 
 	///	<summary>
+	///		Get the interpolation operator from levels to interfaces.
+	///	</summary>
+	const LinearColumnInterpFEM & GetOpInterpNodeToREdge() const {
+		return m_opInterpNodeToREdge;
+	}
+
+	///	<summary>
+	///		Get the interpolation operator from interfaces to levels.
+	///	</summary>
+	const LinearColumnInterpFEM & GetOpInterpREdgeToNode() const {
+		return m_opInterpREdgeToNode;
+	}
+
+	///	<summary>
 	///		Get the interpolation coefficients from levels to interfaces.
 	///	</summary>
 	const DataMatrix<double> & GetInterpNodeToREdge() const {
@@ -345,6 +360,36 @@ protected:
 	///		Interpolation coefficients from interfaces to levels.
 	///	</summary>
 	DataMatrix<double> m_dInterpREdgeToNode;
+
+	///	<summary>
+	///		Interpolation operator from levels to interfaces.
+	///	</summary>
+	LinearColumnInterpFEM m_opInterpNodeToREdge;
+
+	///	<summary>
+	///		Interpolation operator from interfaces to levels.
+	///	</summary>
+	LinearColumnInterpFEM m_opInterpREdgeToNode;
+
+	///	<summary>
+	///		Differentiation operator from levels to levels.
+	///	</summary>
+	LinearColumnDiffFEM m_opDiffNodeToNode;
+
+	///	<summary>
+	///		Differentiation operator from levels to interfaces.
+	///	</summary>
+	LinearColumnDiffFEM m_opDiffNodeToREdge;
+
+	///	<summary>
+	///		Differentiation operator from interfaces to levels.
+	///	</summary>
+	LinearColumnDiffFEM m_opDiffREdgeToNode;
+
+	///	<summary>
+	///		Differentiation operator from interfaces to interfaces.
+	///	</summary>
+	LinearColumnDiffFEM m_opDiffREdgeToREdge;
 
 	///	<summary>
 	///		Differentiation coefficients from interfaces to nodes.

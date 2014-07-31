@@ -25,7 +25,9 @@ FILES= CubedSphereTrans.cpp \
        HorizontalDynamicsDG.cpp \
        VerticalDynamicsFEM.cpp \
        JacobianFreeNewtonKrylov.cpp \
-       FluxReconstructionFunction.cpp \
+       FluxCorrectionFunction.cpp \
+       LinearColumnOperator.cpp \
+       LinearColumnOperatorFEM.cpp \
        OutputManager.cpp \
        OutputManagerComposite.cpp \
        OutputManagerReference.cpp \

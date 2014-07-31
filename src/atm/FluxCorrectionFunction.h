@@ -1,6 +1,6 @@
 ///////////////////////////////////////////////////////////////////////////////
 ///
-///	\file    FluxReconstructionFunction.h
+///	\file    FluxCorrectionFunction.h
 ///	\author  Paul Ullrich
 ///	\version September 11, 2013
 ///
@@ -14,22 +14,22 @@
 ///		or implied warranty.
 ///	</remarks>
 
-#ifndef _FLUXRECONSTRUCTIONFUNCTION_H_
-#define _FLUXRECONSTRUCTIONFUNCTION_H_
+#ifndef _FLUXCORRECTIONFUNCTION_H_
+#define _FLUXCORRECTIONFUNCTION_H_
 
 #include "DataVector.h"
 
 ///////////////////////////////////////////////////////////////////////////////
 
-class FluxReconstructionFunction {
+class FluxCorrectionFunction {
 
 public:
 	///	<summary>
-	///		Compute the derivatives of the flux reconstruction function of
+	///		Compute the derivatives of the right flux correction function of
 	///		the specified type at the specified nodes.
 	///	</summary>
 	///	<param name="iType">
-	///		Type of flux reconstruction function.
+	///		Type of flux correction function.
 	///	</param>
 	///	<param name="nOrder">
 	///		Order of the corresponding discontinuous Galerkin method.
