@@ -130,7 +130,7 @@ public:
 		GridPatch * pPatch,
 		int iA,
 		int iB,
-		const DataMatrix<double> & dataTopography,
+		const DataMatrix<double> & dataJacobian2D,
 		const DataMatrix3D<double> & dataJacobian3DNode,
 		const DataMatrix3D<double> & dataJacobian3DREdge,
 		const GridData4D & dataRefNode,
@@ -249,11 +249,6 @@ protected:
 	///		Timestep size.
 	///	</summary>
 	double m_dDeltaT;
-
-	///	<summary>
-	///		Domain height.
-	///	</summary>
-	double m_dDomainHeight;
 
 	///	<summary>
 	///		Pointer to active patch.
@@ -415,6 +410,16 @@ protected:
 	///		Hyperviscosity coefficients from edges to edges.
 	///	</summary>
 	DataMatrix<double> m_dHypervisREdgeToREdge;
+
+	///	<summary>
+	///		DxR in the column stored at nodes.
+	///	</summary>
+	DataVector<double> m_dDxRNode;
+
+	///	<summary>
+	///		DxR in the column stored at interfaces.
+	///	</summary>
+	DataVector<double> m_dDxRREdge;
 
 	///	<summary>
 	///		3D Jacobian in the column stored on nodes.

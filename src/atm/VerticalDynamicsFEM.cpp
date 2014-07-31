@@ -119,10 +119,6 @@ void VerticalDynamicsFEM::Initialize() {
 	m_nColumnStateSize = 3 * (nRElements + 1);
 
 	// Get the vertical interpolation and differentiation coefficients
-	const DataMatrix<double> & dInterpNodeToREdge =
-		pGrid->GetInterpNodeToREdge();
-	const DataMatrix<double> & dInterpREdgeToNode =
-		pGrid->GetInterpREdgeToNode();
 	const DataMatrix<double> & dDiffREdgeToNode =
 		pGrid->GetDiffREdgeToNode();
 	const DataMatrix<double> & dDiffNodeToREdge =
@@ -357,6 +353,7 @@ void VerticalDynamicsFEM::Initialize() {
 			m_dHypervisREdgeToREdge[n][a * m_nVerticalOrder] *= 0.5;
 		}
 	}
+
 /*
 	// Compute higher powers of the second derivative operator
 	DataMatrix<double> dHypervisFirstBuffer;
@@ -483,6 +480,9 @@ void VerticalDynamicsFEM::Initialize() {
 	// Allocate data for column Jacobian
 	m_dJacobian3DNode.Initialize(nRElements);
 	m_dJacobian3DREdge.Initialize(nRElements+1);
+
+	m_dDxRNode.Initialize(nRElements);
+	m_dDxRREdge.Initialize(nRElements+1);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -525,7 +525,7 @@ void VerticalDynamicsFEM::SetupReferenceColumn(
 	GridPatch * pPatch,
 	int iA,
 	int iB,
-	const DataMatrix<double> & dataTopography,
+	const DataMatrix<double> & dataJacobian2D,
 	const DataMatrix3D<double> & dataJacobian3DNode,
 	const DataMatrix3D<double> & dataJacobian3DREdge,
 	const GridData4D & dataRefNode,
@@ -556,15 +556,14 @@ void VerticalDynamicsFEM::SetupReferenceColumn(
 	m_iA = iA;
 	m_iB = iB;
 
-	// Store domain height
-	m_dDomainHeight = pGrid->GetZtop() - dataTopography[iA][iB];
-
 	// Store the column Jacobian
 	for (int k = 0; k < nRElements; k++) {
 		m_dJacobian3DNode[k] = dataJacobian3DNode[k][iA][iB];
+		m_dDxRNode[k] = m_dJacobian3DNode[k] / dataJacobian2D[iA][iB];
 	}
 	for (int k = 0; k <= nRElements; k++) {
 		m_dJacobian3DREdge[k] = dataJacobian3DREdge[k][iA][iB];
+		m_dDxRREdge[k] = m_dJacobian3DREdge[k] / dataJacobian2D[iA][iB];
 	}
 
 	// Store U in State structure
@@ -748,7 +747,7 @@ void VerticalDynamicsFEM::StepExplicit(
 			pPatch->GetVerticalDynamicsAuxData(1, DataLocation_REdge);
 
 		// Pointwise topography
-		const DataMatrix<double> & dataTopography = pPatch->GetTopography();
+		const DataMatrix<double> & dataJacobian2D = pPatch->GetJacobian2D();
 
 		// Pointwise Jacobian on nodes and interfaces
 		const DataMatrix3D<double> & dataJacobian3DNode =
@@ -769,7 +768,7 @@ void VerticalDynamicsFEM::StepExplicit(
 
 				SetupReferenceColumn(
 					pPatch, iA, iB,
-					dataTopography,
+					dataJacobian2D,
 					dataJacobian3DNode,
 					dataJacobian3DREdge,
 					dataRefNode,
@@ -1280,7 +1279,7 @@ void VerticalDynamicsFEM::StepImplicit(
 			pPatch->GetVerticalDynamicsAuxData(1, DataLocation_REdge);
 
 		// Pointwise topography
-		const DataMatrix<double> & dataTopography = pPatch->GetTopography();
+		const DataMatrix<double> & dataJacobian2D = pPatch->GetJacobian2D();
 
 		// Contravariant metric components
 		const DataMatrix3D<double> & dataJacobian3DNode =
@@ -1322,7 +1321,7 @@ void VerticalDynamicsFEM::StepImplicit(
 
 			SetupReferenceColumn(
 				pPatch, iA, iB,
-				dataTopography,
+				dataJacobian2D,
 				dataJacobian3DNode,
 				dataJacobian3DREdge,
 				dataRefNode,
@@ -1961,7 +1960,7 @@ void VerticalDynamicsFEM::BuildF(
 			double dThetaPert = dTheta - m_dStateRefREdge[TIx][k];
 
 			dF[VecFIx(FWIx, k)] +=
-				1.0 / m_dDomainHeight * (
+				1.0 / m_dDxRREdge[k] * (
 					  dThetaPert * m_dDiffExnerRefREdge[k]
 					+ dTheta * m_dDiffExnerPertREdge[k]);
 		}
@@ -1981,7 +1980,7 @@ void VerticalDynamicsFEM::BuildF(
 			double dThetaPert = dTheta - m_dStateRefNode[TIx][k];
 
 			dF[VecFIx(FWIx, k)] +=
-				1.0 / m_dDomainHeight * (
+				1.0 / m_dDxRNode[k] * (
 					  dThetaPert * m_dDiffExnerRefNode[k]
 					+ dTheta * m_dDiffExnerPertNode[k]);
 		}
@@ -2139,9 +2138,10 @@ void VerticalDynamicsFEM::BuildJacobianF(
 
 	// Get the vertical interpolation and differentiation coefficients
 	const DataMatrix<double> & dInterpNodeToREdge =
-		pGrid->GetInterpNodeToREdge();
+		pGrid->GetOpInterpNodeToREdge().GetCoeffs();
 	const DataMatrix<double> & dInterpREdgeToNode =
-		pGrid->GetInterpREdgeToNode();
+		pGrid->GetOpInterpREdgeToNode().GetCoeffs();
+
 	const DataMatrix<double> & dDiffREdgeToNode =
 		pGrid->GetDiffREdgeToNode();
 	const DataMatrix<double> & dDiffNodeToREdge =
@@ -2214,7 +2214,7 @@ void VerticalDynamicsFEM::BuildJacobianF(
 	// dW_k/dT_l and dW_k/dR_m (bottom element)
 	for (int k = 1; k < m_nVerticalOrder; k++) {
 		double dRHSWCoeff = 
-			1.0 / m_dDomainHeight
+			1.0 / m_dDxRREdge[k]
 			* m_dStateREdge[TIx][k]
 			* phys.GetR() / phys.GetCv();
 
@@ -2254,7 +2254,7 @@ void VerticalDynamicsFEM::BuildJacobianF(
 		int lBegin = lPrev + m_nVerticalOrder;
 
 		double dRHSWCoeff = 
-			1.0 / m_dDomainHeight
+			1.0 / m_dDxRREdge[k]
 			* m_dStateREdge[TIx][k]
 			* phys.GetR() / phys.GetCv();
 
@@ -2271,7 +2271,7 @@ void VerticalDynamicsFEM::BuildJacobianF(
 
 			for (int l = 0; l <= m_nVerticalOrder; l++) {
 				dDG[MatFIx(FTIx, lPrev+ma+l, FWIx, k)] +=
-					dTEntry * dInterpREdgeToNode[mx][l];
+					dTEntry * dInterpREdgeToNode[lPrev+m][lPrev+ma+l];
 			}
 
 			dDG[MatFIx(FRIx, lPrev+m, FWIx, k)] +=
@@ -2290,7 +2290,7 @@ void VerticalDynamicsFEM::BuildJacobianF(
 		int lPrev = kBegin - m_nVerticalOrder;
 
 		double dRHSWCoeff = 
-			1.0 / m_dDomainHeight
+			1.0 / m_dDxRREdge[k]
 			* m_dStateREdge[TIx][k]
 			* phys.GetR() / phys.GetCv();
 
@@ -2306,7 +2306,7 @@ void VerticalDynamicsFEM::BuildJacobianF(
 
 			for (int l = 0; l <= m_nVerticalOrder; l++) {
 				dDG[MatFIx(FTIx, lPrev+ma+l, FWIx, k)] +=
-					dTEntry * dInterpREdgeToNode[mx][l];
+					dTEntry * dInterpREdgeToNode[lPrev+m][lPrev+ma+l];
 			}
 
 			dDG[MatFIx(FRIx, lPrev+m, FWIx, k)] +=
@@ -2317,10 +2317,10 @@ void VerticalDynamicsFEM::BuildJacobianF(
 		}
 	}
 
-	// dW_k/dT (first theta in RHS)
+	// dW_k/dT_k (first theta in RHS)
 	for (int k = 1; k < nRElements; k++) {
 		dDG[MatFIx(FTIx, k, FWIx, k)] +=
-			 1.0 / m_dDomainHeight
+			 1.0 / m_dDxRREdge[k]
 			 * (m_dDiffExnerRefREdge[k] + m_dDiffExnerPertREdge[k]);
 	}
 
@@ -2366,7 +2366,7 @@ void VerticalDynamicsFEM::BuildJacobianF(
 					dDiffREdgeToNode[l][0]
 					* m_dJacobian3DREdge[lBegin]
 					/ m_dJacobian3DNode[k]
-					* 0.5 * dInterpNodeToREdge[m_nVerticalOrder][n]
+					* 0.5 * dInterpNodeToREdge[lBegin][lPrev+n]
 					* m_dXiDotREdge[lBegin];
 			}
 		}
@@ -2381,7 +2381,7 @@ void VerticalDynamicsFEM::BuildJacobianF(
 				dDiffREdgeToNode[l][m]
 				* m_dJacobian3DREdge[lBegin+m]
 				/ m_dJacobian3DNode[k]
-				* dMult * dInterpNodeToREdge[m][n]
+				* dMult * dInterpNodeToREdge[lBegin+m][lBegin+n]
 				* m_dXiDotREdge[lBegin+m];
 		}
 		}
@@ -2393,7 +2393,7 @@ void VerticalDynamicsFEM::BuildJacobianF(
 					dDiffREdgeToNode[l][m_nVerticalOrder]
 					* m_dJacobian3DREdge[lNext]
 					/ m_dJacobian3DNode[k]
-					* 0.5 * dInterpNodeToREdge[0][n]
+					* 0.5 * dInterpNodeToREdge[lNext][lNext+n]
 					* m_dXiDotREdge[lNext];
 			}
 		}
@@ -2405,7 +2405,10 @@ void VerticalDynamicsFEM::BuildJacobianF(
 
 			// dT_k/dW_k
 			double dSignW = -1.0;
-			if (m_dXiDotREdge[k] >= 0.0) {
+
+			if (m_dXiDotREdge[k] < 0.0) {
+				dSignW = -1.0;
+			} else if (m_dXiDotREdge[k] > 0.0) {
 				dSignW = 1.0;
 			}
 
