@@ -1026,7 +1026,7 @@ void VerticalDynamicsFEM::StepExplicit(
 				}
 
 #ifdef UPWIND_HORIZONTAL_VELOCITIES
-
+/*
 				// Apply second derivative
 				int nElementCount = nRElements / m_nVerticalOrder;
 
@@ -1036,13 +1036,13 @@ void VerticalDynamicsFEM::StepExplicit(
 					for (int s = 0; s < m_nVerticalOrder; s++) {
 					for (int t = 0; t < m_nVerticalOrder; t++) {
 
-						dataUpdateNode[UIx][aBegin+s][i][j] -=
+						dataUpdateNode[UIx][aBegin+s][i][j] +=
 							dDeltaT
 							* fabs(m_dXiDotNode[aBegin+s])
 							* m_dDiffDiffNodeToNode[s][t]
 							* dataInitialNode[UIx][aBegin+t][i][j];
 
-						dataUpdateNode[VIx][aBegin+s][i][j] -=
+						dataUpdateNode[VIx][aBegin+s][i][j] +=
 							dDeltaT
 							* fabs(m_dXiDotNode[aBegin+s])
 							* m_dDiffDiffNodeToNode[s][t]
@@ -1050,6 +1050,7 @@ void VerticalDynamicsFEM::StepExplicit(
 					}
 					}
 				}
+*/
 #endif
 
 			// U and V on model interfaces
