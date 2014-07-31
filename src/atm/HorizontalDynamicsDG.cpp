@@ -1010,24 +1010,6 @@ void HorizontalDynamicsDG::StepNonhydrostaticPrimitive(
 				int iElementA = a * m_nHorizontalOrder + box.GetHaloElements();
 				int iElementB = b * m_nHorizontalOrder + box.GetHaloElements();
 
-				// Store pressure derivatives in column
-				for (int k = 0; k < pGrid->GetRElements(); k++) {
-					m_dColumnDaPressure[k] = dataDaPressure[k][iA][iB];
-					m_dColumnDbPressure[k] = dataDbPressure[k][iA][iB];
-				}
-
-				pGrid->InterpolateNodeToREdge(
-					m_dColumnDaPressure,
-					m_dZeroColumn,
-					m_dColumnDaPressureREdge,
-					m_dZeroColumn);
-
-				pGrid->InterpolateNodeToREdge(
-					m_dColumnDbPressure,
-					m_dZeroColumn,
-					m_dColumnDbPressureREdge,
-					m_dZeroColumn);
-
 				// Update the vertical velocity (on model interfaces)
 				for (int k = 1; k < pGrid->GetRElements(); k++) {
 					if (pGrid->GetVarLocation(WIx) != DataLocation_REdge) {

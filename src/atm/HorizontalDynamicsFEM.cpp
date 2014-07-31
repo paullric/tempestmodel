@@ -73,12 +73,7 @@ void HorizontalDynamicsFEM::Initialize() {
 
 	m_dColumnPressure.Initialize(nRElements);
 
-	m_dColumnDaPressure.Initialize(nRElements);
-	m_dColumnDbPressure.Initialize(nRElements);
 	m_dColumnDxPressure.Initialize(nRElements);
-
-	m_dColumnDaPressureREdge.Initialize(nRElements + 1);
-	m_dColumnDbPressureREdge.Initialize(nRElements + 1);
 
 	// Initialize buffers for derivatives of Jacobian
 	m_dJGradientA.Initialize(
@@ -719,24 +714,6 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 
 				int iElementA = a * m_nHorizontalOrder + box.GetHaloElements();
 				int iElementB = b * m_nHorizontalOrder + box.GetHaloElements();
-
-				// Store pressure derivatives in column
-				for (int k = 0; k < pGrid->GetRElements(); k++) {
-					m_dColumnDaPressure[k] = dataDaPressure[k][iA][iB];
-					m_dColumnDbPressure[k] = dataDbPressure[k][iA][iB];
-				}
-
-				pGrid->InterpolateNodeToREdge(
-					m_dColumnDaPressure,
-					m_dZeroColumn,
-					m_dColumnDaPressureREdge,
-					m_dZeroColumn);
-
-				pGrid->InterpolateNodeToREdge(
-					m_dColumnDbPressure,
-					m_dZeroColumn,
-					m_dColumnDbPressureREdge,
-					m_dZeroColumn);
 
 				// Update the vertical velocity (on model interfaces)
 				for (int k = 1; k < pGrid->GetRElements(); k++) {

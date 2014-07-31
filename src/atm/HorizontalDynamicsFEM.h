@@ -170,29 +170,9 @@ protected:
 	DataVector<double> m_dColumnPressure;
 
 	///	<summary>
-	///		Nodal pointwise pressure alpha derivatives in a column.
-	///	</summary>
-	DataVector<double> m_dColumnDaPressure;
-
-	///	<summary>
-	///		Nodal pointwise pressure beta derivatives in a column.
-	///	</summary>
-	DataVector<double> m_dColumnDbPressure;
-
-	///	<summary>
 	///		Nodal pointwise pressure xi derivatives in a column.
 	///	</summary>
 	DataVector<double> m_dColumnDxPressure;
-
-	///	<summary>
-	///		Nodal pointwise pressure alpha derivatives in a column.
-	///	</summary>
-	DataVector<double> m_dColumnDaPressureREdge;
-
-	///	<summary>
-	///		Nodal pointwise pressure beta derivatives in a column.
-	///	</summary>
-	DataVector<double> m_dColumnDbPressureREdge;
 
 protected:
 	///	<summary>
