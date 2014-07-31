@@ -221,6 +221,12 @@ void LinearColumnDiffFEM::Initialize(
 				&(m_dCoeff[l][a * nVerticalOrder]),
 				dREtaOut[l]);
 
+			// Set bounds on coefficients
+			if (!fOnREdge) {
+				m_iBegin[l] =  a * nVerticalOrder;
+				m_iEnd[l]   = (a+1) * nVerticalOrder + 1;
+			}
+
 			// Special treatment of derivatives at interfaces
 			if (fOnREdge) {
 
@@ -261,6 +267,10 @@ void LinearColumnDiffFEM::Initialize(
 					m_dCoeff[l][(a+1) * nVerticalOrder + k] +=
 						dWeightR * dTempCoeff[k];
 				}
+
+				// Set bounds on coefficients
+				m_iBegin[l] =  a * nVerticalOrder;
+				m_iEnd[l]   = (a+2) * nVerticalOrder + 1;
 			}
 
 		// Differentiation coefficients for a discontinuous basis

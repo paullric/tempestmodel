@@ -138,53 +138,50 @@ void GridGLL::Initialize() {
 		m_dREtaStretchLevels,
 		m_dREtaStretchInterfaces,
 		m_dREtaStretchLevels);
-/*
+
 	// Differentiation operators
 	m_opDiffNodeToNode.Initialize(
 		LinearColumnDiffFEM::InterpSource_Levels,
 		m_nVerticalOrder,
-		m_dREtaStretchLevels,
-		m_dREtaStretchInterfaces,
-		m_dREtaStretchLevels,
+		m_dREtaLevels,
+		m_dREtaInterfaces,
+		m_dREtaLevels,
 		false);
 
-	std::cout << "TEST1" << std::endl;
 	m_opDiffNodeToREdge.Initialize(
 		LinearColumnDiffFEM::InterpSource_Levels,
 		m_nVerticalOrder,
-		m_dREtaStretchLevels,
-		m_dREtaStretchInterfaces,
-		m_dREtaStretchInterfaces,
+		m_dREtaLevels,
+		m_dREtaInterfaces,
+		m_dREtaInterfaces,
 		false);
-	std::cout << "TEST2" << std::endl;
 
 	m_opDiffREdgeToNode.Initialize(
 		LinearColumnDiffFEM::InterpSource_Interfaces,
 		m_nVerticalOrder,
-		m_dREtaStretchLevels,
-		m_dREtaStretchInterfaces,
-		m_dREtaStretchLevels,
+		m_dREtaLevels,
+		m_dREtaInterfaces,
+		m_dREtaLevels,
 		false);
 
 	m_opDiffREdgeToREdge.Initialize(
 		LinearColumnDiffFEM::InterpSource_Interfaces,
 		m_nVerticalOrder,
-		m_dREtaStretchLevels,
-		m_dREtaStretchInterfaces,
-		m_dREtaStretchInterfaces,
+		m_dREtaLevels,
+		m_dREtaInterfaces,
+		m_dREtaInterfaces,
 		false);
-*/
 /*
 	FILE * fp1 = fopen("op1.txt", "w");
-	const DataMatrix<double> & dCoeff1 = m_opDiffNodeToNode.GetCoeffs();
+	const DataMatrix<double> & dCoeff1 = m_opDiffREdgeToREdge.GetCoeffs();
 	for (int n = 0; n < dCoeff1.GetRows(); n++) {
 		for (int m = 0; m < dCoeff1.GetColumns(); m++) {
 			fprintf(fp1, "%1.5e\t", dCoeff1[n][m]);
 		}
 		fprintf(fp1, "\n");
 	}
-	const DataVector<int> & ixBegin1 = m_opDiffNodeToNode.GetIxBegin();
-	const DataVector<int> & ixEnd1 = m_opDiffNodeToNode.GetIxEnd();
+	const DataVector<int> & ixBegin1 = m_opDiffREdgeToREdge.GetIxBegin();
+	const DataVector<int> & ixEnd1 = m_opDiffREdgeToREdge.GetIxEnd();
 	for (int n = 0; n < dCoeff1.GetRows(); n++) {
 		fprintf(fp1, "%i\t%i\n", ixBegin1[n], ixEnd1[n]);
 	}
@@ -192,6 +189,7 @@ void GridGLL::Initialize() {
 		fprintf(fp1, "%1.5e %1.5e\n", m_dREtaStretchInterfaces[n], m_dREtaStretchLevels[n]);
 	}
 	fclose(fp1);
+	_EXCEPTION();
 */
 /*
 	FILE * fp2 = fopen("op2.txt", "w");
@@ -212,7 +210,7 @@ void GridGLL::Initialize() {
 	// Interpolation coefficients from nodes to interfaces and vice versa
 	m_dInterpNodeToREdge.Initialize(m_nVerticalOrder+1, m_nVerticalOrder);
 	m_dInterpREdgeToNode.Initialize(m_nVerticalOrder, m_nVerticalOrder+1);
-/*
+
 	for (int n = 0; n < m_nVerticalOrder+1; n++) {
 		PolynomialInterp::LagrangianPolynomialCoeffs(
 			m_nVerticalOrder,
@@ -226,23 +224,6 @@ void GridGLL::Initialize() {
 			m_dREtaInterfaces,
 			m_dInterpREdgeToNode[n],
 			m_dREtaLevels[n]);
-	}
-*/
-	const DataMatrix<double> & dInterpNodeToREdgeCoeff
-		= m_opInterpNodeToREdge.GetCoeffs();
-	const DataMatrix<double> & dInterpREdgeToNodeCoeff
-		= m_opInterpREdgeToNode.GetCoeffs();
-
-	for (int n = 0; n < m_nVerticalOrder+1; n++) {
-	for (int m = 0; m < m_nVerticalOrder; m++) {
-		m_dInterpNodeToREdge[n][m] = dInterpNodeToREdgeCoeff[n][m];
-	}
-	}
-
-	for (int n = 0; n < m_nVerticalOrder; n++) {
-	for (int m = 0; m < m_nVerticalOrder+1; m++) {
-		m_dInterpREdgeToNode[n][m] = dInterpREdgeToNodeCoeff[n][m];
-	}
 	}
 
 	// Differentiation coefficients
@@ -622,6 +603,15 @@ void GridGLL::DifferentiateNodeToNode(
 	double * dDiffNode,
 	bool fZeroBoundaries
 ) const {
+
+	m_opDiffNodeToNode.Apply(
+		dDataNode,
+		dDiffNode);
+
+	if (fZeroBoundaries) {
+		_EXCEPTIONT("ZeroBoundaries broken - sorry!");
+	}
+/*
 	const int Left = 0;
 	const int Right = 1;
 
@@ -654,6 +644,7 @@ void GridGLL::DifferentiateNodeToNode(
 			m_dDiffReconsPolyNode[m_nVerticalOrder - m - 1]
 			* m_dStateFEEdge[a][Right];
 	}
+*/
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -663,6 +654,16 @@ void GridGLL::DifferentiateNodeToREdge(
 	double * dDiffREdge,
 	bool fZeroBoundaries
 ) const {
+
+	m_opDiffNodeToREdge.Apply(
+		dDataNode,
+		dDiffREdge);
+
+	if (fZeroBoundaries) {
+		_EXCEPTIONT("ZeroBoundaries broken - sorry!");
+	}
+
+/*
 	const int Left = 0;
 	const int Right = 1;
 
@@ -731,6 +732,7 @@ void GridGLL::DifferentiateNodeToREdge(
 	for (int a = 1; a < nFiniteElements; a++) {
 		dDiffREdge[a * m_nVerticalOrder] *= 0.5;
 	}
+*/
 /*
 #pragma message "Doesn't work with ReconstructionFunctionType = 1"
 	if (ParamFluxCorrectionType != 2) {
@@ -790,6 +792,12 @@ void GridGLL::DifferentiateREdgeToNode(
 	const double * dDataREdge,
 	double * dDiffNode
 ) const {
+
+	m_opDiffREdgeToNode.Apply(
+		dDataREdge,
+		dDiffNode);
+
+/*
 	// Number of radial elements
 	int nRElements = GetRElements();
 
@@ -812,6 +820,7 @@ void GridGLL::DifferentiateREdgeToNode(
 				* dDataREdge[lBegin + l];
 		}
 	}
+*/
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -820,6 +829,11 @@ void GridGLL::DifferentiateREdgeToREdge(
 	const double * dDataREdge,
 	double * dDiffREdge
 ) const {
+
+	m_opDiffREdgeToREdge.Apply(
+		dDataREdge,
+		dDiffREdge);
+/*
 	// Number of radial elements
 	int nRElements = GetRElements();
 
@@ -846,6 +860,7 @@ void GridGLL::DifferentiateREdgeToREdge(
 	for (int a = 1; a < nFiniteElements; a++) {
 		dDiffREdge[a * m_nVerticalOrder] *= 0.5;
 	}
+*/
 }
 
 ///////////////////////////////////////////////////////////////////////////////
