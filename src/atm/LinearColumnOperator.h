@@ -101,6 +101,13 @@ public:
 	}
 
 	///	<summary>
+	///		Get the matrix of linear operator coefficients.
+	///	</summary>
+	const DataMatrix<double> & GetCoeffs() const {
+		return m_dCoeff;
+	}
+
+	///	<summary>
 	///		Get the vector of begin indices.
 	///	</summary>
 	DataVector<int> & GetIxBegin() {
@@ -108,9 +115,23 @@ public:
 	}
 
 	///	<summary>
+	///		Get the vector of begin indices.
+	///	</summary>
+	const DataVector<int> & GetIxBegin() const {
+		return m_iBegin;
+	}
+
+	///	<summary>
 	///		Get the vector of end indices.
 	///	</summary>
 	DataVector<int> & GetIxEnd() {
+		return m_iEnd;
+	}
+
+	///	<summary>
+	///		Get the vector of end indices.
+	///	</summary>
+	const DataVector<int> & GetIxEnd() const {
 		return m_iEnd;
 	}
 
