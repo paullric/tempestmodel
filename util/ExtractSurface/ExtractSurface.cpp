@@ -348,7 +348,7 @@ try {
 		CommandLineString(strInputFile, "in", "");
 		CommandLineString(strOutputFile, "out", "");
 		CommandLineString(strVariables, "var", "");
-		CommandLineBool(fGeopotentialHeight, "output_phiz");
+		CommandLineBool(fGeopotentialHeight, "output_z");
 		CommandLineBool(fExtractTotalEnergy, "output_energy");
 		CommandLineString(strPressureLevels, "p", "");
 		CommandLineString(strHeightLevels, "z", "");
@@ -639,7 +639,7 @@ try {
 	if (fExtractSurface) {
 		for (int v = 0; v < vecVariableStrings.size(); v++) {
 			std::string strVarName = vecVariableStrings[v];
-			strVarName += "s";
+			strVarName += "S";
 
 			vecOutNcVarS.push_back(
 				ncdf_out.add_var(
@@ -697,7 +697,7 @@ try {
 		dataZ.Initialize(nLev, nLat, nLon);
 
 		// Populate height array
-		if (nHeightLevels > 0) {
+		if ((nHeightLevels > 0) || (fGeopotentialHeight)) {
 			for (int k = 0; k < nLev; k++) {
 			for (int i = 0; i < nLat; i++) {
 			for (int j = 0; j < nLon; j++) {
@@ -822,6 +822,87 @@ try {
 			}
 		}
 
+		// Output geopotential height
+		if (fGeopotentialHeight) {
+
+			Announce("Geopotential height");
+
+			// Output variables
+			NcVar * varOutZ;
+			NcVar * varOutZs;
+
+			if (nPressureLevels > 0) {
+				varOutZ = ncdf_out.add_var(
+					"PHIZ", ncDouble, dimOutTime, dimOutP, dimOutLat, dimOutLon);
+			}
+			if (fExtractSurface) {
+				varOutZs = ncdf_out.add_var(
+					"PHIZS", ncDouble, dimOutTime, dimOutLat, dimOutLon);
+			}
+
+			// Interpolate onto pressure levels
+			for (int p = 0; p < nPressureLevels; p++) {
+
+				// Loop thorugh all latlon indices
+				for (int i = 0; i < nLat; i++) {
+				for (int j = 0; j < nLon; j++) {
+
+					int kBegin = 0;
+					int kEnd = 0;
+
+					for (int k = 0; k < nLev; k++) {
+						dataColumnP[k] = dataP[k][i][j];
+					}
+
+					InterpolationWeightsLinear(
+						vecPressureLevels[p],
+						dataColumnP,
+						kBegin,
+						kEnd,
+						dW);
+
+					// Interpolate in the vertical
+					dataOut[i][j] = 0.0;
+					for (int k = kBegin; k < kEnd; k++) {
+						dataOut[i][j] += dW[k] * dataZ[k][i][j];
+					}
+				}
+				}
+
+				// Write variable
+				varOutZ->set_cur(t, p, 0, 0);
+				varOutZ->put(&(dataOut[0][0]), 1, 1, nLat, nLon);
+
+			}
+
+			// Interpolate onto the physical surface
+			if (fExtractSurface) {
+
+				int kBegin = 0;
+				int kEnd = 3;
+
+				PolynomialInterp::LagrangianPolynomialCoeffs(
+					3, dLev, dW, 0.0);
+
+				// Loop thorugh all latlon indices
+				for (int i = 0; i < nLat; i++) {
+				for (int j = 0; j < nLon; j++) {
+
+					// Interpolate in the vertical
+					dataOut[i][j] = 0.0;
+					for (int k = kBegin; k < kEnd; k++) {
+						dataOut[i][j] += dW[k] * dataZ[k][i][j];
+					}
+				}
+				}
+
+				// Write variable
+				varOutZs->set_cur(t, 0, 0);
+				varOutZs->put(&(dataOut[0][0]), 1, nLat, nLon);
+
+			}
+		}
+
 		// Extract total energy
 		if (fExtractTotalEnergy) {
 			Announce("Total Energy");
@@ -885,59 +966,6 @@ try {
 
 		AnnounceEndBlock("Done");
 	}
-/*
-	// Output geopotential height
-	if (fGeopotentialHeight) {
-
-		Announce("Geopotential height");
-
-		// Loop thorugh all latlon indices
-		for (int i = 0; i < nLat; i++) {
-		for (int j = 0; j < nLon; j++) {
-
-			int kBegin;
-			int kEnd;
-
-			// Interpolate onto pressure level
-			if (dPressureLevel != 0.0) {
-				for (int k = 0; k < nLev; k++) {
-					dataColumnP[k] = dataP[k][i][j];
-				}
-
-				InterpolationWeightsLinear(
-					dPressureLevel,
-					dataColumnP,
-					kBegin,
-					kEnd,
-					dW);
-			}
-
-			// At the physical surface
-			if (fExtractSurface) {
-				kBegin = 0;
-				kEnd = 2;
-
-				dW[0] =   dLev[1] / (dLev[1] - dLev[0]);
-				dW[1] = - dLev[0] / (dLev[1] - dLev[0]);
-			}
-
-			dataOut[i][j] = 0.0;
-			for (int k = kBegin; k < kEnd; k++) {
-				dataOut[i][j] += dW[k] * dLev[k];
-			}
-
-			dataOut[i][j] = dZs[i][j] + dataOut[i][j] * (dZtop - dZs[i][j]);
-		}
-		}
-
-		// Write variable
-		NcVar * varOut = ncdf_out.add_var(
-			"Z", ncDouble, dimOutLat, dimOutLon);
-
-		varOut->set_cur(0, 0);
-		varOut->put(&(dataOut[0][0]), nLat, nLon);
-	}
-*/
 
 	AnnounceEndBlock("Done");
 
