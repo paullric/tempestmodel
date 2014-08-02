@@ -294,8 +294,21 @@ void LinearColumnDiffFEM::Initialize(
 				&(m_dCoeff[l][a * nVerticalOrder]),
 				dREtaOut[l]);
 
-			for (int k = 0; k < nRElementsIn; k++) {
-				m_dCoeff[l][k] *= dDeltaREta;
+			if (fOnREdge) {
+				PolynomialInterp::DiffLagrangianPolynomialCoeffs(
+					nVerticalOrder,
+					&(dREtaNode[(a+1) * nVerticalOrder]),
+					&(m_dCoeff[l][(a+1) * nVerticalOrder]),
+					dREtaOut[l]);
+
+				for (int k = 0; k < nRElementsIn; k++) {
+					m_dCoeff[l][k] *= 0.5 * dDeltaREta;
+				}
+
+			} else {
+				for (int k = 0; k < nRElementsIn; k++) {
+					m_dCoeff[l][k] *= dDeltaREta;
+				}
 			}
 
 			// Interpolation coefficients to finite element edges
@@ -312,7 +325,6 @@ void LinearColumnDiffFEM::Initialize(
 			dTempCoeffRR.Initialize(nVerticalOrder);
 
 			// Derivatives of the flux reconstruction function at this point
-
 			DataVector<double> dNodesR;
 			dNodesR.Initialize(1);
 			dNodesR[0] =
@@ -373,10 +385,13 @@ void LinearColumnDiffFEM::Initialize(
 
 			// Apply edge interpolation coefficients
 			if (a != 0) {
-				for (int k = 0; k < nVerticalOrder; k++) {
-					m_dCoeff[l][(a-1) * nVerticalOrder + k] +=
-						0.5 * dDerivL[0] * dTempCoeffLL[k];
+				if (!fOnREdge) {
+					for (int k = 0; k < nVerticalOrder; k++) {
+						m_dCoeff[l][(a-1) * nVerticalOrder + k] +=
+							0.5 * dDerivL[0] * dTempCoeffLL[k];
+					}
 				}
+
 				for (int k = 0; k < nVerticalOrder; k++) {
 					m_dCoeff[l][a * nVerticalOrder + k] -=
 						0.5 * dDerivL[0] * dTempCoeffLR[k];
