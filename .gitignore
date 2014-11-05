@@ -79,3 +79,13 @@ test/nonhydro_sphere/DG.txt
 test/nonhydro_sphere/DGRef.txt
 
 test/nonhydro_sphere/G.txt
+
+test/shallowwater_sphere/RossbyHaurwitzWaveTest
+
+util/MountainWavesSphere/ComputeWaveModes
+
+util/MountainWavesSphere/GenerateMountainResponse
+
+util/MountainWavesSphere/GenerateScharTopography
+
+util/MountainWavesSphere/GenerateWaveTopography

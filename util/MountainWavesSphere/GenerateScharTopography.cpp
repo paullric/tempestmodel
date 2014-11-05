@@ -20,6 +20,7 @@
 #include "DataMatrix.h"
 #include "Announce.h"
 #include "Parameters.h"
+#include "mpi.h"
 
 #include <cmath>
 
@@ -28,6 +29,8 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 int main(int argc, char ** argv) {
+
+	MPI_Init(&argc, &argv);
 
 try {
 
@@ -103,7 +106,7 @@ try {
 	double dLatM = 0.0;
 	double dLonM = M_PI / 4.0;
 	double dD = 5000.0;
-	double dH0 = 10.0;
+	double dH0 = 1.0;
 	double dXiM = 4000.0;
 
 	for (int j = 0; j < nLat; j++) {
@@ -113,7 +116,7 @@ try {
 		double dR = dA / dX * acos(sin(dLatM) * sin(dLat[j])
 			+ cos(dLatM) * cos(dLat[j]) * cos(dLon[i] - dLonM));
 
-		double dCosXi = cos(M_PI * dR / dXiM);
+		double dCosXi = 1.0; //cos(M_PI * dR / dXiM);
 
 		dTopo[j][i] = dH0 * exp(- dR * dR / (dD * dD))
 			* dCosXi * dCosXi;
@@ -132,6 +135,7 @@ try {
 } catch(Exception & e) {
 	Announce(e.ToString().c_str());
 }
+	MPI_Finalize();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
