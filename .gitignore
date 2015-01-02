@@ -87,3 +87,5 @@ util/MountainWavesSphere/GenerateScharTopography
 util/MountainWavesSphere/GenerateMountainResponse
 
 util/MountainWavesSphere/ComputeWaveModes
+
+test/shallowwater_sphere/RossbyHaurwitzWaveTest
