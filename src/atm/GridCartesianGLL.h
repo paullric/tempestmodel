@@ -39,7 +39,9 @@ public:
 		int nHorizontalOrder,
 		int nVerticalOrder,
 		int nRElements,
-		double nGDim[]
+		double nGDim[],
+		VerticalStaggering eVerticalStaggering =
+			VerticalStaggering_CharneyPhillips
 	);
 
 	///	<summary>
@@ -62,13 +64,6 @@ public:
 	///		Add the default set of patches.
 	///	</summary>
 	virtual void AddDefaultPatches();
-
-	///	<summary>
-	///		Initialize the vertical coordinate.
-	///	</summary>
-	virtual void InitializeVerticalCoordinate(
-		const GridSpacing & aGridSpacing
-	);
 
 	///	<summary>
 	///		Convert an array of coordinate variables to coordinates on the

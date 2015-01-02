@@ -48,24 +48,14 @@ friend class Model;
 
 public:
 	///	<summary>
-	///		Type of Grid described by this equation set.
+	///		Type of vertical staggering to be used.
 	///	</summary>
-	typedef int Type;
-
-	///	<summary>
-	///		Single block Cartesian grid.
-	///	</summary>
-	static const Type Cartesian = 0;
-
-	///	<summary>
-	///		Multiblock Cartesian grid.
-	///	</summary>
-	static const Type MultiblockCartesian = 1;
-
-	///	<summary>
-	///		Cubed sphere grid.
-	///	</summary>
-	static const Type CubedSphere = 2;
+	enum VerticalStaggering {
+		VerticalStaggering_Levels,
+		VerticalStaggering_Interfaces,
+		VerticalStaggering_CharneyPhillips,
+		VerticalStaggering_Lorenz
+	};
 
 public:
 	///	<summary>
@@ -76,19 +66,9 @@ public:
 		int nABaseResolution,
 		int nBBaseResolution,
 		int nRefinementRatio,
-		int nRElements
-	);
-
-	///	<summary>
-	///		Constructor.
-	///	</summary>
-	Grid(
-		Model & model,
-		int nABaseResolution,
-		int nBBaseResolution,
-		int nRefinementRatio,
 		int nRElements,
-		const DataVector<DataLocation> & locStaggering
+		VerticalStaggering eVerticalStaggering
+			= VerticalStaggering_CharneyPhillips
 	);
 
 	///	<summary>
@@ -800,6 +780,11 @@ protected:
 	///		Stretched REta coordinates of interfaces along radial axis.
 	///	</summary>
 	DataVector<double> m_dREtaStretchInterfaces;
+
+	///	<summary>
+	///		Type of vertical stretching being applied.
+	///	</summary>
+	VerticalStaggering m_eVerticalStaggering;
 
 	///	<summary>
 	///		Location of each equation set variable.

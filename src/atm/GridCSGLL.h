@@ -37,7 +37,9 @@ public:
 		int nRefinementRatio,
 		int nHorizontalOrder,
 		int nVerticalOrder,
-		int nRElements
+		int nRElements,
+		VerticalStaggering eVerticalStaggering =
+			VerticalStaggering_CharneyPhillips
 	);
 
 	///	<summary>

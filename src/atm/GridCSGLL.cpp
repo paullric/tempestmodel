@@ -33,15 +33,14 @@
 
 ///////////////////////////////////////////////////////////////////////////////
 
-#pragma message "BaseResolution should refer to the total number of nodes, not the number of finite elements"
-
 GridCSGLL::GridCSGLL(
 	Model & model,
 	int nBaseResolution,
 	int nRefinementRatio,
 	int nHorizontalOrder,
 	int nVerticalOrder,
-	int nRElements
+	int nRElements,
+	VerticalStaggering eVerticalStaggering
 ) :
 	// Call up the stack
 	GridGLL::GridGLL(
@@ -51,7 +50,8 @@ GridCSGLL::GridCSGLL(
 		nRefinementRatio,
 		nHorizontalOrder,
 		nVerticalOrder,
-		nRElements)
+		nRElements,
+		eVerticalStaggering)
 {
 	// Set the reference length scale
 	m_dReferenceLength = 0.5 * M_PI / 30.0;

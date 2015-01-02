@@ -35,7 +35,8 @@ Grid::Grid(
 	int nABaseResolution,
 	int nBBaseResolution,
 	int nRefinementRatio,
-	int nRElements
+	int nRElements,
+	VerticalStaggering eVerticalStaggering
 ) :
 	m_fInitialized(false),
 	m_iGridStamp(0),
@@ -48,37 +49,10 @@ Grid::Grid(
 	m_pVerticalStretchF(NULL),
 	m_nRElements(nRElements),
 	m_dZtop(1.0),
+	m_eVerticalStaggering(eVerticalStaggering),
 	m_nDegreesOfFreedomPerColumn(0),
 	m_fHasReferenceState(false),
 	m_fHasRayleighFriction(false)
-{
-	// Assign a default vertical stretching function
-	m_pVerticalStretchF = new VerticalStretchUniform;
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
-Grid::Grid(
-	Model & model,
-	int nABaseResolution,
-	int nBBaseResolution,
-	int nRefinementRatio,
-	int nRElements,
-	const DataVector<DataLocation> & locStaggering
-) :
-	m_fInitialized(false),
-	m_iGridStamp(0),
-	m_model(model),
-	m_fBlockParallelExchange(false),
-	m_nABaseResolution(nABaseResolution),
-	m_nBBaseResolution(nBBaseResolution),
-	m_nRefinementRatio(nRefinementRatio),
-	m_dReferenceLength(1.0),
-	m_pVerticalStretchF(NULL),
-	m_nRElements(nRElements),
-	m_dZtop(1.0),
-	m_nDegreesOfFreedomPerColumn(0),
-	m_fHasReferenceState(false)
 {
 	// Assign a default vertical stretching function
 	m_pVerticalStretchF = new VerticalStretchUniform;
@@ -189,11 +163,42 @@ void Grid::InitializeVerticalCoordinate(
 
 		// Location of variables
 		if (fInitializeStaggering) {
-			m_vecVarLocation[0] = DataLocation_Node;
-			m_vecVarLocation[1] = DataLocation_Node;
-			m_vecVarLocation[2] = DataLocation_REdge;
-			m_vecVarLocation[3] = DataLocation_REdge;
-			m_vecVarLocation[4] = DataLocation_Node;
+			switch (m_eVerticalStaggering) {
+				case VerticalStaggering_Levels:
+					m_vecVarLocation[0] = DataLocation_Node;
+					m_vecVarLocation[1] = DataLocation_Node;
+					m_vecVarLocation[2] = DataLocation_Node;
+					m_vecVarLocation[3] = DataLocation_Node;
+					m_vecVarLocation[4] = DataLocation_Node;
+					break;
+
+				case VerticalStaggering_Interfaces:
+					m_vecVarLocation[0] = DataLocation_REdge;
+					m_vecVarLocation[1] = DataLocation_REdge;
+					m_vecVarLocation[2] = DataLocation_REdge;
+					m_vecVarLocation[3] = DataLocation_REdge;
+					m_vecVarLocation[4] = DataLocation_REdge;
+					break;
+
+				case VerticalStaggering_Lorenz:
+					m_vecVarLocation[0] = DataLocation_Node;
+					m_vecVarLocation[1] = DataLocation_Node;
+					m_vecVarLocation[2] = DataLocation_Node;
+					m_vecVarLocation[3] = DataLocation_REdge;
+					m_vecVarLocation[4] = DataLocation_Node;
+					break;
+
+				case VerticalStaggering_CharneyPhillips:
+					m_vecVarLocation[0] = DataLocation_Node;
+					m_vecVarLocation[1] = DataLocation_Node;
+					m_vecVarLocation[2] = DataLocation_REdge;
+					m_vecVarLocation[3] = DataLocation_REdge;
+					m_vecVarLocation[4] = DataLocation_Node;
+					break;
+
+				default:
+					_EXCEPTIONT("Invalid VerticalStaggering specified");
+			}
 		}
 
 		// Initialize number of degres of freedom per column

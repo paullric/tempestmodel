@@ -33,7 +33,8 @@ GridGLL::GridGLL(
 	int nRefinementRatio,
 	int nHorizontalOrder,
 	int nVerticalOrder,
-	int nRElements
+	int nRElements,
+	VerticalStaggering eVerticalStaggering
 ) :
 	// Call up the stack
 	Grid::Grid(
@@ -41,7 +42,8 @@ GridGLL::GridGLL(
 		nBaseResolutionA,
 		nBaseResolutionB,
 		nRefinementRatio,
-		nRElements),
+		nRElements,
+		eVerticalStaggering),
 	m_nHorizontalOrder(nHorizontalOrder),
 	m_nVerticalOrder(nVerticalOrder),
 	m_nReconstructionPolyType(2)

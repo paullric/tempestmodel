@@ -42,7 +42,8 @@ GridCartesianGLL::GridCartesianGLL(
 	int nHorizontalOrder,
 	int nVerticalOrder,
 	int nRElements,
-	double dGDim[]
+	double dGDim[],
+	VerticalStaggering eVerticalStaggering
 ) :
 	// Call up the stack
 	GridGLL::GridGLL(
@@ -52,7 +53,8 @@ GridCartesianGLL::GridCartesianGLL(
 		nRefinementRatio,
 		nHorizontalOrder,
 		nVerticalOrder,
-		nRElements)
+		nRElements,
+		eVerticalStaggering)
 {
 	// Set the reference length scale (110km)
 	m_dReferenceLength = 110000.0;
@@ -149,15 +151,6 @@ void GridCartesianGLL::AddDefaultPatches() {
 				m_nVerticalOrder,
 				m_dGDim));
 	}
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
-void GridCartesianGLL::InitializeVerticalCoordinate(
-	const GridSpacing & aGridSpacing
-) {
-	// Call to Grid
-	Grid::InitializeVerticalCoordinate(aGridSpacing);
 }
 
 ///////////////////////////////////////////////////////////////////////////////

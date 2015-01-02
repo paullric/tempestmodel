@@ -66,6 +66,7 @@ struct _TempestCommandLineVariables {
 	double dNuDiv;
 	double dNuVort;
 	bool fExplicitVertical;
+	std::string strVerticalStaggering;
 	std::string strVerticalStretch;
 	int nVerticalHyperdiffOrder;
 	std::string strTimestepScheme;
@@ -98,6 +99,7 @@ struct _TempestCommandLineVariables {
 	CommandLineDouble(_tempestvars.dNuDiv, "nud", 1.0e15); \
 	CommandLineDouble(_tempestvars.dNuVort, "nuv", 1.0e15); \
 	CommandLineBool(_tempestvars.fExplicitVertical, "explicitvertical"); \
+	CommandLineStringD(_tempestvars.strVerticalStaggering, "vstagger", "CPH", "(LEV | INT | LOR | CPH)"); \
 	CommandLineString(_tempestvars.strVerticalStretch, "vstretch", "uniform"); \
 	CommandLineInt(_tempestvars.nVerticalHyperdiffOrder, "verthypervisorder", 0); \
 	CommandLineString(_tempestvars.strTimestepScheme, "timescheme", "strang"); \
@@ -309,6 +311,25 @@ void _TempestSetupCubedSphereModel(
 	// Setup Method of Lines
 	_TempestSetupMethodOfLines(model, vars);
 
+	// Get the vertical staggering from --vstagger
+	Grid::VerticalStaggering eVerticalStaggering;
+	STLStringHelper::ToLower(vars.strVerticalStaggering);
+	if (vars.strVerticalStaggering == "lev") {
+		eVerticalStaggering = Grid::VerticalStaggering_Levels;
+
+	} else if (vars.strVerticalStaggering == "int") {
+		eVerticalStaggering = Grid::VerticalStaggering_Interfaces;
+
+	} else if (vars.strVerticalStaggering == "lor") {
+		eVerticalStaggering = Grid::VerticalStaggering_Lorenz;
+
+	} else if (vars.strVerticalStaggering == "cph") {
+		eVerticalStaggering = Grid::VerticalStaggering_CharneyPhillips;
+
+	} else {
+		_EXCEPTIONT("Invalid value for --vstagger");
+	}
+
 	// Construct the Grid
 	AnnounceStartBlock("Constructing grid");
 	
@@ -319,17 +340,23 @@ void _TempestSetupCubedSphereModel(
 			4,
 			vars.nHorizontalOrder,
 			vars.nVerticalOrder,
-			vars.nLevels);
+			vars.nLevels,
+			eVerticalStaggering);
 
 	// Set the vertical stretching function
 	STLStringHelper::ToLower(vars.strVerticalStretch);
-	if (vars.strVerticalStretch == "cubic") {
+	if (vars.strVerticalStretch == "uniform") {
+
+	} else if (vars.strVerticalStretch == "cubic") {
 		pGrid->SetVerticalStretchFunction(
 			new VerticalStretchCubic);
 
 	} else if (vars.strVerticalStretch == "pwlinear") {
 		pGrid->SetVerticalStretchFunction(
 			new VerticalStretchPiecewiseLinear);
+
+	} else {
+		_EXCEPTIONT("Invalid value for --vstretch");
 	}
 
 	// Set the Model Grid
@@ -354,6 +381,25 @@ void _TempestSetupCartesianModel(
 	// Setup Method of Lines
 	_TempestSetupMethodOfLines(model, vars);
 
+	// Get the vertical staggering from --vstagger
+	Grid::VerticalStaggering eVerticalStaggering;
+	STLStringHelper::ToLower(vars.strVerticalStaggering);
+	if (vars.strVerticalStaggering == "lev") {
+		eVerticalStaggering = Grid::VerticalStaggering_Levels;
+
+	} else if (vars.strVerticalStaggering == "int") {
+		eVerticalStaggering = Grid::VerticalStaggering_Interfaces;
+
+	} else if (vars.strVerticalStaggering == "lor") {
+		eVerticalStaggering = Grid::VerticalStaggering_Lorenz;
+
+	} else if (vars.strVerticalStaggering == "cph") {
+		eVerticalStaggering = Grid::VerticalStaggering_CharneyPhillips;
+
+	} else {
+		_EXCEPTIONT("Invalid value for --vstagger");
+	}
+
 	// Set the model grid
 	AnnounceStartBlock("Constructing grid");
 
@@ -366,13 +412,24 @@ void _TempestSetupCartesianModel(
 			vars.nHorizontalOrder,
 			vars.nVerticalOrder,
 			vars.nLevels,
-			dGDim);
+			dGDim,
+			eVerticalStaggering);
 
 	// Set the vertical stretching function
 	STLStringHelper::ToLower(vars.strHorizontalDynamics);
-	if (vars.strVerticalStretch == "cubic") {
+	if (vars.strVerticalStretch == "uniform") {
+
+	} else if (vars.strVerticalStretch == "cubic") {
 		pGrid->SetVerticalStretchFunction(
 			new VerticalStretchCubic);
+
+	} else if (vars.strVerticalStretch == "pwlinear") {
+		pGrid->SetVerticalStretchFunction(
+			new VerticalStretchPiecewiseLinear);
+
+	} else {
+		_EXCEPTIONT("Invalid value for --vstretch");
+
 	}
 
 	// Set the Model Grid
