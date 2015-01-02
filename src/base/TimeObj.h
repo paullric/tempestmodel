@@ -311,6 +311,13 @@ public:
 	}
 
 	///	<summary>
+	///		Get the TimeType.
+	///	</summary>
+	inline TimeType GetTimeType() const {
+		return m_eTimeType;
+	}
+
+	///	<summary>
 	///		Set the year.
 	///	</summary>
 	inline void SetYear(int iYear) {
@@ -343,6 +350,13 @@ public:
 	///	</summary>
 	inline void SetMicroSecond(int iMicroSecond) {
 		m_iMicroSecond = iMicroSecond;
+	}
+
+	///	<summary>
+	///		Set the time type.
+	///	</summary>
+	inline void SetTimeType(TimeType eTimeType) {
+		m_eTimeType = eTimeType;
 	}
 
 public:

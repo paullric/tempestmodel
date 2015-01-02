@@ -85,7 +85,7 @@ struct _TempestCommandLineVariables {
 	CommandLineString(_tempestvars.strOutputPrefix, "output_prefix", "out"); \
 	CommandLineString(_tempestvars.param.m_strRestartFile, "restart_file", ""); \
 	CommandLineInt(_tempestvars.nOutputsPerFile, "output_perfile", -1); \
-	CommandLineTime(_tempestvars.timeOutputRestartDeltaT, "output_restart_dt", ""); \
+	CommandLineDeltaTime(_tempestvars.timeOutputRestartDeltaT, "output_restart_dt", ""); \
 	CommandLineInt(_tempestvars.nOutputResX, "output_x", 360); \
 	CommandLineInt(_tempestvars.nOutputResY, "output_y", 180); \
 	CommandLineBool(_tempestvars.fOutputVorticity, "output_vort"); \
@@ -126,13 +126,13 @@ struct _TempestCommandLineVariables {
 	CommandLineInt(_tempestvars.nLevels, "levels", default_levels);
 
 #define SetDefaultOutputDeltaT(default_output_dt) \
-	CommandLineTime(_tempestvars.timeOutputDeltaT, "outputtime", default_output_dt);
+	CommandLineDeltaTime(_tempestvars.timeOutputDeltaT, "outputtime", default_output_dt);
 
 #define SetDefaultDeltaT(default_dt) \
-	CommandLineTime(_tempestvars.param.m_timeDeltaT, "dt", default_dt);
+	CommandLineDeltaTime(_tempestvars.param.m_timeDeltaT, "dt", default_dt);
 
 #define SetDefaultEndTime(default_endtime) \
-	CommandLineTime(_tempestvars.param.m_timeEnd, "endtime", default_endtime);
+	CommandLineFixedTime(_tempestvars.param.m_timeEnd, "endtime", default_endtime);
 
 #define SetDefaultHorizontalOrder(default_order) \
 	CommandLineInt(_tempestvars.nHorizontalOrder, "order", default_order)

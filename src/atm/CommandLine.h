@@ -387,12 +387,15 @@ public:
 		Time & ref,
 		std::string strName,
 	 	std::string strDefaultValue,
-		std::string strDescription
+		std::string strDescription,
+		Time::TimeType eTimeType = Time::TypeFixed
 	) :
 		CommandLineParameter(strName, strDescription),
-		m_timeValue(ref)
+		m_timeValue(ref),
+		m_eTimeType(eTimeType)
 	{
 		m_timeValue.FromFormattedString(strDefaultValue);
+		m_timeValue.SetTimeType(m_eTimeType);
 	}
 
 	///	<summary>
@@ -413,10 +416,21 @@ public:
 	///		Print the usage information of this parameter.
 	///	</summary>
 	virtual void PrintUsage() const {
-		Announce("  %s <time> [%s] %s",
-			m_strName.c_str(),
-			m_timeValue.ToFreeString().c_str(),
-			m_strDescription.c_str());
+		if (m_eTimeType == Time::TypeFixed) {
+			Announce("  %s <time> [%s] %s",
+				m_strName.c_str(),
+				m_timeValue.ToFreeString().c_str(),
+				m_strDescription.c_str());
+
+		} else if (m_eTimeType == Time::TypeDelta) {
+			Announce("  %s <dtime> [%s] %s",
+				m_strName.c_str(),
+				m_timeValue.ToFreeString().c_str(),
+				m_strDescription.c_str());
+
+		} else {
+			_EXCEPTIONT("Invalid TimeType");
+		}
 	}
 
 	///	<summary>
@@ -430,6 +444,7 @@ public:
 			_EXCEPTIONT("Invalid value index.");
 		}
 		m_timeValue.FromFormattedString(strValue);
+		m_timeValue.SetTimeType(m_eTimeType);
 	}
 
 public:
@@ -437,6 +452,11 @@ public:
 	///		Parameter value.
 	///	</summary>
 	Time & m_timeValue;
+
+	///	<summary>
+	///		Time type.
+	///	</summary>
+	Time::TimeType m_eTimeType;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -507,16 +527,30 @@ public:
 ///	<summary>
 ///		Define a new command line Time parameter.
 ///	</summary>
-#define CommandLineTime(ref, name, value) \
+#define CommandLineFixedTime(ref, name, value) \
 	_vecParameters.push_back( \
-		new CommandLineParameterTime(ref, name, value, ""));
+		new CommandLineParameterTime(ref, name, value, "", Time::TypeFixed));
 
 ///	<summary>
 ///		Define a new command line Time parameter with description.
 ///	</summary>
-#define CommandLineTimeD(ref, name, value, desc) \
+#define CommandLineFixedTimeD(ref, name, value, desc) \
 	_vecParameters.push_back( \
-		new CommandLineParameterTime(ref, name, value, desc));
+		new CommandLineParameterTime(ref, name, value, desc, Time::TypeFixed));
+
+///	<summary>
+///		Define a new command line Time parameter.
+///	</summary>
+#define CommandLineDeltaTime(ref, name, value) \
+	_vecParameters.push_back( \
+		new CommandLineParameterTime(ref, name, value, "", Time::TypeDelta));
+
+///	<summary>
+///		Define a new command line Time parameter with description.
+///	</summary>
+#define CommandLineDeltaTimeD(ref, name, value, desc) \
+	_vecParameters.push_back( \
+		new CommandLineParameterTime(ref, name, value, desc, Time::TypeDelta));
 
 ///	<summary>
 ///		Begin the loop for command line parameters.
