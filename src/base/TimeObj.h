@@ -26,7 +26,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 ///	<summary>
-///		A class for storing a time as year, month, day and seconds.
+///		A class for storing a time as year, month, day, seconds and useconds.
 ///	</summary>
 class Time {
 
@@ -37,19 +37,32 @@ public:
 	enum CalendarType {
 		CalendarNone,
 		CalendarNoLeap,
+		CalendarStandard
+	};
+
+	///	<summary>
+	///		Type of time.
+	///	</summary>
+	enum TimeType {
+		TypeFixed,
+		TypeDelta
 	};
 
 public:
 	///	<summary>
 	///		Constructor.
 	///	</summary>
-	Time() :
+	Time(
+		CalendarType eCalendarType = CalendarNoLeap,
+		TimeType eTimeType = TypeFixed
+	) :
 		m_iYear(0),
 		m_iMonth(0),
 		m_iDay(0),
 		m_iSecond(0),
 		m_iMicroSecond(0),
-		m_eCalendarType(CalendarNoLeap)
+		m_eCalendarType(eCalendarType),
+		m_eTimeType(eTimeType)
 	{ }
 
 	///	<summary>
@@ -60,14 +73,17 @@ public:
 		int iMonth,
 		int iDay,
 		int iSecond,
-		int iMicroSecond
+		int iMicroSecond,
+		CalendarType eCalendarType = CalendarNoLeap,
+		TimeType eTimeType = TypeFixed
 	) :
 		m_iYear(iYear),
 		m_iMonth(iMonth),
 		m_iDay(iDay),
 		m_iSecond(iSecond),
 		m_iMicroSecond(iMicroSecond),
-		m_eCalendarType(CalendarNoLeap)
+		m_eCalendarType(eCalendarType),
+		m_eTimeType(eTimeType)
 	{
 		NormalizeTime();
 	}
@@ -75,13 +91,18 @@ public:
 	///	<summary>
 	///		Constructor from std::string.
 	///	</summary>
-	Time(const std::string & strTime) :
+	Time(
+		const std::string & strTime,
+		CalendarType eCalendarType = CalendarNoLeap,
+		TimeType eTimeType = TypeFixed
+	) :
 		m_iYear(0),
 		m_iMonth(0),
 		m_iDay(0),
 		m_iSecond(0),
 		m_iMicroSecond(0),
-		m_eCalendarType(CalendarNoLeap)
+		m_eCalendarType(eCalendarType),
+		m_eTimeType(eTimeType)
 	{
 		FromLongString(strTime);
 	}
@@ -91,6 +112,9 @@ public:
 	///		Determine if two Times occur on the same date.
 	///	</summary>
 	inline bool IsSameDate(const Time & time) {
+		if (m_eTimeType != time.m_eTimeType) {
+			return false;
+		}
 		if (m_eCalendarType != time.m_eCalendarType) {
 			return false;
 		}
@@ -247,14 +271,22 @@ public:
 	///		Get the month.
 	///	</summary>
 	inline int GetMonth() const {
-		return m_iMonth;
+		if (m_eTimeType == TypeFixed) {
+			return m_iMonth + 1;
+		} else {
+			return m_iMonth;
+		}
 	}
 
 	///	<summary>
 	///		Get the day.
 	///	</summary>
 	inline int GetDay() const {
-		return m_iDay;
+		if (m_eTimeType == TypeFixed) {
+			return m_iDay + 1;
+		} else {
+			return m_iDay;
+		}
 	}
 
 	///	<summary>
@@ -396,6 +428,11 @@ private:
 	///		Calendar type.
 	///	</summary>
 	CalendarType m_eCalendarType;
+
+	///	<summary>
+	///		Time type.
+	///	</summary>
+	TimeType m_eTimeType;
 };
 
 ///////////////////////////////////////////////////////////////////////////////

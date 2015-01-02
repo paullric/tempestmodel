@@ -23,6 +23,7 @@
 
 bool Time::operator==(const Time & time) const {
 	if ((m_eCalendarType != time.m_eCalendarType) ||
+	    (m_eTimeType     != time.m_eTimeType)     ||
 	    (m_iYear        != time.m_iYear)          ||
 	    (m_iMonth       != time.m_iMonth)         ||
 	    (m_iDay         != time.m_iDay)           ||
@@ -38,6 +39,9 @@ bool Time::operator==(const Time & time) const {
 ///////////////////////////////////////////////////////////////////////////////
 
 bool Time::operator<(const Time & time) const {
+	if (m_eTimeType != time.m_eTimeType) {
+		_EXCEPTIONT("Cannot compare Time objects with different types");
+	}
 	if (m_eCalendarType != time.m_eCalendarType) {
 		_EXCEPTIONT("Cannot compare Time objects with different calendars");
 	}
@@ -78,6 +82,9 @@ bool Time::operator<(const Time & time) const {
 ///////////////////////////////////////////////////////////////////////////////
 
 bool Time::operator>(const Time & time) const {
+	if (m_eTimeType != time.m_eTimeType) {
+		_EXCEPTIONT("Cannot compare Time objects with different types");
+	}
 	if (m_eCalendarType != time.m_eCalendarType) {
 		_EXCEPTIONT(
 			"Cannot compare Time objects with different calendars");
@@ -121,10 +128,17 @@ bool Time::operator>(const Time & time) const {
 void Time::VerifyTime() {
 
 	// Calendar with no leap years
-	if (m_eCalendarType == CalendarNoLeap) {
-
-		const int nDaysPerMonth[]
+	if ((m_eCalendarType == CalendarNoLeap) || 
+		(m_eCalendarType == CalendarStandard)
+	) {
+		int nDaysPerMonth[]
 			= {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
+
+		if (m_eCalendarType == CalendarStandard) {
+			if (((m_iYear % 4) == 0) && ((m_iYear % 1000) != 0)) {
+				nDaysPerMonth[1] = 29;
+			}
+		}
 
 		if ((m_iYear < 0) || (m_iYear > 9999)) {
 			_EXCEPTIONT("Year out of range");
@@ -153,10 +167,17 @@ void Time::VerifyTime() {
 void Time::NormalizeTime() {
 
 	// Calendar with no leap years
-	if (m_eCalendarType == CalendarNoLeap) {
-
-		const int nDaysPerMonth[]
+	if ((m_eCalendarType == CalendarNoLeap) || 
+		(m_eCalendarType == CalendarStandard)
+	) {
+		int nDaysPerMonth[]
 			= {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
+
+		if (m_eCalendarType == CalendarStandard) {
+			if (((m_iYear % 4) == 0) && ((m_iYear % 1000) != 0)) {
+				nDaysPerMonth[1] = 29;
+			}
+		}
 
 		// Add seconds
 		int nAddedSeconds = 0;
@@ -201,6 +222,15 @@ void Time::NormalizeTime() {
 			if (m_iMonth < 0) {
 				m_iMonth = 11;
 				m_iYear--;
+
+				// Adjust number of days per month
+				if (m_eCalendarType == CalendarStandard) {
+					if (((m_iYear % 4) == 0) && ((m_iYear % 1000) != 0)) {
+						nDaysPerMonth[1] = 29;
+					} else {
+						nDaysPerMonth[1] = 28;
+					}
+				}
 			}
 			m_iDay += nDaysPerMonth[m_iMonth];
 		}
@@ -212,6 +242,15 @@ void Time::NormalizeTime() {
 			if (m_iMonth > 11) {
 				m_iMonth = 0;
 				m_iYear++;
+
+				// Adjust number of days per month
+				if (m_eCalendarType == CalendarStandard) {
+					if (((m_iYear % 4) == 0) && ((m_iYear % 1000) != 0)) {
+						nDaysPerMonth[1] = 29;
+					} else {
+						nDaysPerMonth[1] = 28;
+					}
+				}
 			}
 		}
 
@@ -234,6 +273,10 @@ void Time::NormalizeTime() {
 ///////////////////////////////////////////////////////////////////////////////
 
 void Time::AddTime(const Time & timeDelta) {
+
+	if (timeDelta.m_eTimeType != TypeDelta) {
+		_EXCEPTIONT("Argument to AddTime() is not a TimeDelta");
+	}
 
 	m_iYear        += timeDelta.m_iYear;
 	m_iMonth       += timeDelta.m_iMonth;
@@ -346,6 +389,10 @@ double Time::GetSeconds() const {
 std::string Time::ToDateString() const {
 	char szBuffer[100];
 
+	if (m_eTimeType != TypeFixed) {
+		_EXCEPTIONT("ToDateString() only valid for Time::TypeFixed");
+	}
+
 	sprintf(szBuffer, "%04i-%02i-%02i",
 		m_iYear, m_iMonth+1, m_iDay+1);
 
@@ -356,6 +403,10 @@ std::string Time::ToDateString() const {
 
 std::string Time::ToShortString() const {
 	char szBuffer[100];
+
+	if (m_eTimeType != TypeFixed) {
+		_EXCEPTIONT("ToShortString() only valid for Time::TypeFixed");
+	}
 
 	sprintf(szBuffer, "%04i-%02i-%02i-%05i",
 		m_iYear, m_iMonth+1, m_iDay+1, m_iSecond);
@@ -368,6 +419,10 @@ std::string Time::ToShortString() const {
 std::string Time::ToLongString() const {
 	char szBuffer[100];
 
+	if (m_eTimeType != TypeFixed) {
+		_EXCEPTIONT("ToLongString() only valid for Time::TypeFixed");
+	}
+
 	sprintf(szBuffer, "%04i-%02i-%02i-%05i-%06i",
 		m_iYear, m_iMonth+1, m_iDay+1, m_iSecond, m_iMicroSecond);
 
@@ -378,6 +433,10 @@ std::string Time::ToLongString() const {
 
 std::string Time::ToString() const {
 	char szBuffer[100];
+
+	if (m_eTimeType != TypeFixed) {
+		_EXCEPTIONT("ToString() only valid for Time::TypeFixed");
+	}
 
 	if (m_iMicroSecond == 0) {
 		sprintf(szBuffer, "%04i-%02i-%02i %02i:%02i:%02i",
@@ -495,7 +554,9 @@ void Time::FromFormattedString(
 		}
 
 		// Record in Date format (yyyy-MM-dd-sssss)
-		if (strFormattedTime[i] == '-') {
+		if ((strFormattedTime[i] == '-') ||
+		    (strFormattedTime[i] == ' ')
+		) {
 			if (state != FormatState_Date) {
 				_EXCEPTION1(
 					"Malformed Time string (%s): "
@@ -664,8 +725,6 @@ void Time::FromFormattedString(
 					"No formatting characters detected",
 					strFormattedTime.c_str());
 
-				//szYear = &(strFormattedTime[j]);
-
 			} else if (szMonth == NULL) {
 				szMonth = &(strFormattedTime[j]);
 
@@ -706,6 +765,13 @@ void Time::FromFormattedString(
 		} 
 	}
 
+	// Type
+	if ((state == FormatState_Date) || (state == FormatState_Time)) {
+		m_eTimeType = TypeFixed;
+	} else {
+		m_eTimeType = TypeDelta;
+	}
+
 	// Convert
 	m_iSecond = 0;
 
@@ -713,10 +779,18 @@ void Time::FromFormattedString(
 		m_iYear = atoi(szYear);
 	}
 	if (szMonth != NULL) {
-		m_iMonth = atoi(szMonth);
+		if (state == FormatState_Free) {
+			m_iMonth = atoi(szMonth);
+		} else {
+			m_iMonth = atoi(szMonth) - 1;
+		}
 	}
 	if (szDay != NULL) {
-		m_iDay = atoi(szDay);
+		if (state == FormatState_Free) {
+			m_iDay = atoi(szDay);
+		} else {
+			m_iDay = atoi(szDay) - 1;
+		}
 	}
 	if (szHour != NULL) {
 		m_iSecond += 3600 * atoi(szHour);
@@ -742,6 +816,8 @@ std::string Time::GetCalendarName() const {
 		return std::string("none");
 	} else if (m_eCalendarType == CalendarNoLeap) {
 		return std::string("noleap");
+	} else if (m_eCalendarType == CalendarStandard) {
+		return std::string("standard");
 	} else {
 		_EXCEPTIONT("Invalid CalendarType");
 	}
