@@ -364,6 +364,9 @@ void Model::Go() {
 			}
 		}
 
+		// Stop the loop timer
+		timerLoop.StopTime();
+
 		// Exit on last step
 		if (fLastStep) {
 			break;
@@ -372,6 +375,11 @@ void Model::Go() {
 		// No longer first time step
 		fFirstStep = false;
 	}
+
+	std::cout << "Average Time Per Loop: "
+		<< FunctionTimer::GetAverageGroupTime("Loop")
+		<< "us" << std::endl;
+
 }
 
 ///////////////////////////////////////////////////////////////////////////////
