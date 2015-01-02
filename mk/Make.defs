@@ -34,6 +34,7 @@ LDFLAGS+= -L$(TEMPESTBASEDIR)/lib
 
 # NETCDF directories
 ifndef NO_NETCDF
+  CFLAGS+= -I$(NETCDF_INCLUDEDIR)
   LDFILES+= -lnetcdf -lnetcdf_c++
   LDFLAGS+= -L$(NETCDF_LIBDIR)
 endif
