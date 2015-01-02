@@ -33,6 +33,13 @@ class TestCase {
 
 public:
 	///	<summary>
+	///		Virtual destructor.
+	///	</summary>
+	virtual ~TestCase() {
+	}
+
+public:
+	///	<summary>
 	///		Equation set type.
 	///	</summary>
 	virtual EquationSet::Type GetEquationSetType() const {
