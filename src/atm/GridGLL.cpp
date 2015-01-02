@@ -173,15 +173,15 @@ void GridGLL::Initialize() {
 		false);
 /*
 	FILE * fp1 = fopen("op1.txt", "w");
-	const DataMatrix<double> & dCoeff1 = m_opDiffREdgeToREdge.GetCoeffs();
+	const DataMatrix<double> & dCoeff1 = m_opDiffNodeToREdge.GetCoeffs();
 	for (int n = 0; n < dCoeff1.GetRows(); n++) {
 		for (int m = 0; m < dCoeff1.GetColumns(); m++) {
 			fprintf(fp1, "%1.5e\t", dCoeff1[n][m]);
 		}
 		fprintf(fp1, "\n");
 	}
-	const DataVector<int> & ixBegin1 = m_opDiffREdgeToREdge.GetIxBegin();
-	const DataVector<int> & ixEnd1 = m_opDiffREdgeToREdge.GetIxEnd();
+	const DataVector<int> & ixBegin1 = m_opDiffNodeToREdge.GetIxBegin();
+	const DataVector<int> & ixEnd1 = m_opDiffNodeToREdge.GetIxEnd();
 	for (int n = 0; n < dCoeff1.GetRows(); n++) {
 		fprintf(fp1, "%i\t%i\n", ixBegin1[n], ixEnd1[n]);
 	}
