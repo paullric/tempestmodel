@@ -33,6 +33,17 @@ private:
 
 public:
 	///	<summary>
+	///		Evaluate the Legendre polynomial and its derivative with given
+	///		degree at point dX.
+	///	</summary>
+	static void EvaluateValueAndDerivative(
+		int nDegree,
+		double dX,
+		double & dValue,
+		double & dDerivative
+	);
+
+	///	<summary>
 	///		Evaluate the Legendre polynomial of the given degree at point dX.
 	///	</summary>
 	static double Evaluate(
@@ -40,26 +51,6 @@ public:
 		double dX
 	);
 
-	///	<summary>
-	///		Determine the number of real roots of the Legendre polynomial of
-	///		the given degree.
-	///	</summary>
-	static int RootCount(
-		int nDegree
-	) {
-		return nDegree;
-	}
-
-	///	<summary>
-	///		Return the given root to the Legendre polynomial of the
-	///		given degree.
-	///	</summary>
-	static double Root(
-		int nDegree,
-		int nRoot
-	);
-
-public:
 	///	<summary>
 	///		Evaluate the derivative of the Legendre polynomial of the given
 	///		degree at point dX.
@@ -108,6 +99,44 @@ public:
 		int nRoot,
 		double dX
 	);
+
+	///	<summary>
+	///		Determine the number of real roots of the Legendre polynomial of
+	///		the given degree.
+	///	</summary>
+	static int RootCount(
+		int nDegree
+	) {
+		return nDegree;
+	}
+
+	///	<summary>
+	///		Return all roots to the Legendre polynomial of the
+	///		given degree.
+	///	</summary>
+	static void AllRoots(
+		int nDegree,
+		double * dRoots
+	);
+
+	///	<summary>
+	///		Return all roots to the derivative of the Legendre polynomial of the
+	///		given degree.
+	///	</summary>
+	static void AllDerivativeRoots(
+		int nDegree,
+		double * dRoots
+	);
+
+	///	<summary>
+	///		Return the given root to the Legendre polynomial of the
+	///		given degree.
+	///	</summary>
+	static double Root(
+		int nDegree,
+		int nRoot
+	);
+
 };
 
 ///////////////////////////////////////////////////////////////////////////////

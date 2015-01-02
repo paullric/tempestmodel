@@ -33,8 +33,6 @@ FILES= CubedSphereTrans.cpp \
        OutputManagerReference.cpp \
        OutputManagerChecksum.cpp \
        PhysicalConstants.cpp \
-       GaussLobattoQuadrature.cpp \
-       GaussQuadrature.cpp \
        Grid.cpp \
        GridPatch.cpp \
        GridLonLat.cpp \
@@ -49,7 +47,6 @@ FILES= CubedSphereTrans.cpp \
        GridData3D.cpp \
        GridData4D.cpp \
        TestCase.cpp \
-	   TimeObj.cpp \
 	   WorkflowProcess.cpp \
 	   HeldSuarezPhysics.cpp
 

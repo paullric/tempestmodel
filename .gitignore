@@ -79,3 +79,9 @@ test/nonhydro_sphere/DG.txt
 test/nonhydro_sphere/DGRef.txt
 
 test/nonhydro_sphere/G.txt
+
+util/MountainWavesSphere/GenerateWaveTopography
+
+util/MountainWavesSphere/GenerateScharTopography
+
+util/MountainWavesSphere/GenerateMountainResponse

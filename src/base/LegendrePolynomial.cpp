@@ -17,166 +17,114 @@
 #include "LegendrePolynomial.h"
 #include "Exception.h"
 
+#include <cmath>
+#include <algorithm>
+
+///////////////////////////////////////////////////////////////////////////////
+
+void LegendrePolynomial::EvaluateValueAndDerivative(
+	int nDegree,
+	double dX,
+	double & dValue,
+	double & dDerivative
+) {
+
+	// Low order cases
+	if (nDegree < 9) {
+		if (nDegree == 0) {
+			dValue = 1.0;
+			dDerivative = 0.0;
+
+		} else if (nDegree == 1) {
+			dValue = dX;
+			dDerivative = 1.0;
+
+		} else if (nDegree == 2) {
+			dValue = (1.5 * dX * dX - 0.5);
+			dDerivative = 3.0 * dX;
+
+		} else if (nDegree == 3) {
+			dValue = ((2.5 * dX * dX - 1.5) * dX);
+			dDerivative = (7.5 * dX * dX - 1.5);
+
+		} else if (nDegree == 4) {
+			dValue = ((4.375 * dX * dX - 3.75) * dX * dX + 0.375);
+			dDerivative = (2.5 * (7.0 * dX * dX - 3.0) * dX);
+
+		} else if (nDegree == 5) {
+			dValue = (((7.875 * dX * dX - 8.75) * dX * dX + 1.875) * dX);
+			dDerivative = ((39.375 * dX * dX - 26.25) * dX * dX + 1.875);
+
+		} else if (nDegree == 6) {
+			dValue = (((14.4375 * dX * dX - 19.6875) * dX * dX + 6.5625) * dX * dX - 0.3125);
+			dDerivative = (((86.625 * dX * dX - 78.75) * dX * dX + 13.125) * dX);
+
+		} else if (nDegree == 7) {
+			dValue = ((((26.8125 * dX * dX - 43.3125) * dX * dX + 19.6875) * dX * dX - 2.1875) * dX);
+			dDerivative = (((187.6875 * dX * dX - 216.5625) * dX * dX + 59.0625) * dX * dX - 2.1875);
+
+		} else if (nDegree == 8) {
+			dValue = ((((50.2734375 * dX * dX - 93.84375) * dX * dX + 54.140625) * dX * dX - 9.84375) * dX * dX + 0.2734375);
+			dDerivative = ((((402.1875 * dX * dX - 563.0625) * dX * dX + 216.5625) * dX * dX - 19.6875) * dX);
+		}
+
+		return;
+	}
+
+	// Arbitrary order cases
+	// Algorithm adapted from Shanjie Zhang and Jianming Jin (1996)
+	// "Computation of Special Functions" ISBN 0-471-11963-6
+	{
+		double * dPn = new double[nDegree + 1];
+		double * dPd = new double[nDegree + 1];
+
+		dPn[0] = 1.0;
+		dPn[1] = dX;
+		dPd[0] = 0.0;
+		dPd[1] = 1.0;
+
+		double dP0 = 1.0;
+		double dP1 = dX;
+
+		double dXk = dX * dX;
+
+		for (int k = 2; k <= nDegree; k++) {
+			double dK = static_cast<double>(k);
+			double dPf = (2.0 * dK - 1.0) / dK * dX * dP1
+				- (dK - 1.0) / dK * dP0;
+
+			dXk = dXk * dX;
+
+			dPn[k] = dPf;
+			if (fabs(dX) == 1.0) {
+				dPd[k] = 0.5 * dXk * dK * (dK + 1.0);
+			} else {
+				dPd[k] = dK * (dP1 - dX * dPf) / (1.0 - dX * dX);
+			}
+			dP0 = dP1;
+			dP1 = dPf;
+		}
+
+		dValue = dPn[nDegree];
+		dDerivative = dPd[nDegree];
+
+		delete[] dPn;
+		delete[] dPd;
+	}
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 
 double LegendrePolynomial::Evaluate(
 	int nDegree,
 	double dX
 ) {
-	switch (nDegree) {
-		case 0:
-			return 1.0;
+	double dValue;
+	double dDerivative;
 
-		case 1:
-			return dX;
+	EvaluateValueAndDerivative(nDegree, dX, dValue, dDerivative);
 
-		case 2:
-			return (1.5 * dX * dX - 0.5);
-
-		case 3:
-			return ((2.5 * dX * dX - 1.5) * dX);
-
-		case 4:
-			return ((4.375 * dX * dX - 3.75) * dX * dX + 0.375);
-
-		case 5:
-			return (((7.875 * dX * dX - 8.75) * dX * dX + 1.875) * dX);
-
-		case 6:
-			return (((14.4375 * dX * dX - 19.6875) * dX * dX + 6.5625) * dX * dX - 0.3125);
-
-		case 7:
-			return ((((26.8125 * dX * dX - 43.3125) * dX * dX + 19.6875) * dX * dX - 2.1875) * dX);
-
-		case 8:
-			return ((((50.2734375 * dX * dX - 93.84375) * dX * dX + 54.140625) * dX * dX - 9.84375) * dX * dX + 0.2734375);
-
-		default:
-			_EXCEPTIONT("Unimplemented - maximum degree is 8.");
-	}
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
-double LegendrePolynomial::Root(
-	int nDegree,
-	int nRoot
-) {
-	if ((nRoot >= nDegree) || (nRoot < 0)) {
-		_EXCEPTIONT("Invalid root.");
-	}
-
-	// First degree polynomial
-	if (nDegree == 1) {
-		return 0.0;
-	}
-
-	// Second degree polynomial
-	if (nDegree == 2) {
-		if (nRoot == 0) {
-			return (- 0.57735026918962576451);
-		} else {
-			return (+ 0.57735026918962576451);
-		}
-	}
-
-	// Third degree polynomial
-	if (nDegree == 3) {
-		if (nRoot == 0) {
-			return (- 0.77459666924148337704);
-		} else if (nRoot == 1) {
-			return (0.0);
-		} else {
-			return (+ 0.77459666924148337704);
-		}
-	}
-
-	// Fourth degree polynomial
-	if (nDegree == 4) {
-		if (nRoot == 0) {
-			return (- 0.86113631159405257524);
-		} else if (nRoot == 1) {
-			return (- 0.33998104358485626481);
-		} else if (nRoot == 2) {
-			return (+ 0.33998104358485626481);
-		} else {
-			return (+ 0.86113631159405257524);
-		}
-	}
-
-	// Fifth degree polynomial
-	if (nDegree == 5) {
-		if (nRoot == 0) {
-			return (- 0.90617984593866399282);
-		} else if (nRoot == 1) {
-			return (- 0.53846931010568309105);
-		} else if (nRoot == 2) {
-			return (0.0);
-		} else if (nRoot == 3) {
-			return (+ 0.53846931010568309105);
-		} else {
-			return (+ 0.90617984593866399282);
-		}
-	}
-
-	// Sixth degree polynomial
-	if (nDegree == 6) {
-		if (nRoot == 0) {
-			return (- 0.93246951420315202781);
-		} else if (nRoot == 1) {
-			return (- 0.66120938646626451366);
-		} else if (nRoot == 2) {
-			return (- 0.23861918608319690863);
-		} else if (nRoot == 3) {
-			return (+ 0.23861918608319690863);
-		} else if (nRoot == 4) {
-			return (+ 0.66120938646626451366);
-		} else {
-			return (+ 0.93246951420315202781);
-		}
-	}
-
-	// Seventh degree polynomial
-	if (nDegree == 7) {
-		if (nRoot == 0) {
-			return (- 0.94910791234275852453);
-		} else if (nRoot == 1) {
-			return (- 0.74153118559939443986);
-		} else if (nRoot == 2) {
-			return (- 0.40584515137739716691);
-		} else if (nRoot == 3) {
-			return (0.0);
-		} else if (nRoot == 4) {
-			return (+ 0.40584515137739716691);
-		} else if (nRoot == 5) {
-			return (+ 0.74153118559939443986);
-		} else {
-			return (+ 0.94910791234275852453);
-		}
-	}
-
-	// Eighth degree polynomial
-	if (nDegree == 8) {
-		if (nRoot == 0) {
-			return (- 0.96028985649753623168);
-		} else if (nRoot == 1) {
-			return (- 0.79666647741362673961);
-		} else if (nRoot == 2) {
-			return (- 0.52553240991632898582);
-		} else if (nRoot == 3) {
-			return (- 0.18343464249564980494);
-		} else if (nRoot == 4) {
-			return (+ 0.18343464249564980494);
-		} else if (nRoot == 5) {
-			return (+ 0.52553240991632898582);
-		} else if (nRoot == 6) {
-			return (+ 0.79666647741362673961);
-		} else {
-			return (+ 0.96028985649753623168);
-		}
-	}
-
-	_EXCEPTIONT("Unimplemented - maximum degree is 8.");
+	return dValue;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -185,38 +133,12 @@ double LegendrePolynomial::EvaluateDerivative(
 	int nDegree,
 	double dX
 ) {
-	switch (nDegree) {
-		case 0:
-			return 0.0;
+	double dValue;
+	double dDerivative;
 
-		case 1:
-			return 1.0;
+	EvaluateValueAndDerivative(nDegree, dX, dValue, dDerivative);
 
-		case 2:
-			return (3.0 * dX);
-
-		case 3:
-			return (7.5 * dX * dX - 1.5);
-
-		case 4:
-			return (2.5 * (7.0 * dX * dX - 3.0) * dX);
-
-		case 5:
-			return ((39.375 * dX * dX - 26.25) * dX * dX + 1.875);
-
-		case 6:
-			return (((86.625 * dX * dX - 78.75) * dX * dX + 13.125) * dX);
-
-		case 7:
-			return (((187.6875 * dX * dX - 216.5625) * dX * dX + 59.0625) * dX * dX - 2.1875);
-
-		case 8:
-			return ((((402.1875 * dX * dX - 563.0625) * dX * dX + 216.5625) * dX * dX - 19.6875) * dX);
-
-		default:
-			_EXCEPTIONT("Unimplemented - maximum degree is 8.");
-	}
-
+	return dDerivative;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -649,6 +571,300 @@ double LegendrePolynomial::EvaluateCharacteristic(
 				+ 0.6240543541747028191) * dX
 				- 0.0186123301334081728) * dX
 				- 0.0178732318328953036);
+		}
+	}
+
+	_EXCEPTIONT("Unimplemented - maximum degree is 8.");
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void LegendrePolynomial::AllRoots(
+	int nDegree,
+	double * dRoots
+) {
+	// Iteration tolerance
+	const double IterationTolerance = 1.0e-14;
+
+	// Check for degree 0
+	if (nDegree == 0) {
+		return;
+	}
+
+	// Check for negative degree
+	if (nDegree < 0) {
+		_EXCEPTION1("Invalid degree (%i)", nDegree);
+	}
+
+	// Check for NULL dRoots pointer
+	if (dRoots == NULL) {
+		_EXCEPTIONT("NULL pointer passed into AllRoots argument dRoots");
+	}
+
+	// Double degree
+	double dDegree = static_cast<double>(nDegree);
+
+	// Additional storage for roots
+	double * dBuffer = new double[nDegree];
+
+	// Set initial estimate
+	for (int k = 0; k < nDegree; k++) {
+		dRoots[k] = (static_cast<double>(k) + 0.5) * 2.0 / dDegree  - 1.0;
+	}
+
+	// Refine estimate using Aberth-Ehrlich method
+	for (int iter = 0; iter < nDegree + 10; iter++) {
+
+		int nFoundRoots = 0;
+
+		for (int k = 0; k < nDegree; k++) {
+			double dValue;
+			double dDerivative;
+
+			EvaluateValueAndDerivative(nDegree, dRoots[k], dValue, dDerivative);
+
+			if (fabs(dValue) < IterationTolerance) {
+				nFoundRoots++;
+				dBuffer[k] = dRoots[k];
+				continue;
+			}
+
+			double dMod = 0.0;
+			for (int l = 0; l < nDegree; l++) {
+				if (l == k) {
+					continue;
+				}
+
+				dMod += 1.0 / (dRoots[k] - dRoots[l]);
+			}
+
+			dBuffer[k] = dRoots[k] - 1.0 / (dDerivative / dValue - dMod);
+		}
+
+		// Copy buffer to roots
+		memcpy(dRoots, dBuffer, nDegree * sizeof(double));
+
+		// Check if all roots have been found
+		if (nFoundRoots == nDegree) {
+			break;
+		}
+	}
+
+	// Sort roots
+	std::sort(dRoots, dRoots + nDegree);
+
+	// Delete buffer
+	delete[] dBuffer;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void LegendrePolynomial::AllDerivativeRoots(
+	int nDegree,
+	double * dRoots
+) {
+	// Iteration tolerance
+	const double IterationTolerance = 1.0e-14;
+
+	// Check for degree 0 or 1
+	if ((nDegree == 0) || (nDegree == 1)) {
+		return;
+	}
+
+	// Check for negative degree
+	if (nDegree < 0) {
+		_EXCEPTION1("Invalid degree (%i)", nDegree);
+	}
+
+	// Check for NULL dRoots pointer
+	if (dRoots == NULL) {
+		_EXCEPTIONT("NULL pointer passed into AllRoots argument dRoots");
+	}
+
+	// Double degree
+	double dDegree = static_cast<double>(nDegree);
+
+	// Additional storage for roots
+	double * dBuffer = new double[nDegree-1];
+
+	// Set initial estimate
+	for (int k = 0; k < nDegree-1; k++) {
+		dRoots[k] = (static_cast<double>(k) + 0.5) * 2.0 / (dDegree - 1.0) - 1.0;
+	}
+
+	// Refine estimate using Aberth-Ehrlich method
+	for (int iter = 0; iter < nDegree + 10; iter++) {
+/*
+		for (int k = 0; k < nDegree - 1; k++) {
+			printf("%i %i: %1.15e\n", iter, k, dRoots[k]);
+		}
+*/
+		int nFoundRoots = 0;
+
+		for (int k = 0; k < nDegree - 1; k++) {
+			double dValue;
+			double dDerivative;
+
+			EvaluateValueAndDerivative(nDegree, dRoots[k], dValue, dDerivative);
+
+			if (fabs(dDerivative) < IterationTolerance) {
+				nFoundRoots++;
+				dBuffer[k] = dRoots[k];
+				continue;
+			}
+
+			double dMod = 0.0;
+			for (int l = 0; l < nDegree - 1; l++) {
+				if (l == k) {
+					continue;
+				}
+
+				dMod += 1.0 / (dRoots[k] - dRoots[l]);
+			}
+
+			// Second derivative obtained from 
+			double dSecondDerivative =
+				1.0 / (1.0 - dRoots[k] * dRoots[k])
+				* (2.0 * dRoots[k] * dDerivative
+					- dDegree * (dDegree + 1.0) * dValue);
+
+			dBuffer[k] = dRoots[k]
+				- 1.0 / (dSecondDerivative / dDerivative - dMod);
+		}
+
+		// Copy buffer to roots
+		memcpy(dRoots, dBuffer, (nDegree - 1) * sizeof(double));
+
+		// Check if all roots have been found
+		if (nFoundRoots == nDegree - 1) {
+			break;
+		}
+	}
+
+	// Sort roots
+	std::sort(dRoots, dRoots + nDegree - 1);
+
+	// Delete buffer
+	delete[] dBuffer;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+double LegendrePolynomial::Root(
+	int nDegree,
+	int nRoot
+) {
+	if ((nRoot >= nDegree) || (nRoot < 0)) {
+		_EXCEPTIONT("Invalid root.");
+	}
+
+	// First degree polynomial
+	if (nDegree == 1) {
+		return 0.0;
+	}
+
+	// Second degree polynomial
+	if (nDegree == 2) {
+		if (nRoot == 0) {
+			return (- 0.57735026918962576451);
+		} else {
+			return (+ 0.57735026918962576451);
+		}
+	}
+
+	// Third degree polynomial
+	if (nDegree == 3) {
+		if (nRoot == 0) {
+			return (- 0.77459666924148337704);
+		} else if (nRoot == 1) {
+			return (0.0);
+		} else {
+			return (+ 0.77459666924148337704);
+		}
+	}
+
+	// Fourth degree polynomial
+	if (nDegree == 4) {
+		if (nRoot == 0) {
+			return (- 0.86113631159405257524);
+		} else if (nRoot == 1) {
+			return (- 0.33998104358485626481);
+		} else if (nRoot == 2) {
+			return (+ 0.33998104358485626481);
+		} else {
+			return (+ 0.86113631159405257524);
+		}
+	}
+
+	// Fifth degree polynomial
+	if (nDegree == 5) {
+		if (nRoot == 0) {
+			return (- 0.90617984593866399282);
+		} else if (nRoot == 1) {
+			return (- 0.53846931010568309105);
+		} else if (nRoot == 2) {
+			return (0.0);
+		} else if (nRoot == 3) {
+			return (+ 0.53846931010568309105);
+		} else {
+			return (+ 0.90617984593866399282);
+		}
+	}
+
+	// Sixth degree polynomial
+	if (nDegree == 6) {
+		if (nRoot == 0) {
+			return (- 0.93246951420315202781);
+		} else if (nRoot == 1) {
+			return (- 0.66120938646626451366);
+		} else if (nRoot == 2) {
+			return (- 0.23861918608319690863);
+		} else if (nRoot == 3) {
+			return (+ 0.23861918608319690863);
+		} else if (nRoot == 4) {
+			return (+ 0.66120938646626451366);
+		} else {
+			return (+ 0.93246951420315202781);
+		}
+	}
+
+	// Seventh degree polynomial
+	if (nDegree == 7) {
+		if (nRoot == 0) {
+			return (- 0.94910791234275852453);
+		} else if (nRoot == 1) {
+			return (- 0.74153118559939443986);
+		} else if (nRoot == 2) {
+			return (- 0.40584515137739716691);
+		} else if (nRoot == 3) {
+			return (0.0);
+		} else if (nRoot == 4) {
+			return (+ 0.40584515137739716691);
+		} else if (nRoot == 5) {
+			return (+ 0.74153118559939443986);
+		} else {
+			return (+ 0.94910791234275852453);
+		}
+	}
+
+	// Eighth degree polynomial
+	if (nDegree == 8) {
+		if (nRoot == 0) {
+			return (- 0.96028985649753623168);
+		} else if (nRoot == 1) {
+			return (- 0.79666647741362673961);
+		} else if (nRoot == 2) {
+			return (- 0.52553240991632898582);
+		} else if (nRoot == 3) {
+			return (- 0.18343464249564980494);
+		} else if (nRoot == 4) {
+			return (+ 0.18343464249564980494);
+		} else if (nRoot == 5) {
+			return (+ 0.52553240991632898582);
+		} else if (nRoot == 6) {
+			return (+ 0.79666647741362673961);
+		} else {
+			return (+ 0.96028985649753623168);
 		}
 	}
 

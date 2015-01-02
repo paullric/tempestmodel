@@ -20,7 +20,10 @@ FILES= Preferences.cpp \
 	LinearAlgebra.cpp \
 	LegendrePolynomial.cpp \
 	PolynomialInterp.cpp \
-	MemoryTools.cpp
+	MemoryTools.cpp \
+	GaussQuadrature.cpp \
+	GaussLobattoQuadrature.cpp \
+	TimeObj.cpp
 
 ##
 ## Build instructions
