@@ -31,6 +31,9 @@ GenerateWaveTopography: $(BUILDDIR)/GenerateWaveTopography.o $(FILES:%.cpp=$(BUI
 GenerateScharTopography: $(BUILDDIR)/GenerateScharTopography.o $(FILES:%.cpp=$(BUILDDIR)/%.o) $(TEMPESTLIBS)
 	$(CC) $(LDFLAGS) -o $@ $(BUILDDIR)/GenerateScharTopography.o $(FILES:%.cpp=$(BUILDDIR)/%.o) $(LDFILES)
 
+ExtractSurface: $(BUILDDIR)/ExtractSurface.o $(FILES:%.cpp=$(BUILDDIR)/%.o) $(TEMPESTLIBS)
+	$(CC) $(LDFLAGS) -o $@ $(BUILDDIR)/ExtractSurface.o $(FILES:%.cpp=$(BUILDDIR)/%.o) $(LDFILES)
+
 ##
 ## Clean
 ##
@@ -39,6 +42,7 @@ clean:
 	rm -f GenerateMountainResponse
 	rm -f GenerateWaveTopography
 	rm -f GenerateScharTopography
+	rm -f ExtractSurface
 	rm -rf $(DEPDIR)
 	rm -rf $(BUILDDIR)
 

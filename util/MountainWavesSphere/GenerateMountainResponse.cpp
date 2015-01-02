@@ -23,6 +23,7 @@
 
 #include <map>
 
+#include "mpi.h"
 #include <netcdfcpp.h>
 
 #include "LinearAlgebra.h"
@@ -36,9 +37,109 @@ extern "C" {
 
 #endif
 */
+
+///////////////////////////////////////////////////////////////////////////////
+
+void ParseLevelArray(
+	const std::string & strLevels,
+	std::vector<double> & vecLevels
+) {
+	int iLevelBegin = 0;
+	int iLevelCurrent = 0;
+
+	vecLevels.clear();
+
+	if (strLevels == "") {
+		return;
+	}
+
+	// Parse pressure levels
+	bool fRangeMode = false;
+	for (;;) {
+		if ((iLevelCurrent >= strLevels.length()) ||
+			(strLevels[iLevelCurrent] == ',') ||
+			(strLevels[iLevelCurrent] == ' ') ||
+			(strLevels[iLevelCurrent] == ':')
+		) {
+			// Range mode
+			if ((!fRangeMode) &&
+				(strLevels[iLevelCurrent] == ':')
+			) {
+				if (vecLevels.size() != 0) {
+					_EXCEPTIONT("Invalid set of pressure levels");
+				}
+				fRangeMode = true;
+			}
+			if (fRangeMode) {
+				if ((strLevels[iLevelCurrent] != ':') &&
+					(iLevelCurrent < strLevels.length())
+				) {
+					_EXCEPTION1("Invalid character in pressure range (%c)",
+						strLevels[iLevelCurrent]);
+				}
+			}
+
+			if (iLevelCurrent == iLevelBegin) {
+				if (iLevelCurrent >= strLevels.length()) {
+					break;
+				}
+
+				continue;
+			}
+
+			std::string strPressureLevelSubStr = 
+				strLevels.substr(
+					iLevelBegin, iLevelCurrent - iLevelBegin);
+
+			vecLevels.push_back(atof(strPressureLevelSubStr.c_str()));
+			
+			iLevelBegin = iLevelCurrent + 1;
+		}
+
+		iLevelCurrent++;
+	}
+
+	// Range mode -- repopulate array
+	if (fRangeMode) {
+		if (vecLevels.size() != 3) {
+			_EXCEPTIONT("Exactly three pressure level entries required "
+				"for range mode");
+		}
+		double dLevelBegin = vecLevels[0];
+		double dLevelStep = vecLevels[1];
+		double dLevelEnd = vecLevels[2];
+
+		if (dLevelStep == 0.0) {
+			_EXCEPTIONT("Level step size cannot be zero");
+		}
+		if ((dLevelEnd - dLevelBegin) / dLevelStep > 10000.0) {
+			_EXCEPTIONT("Too many levels in range (limit 10000)");
+		}
+		if ((dLevelEnd - dLevelBegin) / dLevelStep < 0.0) {
+			_EXCEPTIONT("Sign mismatch in level step");
+		}
+
+		vecLevels.clear();
+		for (int i = 0 ;; i++) {
+			double dLevel = dLevelBegin + static_cast<double>(i) * dLevelStep;
+
+			if ((dLevelStep > 0.0) && (dLevel > dLevelEnd)) {
+				break;
+			}
+			if ((dLevelStep < 0.0) && (dLevel < dLevelEnd)) {
+				break;
+			}
+
+			vecLevels.push_back(dLevel);
+		}
+	}
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 
 int main(int argc, char ** argv) {
+
+	MPI_Init(&argc, &argv);
 
 try {
 
@@ -49,11 +150,11 @@ try {
 	// Horizontal maximum wave number
 	int nKmax;
 */
-	// Number of vertical levels
-	int nLev;
+	// Array of height levels
+	std::string strHeightLevels;
 
-	// Model cap
-	double dZtop;
+	// Array of pressure levels
+	std::string strPressureLevels;
 
 	// Input filename
 	std::string strWaveFile;
@@ -68,8 +169,8 @@ try {
 	BeginCommandLine()
 		//CommandLineInt(nKmin, "kmin", -1);
 		//CommandLineInt(nKmax, "kmax", -1);
-		CommandLineInt(nLev, "levels", 30);
-		CommandLineDouble(dZtop, "ztop", 12000.0);
+		CommandLineString(strHeightLevels, "z", "");
+		CommandLineString(strPressureLevels, "p", "");
 		CommandLineString(strWaveFile, "wave", "wave.nc");
 		CommandLineString(strTopoFile, "topo", "topo.nc");
 		CommandLineString(strOutputFile, "out", "out.nc");
@@ -78,6 +179,41 @@ try {
 	EndCommandLine(argv)
 
 	AnnounceBanner();
+
+	// Parse pressure level string
+	std::vector<double> vecPressureLevels;
+
+	ParseLevelArray(strPressureLevels, vecPressureLevels);
+
+	int nPLev = (int)(vecPressureLevels.size());
+
+	for (int k = 0; k < nPLev; k++) {
+		if (vecPressureLevels[k] <= 0.0) {
+			_EXCEPTIONT("Non-positive pressure values not allowed");
+		}
+	}
+
+	// Parse height level string
+	std::vector<double> vecHeightLevels;
+
+	ParseLevelArray(strHeightLevels, vecHeightLevels);
+
+	int nZLev = (int)(vecHeightLevels.size());
+
+	// Set the number of levels
+	int nLev;
+	if ((nPLev == 0) && (nZLev == 0)) {
+		_EXCEPTIONT("No pressure / height levels to process");
+	}
+	if ((nPLev != 0) && (nZLev != 0)) {
+		_EXCEPTIONT("Only height or pressure levels may be specified");
+	}
+	if (nPLev != 0) {
+		nLev = nPLev;
+	}
+	if (nZLev != 0) {
+		nLev = nZLev;
+	}
 
 	// Open NetCDF topography file
 	AnnounceStartBlock("Loading topography file");
@@ -109,20 +245,24 @@ try {
 	varZs->get(&(dZs[0][0]), nLat, nLon);
 
 	ncdf_topo.close();
-
+/*
 	// Generate level array
 	DataVector<double> dLev;
 	dLev.Initialize(nLev);
 	for (int l = 0; l < nLev; l++) {
-		dLev[l] = dZtop / static_cast<double>(nLev-1)
+		dLev[l] = 1.0 / static_cast<double>(nLev-1)
 			* static_cast<double>(l);
 	}
-
+*/
 	AnnounceEndBlock("Done");
 
 	// Open NetCDF wave file
 	AnnounceStartBlock("Processing wave file");
 	NcFile ncdf_wave(strWaveFile.c_str(), NcFile::ReadOnly);
+
+	// Get the inverse Rossby number and Froude number
+	double dInvRo = ncdf_wave.get_att("InvRo")->as_double(0);
+	double dFr = ncdf_wave.get_att("Fr")->as_double(0);
 
 	// Get latitude count
 	NcVar *varWaveLat = ncdf_wave.get_var("lat");
@@ -185,11 +325,42 @@ try {
 	DataMatrix3D<double> dP;
 	DataMatrix3D<double> dRho;
 
+	DataMatrix3D<double> dURef;
+	DataMatrix3D<double> dPRef;
+	DataMatrix3D<double> dRhoRef;
+
 	dU  .Initialize(nLev, nLat, nLon);
 	dV  .Initialize(nLev, nLat, nLon);
 	dW  .Initialize(nLev, nLat, nLon);
 	dP  .Initialize(nLev, nLat, nLon);
 	dRho.Initialize(nLev, nLat, nLon);
+
+	dURef.Initialize(nLev, nLat, nLon);
+	dPRef.Initialize(nLev, nLat, nLon);
+	dRhoRef.Initialize(nLev, nLat, nLon);
+
+	// Build the reference state
+	for (int l = 0; l < nLev; l++) {
+	for (int j = 0; j < nLat; j++) {
+	for (int i = 0; i < nLon; i++) {
+		double dPhi = dLat[j];
+
+		double dZ;
+		if (nZLev != 0) {
+			dZ = vecHeightLevels[l] / dH;
+		}
+		if (nPLev != 0) {
+			dZ = - log(vecPressureLevels[l] / 1.0e5)
+				- 0.5 * dFr * dFr * (1.0 + dInvRo) * sin(dPhi) * sin(dPhi);
+		}
+
+		dURef[l][j][i] = 1.0 * cos(dPhi);
+		dPRef[l][j][i] = 1.0e5 * exp(
+			- dZ - 0.5 * dFr * dFr * (1.0 + dInvRo) * sin(dPhi) * sin(dPhi));
+		dRhoRef[l][j][i] = dPRef[l][j][i] / (9.80616 * dH);
+	}
+	}
+	}
 
 	// Loop through desired wave numbers
 	for (int k = 0; k < vecK.GetRows(); k++) {
@@ -393,7 +564,15 @@ try {
 			for (int i = 0; i < nLon; i++) {
 				double dLambda = dLon[i];
 				double dPhi = dLat[j];
-				double dZ = dLev[l] / dH;
+				double dZ;
+				if (nZLev != 0) {
+					dZ = vecHeightLevels[l] / dH;
+				}
+				if (nPLev != 0) {
+					dZ = - log(vecPressureLevels[l] / 1.0e5)
+						- 0.5 * dFr * dFr * (1.0 + dInvRo) * sin(dPhi) * sin(dPhi);
+				}
+
 
 				double dPsi = dK * dLambda + dMR[n] * dZ;
 
@@ -460,11 +639,19 @@ try {
 	// Output dimensions and corresponding variables
 	NcDim * dimOutLat = ncdf_out.add_dim("lat", nLat);
 	NcDim * dimOutLon = ncdf_out.add_dim("lon", nLon);
-	NcDim * dimOutLev = ncdf_out.add_dim("lev", nLev);
+
+	std::string strLevName;
+	if (nZLev != 0) {
+		strLevName = "z";
+	}
+	if (nPLev != 0) {
+		strLevName = "p";
+	}
+	NcDim * dimOutLev = ncdf_out.add_dim(strLevName.c_str(), nLev);
 
 	NcVar * varOutLat = ncdf_out.add_var("lat", ncDouble, dimOutLat);
 	NcVar * varOutLon = ncdf_out.add_var("lon", ncDouble, dimOutLon);
-	NcVar * varOutLev = ncdf_out.add_var("lev", ncDouble, dimOutLev);
+	NcVar * varOutLev = ncdf_out.add_var(strLevName.c_str(), ncDouble, dimOutLev);
 
 	varOutLat->set_cur((long)0);
 	varOutLat->put(&(dLat[0]), nLat);
@@ -473,24 +660,36 @@ try {
 	varOutLon->put(&(dLon[0]), nLon);
 
 	varOutLev->set_cur((long)0);
-	varOutLev->put(&(dLev[0]), nLev);
+	if (nZLev != 0) {
+		varOutLev->put(&(vecHeightLevels[0]), nLev);
+	}
+	if (nPLev != 0) {
+		varOutLev->put(&(vecPressureLevels[0]), nLev);
+	}
 
 	// Output topography
-	NcVar * varZS = ncdf_out.add_var("zs", ncDouble, dimOutLat, dimOutLon);
+	NcVar * varZS = ncdf_out.add_var("Zs", ncDouble, dimOutLat, dimOutLon);
 	varZS->set_cur(0, 0);
 	varZS->put(&(dZs[0][0]), nLat, nLon);
 
 	// Output variables
 	NcVar * varOutU =
-		ncdf_out.add_var("u", ncDouble, dimOutLev, dimOutLat, dimOutLon);
+		ncdf_out.add_var("U", ncDouble, dimOutLev, dimOutLat, dimOutLon);
 	NcVar * varOutV =
-		ncdf_out.add_var("v", ncDouble, dimOutLev, dimOutLat, dimOutLon);
+		ncdf_out.add_var("V", ncDouble, dimOutLev, dimOutLat, dimOutLon);
 	NcVar * varOutP =
-		ncdf_out.add_var("p", ncDouble, dimOutLev, dimOutLat, dimOutLon);
+		ncdf_out.add_var("P", ncDouble, dimOutLev, dimOutLat, dimOutLon);
 	NcVar * varOutW =
-		ncdf_out.add_var("w", ncDouble, dimOutLev, dimOutLat, dimOutLon);
+		ncdf_out.add_var("W", ncDouble, dimOutLev, dimOutLat, dimOutLon);
 	NcVar * varOutRho =
-		ncdf_out.add_var("rho", ncDouble, dimOutLev, dimOutLat, dimOutLon);
+		ncdf_out.add_var("Rho", ncDouble, dimOutLev, dimOutLat, dimOutLon);
+
+	NcVar * varOutURef =
+		ncdf_out.add_var("URef", ncDouble, dimOutLev, dimOutLat, dimOutLon);
+	NcVar * varOutPRef =
+		ncdf_out.add_var("PRef", ncDouble, dimOutLev, dimOutLat, dimOutLon);
+	NcVar * varOutRhoRef =
+		ncdf_out.add_var("RhoRef", ncDouble, dimOutLev, dimOutLat, dimOutLon);
 
 	varOutU->set_cur(0, 0, 0);
 	varOutU->put(&(dU[0][0][0]), nLev, nLat, nLon);
@@ -507,6 +706,15 @@ try {
 	varOutRho->set_cur(0, 0, 0);
 	varOutRho->put(&(dRho[0][0][0]), nLev, nLat, nLon);
 
+	varOutURef->set_cur(0, 0, 0);
+	varOutURef->put(&(dURef[0][0][0]), nLev, nLat, nLon);
+
+	varOutPRef->set_cur(0, 0, 0);
+	varOutPRef->put(&(dPRef[0][0][0]), nLev, nLat, nLon);
+
+	varOutRhoRef->set_cur(0, 0, 0);
+	varOutRhoRef->put(&(dRhoRef[0][0][0]), nLev, nLat, nLon);
+
 	ncdf_out.close();
 
 	AnnounceEndBlock("Done");
@@ -516,6 +724,7 @@ try {
 } catch(Exception & e) {
 	Announce(e.ToString().c_str());
 }
+	MPI_Finalize();
 }
 
 ///////////////////////////////////////////////////////////////////////////////

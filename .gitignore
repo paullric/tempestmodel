@@ -85,3 +85,5 @@ util/MountainWavesSphere/GenerateWaveTopography
 util/MountainWavesSphere/GenerateScharTopography
 
 util/MountainWavesSphere/GenerateMountainResponse
+
+util/MountainWavesSphere/ComputeWaveModes

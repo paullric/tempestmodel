@@ -25,6 +25,8 @@
 #include <map>
 #include <cmath>
 
+#include "mpi.h"
+
 #include <netcdfcpp.h>
 
 #if defined USEVECLIB || defined USEMKL
@@ -44,7 +46,9 @@ void GenerateEvolutionMatrix(
 	int nK,
 	const Parameters & param,
 	DataMatrix<double> & matM,
-	DataMatrix<double> & matB
+	DataMatrix<double> & matB,
+	double & dInvRo,
+	double & dFr
 ) {
 	int nMatrixSize = 5 * param.nPhiElements - 1;
 
@@ -58,14 +62,13 @@ void GenerateEvolutionMatrix(
 	const double ParamRd = 287.0;
 
 	// Inverse Rossby number
-	double dInvRo =
-		2.0 * ParamEarthRadius * param.dOmega * param.dXscale / param.dU0;
+	dInvRo = 2.0 * ParamEarthRadius * param.dOmega * param.dXscale / param.dU0;
 
 	// Scale height
 	double dH = ParamRd * param.dT0 / param.dG;
 
 	// Froude number
-	double dFr = param.dU0 / sqrt(param.dG * dH);
+	dFr = param.dU0 / sqrt(param.dG * dH);
 
 	// Squared Froude number
 	double dFr2 = dFr * dFr;
@@ -154,20 +157,20 @@ void GenerateEvolutionMatrix(
 		}
 
 		// P evolution equations
-		matM[ixU][ixP] = 1.0;
-		matM[ixR][ixP] = 1.0;
+		matM[ixU][ixP] = dCosPhi;
+		matM[ixR][ixP] = dCosPhi;
 
 		if (j != 0) {
 			matM[ixVL][ixP] =
-				- 0.5 * dFr2 * (1.0 + dInvRo) * dSinPhi * dCosPhi
-				- 0.5 * dTanPhi
-				- 1.0 / dDeltaPhi;
+				- 0.5 * dFr2 * (1.0 + dInvRo) * dSinPhi * dCosPhi * dCosPhi
+				- 0.5 * dSinPhi
+				- dCosPhi / dDeltaPhi;
 		}
 		if (j != param.nPhiElements - 1) {
 			matM[ixVR][ixP] =
-				- 0.5 * dFr2 * (1.0 + dInvRo) * dSinPhi * dCosPhi
-				- 0.5 * dTanPhi
-				+ 1.0 / dDeltaPhi;
+				- 0.5 * dFr2 * (1.0 + dInvRo) * dSinPhi * dCosPhi * dCosPhi
+				- 0.5 * dSinPhi
+				+ dCosPhi / dDeltaPhi;
 		}
 
 		// W evolution equation
@@ -254,6 +257,8 @@ void SolveEvolutionMatrix(
 ///////////////////////////////////////////////////////////////////////////////
 
 int main(int argc, char ** argv) {
+
+	MPI_Init(&argc, &argv);
 
 try {
 
@@ -373,7 +378,14 @@ try {
 		DataMatrix<double> matM;
 		DataMatrix<double> matB;
 
-		GenerateEvolutionMatrix(nK, param, matM, matB);
+		double dInvRo;
+		double dFr;
+		GenerateEvolutionMatrix(nK, param, matM, matB, dInvRo, dFr);
+
+		if (nK == nKmin) {
+			ncdf_out.add_att("InvRo", dInvRo);
+			ncdf_out.add_att("Fr", dFr);
+		}
 
 		AnnounceEndBlock("Done");
 
@@ -578,6 +590,7 @@ try {
 } catch(Exception & e) {
 	Announce(e.ToString().c_str());
 }
+	MPI_Finalize();
 }
 
 
