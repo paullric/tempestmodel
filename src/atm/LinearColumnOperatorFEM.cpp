@@ -195,7 +195,8 @@ void LinearColumnDiffFEM::Initialize(
 	// Loop through all output elements
 	for (int l = 0; l < nRElementsOut; l++) {
 
-		// Determine input element index
+		// Determine input element index and whether we are on a finite
+		// element edge (excluding top and bottom boundary)
 		bool fOnREdge = false;
 		int a;
 

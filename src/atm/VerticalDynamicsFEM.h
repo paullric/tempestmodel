@@ -56,7 +56,7 @@ public:
 		Model & model,
 		int nHorizontalOrder,
 		int nVerticalOrder,
-		int nHyperdiffusionOrder = 0,
+		int nHypervisOrder = 0,
 		bool fFullyExplicit = false,
 		bool fUseReferenceState = true,
 		bool fExnerPressureOnLevels = true,
@@ -236,14 +236,14 @@ protected:
 	bool m_fMassFluxOnLevels;
 
 	///	<summary>
-	///		Hyperdiffusion coefficient.
+	///		Hypervis coefficient.
 	///	</summary>
-	double m_dHyperdiffusionCoeff;
+	double m_dHypervisCoeff;
 
 	///	<summary>
 	///		Order of hyperdiffusion to apply (must be even).
 	///	</summary>
-	int m_nHyperdiffusionOrder;
+	int m_nHypervisOrder;
 
 	///	<summary>
 	///		Timestep size.

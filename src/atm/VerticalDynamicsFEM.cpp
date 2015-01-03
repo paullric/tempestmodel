@@ -30,7 +30,7 @@
 
 ///////////////////////////////////////////////////////////////////////////////
 
-#define UPWIND_HORIZONTAL_VELOCITIES
+//#define UPWIND_HORIZONTAL_VELOCITIES
 //#define UPWIND_RHO
 #define UPWIND_THETA
 
@@ -43,7 +43,7 @@ VerticalDynamicsFEM::VerticalDynamicsFEM(
 	Model & model,
 	int nHorizontalOrder,
 	int nVerticalOrder,
-	int nHyperdiffusionOrder,
+	int nHypervisOrder,
 	bool fFullyExplicit,
 	bool fUseReferenceState,
 	bool fExnerPressureOnLevels,
@@ -56,29 +56,15 @@ VerticalDynamicsFEM::VerticalDynamicsFEM(
 	m_fUseReferenceState(fUseReferenceState),
 	m_fExnerPressureOnLevels(fExnerPressureOnLevels),
 	m_fMassFluxOnLevels(fMassFluxOnLevels),
-	m_nHyperdiffusionOrder(nHyperdiffusionOrder),
-	m_dHyperdiffusionCoeff(0.0)
+	m_nHypervisOrder(nHypervisOrder),
+	m_dHypervisCoeff(0.0)
 {
-	if (nHyperdiffusionOrder % 2 == 1) {
+	if (nHypervisOrder % 2 == 1) {
 		_EXCEPTIONT("Vertical hyperdiffusion order must be even.");
 	}
 
-	if (nHyperdiffusionOrder < 0) {
-		_EXCEPTIONT("Vertical hyperdiffusion order must be positive.");
-	}
-
-	if (nHyperdiffusionOrder == 0) {
-		m_dHyperdiffusionCoeff = 0.0;
-
-	} else if (nHyperdiffusionOrder == 2) {
-		m_dHyperdiffusionCoeff = 0.2;
-		//m_dHyperdiffusionCoeff = 0.002;
-
-	} else if (nHyperdiffusionOrder == 4) {
-		m_dHyperdiffusionCoeff = -0.025;
-
-	} else {
-		_EXCEPTIONT("UNIMPLEMENTED: Vertical hyperdiffusion order > 4");
+	if (nHypervisOrder < 0) {
+		_EXCEPTIONT("Vertical hyperdiffusion order must be nonnegative.");
 	}
 }
 
@@ -185,9 +171,9 @@ void VerticalDynamicsFEM::Initialize() {
 		_EXCEPTIONT("Diagonal Jacobian only implemented for "
 			"ReconstructionPolyType == 2");
 	}
-	if (m_nHyperdiffusionOrder > 2) {
+	if (m_nHypervisOrder > 2) {
 		_EXCEPTIONT("Diagonal Jacobian only implemented for "
-			"Hyperdiffusion order <= 2");
+			"Hypervis order <= 2");
 	}
 	if (m_nVerticalOrder == 1) {
 		m_nJacobianFKL = 4;
@@ -355,6 +341,29 @@ void VerticalDynamicsFEM::Initialize() {
 		}
 	}
 
+	// Compute hyperviscosity coefficient
+	if (m_nHypervisOrder == 0) {
+		m_dHypervisCoeff = 0.0;
+
+	} else if (m_nHypervisOrder == 2) {
+		m_dHypervisCoeff = (1.0 / 2.0);
+
+	} else if (m_nHypervisOrder == 4) {
+		m_dHypervisCoeff = - (1.0 / 12.0)
+			* pow(1.0 / static_cast<double>(nRElements), 2.0);
+
+	} else if (m_nHypervisOrder == 6) {
+		m_dHypervisCoeff = (1.0 / 60.0)
+			* pow(1.0 / static_cast<double>(nRElements), 4.0);
+
+	} else if (m_nHypervisOrder == 8) {
+		m_dHypervisCoeff = - (3.0 / 840.0)
+			* pow(1.0 / static_cast<double>(nRElements), 6.0);
+
+	} else {
+		_EXCEPTIONT("UNIMPLEMENTED: Vertical hyperdiffusion order > 8");
+	}
+
 /*
 	// Compute higher powers of the second derivative operator
 	DataMatrix<double> dHypervisFirstBuffer;
@@ -363,10 +372,10 @@ void VerticalDynamicsFEM::Initialize() {
 	DataMatrix<double> dHypervisSecondBuffer;
 	dHypervisSecondBuffer.Initialize(nRElements+1, nRElements+1);
 
-	if (m_nHyperdiffusionOrder > 2) {
+	if (m_nHypervisOrder > 2) {
 		dHypervisFirstBuffer = m_dHypervisREdgeToREdge;
 
-		for (int h = 2; h < m_nHyperdiffusionOrder; h += 2) {
+		for (int h = 2; h < m_nHypervisOrder; h += 2) {
 			dHypervisSecondBuffer = m_dHypervisREdgeToREdge;
 
 			LAPACK::DGEMM(
@@ -1787,20 +1796,15 @@ void VerticalDynamicsFEM::PrepareColumn(
 		m_dStateREdge[TIx],
 		m_dDiffDiffTheta
 	);
-#endif
 
 	// Compute higher derivatives of theta used for hyperdiffusion
-	if ((pGrid->GetVarLocation(TIx) == DataLocation_REdge) &&
-		(m_nHyperdiffusionOrder > 0)
-	) {
-		_EXCEPTIONT("Under construction");
-/*
-		DiffDiffREdgeToREdge(
-			m_dStateREdge[TIx],
-			m_dDiffDiffTheta
-		);
+	if (m_nHypervisOrder > 0) {
 
-		for (int h = 2; h < m_nHyperdiffusionOrder; h += 2) {
+		if (pGrid->GetVarLocation(TIx) != DataLocation_REdge) {
+			_EXCEPTIONT("Not implemented");
+		}
+
+		for (int h = 2; h < m_nHypervisOrder; h += 2) {
 			memcpy(
 				m_dStateAux,
 				m_dDiffDiffTheta,
@@ -1811,8 +1815,8 @@ void VerticalDynamicsFEM::PrepareColumn(
 				m_dDiffDiffTheta
 			);
 		}
-*/
 	}
+#endif
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -2034,7 +2038,8 @@ void VerticalDynamicsFEM::BuildF(
 
 		for (int k = 0; k <= nRElements; k++) {
 			dF[VecFIx(FTIx, k)] -=
-				0.5 * fabs(m_dXiDotREdge[k])
+				m_dHypervisCoeff
+				* fabs(m_dXiDotREdge[k])
 				* m_dDiffDiffTheta[k];
 		}
 	}
@@ -2061,8 +2066,8 @@ void VerticalDynamicsFEM::BuildF(
 				m_dStateREdge[VIx][nRElements],
 				m_dStateREdge[WIx][nRElements]);
 
-	} else {
-		_EXCEPTIONT("UNIMPLEMENTED");
+	//} else {
+	//	_EXCEPTIONT("UNIMPLEMENTED");
 	}
 
 /*
@@ -2426,14 +2431,17 @@ void VerticalDynamicsFEM::BuildJacobianF(
 			}
 
 			dDG[MatFIx(FWIx, k, FTIx, k)] -=
-				0.5 * dOrthonomREdge[k][m_iA][m_iB][2] * dSignW
-					* m_dDiffDiffTheta[k];
+				m_dHypervisCoeff
+				* dOrthonomREdge[k][m_iA][m_iB][2]
+				* dSignW
+				* m_dDiffDiffTheta[k];
 
 			// dT_k/dT_m
 			for (int m = 0; m <= nRElements; m++) {
 				dDG[MatFIx(FTIx, m, FTIx, k)] -=
-					0.5 * fabs(m_dXiDotREdge[k])
-						* m_dHypervisREdgeToREdge[m][k];
+					m_dHypervisCoeff
+					* fabs(m_dXiDotREdge[k])
+					* m_dHypervisREdgeToREdge[m][k];
 			}
 		}
 	}
