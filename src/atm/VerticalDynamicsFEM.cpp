@@ -280,14 +280,14 @@ void VerticalDynamicsFEM::Initialize() {
 		m_dDiffDiffNodeToNode[n][m] /= dW[n];
 	}
 	}
-
+/*
 	// Scale by 1/dxi
 	for (int n = 0; n < m_nVerticalOrder; n++) {
 	for (int m = 0; m < m_nVerticalOrder; m++) {
 		m_dDiffDiffNodeToNode[n][m] *= dElementDeltaXi;
 	}
 	}
-
+*/
 	// Compute second differentiation coefficients from edges to edges
 	m_dDiffDiffREdgeToREdge.Initialize(
 		m_nVerticalOrder+1, m_nVerticalOrder+1);
@@ -304,14 +304,14 @@ void VerticalDynamicsFEM::Initialize() {
 		m_dDiffDiffREdgeToREdge[n][m] /= dWL[n];
 	}
 	}
-
+/*
 	// Scale by 1/dxi
 	for (int n = 0; n <= m_nVerticalOrder; n++) {
 	for (int m = 0; m <= m_nVerticalOrder; m++) {
 		m_dDiffDiffREdgeToREdge[n][m] *= dElementDeltaXi;
 	}
 	}
-
+*/
 	// Compute hyperviscosity operator
 	m_dHypervisREdgeToREdge.Initialize(
 		nRElements+1, nRElements+1);
@@ -346,19 +346,20 @@ void VerticalDynamicsFEM::Initialize() {
 		m_dHypervisCoeff = 0.0;
 
 	} else if (m_nHypervisOrder == 2) {
-		m_dHypervisCoeff = (1.0 / 2.0);
+		m_dHypervisCoeff = (1.0 / 2.0)
+			* pow(1.0 / static_cast<double>(nRElements), 1.0);
 
 	} else if (m_nHypervisOrder == 4) {
-		m_dHypervisCoeff = - (1.0 / 12.0)
-			* pow(1.0 / static_cast<double>(nRElements), 2.0);
+		m_dHypervisCoeff = - (1.0 / 6.0) //(1.0 / 12.0)
+			* pow(1.0 / static_cast<double>(nRElements), 3.0);
 
 	} else if (m_nHypervisOrder == 6) {
 		m_dHypervisCoeff = (1.0 / 60.0)
-			* pow(1.0 / static_cast<double>(nRElements), 4.0);
+			* pow(1.0 / static_cast<double>(nRElements), 5.0);
 
 	} else if (m_nHypervisOrder == 8) {
 		m_dHypervisCoeff = - (3.0 / 840.0)
-			* pow(1.0 / static_cast<double>(nRElements), 6.0);
+			* pow(1.0 / static_cast<double>(nRElements), 7.0);
 
 	} else {
 		_EXCEPTIONT("UNIMPLEMENTED: Vertical hyperdiffusion order > 8");
@@ -1796,7 +1797,17 @@ void VerticalDynamicsFEM::PrepareColumn(
 		m_dStateREdge[TIx],
 		m_dDiffDiffTheta
 	);
-
+/*
+	if (m_iA == 23) {
+		for (int k = 0; k <= nRElements; k++) {
+			printf("%1.14e %1.14e %1.14e\n",
+				pGrid->GetREtaInterface(k),
+				m_dStateREdge[TIx][k],
+				m_dDiffDiffTheta[k]);
+		}
+		_EXCEPTION();
+	}
+*/
 	// Compute higher derivatives of theta used for hyperdiffusion
 	if (m_nHypervisOrder > 0) {
 

@@ -325,7 +325,7 @@ void LinearColumnDiffFEM::Initialize(
 			DataVector<double> dTempCoeffRR;
 			dTempCoeffRR.Initialize(nVerticalOrder);
 
-			// Derivatives of the flux reconstruction function at this point
+			// Derivatives of the flux correction function at this point
 			DataVector<double> dNodesR;
 			dNodesR.Initialize(1);
 			dNodesR[0] =
@@ -399,7 +399,7 @@ void LinearColumnDiffFEM::Initialize(
 				}
 
 			} else {
-				if (!fZeroBoundaries) {
+				if ((!fZeroBoundaries) && (nFiniteElements != 1)) {
 					for (int k = 0; k < nVerticalOrder; k++) {
 						m_dCoeff[l][ a    * nVerticalOrder + k] +=
 							0.5 * dDerivL[0] * dTempCoeffRL[k];
@@ -420,7 +420,7 @@ void LinearColumnDiffFEM::Initialize(
 				}
 
 			} else {
-				if (!fZeroBoundaries) {
+				if ((!fZeroBoundaries) && (nFiniteElements != 1)) {
 					for (int k = 0; k < nVerticalOrder; k++) {
 						m_dCoeff[l][ a    * nVerticalOrder + k] +=
 							0.5 * dDerivR[0] * dTempCoeffLR[k];
