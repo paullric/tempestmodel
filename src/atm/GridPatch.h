@@ -462,6 +462,28 @@ public:
 	}
 
 	///	<summary>
+	///		Get the  components of the covariant metric (alpha)
+	///	</summary>
+	const DataMatrix3D<double> & GetCovMetric2DA() const {
+		if (!m_fContainsData) {
+			_EXCEPTIONT("Stub patch does not store data.");
+		}
+
+		return m_dataCovMetric2DA;
+	}
+
+	///	<summary>
+	///		Get the  components of the covariant metric (beta)
+	///	</summary>
+	const DataMatrix3D<double> & GetCovMetric2DB() const {
+		if (!m_fContainsData) {
+			_EXCEPTIONT("Stub patch does not store data.");
+		}
+
+		return m_dataCovMetric2DB;
+	}
+
+	///	<summary>
 	///		Get the nodal Jacobian matrix.
 	///	</summary>
 	const DataMatrix3D<double> & GetJacobian() const {
@@ -514,6 +536,39 @@ public:
 		}
 
 		return m_dataContraMetricXi;
+	}
+
+	///	<summary>
+	///		Get the  components of the covariant metric (alpha)
+	///	</summary>
+	const DataMatrix4D<double> & GetCovMetricA() const {
+		if (!m_fContainsData) {
+			_EXCEPTIONT("Stub patch does not store data.");
+		}
+
+		return m_dataCovMetricA;
+	}
+
+	///	<summary>
+	///		Get the  components of the covariant metric (beta)
+	///	</summary>
+	const DataMatrix4D<double> & GetCovMetricB() const {
+		if (!m_fContainsData) {
+			_EXCEPTIONT("Stub patch does not store data.");
+		}
+
+		return m_dataCovMetricB;
+	}
+
+	///	<summary>
+	///		Get the  components of the covariant metric (xi)
+	///	</summary>
+	const DataMatrix4D<double> & GetCovMetricXi() const {
+		if (!m_fContainsData) {
+			_EXCEPTIONT("Stub patch does not store data.");
+		}
+
+		return m_dataCovMetricXi;
 	}
 
 	///	<summary>
@@ -1089,6 +1144,16 @@ protected:
 	DataMatrix3D<double> m_dataContraMetric2DB;
 
 	///	<summary>
+	///		2D Covariant metric (alpha) components.
+	///	</summary>
+	DataMatrix3D<double> m_dataCovMetric2DA;
+
+	///	<summary>
+	///		2D Covariant metric (beta) components.
+	///	</summary>
+	DataMatrix3D<double> m_dataCovMetric2DB;
+
+	///	<summary>
 	///		Jacobian at each node.
 	///	</summary>
 	DataMatrix3D<double> m_dataJacobian;
@@ -1112,6 +1177,21 @@ protected:
 	///		Contravariant metric (xi) components.
 	///	</summary>
 	DataMatrix4D<double> m_dataContraMetricXi;
+
+	///	<summary>
+	///		Covariant metric (alpha) components.
+	///	</summary>
+	DataMatrix4D<double> m_dataCovMetricA;
+
+	///	<summary>
+	///		Covariant metric (beta) components.
+	///	</summary>
+	DataMatrix4D<double> m_dataCovMetricB;
+
+	///	<summary>
+	///		Covariant metric (xi) components.
+	///	</summary>
+	DataMatrix4D<double> m_dataCovMetricXi;
 
 	///	<summary>
 	///		Christoffel symbol (alpha) components at each node.

@@ -31,6 +31,8 @@
 #pragma message "WARNING: DIFFERENTIAL_FORM will lose mass over topography"
 #endif
 
+#define VECTOR_INVARIANT_FORM
+
 ///////////////////////////////////////////////////////////////////////////////
 
 HorizontalDynamicsFEM::HorizontalDynamicsFEM(
@@ -65,6 +67,14 @@ void HorizontalDynamicsFEM::Initialize() {
 		m_nHorizontalOrder);
 
 	m_dPressure.Initialize(
+		m_nHorizontalOrder,
+		m_nHorizontalOrder);
+
+	m_dCovUa.Initialize(
+		m_nHorizontalOrder,
+		m_nHorizontalOrder);
+
+	m_dCovUb.Initialize(
 		m_nHorizontalOrder,
 		m_nHorizontalOrder);
 
@@ -117,14 +127,22 @@ void HorizontalDynamicsFEM::StepShallowWater(
 			pPatch->GetContraMetricA();
 		const DataMatrix4D<double> & dContraMetricB =
 			pPatch->GetContraMetricB();
-		const DataMatrix3D<double> & dChristoffelA =
-			pPatch->GetChristoffelA();
-		const DataMatrix3D<double> & dChristoffelB =
-			pPatch->GetChristoffelB();
 		const DataMatrix<double> & dCoriolisF =
 			pPatch->GetCoriolisF();
 		const DataMatrix<double> & dTopography =
 			pPatch->GetTopography();
+
+#ifdef VECTOR_INVARIANT_FORM
+		const DataMatrix4D<double> & dCovMetricA =
+			pPatch->GetCovMetricA();
+		const DataMatrix4D<double> & dCovMetricB =
+			pPatch->GetCovMetricB();
+#else
+		const DataMatrix3D<double> & dChristoffelA =
+			pPatch->GetChristoffelA();
+		const DataMatrix3D<double> & dChristoffelB =
+			pPatch->GetChristoffelB();
+#endif
 
 		// Data
 		const GridData4D & dataInitialNode =
@@ -166,9 +184,31 @@ void HorizontalDynamicsFEM::StepShallowWater(
 					* (dataInitialNode[HIx][k][iA][iB] - dTopography[iA][iB])
 					* dataInitialNode[VIx][k][iA][iB];
 
+#ifdef VECTOR_INVARIANT_FORM
+				double dUa = dataInitialNode[UIx][k][iA][iB];
+				double dUb = dataInitialNode[VIx][k][iA][iB];
+
+				// Covariant velocities
+				m_dCovUa[i][j] =
+					  dCovMetricA[k][iA][iB][0] * dUa
+					+ dCovMetricA[k][iA][iB][1] * dUb;
+
+				m_dCovUb[i][j] =
+					  dCovMetricB[k][iA][iB][0] * dUa
+					+ dCovMetricB[k][iA][iB][1] * dUb;
+
+				// Kinetic energy (KE)
+				double dKE =
+					0.5 * (m_dCovUa[i][j] * dUa + m_dCovUb[i][j] * dUb);
+
+				// Pointwise pressure plus KE
+				m_dPressure[i][j] =
+					phys.GetG() * dataInitialNode[HIx][k][iA][iB] + dKE;
+#else
 				// Pointwise pressure
 				m_dPressure[i][j] =
 					phys.GetG() * dataInitialNode[HIx][k][iA][iB];
+#endif
 			}
 			}
 
@@ -182,11 +222,17 @@ void HorizontalDynamicsFEM::StepShallowWater(
 				int iElementA = a * m_nHorizontalOrder + box.GetHaloElements();
 				int iElementB = b * m_nHorizontalOrder + box.GetHaloElements();
 
-				// Derivatives of the velocity field
+				// Derivatives of the contravariant velocity field
 				double dDaUa = 0.0;
 				double dDaUb = 0.0;
 				double dDbUa = 0.0;
 				double dDbUb = 0.0;
+
+#ifdef VECTOR_INVARIANT_FORM
+				// Derivatives of the covariant velocity field
+				double dCovDaUb = 0.0;
+				double dCovDbUa = 0.0;
+#endif
 
 				// Derivatives of the pressure field
 				double dDaP = 0.0;
@@ -224,6 +270,13 @@ void HorizontalDynamicsFEM::StepShallowWater(
 					dDaP +=
 						m_dPressure[s][j]
 						* dDxBasis1D[s][i];
+
+#ifdef VECTOR_INVARIANT_FORM
+					// Derivative of covariant beta velocity wrt alpha
+					dCovDaUb +=
+						m_dCovUb[s][j]
+						* dDxBasis1D[s][i];
+#endif				
 				}
 
 				double dLocalUpdateHb = 0.0;
@@ -253,6 +306,13 @@ void HorizontalDynamicsFEM::StepShallowWater(
 					dDbP +=
 						m_dPressure[i][s]
 						* dDxBasis1D[s][j];
+
+#ifdef VECTOR_INVARIANT_FORM
+					// Derivative of alpha velocity wrt beta
+					dCovDbUa +=
+						m_dCovUa[i][s]
+						* dDxBasis1D[s][j];
+#endif
 				}
 
 				// Scale derivatives
@@ -264,6 +324,11 @@ void HorizontalDynamicsFEM::StepShallowWater(
 				dDbUb /= dElementDeltaB;
 				dDbP  /= dElementDeltaB;
 
+#ifdef VECTOR_INVARIANT_FORM
+				dCovDaUb /= dElementDeltaA;
+				dCovDbUa /= dElementDeltaB;
+#endif
+
 				dLocalUpdateHa /= (dJacobian[k][iA][iB] * dElementDeltaA);
 				dLocalUpdateHb /= (dJacobian[k][iA][iB] * dElementDeltaB);
 
@@ -271,6 +336,22 @@ void HorizontalDynamicsFEM::StepShallowWater(
 				double dLocalUpdateUa = 0.0;
 				double dLocalUpdateUb = 0.0;
 
+#ifdef VECTOR_INVARIANT_FORM
+				// Relative vorticity
+				double dZeta = (dCovDaUb - dCovDbUa);
+
+				// Rotational terms
+				dLocalUpdateUa -=
+					(dZeta + dCoriolisF[iA][iB] * dJacobian[k][iA][iB]) * (
+						+ dContraMetricA[k][iA][iB][1] * dUa
+						- dContraMetricA[k][iA][iB][0] * dUb);
+
+				dLocalUpdateUb -=
+					(dZeta + dCoriolisF[iA][iB] * dJacobian[k][iA][iB]) * (
+						+ dContraMetricB[k][iA][iB][1] * dUa
+						- dContraMetricB[k][iA][iB][0] * dUb);
+
+#else
 				// Curvature terms
 				dLocalUpdateUa -= 
 						+ dChristoffelA[iA][iB][0] * dUa * dUa
@@ -293,22 +374,25 @@ void HorizontalDynamicsFEM::StepShallowWater(
 						+ dContraMetricB[k][iA][iB][1] * dUa
 						- dContraMetricB[k][iA][iB][0] * dUb);
 
-				double dLocalUpdateUaDiff = 0.0;
-				double dLocalUpdateUbDiff = 0.0;
+				// Advection
+				dLocalUpdateUa -= dUa * dDaUa + dUb * dDbUa;
+				dLocalUpdateUb -= dUa * dDaUb + dUb * dDbUb;
+#endif
 
-				dLocalUpdateUaDiff +=
-					- dUa * dDaUa - dContraMetricA[k][iA][iB][0] * dDaP
-					- dUb * dDbUa - dContraMetricA[k][iA][iB][1] * dDbP;
+				// Gradient of pressure
+				dLocalUpdateUa -=
+					+ dContraMetricA[k][iA][iB][0] * dDaP
+					+ dContraMetricA[k][iA][iB][1] * dDbP;
 
-				dLocalUpdateUbDiff +=
-					- dUa * dDaUb - dContraMetricB[k][iA][iB][0] * dDaP
-					- dUb * dDbUb - dContraMetricB[k][iA][iB][1] * dDbP;
+				dLocalUpdateUb -=
+					+ dContraMetricB[k][iA][iB][0] * dDaP
+					+ dContraMetricB[k][iA][iB][1] * dDbP;
 
 				// Apply update
 				dataUpdateNode[UIx][k][iA][iB] +=
-					dDeltaT * (dLocalUpdateUa + dLocalUpdateUaDiff);
+					dDeltaT * dLocalUpdateUa;
 				dataUpdateNode[VIx][k][iA][iB] +=
-					dDeltaT * (dLocalUpdateUb + dLocalUpdateUbDiff);
+					dDeltaT * dLocalUpdateUb;
 
 				// Update free surface height
 				dataUpdateNode[HIx][k][iA][iB] +=
@@ -632,7 +716,7 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 
  				// Apply update to horizontal velocity on model levels
 				dataUpdateNode[UIx][k][iA][iB] += dDeltaT * dLocalUpdateUa;
-				dataUpdateNode[VIx][k][iA][iB] += dDeltaT * dLocalUpdateUb;
+				//dataUpdateNode[VIx][k][iA][iB] += dDeltaT * dLocalUpdateUb;
 
 				// Update density on model levels
 				dataUpdateNode[RIx][k][iA][iB] +=

@@ -164,6 +164,17 @@ void GridPatch::InitializeDataLocal() {
 		m_box.GetBTotalWidth(),
 		2);
 
+	// Covariant metric (2D) components at each node
+	m_dataCovMetric2DA.Initialize(
+		m_box.GetATotalWidth(),
+		m_box.GetBTotalWidth(),
+		2);
+
+	m_dataCovMetric2DB.Initialize(
+		m_box.GetATotalWidth(),
+		m_box.GetBTotalWidth(),
+		2);
+
 	// Jacobian at each node
 	m_dataJacobian.Initialize(
 		m_grid.GetRElements(),
@@ -184,6 +195,19 @@ void GridPatch::InitializeDataLocal() {
 		3);
 
 	m_dataContraMetricB.Initialize(
+		m_grid.GetRElements(),
+		m_box.GetATotalWidth(),
+		m_box.GetBTotalWidth(),
+		3);
+
+	// Covariant metric components at each node
+	m_dataCovMetricA.Initialize(
+		m_grid.GetRElements(),
+		m_box.GetATotalWidth(),
+		m_box.GetBTotalWidth(),
+		3);
+
+	m_dataCovMetricB.Initialize(
 		m_grid.GetRElements(),
 		m_box.GetATotalWidth(),
 		m_box.GetBTotalWidth(),

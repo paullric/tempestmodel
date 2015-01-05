@@ -303,6 +303,22 @@ void GridPatchCSGLL::EvaluateGeometricTerms() {
 		m_dataContraMetric2DB[iA][iB][1] =
 			dContraMetricScale * (1.0 + dX * dX);
 
+		// Initialize 2D covariant metric
+		double dCovMetricScale =
+			phys.GetEarthRadius() * phys.GetEarthRadius()
+			* (1.0 + dX * dX) * (1.0 + dY * dY)
+			/ (dDelta2 * dDelta2);
+
+		m_dataCovMetric2DA[iA][iB][0] =
+			dCovMetricScale * (1.0 + dX * dX);
+		m_dataCovMetric2DA[iA][iB][1] =
+			dCovMetricScale * (- dX * dY);
+
+		m_dataCovMetric2DB[iA][iB][0] =
+			dCovMetricScale * (- dX * dY);
+		m_dataCovMetric2DB[iA][iB][1] =
+			dCovMetricScale * (1.0 + dY * dY);
+
 		// Christoffel symbol components at each node
 		// (off-diagonal elements are doubled due to symmetry)
 		m_dataChristoffelA[iA][iB][0] =
@@ -376,6 +392,30 @@ void GridPatchCSGLL::EvaluateGeometricTerms() {
 			m_dataContraMetricB[k][iA][iB][2] =
 				- dContraMetricScale / dDxR * (
 					dX * dY * dDaR + (1.0 + dX * dX) * dDbR);
+
+			// Covariant metric components
+			m_dataCovMetricA[k][iA][iB][0] =
+				m_dataCovMetric2DA[iA][iB][0] + dDaR * dDaR;
+			m_dataCovMetricA[k][iA][iB][1] =
+				m_dataCovMetric2DA[iA][iB][1] + dDaR * dDbR;
+			m_dataCovMetricA[k][iA][iB][2] =
+				dDaR * dDxR;
+
+			m_dataCovMetricB[k][iA][iB][0] =
+				m_dataCovMetric2DB[iA][iB][0] + dDbR * dDaR;
+			m_dataCovMetricB[k][iA][iB][1] =
+				m_dataCovMetric2DB[iA][iB][1] + dDbR * dDbR;
+			m_dataCovMetricB[k][iA][iB][2] =
+				dDbR * dDxR;
+/*
+			m_dataCovMetricXi[k][iA][iB][0] =
+				dDxR * dDaR;
+			m_dataCovMetricXi[k][iA][iB][1] =
+				dDxR * dDbR;
+			m_dataCovMetricXi[k][iA][iB][2] =
+				dDxR * dDxR;
+*/
+
 /*
 			m_dataContraMetricXi[k][iA][iB][0] = 
 				- dContraMetricScale / dDxR

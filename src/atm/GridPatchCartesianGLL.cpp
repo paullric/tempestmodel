@@ -204,6 +204,13 @@ void GridPatchCartesianGLL::EvaluateGeometricTerms() {
 			m_dataContraMetric2DB[iA][iB][0] = 0.0;
 			m_dataContraMetric2DB[iA][iB][1] = 1.0;
 
+			// Initialize 2D covariant metric
+			m_dataCovMetric2DA[iA][iB][0] = 1.0;
+			m_dataCovMetric2DA[iA][iB][1] = 0.0;
+
+			m_dataCovMetric2DB[iA][iB][0] = 0.0;
+			m_dataCovMetric2DB[iA][iB][1] = 1.0;
+
 			// Christoffel symbol components at each node
 			// (off-diagonal element are doubled due to symmetry)
 			m_dataChristoffelA[iA][iB][0] = 0.0;
@@ -268,6 +275,22 @@ void GridPatchCartesianGLL::EvaluateGeometricTerms() {
 					m_dataContraMetric2DB[iA][iB][1];
 				m_dataContraMetricB[k][iA][iB][2] =
 					- dDbZ / dDxZ;
+
+				// Covariant metric components
+				m_dataCovMetricA[k][iA][iB][0] =
+					m_dataCovMetric2DA[iA][iB][0] + dDaZ * dDaZ;
+				m_dataCovMetricA[k][iA][iB][1] =
+					m_dataCovMetric2DA[iA][iB][1] + dDaZ * dDbZ;
+				m_dataCovMetricA[k][iA][iB][2] =
+					dDaZ * dDxZ;
+
+				m_dataCovMetricB[k][iA][iB][0] =
+					m_dataCovMetric2DB[iA][iB][0] + dDbZ * dDaZ;
+				m_dataCovMetricB[k][iA][iB][1] =
+					m_dataCovMetric2DB[iA][iB][1] + dDbZ * dDbZ;
+				m_dataCovMetricB[k][iA][iB][2] =
+					dDbZ * dDxZ;
+
 /*
 				// Store terms relevant to W evolution equation
 				if (m_grid.GetVarLocation(3) == DataLocation_Node) {

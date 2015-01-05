@@ -174,6 +174,16 @@ protected:
 	///	</summary>
 	DataVector<double> m_dColumnDxPressure;
 
+	///	<summary>
+	///		Nodal pointwise covariant alpha velocity.
+	///	</summary>
+	DataMatrix<double> m_dCovUa;
+
+	///	<summary>
+	///		Nodal pointwise covariant beta velocity.
+	///	</summary>
+	DataMatrix<double> m_dCovUb;
+
 protected:
 	///	<summary>
 	///		Nodal pointwise gradient.
