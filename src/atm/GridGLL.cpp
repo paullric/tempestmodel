@@ -57,14 +57,21 @@ void GridGLL::Initialize() {
 	// Call up the stack
 	Grid::Initialize();
 
-	// Initialize the vertical coordinate
 	double dDeltaElement =
 		static_cast<double>(m_nVerticalOrder)
 		/ static_cast<double>(m_nRElements);
 
-	InitializeVerticalCoordinate(
-		GridSpacingMixedGaussLobatto(dDeltaElement, 0.0, m_nVerticalOrder)
-	);
+	// Initialize the vertical coordinate
+	if (m_eVerticalStaggering == VerticalStaggering_Interfaces) {
+		InitializeVerticalCoordinate(
+			GridSpacingGaussLobattoRepeated(dDeltaElement, 0.0, m_nVerticalOrder)
+		);
+
+	} else {
+		InitializeVerticalCoordinate(
+			GridSpacingMixedGaussLobatto(dDeltaElement, 0.0, m_nVerticalOrder)
+		);
+	}
 
 	// Quadrature points for Gauss and Gauss-Lobatto quadrature
 	DataVector<double> dG;
@@ -609,10 +616,11 @@ void GridGLL::DifferentiateNodeToNode(
 	m_opDiffNodeToNode.Apply(
 		dDataNode,
 		dDiffNode);
-
+/*
 	if (fZeroBoundaries) {
 		_EXCEPTIONT("ZeroBoundaries broken - sorry!");
 	}
+*/
 /*
 	const int Left = 0;
 	const int Right = 1;

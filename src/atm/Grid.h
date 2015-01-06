@@ -601,6 +601,13 @@ public:
 	}
 
 	///	<summary>
+	///		Get the type of vertical staggering.
+	///	</summary>
+	VerticalStaggering GetVerticalStaggering() const {
+		return m_eVerticalStaggering;
+	}
+
+	///	<summary>
 	///		Get the DataLocation of the specified equation set variable.
 	///	</summary>
 	DataLocation GetVarLocation(int ix) const {

@@ -223,11 +223,26 @@ void _TempestSetupMethodOfLines(
 	}
 	AnnounceEndBlock("Done");
 
+	// Vertical staggering
+	STLStringHelper::ToLower(vars.strVerticalStaggering);
+
 	// Set the vertical dynamics
 	AnnounceStartBlock("Initializing vertical dynamics");
 	if (vars.nLevels == 1) {
 		model.SetVerticalDynamics(
 			new VerticalDynamicsStub(model));
+
+	} else if (vars.strVerticalStaggering == "int") {
+		model.SetVerticalDynamics(
+			new VerticalDynamicsFEM(
+				model,
+				vars.nHorizontalOrder,
+				vars.nVerticalOrder,
+				vars.nVerticalHyperdiffOrder,
+				vars.fExplicitVertical,
+				!vars.fNoReferenceState,
+				true,
+				true));
 
 	} else {
 		model.SetVerticalDynamics(
@@ -260,7 +275,8 @@ void _TempestSetupOutputManagers(
 				vars.strOutputPrefix,
 				vars.nOutputsPerFile,
 				vars.nOutputResX,
-				vars.nOutputResY);
+				vars.nOutputResY,
+				false);
 
 		if (vars.fOutputVorticity) {
 			pOutmanRef->OutputVorticity();

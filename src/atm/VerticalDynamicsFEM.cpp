@@ -32,7 +32,7 @@
 
 //#define UPWIND_HORIZONTAL_VELOCITIES
 //#define UPWIND_RHO
-#define UPWIND_THETA
+//#define UPWIND_THETA
 
 //#define DETECT_CFL_VIOLATION
 //#define CAP_VERTICAL_VELOCITY
@@ -1797,17 +1797,7 @@ void VerticalDynamicsFEM::PrepareColumn(
 		m_dStateREdge[TIx],
 		m_dDiffDiffTheta
 	);
-/*
-	if (m_iA == 23) {
-		for (int k = 0; k <= nRElements; k++) {
-			printf("%1.14e %1.14e %1.14e\n",
-				pGrid->GetREtaInterface(k),
-				m_dStateREdge[TIx][k],
-				m_dDiffDiffTheta[k]);
-		}
-		_EXCEPTION();
-	}
-*/
+
 	// Compute higher derivatives of theta used for hyperdiffusion
 	if (m_nHypervisOrder > 0) {
 
@@ -2077,8 +2067,25 @@ void VerticalDynamicsFEM::BuildF(
 				m_dStateREdge[VIx][nRElements],
 				m_dStateREdge[WIx][nRElements]);
 
-	//} else {
-	//	_EXCEPTIONT("UNIMPLEMENTED");
+	} else if (
+		pGrid->GetVerticalStaggering() ==
+			Grid::VerticalStaggering_Interfaces
+	) {
+		dF[VecFIx(FWIx, 0)] =
+			m_pPatch->CalculateXiDotREdge(
+				0, m_iA, m_iB,
+				m_dStateREdge[UIx][0],
+				m_dStateREdge[VIx][0],
+				m_dStateREdge[WIx][0]);
+
+		dF[VecFIx(FWIx, nRElements-1)] =
+			m_pPatch->CalculateXiDotREdge(
+				nRElements, m_iA, m_iB,
+				m_dStateREdge[UIx][nRElements-1],
+				m_dStateREdge[VIx][nRElements-1],
+				m_dStateREdge[WIx][nRElements-1]);
+	} else {
+		_EXCEPTIONT("UNIMPLEMENTED");
 	}
 
 /*

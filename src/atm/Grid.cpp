@@ -173,11 +173,11 @@ void Grid::InitializeVerticalCoordinate(
 					break;
 
 				case VerticalStaggering_Interfaces:
-					m_vecVarLocation[0] = DataLocation_REdge;
-					m_vecVarLocation[1] = DataLocation_REdge;
-					m_vecVarLocation[2] = DataLocation_REdge;
-					m_vecVarLocation[3] = DataLocation_REdge;
-					m_vecVarLocation[4] = DataLocation_REdge;
+					m_vecVarLocation[0] = DataLocation_Node;
+					m_vecVarLocation[1] = DataLocation_Node;
+					m_vecVarLocation[2] = DataLocation_Node;
+					m_vecVarLocation[3] = DataLocation_Node;
+					m_vecVarLocation[4] = DataLocation_Node;
 					break;
 
 				case VerticalStaggering_Lorenz:
