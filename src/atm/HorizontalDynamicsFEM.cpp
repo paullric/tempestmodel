@@ -78,6 +78,10 @@ void HorizontalDynamicsFEM::Initialize() {
 		m_nHorizontalOrder,
 		m_nHorizontalOrder);
 
+	m_dEnergy.Initialize(
+		m_nHorizontalOrder,
+		m_nHorizontalOrder);
+
 	// Column storage
 	m_dZeroColumn.Initialize(nRElements + 1);
 
@@ -443,14 +447,19 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 			pPatch->GetContraMetricA();
 		const DataMatrix4D<double> & dContraMetricB =
 			pPatch->GetContraMetricB();
-		const DataMatrix4D<double> & dContraMetricXi =
-			pPatch->GetContraMetricXi();
+
+#ifdef VECTOR_INVARIANT_FORM
+		const DataMatrix4D<double> & dCovMetricA =
+			pPatch->GetCovMetricA();
+		const DataMatrix4D<double> & dCovMetricB =
+			pPatch->GetCovMetricB();
+#else
 		const DataMatrix3D<double> & dChristoffelA =
 			pPatch->GetChristoffelA();
 		const DataMatrix3D<double> & dChristoffelB =
 			pPatch->GetChristoffelB();
-		const DataMatrix4D<double> & dChristoffelXi =
-			pPatch->GetChristoffelXi();
+#endif
+
 		const DataMatrix<double> & dCoriolisF =
 			pPatch->GetCoriolisF();
 		const DataMatrix<double> & dTopography =
@@ -528,7 +537,7 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 				dataPressure[k][i][j] = m_dColumnPressure[k];
 			}
 
-			// Differentiate pressures
+			// Differentiate column pressure
 			pGrid->DifferentiateNodeToNode(
 				m_dColumnPressure,
 				m_dColumnDxPressure);
@@ -565,6 +574,25 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 
 				// Pointwise pressure
 				m_dPressure[i][j] = dataPressure[k][iA][iB];
+
+#ifdef VECTOR_INVARIANT_FORM
+				// Add kinetic energy to pressure
+				double dUa = dataInitialNode[UIx][k][iA][iB];
+				double dUb = dataInitialNode[VIx][k][iA][iB];
+
+				// Covariant velocities
+				m_dCovUa[i][j] =
+					  dCovMetricA[k][iA][iB][0] * dUa
+					+ dCovMetricA[k][iA][iB][1] * dUb;
+
+				m_dCovUb[i][j] =
+					  dCovMetricB[k][iA][iB][0] * dUa
+					+ dCovMetricB[k][iA][iB][1] * dUb;
+
+				// Kinetic energy (KE)
+				m_dEnergy[i][j] =
+					0.5 * (m_dCovUa[i][j] * dUa + m_dCovUb[i][j] * dUb);
+#endif
 			}
 			}
 
@@ -583,6 +611,16 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 				double dDaUb = 0.0;
 				double dDbUa = 0.0;
 				double dDbUb = 0.0;
+
+#ifdef VECTOR_INVARIANT_FORM
+				// Derivatives of the covariant velocity field
+				double dCovDaUb = 0.0;
+				double dCovDbUa = 0.0;
+
+				// Derivative of the kinetic energy
+				double dDaKE = 0.0;
+				double dDbKE = 0.0;
+#endif
 
 				// Derivatives of the pressure field
 				double dDaP = 0.0;
@@ -621,6 +659,18 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 					dDaP +=
 						m_dPressure[s][j]
 						* dDxBasis1D[s][i];
+
+#ifdef VECTOR_INVARIANT_FORM
+					// Derivative of covariant beta velocity wrt alpha
+					dCovDaUb +=
+						m_dCovUb[s][j]
+						* dDxBasis1D[s][i];
+
+					// Derivative of kinetic energy with respect to alpha
+					dDaKE +=
+						m_dEnergy[s][j]
+						* dDxBasis1D[s][i];
+#endif				
 				}
 
 				// Calculate derivatives in the beta direction
@@ -651,6 +701,19 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 					dDbP +=
 						m_dPressure[i][s]
 						* dDxBasis1D[s][j];
+
+#ifdef VECTOR_INVARIANT_FORM
+					// Derivative of alpha velocity wrt beta
+					dCovDbUa +=
+						m_dCovUa[i][s]
+						* dDxBasis1D[s][j];
+
+					// Derivative of kinetic energy with respect to beta
+					dDbKE +=
+						m_dEnergy[i][s]
+						* dDxBasis1D[s][j];
+
+#endif
 				}
 
 				// Scale derivatives
@@ -662,6 +725,14 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 				dDbUb /= dElementDeltaB;
 				dDbP  /= dElementDeltaB;
 
+#ifdef VECTOR_INVARIANT_FORM
+				dCovDaUb /= dElementDeltaA;
+				dDaKE    /= dElementDeltaA;
+
+				dCovDbUa /= dElementDeltaB;
+				dDbKE    /= dElementDeltaB;
+#endif
+
 #pragma message "Reference state?"
 				dDxP  = dataDxPressure[k][iA][iB];
 
@@ -669,10 +740,36 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 				dataDaPressure[k][iA][iB] = dDaP;
 				dataDbPressure[k][iA][iB] = dDbP;
 
-				// Momentum advection terms
+				// Pointwise horizontal momentum update
 				double dLocalUpdateUa = 0.0;
 				double dLocalUpdateUb = 0.0;
 
+#ifdef VECTOR_INVARIANT_FORM
+				// Relative vorticity
+				double dZeta = (dCovDaUb - dCovDbUa);
+
+				// Rotational terms
+				dLocalUpdateUa -=
+					(dZeta + dCoriolisF[iA][iB] * dJacobian2D[iA][iB]) * (
+						+ dContraMetricA[k][iA][iB][1] * dUa
+						- dContraMetricA[k][iA][iB][0] * dUb);
+
+				dLocalUpdateUb -=
+					(dZeta + dCoriolisF[iA][iB] * dJacobian2D[iA][iB]) * (
+						+ dContraMetricB[k][iA][iB][1] * dUa
+						- dContraMetricB[k][iA][iB][0] * dUb);
+
+				// Energy derivatives
+				dLocalUpdateUa -=
+						( dContraMetricA[k][iA][iB][0] * dDaKE
+						+ dContraMetricA[k][iA][iB][1] * dDbKE);
+
+				dLocalUpdateUb -=
+						( dContraMetricB[k][iA][iB][0] * dDaKE
+						+ dContraMetricB[k][iA][iB][1] * dDbKE);
+
+#else
+				// Advection of momentum
 				dLocalUpdateUa -= dUa * dDaUa + dUb * dDbUa;
 
 				dLocalUpdateUb -= dUa * dDaUb + dUb * dDbUb;
@@ -688,6 +785,19 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 						+ dChristoffelB[iA][iB][1] * dUa * dUb
 						+ dChristoffelB[iA][iB][2] * dUb * dUb;
 
+				// Coriolis forces
+				dLocalUpdateUa -=
+					dCoriolisF[iA][iB]
+					* dJacobian2D[iA][iB]
+					* ( + dContraMetricA[k][iA][iB][1] * dUa
+						- dContraMetricA[k][iA][iB][0] * dUb);
+
+				dLocalUpdateUb -=
+					dCoriolisF[iA][iB]
+					* dJacobian2D[iA][iB]
+					* ( + dContraMetricB[k][iA][iB][1] * dUa
+						- dContraMetricB[k][iA][iB][0] * dUb);
+#endif
 				// Pressure derivatives
 				dLocalUpdateUa -=
 						( dContraMetricA[k][iA][iB][0] * dDaP
@@ -701,22 +811,9 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 						+ dContraMetricB[k][iA][iB][2] * dDxP)
 							* dataInitialNode[TIx][k][iA][iB];
 
-				// Coriolis forces
-				dLocalUpdateUa -=
-					dCoriolisF[iA][iB]
-					* dJacobian2D[iA][iB]
-					* ( + dContraMetricA[k][iA][iB][1] * dUa
-						- dContraMetricA[k][iA][iB][0] * dUb);
-
-				dLocalUpdateUb -=
-					dCoriolisF[iA][iB]
-					* dJacobian2D[iA][iB]
-					* ( + dContraMetricB[k][iA][iB][1] * dUa
-						- dContraMetricB[k][iA][iB][0] * dUb);
-
  				// Apply update to horizontal velocity on model levels
 				dataUpdateNode[UIx][k][iA][iB] += dDeltaT * dLocalUpdateUa;
-				//dataUpdateNode[VIx][k][iA][iB] += dDeltaT * dLocalUpdateUb;
+				dataUpdateNode[VIx][k][iA][iB] += dDeltaT * dLocalUpdateUb;
 
 				// Update density on model levels
 				dataUpdateNode[RIx][k][iA][iB] +=

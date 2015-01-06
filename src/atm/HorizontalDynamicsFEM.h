@@ -184,6 +184,11 @@ protected:
 	///	</summary>
 	DataMatrix<double> m_dCovUb;
 
+	///	<summary>
+	///		Nodal pointwise kinetic energy.
+	///	</summary>
+	DataMatrix<double> m_dEnergy;
+
 protected:
 	///	<summary>
 	///		Nodal pointwise gradient.
