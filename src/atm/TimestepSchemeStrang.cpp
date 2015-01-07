@@ -189,8 +189,7 @@ void TimestepSchemeStrang::Step(
 
 	// Vertical timestep
 	if (fFirstStep) {
-		pGrid->CopyData(0, 1, DataType_State);
-		pVerticalDynamics->StepImplicit(0, 1, time, dHalfDeltaT);
+		pVerticalDynamics->StepImplicit(0, 0, time, dHalfDeltaT);
 
 	} else {
 		pGrid->LinearCombineData(m_dCarryoverCombination, 0, DataType_State);
