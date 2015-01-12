@@ -715,6 +715,9 @@ void VerticalDynamicsFEM::StepExplicit(
 	// Number of finite elements in the vertical
 	const int nFiniteElements = nRElements / m_nVerticalOrder;
 
+	// Store timestep size
+	m_dDeltaT = dDeltaT;
+
 	// Reset the reference state
 	memset(m_dStateRefNode[WIx],  0,  nRElements   *sizeof(double));
 	memset(m_dStateRefREdge[WIx], 0, (nRElements+1)*sizeof(double));
