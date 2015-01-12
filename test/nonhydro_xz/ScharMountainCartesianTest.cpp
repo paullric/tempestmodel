@@ -334,6 +334,7 @@ try {
 		CommandLineDouble(dhC, "hC", 250.0);
 		CommandLineDouble(daC, "aC", 5000.0);
 		CommandLineDouble(dlC, "lC", 4000.0);
+		CommandLineBool(fNoRayleighFriction, "norayleigh");
 
 		ParseCommandLine(argc, argv);
 	EndCommandLine(argv)

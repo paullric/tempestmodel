@@ -44,10 +44,10 @@ TimestepSchemeARK3::TimestepSchemeARK3(
 ) :
 	TimestepScheme(model)
 {
-    m_dKh1Combo.Initialize(2);
-    m_dKh2Combo.Initialize(5);
-    m_dKh3Combo.Initialize(7);
-    m_dK1Combo.Initialize(3);
+    m_dKh1Combo.Initialize(5);
+    m_dKh2Combo.Initialize(7);
+    m_dKh3Combo.Initialize(9);
+    m_dK1Combo.Initialize(4);
     m_dK2Combo.Initialize(7);
     m_dK3Combo.Initialize(9);
     m_du2fCombo.Initialize(5);
@@ -75,11 +75,15 @@ void TimestepSchemeARK3::Step(
     // Kh1 combination
     m_dKh1Combo[0] = -1.0 / (dDeltaT * m_dExpCf[1][0]);
     m_dKh1Combo[1] = 1.0 / (dDeltaT * m_dExpCf[1][0]);
+	m_dKh1Combo[2] = 0.0;
+	m_dKh1Combo[3] = 0.0;
+	m_dKh1Combo[4] = 0.0;
 
     // K1 combination
     m_dK1Combo[0] = 0.0;
     m_dK1Combo[1] = -1.0 / (dDeltaT * m_dImpCf[0][0]);
     m_dK1Combo[2] = 1.0 / (dDeltaT * m_dImpCf[0][0]);
+	m_dK1Combo[3] = 0.0;
 
     // u2 implicit evaluation combination
     m_du2fCombo[0] = 1.0;
@@ -103,6 +107,8 @@ void TimestepSchemeARK3::Step(
     m_dKh2Combo[2] = 0.0;
     m_dKh2Combo[3] = -m_dImpCf[1][0] / m_dExpCf[2][1];
     m_dKh2Combo[4] = -m_dExpCf[2][0] / m_dExpCf[2][1];
+	m_dKh2Combo[5] = 0.0;
+	m_dKh2Combo[6] = 0.0;
 
     // u3 implicit evaluation combination
     m_du3fCombo[0] = 1.0;
@@ -132,6 +138,8 @@ void TimestepSchemeARK3::Step(
     m_dKh3Combo[4] = -m_dExpCf[3][0] / m_dExpCf[3][2];
     m_dKh3Combo[5] = -m_dImpCf[2][1] / m_dExpCf[3][2];
     m_dKh3Combo[6] = -m_dExpCf[3][1] / m_dExpCf[3][2];
+	m_dKh3Combo[7] = 0.0;
+	m_dKh3Combo[8] = 0.0;
 
     // uf4 explicit evaluation combination
     m_du4fCombo[0] = 1.0;
