@@ -210,6 +210,7 @@ public:
 		return m_dGLLWeights1D;
 	}
 
+public:
 	///	<summary>
 	///		Get the interpolation operator from levels to interfaces.
 	///	</summary>
@@ -224,6 +225,35 @@ public:
 		return m_opInterpREdgeToNode;
 	}
 
+	///	<summary>
+	///		Get the differentiation operator from levels to levels.
+	///	</summary>
+	const LinearColumnDiffFEM & GetOpDiffNodeToNode() const {
+		return m_opDiffNodeToNode;
+	}
+
+	///	<summary>
+	///		Get the differentiation operator from levels to interfaces.
+	///	</summary>
+	const LinearColumnDiffFEM & GetOpDiffNodeToREdge() const {
+		return m_opDiffNodeToREdge;
+	}
+
+	///	<summary>
+	///		Get the differentiation operator from interfacs to levels.
+	///	</summary>
+	const LinearColumnDiffFEM & GetOpDiffREdgeToNode() const {
+		return m_opDiffREdgeToNode;
+	}
+
+	///	<summary>
+	///		Get the differentiation operator from interfacs to interfaces.
+	///	</summary>
+	const LinearColumnDiffFEM & GetOpDiffREdgeToREdge() const {
+		return m_opDiffREdgeToREdge;
+	}
+
+public:
 	///	<summary>
 	///		Get the interpolation coefficients from levels to interfaces.
 	///	</summary>

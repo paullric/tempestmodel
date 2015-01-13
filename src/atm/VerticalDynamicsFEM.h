@@ -193,6 +193,14 @@ public:
 	);
 
 	///	<summary>
+	///		Build the Jacobian matrix.
+	///	</summary>
+	void BuildJacobianF2(
+		const double * dX,
+		double * dDG
+	);
+
+	///	<summary>
 	///		Prepare the column then evaluate the zero equations
 	///		(used by JacobianFreeNewtonKrylov)
 	///	</summary>

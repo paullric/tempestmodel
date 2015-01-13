@@ -267,6 +267,7 @@ public:
 		dState[0] = m_dU0;
 		dState[1] = 0.0;
 		dState[3] = 0.0;
+		//dState[3] = sin(dZp / 11000.0);
 
 		// Set the initial potential temperature field
 		dState[2] = dThetaBar;

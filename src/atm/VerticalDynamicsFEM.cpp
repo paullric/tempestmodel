@@ -1228,6 +1228,20 @@ void VerticalDynamicsFEM::BootstrapJacobian() {
 	}
 	fclose(fp);
 
+	BuildJacobianF2(m_dSoln, &(dJacobian[0][0]));
+
+	fp = fopen("DG2.txt", "w");
+	for (int i = 0; i < nDim; i++) {
+		for (int j = 0; j < nDim; j++) {
+			fprintf(fp, "%1.15e", dJacobian[i][j]);
+			if (j != nDim-1) {
+				fprintf(fp, " ");
+			}
+		}
+		fprintf(fp, "\n");
+	}
+	fclose(fp);
+
 	_EXCEPTION();
 }
 
@@ -1477,7 +1491,7 @@ void VerticalDynamicsFEM::StepImplicit(
 			BuildF(m_dColumnState, m_dSoln);
 
 			// Build the Jacobian
-			BuildJacobianF(m_dColumnState, &(m_matJacobianF[0][0]));
+			BuildJacobianF2(m_dColumnState, &(m_matJacobianF[0][0]));
 
 #ifdef USE_JACOBIAN_GENERAL
 			// Use direct solver
@@ -2380,7 +2394,6 @@ void VerticalDynamicsFEM::BuildJacobianF(
 		}
 
 #ifdef UPWIND_RHO
-/*
 		// Diffusion of Rho (dRho_k/dW)
 		if (pGrid->GetVarLocation(RIx) == DataLocation_Node) {
 			int lBeginNext = lBegin + m_nVerticalOrder;
@@ -2394,7 +2407,6 @@ void VerticalDynamicsFEM::BuildJacobianF(
 		} else {
 			_EXCEPTIONT("Upwind Rho on interfaces: Unimplemented");
 		}
-*/
 #endif
 
 		// dRho_k/dRho
@@ -2484,7 +2496,7 @@ void VerticalDynamicsFEM::BuildJacobianF(
 		dOrthonomREdge[0][m_iA][m_iB][2];
 	dDG[MatFIx(FWIx, nRElements, FWIx, nRElements)] =
 		dOrthonomREdge[nRElements][m_iA][m_iB][2];
-
+/*
 #ifdef APPLY_RAYLEIGH_WITH_VERTICALDYN
 
 	// Rayleigh friction strength
@@ -2533,6 +2545,251 @@ void VerticalDynamicsFEM::BuildJacobianF(
 	}
 
 #endif
+*/
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void VerticalDynamicsFEM::BuildJacobianF2(
+	const double * dX,
+	double * dDG
+) {
+	// Indices of EquationSet variables
+	const int UIx = 0;
+	const int VIx = 1;
+	const int TIx = 2;
+	const int WIx = 3;
+	const int RIx = 4;
+
+	// Finite element grid
+	const GridGLL * pGrid = dynamic_cast<const GridGLL *>(m_model.GetGrid());
+
+	if ((pGrid->GetVarLocation(UIx) != DataLocation_Node) ||
+		(pGrid->GetVarLocation(VIx) != DataLocation_Node) ||
+		(pGrid->GetVarLocation(TIx) != DataLocation_REdge) ||
+		(pGrid->GetVarLocation(WIx) != DataLocation_REdge) ||
+		(pGrid->GetVarLocation(RIx) != DataLocation_Node) ||
+		(m_fMassFluxOnLevels) ||
+		(!m_fExnerPressureOnLevels)
+	) {
+		_EXCEPTIONT("Not implemented");
+	}
+
+	// Get the column interpolation and differentiation coefficients
+	const LinearColumnInterpFEM & opInterpNodeToREdge =
+		pGrid->GetOpInterpNodeToREdge();
+	const LinearColumnInterpFEM & opInterpREdgeToNode =
+		pGrid->GetOpInterpREdgeToNode();
+	const LinearColumnDiffFEM & opDiffNodeToNode =
+		pGrid->GetOpDiffNodeToNode();
+	const LinearColumnDiffFEM & opDiffNodeToREdge =
+		pGrid->GetOpDiffNodeToREdge();
+	const LinearColumnDiffFEM & opDiffREdgeToNode =
+		pGrid->GetOpDiffREdgeToNode();
+	const LinearColumnDiffFEM & opDiffREdgeToREdge =
+		pGrid->GetOpDiffREdgeToREdge();
+
+	const DataMatrix<double> & dInterpNodeToREdge =
+		opInterpNodeToREdge.GetCoeffs();
+	const DataMatrix<double> & dInterpREdgeToNode =
+		opInterpREdgeToNode.GetCoeffs();
+	const DataMatrix<double> & dDiffNodeToNode =
+		opDiffNodeToNode.GetCoeffs();
+	const DataMatrix<double> & dDiffNodeToREdge =
+		opDiffNodeToREdge.GetCoeffs();
+	const DataMatrix<double> & dDiffREdgeToNode =
+		opDiffREdgeToNode.GetCoeffs();
+	const DataMatrix<double> & dDiffREdgeToREdge =
+		opDiffREdgeToREdge.GetCoeffs();
+
+	const DataVector<int> & iInterpNodeToREdgeBegin =
+		opInterpNodeToREdge.GetIxBegin();
+	const DataVector<int> & iInterpREdgeToNodeBegin =
+		opInterpREdgeToNode.GetIxBegin();
+	const DataVector<int> & iDiffNodeToNodeBegin =
+		opDiffNodeToNode.GetIxBegin();
+	const DataVector<int> & iDiffNodeToREdgeBegin =
+		opDiffNodeToREdge.GetIxBegin();
+	const DataVector<int> & iDiffREdgeToNodeBegin =
+		opDiffREdgeToNode.GetIxBegin();
+	const DataVector<int> & iDiffREdgeToREdgeBegin =
+		opDiffREdgeToREdge.GetIxBegin();
+
+	const DataVector<int> & iInterpNodeToREdgeEnd =
+		opInterpNodeToREdge.GetIxEnd();
+	const DataVector<int> & iInterpREdgeToNodeEnd =
+		opInterpREdgeToNode.GetIxEnd();
+	const DataVector<int> & iDiffNodeToNodeEnd =
+		opDiffNodeToNode.GetIxEnd();
+	const DataVector<int> & iDiffNodeToREdgeEnd =
+		opDiffNodeToREdge.GetIxEnd();
+	const DataVector<int> & iDiffREdgeToNodeEnd =
+		opDiffREdgeToNode.GetIxEnd();
+	const DataVector<int> & iDiffREdgeToREdgeEnd =
+		opDiffREdgeToREdge.GetIxEnd();
+
+	// Orthonormalization coefficients
+	const DataMatrix4D<double> & dOrthonomREdge =
+		m_pPatch->GetOrthonormREdge();
+
+	// Physical constants
+	const PhysicalConstants & phys = m_model.GetPhysicalConstants();
+
+	// Number of radial elements
+	const int nRElements = pGrid->GetRElements();
+
+	// Zero DG
+	memset(dDG, 0,
+		m_nColumnStateSize * m_nColumnStateSize * sizeof(double));
+
+	// dT_k/dT_l
+	for (int k = 0; k <= nRElements; k++) {
+		int l = iDiffREdgeToREdgeBegin[k];
+		for (; l < iDiffREdgeToREdgeEnd[k]; l++) {
+			dDG[MatFIx(FTIx, l, FTIx, k)] +=
+				dDiffREdgeToREdge[k][l]
+				* m_dXiDotREdge[k];
+		}
+	}
+
+	// dT_k/dW_k
+	for (int k = 0; k <= nRElements; k++) {
+		dDG[MatFIx(FWIx, k, FTIx, k)] =
+			m_dDiffTheta[k] * dOrthonomREdge[k][m_iA][m_iB][2];
+	}
+
+	// dW_k/dT_l and dW_k/dR_m
+	for (int k = 1; k < nRElements; k++) {
+
+		double dRHSWCoeff = 
+			1.0 / m_dDxRREdge[k]
+			* m_dStateREdge[TIx][k]
+			* phys.GetR() / phys.GetCv();
+
+		int m = iDiffNodeToREdgeBegin[k];
+		for (; m < iDiffNodeToREdgeEnd[k]; m++) {
+
+			double dTEntry =
+				dRHSWCoeff 
+				* dDiffNodeToREdge[k][m]
+				* (m_dExnerPertNode[m] + m_dExnerRefNode[m])
+					/ m_dStateNode[TIx][m];
+
+			int l = iInterpREdgeToNodeBegin[m];
+			for (; l < iInterpREdgeToNodeEnd[m]; l++) {
+				dDG[MatFIx(FTIx, l, FWIx, k)] +=
+					dTEntry * dInterpREdgeToNode[m][l];
+			}
+
+			dDG[MatFIx(FRIx, m, FWIx, k)] +=
+				dRHSWCoeff
+				* dDiffNodeToREdge[k][m]
+				* (m_dExnerPertNode[m] + m_dExnerRefNode[m])
+					/ m_dStateNode[RIx][m];
+		}
+	}
+
+	// dW_k/dT_k (first theta in RHS)
+	for (int k = 1; k < nRElements; k++) {
+		dDG[MatFIx(FTIx, k, FWIx, k)] +=
+			 1.0 / m_dDxRREdge[k]
+			 * (m_dDiffExnerRefREdge[k] + m_dDiffExnerPertREdge[k]);
+	}
+
+	// dRho
+	for (int k = 0; k < nRElements; k++) {
+
+		// dRho_k/dW_l
+		int l = iDiffREdgeToNodeBegin[k];
+		for (; l < iDiffREdgeToNodeEnd[k]; l++) {
+			dDG[MatFIx(FWIx, l, FRIx, k)] +=
+				dDiffREdgeToNode[k][l]
+				* m_dJacobian3DREdge[l]
+				/ m_dJacobian3DNode[k]
+				* m_dStateREdge[RIx][l]
+				* dOrthonomREdge[l][m_iA][m_iB][2];
+		}
+/*
+#ifdef UPWIND_RHO
+		// Diffusion of Rho (dRho_k/dW)
+		if (pGrid->GetVarLocation(RIx) == DataLocation_Node) {
+			int lBeginNext = lBegin + m_nVerticalOrder;
+
+			double dSignWL = (m_dXiDotREdge[lBegin] > 0.0)?(1.0):(-1.0);
+			double dSignWR = (m_dXiDotREdge[lBeginNext] > 0.0)?(1.0):(-1.0);
+
+			dDG[MaxFIx(FWIx, lBegin, FRIx, k)] +=
+				dDiffReconsPolyNode[l]
+
+		} else {
+			_EXCEPTIONT("Upwind Rho on interfaces: Unimplemented");
+		}
+#endif
+*/
+
+		// dRho_k/dRho_n
+		int m = iDiffREdgeToNodeBegin[k];
+		for (; m < iDiffREdgeToNodeEnd[k]; m++) {
+
+			int n = iInterpNodeToREdgeBegin[m];
+			for (; n < iInterpNodeToREdgeEnd[m]; n++) {
+
+				dDG[MatFIx(FRIx, n, FRIx, k)] +=
+					dDiffREdgeToNode[k][m]
+					* m_dJacobian3DREdge[m]
+					/ m_dJacobian3DNode[k]
+					* dInterpNodeToREdge[m][n]
+					* m_dXiDotREdge[m];
+			}
+		}
+	}
+
+#ifdef UPWIND_THETA
+	if (pGrid->GetVarLocation(TIx) == DataLocation_REdge) {
+		for (int k = 0; k <= nRElements; k++) {
+
+			// dT_k/dW_k
+			double dSignW = -1.0;
+
+			if (m_dXiDotREdge[k] < 0.0) {
+				dSignW = -1.0;
+			} else if (m_dXiDotREdge[k] > 0.0) {
+				dSignW = 1.0;
+			}
+
+			dDG[MatFIx(FWIx, k, FTIx, k)] -=
+				m_dHypervisCoeff
+				* dOrthonomREdge[k][m_iA][m_iB][2]
+				* dSignW
+				* m_dDiffDiffTheta[k];
+
+			// dT_k/dT_m
+			for (int m = 0; m <= nRElements; m++) {
+				dDG[MatFIx(FTIx, m, FTIx, k)] -=
+					m_dHypervisCoeff
+					* fabs(m_dXiDotREdge[k])
+					* m_dHypervisREdgeToREdge[m][k];
+			}
+		}
+	}
+#endif
+
+	// Add the identity components
+	for (int k = 0; k <= nRElements; k++) {
+		dDG[MatFIx(FTIx, k, FTIx, k)] += 1.0 / m_dDeltaT;
+		dDG[MatFIx(FWIx, k, FWIx, k)] += 1.0 / m_dDeltaT;
+		dDG[MatFIx(FRIx, k, FRIx, k)] += 1.0 / m_dDeltaT;
+	}
+
+	for (int k = 0; k <= nRElements ; k++) {
+		dDG[MatFIx(FWIx, 0, FRIx, k)] = 0.0;
+		dDG[MatFIx(FWIx, nRElements, FRIx, k)] = 0.0;
+	}
+
+	dDG[MatFIx(FWIx, 0, FWIx, 0)] =
+		dOrthonomREdge[0][m_iA][m_iB][2];
+	dDG[MatFIx(FWIx, nRElements, FWIx, nRElements)] =
+		dOrthonomREdge[nRElements][m_iA][m_iB][2];
 }
 
 ///////////////////////////////////////////////////////////////////////////////
