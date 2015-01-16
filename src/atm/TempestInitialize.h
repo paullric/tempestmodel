@@ -276,6 +276,7 @@ void _TempestSetupOutputManagers(
 				vars.nOutputsPerFile,
 				vars.nOutputResX,
 				vars.nOutputResY,
+				false,
 				false);
 
 		if (vars.fOutputVorticity) {
@@ -389,6 +390,7 @@ void _TempestSetupCubedSphereModel(
 void _TempestSetupCartesianModel(
 	Model & model,
 	double dGDim[],
+	double dRefLat,
 	_TempestCommandLineVariables & vars
 ) {
 	// Set the parameters
@@ -429,6 +431,7 @@ void _TempestSetupCartesianModel(
 			vars.nVerticalOrder,
 			vars.nLevels,
 			dGDim,
+			dRefLat,
 			eVerticalStaggering);
 
 	// Set the vertical stretching function
@@ -462,8 +465,8 @@ void _TempestSetupCartesianModel(
 #define TempestSetupCubedSphereModel(model) \
 	_TempestSetupCubedSphereModel(model, _tempestvars);
 
-#define TempestSetupCartesianModel(model, dimensions) \
-	_TempestSetupCartesianModel(model, dimensions, _tempestvars);
+#define TempestSetupCartesianModel(model, dimensions, latitude) \
+	_TempestSetupCartesianModel(model, dimensions, latitude, _tempestvars);
 
 ///////////////////////////////////////////////////////////////////////////////
 

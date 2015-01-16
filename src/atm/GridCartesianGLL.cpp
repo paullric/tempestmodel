@@ -43,6 +43,7 @@ GridCartesianGLL::GridCartesianGLL(
 	int nVerticalOrder,
 	int nRElements,
 	double dGDim[],
+	double dRefLat,
 	VerticalStaggering eVerticalStaggering
 ) :
 	// Call up the stack
@@ -58,6 +59,10 @@ GridCartesianGLL::GridCartesianGLL(
 {
 	// Set the reference length scale (110km)
 	m_dReferenceLength = 110000.0;
+
+	// Bring in the reference latitude (if any) for large regions where the
+	// beta plane approximation is necessary in the equations
+	m_dRefLat = dRefLat;
 
 	// Bring through the grid dimensions
 	m_dGDim[0] = dGDim[0]; m_dGDim[1] = dGDim[1];
@@ -149,7 +154,8 @@ void GridCartesianGLL::AddDefaultPatches() {
 				boxMaster,
 				m_nHorizontalOrder,
 				m_nVerticalOrder,
-				m_dGDim));
+				m_dGDim,
+				m_dRefLat));
 	}
 }
 

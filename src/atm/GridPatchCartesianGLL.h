@@ -44,7 +44,8 @@ public:
 		const PatchBox & box,
 		int nHorizontalOrder,
 		int nVerticalOrder,
-		double dGDim[]
+		double dGDim[],
+		double dRefLat
 	);
 
 public:
@@ -152,6 +153,11 @@ private:
 	///		Dimension of the grid - private to cartesian grids.
 	///	</summary>
 	double m_dGDim[6];
+
+	///	<summary>
+	///		Referece latitude (for beta plane cases)
+	///	</summary>
+	double m_dRefLat;
 
 };
 

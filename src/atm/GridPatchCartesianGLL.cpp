@@ -40,7 +40,8 @@ GridPatchCartesianGLL::GridPatchCartesianGLL(
 	const PatchBox & box,
 	int nHorizontalOrder,
 	int nVerticalOrder,
-	double dGDim[]
+	double dGDim[],
+	double dRefLat
 ) :
 	GridPatchGLL(
 		grid,
@@ -49,6 +50,9 @@ GridPatchCartesianGLL::GridPatchCartesianGLL(
 		nHorizontalOrder,
 		nVerticalOrder)
 {
+	// Bring in the reference latitude (if any) for large regions where the
+	// beta plane approximation is necessary in the equations
+	m_dRefLat = dRefLat;
 
 	// Bring in the grid dimensions as a member variable
 	// Bring through the grid dimensions
@@ -66,7 +70,12 @@ void GridPatchCartesianGLL::InitializeDataLocal() {
 
 	// Physical constants
 	const PhysicalConstants & phys = m_grid.GetModel().GetPhysicalConstants();
-
+	
+	double dy0 = 0.5 * abs(m_dGDim[3] - m_dGDim[2]);
+	double dfp = 2.0 * phys.GetOmega() * sin(m_dRefLat);
+	double dbetap = 2.0 * phys.GetOmega() * cos(m_dRefLat) / 
+					phys.GetEarthRadius();
+	//std::cout << dfp << "\n";
 	// Initialize the longitude and latitude at each node
 	for (int i = 0; i < m_box.GetATotalWidth(); i++) {
 	for (int j = 0; j < m_box.GetBTotalWidth(); j++) {
@@ -74,8 +83,10 @@ void GridPatchCartesianGLL::InitializeDataLocal() {
 		m_dataLon[i][j] = m_box.GetANode(i);
 		m_dataLat[i][j] = m_box.GetBNode(j);
 
-		// No Coriolis force
-		m_dataCoriolisF[i][j] = 0.0;
+		// Coriolis force by beta approximation
+		m_dataCoriolisF[i][j] = dfp + dbetap * (m_dataLat[i][j] - dy0);
+		//std::cout << m_dataCoriolisF[i][j] << "\n";
+		//m_dataCoriolisF[i][j] = 0.0;
 	}
 	}
 }

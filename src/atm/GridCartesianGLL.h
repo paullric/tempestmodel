@@ -39,7 +39,8 @@ public:
 		int nHorizontalOrder,
 		int nVerticalOrder,
 		int nRElements,
-		double nGDim[],
+		double dGDim[],
+		double dRefLat,
 		VerticalStaggering eVerticalStaggering =
 			VerticalStaggering_CharneyPhillips
 	);
@@ -124,6 +125,11 @@ private:
 	///		Dimension of the grid - private to cartesian grids.
 	///	</summary>
 	double m_dGDim[6];
+
+	///	<summary>
+	///		Referece latitude (for beta plane cases)
+	///	</summary>
+	double m_dRefLat;
 
 };
 
