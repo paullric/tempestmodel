@@ -1,8 +1,8 @@
 ///////////////////////////////////////////////////////////////////////////////
 ///
-///	\file    ThermalBubbleCartesianTest.cpp
+///	\file    Baroclinic3DCartesianTest.cpp
 ///	\author  Paul Ullrich, Jorge Guerra
-///	\version December 18, 2013
+///	\version January 13, 2015
 ///
 ///	<remarks>
 ///		Copyright 2000-2010 Paul Ullrich
@@ -23,7 +23,7 @@
 ///
 ///		Thermal rising bubble test case.
 ///	</summary>
-class ThermalBubbleCartesianTest : public TestCase {
+class Baroclinic3DCartesianTest : public TestCase {
 
 public:
 	/// <summary>
@@ -31,26 +31,36 @@ public:
 	///	</summary>
 	double m_dGDim[6];
 
-private:
-	///	<summary>
-	///		Background height field.
+	/// <summary>
+	///		Reference latitude for "large" domains
 	///	</summary>
-	double m_dH0;
+	double m_dRefLat;
 
+private:
+
+	///	<summary>
+	///		Nondimensional vertical width parameter
+	///	</summary>
+	double m_dbC;
+
+	///	<summary>
+	///		Reference zonal U velocity (balanced jet).
+	///	</summary>
+	double m_dU0;
+
+	///	<summary>
+	///		Reference zonal wind perturbation.
+	///	</summary>
+	double m_dUp;
+
+	///	<summary>
+	///		Brunt-Vaisala frequency
+	///	</summary>
+	double m_dNbar;
 	///	<summary>
 	///		Reference constant background pontential temperature
 	///	</summary>
-	double m_dThetaBar;
-
-	///	<summary>
-	///		Parameter factor for temperature disturbance
-	///	</summary>
-	double m_dThetaC;
-
-	///	<summary>
-	///		Parameter reference bubble radius
-	///	</summary>
-	double m_drC;
+	double m_dTheta0;
 
 	///	<summary>
 	///		Parameter reference length x for temperature disturbance
@@ -60,7 +70,12 @@ private:
 	///	<summary>
 	///		Parameter reference length z for temperature disturbance
 	///	</summary>
-	double m_dzC;
+	double m_dyC;
+
+	///	<summary>
+	///		Parameter reference width for perturtion gaussian
+	///	</summary>
+	double m_dLpC;
 
 	///	<summary>
 	///		Parameter Archimede's Constant (essentially Pi but to some digits)
@@ -71,22 +86,27 @@ public:
 	///	<summary>
 	///		Constructor. (with physical constants defined privately here)
 	///	</summary>
-	ThermalBubbleCartesianTest() :
-		m_dH0(10000.),
-		m_dThetaBar(300.0),
-		m_dThetaC(0.5),
-		m_drC(250.),
-		m_dxC(500.),
-		m_dzC(350.),
+	Baroclinic3DCartesianTest() :
+		m_dbC(2.),
+		m_dU0(35.),
+		m_dUp(1.),
+		m_dNbar(0.014),
+		m_dTheta0(288.),
+		m_dLpC(600000.),
+		m_dxC(2000000.),
+		m_dyC(2500000.),
 		m_dpiC(3.14159265)
 	{
 		// Set the dimensions of the box
 		m_dGDim[0] = 0.0;
-		m_dGDim[1] = 1000.0;
-		m_dGDim[2] = -1000.0;
-		m_dGDim[3] = 1000.0;
+		m_dGDim[1] = 40000000.0;
+		m_dGDim[2] = 0.0;
+		m_dGDim[3] = 6000000.0;
 		m_dGDim[4] = 0.0;
-		m_dGDim[5] = 1000.0;
+		m_dGDim[5] = 30000.0;
+
+		// Set the reference latitude
+		m_dRefLat = 45.0 / 180.0 * m_dpiC;
 	}
 
 public:
@@ -132,27 +152,21 @@ public:
 	}
 
 	///	<summary>
-	///		Evaluate the potential temperature field perturbation.
+	///		Evaluate the zonal velocity field perturbation.
 	///	</summary>
-	double EvaluateTPrime(
+	double EvaluateUPrime(
 		const PhysicalConstants & phys,
 		double dXp,
-		double dZp
+		double dYp
 	) const {
 
-		// Potential temperature perturbation bubble using radius
+		// Gaussian perturbation for the zonal jet
 		double xL2 = (dXp - m_dxC) * (dXp - m_dxC);
-		double zL2 = (dZp - m_dzC) * (dZp - m_dzC);
-		double dRp = sqrt(xL2 + zL2);
+		double yL2 = (dYp - m_dyC) * (dYp - m_dyC);
 
-		double dThetaHat = 1.0;
-		if (dRp <= m_drC) {
-			dThetaHat = 0.5 * m_dThetaC * (1.0 + cos(m_dpiC * dRp / m_drC));
-		} else if (dRp > m_drC) {
-			dThetaHat = 0.0;
-		}
-
-		return dThetaHat;
+		double dUpert = m_dUp * exp(-(xL2 + yL2) / (m_dLpC * m_dLpC));
+ 
+		return dUpert;
 	}
 
 	///	<summary>
@@ -170,20 +184,28 @@ public:
 		const double dCp = phys.GetCp();
 		const double dRd = phys.GetR();
 		const double dP0 = phys.GetP0();
-		// Set the uniform U, V, W field for all time
-		dState[0] = 0.0;
+		double dThetaBar = m_dTheta0 * exp(m_dNbar * m_dNbar / dG * dZp);
+
+		// Set the uniform V, W field for all time
 		dState[1] = 0.0;
 		dState[3] = 0.0;
 
 		// Set the initial potential temperature field
-		dState[2] = m_dThetaBar;
+		dState[2] = dThetaBar;
 
 		// Set the initial density based on the Exner pressure
-		double dExnerP =
-			- dG / (dCp * m_dThetaBar) * dZp + 1.0;
-		double dRho =
-			dP0 / (dRd * m_dThetaBar) *
-			  pow(dExnerP, (dCv / dRd));
+		double dExnerP = (dG * dG) / (dCp * m_dTheta0 * (m_dNbar * m_dNbar));
+		dExnerP *= (exp(-pow(m_dNbar,2.0)/dG * dZp) - 1.0);
+		dExnerP += 1.0;
+		double dRho = dP0 / (dRd * dThetaBar) * pow(dExnerP,(dCv / dRd));
+		dState[4] = dRho;
+		double dEta = pow((dRho * dRd * dThetaBar / dP0),(dCp / dCv));
+	
+		// Set the balanced zonal jet from Ullrich, 2014
+		double dUJet = -m_dU0 * sin(m_dpiC * dYp / m_dGDim[3]) * 
+					sin(m_dpiC * dYp / m_dGDim[3]) * 
+					log(dEta) * exp(-(log(dEta) / m_dbC) * (log(dEta) / m_dbC));
+		dState[0] = dUJet;
 
 		dState[4] = dRho;
 	}
@@ -205,20 +227,28 @@ public:
 		const double dCp = phys.GetCp();
 		const double dRd = phys.GetR();
 		const double dP0 = phys.GetP0();
-		// Set the uniform U, V, W field for all time
-		dState[0] = 0.0;
+		double dThetaBar = m_dTheta0 * exp(m_dNbar * m_dNbar / dG * dZp);
+
+		// Set the uniform V, W field for all time
 		dState[1] = 0.0;
 		dState[3] = 0.0;
 
 		// Set the initial potential temperature field
-		dState[2] = m_dThetaBar + EvaluateTPrime(phys, dXp, dZp);;
+		dState[2] = dThetaBar;
 
 		// Set the initial density based on the Exner pressure
-		double dExnerP =
-			- dG / (dCp * m_dThetaBar) * dZp + 1.0;
-		double dRho =
-			dP0 / (dRd * m_dThetaBar) *
-			  pow(dExnerP, (dCv / dRd));
+		double dExnerP = (dG * dG) / (dCp * m_dTheta0 * (m_dNbar * m_dNbar));
+		dExnerP *= (exp(-pow(m_dNbar,2.0)/dG * dZp) - 1.0);
+		dExnerP += 1.0;
+		double dRho = dP0 / (dRd * dThetaBar) * pow(dExnerP,(dCv / dRd));
+		dState[4] = dRho;
+		double dEta = pow((dRho * dRd * dThetaBar / dP0),(dCp / dCv));
+	
+		// Set the balanced zonal jet from Ullrich, 2014
+		double dUJet = -m_dU0 * sin(m_dpiC * dYp / m_dGDim[3]) * 
+					sin(m_dpiC * dYp / m_dGDim[3]) * 
+					log(dEta) * exp(-(log(dEta) / m_dbC) * (log(dEta) / m_dbC));
+		dState[0] = dUJet  + EvaluateUPrime(phys, dXp, dYp);
 
 		dState[4] = dRho;
 	}
@@ -234,13 +264,13 @@ int main(int argc, char** argv) {
 try {
 
 	// Parse the command line
-	BeginTempestCommandLine("ThermalBubbleCartesianTest");
-		SetDefaultResolutionX(36);
-		SetDefaultResolutionY(1);
-		SetDefaultLevels(72);
-		SetDefaultOutputDeltaT("10s");
-		SetDefaultDeltaT("10000u");
-		SetDefaultEndTime("700s");
+	BeginTempestCommandLine("Baroclinic3DCartesianTest");
+		SetDefaultResolutionX(288);
+		SetDefaultResolutionY(48);
+		SetDefaultLevels(32);
+		SetDefaultOutputDeltaT("3h");
+		SetDefaultDeltaT("300s");
+		SetDefaultEndTime("12d");
 		SetDefaultHorizontalOrder(4);
 		SetDefaultVerticalOrder(1);
 
@@ -248,15 +278,16 @@ try {
 	EndCommandLine(argv)
 
 	// Create a new instance of the test
-	ThermalBubbleCartesianTest * test =
-		new ThermalBubbleCartesianTest();
+	Baroclinic3DCartesianTest * test =
+		new Baroclinic3DCartesianTest();
 
 	// Setup the Model
 	AnnounceBanner("MODEL SETUP");
 
 	Model model(EquationSet::PrimitiveNonhydrostaticEquations);
-
-	TempestSetupCartesianModel(model, test->m_dGDim, 0.0);
+	
+	// Setup the cartesian model with dimensions and reference latitude
+	TempestSetupCartesianModel(model, test->m_dGDim, test->m_dRefLat);
 
 	// Set the reference length to reduce diffusion (1100km)
 	model.GetGrid()->SetReferenceLength(1100000.0);
