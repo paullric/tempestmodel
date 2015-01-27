@@ -25,13 +25,15 @@
 #include "GridGLL.h"
 #include "GridPatchGLL.h"
 
+#include "iomanip"
+
 //#define DIFFERENTIAL_FORM
 
 #ifdef DIFFERENTIAL_FORM
 #pragma message "WARNING: DIFFERENTIAL_FORM will lose mass over topography"
 #endif
 
-#define VECTOR_INVARIANT_FORM
+//#define VECTOR_INVARIANT_FORM
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -466,6 +468,11 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 			pPatch->GetTopography();
 
 		const double dZtop = pGrid->GetZtop();
+		
+		// Get the coordinates to check force balance externally
+		const DataMatrix<double>   & dLongitude  = pPatch->GetLongitude();
+		const DataMatrix<double>   & dLatitude   = pPatch->GetLatitude();
+		const DataMatrix3D<double> & dZLevels    = pPatch->GetZLevels();
 
 		// Data
 		GridData4D & dataInitialNode =
@@ -797,6 +804,12 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 					* dJacobian2D[iA][iB]
 					* ( + dContraMetricB[k][iA][iB][1] * dUa
 						- dContraMetricB[k][iA][iB][0] * dUb);
+
+				double dCorForce = 
+					dCoriolisF[iA][iB]
+					* dJacobian2D[iA][iB]
+					* ( + dContraMetricB[k][iA][iB][1] * dUa
+						- dContraMetricB[k][iA][iB][0] * dUb);
 #endif
 				// Pressure derivatives
 				dLocalUpdateUa -=
@@ -810,7 +823,20 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 						+ dContraMetricB[k][iA][iB][1] * dDbP
 						+ dContraMetricB[k][iA][iB][2] * dDxP)
 							* dataInitialNode[TIx][k][iA][iB];
-
+				
+				double dPresForce = 
+						( dContraMetricB[k][iA][iB][0] * dDaP
+						+ dContraMetricB[k][iA][iB][1] * dDbP
+						+ dContraMetricB[k][iA][iB][2] * dDxP)
+							* dataInitialNode[TIx][k][iA][iB];
+				/*
+				// OUTPUT THE CORIOLIS AND PRESSURE UPDATES AT THEIR LOCATIONS
+				std::cout << std::fixed;
+				std::cout << std::setprecision(12) << dLatitude[iA][iB] 
+						  << " " << dLongitude[iA][iB] 
+  						  << " " << dZLevels[k][iA][iB]
+        				  << " " << dCorForce << " " << dPresForce << "\n";
+				*/
  				// Apply update to horizontal velocity on model levels
 				dataUpdateNode[UIx][k][iA][iB] += dDeltaT * dLocalUpdateUa;
 				dataUpdateNode[VIx][k][iA][iB] += dDeltaT * dLocalUpdateUb;

@@ -277,7 +277,7 @@ void _TempestSetupOutputManagers(
 				vars.nOutputResX,
 				vars.nOutputResY,
 				false,
-				true);
+				false);
 
 		if (vars.fOutputVorticity) {
 			pOutmanRef->OutputVorticity();

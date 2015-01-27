@@ -2780,12 +2780,14 @@ void VerticalDynamicsFEM::BuildJacobianF2(
 		dDG[MatFIx(FWIx, k, FWIx, k)] += 1.0 / m_dDeltaT;
 		dDG[MatFIx(FRIx, k, FRIx, k)] += 1.0 / m_dDeltaT;
 	}
-
+	
+	// Enforce that density can't be a source of vertical velocity at a boundary
 	for (int k = 0; k <= nRElements ; k++) {
 		dDG[MatFIx(FWIx, 0, FRIx, k)] = 0.0;
 		dDG[MatFIx(FWIx, nRElements, FRIx, k)] = 0.0;
 	}
-
+	
+	// Enforce no horizontal velocity at the top and bottom through a boundarys
 	dDG[MatFIx(FWIx, 0, FWIx, 0)] =
 		dOrthonomREdge[0][m_iA][m_iB][2];
 	dDG[MatFIx(FWIx, nRElements, FWIx, nRElements)] =

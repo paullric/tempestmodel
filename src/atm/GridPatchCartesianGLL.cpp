@@ -78,9 +78,11 @@ void GridPatchCartesianGLL::InitializeDataLocal() {
 		m_dataLon[i][j] = m_box.GetANode(i);
 		m_dataLat[i][j] = m_box.GetBNode(j);
 
-		m_dataCoriolisF[i][j] = 0.0;
+		//m_dataCoriolisF[i][j] = 0.0;
 	}
 	}
+
+	//std::cout << m_box.GetATotalWidth() << " " << m_box.GetBTotalWidth() << "\n";
 }
 
 ///////////////////////////////////////////////////////////////////////////////

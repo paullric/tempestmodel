@@ -15,6 +15,7 @@
 ///	</remarks>
 
 #include "Tempest.h"
+#include "iomanip"
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -54,23 +55,29 @@ private:
 	double m_dUp;
 
 	///	<summary>
-	///		Brunt-Vaisala frequency
+	///		Assumed lapse rate of absolute temperature
 	///	</summary>
-	double m_dNbar;
+	double m_ddTdz;
+	
 	///	<summary>
-	///		Reference constant background pontential temperature
+	///		Reference constant surface absolute temperature
 	///	</summary>
-	double m_dTheta0;
+	double m_dT0;
 
 	///	<summary>
 	///		Parameter reference length x for temperature disturbance
 	///	</summary>
-	double m_dxC;
+	double m_dXC;
 
 	///	<summary>
-	///		Parameter reference length z for temperature disturbance
+	///		Parameter reference length y for temperature disturbance
 	///	</summary>
-	double m_dyC;
+	double m_dYC;
+
+	///	<summary>
+	///		Parameter for the center of the y domain
+	///	</summary>
+	double m_dY0;
 
 	///	<summary>
 	///		Parameter reference width for perturtion gaussian
@@ -90,12 +97,12 @@ public:
 		m_dbC(2.),
 		m_dU0(35.),
 		m_dUp(1.),
-		m_dNbar(0.014),
-		m_dTheta0(288.),
+		m_ddTdz(0.005),
+		m_dT0(288.),
 		m_dLpC(600000.),
-		m_dxC(2000000.),
-		m_dyC(2500000.),
-		m_dpiC(3.14159265)
+		m_dXC(2000000.),
+		m_dYC(2500000.),
+		m_dpiC(M_PI)
 	{
 		// Set the dimensions of the box
 		m_dGDim[0] = 0.0;
@@ -107,6 +114,9 @@ public:
 
 		// Set the reference latitude
 		m_dRefLat = 45.0 / 180.0 * m_dpiC;
+
+		// Set the center of the domain in Y
+		m_dY0 = 0.5 * (m_dGDim[3] - m_dGDim[2]);
 	}
 
 public:
@@ -161,13 +171,123 @@ public:
 	) const {
 
 		// Gaussian perturbation for the zonal jet
-		double xL2 = (dXp - m_dxC) * (dXp - m_dxC);
-		double yL2 = (dYp - m_dyC) * (dYp - m_dyC);
+		double xL2 = (dXp - m_dXC) * (dXp - m_dXC);
+		double yL2 = (dYp - m_dYC) * (dYp - m_dYC);
 
 		double dUpert = m_dUp * exp(-(xL2 + yL2) / (m_dLpC * m_dLpC));
  
 		return dUpert;
 	}
+
+	///	<summary>
+	///		Calculate the geopotential and temperature at the given point.
+	///	</summary>
+	void CalculateGeopotentialTemperature(
+		const PhysicalConstants & phys,
+		double dEta,
+		double dXp,
+		double dYp,
+		double & dGeopotential,
+		double & dTemperature
+	) const {
+		// Get some constants
+		const double dG = phys.GetG();
+		const double dCv = phys.GetCv();
+		const double dCp = phys.GetCp();
+		const double dRd = phys.GetR();
+		const double dP0 = phys.GetP0();
+		const double dae = phys.GetEarthRadius();
+		//const double df0 = 2 * phys.GetOmega() * sin(m_dRefLat);
+		const double df0 = 0.0;
+		//const double dbeta0 = 2 * phys.GetOmega() * cos(m_dRefLat) / dae;
+		const double dbeta0 = 0.0;
+		const double dLy = m_dGDim[3] - m_dGDim[2];
+
+		// Horizontally averaged temperature
+		double dAvgTemperature =
+			m_dT0 * pow(dEta, dRd * m_ddTdz / dG);
+
+		// Horizontally averaged geopotential
+		double dAvgGeopotential =
+			m_dT0 * dG / m_ddTdz * 
+			(1.0 - pow(dEta, dRd * m_ddTdz / dG));
+
+		// Horizontal variation geopotential function
+		double dXYGeopotential = 0.5 * m_dU0 * 
+			((df0 - dbeta0 * m_dY0) * (dYp - m_dY0 - 
+			m_dY0 / m_dpiC * sin(2 * m_dpiC * dYp / dLy)) + 
+			0.5 * dbeta0 * 
+			(dYp * dYp - dLy * dYp / m_dpiC * sin(2 * m_dpiC * dYp / dLy) - 
+			0.5 * dLy * dLy / (m_dpiC * m_dpiC) * cos(2 * m_dpiC * dYp / dLy) -
+			dLy * dLy / 3 - 0.5 * dLy * dLy / (m_dpiC * m_dpiC)));
+
+		double dExpDecay = exp(-(log(dEta) / m_dbC) * (log(dEta) / m_dbC));
+		double dRefProfile1 = log(dEta);
+		double dRefProfile2 = 2 / (m_dbC * m_dbC) * log(dEta) * log(dEta) - 1.0;
+
+		// Total geopotential distribution
+		dGeopotential = dAvgGeopotential + dXYGeopotential*
+			dRefProfile1 * dExpDecay;
+		
+		// Total temperature distribution
+		dTemperature = dAvgTemperature + dXYGeopotential / dRd *
+			dRefProfile2 * dExpDecay;
+	}
+
+	///	<summary>
+	///		Calculate eta at the given point via Newton iteration.  The
+	///		geopotential and temperature at this point are also returned via
+	///		command-line parameters.
+	///	</summary>
+	double EtaFromRLL(
+		const PhysicalConstants &phys,
+		double dZp,
+		double dXp,
+		double dYp,
+		double & dGeopotential,
+		double & dTemperature
+	) const {
+		const int MaxIterations  = 50;
+		const double InitialEta  = 1.0e-5;
+		const double Convergence = 1.0e-13;
+
+		// Buffer variables
+		double dEta = InitialEta;
+		double dNewEta;
+
+		double dF;
+		double dDiffF;
+
+		// Iterate until convergence is achieved
+		int i = 0;
+		for (; i < MaxIterations; i++) {
+
+			CalculateGeopotentialTemperature(
+				phys, dEta, dXp, dYp, dGeopotential, dTemperature);
+
+			dF     = - phys.GetG() * dZp + dGeopotential;
+			dDiffF = - phys.GetR() / dEta * dTemperature;
+
+			dNewEta = dEta - dF / dDiffF;
+
+			if (fabs(dEta - dNewEta) < Convergence) {
+				return dNewEta;
+			}
+
+			dEta = dNewEta;
+		}
+
+		// Check for convergence failure
+		if (i == MaxIterations) {
+			_EXCEPTIONT("Maximum number of iterations exceeded.");
+		}
+
+		if ((dEta > 1.0) || (dEta < 0.0)) {
+			_EXCEPTIONT("Invalid Eta value");
+		}
+		return dEta;
+	}
+
 
 	///	<summary>
 	///		Evaluate the reference state at the given point.
@@ -179,34 +299,34 @@ public:
 		double dYp,
 		double * dState
 	) const {
-	    const double dG = phys.GetG();
-		const double dCv = phys.GetCv();
-		const double dCp = phys.GetCp();
-		const double dRd = phys.GetR();
-		const double dP0 = phys.GetP0();
-		double dThetaBar = m_dTheta0 * exp(m_dNbar * m_dNbar / dG * dZp);
+		const double dLy = m_dGDim[3] - m_dGDim[2];
 
-		// Set the uniform V, W field for all time
+		// Pressure coordinate
+		double dGeopotential;
+		double dTemperature;
+
+		double dEta = EtaFromRLL(
+			phys, dZp, dXp, dYp, dGeopotential, dTemperature);
+
+		// Calculate zonal velocity and set other velocity components
+		double dExpDecay = exp(-(log(dEta) / m_dbC) * (log(dEta) / m_dbC));
+		double dUlon =
+			-m_dU0 * sin(m_dpiC * dYp / dLy) * sin(m_dpiC * dYp / dLy) *
+			 log(dEta) * dExpDecay;
+
+		dState[0] = dUlon;
 		dState[1] = 0.0;
 		dState[3] = 0.0;
 
-		// Set the initial potential temperature field
-		dState[2] = dThetaBar;
+		// Calculate rho and theta
+		double dPressure = phys.GetP0() * dEta;
+		//std::cout << std::setprecision(16) << "Z = " << dZp << " Eta = " << dEta << "\n";
 
-		// Set the initial density based on the Exner pressure
-		double dExnerP = (dG * dG) / (dCp * m_dTheta0 * (m_dNbar * m_dNbar));
-		dExnerP *= (exp(-pow(m_dNbar,2.0)/dG * dZp) - 1.0);
-		dExnerP += 1.0;
-		double dRho = dP0 / (dRd * dThetaBar) * pow(dExnerP,(dCv / dRd));
-		dState[4] = dRho;
-		double dEta = pow((dRho * dRd * dThetaBar / dP0),(dCp / dCv));
-	
-		// Set the balanced zonal jet from Ullrich, 2014
-		double dUJet = -m_dU0 * sin(m_dpiC * dYp / m_dGDim[3]) * 
-					sin(m_dpiC * dYp / m_dGDim[3]) * 
-					log(dEta) * exp(-(log(dEta) / m_dbC) * (log(dEta) / m_dbC));
-		dState[0] = dUJet;
+		double dRho = dPressure / (phys.GetR() * dTemperature);
 
+		double dRhoTheta = phys.RhoThetaFromPressure(dPressure);
+
+		dState[2] = dRhoTheta / dRho;
 		dState[4] = dRho;
 	}
 
@@ -222,35 +342,13 @@ public:
 		double * dState,
 		double * dTracer
 	) const {
-	    const double dG = phys.GetG();
-		const double dCv = phys.GetCv();
-		const double dCp = phys.GetCp();
-		const double dRd = phys.GetR();
-		const double dP0 = phys.GetP0();
-		double dThetaBar = m_dTheta0 * exp(m_dNbar * m_dNbar / dG * dZp);
 
-		// Set the uniform V, W field for all time
-		dState[1] = 0.0;
-		dState[3] = 0.0;
+		// Evaluate the reference state at this point
+		EvaluateReferenceState(phys, dZp, dXp, dYp, dState);
 
-		// Set the initial potential temperature field
-		dState[2] = dThetaBar;
-
-		// Set the initial density based on the Exner pressure
-		double dExnerP = (dG * dG) / (dCp * m_dTheta0 * (m_dNbar * m_dNbar));
-		dExnerP *= (exp(-pow(m_dNbar,2.0)/dG * dZp) - 1.0);
-		dExnerP += 1.0;
-		double dRho = dP0 / (dRd * dThetaBar) * pow(dExnerP,(dCv / dRd));
-		dState[4] = dRho;
-		double dEta = pow((dRho * dRd * dThetaBar / dP0),(dCp / dCv));
-	
-		// Set the balanced zonal jet from Ullrich, 2014
-		double dUJet = -m_dU0 * sin(m_dpiC * dYp / m_dGDim[3]) * 
-					sin(m_dpiC * dYp / m_dGDim[3]) * 
-					log(dEta) * exp(-(log(dEta) / m_dbC) * (log(dEta) / m_dbC));
-		dState[0] = dUJet  + EvaluateUPrime(phys, dXp, dYp);
-
-		dState[4] = dRho;
+		// Add perturbation in zonal velocity
+		//dState[0] += 0.0;
+		dState[0] += EvaluateUPrime(phys, dXp, dYp);
 	}
 };
 
