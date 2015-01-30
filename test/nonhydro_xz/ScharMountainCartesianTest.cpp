@@ -31,9 +31,14 @@ public:
 	///	</summary>
 	double m_dGDim[6];
 
+	///	<summary>
+	///		Parameter reference height for topography disturbance
+	///	</summary>
+	double m_dhC;
+
 private:
 	///	<summary>
-	///		Background height field.
+	///		Top of the model domain.
 	///	</summary>
 	double m_dH0;
 
@@ -56,11 +61,6 @@ private:
 	///		Parameter factor for temperature disturbance
 	///	</summary>
 	double m_dThetaC;
-
-	///	<summary>
-	///		Parameter reference height for temperature disturbance
-	///	</summary>
-	double m_dhC;
 
 	///	<summary>
 	///		Parameter reference length a for temperature disturbance
@@ -358,7 +358,7 @@ try {
 
 	Model model(EquationSet::PrimitiveNonhydrostaticEquations);
 
-	TempestSetupCartesianModel(model, test->m_dGDim, 0.0);
+	TempestSetupCartesianModel(model, test->m_dGDim, 0.0, test->m_dhC);
 
 	// Set the test case for the model
 	AnnounceStartBlock("Initializing test case");

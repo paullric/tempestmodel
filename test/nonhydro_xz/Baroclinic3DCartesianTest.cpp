@@ -89,21 +89,38 @@ private:
 	///	</summary>
 	double m_dpiC;
 
+	///	<summary>
+	///		Flag indicating that Rayleigh friction is inactive.
+	///	</summary>
+	bool m_fNoRayleighFriction;
+
 public:
 	///	<summary>
 	///		Constructor. (with physical constants defined privately here)
 	///	</summary>
-	Baroclinic3DCartesianTest() :
-		m_dbC(2.),
-		m_dU0(35.),
-		m_dUp(1.),
-		m_ddTdz(0.005),
-		m_dT0(288.),
-		m_dLpC(600000.),
-		m_dXC(2000000.),
-		m_dYC(2500000.),
-		m_dpiC(M_PI)
+	Baroclinic3DCartesianTest(
+		double dbC,
+		double dU0,
+		double dUp,
+		double ddTdz,
+		double dT0,
+		double dLpC,
+		double dXC,
+		double dYC,
+		bool fNoRayleighFriction
+	) :
+		m_dbC(dbC),
+		m_dU0(dU0),
+		m_dUp(dUp),
+		m_ddTdz(ddTdz),
+		m_dT0(dT0),
+		m_dLpC(dLpC),
+		m_dXC(dXC),
+		m_dYC(dYC),
+		m_fNoRayleighFriction(fNoRayleighFriction)
 	{
+		m_dpiC = M_PI;
+
 		// Set the dimensions of the box
 		m_dGDim[0] = 0.0;
 		m_dGDim[1] = 40000000.0;
@@ -159,6 +176,52 @@ public:
 	) const {
 		// This test case has no topography associated with it
 		return 0.0;
+	}
+
+	///	<summary>
+	///		Flag indicating whether or not Rayleigh friction strength is given.
+	///	</summary>
+	virtual bool HasRayleighFriction() const {
+		return !m_fNoRayleighFriction;
+	}
+
+	///	<summary>
+	///		Evaluate the Rayleigh friction strength at the given point.
+	///	</summary>
+	virtual double EvaluateRayleighStrength(
+		double dZ,
+		double dXp,
+		double dYp
+	) const {
+		const double dRayleighStrength = 8.0e-3;
+		const double dRayleighDepth = 10000.0;
+		const double dRayleighWidth = 10000.0;
+
+		double dNuDepth = 0.0;
+		double dNuRight = 0.0;
+		double dNuLeft  = 0.0;
+
+		if (dZ > m_dGDim[5] - dRayleighDepth) {
+			double dNormZ = (m_dGDim[5] - dZ) / dRayleighDepth;
+			//dNuDepth = 0.5 * dRayleighStrength * (1.0 + cos(M_PI * dNormZ));
+			dNuDepth = 0.0;
+		}
+		if (dXp > m_dGDim[3] - dRayleighWidth) {
+			double dNormY = (m_dGDim[3] - dYp) / dRayleighWidth;
+			dNuRight = 0.5 * dRayleighStrength * (1.0 + cos(M_PI * dNormY));
+		}
+		if (dXp < m_dGDim[2] + dRayleighWidth) {
+			double dNormY = (dYp - m_dGDim[2]) / dRayleighWidth;
+			dNuLeft = 0.5 * dRayleighStrength * (1.0 + cos(M_PI * dNormY));
+		}
+
+		if ((dNuDepth >= dNuRight) && (dNuDepth >= dNuLeft)) {
+			return dNuDepth;
+		}
+		if (dNuRight >= dNuLeft) {
+			return dNuRight;
+		}
+		return dNuLeft;
 	}
 
 	///	<summary>
@@ -360,6 +423,32 @@ int main(int argc, char** argv) {
 	TempestInitialize(&argc, &argv);
 
 try {
+	// Nondimensional vertical width parameter
+	double dbC;
+	
+	// Uniform zonal velocity
+	double dU0;
+
+	// Magnitude of the zonal wind perturbation
+	double dUp;
+
+	// Lapse rate
+	double ddTdz;
+
+	// Reference absolute temperature
+	double dT0;
+
+	// Width parameter for the perturbation
+	double dLpC;
+
+	// Center position of the perturbation
+	double dXC;
+
+	// Center position of the perturbation
+	double dYC;
+
+	// No Rayleigh friction
+	bool fNoRayleighFriction;
 
 	// Parse the command line
 	BeginTempestCommandLine("Baroclinic3DCartesianTest");
@@ -372,12 +461,30 @@ try {
 		SetDefaultHorizontalOrder(4);
 		SetDefaultVerticalOrder(1);
 
+		CommandLineDouble(dbC, "b", 2.0);
+		CommandLineDouble(dU0, "u0", 35.0);
+		CommandLineDouble(dUp, "up", 1.0);
+		CommandLineDouble(ddTdz, "gamma", 0.005);
+		CommandLineDouble(dT0, "T0", 288.0);
+		CommandLineDouble(dLpC, "Lp", 600000.0);
+		CommandLineDouble(dXC, "Xc", 2000000.0);
+		CommandLineDouble(dYC, "Yc", 2500000.0);
+		CommandLineBool(fNoRayleighFriction, "norayleigh");
+
 		ParseCommandLine(argc, argv);
 	EndCommandLine(argv)
 
 	// Create a new instance of the test
 	Baroclinic3DCartesianTest * test =
-		new Baroclinic3DCartesianTest();
+		new Baroclinic3DCartesianTest(dbC,
+									  dU0,
+									  dUp,
+									  ddTdz,
+									  dT0,
+									  dLpC,
+									  dXC,
+									  dYC,
+									  fNoRayleighFriction);
 
 	// Setup the Model
 	AnnounceBanner("MODEL SETUP");
@@ -385,7 +492,7 @@ try {
 	Model model(EquationSet::PrimitiveNonhydrostaticEquations);
 	
 	// Setup the cartesian model with dimensions and reference latitude
-	TempestSetupCartesianModel(model, test->m_dGDim, test->m_dRefLat);
+	TempestSetupCartesianModel(model, test->m_dGDim, test->m_dRefLat, 0.0);
 
 	// Set the reference length to reduce diffusion (1100km)
 	model.GetGrid()->SetReferenceLength(1100000.0);

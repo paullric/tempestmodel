@@ -44,6 +44,7 @@ GridCartesianGLL::GridCartesianGLL(
 	int nRElements,
 	double dGDim[],
 	double dRefLat,
+	double dTopoHeight,
 	VerticalStaggering eVerticalStaggering
 ) :
 	// Call up the stack
@@ -70,6 +71,9 @@ GridCartesianGLL::GridCartesianGLL(
 	m_dGDim[4] = dGDim[4]; m_dGDim[5] = dGDim[5];
 
 	m_dZtop = dGDim[5];
+
+	// Set the max topography height from the test case definition
+	m_dTopoHeight = dTopoHeight;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -155,7 +159,8 @@ void GridCartesianGLL::AddDefaultPatches() {
 				m_nHorizontalOrder,
 				m_nVerticalOrder,
 				m_dGDim,
-				m_dRefLat));
+				m_dRefLat,
+				m_dTopoHeight));
 	}
 }
 

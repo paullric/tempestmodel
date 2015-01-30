@@ -33,7 +33,7 @@
 #pragma message "WARNING: DIFFERENTIAL_FORM will lose mass over topography"
 #endif
 
-//#define VECTOR_INVARIANT_FORM
+#define VECTOR_INVARIANT_FORM
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -804,12 +804,6 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 					* dJacobian2D[iA][iB]
 					* ( + dContraMetricB[k][iA][iB][1] * dUa
 						- dContraMetricB[k][iA][iB][0] * dUb);
-
-				double dCorForce = 
-					dCoriolisF[iA][iB]
-					* dJacobian2D[iA][iB]
-					* ( + dContraMetricB[k][iA][iB][1] * dUa
-						- dContraMetricB[k][iA][iB][0] * dUb);
 #endif
 				// Pressure derivatives
 				dLocalUpdateUa -=
@@ -823,20 +817,25 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 						+ dContraMetricB[k][iA][iB][1] * dDbP
 						+ dContraMetricB[k][iA][iB][2] * dDxP)
 							* dataInitialNode[TIx][k][iA][iB];
-				
+/*			
+				// OUTPUT THE CORIOLIS AND PRESSURE UPDATES AT THEIR LOCATIONS
+				double dCorForce = 
+					dCoriolisF[iA][iB]
+					* dJacobian2D[iA][iB]
+					* ( + dContraMetricB[k][iA][iB][1] * dUa
+						- dContraMetricB[k][iA][iB][0] * dUb);
 				double dPresForce = 
 						( dContraMetricB[k][iA][iB][0] * dDaP
 						+ dContraMetricB[k][iA][iB][1] * dDbP
 						+ dContraMetricB[k][iA][iB][2] * dDxP)
 							* dataInitialNode[TIx][k][iA][iB];
-				/*
-				// OUTPUT THE CORIOLIS AND PRESSURE UPDATES AT THEIR LOCATIONS
+
 				std::cout << std::fixed;
 				std::cout << std::setprecision(12) << dLatitude[iA][iB] 
 						  << " " << dLongitude[iA][iB] 
   						  << " " << dZLevels[k][iA][iB]
         				  << " " << dCorForce << " " << dPresForce << "\n";
-				*/
+*/				
  				// Apply update to horizontal velocity on model levels
 				dataUpdateNode[UIx][k][iA][iB] += dDeltaT * dLocalUpdateUa;
 				dataUpdateNode[VIx][k][iA][iB] += dDeltaT * dLocalUpdateUb;

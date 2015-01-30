@@ -256,7 +256,7 @@ try {
 
 	Model model(EquationSet::PrimitiveNonhydrostaticEquations);
 
-	TempestSetupCartesianModel(model, test->m_dGDim, 0.0);
+	TempestSetupCartesianModel(model, test->m_dGDim, 0.0, 0.0);
 
 	// Set the reference length to reduce diffusion (1100km)
 	model.GetGrid()->SetReferenceLength(1100000.0);

@@ -391,6 +391,7 @@ void _TempestSetupCartesianModel(
 	Model & model,
 	double dGDim[],
 	double dRefLat,
+	double dTopoHeight,
 	_TempestCommandLineVariables & vars
 ) {
 	// Set the parameters
@@ -432,6 +433,7 @@ void _TempestSetupCartesianModel(
 			vars.nLevels,
 			dGDim,
 			dRefLat,
+			dTopoHeight,
 			eVerticalStaggering);
 
 	// Set the vertical stretching function
@@ -465,8 +467,8 @@ void _TempestSetupCartesianModel(
 #define TempestSetupCubedSphereModel(model) \
 	_TempestSetupCubedSphereModel(model, _tempestvars);
 
-#define TempestSetupCartesianModel(model, dimensions, latitude) \
-	_TempestSetupCartesianModel(model, dimensions, latitude, _tempestvars);
+#define TempestSetupCartesianModel(model, dimensions, latitude, topoheight) \
+	_TempestSetupCartesianModel(model, dimensions, latitude, topoheight, _tempestvars);
 
 ///////////////////////////////////////////////////////////////////////////////
 

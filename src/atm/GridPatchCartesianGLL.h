@@ -45,7 +45,8 @@ public:
 		int nHorizontalOrder,
 		int nVerticalOrder,
 		double dGDim[],
-		double dRefLat
+		double dRefLat,
+		double dTopoHeight
 	);
 
 public:
@@ -158,6 +159,16 @@ private:
 	///		Referece latitude (for beta plane cases)
 	///	</summary>
 	double m_dRefLat;
+
+	///	<summary>
+	///		Maximum height of a topography feature
+	///	</summary>
+	double m_dTopoHeight;
+
+	///	<summary>
+	///		Scale height for exponential decay of topography
+	///	</summary>
+	double m_dSL;
 
 };
 

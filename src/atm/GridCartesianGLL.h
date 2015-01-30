@@ -41,6 +41,7 @@ public:
 		int nRElements,
 		double dGDim[],
 		double dRefLat,
+		double dTopoHeight,
 		VerticalStaggering eVerticalStaggering =
 			VerticalStaggering_CharneyPhillips
 	);
@@ -130,6 +131,11 @@ private:
 	///		Referece latitude (for beta plane cases)
 	///	</summary>
 	double m_dRefLat;
+
+	///	<summary>
+	///		Maximum height of a topography feature
+	///	</summary>
+	double m_dTopoHeight;
 
 };
 

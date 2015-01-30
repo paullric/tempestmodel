@@ -31,6 +31,7 @@
 #include "MathHelper.h"
 
 #include <cmath>
+#include <algorithm>
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -41,7 +42,8 @@ GridPatchCartesianGLL::GridPatchCartesianGLL(
 	int nHorizontalOrder,
 	int nVerticalOrder,
 	double dGDim[],
-	double dRefLat
+	double dRefLat,
+	double dTopoHeight
 ) :
 	GridPatchGLL(
 		grid,
@@ -59,6 +61,9 @@ GridPatchCartesianGLL::GridPatchCartesianGLL(
 	m_dGDim[0] = dGDim[0]; m_dGDim[1] = dGDim[1];
 	m_dGDim[2] = dGDim[2]; m_dGDim[3] = dGDim[3];
 	m_dGDim[4] = dGDim[4]; m_dGDim[5] = dGDim[5];
+
+	// Set the max topography height from the test case definition
+	m_dTopoHeight = dTopoHeight;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -80,6 +85,13 @@ void GridPatchCartesianGLL::InitializeDataLocal() {
 
 		//m_dataCoriolisF[i][j] = 0.0;
 	}
+	}
+
+	// Set the scale height for the decay of topography features
+	m_dSL = 10 * m_dTopoHeight;
+
+	if (m_dSL >= m_grid.GetZtop()) {
+ 		_EXCEPTIONT("Coordinate scale height exceeds model top.");
 	}
 
 	//std::cout << m_box.GetATotalWidth() << " " << m_box.GetBTotalWidth() << "\n";
@@ -155,9 +167,9 @@ void GridPatchCartesianGLL::EvaluateGeometricTerms() {
 	for (int i = 0; i < m_box.GetATotalWidth(); i++) {
 	for (int j = 0; j < m_box.GetBTotalWidth(); j++) {
 		// Coriolis force by beta approximation
-		//m_dataCoriolisF[i][j] = dfp + dbetap * (m_dataLat[i][j] - dy0);
+		m_dataCoriolisF[i][j] = dfp + dbetap * (m_dataLat[i][j] - dy0);
 		//m_dataCoriolisF[i][j] = dfp;
-		m_dataCoriolisF[i][j] = 0.0;
+		//m_dataCoriolisF[i][j] = 0.0;
 	}
 	}
 
@@ -246,6 +258,7 @@ void GridPatchCartesianGLL::EvaluateGeometricTerms() {
 				int kx = k % m_nVerticalOrder;
 
 				// Gal-Chen and Somerville (1975) terrain following coord
+				// Schar Exponential Decay terrain following coord
 				double dREta = m_grid.GetREtaLevel(k);
 
 				double dREtaStretch;
@@ -253,11 +266,21 @@ void GridPatchCartesianGLL::EvaluateGeometricTerms() {
 				m_grid.EvaluateVerticalStretchF(
 					dREta, dREtaStretch, dDxREtaStretch);
 
-				double dZ = dZs + (m_grid.GetZtop() - dZs) * dREtaStretch;
-
+				//double dZ = dZs + (m_grid.GetZtop() - dZs) * dREtaStretch;
+				double dbZ = sinh(m_grid.GetZtop() * (1.0 - dREtaStretch) / m_dSL) / 
+					sinh(m_grid.GetZtop() / m_dSL);
+				double dZ = m_grid.GetZtop() * dREtaStretch + dZs * dbZ;
+/*
 				double dDaZ = (1.0 - dREtaStretch) * dDaZs;
 				double dDbZ = (1.0 - dREtaStretch) * dDbZs;
-				double dDxZ = (m_grid.GetZtop() - dZs) * dDxREtaStretch;
+				double dDxZ = (m_grid.GetZ top() - dZs) * dDxREtaStretch;
+*/
+				double dDaZ = dbZ * dDaZs;
+				double dDbZ = dbZ * dDbZs;
+				double dDxZ = m_grid.GetZtop() - dZs * m_grid.GetZtop() * 
+					cosh(m_grid.GetZtop() * (1.0 - dREtaStretch) / m_dSL) /
+					(m_dSL * sinh(m_grid.GetZtop() / m_dSL));
+				dDxZ *= dDxREtaStretch;
 
 /*
 				double dDaaZ = (1.0 - dREta) * dDaaZs;
@@ -350,8 +373,9 @@ void GridPatchCartesianGLL::EvaluateGeometricTerms() {
 				int kx = k % m_nVerticalOrder;
 
 				// Gal-Chen and Somerville (1975) terrain following coord
+				// Schar Exponential decay terrain following coord
 				double dREta = m_grid.GetREtaInterface(k);
-
+/*				
 				double dREtaStretch;
 				double dDxREtaStretch;
 				m_grid.EvaluateVerticalStretchF(
@@ -362,6 +386,27 @@ void GridPatchCartesianGLL::EvaluateGeometricTerms() {
 				double dDaZ = (1.0 - dREtaStretch) * dDaZs;
 				double dDbZ = (1.0 - dREtaStretch) * dDbZs;
 				double dDxZ = (m_grid.GetZtop() - dZs) * dDxREtaStretch;
+*/
+				double dREtaStretch;
+				double dDxREtaStretch;
+				m_grid.EvaluateVerticalStretchF(
+					dREta, dREtaStretch, dDxREtaStretch);
+
+				//double dZ = dZs + (m_grid.GetZtop() - dZs) * dREtaStretch;
+				double dbZ = sinh(m_grid.GetZtop() * (1.0 - dREtaStretch) / m_dSL) / 
+					sinh(m_grid.GetZtop() / m_dSL);
+				double dZ = m_grid.GetZtop() * dREtaStretch + dZs * dbZ;
+/*
+				double dDaZ = (1.0 - dREtaStretch) * dDaZs;
+				double dDbZ = (1.0 - dREtaStretch) * dDbZs;
+		     	double dDxZ = (m_grid.GetZtop() - dZs) * dDxREtaStretch;
+*/
+				double dDaZ = dbZ * dDaZs;
+				double dDbZ = dbZ * dDbZs;
+				double dDxZ = m_grid.GetZtop() - dZs * m_grid.GetZtop() * 
+					cosh(m_grid.GetZtop() * (1.0 - dREtaStretch) / m_dSL) /
+					(m_dSL * sinh(m_grid.GetZtop() / m_dSL));
+				dDxZ *= dDxREtaStretch;
 
 /*
 				double dDaaZ = (1.0 - dREta) * dDaaZs;
@@ -455,7 +500,7 @@ void GridPatchCartesianGLL::EvaluateTestCase(
 
 	// Physical constants
 	const PhysicalConstants & phys = m_grid.GetModel().GetPhysicalConstants();
-
+	
 	// Initialize the topography at each node
 	for (int i = 0; i < m_box.GetATotalWidth(); i++) {
 	for (int j = 0; j < m_box.GetBTotalWidth(); j++) {
@@ -468,7 +513,7 @@ void GridPatchCartesianGLL::EvaluateTestCase(
 		if (m_dataTopography[i][j] >= m_grid.GetZtop()) {
 			_EXCEPTIONT("TestCase topography exceeds model top.");
 		}
-
+/*
 		// Gal-Chen and Sommerville vertical coordinate
 		for (int k = 0; k < m_grid.GetRElements(); k++) {
 			m_dataZLevels[k][i][j] =
@@ -481,6 +526,18 @@ void GridPatchCartesianGLL::EvaluateTestCase(
 				m_dataTopography[i][j]
 					+ m_grid.GetREtaInterface(k)
 						* (m_grid.GetZtop() - m_dataTopography[i][j]);
+		}
+*/
+		// Schar Exponential Decay vertical coordinate
+		for (int k = 0; k < m_grid.GetRElements(); k++) {
+			m_dataZLevels[k][i][j] = m_grid.GetZtop() * m_grid.GetREtaLevel(k) + 
+			m_dataTopography[i][j] * sinh(m_grid.GetZtop() * (1.0 - m_grid.GetREtaLevel(k)) / m_dSL) / 
+			sinh(m_grid.GetZtop() / m_dSL);
+		}
+		for (int k = 0; k <= m_grid.GetRElements(); k++) {
+			m_dataZInterfaces[k][i][j] = m_grid.GetZtop() * m_grid.GetREtaInterface(k) + 
+			m_dataTopography[i][j] * sinh(m_grid.GetZtop() * (1.0 - m_grid.GetREtaInterface(k)) / m_dSL) / 
+			sinh(m_grid.GetZtop() / m_dSL);
 		}
 	}
 	}
