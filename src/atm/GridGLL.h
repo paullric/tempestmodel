@@ -100,6 +100,65 @@ private:
 
 public:
 	///	<summary>
+	///		Interpolate one column of data from nodes to the given interface.
+	///	</summary>
+	double InterpolateNodeToREdge(
+		const double * dDataNode,
+		const double * dDataRefNode,
+		int iRint,
+		double dDataRefREdge,
+		int nStride = 1
+	) const;
+
+	///	<summary>
+	///		Interpolate one column of data from interfaces to the given node.
+	///	</summary>
+	double InterpolateREdgeToNode(
+		const double * dDataREdge,
+		const double * dDataRefREdge,
+		int iRnode,
+		double dDataRefNode,
+		int nStride = 1
+	) const;
+
+	///	<summary>
+	///		Differentiate a variable from nodes to the given node.
+	///	</summary>
+	double DifferentiateNodeToNode(
+		const double * dDataNode,
+		int iRnode,
+		int nStride = 1
+	) const;
+
+	///	<summary>
+	///		Differentiate a variable from nodes to the given interface.
+	///	</summary>
+	double DifferentiateNodeToREdge(
+		const double * dDataNode,
+		int iRnode,
+		int nStride = 1
+	) const;
+
+	///	<summary>
+	///		Differentiate a variable from interfaces to the given node.
+	///	</summary>
+	double DifferentiateREdgeToNode(
+		const double * dDataREdge,
+		int iRnode,
+		int nStride = 1
+	) const;
+
+	///	<summary>
+	///		Differentiate a variable from interfaces to the given interface.
+	///	</summary>
+	double DifferentiateREdgeToREdge(
+		const double * dDataREdge,
+		int iRint,
+		int nStride = 1
+	) const;
+
+public:
+	///	<summary>
 	///		Interpolate one column of data from nodes to interfaces.
 	///	</summary>
 	void InterpolateNodeToREdge(
@@ -130,7 +189,7 @@ public:
 	) const;
 
 	///	<summary>
-	///		Differentiate a variable from interfaces to interfaces.
+	///		Differentiate a variable from nodes to interfaces.
 	///	</summary>
 	void DifferentiateNodeToREdge(
 		const double * dDataNode,
@@ -139,7 +198,7 @@ public:
 	) const;
 
 	///	<summary>
-	///		Differentiate a variable from interfaces to interfaces.
+	///		Differentiate a variable from interfaces to nodes.
 	///	</summary>
 	void DifferentiateREdgeToNode(
 		const double * dDataREdge,

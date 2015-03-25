@@ -365,21 +365,6 @@ void GridCartesianGLL::GetOpposingDirection(
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void GridCartesianGLL::ApplyBoundaryConditions(
-	int iDataUpdate,
-	DataType eDataType
-) {
-	_EXCEPTION();
-	for (int n = 0; n < GetActivePatchCount(); n++) {
-		GridPatchCartesianGLL * pPatch =
-			dynamic_cast<GridPatchCartesianGLL*>(GetActivePatch(n));
-
-		pPatch->ApplyBoundaryConditions(iDataUpdate, eDataType);
-	}
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
 void GridCartesianGLL::ApplyDSS(
 	int iDataUpdate,
 	DataType eDataType
@@ -414,6 +399,8 @@ void GridCartesianGLL::ApplyDSS(
 			nComponents = 1;
 		} else if (eDataType == DataType_Divergence) {
 			nComponents = 1;
+		} else if (eDataType == DataType_TopographyDeriv) {
+			nComponents = 2;
 		} else {
 			_EXCEPTIONT("Invalid DataType");
 		}
@@ -439,6 +426,10 @@ void GridCartesianGLL::ApplyDSS(
 				pDataUpdate = pPatch->GetDataVorticity();
 			} else if (eDataType == DataType_Divergence) {
 				pDataUpdate = pPatch->GetDataDivergence();
+			} else if (eDataType == DataType_TopographyDeriv) {
+				pDataUpdate = pPatch->GetTopographyDeriv();
+
+				nRElements = 2;
 			}
 
 			// Averaging DSS across patch boundaries

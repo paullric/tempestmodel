@@ -43,6 +43,41 @@ void LinearColumnOperator::Initialize(
 
 ///////////////////////////////////////////////////////////////////////////////
 
+double LinearColumnOperator::Apply(
+	const double * dColumnIn,
+	int iRout,
+	int nStride
+) const {
+	double dOut = 0.0;
+	for (int l = m_iBegin[iRout]; l < m_iEnd[iRout]; l++) {
+		int lx = l * nStride;
+
+		dOut += m_dCoeff[iRout][l] * dColumnIn[lx];
+	}
+	return dOut;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+double LinearColumnOperator::Apply(
+	const double * dColumnIn,
+	const double * dColumnRefIn,
+	double dColumnRefOut,
+	int iRout,
+	int nStride
+) const {
+	double dOut = dColumnRefOut;
+	for (int l = m_iBegin[iRout]; l < m_iEnd[iRout]; l++) {
+		int lx = l * nStride;
+
+		dOut += m_dCoeff[iRout][l] * (dColumnIn[lx] - dColumnRefIn[lx]);
+	}
+	return dOut;
+}
+
+
+///////////////////////////////////////////////////////////////////////////////
+
 void LinearColumnOperator::Apply(
 	const double * dColumnIn,
 	double * dColumnOut

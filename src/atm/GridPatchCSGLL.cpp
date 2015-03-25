@@ -214,8 +214,16 @@ void GridPatchCSGLL::EvaluateGeometricTerms() {
 	DataVector<double> dGNode;
 	DataVector<double> dWNode;
 
-	GaussQuadrature::GetPoints(
-		m_nVerticalOrder, 0.0, 1.0, dGNode, dWNode);
+	if (m_grid.GetVerticalStaggering() ==
+			Grid::VerticalStaggering_Interfaces
+	) {
+		GaussLobattoQuadrature::GetPoints(
+			m_nVerticalOrder, 0.0, 1.0, dGNode, dWNode);
+
+	} else {
+		GaussQuadrature::GetPoints(
+			m_nVerticalOrder, 0.0, 1.0, dGNode, dWNode);
+	}
 
 	// Obtain Gauss Lobatto quadrature nodes and weights in the vertical
 	DataVector<double> dGREdge;
@@ -241,7 +249,7 @@ void GridPatchCSGLL::EvaluateGeometricTerms() {
 	}
 	}
 
-	// Initialize metric and Christoffel symbols in terrain-following coords
+	// Initialize metric in terrain-following coords
 	for (int a = 0; a < GetElementCountA(); a++) {
 	for (int b = 0; b < GetElementCountB(); b++) {
 
@@ -318,19 +326,6 @@ void GridPatchCSGLL::EvaluateGeometricTerms() {
 			dCovMetricScale * (- dX * dY);
 		m_dataCovMetric2DB[iA][iB][1] =
 			dCovMetricScale * (1.0 + dY * dY);
-
-		// Christoffel symbol components at each node
-		// (off-diagonal elements are doubled due to symmetry)
-		m_dataChristoffelA[iA][iB][0] =
-			2.0 * dX * dY * dY / dDelta2;
-		m_dataChristoffelA[iA][iB][1] =
-			- 2.0 * dY * (1.0 + dY * dY) / dDelta2;
-		m_dataChristoffelA[iA][iB][2] = 0.0;
-		m_dataChristoffelB[iA][iB][0] = 0.0;
-		m_dataChristoffelB[iA][iB][1] =
-			- 2.0 * dX * (1.0 + dX * dX) / dDelta2;
-		m_dataChristoffelB[iA][iB][2] =
-			2.0 * dX * dX * dY / dDelta2;
 
 		// Vertical coordinate transform and its derivatives
 		for (int k = 0; k < m_grid.GetRElements(); k++) {
@@ -416,45 +411,6 @@ void GridPatchCSGLL::EvaluateGeometricTerms() {
 				dDxR * dDxR;
 */
 
-/*
-			m_dataContraMetricXi[k][iA][iB][0] = 
-				- dContraMetricScale / dDxR
-					* ((1.0 + dY * dY) * dDaR + dX * dY * dDbR);
-			m_dataContraMetricXi[k][iA][iB][1] =
-				- dContraMetricScale / dDxR
-					* (dX * dY * dDaR + (1.0 + dX * dX) * dDbR);
-			m_dataContraMetricXi[k][iA][iB][2] =
-				1.0 / (dDxR * dDxR)
-					* (1.0 + dContraMetricScale
-						* (  (1.0 + dY * dY) * dDaR * dDaR
-						   + 2.0 * dX * dY * dDaR * dDbR
-						   + (1.0 + dX * dX) * dDbR * dDbR));
-
-			// Vertical Christoffel symbol components
-			m_dataChristoffelXi[k][iA][iB][0] =
-				- 2.0 * dX * dY * dY / dDelta2 * dDaR + dDaaR;
-
-			m_dataChristoffelXi[k][iA][iB][1] =
-				+ 2.0 * dY * (1.0 + dY * dY) / dDelta2 * dDaR
-				+ 2.0 * dX * (1.0 + dX * dX) / dDelta2 * dDbR
-				+ 2.0 * dDabR;
-
-			m_dataChristoffelXi[k][iA][iB][2] = 2.0 * dDaxR;
-
-			m_dataChristoffelXi[k][iA][iB][3] =
-				- 2.0 * dX * dX * dY / dDelta2 * dDbR + dDbbR;
-
-			m_dataChristoffelXi[k][iA][iB][4] = 2.0 * dDbxR;
-
-			m_dataChristoffelXi[k][iA][iB][5] = dDxxR;
-
-			m_dataChristoffelXi[k][iA][iB][0] /= dDxR;
-			m_dataChristoffelXi[k][iA][iB][1] /= dDxR;
-			m_dataChristoffelXi[k][iA][iB][2] /= dDxR;
-			m_dataChristoffelXi[k][iA][iB][3] /= dDxR;
-			m_dataChristoffelXi[k][iA][iB][4] /= dDxR;
-			m_dataChristoffelXi[k][iA][iB][5] /= dDxR;
-*/
 			// Orthonormalization coefficients
 			m_dataOrthonormNode[k][iA][iB][0] = - dDaR / dDxR;
 			m_dataOrthonormNode[k][iA][iB][1] = - dDbR / dDxR;
@@ -982,6 +938,8 @@ void GridPatchCSGLL::ComputeCurlAndDiv(
 				}
 			}
 
+			_EXCEPTIONT("Fix to avoid Christoffel symbols");
+/*
 			// Compute covariant derivatives at node
 			double dCovDaUa = dDaUa
 				+ m_dataChristoffelA[iA][iB][0] * dUa
@@ -1011,6 +969,7 @@ void GridPatchCSGLL::ComputeCurlAndDiv(
 			//double dInvJacobian = 1.0 / m_dataJacobian2D[iA][iB];
 			//m_dataDivergence[k][iA][iB] =
 			//	dInvJacobian * (dDaJUa + dDbJUb);
+*/
 		}
 		}
 	}
@@ -1043,77 +1002,6 @@ void GridPatchCSGLL::ComputeVorticityDivergence(
 
 	// Compute the radial component of the curl of the velocity field
 	ComputeCurlAndDiv(dataUa, dataUb);
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
-void GridPatchCSGLL::InterpolateNodeToREdge(
-	int iVar,
-	int iDataIndex
-) {
-
-	// Working data
-	GridData4D & dataNode  = GetDataState(iDataIndex, DataLocation_Node);
-	GridData4D & dataREdge = GetDataState(iDataIndex, DataLocation_REdge);
-
-	// Parent grid, containing the vertical remapping information
-	GridCSGLL * pCSGLLGrid = dynamic_cast<GridCSGLL*>(&m_grid);
-	if (pCSGLLGrid == NULL) {
-		_EXCEPTIONT("Logic error");
-	}
-
-	// Loop over all elements in the box
-	int nStride = dataNode.GetSize(2) * dataNode.GetSize(3);
-
-	const LinearColumnInterpFEM & opInterpNodeToREdge =
-		pCSGLLGrid->GetOpInterpNodeToREdge();
-
-	for (int i = m_box.GetAInteriorBegin(); i < m_box.GetAInteriorEnd(); i++) {
-	for (int j = m_box.GetBInteriorBegin(); j < m_box.GetBInteriorEnd(); j++) {
-
-		opInterpNodeToREdge.Apply(
-			&(dataNode[iVar][0][i][j]),
-			&(dataREdge[iVar][0][i][j]),
-			nStride,
-			nStride);
-	}
-	}
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
-void GridPatchCSGLL::InterpolateREdgeToNode(
-	int iVar,
-	int iDataIndex
-) {
-
-	// Working data
-	GridData4D & dataREdge = GetDataState(iDataIndex, DataLocation_REdge);
-	GridData4D & dataNode  = GetDataState(iDataIndex, DataLocation_Node);
-
-	// Parent grid, containing the vertical remapping information
-	GridCSGLL * pCSGLLGrid = dynamic_cast<GridCSGLL*>(&m_grid);
-	if (pCSGLLGrid == NULL) {
-		_EXCEPTIONT("Logic error");
-	}
-
-	// Loop over all elements in the box
-	int nStride = dataNode.GetSize(2) * dataNode.GetSize(3);
-
-	const LinearColumnInterpFEM & opInterpREdgeToNode =
-		pCSGLLGrid->GetOpInterpREdgeToNode();
-
-	// Loop over all elements in the box
-	for (int i = m_box.GetAInteriorBegin(); i < m_box.GetAInteriorEnd(); i++) {
-	for (int j = m_box.GetBInteriorBegin(); j < m_box.GetBInteriorEnd(); j++) {
-
-		opInterpREdgeToNode.Apply(
-			&(dataREdge[iVar][0][i][j]),
-			&(dataNode[iVar][0][i][j]),
-			nStride,
-			nStride);
-	}
-	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////

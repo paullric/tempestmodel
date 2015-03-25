@@ -88,13 +88,13 @@ public:
 
 			m_strComponentShortNames.push_back("U");
 			m_strComponentShortNames.push_back("V");
-			m_strComponentShortNames.push_back("Theta");
+			m_strComponentShortNames.push_back("P");
 			m_strComponentShortNames.push_back("W");
 			m_strComponentShortNames.push_back("Rho");
 
 			m_strComponentFullNames.push_back("Alpha velocity");
 			m_strComponentFullNames.push_back("Beta velocity");
-			m_strComponentFullNames.push_back("Potential temperature");
+			m_strComponentFullNames.push_back("Pressure");
 			m_strComponentFullNames.push_back("Vertical velocity");
 			m_strComponentFullNames.push_back("Density");
 

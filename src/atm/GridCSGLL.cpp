@@ -420,6 +420,10 @@ void GridCSGLL::ApplyDSS(
 		if (eDataType == DataType_State) {
 			pPatch->TransformHaloVelocities(iDataUpdate);
 		}
+		if (eDataType == DataType_TopographyDeriv) {
+			//pPatch->TransformTopographyDeriv();
+			_EXCEPTIONT("Not implemented");
+		}
 
 		// Panels in each coordinate direction
 		int ixRightPanel =

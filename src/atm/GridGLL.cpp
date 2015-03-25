@@ -95,7 +95,31 @@ void GridGLL::Initialize() {
 	for (int i = 0; i < m_nHorizontalOrder; i++) {
 		PolynomialInterp::DiffLagrangianPolynomialCoeffs(
 			m_nHorizontalOrder, dGL, dCoeffs, dGL[i]);
-
+/*
+		if (m_nHorizontalOrder == 4) {
+			if (i == 0) {
+				dCoeffs[0] = -6.0;
+				dCoeffs[1] =  8.090169943749478;
+				dCoeffs[2] = -3.090169943749475;
+				dCoeffs[3] =  1.0;
+			} else if (i == 1) {
+				dCoeffs[0] = -1.618033988749895;
+				dCoeffs[1] =  0.0;
+				dCoeffs[2] =  2.236067977499781;
+				dCoeffs[3] = -0.618033988749895;
+			} else if (i == 2) {
+				dCoeffs[0] =  0.618033988749895;
+				dCoeffs[1] = -2.236067977499781;
+				dCoeffs[2] =  0.0;
+				dCoeffs[3] =  1.618033988749895;
+			} else {
+				dCoeffs[0] = -1.0;
+				dCoeffs[1] =  3.090169943749476;
+				dCoeffs[2] = -8.090169943749475;
+				dCoeffs[3] =  6.0;
+			}
+		}
+*/
 #pragma message "Verify that DxBasis1D adds up to 0"
 		for (int m = 0; m < m_nHorizontalOrder; m++) {
 			m_dDxBasis1D[m][i] = dCoeffs[m];
@@ -182,23 +206,31 @@ void GridGLL::Initialize() {
 		false);
 /*
 	FILE * fp1 = fopen("op1.txt", "w");
-	const DataMatrix<double> & dCoeff1 = m_opDiffNodeToREdge.GetCoeffs();
+	const DataMatrix<double> & dCoeff1 = m_opDiffNodeToNode.GetCoeffs();
 	for (int n = 0; n < dCoeff1.GetRows(); n++) {
 		for (int m = 0; m < dCoeff1.GetColumns(); m++) {
-			fprintf(fp1, "%1.5e\t", dCoeff1[n][m]);
+			fprintf(fp1, "%1.16e\t", dCoeff1[n][m]);
 		}
 		fprintf(fp1, "\n");
 	}
-	const DataVector<int> & ixBegin1 = m_opDiffNodeToREdge.GetIxBegin();
-	const DataVector<int> & ixEnd1 = m_opDiffNodeToREdge.GetIxEnd();
+	fclose(fp1);
+
+	FILE * fp2 = fopen("lev.txt", "w");
+	for (int n = 0; n < m_dREtaStretchLevels.GetRows(); n++) {
+		fprintf(fp2, "%1.16e\n", m_dREtaStretchLevels[n]);
+	}
+	fclose(fp2);
+	_EXCEPTION();
+*/
+/*
+	const DataVector<int> & ixBegin1 = m_opDiffNodeToNode.GetIxBegin();
+	const DataVector<int> & ixEnd1 = m_opDiffNodeToNode.GetIxEnd();
 	for (int n = 0; n < dCoeff1.GetRows(); n++) {
 		fprintf(fp1, "%i\t%i\n", ixBegin1[n], ixEnd1[n]);
 	}
 	for (int n = 0; n < m_dREtaStretchLevels.GetRows(); n++) {
 		fprintf(fp1, "%1.5e %1.5e\n", m_dREtaStretchInterfaces[n], m_dREtaStretchLevels[n]);
 	}
-	fclose(fp1);
-	_EXCEPTION();
 */
 /*
 	FILE * fp2 = fopen("op2.txt", "w");
@@ -403,6 +435,7 @@ void GridGLL::PostProcessSubstage(
 	if (pHorizontalDynamics == NULL) {
 		ApplyDSS(iDataUpdate, eDataType);
 	}
+
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -508,6 +541,109 @@ void GridGLL::InterpolateCentralDiffPenalty(
 		m_dStateFEEdge[nFiniteElements][Left] =
 			- m_dStateFEEdge[nFiniteElements-1][Right];
 	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+double GridGLL::InterpolateNodeToREdge(
+	const double * dDataNode,
+	const double * dDataRefNode,
+	int iRint,
+	double dDataRefREdge,
+	int nStride
+) const {
+	if (dDataRefNode == NULL) {
+		return m_opInterpNodeToREdge.Apply(
+			dDataNode,
+			iRint,
+			nStride);
+
+	} else {
+		return m_opInterpNodeToREdge.Apply(
+			dDataNode,
+			dDataRefNode,
+			dDataRefREdge,
+			iRint,
+			nStride);
+	} 
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+double GridGLL::InterpolateREdgeToNode(
+	const double * dDataREdge,
+	const double * dDataRefREdge,
+	int iRnode,
+	double dDataRefNode,
+	int nStride
+) const {
+	if (dDataRefREdge == NULL) {
+		return m_opInterpREdgeToNode.Apply(
+			dDataREdge,
+			iRnode,
+			nStride);
+
+	} else {
+		return m_opInterpREdgeToNode.Apply(
+			dDataREdge,
+			dDataRefREdge,
+			dDataRefNode,
+			iRnode,
+			nStride);
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+double GridGLL::DifferentiateNodeToNode(
+	const double * dDataNode,
+	int iRnode,
+	int nStride
+) const {
+	return m_opDiffNodeToNode.Apply(
+		dDataNode,
+		iRnode,
+		nStride);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+double GridGLL::DifferentiateNodeToREdge(
+	const double * dDataNode,
+	int iRnode,
+	int nStride
+) const {
+	return m_opDiffNodeToREdge.Apply(
+		dDataNode,
+		iRnode,
+		nStride);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+double GridGLL::DifferentiateREdgeToNode(
+	const double * dDataREdge,
+	int iRnode,
+	int nStride
+) const {
+	return m_opDiffREdgeToNode.Apply(
+		dDataREdge,
+		iRnode,
+		nStride);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+double GridGLL::DifferentiateREdgeToREdge(
+	const double * dDataREdge,
+	int iRint,
+	int nStride
+) const {
+
+	return m_opDiffREdgeToREdge.Apply(
+		dDataREdge,
+		iRint,
+		nStride);
 }
 
 ///////////////////////////////////////////////////////////////////////////////

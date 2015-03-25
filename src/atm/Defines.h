@@ -23,9 +23,9 @@
 ///		Method to solve the vertical system.
 ///	</summary>
 //#define USE_JFNK_PETSC
-//#define USE_JFNK_GMRES
+#define USE_JFNK_GMRES
 //#define USE_DIRECTSOLVE_APPROXJ
-#define USE_DIRECTSOLVE
+//#define USE_DIRECTSOLVE
 
 ///	<summary>
 ///		Jacobian storage form

@@ -84,9 +84,9 @@ public:
 	///	<summary>
 	///		Apply boundary conditions to this patch.
 	///	</summary>
-	void ApplyBoundaryConditions(
+	virtual void ApplyBoundaryConditions(
 		int iDataUpdate,
-		DataType eDataType
+		DataType eDataType = DataType_State
 	);
 
 public:
@@ -104,23 +104,6 @@ public:
 	///		on the grid.
 	///	</summary>
 	virtual void ComputeVorticityDivergence(
-		int iDataIndex
-	);
-
-public:
-	///	<summary>
-	///		Interpolate data vertically from Nodes to REdges.
-	///	</summary>
-	virtual void InterpolateNodeToREdge(
-		int iVar,
-		int iDataIndex
-	);
-
-	///	<summary>
-	///		Interpolate data vertically from REdges to Nodes.
-	///	</summary>
-	virtual void InterpolateREdgeToNode(
-		int iVar,
 		int iDataIndex
 	);
 

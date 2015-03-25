@@ -79,9 +79,11 @@ protected:
 	///		Component indices into the F vector.
 	///	</summary>
 	typedef int FComp;
-	static const FComp FTIx = 0;
+	static const FComp FPIx = 0;
 	static const FComp FWIx = 1;
 	static const FComp FRIx = 2;
+
+	static const FComp FTot = 3;
 
 	///	<summary>
 	///		Get the index of the component and level of the F vector.
@@ -91,7 +93,7 @@ protected:
 		int nREdges = m_model.GetGrid()->GetRElements() + 1;
 		return (nREdges * c + k);
 #else
-		return (3*k + c);
+		return (FTot*k + c);
 #endif
 	}
 
@@ -104,10 +106,10 @@ protected:
 		int nREdges = m_model.GetGrid()->GetRElements() + 1;
 		return (m_nColumnStateSize * (nREdges * c0 + k0) + (nREdges * c1 + k1));
 #elif defined(USE_JACOBIAN_GENERAL)
-		return (m_nColumnStateSize * (3*k0 + c0) + (3*k1 + c1));
+		return (m_nColumnStateSize * (FTot*k0 + c0) + (FTot*k1 + c1));
 #elif defined(USE_JACOBIAN_DIAGONAL)
-		return (2 * m_nJacobianFKL + (3*k1 + c1) - (3*k0 + c0))
-			+ m_nColumnStateSize * (3*k0 + c0);
+		return (2 * m_nJacobianFKL + (FTot*k1 + c1) - (FTot*k0 + c0))
+			+ m_nColumnStateSize * (FTot*k0 + c0);
 #else
 		_EXCEPTION();
 #endif
@@ -327,12 +329,27 @@ protected:
 	///	<summary>
 	///		Auxiliary storage for derivative of theta.
 	///	</summary>
-	DataVector<double> m_dDiffTheta;
+	DataVector<double> m_dDiffP;
 
 	///	<summary>
 	///		Auxiliary storage for higher derivatives of theta.
 	///	</summary>
-	DataVector<double> m_dDiffDiffTheta;
+	DataVector<double> m_dDiffDiffP;
+
+	///	<summary>
+	///		Horizontal Kinetic energy on model levels.
+	///	</summary>
+	DataVector<double> m_dHorizKineticEnergyNode;
+
+	///	<summary>
+	///		Kinetic energy on model levels.
+	///	</summary>
+	DataVector<double> m_dKineticEnergyNode;
+
+	///	<summary>
+	///		Derivatives of kinetic energy on model levels.
+	///	</summary>
+	DataVector<double> m_dDiffKineticEnergyNode;
 
 	///	<summary>
 	///		Mass flux on model levels.
@@ -353,6 +370,26 @@ protected:
 	///		Derivatives of mass flux on model interfaces.
 	///	</summary>
 	DataVector<double> m_dDiffMassFluxREdge;
+
+	///	<summary>
+	///		Pressure flux on model levels.
+	///	</summary>
+	DataVector<double> m_dPressureFluxNode;
+
+	///	<summary>
+	///		Pressure flux on model interfaces.
+	///	</summary>
+	DataVector<double> m_dPressureFluxREdge;
+
+	///	<summary>
+	///		Derivatives of pressure flux on model levels.
+	///	</summary>
+	DataVector<double> m_dDiffPressureFluxNode;
+
+	///	<summary>
+	///		Derivatives of pressure flux on model interfaces.
+	///	</summary>
+	DataVector<double> m_dDiffPressureFluxREdge;
 
 	///	<summary>
 	///		Exner pressure perturbation at model levels.

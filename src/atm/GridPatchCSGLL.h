@@ -104,23 +104,6 @@ public:
 
 public:
 	///	<summary>
-	///		Interpolate data vertically from Nodes to REdges.
-	///	</summary>
-	virtual void InterpolateNodeToREdge(
-		int iVar,
-		int iDataIndex
-	);
-
-	///	<summary>
-	///		Interpolate data vertically from REdges to Nodes.
-	///	</summary>
-	virtual void InterpolateREdgeToNode(
-		int iVar,
-		int iDataIndex
-	);
-
-public:
-	///	<summary>
 	///		Transform vectors received from other panels to this panel's
 	///		coordinate system.
 	///	</summary>

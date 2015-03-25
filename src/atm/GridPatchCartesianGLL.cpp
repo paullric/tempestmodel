@@ -104,21 +104,65 @@ void GridPatchCartesianGLL::EvaluateTopography(
 ) {
 	const PhysicalConstants & phys = m_grid.GetModel().GetPhysicalConstants();
 
+	// Compute values of topography
 	for (int i = 0; i < m_box.GetATotalWidth(); i++) {
-		for (int j = 0; j < m_box.GetBTotalWidth(); j++) {
-			double dLon;
-			double dLat;
+	for (int j = 0; j < m_box.GetBTotalWidth(); j++) {
 
-			dLon = m_box.GetANode(i);
-			dLat = m_box.GetBNode(j);
+		double dX = m_box.GetANode(i);
+		double dY = m_box.GetBNode(j);
 
-			m_dataTopography[i][j] = test.EvaluateTopography(phys, dLon, dLat);
+		m_dataTopography[i][j] = test.EvaluateTopography(phys, dX, dY);
 
-			if (m_dataTopography[i][j] >= m_grid.GetZtop()) {
-				_EXCEPTIONT("TestCase topography exceeds model top.");
-			}
+		if (m_dataTopography[i][j] >= m_grid.GetZtop()) {
+			_EXCEPTIONT("TestCase topography exceeds model top.");
 		}
 	}
+	}
+
+	// Get derivatves from basis
+	GridCartesianGLL & gridCartesianGLL =
+		dynamic_cast<GridCartesianGLL &>(m_grid);
+
+	const DataMatrix<double> & dDxBasis1D =
+		gridCartesianGLL.GetDxBasis1D();
+
+	// Compute derivatives of topography
+	for (int a = 0; a < GetElementCountA(); a++) {
+	for (int b = 0; b < GetElementCountB(); b++) {
+
+		for (int i = 0; i < m_nHorizontalOrder; i++) {
+		for (int j = 0; j < m_nHorizontalOrder; j++) {
+
+			// Nodal points
+			int iElementA = m_box.GetAInteriorBegin() + a * m_nHorizontalOrder;
+			int iElementB = m_box.GetBInteriorBegin() + b * m_nHorizontalOrder;
+
+			int iA = iElementA + i;
+			int iB = iElementB + j;
+
+			// Topography height and its derivatives
+			double dZs = m_dataTopography[iA][iB];
+
+			double dDaZs = 0.0;
+			double dDbZs = 0.0;
+
+			for (int s = 0; s < m_nHorizontalOrder; s++) {
+				dDaZs += dDxBasis1D[s][i] * m_dataTopography[iElementA+s][iB];
+				dDbZs += dDxBasis1D[s][j] * m_dataTopography[iA][iElementB+s];
+			}
+
+			dDaZs /= GetElementDeltaA();
+			dDbZs /= GetElementDeltaB();
+
+			m_dataTopographyDeriv[0][iA][iB] = dDaZs;
+			m_dataTopographyDeriv[1][iA][iB] = dDbZs;
+		}
+		}
+	}
+	}
+
+	// Apply DSS to topography
+	gridCartesianGLL.ApplyDSS(0, DataType_TopographyDeriv);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -138,8 +182,16 @@ void GridPatchCartesianGLL::EvaluateGeometricTerms() {
 	DataVector<double> dGNode;
 	DataVector<double> dWNode;
 
-	GaussQuadrature::GetPoints(
-		m_nVerticalOrder, 0.0, 1.0, dGNode, dWNode);
+	if (m_grid.GetVerticalStaggering() ==
+			Grid::VerticalStaggering_Interfaces
+	) {
+		GaussLobattoQuadrature::GetPoints(
+			m_nVerticalOrder, 0.0, 1.0, dGNode, dWNode);
+
+	} else {
+		GaussQuadrature::GetPoints(
+			m_nVerticalOrder, 0.0, 1.0, dGNode, dWNode);
+	}
 
 	// Obtain Gauss Lobatto quadrature nodes and weights in the vertical
 	DataVector<double> dGREdge;
@@ -155,7 +207,7 @@ void GridPatchCartesianGLL::EvaluateGeometricTerms() {
 
 	// Derivatives of basis functions
 	GridCartesianGLL & gridCartesianGLL =
-	dynamic_cast<GridCartesianGLL &>(m_grid);
+		dynamic_cast<GridCartesianGLL &>(m_grid);
 
 	const DataMatrix<double> & dDxBasis1D = gridCartesianGLL.GetDxBasis1D();
 	
@@ -186,44 +238,50 @@ void GridPatchCartesianGLL::EvaluateGeometricTerms() {
 
 			int iA = iElementA + i;
 			int iB = iElementB + j;
-
-			// Gnomonic coordinates
-			double dX = tan(m_box.GetANode(iA));
-			double dY = tan(m_box.GetBNode(iB));
-			double dDelta2 = (1.0 + dX * dX + dY * dY);
-			double dDelta = sqrt(dDelta2);
-
+/*
 			// Topography height and its derivatives
 			double dZs = m_dataTopography[iA][iB];
 
 			double dDaZs = 0.0;
 			double dDbZs = 0.0;
+
 			for (int s = 0; s < m_nHorizontalOrder; s++) {
 				dDaZs += dDxBasis1D[s][i] * m_dataTopography[iElementA+s][iB];
 				dDbZs += dDxBasis1D[s][j] * m_dataTopography[iA][iElementB+s];
 			}
+
+			if (i == 0) {
+				int aL = (a + GetElementCountA() - 1) % GetElementCountA();
+				int iElementAL =
+					m_box.GetAInteriorBegin() + aL * m_nHorizontalOrder;
+
+				for (int s = 0; s < m_nHorizontalOrder; s++) {
+					dDaZs +=
+						  dDxBasis1D[s][m_nHorizontalOrder-1]
+						* m_dataTopography[iElementAL+s][iB];
+				}
+				dDaZs /= 2.0;
+			}
+			if (i == m_nHorizontalOrder-1) {
+				int aR = (a + GetElementCountA() + 1) % GetElementCountA();
+				int iElementAR =
+					m_box.GetAInteriorBegin() + aR * m_nHorizontalOrder;
+
+				for (int s = 0; s < m_nHorizontalOrder; s++) {
+					dDaZs +=
+						  dDxBasis1D[s][0]
+						* m_dataTopography[iElementAR+s][iB];
+				}
+				dDaZs /= 2.0;
+			}
+
 			dDaZs /= GetElementDeltaA();
 			dDbZs /= GetElementDeltaB();
-
-/*
-			double dDaaZs = 0.0;
-			double dDabZs = 0.0;
-			double dDbbZs = 0.0;
-
-			for (int s = 0; s < m_nHorizontalOrder; s++) {
-			for (int t = 0; t < m_nHorizontalOrder; t++) {
-				dDaaZs += dDxBasis1D[t][i] * dDxBasis1D[s][t]
-					* m_dataTopography[iElementA+s][iB];
-				dDabZs += dDxBasis1D[s][i] * dDxBasis1D[t][j]
-					* m_dataTopography[iElementA+s][iElementB+t];
-				dDbbZs += dDxBasis1D[t][j] * dDxBasis1D[s][t]
-					* m_dataTopography[iA][iElementB+s];
-			}
-			}
-			dDaaZs /= GetElementDeltaA() * GetElementDeltaA();
-			dDabZs /= GetElementDeltaA() * GetElementDeltaB();
-			dDbbZs /= GetElementDeltaB() * GetElementDeltaB();
 */
+			// Topography height and its derivatives
+			double dZs = m_dataTopography[iA][iB];
+			double dDaZs = m_dataTopographyDeriv[0][iA][iB];
+			double dDbZs = m_dataTopographyDeriv[1][iA][iB];
 
 			// Initialize 2D Jacobian
 			m_dataJacobian2D[iA][iB] = 1.0;
@@ -241,15 +299,6 @@ void GridPatchCartesianGLL::EvaluateGeometricTerms() {
 
 			m_dataCovMetric2DB[iA][iB][0] = 0.0;
 			m_dataCovMetric2DB[iA][iB][1] = 1.0;
-
-			// Christoffel symbol components at each node
-			// (off-diagonal element are doubled due to symmetry)
-			m_dataChristoffelA[iA][iB][0] = 0.0;
-			m_dataChristoffelA[iA][iB][1] = 0.0;
-			m_dataChristoffelA[iA][iB][2] = 0.0;
-			m_dataChristoffelB[iA][iB][0] = 0.0;
-			m_dataChristoffelB[iA][iB][1] = 0.0;
-			m_dataChristoffelB[iA][iB][2] = 0.0;
 
 			// Vertical coordinate transform and its derivatives
 			for (int k = 0; k < m_grid.GetRElements(); k++) {
@@ -318,6 +367,13 @@ void GridPatchCartesianGLL::EvaluateGeometricTerms() {
 				m_dataContraMetricB[k][iA][iB][2] =
 					- dDbZ / dDxZ;
 
+				m_dataContraMetricXi[k][iA][iB][0] =
+					m_dataContraMetricA[k][iA][iB][2];
+				m_dataContraMetricXi[k][iA][iB][1] =
+					m_dataContraMetricB[k][iA][iB][2];
+				m_dataContraMetricXi[k][iA][iB][2] =
+					(1.0 + dDaZ * dDaZ + dDbZ * dDbZ) / (dDxZ * dDxZ);
+
 				// Covariant metric components
 				m_dataCovMetricA[k][iA][iB][0] =
 					m_dataCovMetric2DA[iA][iB][0] + dDaZ * dDaZ;
@@ -333,34 +389,17 @@ void GridPatchCartesianGLL::EvaluateGeometricTerms() {
 				m_dataCovMetricB[k][iA][iB][2] =
 					dDbZ * dDxZ;
 
-/*
-				// Store terms relevant to W evolution equation
-				if (m_grid.GetVarLocation(3) == DataLocation_Node) {
-					// Contravariant metric components
-					m_dataContraMetricXi[k][iA][iB][0] =
-						- dDaZ / dDxZ;
-					m_dataContraMetricXi[k][iA][iB][1] =
-						- dDbZ / dDxZ;
-					m_dataContraMetricXi[k][iA][iB][2] =
-						(1.0 + dDaZ * dDaZ + dDbZ * dDbZ) / (dDxZ * dDxZ);
+				m_dataCovMetricXi[k][iA][iB][0] =
+					dDaZ * dDxZ;
+				m_dataCovMetricXi[k][iA][iB][1] =
+					dDbZ * dDxZ;
+				m_dataCovMetricXi[k][iA][iB][2] =
+					dDxZ * dDxZ;
 
-					// Vertical Christoffel symbol components
-					// (off-diagonal elements are doubled due to symmetry)
-					m_dataChristoffelXi[k][iA][iB][0] = dDaaZ;
-					m_dataChristoffelXi[k][iA][iB][1] = 2.0 * dDabZ;
-					m_dataChristoffelXi[k][iA][iB][2] = 2.0 * dDaxZ;
-					m_dataChristoffelXi[k][iA][iB][3] = dDbbZ;
-					m_dataChristoffelXi[k][iA][iB][4] = 2.0 * dDbxZ;
-					m_dataChristoffelXi[k][iA][iB][5] = dDxxZ;
-
-					m_dataChristoffelXi[k][iA][iB][0] /= dDxZ;
-					m_dataChristoffelXi[k][iA][iB][1] /= dDxZ;
-					m_dataChristoffelXi[k][iA][iB][2] /= dDxZ;
-					m_dataChristoffelXi[k][iA][iB][3] /= dDxZ;
-					m_dataChristoffelXi[k][iA][iB][4] /= dDxZ;
-					m_dataChristoffelXi[k][iA][iB][5] /= dDxZ;
-				}
-*/
+				// Derivatives of the vertical coordinate transform
+				m_dataDerivRNode[k][iA][iB][0] = dDaZ;
+				m_dataDerivRNode[k][iA][iB][1] = dDbZ;
+				m_dataDerivRNode[k][iA][iB][2] = dDxZ;
 
 				// Orthonormalization coefficients
 				m_dataOrthonormNode[k][iA][iB][0] = - dDaZ / dDxZ;
@@ -432,34 +471,6 @@ void GridPatchCartesianGLL::EvaluateGeometricTerms() {
 				if ((k != 0) && (k != m_grid.GetRElements()) && (kx == 0)) {
 					m_dataElementAreaREdge[k][iA][iB] *= 2.0;
 				}
-/*
-				// Store terms relevant to W evolution equation
-				if (m_grid.GetVarLocation(3) == DataLocation_REdge) {
-					// Contravariant metric components
-					m_dataContraMetricXi[k][iA][iB][0] =
-						- dDaZ / dDxZ;
-					m_dataContraMetricXi[k][iA][iB][1] =
-						- dDbZ / dDxZ;
-					m_dataContraMetricXi[k][iA][iB][2] =
-						(1.0 + dDaZ * dDaZ + dDbZ * dDbZ) / (dDxZ * dDxZ);
-
-					// Vertical Christoffel symbol components
-					// (off-diagonal elements are doubled due to symmetry)
-					m_dataChristoffelXi[k][iA][iB][0] = dDaaZ;
-					m_dataChristoffelXi[k][iA][iB][1] = 2.0 * dDabZ;
-					m_dataChristoffelXi[k][iA][iB][2] = 2.0 * dDaxZ;
-					m_dataChristoffelXi[k][iA][iB][3] = dDbbZ;
-					m_dataChristoffelXi[k][iA][iB][4] = 2.0 * dDbxZ;
-					m_dataChristoffelXi[k][iA][iB][5] = dDxxZ;
-
-					m_dataChristoffelXi[k][iA][iB][0] /= dDxZ;
-					m_dataChristoffelXi[k][iA][iB][1] /= dDxZ;
-					m_dataChristoffelXi[k][iA][iB][2] /= dDxZ;
-					m_dataChristoffelXi[k][iA][iB][3] /= dDxZ;
-					m_dataChristoffelXi[k][iA][iB][4] /= dDxZ;
-					m_dataChristoffelXi[k][iA][iB][5] /= dDxZ;
-				}
-*/
 
 				// Orthonormalization coefficients
 				m_dataOrthonormREdge[k][iA][iB][0] = - dDaZ / dDxZ;
@@ -659,10 +670,9 @@ void GridPatchCartesianGLL::EvaluateTestCase(
 ///////////////////////////////////////////////////////////////////////////////
 
 void GridPatchCartesianGLL::ApplyBoundaryConditions(
-	int iDataUpdate,
+	int iDataIndex,
 	DataType eDataType
 ) {
-#pragma message "BoundaryConditions only works when in HorizontalDynamicsFEM is in Differential Form"
 	// Indices of EquationSet variables
 	const int UIx = 0;
 	const int VIx = 1;
@@ -670,6 +680,28 @@ void GridPatchCartesianGLL::ApplyBoundaryConditions(
 	const int WIx = 3;
 	const int RIx = 4;
 
+	// Impose boundary conditions
+	if (m_grid.GetVerticalStaggering() ==
+		Grid::VerticalStaggering_Interfaces
+	) {
+		const int UIx = 0;
+		const int VIx = 1;
+		const int WIx = 3;
+
+		for (int i = 0; i < m_box.GetATotalWidth(); i++) {
+		for (int j = 0; j < m_box.GetBTotalWidth(); j++) {
+			m_datavecStateNode[iDataIndex][WIx][0][i][j] =
+				- ( m_dataContraMetricXi[0][i][j][0]
+					* m_datavecStateNode[iDataIndex][UIx][0][i][j]
+				+ m_dataContraMetricXi[0][i][j][1]
+					* m_datavecStateNode[iDataIndex][VIx][0][i][j])
+				/ m_dataContraMetricXi[0][i][j][2]
+				/ m_dataDerivRNode[0][i][j][2];
+		}
+		}
+	}
+
+/*
 	// Check number of components
 	if (m_grid.GetModel().GetEquationSet().GetComponents() != 5) {
 		_EXCEPTIONT("Unimplemented");
@@ -770,6 +802,7 @@ void GridPatchCartesianGLL::ApplyBoundaryConditions(
 			dataREdge[RIx][k][i][j] =   dataREdge[RIx][k][i][j+1];
 		}
 	}
+*/
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -806,23 +839,55 @@ void GridPatchCartesianGLL::ComputeCurlAndDiv(
 			double dUb = dataUb[k][iA+i][iB+j];
 
 			// Compute derivatives at each node
-			double dDaUa = 0.0;
-			double dDaUb = 0.0;
-			double dDbUa = 0.0;
-			double dDbUb = 0.0;
+			double dDaJUa = 0.0;
+			double dDbJUb = 0.0;
+
+			double dCovDaUb = 0.0;
+			double dCovDbUa = 0.0;
 
 			for (int s = 0; s < m_nHorizontalOrder; s++) {
-				dDaUa += dataUa[k][iA+s][iB+j] * dDxBasis1D[s][i];
-				dDaUb += dataUb[k][iA+s][iB+j] * dDxBasis1D[s][i];
-				dDbUa += dataUa[k][iA+i][iB+s] * dDxBasis1D[s][j];
-				dDbUb += dataUb[k][iA+i][iB+s] * dDxBasis1D[s][j];
+				double dConUa =
+					  m_dataContraMetric2DA[iA+s][iB+j][0]
+					  	* dataUa[k][iA+s][iB+j]
+					+ m_dataContraMetric2DA[iA+s][iB+j][1]
+						* dataUb[k][iA+s][iB+j];
+
+				double dConUb =
+					  m_dataContraMetric2DB[iA+s][iB+j][0]
+					  	* dataUa[k][iA+s][iB+j]
+					+ m_dataContraMetric2DB[iA+s][iB+j][1]
+						* dataUb[k][iA+s][iB+j];
+
+				dDaJUa += dDxBasis1D[s][i]
+					* m_dataJacobian2D[iA+s][iB+j]
+					* dConUa;
+
+				dDbJUb += dDxBasis1D[s][j]
+					* m_dataJacobian2D[iA+i][iB+s]
+					* dConUb;
+
+				dCovDaUb += dDxBasis1D[s][i] * dataUb[k][iA+s][iB+j];
+					//( m_dataCovMetric2DB[iA+s][iB+j][0] * dataUa[k][iA+s][iB+j]
+					//+ m_dataCovMetric2DB[iA+s][iB+j][1] * dataUb[k][iA+s][iB+j]);
+				dCovDbUa += dDxBasis1D[s][j] * dataUa[k][iA+i][iB+s];
+					//( m_dataCovMetric2DA[iA+i][iB+s][0] * dataUa[k][iA+i][iB+s]
+					//+ m_dataCovMetric2DA[iA+i][iB+s][1] * dataUb[k][iA+i][iB+s]);
 			}
 
-			dDaUa /= GetElementDeltaA();
-			dDaUb /= GetElementDeltaA();
-			dDbUa /= GetElementDeltaB();
-			dDbUb /= GetElementDeltaB();
+			dDaJUa /= GetElementDeltaA();
+			dDbJUb /= GetElementDeltaB();
 
+			dCovDaUb /= GetElementDeltaA();
+			dCovDbUa /= GetElementDeltaB();
+
+			m_dataVorticity[k][iA+i][iB+j] =
+				(dCovDaUb - dCovDbUa) / m_dataJacobian2D[iA+i][iB+j];
+
+			// Compute the divergence at node
+			m_dataDivergence[k][iA+i][iB+j] =
+				(dDaJUa + dDbJUb) / m_dataJacobian2D[iA+i][iB+j];
+
+/*
 			// Compute covariant derivatives at node
 			double dCovDaUa = dDaUa
 				+ m_dataChristoffelA[iA+i][iB+j][0] * dUa
@@ -842,13 +907,14 @@ void GridPatchCartesianGLL::ComputeCurlAndDiv(
 
 			// Compute curl at node
 			m_dataVorticity[k][iA+i][iB+j] = m_dataJacobian2D[iA+i][iB+j] * (
-				+ m_dataContraMetric2DA[iA+i][iB+j][0] * dCovDaUb
-				+ m_dataContraMetric2DA[iA+i][iB+j][1] * dCovDbUb
-				- m_dataContraMetric2DB[iA+i][iB+j][0] * dCovDaUa
-				- m_dataContraMetric2DB[iA+i][iB+j][1] * dCovDbUa);
+				+ m_dataContraMetric2DA[iA+i][iB+j][0] * dDaUb
+				+ m_dataContraMetric2DA[iA+i][iB+j][1] * dDbUb
+				- m_dataContraMetric2DB[iA+i][iB+j][0] * dDaUa
+				- m_dataContraMetric2DB[iA+i][iB+j][1] * dDbUa);
 
 			// Compute the divergence at node
-			m_dataDivergence[k][iA+i][iB+j] = dCovDaUa + dCovDbUb;
+			m_dataDivergence[k][iA+i][iB+j] = dDaUa + dDbUb;
+*/
 		}
 		}
 	}
@@ -881,107 +947,6 @@ void GridPatchCartesianGLL::ComputeVorticityDivergence(
 
 	// Compute the radial component of the curl of the velocity field
 	ComputeCurlAndDiv(dataUa, dataUb);
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
-void GridPatchCartesianGLL::InterpolateNodeToREdge(
-	int iVar,
-	int iDataIndex
-) {
-
-	// Working data
-	GridData4D & dataNode  = GetDataState(iDataIndex, DataLocation_Node);
-	GridData4D & dataREdge = GetDataState(iDataIndex, DataLocation_REdge);
-
-	// Parent grid, containing the vertical remapping information
-	GridCartesianGLL * pCSGLLGrid = dynamic_cast<GridCartesianGLL*>(&m_grid);
-	if (pCSGLLGrid == NULL) {
-		_EXCEPTIONT("Logic error");
-	}
-
-	const DataMatrix<double> & dInterp = pCSGLLGrid->GetInterpNodeToREdge();
-
-	int nVerticalOrder = pCSGLLGrid->GetVerticalOrder();
-	if (dataNode.GetRElements() % nVerticalOrder != 0) {
-		_EXCEPTIONT("Logic error");
-	}
-
-	// Loop over all elements in the box
-	for (int i = m_box.GetAInteriorBegin(); i < m_box.GetAInteriorEnd(); i++) {
-	for (int j = m_box.GetBInteriorBegin(); j < m_box.GetBInteriorEnd(); j++) {
-		int nFiniteElements = dataNode.GetRElements() / nVerticalOrder;
-
-		for (int k = 0; k < dataREdge.GetRElements(); k++) {
-			dataREdge[iVar][k][i][j] = 0.0;
-		}
-
-		// Loop over all nodes
-		for (int k = 0; k < dataNode.GetRElements(); k++) {
-			int a = k / nVerticalOrder;
-			int m = k % nVerticalOrder;
-			int lBegin = a * nVerticalOrder;
-
-			// Apply node value to interface
-			for (int l = 0; l <= nVerticalOrder; l++) {
-				dataREdge[iVar][lBegin + l][i][j] +=
-					dInterp[l][m] * dataNode[iVar][k][i][j];
-			}
-		}
-
-		// Halve interior element interface values
-		for (int a = 1; a < nFiniteElements; a++) {
-			dataREdge[iVar][a * nVerticalOrder][i][j] *= 0.5;
-		}
-	}
-	}
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
-void GridPatchCartesianGLL::InterpolateREdgeToNode(
-	int iVar,
-	int iDataIndex
-) {
-	// Working data
-	GridData4D & dataREdge = GetDataState(iDataIndex, DataLocation_REdge);
-	GridData4D & dataNode  = GetDataState(iDataIndex, DataLocation_Node);
-
-	// Parent grid, containing the vertical remapping information
-	GridCartesianGLL * pCSGLLGrid = dynamic_cast<GridCartesianGLL*>(&m_grid);
-	if (pCSGLLGrid == NULL) {
-		_EXCEPTIONT("Logic error");
-	}
-
-	const DataMatrix<double> & dInterp = pCSGLLGrid->GetInterpREdgeToNode();
-
-	int nVerticalOrder = pCSGLLGrid->GetVerticalOrder();
-	if (dataNode.GetRElements() % nVerticalOrder != 0) {
-		_EXCEPTIONT("Logic error");
-	}
-
-	// Loop over all elements in the box
-	for (int i = m_box.GetAInteriorBegin(); i < m_box.GetAInteriorEnd(); i++) {
-	for (int j = m_box.GetBInteriorBegin(); j < m_box.GetBInteriorEnd(); j++) {
-
-		for (int k = 0; k < dataNode.GetRElements(); k++) {
-			dataNode[iVar][k][i][j] = 0.0;
-		}
-
-		// Loop over all nodes
-		for (int k = 0; k < dataNode.GetRElements(); k++) {
-			int a = k / nVerticalOrder;
-			int m = k % nVerticalOrder;
-			int lBegin = a * nVerticalOrder;
-
-			// Apply interface values to nodes
-			for (int l = 0; l <= nVerticalOrder; l++) {
-				dataNode[iVar][k][i][j] +=
-					dInterp[m][l] * dataREdge[iVar][lBegin + l][i][j];
-			}
-		}
-	}
-	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////

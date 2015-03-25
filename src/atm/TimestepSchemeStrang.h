@@ -38,6 +38,7 @@ public:
 	///		Explicit time discretization.
 	///	</sumamry>
 	enum ExplicitDiscretization {
+		ForwardEuler,
 		RungeKutta4,
 		RungeKuttaSSP3,
 		KinnmarkGrayUllrich35,

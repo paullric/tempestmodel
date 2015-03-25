@@ -22,7 +22,6 @@
 #include "DataMatrix3D.h"
 #include "GridData3D.h"
 #include "GridData4D.h"
-#include "FluxBuffer.h"
 #include "PatchBox.h"
 #include "Connectivity.h"
 #include "ChecksumType.h"
@@ -131,6 +130,16 @@ public:
 		const TestCase & test,
 		const Time & time,
 		int iDataIndex = 0
+	) {
+		_EXCEPTIONT("Unimplemented.");
+	}
+
+	///	<summary>
+	///		Apply boundary conditions to the state.
+	///	</summary>
+	virtual void ApplyBoundaryConditions(
+		int iDataIndex = 0,
+		DataType eDataType = DataType_State
 	) {
 		_EXCEPTIONT("Unimplemented.");
 	}
@@ -337,6 +346,33 @@ public:
 			( m_dataOrthonormREdge[k][iA][iB][0] * dUa
 			+ m_dataOrthonormREdge[k][iA][iB][1] * dUb
 			+ m_dataOrthonormREdge[k][iA][iB][2] * dUr);
+	}
+
+	///	<summary>
+	///		Compute vertical velocity needed to enforce no flow condition
+	///		(xi_dot = 0) at node.
+	///	</summary>
+	inline double CalculateNoFlowUrNode(
+		int k,
+		int iA,
+		int iB,
+		double dUa,
+		double dUb
+	) {
+/*
+		if (iA == 75) {
+			printf("%1.10e %1.10e %1.10e %1.10e\n",
+				dUa,
+				m_dataOrthonormNode[k][iA][iB][0],
+				m_dataOrthonormNode[k][iA][iB][2],
+				- 1.0 / m_dataOrthonormNode[k][iA][iB][2] * (
+			  m_dataOrthonormNode[k][iA][iB][0] * dUa
+			+ m_dataOrthonormNode[k][iA][iB][1] * dUb));
+		}
+*/
+		return - 1.0 / m_dataOrthonormNode[k][iA][iB][2] * (
+			  m_dataOrthonormNode[k][iA][iB][0] * dUa
+			+ m_dataOrthonormNode[k][iA][iB][1] * dUb);
 	}
 
 	///	<summary>
@@ -571,39 +607,18 @@ public:
 		return m_dataCovMetricXi;
 	}
 
-	///	<summary>
-	///		Get the nodal components of the Christoffel alpha symbols.
+ 	///	<summary>
+	///		Get the vertical coordinate transform (derivatives of the
+	///		radius) at nodes.
 	///	</summary>
-	const DataMatrix3D<double> & GetChristoffelA() const {
+	const DataMatrix4D<double> & GetDerivRNode() const {
 		if (!m_fContainsData) {
 			_EXCEPTIONT("Stub patch does not store data.");
 		}
 
-		return m_dataChristoffelA;
+		return m_dataDerivRNode;
 	}
 
-	///	<summary>
-	///		Get the nodal components of the Christoffel beta symbols.
-	///	</summary>
-	const DataMatrix3D<double> & GetChristoffelB() const {
-		if (!m_fContainsData) {
-			_EXCEPTIONT("Stub patch does not store data.");
-		}
-
-		return m_dataChristoffelB;
-	}
-
-	///	<summary>
-	///		Get the nodal components of the Christoffel xi symbols.
-	///	</summary>
-	const DataMatrix4D<double> & GetChristoffelXi() const {
-		if (!m_fContainsData) {
-			_EXCEPTIONT("Stub patch does not store data.");
-		}
-
-		return m_dataChristoffelXi;
-	}
- 
  	///	<summary>
 	///		Get the orthonormalization components at nodes.
 	///	</summary>
@@ -649,7 +664,7 @@ public:
 	}
 
 	///	<summary>
-	///		Get the nodal topography matrix.
+	///		Get the nodal topography.
 	///	</summary>
 	DataMatrix<double> & GetTopography() {
 		if (!m_fContainsData) {
@@ -660,7 +675,7 @@ public:
 	}
 
 	///	<summary>
-	///		Get the nodal topography matrix.
+	///		Get the nodal topography.
 	///	</summary>
 	const DataMatrix<double> & GetTopography() const {
 		if (!m_fContainsData) {
@@ -668,6 +683,28 @@ public:
 		}
 
 		return m_dataTopography;
+	}
+
+	///	<summary>
+	///		Get the derivatives of the topography.
+	///	</summary>
+	GridData3D & GetTopographyDeriv() {
+		if (!m_fContainsData) {
+			_EXCEPTIONT("Stub patch does not store data.");
+		}
+
+		return m_dataTopographyDeriv;
+	}
+
+	///	<summary>
+	///		Get the derivatives of the topography.
+	///	</summary>
+	const GridData3D & GetTopographyDeriv() const {
+		if (!m_fContainsData) {
+			_EXCEPTIONT("Stub patch does not store data.");
+		}
+
+		return m_dataTopographyDeriv;
 	}
 
 	///	<summary>
@@ -950,7 +987,7 @@ public:
 	const GridData3D & GetDataPressure() const {
 		return m_dataPressure;
 	}
-
+/*
 	///	<summary>
 	///		Get the alpha direction pressure derivative data.
 	///	</summary>
@@ -978,7 +1015,7 @@ public:
 	const GridData3D & GetDataDbPressure() const {
 		return m_dataDbPressure;
 	}
-
+*/
 	///	<summary>
 	///		Get the pressure derivative data.
 	///	</summary>
@@ -991,6 +1028,62 @@ public:
 	///	</summary>
 	const GridData3D & GetDataDxPressure() const {
 		return m_dataDxPressure;
+	}
+
+	///	<summary>
+	///		Get the kinetic energy data.
+	///	</summary>
+	GridData3D & GetDataKineticEnergy() {
+		return m_dataKineticEnergy;
+	}
+
+	///	<summary>
+	///		Get the kinetic energy data.
+	///	</summary>
+	const GridData3D & GetDataKineticEnergy() const {
+		return m_dataKineticEnergy;
+	}
+/*
+	///	<summary>
+	///		Get the alpha direction kinetic energy derivative data.
+	///	</summary>
+	GridData3D & GetDataDaKineticEnergy() {
+		return m_dataDaKineticEnergy;
+	}
+
+	///	<summary>
+	///		Get the alpha direction kinetic energy derivative data.
+	///	</summary>
+	const GridData3D & GetDataDaKineticEnergy() const {
+		return m_dataDaKineticEnergy;
+	}
+
+	///	<summary>
+	///		Get the beta direction kinetic energy derivative data.
+	///	</summary>
+	GridData3D & GetDataDbKineticEnergy() {
+		return m_dataDbKineticEnergy;
+	}
+
+	///	<summary>
+	///		Get the beta direction kinetic energy derivative data.
+	///	</summary>
+	const GridData3D & GetDataDbKineticEnergy() const {
+		return m_dataDbKineticEnergy;
+	}
+*/
+	///	<summary>
+	///		Get the kinetic energy derivative data.
+	///	</summary>
+	GridData3D & GetDataDxKineticEnergy() {
+		return m_dataDxKineticEnergy;
+	}
+
+	///	<summary>
+	///		Get the kinetic energy derivative data.
+	///	</summary>
+	const GridData3D & GetDataDxKineticEnergy() const {
+		return m_dataDxKineticEnergy;
 	}
 
 	///	<summary>
@@ -1064,34 +1157,7 @@ public:
 			_EXCEPTIONT("Invalid location");
 		}
 	}
-/*
-	///	<summary>
-	///		Get the count of FluxBuffers.
-	///	</summary>
-	inline int GetFluxBufferCount() const {
-		return static_cast<int>(m_vecFluxBuffers.size());
-	}
 
-	///	<summary>
-	///		Get the specified FluxBuffer.
-	///	</summary>
-	FluxBuffer & GetFluxBuffer(int ix) {
-		if ((ix < 0) || (ix >= GetFluxBufferCount())) {
-			_EXCEPTIONT("FluxBuffer index out of range");
-		}
-		return m_vecFluxBuffers[ix];
-	}
-
-	///	<summary>
-	///		Get the specified FluxBuffer.
-	///	</summary>
-	const FluxBuffer & GetFluxBuffer(int ix) const {
-		if ((ix < 0) || (ix >= GetFluxBufferCount())) {
-			_EXCEPTIONT("FluxBuffer index out of range");
-		}
-		return m_vecFluxBuffers[ix];
-	}
-*/
 protected:
 	///	<summary>
 	///		Reference to parent grid.
@@ -1193,20 +1259,11 @@ protected:
 	///	</summary>
 	DataMatrix4D<double> m_dataCovMetricXi;
 
-	///	<summary>
-	///		Christoffel symbol (alpha) components at each node.
+ 	///	<summary>
+	///		Vertical coordinate transform (derivatives of the radius)
+	///		at each node.
 	///	</summary>
-	DataMatrix3D<double> m_dataChristoffelA;
-
-	///	<summary>
-	///		Christoffel symbol (beta) components at each node.
-	///	</summary>
-	DataMatrix3D<double> m_dataChristoffelB;
-
-	///	<summary>
-	///		Christoffel symbol (xi) components at each node.
-	///	</summary>
-	DataMatrix4D<double> m_dataChristoffelXi;
+	DataMatrix4D<double> m_dataDerivRNode;
 
  	///	<summary>
 	///		Orthonormalization coefficients at each node.
@@ -1232,6 +1289,11 @@ protected:
 	///		Topography height at each node.
 	///	</summary>
 	DataMatrix<double> m_dataTopography;
+
+	///	<summary>
+	///		Derivatives of topography at each node.
+	///	</summary>
+	GridData3D m_dataTopographyDeriv;
 
 	///	<summary>
 	///		Longitude at each node.
@@ -1297,7 +1359,7 @@ protected:
 	///		Computed pointwise pressures.
 	///	</summary>
 	GridData3D m_dataPressure;
-
+/*
 	///	<summary>
 	///		Computed pointwise alpha pressure derivatives.
 	///	</summary>
@@ -1307,11 +1369,31 @@ protected:
 	///		Computed pointwise beta pressure derivatives.
 	///	</summary>
 	GridData3D m_dataDbPressure;
-
+*/
 	///	<summary>
 	///		Computed pointwise vertical pressure derivatives.
 	///	</summary>
 	GridData3D m_dataDxPressure;
+
+	///	<summary>
+	///		Computed pointwise kinetic energys.
+	///	</summary>
+	GridData3D m_dataKineticEnergy;
+/*
+	///	<summary>
+	///		Computed pointwise alpha kinetic energy derivatives.
+	///	</summary>
+	GridData3D m_dataDaKineticEnergy;
+
+	///	<summary>
+	///		Computed pointwise beta kinetic energy derivatives.
+	///	</summary>
+	GridData3D m_dataDbKineticEnergy;
+*/
+	///	<summary>
+	///		Computed pointwise vertical kinetic energy derivatives.
+	///	</summary>
+	GridData3D m_dataDxKineticEnergy;
 
 	///	<summary>
 	///		Computed vorticity.
@@ -1337,12 +1419,6 @@ protected:
 	///		Rayleigh friction strength on interfaces.
 	///	</summary>
 	GridData3D m_dataRayleighStrengthREdge;
-
-	///	<summary>
-	///		Vector of flux buffers.
-	///	</summary>
-	FluxBufferVector m_vecFluxBuffers;
-
 };
 
 ///////////////////////////////////////////////////////////////////////////////

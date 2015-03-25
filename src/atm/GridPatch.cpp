@@ -200,6 +200,12 @@ void GridPatch::InitializeDataLocal() {
 		m_box.GetBTotalWidth(),
 		3);
 
+	m_dataContraMetricXi.Initialize(
+		m_grid.GetRElements(),
+		m_box.GetATotalWidth(),
+		m_box.GetBTotalWidth(),
+		3);
+
 	// Covariant metric components at each node
 	m_dataCovMetricA.Initialize(
 		m_grid.GetRElements(),
@@ -213,13 +219,8 @@ void GridPatch::InitializeDataLocal() {
 		m_box.GetBTotalWidth(),
 		3);
 
-	// Christoffel symbol components at each node
-	m_dataChristoffelA.Initialize(
-		m_box.GetATotalWidth(),
-		m_box.GetBTotalWidth(),
-		3);
-
-	m_dataChristoffelB.Initialize(
+	m_dataCovMetricXi.Initialize(
+		m_grid.GetRElements(),
 		m_box.GetATotalWidth(),
 		m_box.GetBTotalWidth(),
 		3);
@@ -239,11 +240,12 @@ void GridPatch::InitializeDataLocal() {
 		m_box.GetBTotalWidth(),
 		3);
 
-	m_dataChristoffelXi.Initialize(
-		nWLevels,
+	// Vertical coordinate transform (derivatives of the radius)
+	m_dataDerivRNode.Initialize(
+		m_grid.GetRElements(),
 		m_box.GetATotalWidth(),
 		m_box.GetBTotalWidth(),
-		6);
+		3);
 
 	// Orthonormalization components
 	m_dataOrthonormNode.Initialize(
@@ -274,6 +276,15 @@ void GridPatch::InitializeDataLocal() {
 	m_dataTopography.Initialize(
 		m_box.GetATotalWidth(),
 		m_box.GetBTotalWidth());
+
+	// Topography derivatives at each node
+	m_dataTopographyDeriv.Initialize(
+		DataType_TopographyDeriv,
+		DataLocation_Node,
+		2,
+		m_box.GetATotalWidth(),
+		m_box.GetBTotalWidth(),
+		m_box.GetHaloElements());
 
 	// Longitude at each node
 	m_dataLon.Initialize(
@@ -412,6 +423,39 @@ void GridPatch::InitializeDataLocal() {
 			m_box.GetHaloElements());
 	}
 
+	// Kinetic Energy data
+	m_dataKineticEnergy.Initialize(
+		DataType_KineticEnergy,
+		DataLocation_Node,
+		m_grid.GetRElements(),
+		m_box.GetATotalWidth(),
+		m_box.GetBTotalWidth(),
+		m_box.GetHaloElements());
+/*
+	m_dataDaKineticEnergy.Initialize(
+		DataType_KineticEnergy,
+		DataLocation_Node,
+		m_grid.GetRElements(),
+		m_box.GetATotalWidth(),
+		m_box.GetBTotalWidth(),
+		m_box.GetHaloElements());
+
+	m_dataDbKineticEnergy.Initialize(
+		DataType_KineticEnergy,
+		DataLocation_Node,
+		m_grid.GetRElements(),
+		m_box.GetATotalWidth(),
+		m_box.GetBTotalWidth(),
+		m_box.GetHaloElements());
+*/
+	m_dataDxKineticEnergy.Initialize(
+		DataType_KineticEnergy,
+		DataLocation_Node,
+		m_grid.GetRElements(),
+		m_box.GetATotalWidth(),
+		m_box.GetBTotalWidth(),
+		m_box.GetHaloElements());
+
 	// Pressure data
 	m_dataPressure.Initialize(
 		DataType_Pressure,
@@ -420,7 +464,7 @@ void GridPatch::InitializeDataLocal() {
 		m_box.GetATotalWidth(),
 		m_box.GetBTotalWidth(),
 		m_box.GetHaloElements());
-
+/*
 	m_dataDaPressure.Initialize(
 		DataType_Pressure,
 		DataLocation_Node,
@@ -436,7 +480,7 @@ void GridPatch::InitializeDataLocal() {
 		m_box.GetATotalWidth(),
 		m_box.GetBTotalWidth(),
 		m_box.GetHaloElements());
-
+*/
 	m_dataDxPressure.Initialize(
 		DataType_Pressure,
 		DataLocation_Node,
@@ -501,16 +545,27 @@ void GridPatch::DeinitializeData() {
 
 	m_fContainsData = false;
 
+	m_dataJacobian2D.Deinitialize();
+	m_dataContraMetric2DA.Deinitialize();
+	m_dataContraMetric2DB.Deinitialize();
+	m_dataCovMetric2DA.Deinitialize();
+	m_dataCovMetric2DB.Deinitialize();
+
 	m_dataJacobian.Deinitialize();
+	m_dataJacobianREdge.Deinitialize();
 	m_dataContraMetricA.Deinitialize();
 	m_dataContraMetricB.Deinitialize();
 	m_dataContraMetricXi.Deinitialize();
-	m_dataChristoffelA.Deinitialize();
-	m_dataChristoffelB.Deinitialize();
-	m_dataChristoffelXi.Deinitialize();
+	m_dataCovMetricA.Deinitialize();
+	m_dataCovMetricB.Deinitialize();
+	m_dataCovMetricXi.Deinitialize();
+	m_dataDerivRNode.Deinitialize();
+	m_dataOrthonormNode.Deinitialize();
+	m_dataOrthonormREdge.Deinitialize();
 	m_dataElementArea.Deinitialize();
 	m_dataElementAreaREdge.Deinitialize();
 	m_dataTopography.Deinitialize();
+	m_dataTopographyDeriv.Deinitialize();
 	m_dataLon.Deinitialize();
 	m_dataLat.Deinitialize();
 	m_dataZLevels.Deinitialize();
@@ -532,9 +587,10 @@ void GridPatch::DeinitializeData() {
 	}
 
 	m_dataPressure.Deinitialize();
-	m_dataDaPressure.Deinitialize();
-	m_dataDbPressure.Deinitialize();
 	m_dataDxPressure.Deinitialize();
+
+	m_dataKineticEnergy.Deinitialize();
+	m_dataDxKineticEnergy.Deinitialize();
 
 	m_dataVorticity.Deinitialize();
 	m_dataDivergence.Deinitialize();
@@ -713,7 +769,7 @@ void GridPatch::ComputeTemperature(
 	// Indices of EquationSet variables
 	const int UIx = 0;
 	const int VIx = 1;
-	const int TIx = 2;
+	const int PIx = 2;
 	const int WIx = 3;
 	const int RIx = 4;
 
@@ -727,8 +783,8 @@ void GridPatch::ComputeTemperature(
 
 	// Calculate temperature on nodes
 	if (loc == DataLocation_Node) {
-		if (m_grid.GetVarLocation(TIx) == DataLocation_REdge) {
-			InterpolateREdgeToNode(TIx, iDataIndex);
+		if (m_grid.GetVarLocation(PIx) == DataLocation_REdge) {
+			InterpolateREdgeToNode(PIx, iDataIndex);
 		}
 		if (m_grid.GetVarLocation(RIx) == DataLocation_REdge) {
 			InterpolateREdgeToNode(RIx, iDataIndex);
@@ -740,8 +796,7 @@ void GridPatch::ComputeTemperature(
 		for (i = m_box.GetAInteriorBegin(); i < m_box.GetAInteriorEnd(); i++) {
 		for (j = m_box.GetBInteriorBegin(); j < m_box.GetBInteriorEnd(); j++) {
 			m_dataTemperature[k][i][j] =
-				phys.PressureFromRhoTheta(
-					dataState[RIx][k][i][j] * dataState[TIx][k][i][j])
+				dataState[PIx][k][i][j]
 				/ (dataState[RIx][k][i][j] * phys.GetR());
 		}
 		}
@@ -752,8 +807,8 @@ void GridPatch::ComputeTemperature(
 	if (loc == DataLocation_REdge) {
 		_EXCEPTIONT("Temperature not implemented on interfaces");
 
-		if (m_grid.GetVarLocation(TIx) == DataLocation_Node) {
-			InterpolateNodeToREdge(TIx, iDataIndex);
+		if (m_grid.GetVarLocation(PIx) == DataLocation_Node) {
+			InterpolateNodeToREdge(PIx, iDataIndex);
 		}
 		if (m_grid.GetVarLocation(RIx) == DataLocation_Node) {
 			InterpolateNodeToREdge(RIx, iDataIndex);
@@ -765,8 +820,7 @@ void GridPatch::ComputeTemperature(
 		for (i = m_box.GetAInteriorBegin(); i < m_box.GetAInteriorEnd(); i++) {
 		for (j = m_box.GetBInteriorBegin(); j < m_box.GetBInteriorEnd(); j++) {
 			m_dataTemperature[k][i][j] =
-				phys.PressureFromRhoTheta(
-					dataState[RIx][k][i][j] * dataState[TIx][k][i][j])
+				dataState[PIx][k][i][j]
 				/ (dataState[RIx][k][i][j] * phys.GetR());
 		}
 		}
@@ -962,7 +1016,7 @@ double GridPatch::ComputeTotalEnergy(
 	const int UIx = 0;
 	const int VIx = 1;
 	const int HIx = 2;
-	const int TIx = 2;
+	const int PIx = 2;
 	const int WIx = 3;
 	const int RIx = 4;
 
@@ -1013,7 +1067,106 @@ double GridPatch::ComputeTotalEnergy(
 		}
 
 	} else {
-		_EXCEPTIONT("Unimplemented");
+		if (m_grid.GetVarLocation(WIx) == DataLocation_REdge) {
+			_EXCEPTIONT("Not implemented");
+		}
+		if (m_grid.GetVarLocation(PIx) == DataLocation_REdge) {
+			_EXCEPTIONT("Not implemented");
+		}
+
+		// Loop over all elements
+		int k;
+		int i;
+		int j;
+/*
+		double dTotalKineticEnergy = 0.0;
+		double dTotalInternalEnergy = 0.0;
+		double dTotalPotentialEnergy = 0.0;
+*/
+		for (k = 0; k < m_grid.GetRElements(); k++) {
+		//for (k = 0; k < 1; k++) {
+		for (i = m_box.GetAInteriorBegin(); i < m_box.GetAInteriorEnd(); i++) {
+		for (j = m_box.GetBInteriorBegin(); j < m_box.GetBInteriorEnd(); j++) {
+/*
+			double dUa = dataNode[UIx][k][i][j];
+			double dUb = dataNode[VIx][k][i][j];
+			double dUx = dataNode[WIx][k][i][j];
+
+			double dCovUa =
+				  m_dataCovMetricA[k][i][j][0] * dUa
+				+ m_dataCovMetricA[k][i][j][1] * dUb
+				+ m_dataCovMetricA[k][i][j][2] * dUx;
+
+			double dCovUb =
+				  m_dataCovMetricB[k][i][j][0] * dUa
+				+ m_dataCovMetricB[k][i][j][1] * dUb
+				+ m_dataCovMetricB[k][i][j][2] * dUx;
+
+			double dCovUx =
+				  m_dataCovMetricXi[k][i][j][0] * dUa
+				+ m_dataCovMetricXi[k][i][j][1] * dUb
+				+ m_dataCovMetricXi[k][i][j][2] * dUx;
+
+			double dUdotU =
+				dCovUa * dUa + dCovUb * dUb + dCovUx * dUx;
+*/
+/*
+			double dUdotU =
+				+ m_dataCovMetric2DA[i][j][0]
+					* dataNode[UIx][k][i][j] * dataNode[UIx][k][i][j]
+				+ (m_dataCovMetric2DA[i][j][1] + m_dataCovMetric2DB[i][j][0])
+					* dataNode[UIx][k][i][j] * dataNode[VIx][k][i][j]
+				+ m_dataCovMetric2DB[i][j][1]
+					* dataNode[VIx][k][i][j] * dataNode[VIx][k][i][j];
+
+			dUdotU += dataNode[WIx][k][i][j] * dataNode[WIx][k][i][j];
+*/
+			double dCovUa = dataNode[UIx][k][i][j];
+			double dCovUb = dataNode[VIx][k][i][j];
+			double dCovUx = dataNode[WIx][k][i][j] * m_dataDerivRNode[k][i][j][2];
+
+			double dConUa =
+				  m_dataContraMetricA[k][i][j][0] * dCovUa
+				+ m_dataContraMetricA[k][i][j][1] * dCovUb
+				+ m_dataContraMetricA[k][i][j][2] * dCovUx;
+
+			double dConUb =
+				  m_dataContraMetricB[k][i][j][0] * dCovUa
+				+ m_dataContraMetricB[k][i][j][1] * dCovUb
+				+ m_dataContraMetricB[k][i][j][2] * dCovUx;
+
+			double dConUx =
+				  m_dataContraMetricXi[k][i][j][0] * dCovUa
+				+ m_dataContraMetricXi[k][i][j][1] * dCovUb
+				+ m_dataContraMetricXi[k][i][j][2] * dCovUx;
+
+			double dUdotU = dConUa * dCovUa + dConUb * dCovUb + dConUx * dCovUx;
+
+			double dKineticEnergy =
+				0.5 * dataNode[RIx][k][i][j] * dUdotU;
+
+			double dInternalEnergy =
+				dataNode[PIx][k][i][j] / (phys.GetGamma() - 1.0);
+
+			double dPotentialEnergy =
+				phys.GetG() * dataNode[RIx][k][i][j] * m_dataZLevels[k][i][j];
+
+			dLocalEnergy += m_dataElementArea[k][i][j]
+				* (dKineticEnergy + dInternalEnergy + dPotentialEnergy);
+/*
+			dTotalKineticEnergy += m_dataElementArea[k][i][j] * dKineticEnergy;
+			dTotalInternalEnergy += m_dataElementArea[k][i][j] * dInternalEnergy;
+			dTotalPotentialEnergy += m_dataElementArea[k][i][j] * dPotentialEnergy;
+*/
+		}
+		}
+		}
+/*
+		printf("%1.15e %1.15e %1.15e\n",
+			dTotalKineticEnergy,
+			dTotalInternalEnergy,
+			dTotalPotentialEnergy);
+*/
 	}
 
 	return dLocalEnergy;
@@ -1034,7 +1187,7 @@ double GridPatch::ComputeTotalPotentialEnstrophy(
 	const int UIx = 0;
 	const int VIx = 1;
 	const int HIx = 2;
-	const int TIx = 2;
+	const int PIx = 2;
 	const int WIx = 3;
 	const int RIx = 4;
 
@@ -1074,7 +1227,10 @@ double GridPatch::ComputeTotalPotentialEnstrophy(
 		}
 
 	} else {
-		_EXCEPTIONT("Unimplemented");
+
+#pragma message "Total potential enstrophy"
+		// Unimplemented
+		dLocalPotentialEnstrophy = 0.0;
 	}
 
 	return dLocalPotentialEnstrophy;
@@ -1124,6 +1280,11 @@ void GridPatch::Send(
 	// Temperature data
 	} else if (eDataType == DataType_Temperature) {
 		m_connect.Pack(m_dataTemperature);
+		m_connect.Send();
+
+	// Topography derivative data
+	} else if (eDataType == DataType_TopographyDeriv) {
+		m_connect.Pack(m_dataTopographyDeriv);
 		m_connect.Send();
 
 	// Invalid data
@@ -1180,6 +1341,13 @@ void GridPatch::Receive(
 		Neighbor * pNeighbor;
 		while ((pNeighbor = m_connect.WaitReceive()) != NULL) {
 			pNeighbor->Unpack(m_dataTemperature);
+		}
+
+	// Topographic derivatives
+	} else if (eDataType == DataType_TopographyDeriv) {
+		Neighbor * pNeighbor;
+		while ((pNeighbor = m_connect.WaitReceive()) != NULL) {
+			pNeighbor->Unpack(m_dataTopographyDeriv);
 		}
 
 	// Invalid data

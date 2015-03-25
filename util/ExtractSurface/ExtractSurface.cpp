@@ -658,10 +658,6 @@ try {
 		sprintf(szAnnounce, "Time %i", t); 
 		AnnounceStartBlock(szAnnounce);
 
-		// Pressure everywhere
-		DataMatrix3D<double> dataP;
-		dataP.Initialize(nLev, nLat, nLon);
-
 		// Rho
 		DataMatrix3D<double> dataRho;
 		dataRho.Initialize(nLev, nLat, nLon);
@@ -670,14 +666,14 @@ try {
 		varRho->set_cur(t, 0, 0, 0);
 		varRho->get(&(dataRho[0][0][0]), 1, nLev, nLat, nLon);
 
-		// Theta
-		DataMatrix3D<double> dataTheta;
-		dataTheta.Initialize(nLev, nLat, nLon);
+		// Pressure
+		DataMatrix3D<double> dataP;
+		dataP.Initialize(nLev, nLat, nLon);
 
-		NcVar * varTheta = ncdf_in.get_var("Theta");
-		varTheta->set_cur(t, 0, 0, 0);
-		varTheta->get(&(dataTheta[0][0][0]), 1, nLev, nLat, nLon);
-
+		NcVar * varP = ncdf_in.get_var("P");
+		varP->set_cur(t, 0, 0, 0);
+		varP->get(&(dataP[0][0][0]), 1, nLev, nLat, nLon);
+/*
 		// Populate pressure array
 		if (nPressureLevels > 0) {
 
@@ -686,12 +682,12 @@ try {
 			for (int i = 0; i < nLat; i++) {
 			for (int j = 0; j < nLon; j++) {
 				dataP[k][i][j] = dPressureScaling
-					* exp(log(dataRho[k][i][j] * dataTheta[k][i][j]) * dGamma);
+					* exp(log(dataRho[k][i][j] * dataP[k][i][j]) * dGamma);
 			}
 			}
 			}
 		}
-
+*/
 		// Height everywhere
 		DataMatrix3D<double> dataZ;
 		dataZ.Initialize(nLev, nLat, nLon);

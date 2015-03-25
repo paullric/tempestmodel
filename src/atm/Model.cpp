@@ -245,11 +245,14 @@ void Model::Go() {
 	}
 
 #pragma "Should this be called prior to Go()?"
+	// Evaluate geometric terms in the grid
+	m_pGrid->EvaluateGeometricTerms();
+
 	// Initialize the state from the input file
 	EvaluateStateFromRestartFile();
 
-	// Evaluate geometric terms in the grid
-	m_pGrid->EvaluateGeometricTerms();
+	// Apply boundary conditions
+	m_pGrid->ApplyBoundaryConditions();
 
 	// Initialize all components
 	m_pTimestepScheme->Initialize();
@@ -308,14 +311,21 @@ void Model::Go() {
 		// Perform one time step
 		Announce("Step %s", m_time.ToString().c_str());
 		m_pTimestepScheme->Step(fFirstStep, fLastStep, m_time, dDeltaT);
-/*
+
 		// Energy and enstrophy
 		{
-			Announce("%1.10e %1.10e",
+			if (m_pGrid->GetVerticalStaggering() ==
+			    Grid::VerticalStaggering_CharneyPhillips
+			) {
+				m_pGrid->InterpolateREdgeToNode(2, 0);
+				m_pGrid->InterpolateREdgeToNode(3, 0);
+			}
+
+			Announce("%1.15e %1.15e",
 				m_pGrid->ComputeTotalEnergy(0),
 				m_pGrid->ComputeTotalPotentialEnstrophy(0));
 		}
-*/
+
 /*
 		// L2 errors of the height field
 		{

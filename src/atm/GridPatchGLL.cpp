@@ -1,6 +1,6 @@
 ///////////////////////////////////////////////////////////////////////////////
 ///
-///	\file    GridPatchCSGLL.cpp
+///	\file    GridPatchGLL.cpp
 ///	\author  Paul Ullrich
 ///	\version February 25, 2013
 ///
@@ -68,6 +68,77 @@ GridPatchGLL::GridPatchGLL(
 	m_dElementDeltaB =
 		  box.GetBEdge(box.GetHaloElements() + m_nHorizontalOrder)
 		- box.GetBEdge(box.GetHaloElements());
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void GridPatchGLL::InterpolateNodeToREdge(
+	int iVar,
+	int iDataIndex
+) {
+
+	// Working data
+	GridData4D & dataNode  = GetDataState(iDataIndex, DataLocation_Node);
+	GridData4D & dataREdge = GetDataState(iDataIndex, DataLocation_REdge);
+
+	// Parent grid, containing the vertical remapping information
+	GridGLL * pGLLGrid = dynamic_cast<GridGLL*>(&m_grid);
+	if (pGLLGrid == NULL) {
+		_EXCEPTIONT("Logic error");
+	}
+
+	// Loop over all elements in the box
+	int nStride = dataNode.GetSize(2) * dataNode.GetSize(3);
+
+	const LinearColumnInterpFEM & opInterpNodeToREdge =
+		pGLLGrid->GetOpInterpNodeToREdge();
+
+	for (int i = m_box.GetAInteriorBegin(); i < m_box.GetAInteriorEnd(); i++) {
+	for (int j = m_box.GetBInteriorBegin(); j < m_box.GetBInteriorEnd(); j++) {
+
+		opInterpNodeToREdge.Apply(
+			&(dataNode[iVar][0][i][j]),
+			&(dataREdge[iVar][0][i][j]),
+			nStride,
+			nStride);
+	}
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void GridPatchGLL::InterpolateREdgeToNode(
+	int iVar,
+	int iDataIndex
+) {
+
+	// Working data
+	GridData4D & dataREdge = GetDataState(iDataIndex, DataLocation_REdge);
+	GridData4D & dataNode  = GetDataState(iDataIndex, DataLocation_Node);
+
+	// Parent grid, containing the vertical remapping information
+	GridGLL * pGLLGrid = dynamic_cast<GridGLL*>(&m_grid);
+	if (pGLLGrid == NULL) {
+		_EXCEPTIONT("Logic error");
+	}
+
+	// Loop over all elements in the box
+	int nStride = dataNode.GetSize(2) * dataNode.GetSize(3);
+
+	const LinearColumnInterpFEM & opInterpREdgeToNode =
+		pGLLGrid->GetOpInterpREdgeToNode();
+
+	// Loop over all elements in the box
+	for (int i = m_box.GetAInteriorBegin(); i < m_box.GetAInteriorEnd(); i++) {
+	for (int j = m_box.GetBInteriorBegin(); j < m_box.GetBInteriorEnd(); j++) {
+
+		opInterpREdgeToNode.Apply(
+			&(dataREdge[iVar][0][i][j]),
+			&(dataNode[iVar][0][i][j]),
+			nStride,
+			nStride);
+	}
+	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////

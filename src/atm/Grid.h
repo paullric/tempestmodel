@@ -137,6 +137,14 @@ protected:
 	);
 
 	///	<summary>
+	///		Initialize state and tracer data from a TestCase.
+	///	</summary>
+	void ApplyBoundaryConditions(
+		int iDataIndex = 0,
+		DataType eDataType = DataType_State
+	);
+
+	///	<summary>
 	///		Evaluate relevant geometric terms.
 	///	</summary>
 	void EvaluateGeometricTerms();
