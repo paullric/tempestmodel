@@ -35,6 +35,11 @@
 //#define USE_JACOBIAN_DIAGONAL
 
 ///	<summary>
+///		Use covariant velocities.
+///	</summary>
+#define USE_COVARIANT_VELOCITIES
+
+///	<summary>
 ///		When to apply Rayleigh damping.
 ///	</summary>
 #define APPLY_RAYLEIGH_WITH_HYPERVIS

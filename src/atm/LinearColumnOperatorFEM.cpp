@@ -185,13 +185,15 @@ void LinearColumnDiffFEM::Initialize(
 		_EXCEPTIONT("Column RElements / VerticalOrder mismatch");
 	}
 
-	// Initialize LinearColumnOperator
+	// Initialize LinearColumnOperator for differentiation from interfaces
+	LinearColumnOperator::Initialize(nRElementsIn+1, nRElementsOut);
+/*
 	if (eInterpSource == InterpSource_Interfaces) {
 		LinearColumnOperator::Initialize(nRElementsIn+1, nRElementsOut);
 	} else {
 		LinearColumnOperator::Initialize(nRElementsIn, nRElementsOut);
 	}
-
+*/
 	// Loop through all output elements
 	for (int l = 0; l < nRElementsOut; l++) {
 
@@ -213,6 +215,66 @@ void LinearColumnDiffFEM::Initialize(
 			}
 		}
 
+		// Construct interpolator from interfaces to output location
+		PolynomialInterp::DiffLagrangianPolynomialCoeffs(
+			nVerticalOrder + 1,
+			&(dREtaREdge[a * nVerticalOrder]),
+			&(m_dCoeff[l][a * nVerticalOrder]),
+			dREtaOut[l]);
+
+		// Set bounds on coefficients
+		if (!fOnREdge) {
+			m_iBegin[l] =  a * nVerticalOrder;
+			m_iEnd[l]   = (a+1) * nVerticalOrder + 1;
+		}
+
+		// Special treatment of derivatives at interfaces
+		if (fOnREdge) {
+
+			// Temporary coefficients
+			DataVector<double> dTempCoeff;
+			dTempCoeff.Initialize(nVerticalOrder + 1);
+			
+			// Calculate one-sided errors and derivative weights
+			double dDeltaREtaL =
+				  dREtaREdge[(a+1) * nVerticalOrder]
+				- dREtaREdge[ a    * nVerticalOrder];
+
+			double dDeltaREtaR =
+				  dREtaREdge[(a+2) * nVerticalOrder]
+				- dREtaREdge[(a+1) * nVerticalOrder];
+
+			double dErrorL =
+				pow(dDeltaREtaL, static_cast<double>(nVerticalOrder));
+
+			double dErrorR =
+				pow(dDeltaREtaR, static_cast<double>(nVerticalOrder));
+
+			double dWeightL = dErrorR / (dErrorL + dErrorR);
+			double dWeightR = dErrorL / (dErrorL + dErrorR);
+
+			// Calculate right-side derivative coefficients
+			PolynomialInterp::DiffLagrangianPolynomialCoeffs(
+				nVerticalOrder + 1,
+				&(dREtaREdge[(a+1) * nVerticalOrder]),
+				&(dTempCoeff[0]),
+				dREtaOut[l]);
+
+			for (int k = 0; k <= nVerticalOrder; k++) {
+				m_dCoeff[l][a * nVerticalOrder + k] *= dWeightL;
+			}
+
+			for (int k = 0; k <= nVerticalOrder; k++) {
+				m_dCoeff[l][(a+1) * nVerticalOrder + k] +=
+					dWeightR * dTempCoeff[k];
+			}
+
+			// Set bounds on coefficients
+			m_iBegin[l] =  a * nVerticalOrder;
+			m_iEnd[l]   = (a+2) * nVerticalOrder + 1;
+		}
+
+/*
 		// Differentiation coefficients for a continuous basis
 		if (eInterpSource == InterpSource_Interfaces) {
 
@@ -447,6 +509,53 @@ void LinearColumnDiffFEM::Initialize(
 				m_iEnd[l]   = (a+1) * nVerticalOrder;
 			}
 		}
+*/
+	}
+
+	// If the source is nodes, compose the differentiation operator with
+	// an interpolation operator.
+	if (eInterpSource == InterpSource_Levels) {
+		LinearColumnInterpFEM opInterp;
+
+		opInterp.Initialize(
+			LinearColumnInterpFEM::InterpSource_Levels,
+			nVerticalOrder,
+			dREtaNode,
+			dREtaREdge,
+			dREtaREdge);
+
+		ComposeWith(opInterp);
+/*
+		// DEBUGGING
+		if (m_dCoeff.GetRows() == dREtaREdge.GetRows()) {
+			FILE * fp = fopen("op.txt", "w");
+			for (int i = 0; i < m_dCoeff.GetRows(); i++) {
+				for (int j = 0; j < m_dCoeff.GetColumns(); j++) {
+					fprintf(fp, "%1.15e\t", m_dCoeff[i][j]);
+				}
+				fprintf(fp, "\n");
+			}
+			fclose(fp);
+
+			FILE * fpn = fopen("rn.txt", "w");
+			for (int i = 0; i < dREtaNode.GetRows(); i++) {
+				fprintf(fpn, "%1.15e\n", dREtaNode[i]);
+			}
+			fclose(fpn);
+
+			FILE * fpi = fopen("ri.txt", "w");
+			for (int i = 0; i < dREtaREdge.GetRows(); i++) {
+				fprintf(fpi, "%1.15e\n", dREtaREdge[i]);
+			}
+			fclose(fpi);
+
+			for (int i = 0; i < m_iBegin.GetRows(); i++) {
+				printf("%i %i\n", m_iBegin[i], m_iEnd[i]);
+			}
+
+			_EXCEPTION();
+		}
+*/
 	}
 }
 

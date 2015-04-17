@@ -49,6 +49,14 @@ public:
 		int nRElementsOut
 	);
 
+	///	<summary>
+	///		Compose this operator with another LinearColumnOperator.  The
+	///		resulting operator will be (this) o (op)
+	///	</summary>
+	void ComposeWith(
+		const LinearColumnOperator & op
+	);
+
 public:
 	///	<summary>
 	///		Apply the column operator to a column, but only produce output on

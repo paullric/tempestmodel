@@ -20,6 +20,7 @@
 #include "TestCase.h"
 #include "GridSpacing.h"
 #include "VerticalStretch.h"
+#include "Defines.h"
 
 #include "Direction.h"
 #include "CubedSphereTrans.h"
@@ -211,7 +212,7 @@ void GridPatchCartesianGLL::EvaluateGeometricTerms() {
 
 	const DataMatrix<double> & dDxBasis1D = gridCartesianGLL.GetDxBasis1D();
 	
-	double dy0 = 0.5 * abs(m_dGDim[3] - m_dGDim[2]);
+	double dy0 = 0.5 * fabs(m_dGDim[3] - m_dGDim[2]);
 	double dfp = 2.0 * phys.GetOmega() * sin(m_dRefLat);
 	double dbetap = 2.0 * phys.GetOmega() * cos(m_dRefLat) / 
 					phys.GetEarthRadius();
@@ -690,13 +691,24 @@ void GridPatchCartesianGLL::ApplyBoundaryConditions(
 
 		for (int i = 0; i < m_box.GetATotalWidth(); i++) {
 		for (int j = 0; j < m_box.GetBTotalWidth(); j++) {
+
+#ifdef USE_COVARIANT_VELOCITIES
 			m_datavecStateNode[iDataIndex][WIx][0][i][j] =
 				- ( m_dataContraMetricXi[0][i][j][0]
 					* m_datavecStateNode[iDataIndex][UIx][0][i][j]
-				+ m_dataContraMetricXi[0][i][j][1]
+				  + m_dataContraMetricXi[0][i][j][1]
 					* m_datavecStateNode[iDataIndex][VIx][0][i][j])
 				/ m_dataContraMetricXi[0][i][j][2]
 				/ m_dataDerivRNode[0][i][j][2];
+
+
+#else
+			m_datavecStateNode[iDataIndex][WIx][0][i][j] =
+				CalculateNoFlowUrNode(
+					0, i, j,
+					m_datavecStateNode[iDataIndex][UIx][0][i][j],
+					m_datavecStateNode[iDataIndex][VIx][0][i][j]);
+#endif
 		}
 		}
 	}

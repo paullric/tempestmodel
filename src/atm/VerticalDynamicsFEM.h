@@ -79,11 +79,13 @@ protected:
 	///		Component indices into the F vector.
 	///	</summary>
 	typedef int FComp;
-	static const FComp FPIx = 0;
-	static const FComp FWIx = 1;
-	static const FComp FRIx = 2;
+	static const FComp FUIx = 0;
+	static const FComp FVIx = 1;
+	static const FComp FPIx = 2;
+	static const FComp FWIx = 3;
+	static const FComp FRIx = 4;
 
-	static const FComp FTot = 3;
+	static const FComp FTot = 5;
 
 	///	<summary>
 	///		Get the index of the component and level of the F vector.

@@ -141,7 +141,6 @@ public:
 		int iDataIndex = 0,
 		DataType eDataType = DataType_State
 	) {
-		_EXCEPTIONT("Unimplemented.");
 	}
 
 public:

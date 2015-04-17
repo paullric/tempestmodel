@@ -22,6 +22,10 @@
 #include "EquationSet.h"
 
 ///////////////////////////////////////////////////////////////////////////////
+
+//#define SYNCHRONOUS_COMM
+
+///////////////////////////////////////////////////////////////////////////////
 // Neighbor
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -52,6 +56,7 @@ bool Neighbor::CheckReceive() {
 		return false;
 	}
 
+#ifndef SYNCHRONOUS_COMM
 	// Test receive request
 	int fRecvWaiting;
 	MPI_Status status;
@@ -59,6 +64,7 @@ bool Neighbor::CheckReceive() {
 	if (!fRecvWaiting) {
 		return false;
 	}
+#endif
 
 	// A message has been received
 	return true;
@@ -68,11 +74,53 @@ bool Neighbor::CheckReceive() {
 // ExteriorNeighbor
 ///////////////////////////////////////////////////////////////////////////////
 
+bool ExteriorNeighbor::CheckReceive() {
+
+#ifdef SYNCHRONOUS_COMM
+	// Check if message already received and processed
+	if (m_fComplete) {
+		return false;
+	}
+
+	// Information for receive
+	const GridPatch & patch = m_pConnect->GetGridPatch();
+
+	const Grid & grid = patch.GetGrid();
+
+	int ixPatch = patch.GetPatchIndex();
+
+	int iProcessor = grid.GetPatch(m_ixNeighbor)->GetProcessor();
+
+	// Tag of the received message
+	int nTag = (m_ixNeighbor << 16) + (ixPatch << 4) + (int)(m_dir);
+
+	// Prepare a synchronous receive
+	MPI_Status status;
+
+	MPI_Recv(
+		&(m_vecRecvBuffer[0]),
+		m_vecRecvBuffer.GetRows(),
+		MPI_DOUBLE,
+		iProcessor,
+		nTag,
+		MPI_COMM_WORLD,
+		&status);
+
+	return true;
+
+#else
+	return Neighbor::CheckReceive();
+#endif
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
 void ExteriorNeighbor::PrepareExchange() {
 
 	// Call up the stack
 	Neighbor::PrepareExchange();
 
+#ifndef SYNCHRONOUS_COMM 
 	// Information for receive
 	const GridPatch & patch = m_pConnect->GetGridPatch();
 
@@ -94,6 +142,7 @@ void ExteriorNeighbor::PrepareExchange() {
 		nTag,
 		MPI_COMM_WORLD,
 		&m_reqRecv);
+#endif
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -506,6 +555,7 @@ void ExteriorNeighbor::Unpack(
 	}
 	std::cout << "Test: " << status.MPI_TAG << std::endl;
 */
+
 	// Model grid
 	const Grid & grid = m_pConnect->GetGridPatch().GetGrid();
 
@@ -743,10 +793,10 @@ void ExteriorNeighbor::Unpack(
 ///////////////////////////////////////////////////////////////////////////////
 
 void ExteriorNeighbor::WaitSend() {
-
+/*
 	MPI_Status status;
 	MPI_Wait(&m_reqSend, &status);
-
+*/
 }
 
 ///////////////////////////////////////////////////////////////////////////////

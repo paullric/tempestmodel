@@ -348,19 +348,11 @@ void GridPatchCSGLL::EvaluateGeometricTerms() {
 			double dDxR = (m_grid.GetZtop() - dZs) * dDxREtaStretch;
 
 /*
-			double dDaxR = - dDaZs / (m_grid.GetZtop() - dZs) * dDxR;
-			double dDbxR = - dDbZs / (m_grid.GetZtop() - dZs) * dDxR;
-			double dDxxR = 0.0;
-*/
-/*
 			double dDaR = (1.0 - dREta) * dDaZs;
 			double dDbR = (1.0 - dREta) * dDbZs;
-
 			double dDxR = m_grid.GetZtop() - dZs;
-			double dDaxR = - dDaZs;
-			double dDbxR = - dDbZs;
-			double dDxxR = 0.0;
 */
+
 			// Calculate pointwise Jacobian
 			m_dataJacobian[k][iA][iB] = dDxR * m_dataJacobian2D[iA][iB];
 
@@ -388,6 +380,8 @@ void GridPatchCSGLL::EvaluateGeometricTerms() {
 				- dContraMetricScale / dDxR * (
 					dX * dY * dDaR + (1.0 + dX * dX) * dDbR);
 
+#pragma message "Missing ContraMetricXi"
+
 			// Covariant metric components
 			m_dataCovMetricA[k][iA][iB][0] =
 				m_dataCovMetric2DA[iA][iB][0] + dDaR * dDaR;
@@ -402,14 +396,13 @@ void GridPatchCSGLL::EvaluateGeometricTerms() {
 				m_dataCovMetric2DB[iA][iB][1] + dDbR * dDbR;
 			m_dataCovMetricB[k][iA][iB][2] =
 				dDbR * dDxR;
-/*
+
 			m_dataCovMetricXi[k][iA][iB][0] =
 				dDxR * dDaR;
 			m_dataCovMetricXi[k][iA][iB][1] =
 				dDxR * dDbR;
 			m_dataCovMetricXi[k][iA][iB][2] =
 				dDxR * dDxR;
-*/
 
 			// Orthonormalization coefficients
 			m_dataOrthonormNode[k][iA][iB][0] = - dDaR / dDxR;
@@ -583,8 +576,6 @@ void GridPatchCSGLL::EvaluateTestCase(
 	}
 
 	// Evaluate the state on model levels
-	//double dMaxWaveSpeed = 0.0;
-
 	for (int k = 0; k < m_grid.GetRElements(); k++) {
 	for (int i = 0; i < m_box.GetATotalWidth(); i++) {
 	for (int j = 0; j < m_box.GetBTotalWidth(); j++) {
@@ -610,10 +601,10 @@ void GridPatchCSGLL::EvaluateTestCase(
 		dUlon = m_datavecStateNode[iDataIndex][0][k][i][j];
 		dUlat = m_datavecStateNode[iDataIndex][1][k][i][j];
 
-		dUlon /= phys.GetEarthRadius();
-		dUlat /= phys.GetEarthRadius();
+		dUlon *= phys.GetEarthRadius();
+		dUlat *= phys.GetEarthRadius();
 
-		CubedSphereTrans::VecTransABPFromRLL(
+		CubedSphereTrans::CoVecTransABPFromRLL(
 			tan(m_box.GetANode(i)),
 			tan(m_box.GetBNode(j)),
 			m_box.GetPanel(),
@@ -638,10 +629,10 @@ void GridPatchCSGLL::EvaluateTestCase(
 			dUlon = m_dataRefStateNode[0][k][i][j];
 			dUlat = m_dataRefStateNode[1][k][i][j];
 
-			dUlon /= phys.GetEarthRadius();
-			dUlat /= phys.GetEarthRadius();
+			dUlon *= phys.GetEarthRadius();
+			dUlat *= phys.GetEarthRadius();
 
-			CubedSphereTrans::VecTransABPFromRLL(
+			CubedSphereTrans::CoVecTransABPFromRLL(
 				tan(m_box.GetANode(i)),
 				tan(m_box.GetBNode(j)),
 				m_box.GetPanel(),
@@ -684,10 +675,10 @@ void GridPatchCSGLL::EvaluateTestCase(
 		dUlon = m_datavecStateREdge[iDataIndex][0][k][i][j];
 		dUlat = m_datavecStateREdge[iDataIndex][1][k][i][j];
 
-		dUlon /= phys.GetEarthRadius();
-		dUlat /= phys.GetEarthRadius();
+		dUlon *= phys.GetEarthRadius();
+		dUlat *= phys.GetEarthRadius();
 
-		CubedSphereTrans::VecTransABPFromRLL(
+		CubedSphereTrans::CoVecTransABPFromRLL(
 			tan(m_box.GetANode(i)),
 			tan(m_box.GetBNode(j)),
 			m_box.GetPanel(),
@@ -711,10 +702,10 @@ void GridPatchCSGLL::EvaluateTestCase(
 			dUlon = m_dataRefStateREdge[0][k][i][j];
 			dUlat = m_dataRefStateREdge[1][k][i][j];
 
-			dUlon /= phys.GetEarthRadius();
-			dUlat /= phys.GetEarthRadius();
+			dUlon *= phys.GetEarthRadius();
+			dUlat *= phys.GetEarthRadius();
 
-			CubedSphereTrans::VecTransABPFromRLL(
+			CubedSphereTrans::CoVecTransABPFromRLL(
 				tan(m_box.GetANode(i)),
 				tan(m_box.GetBNode(j)),
 				m_box.GetPanel(),
@@ -798,7 +789,7 @@ void GridPatchCSGLL::EvaluateTestCase_StateOnly(
 		dUlon /= phys.GetEarthRadius();
 		dUlat /= phys.GetEarthRadius();
 
-		CubedSphereTrans::VecTransABPFromRLL(
+		CubedSphereTrans::CoVecTransABPFromRLL(
 			tan(m_box.GetANode(i)),
 			tan(m_box.GetBNode(j)),
 			m_box.GetPanel(),
@@ -840,6 +831,10 @@ void GridPatchCSGLL::ComputeCurlAndDiv(
 	int nAFiniteElements = m_box.GetAInteriorWidth() / m_nHorizontalOrder;
 	int nBFiniteElements = m_box.GetBInteriorWidth() / m_nHorizontalOrder;
 
+	// Allocate temporary data for contravariant velocities
+	DataMatrix<double> dConUa(m_nHorizontalOrder, m_nHorizontalOrder);
+	DataMatrix<double> dConUb(m_nHorizontalOrder, m_nHorizontalOrder);
+
 	// Loop over all elements in the box
 	for (int k = 0; k < gridCSGLL.GetRElements(); k++) {
 	for (int a = 0; a < nAFiniteElements; a++) {
@@ -849,6 +844,24 @@ void GridPatchCSGLL::ComputeCurlAndDiv(
 		int iElementA = a * m_nHorizontalOrder + m_box.GetHaloElements();
 		int iElementB = b * m_nHorizontalOrder + m_box.GetHaloElements();
 
+		// Calculate contravariant velocities in element
+		for (int i = 0; i < m_nHorizontalOrder; i++) {
+		for (int j = 0; j < m_nHorizontalOrder; j++) {
+
+			int iA = iElementA + i;
+			int iB = iElementB + j;
+
+			dConUa[i][j] =
+				+ m_dataContraMetric2DA[iA][iB][0] * dataUa[k][iA][iB]
+				+ m_dataContraMetric2DA[iA][iB][1] * dataUb[k][iA][iB];
+
+			dConUb[i][j] =
+				+ m_dataContraMetric2DB[iA][iB][0] * dataUa[k][iA][iB]
+				+ m_dataContraMetric2DB[iA][iB][1] * dataUb[k][iA][iB];
+		}
+		}
+
+		// Calculate curl and div
 		for (int i = 0; i < m_nHorizontalOrder; i++) {
 		for (int j = 0; j < m_nHorizontalOrder; j++) {
 
@@ -860,41 +873,42 @@ void GridPatchCSGLL::ComputeCurlAndDiv(
 			double dUb = dataUb[k][iA][iB];
 
 			// Compute derivatives at each node
-			double dDaUa = 0.0;
+			//double dDaUa = 0.0;
 			double dDaUb = 0.0;
 			double dDbUa = 0.0;
-			double dDbUb = 0.0;
+			//double dDbUb = 0.0;
 
 			double dDaJUa = 0.0;
 			double dDbJUb = 0.0;
 
 			for (int s = 0; s < m_nHorizontalOrder; s++) {
-				dDaUa += dataUa[k][iElementA+s][iB] * dDxBasis1D[s][i];
+				//dDaUa += dataUa[k][iElementA+s][iB] * dDxBasis1D[s][i];
 				dDaUb += dataUb[k][iElementA+s][iB] * dDxBasis1D[s][i];
 				dDbUa += dataUa[k][iA][iElementB+s] * dDxBasis1D[s][j];
-				dDbUb += dataUb[k][iA][iElementB+s] * dDxBasis1D[s][j];
-/*
+				//dDbUb += dataUb[k][iA][iElementB+s] * dDxBasis1D[s][j];
+
 				dDaJUa +=
 					m_dataJacobian2D[iElementA+s][iB]
-					* dataUa[k][iElementA+s][iB]
+					* dConUa[s][j]
 					* dDxBasis1D[s][i];
 
 				dDbJUb +=
 					m_dataJacobian2D[iA][iElementB+s]
-					* dataUb[k][iA][iElementB+s]
+					* dConUb[i][s]
 					* dDxBasis1D[s][j];
-*/
 			}
 
-			dDaUa /= GetElementDeltaA();
+			//dDaUa /= GetElementDeltaA();
 			dDaUb /= GetElementDeltaA();
 			dDbUa /= GetElementDeltaB();
-			dDbUb /= GetElementDeltaB();
+			//dDbUb /= GetElementDeltaB();
 
-			//dDaJUa /= GetElementDeltaA();
-			//dDbJUb /= GetElementDeltaA();
+			dDaJUa /= GetElementDeltaA();
+			dDbJUb /= GetElementDeltaB();
 
 			if (fDiscontinuous) {
+				_EXCEPTIONT("This needs to be updated for covariant indices");
+/*
 				double dUpdateDerivA =
 					  dFluxDeriv1D[m_nHorizontalOrder-1] / GetElementDeltaA();
 				double dUpdateDerivB =
@@ -936,9 +950,14 @@ void GridPatchCSGLL::ComputeCurlAndDiv(
 					dDbUa += 0.5 * dUpdateDerivB * (dUaR - dUaL);
 					dDbUb += 0.5 * dUpdateDerivB * (dUbR - dUbL);
 				}
+*/
 			}
 
-			_EXCEPTIONT("Fix to avoid Christoffel symbols");
+			m_dataDivergence[k][iA][iB] =
+				(dDaJUa + dDbJUb) / m_dataJacobian2D[iA][iB];
+			m_dataVorticity[k][iA][iB] =
+				(dDaUb - dDbUa) / m_dataJacobian2D[iA][iB];
+
 /*
 			// Compute covariant derivatives at node
 			double dCovDaUa = dDaUa
@@ -1214,12 +1233,12 @@ void GridPatchCSGLL::InterpolateData(
 		// Convert to primitive variables
 		if ((eDataType == DataType_State) && (fConvertToPrimitive)) {
 			for (int k = 0; k < m_grid.GetRElements(); k++) {
-				double dUalpha = phys.GetEarthRadius()
-					* dInterpData[0][k][i];
-				double dUbeta = phys.GetEarthRadius()
-					* dInterpData[1][k][i];
+				double dUalpha =
+					dInterpData[0][k][i] / phys.GetEarthRadius();
+				double dUbeta =
+					dInterpData[1][k][i] / phys.GetEarthRadius();
 
-				CubedSphereTrans::VecTransRLLFromABP(
+				CubedSphereTrans::CoVecTransRLLFromABP(
 					tan(dAlpha[i]),
 					tan(dBeta[i]),
 					GetPatchBox().GetPanel(),
@@ -1271,7 +1290,7 @@ void GridPatchCSGLL::TransformHaloVelocities(
 		i = m_box.GetAInteriorEnd();
 		for (int k = 0; k < pDataVelocity->GetRElements(); k++) {
 		for (j = jBegin; j < jEnd; j++) {
-			CubedSphereTrans::VecPanelTrans(
+			CubedSphereTrans::CoVecPanelTrans(
 				ixRightPanel,
 				m_box.GetPanel(),
 				(*pDataVelocity)[0][k][i][j],
@@ -1293,7 +1312,7 @@ void GridPatchCSGLL::TransformHaloVelocities(
 		j = m_box.GetBInteriorEnd();
 		for (int k = 0; k < pDataVelocity->GetRElements(); k++) {
 		for (i = iBegin; i < iEnd; i++) {
-			CubedSphereTrans::VecPanelTrans(
+			CubedSphereTrans::CoVecPanelTrans(
 				ixTopPanel,
 				m_box.GetPanel(),
 				(*pDataVelocity)[0][k][i][j],
@@ -1315,7 +1334,7 @@ void GridPatchCSGLL::TransformHaloVelocities(
 		i = m_box.GetAInteriorBegin()-1;
 		for (int k = 0; k < pDataVelocity->GetRElements(); k++) {
 		for (j = jBegin; j < jEnd; j++) {
-			CubedSphereTrans::VecPanelTrans(
+			CubedSphereTrans::CoVecPanelTrans(
 				ixLeftPanel,
 				m_box.GetPanel(),
 				(*pDataVelocity)[0][k][i][j],
@@ -1337,7 +1356,7 @@ void GridPatchCSGLL::TransformHaloVelocities(
 		j = m_box.GetBInteriorBegin()-1;
 		for (int k = 0; k < pDataVelocity->GetRElements(); k++) {
 		for (i = iBegin; i < iEnd; i++) {
-			CubedSphereTrans::VecPanelTrans(
+			CubedSphereTrans::CoVecPanelTrans(
 				ixBottomPanel,
 				m_box.GetPanel(),
 				(*pDataVelocity)[0][k][i][j],

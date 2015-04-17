@@ -43,7 +43,6 @@ FILES= CubedSphereTrans.cpp \
        GridPatchCSGLL.cpp \
        GridPatchCartesianGLL.cpp \
        Direction.cpp \
-       FluxBuffer.cpp \
        GridData3D.cpp \
        GridData4D.cpp \
        TestCase.cpp \

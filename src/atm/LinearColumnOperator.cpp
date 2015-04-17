@@ -43,6 +43,57 @@ void LinearColumnOperator::Initialize(
 
 ///////////////////////////////////////////////////////////////////////////////
 
+void LinearColumnOperator::ComposeWith(
+	const LinearColumnOperator & op
+) {
+	// Verify dimensions
+	if (m_dCoeff.GetColumns() != op.m_dCoeff.GetRows()) {
+		_EXCEPTION2("Composed operator dimension mismatch (%i, %i)",
+			m_dCoeff.GetColumns(), op.m_dCoeff.GetRows());
+	}
+
+	// Intermediate size
+	int nRElementsInter = m_dCoeff.GetColumns();
+
+	// Construct composed operator
+	int nRElementsOut = m_iBegin.GetRows();
+	int nRElementsIn  = op.m_dCoeff.GetColumns();
+
+	DataMatrix<double> dNewCoeff(nRElementsOut, nRElementsIn);
+	DataVector<int> iNewBegin(nRElementsOut);
+	DataVector<int> iNewEnd(nRElementsOut);
+
+	// Perform matrix product
+	for (int i = 0; i < nRElementsOut; i++) {
+	for (int j = 0; j < nRElementsIn; j++) {
+		for (int k = 0; k < nRElementsInter; k++) {
+			dNewCoeff[i][j] += m_dCoeff[i][k] * op.m_dCoeff[k][j];
+		}
+	}
+	}
+
+	// Determine non-zero intervals
+	for (int i = 0; i < nRElementsOut; i++) {
+		bool fFoundBegin = false;
+		for (int j = 0; j < nRElementsIn; j++) {
+			if (dNewCoeff[i][j] != 0.0) {
+				iNewEnd[i] = j;
+				if (!fFoundBegin) {
+					fFoundBegin = true;
+					iNewBegin[i] = j;
+				}
+			}
+		}
+	}
+
+	// Overwrite current op
+	m_dCoeff = dNewCoeff;
+	m_iBegin = iNewBegin;
+	m_iEnd   = iNewEnd;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
 double LinearColumnOperator::Apply(
 	const double * dColumnIn,
 	int iRout,

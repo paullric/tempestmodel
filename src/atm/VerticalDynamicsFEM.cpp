@@ -150,7 +150,7 @@ void VerticalDynamicsFEM::Initialize() {
 #endif
 #ifdef USE_JFNK_GMRES
 	// Initialize JFNK
-	InitializeJFNK(m_nColumnStateSize, m_nColumnStateSize);
+	InitializeJFNK(m_nColumnStateSize, m_nColumnStateSize, 1.0e-5);
 #endif
 #ifdef USE_DIRECTSOLVE_APPROXJ
 	// Initialize Jacobian matrix
@@ -633,7 +633,8 @@ void VerticalDynamicsFEM::SetupReferenceColumn(
 			m_dStateNode[VIx],
 			m_dStateRefNode[VIx]);
 	}
-/*
+
+#ifndef THREE_COMPONENT_SOLVE
 	// Copy over U
 	if (pGrid->GetVarLocation(UIx) == DataLocation_REdge) {
 		for (int k = 0; k <= pGrid->GetRElements(); k++) {
@@ -659,7 +660,8 @@ void VerticalDynamicsFEM::SetupReferenceColumn(
 				dataInitialNode[VIx][k][iA][iB];
 		}
 	}
-*/
+#endif
+
 	// Copy over Theta
 	if (pGrid->GetVarLocation(PIx) == DataLocation_REdge) {
 		for (int k = 0; k <= pGrid->GetRElements(); k++) {
@@ -829,7 +831,8 @@ void VerticalDynamicsFEM::StepExplicit(
 					dataDiffExnerREdge);
 
 				Evaluate(m_dColumnState, m_dSoln);
-/*
+
+#ifndef THREE_COMPONENT_SOLVE
 				// Apply update to U
 				if (pGrid->GetVarLocation(UIx) == DataLocation_REdge) {
 					for (int k = 0; k <= pGrid->GetRElements(); k++) {
@@ -855,7 +858,7 @@ void VerticalDynamicsFEM::StepExplicit(
 							dDeltaT * m_dSoln[VecFIx(FVIx, k)];
 					}
 				}
-*/
+#endif
 				// Apply update to P
 				if (pGrid->GetVarLocation(PIx) == DataLocation_REdge) {
 					for (int k = 0; k <= pGrid->GetRElements(); k++) {
@@ -1194,6 +1197,19 @@ void VerticalDynamicsFEM::StepImplicit(
 					m_dSoln.GetRows(),
 					1.0e-8);
 
+/*
+			bool fConverged =
+				PerformJFNK(
+					m_dSoln,
+					m_dSoln.GetRows(),
+					1.0e-12,
+					m_dSoln.GetRows(),
+					1.0e-12);
+
+			if (!fConverged) {
+				_EXCEPTIONT("Convergence failure");
+			}
+*/
 			// DEBUG (check for NANs in output)
 			if (!(m_dSoln[0] == m_dSoln[0])) {
                 DataVector<double> dEval;
@@ -1297,7 +1313,8 @@ void VerticalDynamicsFEM::StepImplicit(
 				m_dSoln[k] = m_dColumnState[k] - m_dSoln[k];
 			}
 #endif
-/*
+
+#ifndef THREE_COMPONENT_SOLVE
 			// Apply updated state to U
 			if (pGrid->GetVarLocation(UIx) == DataLocation_REdge) {
 				for (int k = 0; k <= pGrid->GetRElements(); k++) {
@@ -1323,7 +1340,8 @@ void VerticalDynamicsFEM::StepImplicit(
 						m_dSoln[VecFIx(FVIx, k)];
 				}
 			}
-*/
+#endif
+
 			// Apply updated state to theta
 			if (pGrid->GetVarLocation(PIx) == DataLocation_REdge) {
 				for (int k = 0; k <= pGrid->GetRElements(); k++) {
@@ -1357,10 +1375,69 @@ void VerticalDynamicsFEM::StepImplicit(
 						m_dSoln[VecFIx(FRIx, k)];
 				}
 			} else {
+				const DataMatrix3D<double> & dElementArea =
+					m_pPatch->GetElementArea();
+
+				double dPreMass = 0.0;
+				double dFinalMass = 0.0;
+				double dArea = 0.0;
 				for (int k = 0; k < pGrid->GetRElements(); k++) {
+					dArea += dElementArea[k][iA][iB];
+
+					dPreMass +=
+						dataInitialNode[RIx][k][iA][iB]
+						* dElementArea[k][iA][iB];
+
 					dataUpdateNode[RIx][k][iA][iB] =
 						m_dSoln[VecFIx(FRIx, k)];
+
+					dFinalMass +=
+						dataUpdateNode[RIx][k][iA][iB]
+						* dElementArea[k][iA][iB];
 				}
+/*
+				{
+					DataVector<double> dEval;
+					dEval.Initialize(m_dColumnState.GetRows());
+					Evaluate(m_dSoln, dEval);
+
+					if ((m_iA == 38) && (m_iB == 1)) {
+						double dRes = 0.0;
+						for (int k = 0; k < dEval.GetRows(); k++) {
+							dRes += fabs(dEval[k]);
+						}
+						printf("%1.15e\n", dRes);
+					}
+				}
+*/
+/*
+				//if ((m_iA == 38) && (m_iB == 1)) {
+				if (fabs(dPreMass - dFinalMass) / dArea > 1.0e-10) {
+
+					printf("Conservation failure in %i %i\n", m_iA, m_iB);
+
+					FILE * fpsoln = fopen("Soln.txt", "w");
+					for (int k = 0; k < m_dSoln.GetRows(); k++) {
+						fprintf(fpsoln, "%1.15e\n", m_dColumnState[k] - m_dSoln[k]);
+					}
+					fclose(fpsoln);
+
+					BootstrapJacobian();
+					
+					DataVector<double> dEval;
+					dEval.Initialize(m_dColumnState.GetRows());
+					Evaluate(m_dSoln, dEval);
+
+					for (int k = 0; k < dEval.GetRows(); k++) {
+						printf("%i %1.15e\n", k, dEval[k]);
+					}
+					
+
+					printf("%i %i\n", iA, iB);
+					printf("%1.15e %1.15e\n", dPreMass, dFinalMass);
+					_EXCEPTION();
+				}
+*/
 			}
 		}
 		}
@@ -1471,13 +1548,68 @@ void VerticalDynamicsFEM::PrepareColumn(
 
 	// Number of radial elements
 	const int nRElements = pGrid->GetRElements();
-/*
+
+#ifndef THREE_COMPONENT_SOLVE
 	// U and V on model levels
 	for (int k = 0; k < nRElements; k++) {
 		m_dStateNode[UIx][k] = dX[VecFIx(FUIx, k)];
 		m_dStateNode[VIx][k] = dX[VecFIx(FVIx, k)];
+		m_dStateNode[PIx][k] = dX[VecFIx(FPIx, k)];
+		m_dStateNode[WIx][k] = dX[VecFIx(FWIx, k)];
+		m_dStateNode[RIx][k] = dX[VecFIx(FRIx, k)];
 	}
-*/
+#endif
+/*
+	// Calculate update for P
+	pGrid->DifferentiateNodeToNode(
+		m_dStateNode[PIx],
+		m_dDiffP);
+
+	// Pressure on model interfaces
+	if (pGrid->GetVarLocation(PIx) == DataLocation_REdge) {
+		for (int k = 0; k <= nRElements; k++) {
+			m_dStateREdge[PIx][k] = dX[VecFIx(FPIx, k)];
+		}
+
+		// Calculate update for P
+		pGrid->DifferentiateREdgeToREdge(
+			m_dStateREdge[PIx],
+			m_dDiffP);
+
+		// P is needed on model levels
+		if ((m_fExnerPressureOnLevels) ||
+			(pGrid->GetVarLocation(WIx) == DataLocation_Node)
+		) {
+			pGrid->InterpolateREdgeToNode(
+				m_dStateREdge[PIx],
+				m_dStateRefREdge[PIx],
+				m_dStateNode[PIx],
+				m_dStateRefNode[PIx]);
+		}
+
+	// Pressure on model levels
+	} else {
+		for (int k = 0; k < nRElements; k++) {
+			m_dStateNode[PIx][k] = dX[VecFIx(FPIx, k)];
+		}
+
+		// Calculate update for P
+		pGrid->DifferentiateNodeToNode(
+			m_dStateNode[PIx],
+			m_dDiffP);
+
+		// Pressure is needed on model interfaces
+		if ((!m_fExnerPressureOnLevels) ||
+			(pGrid->GetVarLocation(WIx) == DataLocation_REdge)
+		) {
+			pGrid->InterpolateNodeToREdge(
+				m_dStateNode[PIx],
+				m_dStateRefNode[PIx],
+				m_dStateREdge[PIx],
+				m_dStateRefREdge[PIx]);
+		}
+	}
+
 	// W on model interfaces
 	if (pGrid->GetVarLocation(WIx) == DataLocation_REdge) {
 		for (int k = 0; k <= nRElements; k++) {
@@ -1503,51 +1635,6 @@ void VerticalDynamicsFEM::PrepareColumn(
 			m_dStateRefNode[WIx],
 			m_dStateREdge[WIx],
 			m_dStateRefREdge[WIx]);
-	}
-
-	// Pressure on model interfaces
-	if (pGrid->GetVarLocation(PIx) == DataLocation_REdge) {
-		for (int k = 0; k <= nRElements; k++) {
-			m_dStateREdge[PIx][k] = dX[VecFIx(FPIx, k)];
-		}
-
-		// Calculate update for T
-		pGrid->DifferentiateREdgeToREdge(
-			m_dStateREdge[PIx],
-			m_dDiffP);
-
-		// T is needed on model levels
-		if ((m_fExnerPressureOnLevels) ||
-			(pGrid->GetVarLocation(WIx) == DataLocation_Node)
-		) {
-			pGrid->InterpolateREdgeToNode(
-				m_dStateREdge[PIx],
-				m_dStateRefREdge[PIx],
-				m_dStateNode[PIx],
-				m_dStateRefNode[PIx]);
-		}
-
-	// Pressure on model levels
-	} else {
-		for (int k = 0; k < nRElements; k++) {
-			m_dStateNode[PIx][k] = dX[VecFIx(FPIx, k)];
-		}
-
-		// Calculate update for T
-		pGrid->DifferentiateNodeToNode(
-			m_dStateNode[PIx],
-			m_dDiffP);
-
-		// Pressure is needed on model interfaces
-		if ((!m_fExnerPressureOnLevels) ||
-			(pGrid->GetVarLocation(WIx) == DataLocation_REdge)
-		) {
-			pGrid->InterpolateNodeToREdge(
-				m_dStateNode[PIx],
-				m_dStateRefNode[PIx],
-				m_dStateREdge[PIx],
-				m_dStateRefREdge[PIx]);
-		}
 	}
 
 	// Rho on model interfaces
@@ -1584,7 +1671,8 @@ void VerticalDynamicsFEM::PrepareColumn(
 				m_dStateRefREdge[RIx]);
 		}
 	}
-
+*/
+/*
 #ifdef UPWIND_THETA
 	// Compute second derivatives of theta
 	DiffDiffREdgeToREdge(
@@ -1612,6 +1700,7 @@ void VerticalDynamicsFEM::PrepareColumn(
 		}
 	}
 #endif
+*/
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1637,38 +1726,54 @@ void VerticalDynamicsFEM::BuildF(
 	const int nRElements = pGrid->GetRElements();
 
 	// Metric terms
+	const DataMatrix3D<double> & dJacobian =
+		m_pPatch->GetJacobian();
 	const DataMatrix4D<double> & dDerivRNode =
 		m_pPatch->GetDerivRNode();
+	const DataMatrix4D<double> & dContraMetricXi =
+		m_pPatch->GetContraMetricXi();
+	const DataMatrix3D<double> & dElementArea =
+		m_pPatch->GetElementArea();
 
 	// Zero F
 	memset(dF, 0, m_nColumnStateSize * sizeof(double));
 
 	// Compute Xi dot on model levels
 	for (int k = 0; k < nRElements; k++) {
-		const DataMatrix4D<double> & dContraMetricXi =
-			m_pPatch->GetContraMetricXi();
-
+#ifdef USE_COVARIANT_VELOCITIES
 		double dCovUx =
-			m_dStateNode[WIx][k]* dDerivRNode[k][m_iA][m_iB][2];
+			m_dStateNode[WIx][k] * dDerivRNode[k][m_iA][m_iB][2];
 
 		m_dXiDotNode[k] =
 			  dContraMetricXi[k][m_iA][m_iB][0] * m_dStateNode[UIx][k]
 			+ dContraMetricXi[k][m_iA][m_iB][1] * m_dStateNode[VIx][k]
 			+ dContraMetricXi[k][m_iA][m_iB][2] * dCovUx;
+#else
+		m_dXiDotNode[k] =
+			m_pPatch->CalculateXiDotNode(
+				k, m_iA, m_iB,
+				m_dStateNode[UIx][k],
+				m_dStateNode[VIx][k],
+				m_dStateNode[WIx][k]);
+#endif
 	}
 
 	// Check conservation
+	m_dXiDotNode[0] = 0.0;
+	m_dXiDotNode[nRElements-1] = 0.0;
+/*
 	if (fabs(m_dXiDotNode[0]) > 1.0e-14) {
+		printf("%i %i %1.15e\n", m_iA, m_iB, m_dXiDotNode[0]);
 		_EXCEPTIONT("Bottom boundary: Conservation error");
 	}
 	if (fabs(m_dXiDotNode[nRElements-1]) > 1.0e-14) {
 		_EXCEPTIONT("Top boundary: Conservation error");
 	}
-
+*/
 	// Mass flux on model levels
 	for (int k = 0; k < nRElements; k++) {
 		m_dMassFluxNode[k] =
-			m_dJacobian3DNode[k]
+			dJacobian[k][m_iA][m_iB]
 			* m_dStateNode[RIx][k]
 			* m_dXiDotNode[k];
 	}
@@ -1681,24 +1786,49 @@ void VerticalDynamicsFEM::BuildF(
 	for (int k = 0; k < nRElements; k++) {
 		dF[VecFIx(FRIx, k)] =
 			m_dDiffMassFluxNode[k]
-			/ m_dJacobian3DNode[k];
+			/ dJacobian[k][m_iA][m_iB];
 	}
+/*
+	double dArea = 0.0;
+	double dDeltaMass = 0.0;
+	for (int k = 0; k < nRElements; k++) {
+		const DataMatrix4D<double> & dContraMetricXi =
+			m_pPatch->GetContraMetricXi();
+
+		dDeltaMass += dF[VecFIx(FRIx, k)] * dElementArea[k][m_iA][m_iB];
+		dArea += dElementArea[k][m_iA][m_iB];
+	}
+	if ((m_iA == 38) && (m_iB == 1)) {
+		printf("%1.15e\n", dDeltaMass);
+	}
+	if (fabs(dDeltaMass / dArea) > 1.0e-15) {
+		printf("%i %i\n", m_iA, m_iB);
+	}
+*/
 
 	// Pressure flux on model levels
 	for (int k = 0; k < nRElements; k++) {
 		m_dPressureFluxNode[k] =
-			m_dJacobian3DNode[k]
+			dJacobian[k][m_iA][m_iB]
 			* phys.GetGamma()
 			* m_dStateNode[PIx][k]
 			* m_dXiDotNode[k];
+
+		m_dStateAux[k] =
+			phys.PressureFromRhoTheta(m_dStateNode[PIx][k]);
 	}
 
 	pGrid->DifferentiateNodeToNode(
 		m_dPressureFluxNode,
 		m_dDiffPressureFluxNode);
 
+	pGrid->DifferentiateNodeToNode(
+		m_dStateNode[PIx],
+		m_dDiffP);
+
 	// Change in pressure on model levels
 	for (int k = 0; k < nRElements; k++) {
+
 		dF[VecFIx(FPIx, k)] =
 			- (phys.GetGamma() - 1.0)
 			* m_dXiDotNode[k]
@@ -1706,11 +1836,13 @@ void VerticalDynamicsFEM::BuildF(
 
 		dF[VecFIx(FPIx, k)] +=
 			m_dDiffPressureFluxNode[k]
-			/ m_dJacobian3DNode[k];
+			/ dJacobian[k][m_iA][m_iB];
+
 	}
 
 	// Kinetic energy on model levels
 	for (int k = 0; k < nRElements; k++) {
+#ifdef USE_COVARIANT_VELOCIITES
 		const DataMatrix4D<double> & dContraMetricA =
 			m_pPatch->GetContraMetricA();
 		const DataMatrix4D<double> & dContraMetricB =
@@ -1736,16 +1868,45 @@ void VerticalDynamicsFEM::BuildF(
 			  dContraMetricXi[k][m_iA][m_iB][0] * dCovUa
 			+ dContraMetricXi[k][m_iA][m_iB][1] * dCovUb
 			+ dContraMetricXi[k][m_iA][m_iB][2] * dCovUx;
+#else
+		const DataMatrix4D<double> & dCovMetricA =
+			m_pPatch->GetCovMetricA();
+		const DataMatrix4D<double> & dCovMetricB =
+			m_pPatch->GetCovMetricB();
+		const DataMatrix4D<double> & dCovMetricXi =
+			m_pPatch->GetCovMetricXi();
+
+		double dConUa = m_dStateNode[UIx][k];
+		double dConUb = m_dStateNode[VIx][k];
+		double dConUx = m_dXiDotNode[k];
+
+		double dCovUa =
+			  dCovMetricA[k][m_iA][m_iB][0] * dConUa
+			+ dCovMetricA[k][m_iA][m_iB][1] * dConUb
+			+ dCovMetricA[k][m_iA][m_iB][2] * dConUx;
+
+		double dCovUb =
+			  dCovMetricB[k][m_iA][m_iB][0] * dConUa
+			+ dCovMetricB[k][m_iA][m_iB][1] * dConUb
+			+ dCovMetricB[k][m_iA][m_iB][2] * dConUx;
+
+		double dCovUx =
+			  dCovMetricXi[k][m_iA][m_iB][0] * dConUa
+			+ dCovMetricXi[k][m_iA][m_iB][1] * dConUb
+			+ dCovMetricXi[k][m_iA][m_iB][2] * dConUx;
+#endif
 
 		// Specific kinetic energy
 		m_dKineticEnergyNode[k] =
 			  0.5 * (dConUa * dCovUa + dConUb * dCovUb + dConUx * dCovUx);
+
 	}
 
 	pGrid->DifferentiateNodeToNode(
 		m_dKineticEnergyNode,
 		m_dDiffKineticEnergyNode);
-/*
+
+#ifndef USE_COVARIANT_VELOCITIES
 	// Change in alpha/beta velocity on model levels
 	for (int k = 0; k < nRElements; k++) {
 		const DataMatrix4D<double> & dContraMetricA =
@@ -1768,14 +1929,12 @@ void VerticalDynamicsFEM::BuildF(
 		dF[VecFIx(FVIx, k)] =
 			dContraMetricB[k][m_iA][m_iB][2] * dDerivUpdate;
 	}
-*/
+#endif
+
 	// Change in vertical velocity on model levels
 	for (int k = 0; k < nRElements; k++) {
 
-		if (k == 0) {
-			dF[VecFIx(FWIx, k)] = 0.0;
-
-		} else if (k == nRElements-1) {
+		if ((k == 0) || (k == nRElements-1)) {
 			dF[VecFIx(FWIx, k)] = 0.0;
 
 		} else {
@@ -1822,19 +1981,41 @@ void VerticalDynamicsFEM::BuildF(
 		pGrid->GetVerticalStaggering() ==
 			Grid::VerticalStaggering_Interfaces
 	) {
+*/
+#ifdef USE_COVARIANT_VELOCITIES
+	{
 		dF[VecFIx(FWIx, 0)] =
-			m_pPatch->CalculateXiDotREdge(
+			  dContraMetricXi[0][m_iA][m_iB][0] * m_dStateNode[UIx][0]
+			+ dContraMetricXi[0][m_iA][m_iB][1] * m_dStateNode[VIx][0]
+			+ dContraMetricXi[0][m_iA][m_iB][2]
+				* dDerivRNode[0][m_iA][m_iB][2] * m_dStateNode[WIx][0];
+
+		int k = nRElements-1;
+
+		dF[VecFIx(FWIx, k)] =
+			  dContraMetricXi[k][m_iA][m_iB][0] * m_dStateNode[UIx][k]
+			+ dContraMetricXi[k][m_iA][m_iB][1] * m_dStateNode[VIx][k]
+			+ dContraMetricXi[k][m_iA][m_iB][2]
+				* dDerivRNode[k][m_iA][m_iB][2] * m_dStateNode[WIx][k];
+	}
+#else
+	{
+		dF[VecFIx(FWIx, 0)] =
+			m_pPatch->CalculateXiDotNode(
 				0, m_iA, m_iB,
-				m_dStateREdge[UIx][0],
-				m_dStateREdge[VIx][0],
-				m_dStateREdge[WIx][0]);
+				m_dStateNode[UIx][0],
+				m_dStateNode[VIx][0],
+				m_dStateNode[WIx][0]);
 
 		dF[VecFIx(FWIx, nRElements-1)] =
-			m_pPatch->CalculateXiDotREdge(
-				nRElements, m_iA, m_iB,
-				m_dStateREdge[UIx][nRElements-1],
-				m_dStateREdge[VIx][nRElements-1],
-				m_dStateREdge[WIx][nRElements-1]);
+			m_pPatch->CalculateXiDotNode(
+				nRElements-1, m_iA, m_iB,
+				m_dStateNode[UIx][nRElements-1],
+				m_dStateNode[VIx][nRElements-1],
+				m_dStateNode[WIx][nRElements-1]);
+	}
+#endif
+/*
 	} else {
 		_EXCEPTIONT("UNIMPLEMENTED");
 	}

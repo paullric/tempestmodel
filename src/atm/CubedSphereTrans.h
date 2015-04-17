@@ -179,8 +179,8 @@ public:
 		int nP,
 		double dUlon,
 		double dUlat,
-		double &dUalpha,
-		double &dUbeta
+		double & dUalpha,
+		double & dUbeta
 	);
 
 	///	<summary>
@@ -206,8 +206,62 @@ public:
 		int nP,
 		double dUalpha,
 		double dUbeta,
-		double &dUlon,
-		double &dUlat
+		double & dUlon,
+		double & dUlat
+	);
+
+	///	<summary>
+	///		Translate a vector in spherical coordinates to a covector in
+	///		equiangular coordinates.  The components of the vector field in
+	///		spherical coordinates are expected in the unit basis, whereas the
+	///		components in equiangular coordinates are given in the geometric
+	///		basis.
+	///	</summary>
+	///	<parameters>
+	///		dX            - Gnomonic X coordinate of translation point
+	///		dY            - Gnomonic Y coordinate of translation point
+	///		nP            - Gnomonic panel coordinate (0-5, 4 = north,
+	///		                5 = south) of translation point
+	///		dUlon         - Longitudinal component of vector field
+	///		dUlat         - Latitudinal component of vector field
+	///		dUalpha (OUT) - Alpha component of vector field
+	///		dUbeta (OUT)  - Beta component of vector field
+	///	</parameters>
+	static void CoVecTransABPFromRLL(
+		double dX,
+		double dY,
+		int nP,
+		double dUlon,
+		double dUlat,
+		double & dUalpha,
+		double & dUbeta
+	);
+
+	///	<summary>
+	///		Translate a covector in equiangular coordinates to a vector in
+	///		spherical coordinates.  The components of the vector field in
+	///		spherical coordinates are expected in the unit basis, whereas the
+	///		components in equiangular coordinates are given in the geometric
+	///		basis.
+	///	</summary>
+	///	<parameters>
+	///		dX          - Gnomonic X coordinate of translation point
+	///		dY          - Gnomonic Y coordinate of translation point
+	///		nP          - Gnomonic panel coordinate (0-5, 4 = north, 5 = south)
+	///		              of translation point
+	///		dUalpha     - Alpha component of vector field
+	///		dUbeta      - Beta component of vector field
+	///		dUlon (OUT) - Longitudinal component of vector field (OUT)
+	///		dUlat (OUT) - Latitudinal component of vector field (OUT)
+	///	</parameters>
+	static void CoVecTransRLLFromABP(
+		double dX,
+		double dY,
+		int nP,
+		double dUalpha,
+		double dUbeta,
+		double & dUlon,
+		double & dUlat
 	);
 
 	///	<summary>
@@ -1271,16 +1325,16 @@ public:
 	///		Beta component of the vector.
 	///	</param>
 	///	<param name="dXdest">
-	///		Gnomonic X coordinate (panel 2) of destination point.
+	///		Gnomonic X coordinate of destination point.
 	///	</param>
 	///	<param name="dYdest">
-	///		Gnomonic Y coordinate (panel 2) of destination point.
+	///		Gnomonic Y coordinate of destination point.
 	///	</param>
 	static void VecPanelTrans(
 		int p_src,
 		int p_dest,
-		double &dAlpha,
-		double &dBeta,
+		double & dAlpha,
+		double & dBeta,
 		double dXdest,
 		double dYdest
 	) {
@@ -1361,14 +1415,14 @@ public:
 	///		Beta component of the vector system.
 	///	</param>
 	///	<param name="dX2">
-	///		Gnomonic X coordinate (panel 2) of point of rotation.
+	///		Gnomonic X coordinate (panel 2) of destination point.
 	///	</param>
 	///	<param name="dY2">
-	///		Gnomonic Y coordinate (panel 2) of point of rotation.
+	///		Gnomonic Y coordinate (panel 2) of destination point.
 	///	</param>
 	inline static void VecToP2FromP1(
-		double &dAlpha,
-		double &dBeta,
+		double & dAlpha,
+		double & dBeta,
 		double dX2,
 		double dY2
 	) {
@@ -1382,8 +1436,8 @@ public:
 	///		equatorial panel 2.
 	///	</summary>
 	inline static void VecToP1FromP2(
-		double &dAlpha,
-		double &dBeta,
+		double & dAlpha,
+		double & dBeta,
 		double dX1,
 		double dY1
 	) {
@@ -1397,8 +1451,8 @@ public:
 	///		from equatorial panel 1.
 	///	</summary>
 	inline static void VecToP5FromP1(
-		double &dAlpha,
-		double &dBeta,
+		double & dAlpha,
+		double & dBeta,
 		double dX5,
 		double dY5
 	) {
@@ -1412,8 +1466,8 @@ public:
 	///		from panel 5 (north pole).
 	///	</summary>
 	inline static void VecToP1FromP5(
-		double &dAlpha,
-		double &dBeta,
+		double & dAlpha,
+		double & dBeta,
 		double dX1,
 		double dY1
 	) {
@@ -1427,8 +1481,8 @@ public:
 	///		from equatorial panel 2.
 	///	</summary>
 	inline static void VecToP5FromP2(
-		double &dAlpha,
-		double &dBeta,
+		double & dAlpha,
+		double & dBeta,
 		double dX5,
 		double dY5
 	) {
@@ -1446,8 +1500,8 @@ public:
 	///		from panel 5 (north pole).
 	///	</summary>
 	inline static void VecToP2FromP5(
-		double &dAlpha,
-		double &dBeta,
+		double & dAlpha,
+		double & dBeta,
 		double dX2,
 		double dY2
 	) {
@@ -1465,8 +1519,8 @@ public:
 	///		from equatorial panel 3.
 	///	</summary>
 	inline static void VecToP5FromP3(
-		double &dAlpha,
-		double &dBeta,
+		double & dAlpha,
+		double & dBeta,
 		double dX5,
 		double dY5
 	) {
@@ -1482,8 +1536,8 @@ public:
 	///		from panel 5 (north pole).
 	///	</summary>
 	inline static void VecToP3FromP5(
-		double &dAlpha,
-		double &dBeta,
+		double & dAlpha,
+		double & dBeta,
 		double dX3,
 		double dY3
 	) {
@@ -1499,8 +1553,8 @@ public:
 	///		from equatorial panel 4.
 	///	</summary>
 	inline static void VecToP5FromP4(
-		double &dAlpha,
-		double &dBeta,
+		double & dAlpha,
+		double & dBeta,
 		double dX5,
 		double dY5
 	) {
@@ -1518,8 +1572,8 @@ public:
 	///		from panel 5 (north pole).
 	///	</summary>
 	inline static void VecToP4FromP5(
-		double &dAlpha,
-		double &dBeta,
+		double & dAlpha,
+		double & dBeta,
 		double dX4,
 		double dY4
 	) {
@@ -1537,8 +1591,8 @@ public:
 	///		from equatorial panel 1.
 	///	</summary>
 	inline static void VecToP6FromP1(
-		double &dAlpha,
-		double &dBeta,
+		double & dAlpha,
+		double & dBeta,
 		double dX6,
 		double dY6
 	) {
@@ -1552,8 +1606,8 @@ public:
 	///		from panel 6 (south pole).
 	///	</summary>
 	inline static void VecToP1FromP6(
-		double &dAlpha,
-		double &dBeta,
+		double & dAlpha,
+		double & dBeta,
 		double dX1,
 		double dY1
 	) {
@@ -1567,8 +1621,8 @@ public:
 	///		from equatorial panel 2.
 	///	</summary>
 	inline static void VecToP6FromP2(
-		double &dAlpha,
-		double &dBeta,
+		double & dAlpha,
+		double & dBeta,
 		double dX6,
 		double dY6
 	) {
@@ -1586,8 +1640,8 @@ public:
 	///		from panel 6 (south pole).
 	///	</summary>
 	inline static void VecToP2FromP6(
-		double &dAlpha,
-		double &dBeta,
+		double & dAlpha,
+		double & dBeta,
 		double dX2,
 		double dY2
 	) {
@@ -1605,8 +1659,8 @@ public:
 	///		from equatorial panel 3.
 	///	</summary>
 	inline static void VecToP6FromP3(
-		double &dAlpha,
-		double &dBeta,
+		double & dAlpha,
+		double & dBeta,
 		double dX6,
 		double dY6
 	) {
@@ -1622,8 +1676,8 @@ public:
 	///		from panel 6 (south pole).
 	///	</summary>
 	inline static void VecToP3FromP6(
-		double &dAlpha,
-		double &dBeta,
+		double & dAlpha,
+		double & dBeta,
 		double dX3,
 		double dY3
 	) {
@@ -1639,8 +1693,8 @@ public:
 	///		from equatorial panel 4.
 	///	</summary>
 	inline static void VecToP6FromP4(
-		double &dAlpha,
-		double &dBeta,
+		double & dAlpha,
+		double & dBeta,
 		double dX6,
 		double dY6
 	) {
@@ -1658,8 +1712,8 @@ public:
 	///		from panel 6 (south pole).
 	///	</summary>
 	inline static void VecToP4FromP6(
-		double &dAlpha,
-		double &dBeta,
+		double & dAlpha,
+		double & dBeta,
 		double dX4,
 		double dY4
 	) {
@@ -1671,6 +1725,550 @@ public:
 
 		dBeta = -dTemp;
 	}
+
+	///	<summary>
+	///		Remap covectors from the given source panel to the given destination
+	///		panel.  All calculations are performed in-place.
+	///	</summary>
+	///	<param name="p_src">
+	///		Panel index of the source panel.
+	///	</param>
+	///	<param name="p_dest">
+	///		Panel index of the destination panel.
+	///	</param>
+	///	<param name="dAlpha">
+	///		Alpha component of the covector.
+	///	</param>
+	///	<param name="dBeta">
+	///		Beta component of the covector.
+	///	</param>
+	///	<param name="dXdest">
+	///		Gnomonic X coordinate of destination point.
+	///	</param>
+	///	<param name="dYdest">
+	///		Gnomonic Y coordinate of destination point.
+	///	</param>
+	static void CoVecPanelTrans(
+		int p_src,
+		int p_dest,
+		double & dAlpha,
+		double & dBeta,
+		double dXdest,
+		double dYdest
+	) {
+		if ((p_dest < 4) && (p_src < 4)) {
+			if ((p_dest + 7 - p_src) % 4 == 0) {
+				CoVecToP2FromP1(dAlpha, dBeta, dXdest, dYdest);
+			} else if ((p_dest + 5 - p_src) % 4 == 0) {
+				CoVecToP1FromP2(dAlpha, dBeta, dXdest, dYdest);
+			} else {
+				_EXCEPTION();
+			}
+
+		} else if (p_src == 4) {
+			if (p_dest == 0) {
+				CoVecToP1FromP5(dAlpha, dBeta, dXdest, dYdest);
+			} else if (p_dest == 1) {
+				CoVecToP2FromP5(dAlpha, dBeta, dXdest, dYdest);
+			} else if (p_dest == 2) {
+				CoVecToP3FromP5(dAlpha, dBeta, dXdest, dYdest);
+			} else if (p_dest == 3) {
+				CoVecToP4FromP5(dAlpha, dBeta, dXdest, dYdest);
+			} else {
+				_EXCEPTION();
+			}
+
+		} else if (p_dest == 4) {
+			if (p_src == 0) {
+				CoVecToP5FromP1(dAlpha, dBeta, dXdest, dYdest);
+			} else if (p_src == 1) {
+				CoVecToP5FromP2(dAlpha, dBeta, dXdest, dYdest);
+			} else if (p_src == 2) {
+				CoVecToP5FromP3(dAlpha, dBeta, dXdest, dYdest);
+			} else if (p_src == 3) {
+				CoVecToP5FromP4(dAlpha, dBeta, dXdest, dYdest);
+			} else {
+				_EXCEPTION();
+			}
+
+		} else if (p_src == 5) {
+			if (p_dest == 0) {
+				CoVecToP1FromP6(dAlpha, dBeta, dXdest, dYdest);
+			} else if (p_dest == 1) {
+				CoVecToP2FromP6(dAlpha, dBeta, dXdest, dYdest);
+			} else if (p_dest == 2) {
+				CoVecToP3FromP6(dAlpha, dBeta, dXdest, dYdest);
+			} else if (p_dest == 3) {
+				CoVecToP4FromP6(dAlpha, dBeta, dXdest, dYdest);
+			} else {
+				_EXCEPTION();
+			}
+
+		} else if (p_dest == 5) {
+			if (p_src == 0) {
+				CoVecToP6FromP1(dAlpha, dBeta, dXdest, dYdest);
+			} else if (p_src == 1) {
+				CoVecToP6FromP2(dAlpha, dBeta, dXdest, dYdest);
+			} else if (p_src == 2) {
+				CoVecToP6FromP3(dAlpha, dBeta, dXdest, dYdest);
+			} else if (p_src == 3) {
+				CoVecToP6FromP4(dAlpha, dBeta, dXdest, dYdest);
+			} else {
+				_EXCEPTION();
+			}
+
+		} else {
+			_EXCEPTION();
+		}
+	}
+
+	///	<summary>
+	///		Remap covectors to equatorial panel 2 from equatorial panel 1.  All
+	///		calculations are performed in-place.
+	///	</summary>
+	///	<param name="dAlpha">
+	///		Alpha component of the vector system.
+	///	</param>
+	///	<param name="dBeta">
+	///		Beta component of the vector system.
+	///	</param>
+	///	<param name="dX2">
+	///		Gnomonic X coordinate (panel 2) of destination point.
+	///	</param>
+	///	<param name="dY2">
+	///		Gnomonic Y coordinate (panel 2) of destination point.
+	///	</param>
+	inline static void CoVecToP2FromP1(
+		double & dAlpha,
+		double & dBeta,
+		double dX2,
+		double dY2
+	) {
+		double dMag = (dX2 * dX2 + dY2 * dY2);
+
+		dAlpha =
+			dAlpha + dY2 * (1.0 + dX2 * dX2) / dMag * dBeta;
+
+		dBeta =
+			- dX2 * (1.0 + dY2 * dY2) / dMag * dBeta;
+/*
+		dBeta =
+			+ dY2 * (1.0 + dX2 * dX2) / dMag * dAlpha
+			- dX2 * (1.0 + dY2 * dY2) / dMag * dBeta;
+*/
+	}
+
+	///	<summary>
+	///		Remap covectors to equatorial panel 1 from equatorial panel 2.  All
+	///		calculations are performed in-place.
+	///	</summary>
+	inline static void CoVecToP1FromP2(
+		double & dAlpha,
+		double & dBeta,
+		double dX1,
+		double dY1
+	) {
+		double dMag = (dX1 * dX1 + dY1 * dY1);
+
+		dAlpha =
+			dAlpha - dY1 * (1.0 + dX1 * dX1) / dMag * dBeta;
+
+		dBeta =
+			dX1 * (1.0 + dY1 * dY1) / dMag * dBeta;
+/*
+		dBeta =
+			- dY1 * (1.0 + dX1 * dX1) / dMag * dAlpha
+			+ dX1 * (1.0 + dY1 * dY1) / dMag * dBeta;
+*/
+	}
+
+	///	<summary>
+	///		As CoVecToP2FromP1 except remapping covectors to panel 5 (north pole)
+	///		from equatorial panel 1.
+	///	</summary>
+	inline static void CoVecToP5FromP1(
+		double & dAlpha,
+		double & dBeta,
+		double dX5,
+		double dY5
+	) {
+		double dMag = (dX5 * dX5 + dY5 * dY5);
+
+		dBeta =
+			dX5 * (1.0 + dY5 * dY5) / dMag * dAlpha + dBeta;
+
+		dAlpha =
+			- dY5 * (1.0 + dX5 * dX5) / dMag * dAlpha;
+/*
+		dAlpha =
+			- dY5 * (1.0 + dX5 * dX5) / dMag * dAlpha
+			+ dX5 * (1.0 + dY5 * dY5) / dMag * dBeta;
+*/
+	}
+
+	///	<summary>
+	///		As CoVecToP2FromP1 except remapping covectors to equatorial panel 1
+	///		from panel 5 (north pole).
+	///	</summary>
+	inline static void CoVecToP1FromP5(
+		double & dAlpha,
+		double & dBeta,
+		double dX1,
+		double dY1
+	) {
+		double dMag = (dX1 * dX1 + dY1 * dY1);
+
+		dBeta = 
+			- dX1 * (1.0 + dY1 * dY1) / dMag * dAlpha + dBeta;
+
+		dAlpha =
+			+ dY1 * (1.0 + dX1 * dX1) / dMag * dAlpha;
+/*
+		dAlpha =
+			+ dY1 * (1.0 + dX1 * dX1) / dMag * dAlpha
+			- dX1 * (1.0 + dY1 * dY1) / dMag * dBeta;
+*/
+	}
+
+	///	<summary>
+	///		As CoVecToP2FromP1 except remapping covectors to panel 5 (north pole)
+	///		from equatorial panel 2.
+	///	</summary>
+	inline static void CoVecToP5FromP2(
+		double & dAlpha,
+		double & dBeta,
+		double dX5,
+		double dY5
+	) {
+		double dMag = (dX5 * dX5 + dY5 * dY5);
+
+		double dTemp = dAlpha;
+
+		dAlpha = - dY5 * (1.0 + dX5 * dX5) / dMag * dAlpha - dBeta;
+		dBeta  = dX5 * (1.0 + dY5 * dY5) / dMag * dTemp;
+/*
+		double dTemp = dAlpha;
+
+		dAlpha =
+			- dY5 * (1.0 + dX5 * dX5) / dMag * dAlpha
+			+ dX5 * (1.0 + dY5 * dY5) / dMag * dBeta;
+
+		dBeta = - dTemp;
+*/
+	}
+
+	///	<summary>
+	///		As CoVecToP2FromP1 except remapping covectors to equatorial panel 2
+	///		from panel 5 (north pole).
+	///	</summary>
+	inline static void CoVecToP2FromP5(
+		double & dAlpha,
+		double & dBeta,
+		double dX2,
+		double dY2
+	) {
+		double dMag = (dX2 * dX2 + dY2 * dY2);
+
+		double dTemp = dBeta;
+
+		dBeta = - dAlpha - dX2 * (1.0 + dY2 * dY2) / dMag * dBeta;
+		dAlpha = dY2 * (1.0 + dX2 * dX2) / dMag * dTemp;
+/*
+		double dTemp = dBeta;
+
+		dBeta =
+			+ dY2 * (1.0 + dX2 * dX2) / dMag * dAlpha
+			- dX2 * (1.0 + dY2 * dY2) / dMag * dBeta;
+
+		dAlpha = - dTemp;
+*/
+	}
+
+	///	<summary>
+	///		As CoVecToP2FromP1 except remapping covectors to panel 5 (north pole)
+	///		from equatorial panel 3.
+	///	</summary>
+	inline static void CoVecToP5FromP3(
+		double & dAlpha,
+		double & dBeta,
+		double dX5,
+		double dY5
+	) {
+		double dMag = (dX5 * dX5 + dY5 * dY5);
+		
+		dBeta  =   dX5 * (1.0 + dY5 * dY5) / dMag * dAlpha - dBeta;
+		dAlpha = - dY5 * (1.0 + dX5 * dX5) / dMag * dAlpha;
+/*
+		dAlpha =
+			- dY5 * (1.0 + dX5 * dX5) / dMag * dAlpha
+			+ dX5 * (1.0 + dY5 * dY5) / dMag * dBeta;
+
+		dBeta = - dBeta;
+*/
+	}
+
+	///	<summary>
+	///		As CoVecToP2FromP1 except remapping covectors to equatorial panel 3
+	///		from panel 5 (north pole).
+	///	</summary>
+	inline static void CoVecToP3FromP5(
+		double & dAlpha,
+		double & dBeta,
+		double dX3,
+		double dY3
+	) {
+		double dMag = (dX3 * dX3 + dY3 * dY3);
+
+		dBeta  =   dX3 * (1.0 + dY3 * dY3) / dMag * dAlpha - dBeta;
+		dAlpha = - dY3 * (1.0 + dX3 * dX3) / dMag * dAlpha;
+/*
+		dAlpha =
+			- dY3 * (1.0 + dX3 * dX3) / dMag * dAlpha
+			+ dX3 * (1.0 + dY3 * dY3) / dMag * dBeta;
+
+		dBeta = - dBeta;
+*/
+	}
+
+	///	<summary>
+	///		As CoVecToP2FromP1 except remapping covectors to panel 5 (north pole)
+	///		from equatorial panel 4.
+	///	</summary>
+	inline static void CoVecToP5FromP4(
+		double & dAlpha,
+		double & dBeta,
+		double dX5,
+		double dY5
+	) {
+		double dMag = (dX5 * dX5 + dY5 * dY5);
+
+		double dTemp = dAlpha;
+
+		dAlpha = - dY5 * (1.0 + dX5 * dX5) / dMag * dAlpha + dBeta;
+		dBeta  =   dX5 * (1.0 + dY5 * dY5) / dMag * dTemp;
+/*
+		dAlpha =
+			- dY5 * (1.0 + dX5 * dX5) / dMag * dAlpha
+			+ dX5 * (1.0 + dY5 * dY5) / dMag * dBeta;
+
+		dBeta = dTemp;
+*/
+	}
+
+	///	<summary>
+	///		As CoVecToP2FromP1 except remapping covectors to equatorial panel 4
+	///		from panel 5 (north pole).
+	///	</summary>
+	inline static void CoVecToP4FromP5(
+		double & dAlpha,
+		double & dBeta,
+		double dX4,
+		double dY4
+	) {
+		double dMag = (dX4 * dX4 + dY4 * dY4);
+
+		double dTemp = dBeta;
+
+		dBeta  = dAlpha + dX4 * (1.0 + dY4 * dY4) / dMag * dBeta;
+		dAlpha = - dY4 * (1.0 + dX4 * dX4) / dMag * dTemp;
+
+/*
+		dBeta =
+			- dY4 * (1.0 + dX4 * dX4) / dMag * dAlpha
+			+ dX4 * (1.0 + dY4 * dY4) / dMag * dBeta;
+
+		dAlpha = dTemp;
+*/
+	}
+
+	///	<summary>
+	///		As CoVecToP2FromP1 except remapping covectors to panel 6 (south pole)
+	///		from equatorial panel 1.
+	///	</summary>
+	inline static void CoVecToP6FromP1(
+		double & dAlpha,
+		double & dBeta,
+		double dX6,
+		double dY6
+	) {
+		double dMag = (dX6 * dX6 + dY6 * dY6);
+
+		dBeta  = - dX6 * (1.0 + dY6 * dY6) / dMag * dAlpha + dBeta;
+		dAlpha =   dY6 * (1.0 + dX6 * dX6) / dMag * dAlpha;
+/*
+		dAlpha =
+			+ dY6 * (1.0 + dX6 * dX6) / dMag * dAlpha
+			- dX6 * (1.0 + dY6 * dY6) / dMag * dBeta;
+*/
+	}
+
+	///	<summary>
+	///		As CoVecToP2FromP1 except remapping covectors to equatorial panel 1
+	///		from panel 6 (south pole).
+	///	</summary>
+	inline static void CoVecToP1FromP6(
+		double & dAlpha,
+		double & dBeta,
+		double dX1,
+		double dY1
+	) {
+		double dMag = (dX1 * dX1 + dY1 * dY1);
+
+		dBeta  =   dX1 * (1.0 + dY1 * dY1) / dMag * dAlpha + dBeta;
+		dAlpha = - dY1 * (1.0 + dX1 * dX1) / dMag * dAlpha;
+/*
+		dAlpha =
+			- dY1 * (1.0 + dX1 * dX1) / dMag * dAlpha
+			+ dX1 * (1.0 + dY1 * dY1) / dMag * dBeta;
+*/
+	}
+
+	///	<summary>
+	///		As CoVecToP2FromP1 except remapping covectors to panel 6 (south pole)
+	///		from equatorial panel 2.
+	///	</summary>
+	inline static void CoVecToP6FromP2(
+		double & dAlpha,
+		double & dBeta,
+		double dX6,
+		double dY6
+	) {
+		double dMag = (dX6 * dX6 + dY6 * dY6);
+
+		double dTemp = dAlpha;
+
+		dAlpha =   dY6 * (1.0 + dX6 * dX6) / dMag * dAlpha + dBeta;
+		dBeta  = - dX6 * (1.0 + dY6 * dY6) / dMag * dTemp;
+/*
+		dAlpha =
+			+ dY6 * (1.0 + dX6 * dX6) / dMag * dAlpha
+			- dX6 * (1.0 + dY6 * dY6) / dMag * dBeta;
+
+		dBeta = dTemp;
+*/
+	}
+
+	///	<summary>
+	///		As CoVecToP2FromP1 except remapping covectors to equatorial panel 2
+	///		from panel 6 (south pole).
+	///	</summary>
+	inline static void CoVecToP2FromP6(
+		double & dAlpha,
+		double & dBeta,
+		double dX2,
+		double dY2
+	) {
+		double dMag = (dX2 * dX2 + dY2 * dY2);
+
+		double dTemp = dBeta;
+
+		dBeta  = dAlpha - dX2 * (1.0 + dY2 * dY2) / dMag * dBeta;
+		dAlpha = dY2 * (1.0 + dX2 * dX2) / dMag * dTemp;
+/*
+		dBeta =
+			+ dY2 * (1.0 + dX2 * dX2) / dMag * dAlpha
+			- dX2 * (1.0 + dY2 * dY2) / dMag * dBeta;
+
+		dAlpha = dTemp;
+*/
+	}
+
+	///	<summary>
+	///		As CoVecToP2FromP1 except remapping covectors to panel 6 (south pole)
+	///		from equatorial panel 3.
+	///	</summary>
+	inline static void CoVecToP6FromP3(
+		double & dAlpha,
+		double & dBeta,
+		double dX6,
+		double dY6
+	) {
+		double dMag = (dX6 * dX6 + dY6 * dY6);
+
+		dBeta  = - dX6 * (1.0 + dY6 * dY6) / dMag * dAlpha - dBeta;
+		dAlpha =   dY6 * (1.0 + dX6 * dX6) / dMag * dAlpha;
+/*
+		dAlpha =
+			+ dY6 * (1.0 + dX6 * dX6) / dMag * dAlpha
+			- dX6 * (1.0 + dY6 * dY6) / dMag * dBeta;
+
+		dBeta = - dBeta;
+*/
+	}
+
+	///	<summary>
+	///		As CoVecToP3FromP1 except remapping covectors to equatorial panel 3
+	///		from panel 6 (south pole).
+	///	</summary>
+	inline static void CoVecToP3FromP6(
+		double & dAlpha,
+		double & dBeta,
+		double dX3,
+		double dY3
+	) {
+		double dMag = (dX3 * dX3 + dY3 * dY3);
+
+		dBeta  = - dX3 * (1.0 + dY3 * dY3) / dMag * dAlpha - dBeta;
+		dAlpha =   dY3 * (1.0 + dX3 * dX3) / dMag * dAlpha;
+/*
+		dAlpha =
+			+ dY3 * (1.0 + dX3 * dX3) / dMag * dAlpha
+			- dX3 * (1.0 + dY3 * dY3) / dMag * dBeta;
+
+		dBeta = - dBeta;
+*/
+	}
+
+	///	<summary>
+	///		As CoVecToP2FromP1 except remapping covectors to panel 6 (south pole)
+	///		from equatorial panel 4.
+	///	</summary>
+	inline static void CoVecToP6FromP4(
+		double & dAlpha,
+		double & dBeta,
+		double dX6,
+		double dY6
+	) {
+		double dMag = (dX6 * dX6 + dY6 * dY6);
+
+		double dTemp = dAlpha;
+
+		dAlpha =   dY6 * (1.0 + dX6 * dX6) / dMag * dAlpha - dBeta;
+		dBeta  = - dX6 * (1.0 + dY6 * dY6) / dMag * dTemp;
+/*
+		dAlpha =
+			+ dY6 * (1.0 + dX6 * dX6) / dMag * dAlpha
+			- dX6 * (1.0 + dY6 * dY6) / dMag * dBeta;
+
+		dBeta = - dTemp;
+*/
+	}
+
+	///	<summary>
+	///		As CoVecToP4FromP1 except remapping covectors to equatorial panel 4
+	///		from panel 6 (south pole).
+	///	</summary>
+	inline static void CoVecToP4FromP6(
+		double & dAlpha,
+		double & dBeta,
+		double dX4,
+		double dY4
+	) {
+		double dMag = (dX4 * dX4 + dY4 * dY4);
+
+		double dTemp = dBeta;
+
+		dBeta  = - dAlpha + dX4 * (1.0 + dY4 * dY4) / dMag * dBeta;
+		dAlpha = - dY4 * (1.0 + dX4 * dX4) / dMag * dTemp;
+/*
+		dBeta =
+			- dY4 * (1.0 + dX4 * dX4) / dMag * dAlpha
+			+ dX4 * (1.0 + dY4 * dY4) / dMag * dBeta;
+
+		dAlpha = - dTemp;
+*/
+	}
+
 };
 
 ////////////////////////////////////////////////////////////////////////////////
