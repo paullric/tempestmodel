@@ -171,8 +171,10 @@ void GridPatchCSGLL::EvaluateTopography(
 ) {
 	const PhysicalConstants & phys = m_grid.GetModel().GetPhysicalConstants();
 
+	// Compute values of topography
 	for (int i = 0; i < m_box.GetATotalWidth(); i++) {
 	for (int j = 0; j < m_box.GetBTotalWidth(); j++) {
+
 		double dLon;
 		double dLat;
 
@@ -183,6 +185,46 @@ void GridPatchCSGLL::EvaluateTopography(
 			dLon, dLat);
 
 		m_dataTopography[i][j] = test.EvaluateTopography(phys, dLon, dLat);
+	}
+	}
+
+	// Get derivatves from basis
+	GridCSGLL & gridCSGLL = dynamic_cast<GridCSGLL &>(m_grid);
+
+	const DataMatrix<double> & dDxBasis1D = gridCSGLL.GetDxBasis1D();
+
+	// Compute derivatives of topography
+	for (int a = 0; a < GetElementCountA(); a++) {
+	for (int b = 0; b < GetElementCountB(); b++) {
+
+		for (int i = 0; i < m_nHorizontalOrder; i++) {
+		for (int j = 0; j < m_nHorizontalOrder; j++) {
+
+			// Nodal points
+			int iElementA = m_box.GetAInteriorBegin() + a * m_nHorizontalOrder;
+			int iElementB = m_box.GetBInteriorBegin() + b * m_nHorizontalOrder;
+
+			int iA = iElementA + i;
+			int iB = iElementB + j;
+
+			// Topography height and its derivatives
+			double dZs = m_dataTopography[iA][iB];
+
+			double dDaZs = 0.0;
+			double dDbZs = 0.0;
+
+			for (int s = 0; s < m_nHorizontalOrder; s++) {
+				dDaZs += dDxBasis1D[s][i] * m_dataTopography[iElementA+s][iB];
+				dDbZs += dDxBasis1D[s][j] * m_dataTopography[iA][iElementB+s];
+			}
+
+			dDaZs /= GetElementDeltaA();
+			dDbZs /= GetElementDeltaB();
+
+			m_dataTopographyDeriv[0][iA][iB] = dDaZs;
+			m_dataTopographyDeriv[1][iA][iB] = dDbZs;
+		}
+		}
 	}
 	}
 }
@@ -268,7 +310,7 @@ void GridPatchCSGLL::EvaluateGeometricTerms() {
 		double dY = tan(m_box.GetBNode(iB));
 		double dDelta2 = (1.0 + dX * dX + dY * dY);
 		double dDelta = sqrt(dDelta2);
-
+/*
 		// Topography height and its derivatives
 		double dZs = m_dataTopography[iA][iB];
 
@@ -280,6 +322,11 @@ void GridPatchCSGLL::EvaluateGeometricTerms() {
 		}
 		dDaZs /= GetElementDeltaA();
 		dDbZs /= GetElementDeltaB();
+*/
+		// Topography height and its derivatives
+		double dZs = m_dataTopography[iA][iB];
+		double dDaZs = m_dataTopographyDeriv[0][iA][iB];
+		double dDbZs = m_dataTopographyDeriv[1][iA][iB];
 
 		// 2D equations
 		if (fIs2DEquationSet) {
@@ -1364,6 +1411,102 @@ void GridPatchCSGLL::TransformHaloVelocities(
 				tan(m_box.GetANode(i)),
 				tan(m_box.GetBNode(j)));
 		}
+		}
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void GridPatchCSGLL::TransformTopographyDeriv() {
+
+	// Panels in each coordinate direction
+	int ixRightPanel  = GetNeighborPanel(Direction_Right);
+	int ixTopPanel    = GetNeighborPanel(Direction_Top);
+	int ixLeftPanel   = GetNeighborPanel(Direction_Left);
+	int ixBottomPanel = GetNeighborPanel(Direction_Bottom);
+
+	int ixTopRightPanel    = GetNeighborPanel(Direction_TopRight);
+	int ixTopLeftPanel     = GetNeighborPanel(Direction_TopLeft);
+	int ixBottomLeftPanel  = GetNeighborPanel(Direction_BottomLeft);
+	int ixBottomRightPanel = GetNeighborPanel(Direction_BottomRight);
+
+	// Post-process velocities across right edge
+	if (ixRightPanel != m_box.GetPanel()) {
+		int i;
+		int j;
+
+		int jBegin = m_box.GetBInteriorBegin()-1;
+		int jEnd = m_box.GetBInteriorEnd()+1;
+
+		i = m_box.GetAInteriorEnd();
+		for (j = jBegin; j < jEnd; j++) {
+			CubedSphereTrans::CoVecPanelTrans(
+				ixRightPanel,
+				m_box.GetPanel(),
+				m_dataTopographyDeriv[0][i][j],
+				m_dataTopographyDeriv[1][i][j],
+				tan(m_box.GetANode(i)),
+				tan(m_box.GetBNode(j)));
+		}
+	}
+
+	// Post-process velocities across top edge
+	if (ixTopPanel != m_box.GetPanel()) {
+		int i;
+		int j;
+
+		int iBegin = m_box.GetAInteriorBegin()-1;
+		int iEnd = m_box.GetAInteriorEnd()+1;
+
+		j = m_box.GetBInteriorEnd();
+		for (i = iBegin; i < iEnd; i++) {
+			CubedSphereTrans::CoVecPanelTrans(
+				ixTopPanel,
+				m_box.GetPanel(),
+				m_dataTopographyDeriv[0][i][j],
+				m_dataTopographyDeriv[1][i][j],
+				tan(m_box.GetANode(i)),
+				tan(m_box.GetBNode(j)));
+		}
+	}
+
+	// Post-process velocities across left edge
+	if (ixLeftPanel != m_box.GetPanel()) {
+		int i;
+		int j;
+
+		int jBegin = m_box.GetBInteriorBegin()-1;
+		int jEnd = m_box.GetBInteriorEnd()+1;
+
+		i = m_box.GetAInteriorBegin()-1;
+		for (j = jBegin; j < jEnd; j++) {
+			CubedSphereTrans::CoVecPanelTrans(
+				ixLeftPanel,
+				m_box.GetPanel(),
+				m_dataTopographyDeriv[0][i][j],
+				m_dataTopographyDeriv[1][i][j],
+				tan(m_box.GetANode(i)),
+				tan(m_box.GetBNode(j)));
+		}
+	}
+
+	// Post-process velocities across bottom edge
+	if (ixBottomPanel != m_box.GetPanel()) {
+		int i;
+		int j;
+
+		int iBegin = m_box.GetAInteriorBegin()-1;
+		int iEnd = m_box.GetAInteriorEnd()+1;
+
+		j = m_box.GetBInteriorBegin()-1;
+		for (i = iBegin; i < iEnd; i++) {
+			CubedSphereTrans::CoVecPanelTrans(
+				ixBottomPanel,
+				m_box.GetPanel(),
+				m_dataTopographyDeriv[0][i][j],
+				m_dataTopographyDeriv[1][i][j],
+				tan(m_box.GetANode(i)),
+				tan(m_box.GetBNode(j)));
 		}
 	}
 }

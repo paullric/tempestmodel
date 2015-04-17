@@ -111,6 +111,12 @@ public:
 		int iDataUpdate
 	);
 
+	///	<summary>
+	///		Transform derivatives of the topography from other panels
+	///		to this panel's coordinate system.
+	///	</summary>
+	virtual void TransformTopographyDeriv();
+
 public:
 	///	<summary>
 	///		Linearly interpolate data to the specified point.

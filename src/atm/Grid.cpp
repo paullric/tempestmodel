@@ -281,7 +281,7 @@ void Grid::EvaluateTestCase(
 	// Store the Rayleigh friction flag
 	m_fHasRayleighFriction = test.HasRayleighFriction();
 
-	// Evaluate the pointwise values of the test
+	// Evaluate the topography and state/tracer values of the test
 	for (int n = 0; n < m_vecActiveGridPatches.size(); n++) {
 		m_vecActiveGridPatches[n]->
 			EvaluateTestCase(test, time, iDataIndex);

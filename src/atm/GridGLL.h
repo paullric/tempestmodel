@@ -52,6 +52,16 @@ public:
 	///	</summary>
 	void Initialize();
 
+	///	<summary>
+	///		Initialize topography height/derivatives, state and tracer data
+	///		from a TestCase.
+	///	</summary>
+	virtual void EvaluateTestCase(
+		const TestCase & test,
+		const Time & time,
+		int iDataIndex = 0
+	);
+
 public:
 	///	<summary>
 	///		Perform post-processing of variables on the grid after each

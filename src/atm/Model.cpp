@@ -244,8 +244,9 @@ void Model::Go() {
 		            "DeltaT must be non-zero.");
 	}
 
-#pragma "Should this be called prior to Go()?"
 	// Evaluate geometric terms in the grid
+	// NOTE: This needs to be called after EvaluateTestCase, since it relies
+	// on information about topographic derivatives.
 	m_pGrid->EvaluateGeometricTerms();
 
 	// Initialize the state from the input file

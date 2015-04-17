@@ -118,10 +118,10 @@ protected:
 	);
 
 	///	<summary>
-	///		Initialize state and tracer data from a TestCase.  Also adjust
-	///		geometric quantities that are dependent on the TestCase.
+	///		Initialize topography height/derivatives, state and tracer data
+	///		from a TestCase.
 	///	</summary>
-	void EvaluateTestCase(
+	virtual void EvaluateTestCase(
 		const TestCase & test,
 		const Time & time,
 		int iDataIndex = 0

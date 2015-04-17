@@ -388,6 +388,9 @@ void GridCartesianGLL::ApplyDSS(
 		if (eDataType == DataType_State) {
 			pPatch->TransformHaloVelocities(iDataUpdate);
 		}
+		if (eDataType == DataType_TopographyDeriv) {
+			pPatch->TransformTopographyDeriv();
+		}
 
 		// Loop through all components associated with this DataType
 		int nComponents;

@@ -161,9 +161,6 @@ void GridPatchCartesianGLL::EvaluateTopography(
 		}
 	}
 	}
-
-	// Apply DSS to topography
-	gridCartesianGLL.ApplyDSS(0, DataType_TopographyDeriv);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1172,6 +1169,13 @@ void GridPatchCartesianGLL::InterpolateData(
 void GridPatchCartesianGLL::TransformHaloVelocities(
 	int iDataUpdate
 ) {
+	// Transform not necessary on Cartesian grid
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void GridPatchCartesianGLL::TransformTopographyDeriv() {
+
 	// Transform not necessary on Cartesian grid
 }
 
