@@ -427,7 +427,15 @@ void GridPatchCSGLL::EvaluateGeometricTerms() {
 				- dContraMetricScale / dDxR * (
 					dX * dY * dDaR + (1.0 + dX * dX) * dDbR);
 
-#pragma message "Missing ContraMetricXi"
+			m_dataContraMetricXi[k][iA][iB][0] =
+				m_dataContraMetricA[k][iA][iB][2];
+			m_dataContraMetricXi[k][iA][iB][1] =
+				m_dataContraMetricB[k][iA][iB][2];
+			m_dataContraMetricXi[k][iA][iB][2] =
+				  1.0 / (dDxR * dDxR)
+				- 1.0 / dDxR * (
+					  m_dataContraMetricXi[k][iA][iB][0] * dDaR
+					+ m_dataContraMetricXi[k][iA][iB][1] * dDbR);
 
 			// Covariant metric components
 			m_dataCovMetricA[k][iA][iB][0] =
@@ -450,6 +458,68 @@ void GridPatchCSGLL::EvaluateGeometricTerms() {
 				dDxR * dDbR;
 			m_dataCovMetricXi[k][iA][iB][2] =
 				dDxR * dDxR;
+
+			// Verify metric inverse
+			double dI11 =
+				  m_dataCovMetricA[k][iA][iB][0]
+					* m_dataContraMetricA[k][iA][iB][0]
+				+ m_dataCovMetricA[k][iA][iB][1]
+					* m_dataContraMetricA[k][iA][iB][1]
+				+ m_dataCovMetricA[k][iA][iB][2]
+					* m_dataContraMetricA[k][iA][iB][2];
+
+			double dI12 =
+				  m_dataCovMetricA[k][iA][iB][0]
+					* m_dataContraMetricB[k][iA][iB][0]
+				+ m_dataCovMetricA[k][iA][iB][1]
+					* m_dataContraMetricB[k][iA][iB][1]
+				+ m_dataCovMetricA[k][iA][iB][2]
+					* m_dataContraMetricB[k][iA][iB][2];
+
+			double dI13 =
+				  m_dataCovMetricA[k][iA][iB][0]
+					* m_dataContraMetricXi[k][iA][iB][0]
+				+ m_dataCovMetricA[k][iA][iB][1]
+					* m_dataContraMetricXi[k][iA][iB][1]
+				+ m_dataCovMetricA[k][iA][iB][2]
+					* m_dataContraMetricXi[k][iA][iB][2];
+
+			double dI22 =
+				  m_dataCovMetricB[k][iA][iB][0]
+					* m_dataContraMetricB[k][iA][iB][0]
+				+ m_dataCovMetricB[k][iA][iB][1]
+					* m_dataContraMetricB[k][iA][iB][1]
+				+ m_dataCovMetricB[k][iA][iB][2]
+					* m_dataContraMetricB[k][iA][iB][2];
+
+			double dI23 =
+				  m_dataCovMetricB[k][iA][iB][0]
+					* m_dataContraMetricXi[k][iA][iB][0]
+				+ m_dataCovMetricB[k][iA][iB][1]
+					* m_dataContraMetricXi[k][iA][iB][1]
+				+ m_dataCovMetricB[k][iA][iB][2]
+					* m_dataContraMetricXi[k][iA][iB][2];
+
+			double dI33 =
+				  m_dataCovMetricXi[k][iA][iB][0]
+					* m_dataContraMetricXi[k][iA][iB][0]
+				+ m_dataCovMetricXi[k][iA][iB][1]
+					* m_dataContraMetricXi[k][iA][iB][1]
+				+ m_dataCovMetricXi[k][iA][iB][2]
+					* m_dataContraMetricXi[k][iA][iB][2];
+
+			if ((fabs(dI11 - 1.0) > 1.0e-13) ||
+			    (fabs(dI12 - 0.0) > 1.0e-13) ||
+				(fabs(dI13 - 0.0) > 1.0e-13) ||
+				(fabs(dI22 - 1.0) > 1.0e-13) ||
+				(fabs(dI23 - 0.0) > 1.0e-13) ||
+				(fabs(dI33 - 1.0) > 1.0e-13)
+			) {
+				_EXCEPTION6("Error: Metric inverse check failed\n"
+					"11: %1.15e\n 12: %1.15e\n 13: %1.15e\n"
+				    "22: %1.15e\n 23: %1.15e\n 33: %1.15e",
+					dI11, dI12, dI13, dI22, dI23, dI33);
+			}
 
 			// Orthonormalization coefficients
 			m_dataOrthonormNode[k][iA][iB][0] = - dDaR / dDxR;

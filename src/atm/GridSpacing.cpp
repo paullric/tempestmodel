@@ -55,6 +55,70 @@ double GridSpacingUniform::GetEdge(int ix) const {
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+// GridSpacingGaussLobatto
+///////////////////////////////////////////////////////////////////////////////
+
+GridSpacingGaussLobatto::GridSpacingGaussLobatto(
+	double dDeltaElement,
+	double dZeroCoord,
+	int nOrder
+) :
+	GridSpacing(dDeltaElement, dZeroCoord),
+	m_nOrder(nOrder)
+{
+	// Check order
+	if (m_nOrder < 2) {
+		_EXCEPTION1("Invalid order of accuracy %i (Order < 2)", m_nOrder);
+	}
+
+	// Obtain GLL nodes
+	DataVector<double> dW;
+
+	GaussLobattoQuadrature::GetPoints(nOrder, 0.0, dDeltaElement, m_dG, dW);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+double GridSpacingGaussLobatto::GetNode(int ix) const {
+	int ixElement    = (ix / (m_nOrder - 1));
+	int ixSubElement = (ix % (m_nOrder - 1));
+
+	// Case of a negative index
+	if (ix < 0) {
+		ixElement = ixElement - 1;
+		ixSubElement = m_nOrder + ixSubElement;
+	}
+
+	if (ixSubElement >= m_nOrder) {
+		_EXCEPTIONT("Logic error");
+	}
+
+	return (m_dZeroCoord
+		+ m_dDeltaElement * static_cast<double>(ixElement)
+		+ m_dG[ixSubElement]);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+double GridSpacingGaussLobatto::GetEdge(int ix) const {
+	int ixElement    = (ix / (m_nOrder - 1));
+	int ixSubElement = (ix % (m_nOrder - 1));
+
+	if (ix < 0) {
+		ixElement = ixElement - 1;
+		ixSubElement = m_nOrder + ixSubElement;
+	}
+
+	if (ixSubElement >= m_nOrder) {
+		_EXCEPTIONT("Logic error");
+	}
+
+	return (m_dZeroCoord
+		+ m_dDeltaElement * static_cast<double>(ixElement)
+		+ m_dG[ixSubElement]);
+}
+
+///////////////////////////////////////////////////////////////////////////////
 // GridSpacingGaussLobattoRepeated
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -66,6 +130,11 @@ GridSpacingGaussLobattoRepeated::GridSpacingGaussLobattoRepeated(
 	GridSpacing(dDeltaElement, dZeroCoord),
 	m_nOrder(nOrder)
 {
+	// Check order
+	if (m_nOrder < 2) {
+		_EXCEPTION1("Invalid order of accuracy %i (Order < 2)", m_nOrder);
+	}
+
 	// Obtain GLL nodes
 	DataVector<double> dW;
 
@@ -75,7 +144,7 @@ GridSpacingGaussLobattoRepeated::GridSpacingGaussLobattoRepeated(
 ///////////////////////////////////////////////////////////////////////////////
 
 double GridSpacingGaussLobattoRepeated::GetNode(int ix) const {
-	int ixElement    = (ix / m_nOrder);
+	int ixElement    = (ix / (m_nOrder - 1));
 	int ixSubElement = (ix % m_nOrder);
 
 	// Case of a negative index
@@ -126,6 +195,11 @@ GridSpacingMixedGaussLobatto::GridSpacingMixedGaussLobatto(
 	m_nOrder(nOrder)
 {
 	DataVector<double> dW;
+
+	// Check order
+	if (m_nOrder < 1) {
+		_EXCEPTION1("Invalid order of accuracy %i (Order < 1)", m_nOrder);
+	}
 
 	// Obtain GLL nodes
 	GaussLobattoQuadrature::GetPoints(nOrder+1, 0.0, dDeltaElement, m_dGL, dW);

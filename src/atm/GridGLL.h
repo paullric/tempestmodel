@@ -89,25 +89,6 @@ public:
 		int iDataIndex
 	);
 
-private:
-	///	<summary>
-	///		Compute the central difference penalty (difference of left and
-	///		right state from average of left and right state) at interfaces.
-	///	</summary>
-	void InterpolateCentralDiffPenalty(
-		const double * dDataNode,
-		bool fZeroBoundaries
-	) const;
-
-	///	<summary>
-	///		Compute interpolated values of a variable array at edges and
-	///		store in m_dStateFEEdge.
-	///	</summary>
-	void InterpolateNodeToFEEdges(
-		const double * dDataNode,
-		bool fZeroBoundaries
-	) const;
-
 public:
 	///	<summary>
 	///		Interpolate one column of data from nodes to the given interface.
@@ -223,16 +204,6 @@ public:
 		double * dDiffREdge
 	) const;
 
-	///	<summary>
-	///		Apply discontinuous penalization to nodes.
-	///	</summary>
-	void CalculateDiscontinuousPenalty(
-		const double * dWaveSpeedREdge,
-		const double * dDataNode,
-		double * dDataUpdate,
-		bool fZeroBoundaries = false
-	) const;
-
 public:
 	///	<summary>
 	///		Get the order of accuracy of the method.
@@ -321,7 +292,7 @@ public:
 	const LinearColumnDiffFEM & GetOpDiffREdgeToREdge() const {
 		return m_opDiffREdgeToREdge;
 	}
-
+/*
 public:
 	///	<summary>
 	///		Get the interpolation coefficients from levels to interfaces.
@@ -416,7 +387,7 @@ private:
 	///		right and average components)
 	///	</summary>
 	mutable DataMatrix<double> m_dStateFEEdge;
-
+*/
 protected:
 	///	<summary>
 	///		Order of accuracy of the method (number of nodes per element).
@@ -451,7 +422,7 @@ protected:
 	///		discontinuous Galerkin dynamics).
 	///	</summary>
 	DataVector<double> m_dFluxDeriv1D;
-
+/*
 	///	<summary>
 	///		Interpolation coefficients from levels to interfaces.
 	///	</summary>
@@ -461,7 +432,7 @@ protected:
 	///		Interpolation coefficients from interfaces to levels.
 	///	</summary>
 	DataMatrix<double> m_dInterpREdgeToNode;
-
+*/
 	///	<summary>
 	///		Interpolation operator from levels to interfaces.
 	///	</summary>
@@ -491,7 +462,7 @@ protected:
 	///		Differentiation operator from interfaces to interfaces.
 	///	</summary>
 	LinearColumnDiffFEM m_opDiffREdgeToREdge;
-
+/*
 	///	<summary>
 	///		Differentiation coefficients from interfaces to nodes.
 	///	</summary>
@@ -545,7 +516,7 @@ protected:
 	///		Derivatives of reconstruction polynomial on interfaces.
 	///	</summary>
 	DataVector<double> m_dDiffReconsPolyREdge;
-
+*/
 };
 
 ///////////////////////////////////////////////////////////////////////////////

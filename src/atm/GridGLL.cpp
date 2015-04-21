@@ -45,8 +45,7 @@ GridGLL::GridGLL(
 		nRElements,
 		eVerticalStaggering),
 	m_nHorizontalOrder(nHorizontalOrder),
-	m_nVerticalOrder(nVerticalOrder),
-	m_nReconstructionPolyType(2)
+	m_nVerticalOrder(nVerticalOrder)
 {
 }
 
@@ -57,17 +56,22 @@ void GridGLL::Initialize() {
 	// Call up the stack
 	Grid::Initialize();
 
-	double dDeltaElement =
-		static_cast<double>(m_nVerticalOrder)
-		/ static_cast<double>(m_nRElements);
-
-	// Initialize the vertical coordinate
+	// Initialize the vertical coordinate (INT staggering)
 	if (m_eVerticalStaggering == VerticalStaggering_Interfaces) {
+		double dDeltaElement =
+			static_cast<double>(m_nVerticalOrder - 1)
+			/ static_cast<double>(m_nRElements - 1);
+
 		InitializeVerticalCoordinate(
-			GridSpacingGaussLobattoRepeated(dDeltaElement, 0.0, m_nVerticalOrder)
+			GridSpacingGaussLobatto(dDeltaElement, 0.0, m_nVerticalOrder)
 		);
 
+	// Initialize the vertical coordinate (LEV / LOR / CPH staggering)
 	} else {
+		double dDeltaElement =
+			static_cast<double>(m_nVerticalOrder)
+			/ static_cast<double>(m_nRElements);
+
 		InitializeVerticalCoordinate(
 			GridSpacingMixedGaussLobatto(dDeltaElement, 0.0, m_nVerticalOrder)
 		);
@@ -136,27 +140,7 @@ void GridGLL::Initialize() {
 	FluxCorrectionFunction::GetDerivatives(
 		2, m_nHorizontalOrder, dGL, m_dFluxDeriv1D);
 
-	///////////////////////////////////////////////////////////////////////////
-	// Get quadrature points for Gauss quadrature (vertical)
-	GaussQuadrature::GetPoints(m_nVerticalOrder, 0.0, 1.0, dG, dW);
-
-	// Get quadrature points for Gauss-Lobatto quadrature (vertical)
-	GaussLobattoQuadrature::GetPoints(m_nVerticalOrder+1, 0.0, 1.0, dGL, dWL);
-
-	// Vertical elemental grid spacing
-	double dElementDeltaXi =
-		static_cast<double>(m_nVerticalOrder)
-		/ static_cast<double>(GetRElements());
-
-	// Storage for variables on element interfaces (used for computing
-	// derivatives from nodes)
-	int nFiniteElements = GetRElements() / m_nVerticalOrder;
-	if (GetRElements() % m_nVerticalOrder != 0) {
-		_EXCEPTIONT("Logic error: Vertical order must divide RElements");
-	}
-
-	m_dStateFEEdge.Initialize(nFiniteElements+1, 2);
-
+#pragma message "Should not need to initialize these for VerticalStaggering_Interfaces"
 	// Interpolation operators
 	m_opInterpNodeToREdge.Initialize(
 		LinearColumnInterpFEM::InterpSource_Levels,
@@ -172,38 +156,49 @@ void GridGLL::Initialize() {
 		m_dREtaStretchInterfaces,
 		m_dREtaStretchLevels);
 
-	// Differentiation operators
-	m_opDiffNodeToNode.Initialize(
-		LinearColumnDiffFEM::InterpSource_Levels,
-		m_nVerticalOrder,
-		m_dREtaLevels,
-		m_dREtaInterfaces,
-		m_dREtaLevels,
-		false);
+	// Initialize differentiation operators
+	if (m_eVerticalStaggering == VerticalStaggering_Interfaces) {
 
-	m_opDiffNodeToREdge.Initialize(
-		LinearColumnDiffFEM::InterpSource_Levels,
-		m_nVerticalOrder,
-		m_dREtaLevels,
-		m_dREtaInterfaces,
-		m_dREtaInterfaces,
-		false);
+		// Special differentiation operator
+		m_opDiffNodeToNode.InitializeGLLNodes(
+			m_nVerticalOrder,
+			m_dREtaLevels,
+			m_dREtaLevels);
 
-	m_opDiffREdgeToNode.Initialize(
-		LinearColumnDiffFEM::InterpSource_Interfaces,
-		m_nVerticalOrder,
-		m_dREtaLevels,
-		m_dREtaInterfaces,
-		m_dREtaLevels,
-		false);
+	} else {
+		// Differentiation operators
+		m_opDiffNodeToNode.Initialize(
+			LinearColumnDiffFEM::InterpSource_Levels,
+			m_nVerticalOrder,
+			m_dREtaLevels,
+			m_dREtaInterfaces,
+			m_dREtaLevels,
+			false);
 
-	m_opDiffREdgeToREdge.Initialize(
-		LinearColumnDiffFEM::InterpSource_Interfaces,
-		m_nVerticalOrder,
-		m_dREtaLevels,
-		m_dREtaInterfaces,
-		m_dREtaInterfaces,
-		false);
+		m_opDiffNodeToREdge.Initialize(
+			LinearColumnDiffFEM::InterpSource_Levels,
+			m_nVerticalOrder,
+			m_dREtaLevels,
+			m_dREtaInterfaces,
+			m_dREtaInterfaces,
+			false);
+
+		m_opDiffREdgeToNode.Initialize(
+			LinearColumnDiffFEM::InterpSource_Interfaces,
+			m_nVerticalOrder,
+			m_dREtaLevels,
+			m_dREtaInterfaces,
+			m_dREtaLevels,
+			false);
+
+		m_opDiffREdgeToREdge.Initialize(
+			LinearColumnDiffFEM::InterpSource_Interfaces,
+			m_nVerticalOrder,
+			m_dREtaLevels,
+			m_dREtaInterfaces,
+			m_dREtaInterfaces,
+			false);
+	}
 /*
 	FILE * fp1 = fopen("op1.txt", "w");
 	const DataMatrix<double> & dCoeff1 = m_opDiffNodeToNode.GetCoeffs();
@@ -248,6 +243,26 @@ void GridGLL::Initialize() {
 	}
 	fclose(fp2);
 */
+/*
+	///////////////////////////////////////////////////////////////////////////
+	// Get quadrature points for Gauss quadrature (vertical)
+	GaussQuadrature::GetPoints(m_nVerticalOrder, 0.0, 1.0, dG, dW);
+
+	// Get quadrature points for Gauss-Lobatto quadrature (vertical)
+	GaussLobattoQuadrature::GetPoints(m_nVerticalOrder+1, 0.0, 1.0, dGL, dWL);
+
+	// Storage for variables on element interfaces (used for computing
+	// derivatives from nodes)
+	int nFiniteElements = GetRElements() / m_nVerticalOrder;
+	if (GetRElements() % m_nVerticalOrder != 0) {
+		_EXCEPTIONT("Logic error: Vertical order must divide RElements");
+	}
+
+	// Vertical elemental grid spacing
+	double dElementDeltaXi =
+		static_cast<double>(m_nVerticalOrder)
+		/ static_cast<double>(GetRElements());
+
 	// Interpolation coefficients from nodes to interfaces and vice versa
 	m_dInterpNodeToREdge.Initialize(m_nVerticalOrder+1, m_nVerticalOrder);
 	m_dInterpREdgeToNode.Initialize(m_nVerticalOrder, m_nVerticalOrder+1);
@@ -391,6 +406,7 @@ void GridGLL::Initialize() {
 				+ m_dDiffReconsPolyREdge[n]);
 	}
 	}
+*/
 /*
 	// Test
 	double dValue[12];
@@ -505,92 +521,6 @@ void GridGLL::ComputeVorticityDivergence(
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void GridGLL::InterpolateNodeToFEEdges(
-	const double * dDataNode,
-	bool fZeroBoundaries
-) const {
-	const int Left = 0;
-	const int Right = 1;
-
-	// Number of radial elements
-	int nRElements = GetRElements();
-
-	int nFiniteElements = nRElements / m_nVerticalOrder;
-
-	// Interpolate to interfaces (left and right)
-	m_dStateFEEdge.Zero();
-
-	for (int k = 0; k < nRElements; k++) {
-		int a = k / m_nVerticalOrder;
-		int m = k % m_nVerticalOrder;
-
-		// Apply node value to left side of interface
-		m_dStateFEEdge[a+1][Left] +=
-			m_dInterpNodeToREdge[m_nVerticalOrder][m] * dDataNode[k];
-
-		// Apply node value to right side of interface
-		m_dStateFEEdge[a][Right] +=
-			m_dInterpNodeToREdge[0][m] * dDataNode[k];
-	}
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
-void GridGLL::InterpolateCentralDiffPenalty(
-	const double * dDataNode,
-	bool fZeroBoundaries
-) const {
-	const int Left = 0;
-	const int Right = 1;
-
-	// Number of radial elements
-	int nRElements = GetRElements();
-
-	int nFiniteElements = nRElements / m_nVerticalOrder;
-
-	// Interpolate to interfaces (left and right)
-	m_dStateFEEdge.Zero();
-
-	for (int k = 0; k < nRElements; k++) {
-		int a = k / m_nVerticalOrder;
-		int m = k % m_nVerticalOrder;
-
-		// Apply node value to left side of interface
-		m_dStateFEEdge[a+1][Left] +=
-			m_dInterpNodeToREdge[m_nVerticalOrder][m] * dDataNode[k];
-
-		// Apply node value to right side of interface
-		m_dStateFEEdge[a][Right] +=
-			m_dInterpNodeToREdge[0][m] * dDataNode[k];
-	}
-
-	// Calculate average interpolant
-	for (int a = 1; a < nFiniteElements; a++) {
-		double dAvg = 0.5 * (m_dStateFEEdge[a][0] + m_dStateFEEdge[a][1]);
-
-		m_dStateFEEdge[a][Left] -= dAvg;
-		m_dStateFEEdge[a][Right] -= dAvg;
-	}
-
-#pragma message "Understand why this works for free boundaries"
-	// Ignore contributions due to upper and lower boundary
-	// NOTE: This needs to be changed for W to enforce boundary conditions
-	if (fZeroBoundaries) {
-
-	} else if (nFiniteElements == 1) {
-		m_dStateFEEdge[0][Right] = 0.0;
-		m_dStateFEEdge[nFiniteElements][Left] = 0.0;
-
-	} else {
-		m_dStateFEEdge[0][Right] =
-			- m_dStateFEEdge[1][Left];
-		m_dStateFEEdge[nFiniteElements][Left] =
-			- m_dStateFEEdge[nFiniteElements-1][Right];
-	}
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
 double GridGLL::InterpolateNodeToREdge(
 	const double * dDataNode,
 	const double * dDataRefNode,
@@ -598,6 +528,8 @@ double GridGLL::InterpolateNodeToREdge(
 	double dDataRefREdge,
 	int nStride
 ) const {
+
+	// Apply operator
 	if (dDataRefNode == NULL) {
 		return m_opInterpNodeToREdge.Apply(
 			dDataNode,
@@ -623,6 +555,8 @@ double GridGLL::InterpolateREdgeToNode(
 	double dDataRefNode,
 	int nStride
 ) const {
+
+	// Apply operator
 	if (dDataRefREdge == NULL) {
 		return m_opInterpREdgeToNode.Apply(
 			dDataREdge,
@@ -646,6 +580,8 @@ double GridGLL::DifferentiateNodeToNode(
 	int iRnode,
 	int nStride
 ) const {
+
+	// Apply operator
 	return m_opDiffNodeToNode.Apply(
 		dDataNode,
 		iRnode,
@@ -659,6 +595,8 @@ double GridGLL::DifferentiateNodeToREdge(
 	int iRnode,
 	int nStride
 ) const {
+
+	// Apply operator
 	return m_opDiffNodeToREdge.Apply(
 		dDataNode,
 		iRnode,
@@ -672,6 +610,8 @@ double GridGLL::DifferentiateREdgeToNode(
 	int iRnode,
 	int nStride
 ) const {
+
+	// Apply operator
 	return m_opDiffREdgeToNode.Apply(
 		dDataREdge,
 		iRnode,
@@ -686,6 +626,7 @@ double GridGLL::DifferentiateREdgeToREdge(
 	int nStride
 ) const {
 
+	// Apply operator
 	return m_opDiffREdgeToREdge.Apply(
 		dDataREdge,
 		iRint,
@@ -701,43 +642,14 @@ void GridGLL::InterpolateNodeToREdge(
 	const double * dDataRefREdge,
 	bool fZeroBoundaries
 ) const {
+
+	// Apply operator
 	m_opInterpNodeToREdge.Apply(
 		dDataNode,
 		dDataRefNode,
 		dDataREdge,
 		dDataRefREdge);
 
-/*
-	// Number of radial elements
-	int nRElements = GetRElements();
-
-	int nFiniteElements = nRElements / m_nVerticalOrder;
-
-	// Zero the memory
-	memset(dDataREdge, 0, (nRElements+1) * sizeof(double));
-
-	// Loop over all nodes and apply the value to all interfaces
-	for (int k = 0; k < nRElements; k++) {
-		int a = k / m_nVerticalOrder;
-		int m = k % m_nVerticalOrder;
-		int lBegin = a * m_nVerticalOrder;
-
-		// Apply node value to interface
-		for (int l = 0; l <= m_nVerticalOrder; l++) {
-			dDataREdge[lBegin + l] +=
-				m_dInterpNodeToREdge[l][m]
-					* (dDataNode[k] - dDataRefNode[k]);
-		}
-	}
-
-	// Scale interior element edges
-	for (int a = 1; a < nFiniteElements; a++) {
-		dDataREdge[a * m_nVerticalOrder] *= 0.5;
-	}
-	for (int k = 0; k <= nRElements; k++) {
-		dDataREdge[k] += dDataRefREdge[k];
-	}
-*/
 	// Override boundary values if zero
 	if (fZeroBoundaries) {
 		dDataREdge[0] = 0.0;
@@ -753,38 +665,13 @@ void GridGLL::InterpolateREdgeToNode(
 	double * dDataNode,
 	const double * dDataRefNode
 ) const {
+
+	// Apply operator
 	m_opInterpREdgeToNode.Apply(
 		dDataREdge,
 		dDataRefREdge,
 		dDataNode,
 		dDataRefNode);
-
-/*
-	// Number of radial elements
-	int nRElements = GetRElements();
-
-	// Zero the memory
-	memset(dDataNode, 0, nRElements * sizeof(double));
-
-	// Loop over all nodes
-	for (int k = 0; k < nRElements; k++) {
-		int a = k / m_nVerticalOrder;
-		int m = k % m_nVerticalOrder;
-		int lBegin = a * m_nVerticalOrder;
-
-		// Apply interface values to nodes
-		for (int l = 0; l <= m_nVerticalOrder; l++) {
-			dDataNode[k] +=
-				m_dInterpREdgeToNode[m][l] *
-					(dDataREdge[lBegin + l] - dDataRefREdge[lBegin + l]);
-		}
-	}
-
-	// Restore the reference state
-	for (int k = 0; k < nRElements; k++) {
-		dDataNode[k] += dDataRefNode[k];
-	}
-*/
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -795,48 +682,10 @@ void GridGLL::DifferentiateNodeToNode(
 	bool fZeroBoundaries
 ) const {
 
+	// Apply operator
 	m_opDiffNodeToNode.Apply(
 		dDataNode,
 		dDiffNode);
-/*
-	if (fZeroBoundaries) {
-		_EXCEPTIONT("ZeroBoundaries broken - sorry!");
-	}
-*/
-/*
-	const int Left = 0;
-	const int Right = 1;
-
-	// Number of radial elements
-	int nRElements = GetRElements();
-
-	// Zero the output
-	memset(dDiffNode, 0, nRElements * sizeof(double));
-
-	// Interpolate nodes to finite-element edges
-	InterpolateCentralDiffPenalty(dDataNode, fZeroBoundaries);
-
-	// Calculate derivative at each node
-	for (int k = 0; k < nRElements; k++) {
-		int a = k / m_nVerticalOrder;
-		int m = k % m_nVerticalOrder;
-
-		int lBegin = a * m_nVerticalOrder;
-
-		// Calculate derivatives due to internal bits
-		for (int l = 0; l < m_nVerticalOrder; l++) {
-			dDiffNode[k] += m_dDiffNodeToNode[m][l] * dDataNode[lBegin+l];
-		}
-
-		// Calculate derivatives due to interfaces
-		dDiffNode[k] -=
-			m_dDiffReconsPolyNode[m]
-			* m_dStateFEEdge[a+1][Left];
-		dDiffNode[k] +=
-			m_dDiffReconsPolyNode[m_nVerticalOrder - m - 1]
-			* m_dStateFEEdge[a][Right];
-	}
-*/
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -847,6 +696,7 @@ void GridGLL::DifferentiateNodeToREdge(
 	bool fZeroBoundaries
 ) const {
 
+	// Apply operator
 	m_opDiffNodeToREdge.Apply(
 		dDataNode,
 		dDiffREdge);
@@ -854,128 +704,6 @@ void GridGLL::DifferentiateNodeToREdge(
 	if (fZeroBoundaries) {
 		_EXCEPTIONT("ZeroBoundaries broken - sorry!");
 	}
-
-/*
-	const int Left = 0;
-	const int Right = 1;
-
-	// Number of radial elements
-	int nRElements = GetRElements();
-
-	int nFiniteElements = nRElements / m_nVerticalOrder;
-
-	// Zero the output
-	memset(dDiffREdge, 0, (nRElements+1) * sizeof(double));
-
-	// Handle the single element case
-	if (nFiniteElements == 1) {
-		for (int k = 0; k < m_nVerticalOrder; k++) {
-		for (int l = 0; l <= m_nVerticalOrder; l++) {
-			dDiffREdge[l] +=
-				m_dDiffNodeToREdge[l][k]
-				* dDataNode[k];
-		}
-		}
-
-		return;
-	}
-
-	if (nFiniteElements == 2) {
-		_EXCEPTIONT("UNIMPLEMENTED: Still working on this...");
-	}
-
-	if (fZeroBoundaries) {
-		_EXCEPTIONT("UNIMPLEMENTED: Still working on transitioning this...");
-	}
-
-	// Interpolate nodes to finite-element edges
-	InterpolateCentralDiffPenalty(dDataNode, fZeroBoundaries);
-
-	// Calculate derivatives at interfaces
-	for (int k = 0; k < nRElements; k++) {
-		int a = k / m_nVerticalOrder;
-		int m = k % m_nVerticalOrder;
-
-		int lBegin = a * m_nVerticalOrder;
-
-		// Push value of each node onto interface derivatives
-		for (int l = 0; l <= m_nVerticalOrder; l++) {
-			dDiffREdge[lBegin+l] +=
-				m_dDiffNodeToREdge[l][m]
-				* dDataNode[k];
-		}
-	}
-
-	// Calculate derivatives due to interfaces
-	for (int a = 0; a < nFiniteElements; a++) {
-		int lBegin = a * m_nVerticalOrder;
-
-		for (int l = 0; l <= m_nVerticalOrder; l++) {
-			dDiffREdge[lBegin+l] -=
-				m_dDiffReconsPolyREdge[l]
-				* m_dStateFEEdge[a+1][Left];
-			dDiffREdge[lBegin+l] +=
-				m_dDiffReconsPolyREdge[m_nVerticalOrder - l]
-				* m_dStateFEEdge[a][Right];
-		}
-	}
-
-	// Scale interior finite element edges
-	for (int a = 1; a < nFiniteElements; a++) {
-		dDiffREdge[a * m_nVerticalOrder] *= 0.5;
-	}
-*/
-/*
-#pragma message "Doesn't work with ReconstructionFunctionType = 1"
-	if (ParamFluxCorrectionType != 2) {
-		_EXCEPTIONT("UNIMPLEMENTED");
-	}
-
-	// Compute interior derivatives
-	{
-		int kBegin = m_nVerticalOrder;
-		int kLast = (nFiniteElements - 1) * m_nVerticalOrder;
-
-		for (int k = kBegin; k <= kLast; k++) {
-			int a = k / m_nVerticalOrder;
-			int l = k % m_nVerticalOrder;
-			if (k == kLast) {
-				a--;
-				l = m_nVerticalOrder;
-			}
-
-			int lPrev = (a-1) * m_nVerticalOrder;
-
-			for (int m = 0; m < 3 * m_nVerticalOrder; m++) {
-				dDiffREdge[k] +=
-					m_dDiffNodeToREdgeAmal[l][m]
-					* dDataNode[lPrev + m];
-			}
-		}
-	}
-
-	// Compute derivatives at left boundary
-	for (int l = 0; l < m_nVerticalOrder; l++) {
-	for (int m = 0; m < 2 * m_nVerticalOrder; m++) {
-		dDiffREdge[l] +=
-			m_dDiffNodeToREdgeLeft[l][m]
-			* dDataNode[m];
-	}
-	}
-
-	// Compute derivatives at right boundary
-	{
-		int lBegin = (nFiniteElements - 1) * m_nVerticalOrder;
-		int lEnd = lBegin + m_nVerticalOrder;
-		for (int l = 1; l <= m_nVerticalOrder; l++) {
-		for (int m = 0; m < 2 * m_nVerticalOrder; m++) {
-			dDiffREdge[lBegin + l] +=
-				m_dDiffNodeToREdgeRight[l][m]
-				* dDataNode[lBegin - m_nVerticalOrder + m];
-		}
-		}
-	}
-*/
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -985,34 +713,10 @@ void GridGLL::DifferentiateREdgeToNode(
 	double * dDiffNode
 ) const {
 
+	// Apply operator
 	m_opDiffREdgeToNode.Apply(
 		dDataREdge,
 		dDiffNode);
-
-/*
-	// Number of radial elements
-	int nRElements = GetRElements();
-
-	int nFiniteElements = nRElements / m_nVerticalOrder;
-
-	// Zero the data
-	memset(dDiffNode, 0, nRElements * sizeof(double));
-
-	// Loop through all nodes
-	for (int k = 0; k < nRElements; k++) {
-
-		// Differentiate from neighboring interface values
-		int a = k / m_nVerticalOrder;
-		int m = k % m_nVerticalOrder;
-		int lBegin = a * m_nVerticalOrder;
-
-		for (int l = 0; l <= m_nVerticalOrder; l++) {
-			dDiffNode[k] +=
-				  m_dDiffREdgeToNode[m][l]
-				* dDataREdge[lBegin + l];
-		}
-	}
-*/
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1022,82 +726,10 @@ void GridGLL::DifferentiateREdgeToREdge(
 	double * dDiffREdge
 ) const {
 
+	// Apply operator
 	m_opDiffREdgeToREdge.Apply(
 		dDataREdge,
 		dDiffREdge);
-/*
-	// Number of radial elements
-	int nRElements = GetRElements();
-
-	int nFiniteElements = nRElements / m_nVerticalOrder;
-
-	// Zero the data
-	memset(dDiffREdge, 0, (nRElements+1) * sizeof(double));
-
-	// Apply all interfaces values to all interfaces within element
-	for (int a = 0; a < nFiniteElements; a++) {
-	for (int l = 0; l <= m_nVerticalOrder; l++) {
-
-		int lBegin = a * m_nVerticalOrder;
-
-		for (int m = 0; m <= m_nVerticalOrder; m++) {
-			dDiffREdge[lBegin + l] +=
-				  m_dDiffREdgeToREdge[l][m]
-				* dDataREdge[lBegin + m];
-		}
-	}
-	}
-
-	// Halve interior element interface values
-	for (int a = 1; a < nFiniteElements; a++) {
-		dDiffREdge[a * m_nVerticalOrder] *= 0.5;
-	}
-*/
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
-void GridGLL::CalculateDiscontinuousPenalty(
-	const double * dWaveSpeedREdge,
-	const double * dDataNode,
-	double * dDataPenalty,
-	bool fZeroBoundaries
-) const {
-	const int Left = 0;
-	const int Right = 1;
-
-	// Number of radial elements
-	int nRElements = GetRElements();
-
-	int nFiniteElements = nRElements / m_nVerticalOrder;
-
-	// Interpolate nodes to finite-element edges
-	InterpolateNodeToFEEdges(dDataNode, fZeroBoundaries);
-
-	// Zero the memory
-	memset(dDataPenalty, 0, nRElements * sizeof(double));
-
-	// Apply penalty to all nodes
-	for (int k = 0; k < nRElements; k++) {
-		int a = k / m_nVerticalOrder;
-		int m = k % m_nVerticalOrder;
-
-		int lBegin = a * m_nVerticalOrder;
-
-		// Calculate derivatives due to interfaces
-		if (a != nFiniteElements-1) {
-			dDataPenalty[k] -=
-				m_dDiffReconsPolyNode[m]
-				* 0.5 * fabs(dWaveSpeedREdge[lBegin + m_nVerticalOrder])
-				* (m_dStateFEEdge[a+1][Right] - m_dStateFEEdge[a+1][Left]);
-		}
-		if (a != 0) {
-			dDataPenalty[k] +=
-				m_dDiffReconsPolyNode[m_nVerticalOrder - m - 1]
-				* 0.5 * fabs(dWaveSpeedREdge[lBegin])
-				* (m_dStateFEEdge[a][Right] - m_dStateFEEdge[a][Left]);
-		}
-	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////

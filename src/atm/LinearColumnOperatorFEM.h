@@ -101,6 +101,14 @@ public:
 		bool fZeroBoundaries
 	);
 
+	///	<summary>
+	///		Initialize a differentiation operator applied to GLL nodes.
+	///	</summary>
+	void InitializeGLLNodes(
+		int nVerticalOrder,
+		const DataVector<double> & dREtaNode,
+		const DataVector<double> & dREtaOut
+	);
 };
 
 ///////////////////////////////////////////////////////////////////////////////

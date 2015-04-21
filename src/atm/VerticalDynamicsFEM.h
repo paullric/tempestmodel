@@ -79,13 +79,11 @@ protected:
 	///		Component indices into the F vector.
 	///	</summary>
 	typedef int FComp;
-	static const FComp FUIx = 0;
-	static const FComp FVIx = 1;
-	static const FComp FPIx = 2;
-	static const FComp FWIx = 3;
-	static const FComp FRIx = 4;
+	static const FComp FPIx = 0;
+	static const FComp FWIx = 1;
+	static const FComp FRIx = 2;
 
-	static const FComp FTot = 5;
+	static const FComp FTot = 3;
 
 	///	<summary>
 	///		Get the index of the component and level of the F vector.
@@ -134,17 +132,16 @@ public:
 		GridPatch * pPatch,
 		int iA,
 		int iB,
-		const DataMatrix<double> & dataJacobian2D,
-		const DataMatrix3D<double> & dataJacobian3DNode,
-		const DataMatrix3D<double> & dataJacobian3DREdge,
 		const GridData4D & dataRefNode,
 		const GridData4D & dataInitialNode,
 		const GridData4D & dataRefREdge,
-		const GridData4D & dataInitialREdge,
+		const GridData4D & dataInitialREdge
+/*
 		const GridData3D & dataExnerNode,
 		const GridData3D & dataDiffExnerNode,
 		const GridData3D & dataExnerREdge,
 		const GridData3D & dataDiffExnerREdge
+*/
 	);
  
 	///	<summary>
@@ -192,14 +189,6 @@ public:
 	///		Build the Jacobian matrix.
 	///	</summary>
 	void BuildJacobianF(
-		const double * dX,
-		double * dDG
-	);
-
-	///	<summary>
-	///		Build the Jacobian matrix.
-	///	</summary>
-	void BuildJacobianF2(
 		const double * dX,
 		double * dDG
 	);
@@ -457,26 +446,6 @@ protected:
 	///		Hyperviscosity coefficients from edges to edges.
 	///	</summary>
 	DataMatrix<double> m_dHypervisREdgeToREdge;
-
-	///	<summary>
-	///		DxR in the column stored at nodes.
-	///	</summary>
-	DataVector<double> m_dDxRNode;
-
-	///	<summary>
-	///		DxR in the column stored at interfaces.
-	///	</summary>
-	DataVector<double> m_dDxRREdge;
-
-	///	<summary>
-	///		3D Jacobian in the column stored on nodes.
-	///	</summary>
-	DataVector<double> m_dJacobian3DNode;
-
-	///	<summary>
-	///		3D Jacobian in the column stored on interfaces.
-	///	</summary>
-	DataVector<double> m_dJacobian3DREdge;
 
 #ifdef USE_JFNK_PETSC
 private:

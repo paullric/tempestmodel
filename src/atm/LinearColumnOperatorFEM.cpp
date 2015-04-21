@@ -165,7 +165,7 @@ void LinearColumnDiffFEM::Initialize(
 	const DataVector<double> & dREtaOut,
 	bool fZeroBoundaries
 ) {
-	const int ParamFluxCorrectionType = 2;
+	//const int ParamFluxCorrectionType = 2;
 
 	const double ParamEpsilon = 1.0e-12;
 
@@ -194,6 +194,7 @@ void LinearColumnDiffFEM::Initialize(
 		LinearColumnOperator::Initialize(nRElementsIn, nRElementsOut);
 	}
 */
+
 	// Loop through all output elements
 	for (int l = 0; l < nRElementsOut; l++) {
 
@@ -524,10 +525,10 @@ void LinearColumnDiffFEM::Initialize(
 			dREtaREdge,
 			dREtaREdge);
 
-		ComposeWith(opInterp);
+		//ComposeWith(opInterp);
 /*
 		// DEBUGGING
-		if (m_dCoeff.GetRows() == dREtaREdge.GetRows()) {
+		if (m_dCoeff.GetRows() == dREtaNode.GetRows()) {
 			FILE * fp = fopen("op.txt", "w");
 			for (int i = 0; i < m_dCoeff.GetRows(); i++) {
 				for (int j = 0; j < m_dCoeff.GetColumns(); j++) {
@@ -557,6 +558,137 @@ void LinearColumnDiffFEM::Initialize(
 		}
 */
 	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void LinearColumnDiffFEM::InitializeGLLNodes(
+	int nVerticalOrder,
+	const DataVector<double> & dREtaNode,
+	const DataVector<double> & dREtaOut
+) {
+
+	const double ParamEpsilon = 1.0e-12;
+
+	const int nRElementsIn  = dREtaNode.GetRows();
+	const int nRElementsOut = dREtaOut.GetRows();
+
+	const int nFiniteElements = (nRElementsIn - 1) / (nVerticalOrder - 1);
+
+	// Verify input parameters
+	if (nRElementsIn == 0) {
+		_EXCEPTIONT("At least one row required for dREtaNode");
+	}
+	if ((nRElementsIn - 1) % (nVerticalOrder - 1) != 0) {
+		_EXCEPTIONT("Column (RElements-1) / (VerticalOrder-1) mismatch");
+	}
+
+	// Initialize LinearColumnOperator for differentiation from interfaces
+	LinearColumnOperator::Initialize(nRElementsIn, nRElementsOut);
+
+	// Loop through all output elements
+	for (int l = 0; l < nRElementsOut; l++) {
+
+		// Determine input element index and whether we are on a finite
+		// element edge (excluding top and bottom boundary)
+		bool fOnREdge = false;
+		int a;
+
+		for (a = 0; a < nFiniteElements - 1; a++) {
+			double dNextREtaREdgeIn =
+				dREtaNode[(a+1) * (nVerticalOrder-1)] - ParamEpsilon;
+
+			if (dREtaOut[l] < dNextREtaREdgeIn) {
+				break;
+			}
+			if (dREtaOut[l] < dNextREtaREdgeIn + 2.0 * ParamEpsilon) {
+				fOnREdge = true;
+				break;
+			}
+		}
+
+		// Construct interpolator from interfaces to output location
+		PolynomialInterp::DiffLagrangianPolynomialCoeffs(
+			nVerticalOrder,
+			&(dREtaNode[a * (nVerticalOrder-1)]),
+			&(m_dCoeff[l][a * (nVerticalOrder-1)]),
+			dREtaOut[l]);
+
+		// Set bounds on coefficients
+		if (!fOnREdge) {
+			m_iBegin[l] =  a * (nVerticalOrder-1);
+			m_iEnd[l]   = (a+1) * (nVerticalOrder-1) + 1;
+		}
+
+		// Special treatment of derivatives at interfaces
+		if (fOnREdge) {
+
+			// Temporary coefficients
+			DataVector<double> dTempCoeff;
+			dTempCoeff.Initialize(nVerticalOrder);
+			
+			// Calculate one-sided errors and derivative weights
+			double dDeltaREtaL =
+				  dREtaNode[(a+1) * nVerticalOrder]
+				- dREtaNode[ a    * nVerticalOrder];
+
+			double dDeltaREtaR =
+				  dREtaNode[(a+2) * nVerticalOrder]
+				- dREtaNode[(a+1) * nVerticalOrder];
+
+			double dErrorL =
+				pow(dDeltaREtaL, static_cast<double>(nVerticalOrder-1));
+
+			double dErrorR =
+				pow(dDeltaREtaR, static_cast<double>(nVerticalOrder-1));
+
+			double dWeightL = dErrorR / (dErrorL + dErrorR);
+			double dWeightR = dErrorL / (dErrorL + dErrorR);
+
+			// Calculate right-side derivative coefficients
+			PolynomialInterp::DiffLagrangianPolynomialCoeffs(
+				nVerticalOrder,
+				&(dREtaNode[(a+1) * (nVerticalOrder-1)]),
+				&(dTempCoeff[0]),
+				dREtaOut[l]);
+
+			for (int k = 0; k < nVerticalOrder; k++) {
+				m_dCoeff[l][a * (nVerticalOrder-1) + k] *= dWeightL;
+			}
+
+			for (int k = 0; k < nVerticalOrder; k++) {
+				m_dCoeff[l][(a+1) * (nVerticalOrder-1) + k] +=
+					dWeightR * dTempCoeff[k];
+			}
+
+			// Set bounds on coefficients
+			m_iBegin[l] =  a    * (nVerticalOrder-1);
+			m_iEnd[l]   = (a+2) * (nVerticalOrder-1) + 1;
+		}
+	}
+/*
+	// DEBUGGING
+	FILE * fp = fopen("op.txt", "w");
+	for (int i = 0; i < m_dCoeff.GetRows(); i++) {
+		for (int j = 0; j < m_dCoeff.GetColumns(); j++) {
+			fprintf(fp, "%1.15e\t", m_dCoeff[i][j]);
+		}
+		fprintf(fp, "\n");
+	}
+	fclose(fp);
+
+	FILE * fpn = fopen("rn.txt", "w");
+	for (int i = 0; i < dREtaNode.GetRows(); i++) {
+		fprintf(fpn, "%1.15e\n", dREtaNode[i]);
+	}
+	fclose(fpn);
+
+	for (int i = 0; i < m_iBegin.GetRows(); i++) {
+		printf("%i %i\n", m_iBegin[i], m_iEnd[i]);
+	}
+
+	_EXCEPTION();
+*/
 }
 
 ///////////////////////////////////////////////////////////////////////////////
