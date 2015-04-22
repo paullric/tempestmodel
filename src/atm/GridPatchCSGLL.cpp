@@ -252,32 +252,32 @@ void GridPatchCSGLL::EvaluateGeometricTerms() {
 
 	GaussLobattoQuadrature::GetPoints(m_nHorizontalOrder, 0.0, 1.0, dGL, dWL);
 
-	// Obtain Gaussian quadrature nodes and weights in the vertical
-	DataVector<double> dGNode;
-	DataVector<double> dWNode;
+	// Obtain normalized areas in the vertical
+	const DataVector<double> & dWNode =
+		m_grid.GetREtaLevelsNormArea();
+	const DataVector<double> & dWREdge =
+		m_grid.GetREtaInterfacesNormArea();
 
-	if (m_grid.GetVerticalStaggering() ==
-			Grid::VerticalStaggering_Interfaces
-	) {
-		GaussLobattoQuadrature::GetPoints(
-			m_nVerticalOrder, 0.0, 1.0, dGNode, dWNode);
-
-	} else {
-		GaussQuadrature::GetPoints(
-			m_nVerticalOrder, 0.0, 1.0, dGNode, dWNode);
+	// Verify that normalized areas are correct
+	double dWNodeSum = 0.0;
+	for (int k = 0; k < dWNode.GetRows(); k++) {
+		dWNodeSum += dWNode[k];
+	}
+	if (fabs(dWNodeSum - 1.0) > 1.0e-13) {
+		_EXCEPTION1("Error in normalized areas (%1.15e)", dWNodeSum);
 	}
 
-	// Obtain Gauss Lobatto quadrature nodes and weights in the vertical
-	DataVector<double> dGREdge;
-	DataVector<double> dWREdge;
-
-	GaussLobattoQuadrature::GetPoints(
-		m_nVerticalOrder+1, 0.0, 1.0, dGREdge, dWREdge);
-
-	// Vertical elemental grid spacing
-	double dElementDeltaXi = 
-		static_cast<double>(m_nVerticalOrder)
-		/ static_cast<double>(m_grid.GetRElements());
+	if (m_grid.GetVerticalStaggering() !=
+	    Grid::VerticalStaggering_Interfaces
+	) {
+		double dWREdgeSum = 0.0;
+		for (int k = 0; k < dWREdge.GetRows(); k++) {
+			dWREdgeSum += dWREdge[k];
+		}
+		if (fabs(dWREdgeSum - 1.0) > 1.0e-13) {
+			_EXCEPTION1("Error in normalized areas (%1.15e)", dWREdgeSum);
+		}
+	}
 
 	// Derivatives of basis functions
 	GridCSGLL & gridCSGLL = dynamic_cast<GridCSGLL &>(m_grid);
@@ -377,9 +377,6 @@ void GridPatchCSGLL::EvaluateGeometricTerms() {
 		// Vertical coordinate transform and its derivatives
 		for (int k = 0; k < m_grid.GetRElements(); k++) {
 
-			// Sub-element index
-			int kx = k % m_nVerticalOrder;
-
 			// Gal-Chen and Somerville (1975) linear terrain-following coord
 			double dREta = m_grid.GetREtaLevel(k);
 
@@ -408,7 +405,7 @@ void GridPatchCSGLL::EvaluateGeometricTerms() {
 				m_dataJacobian[k][iA][iB]
 				* dWL[i] * GetElementDeltaA()
 				* dWL[j] * GetElementDeltaB()
-				* dWNode[kx] * dElementDeltaXi;
+				* dWNode[k];
 
 			// Contravariant metric components
 			m_dataContraMetricA[k][iA][iB][0] =
@@ -529,7 +526,6 @@ void GridPatchCSGLL::EvaluateGeometricTerms() {
 
 		// Metric terms at vertical interfaces
 		for (int k = 0; k <= m_grid.GetRElements(); k++) {
-			int kx = k % m_nVerticalOrder;
 
 			// Gal-Chen and Somerville (1975) linear terrain-following coord
 			double dREta = m_grid.GetREtaInterface(k);
@@ -559,11 +555,7 @@ void GridPatchCSGLL::EvaluateGeometricTerms() {
 				m_dataJacobianREdge[k][iA][iB]
 				* dWL[i] * GetElementDeltaA()
 				* dWL[j] * GetElementDeltaB()
-				* dWREdge[kx] * dElementDeltaXi;
-
-			if ((k != 0) && (k != m_grid.GetRElements()) && (kx == 0)) {
-				m_dataElementAreaREdge[k][iA][iB] *= 2.0;
-			}
+				* dWREdge[k];
 
 			// Orthonormalization coefficients
 			m_dataOrthonormREdge[k][iA][iB][0] = - dDaR / dDxR;

@@ -31,9 +31,9 @@
 #include <petscsnes.h>
 #endif
 
-#ifdef USE_JACOBIAN_DEBUG
+//#ifdef USE_JACOBIAN_DEBUG
 #include "Model.h"
-#endif
+//#endif
 
 class GridPatch;
 class Time;

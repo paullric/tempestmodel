@@ -24,13 +24,13 @@
 ///	</summary>
 //#define USE_JFNK_PETSC
 //#define USE_JFNK_GMRES
-#define USE_DIRECTSOLVE_APPROXJ
-//#define USE_DIRECTSOLVE
+//#define USE_DIRECTSOLVE_APPROXJ
+#define USE_DIRECTSOLVE
 
 ///	<summary>
 ///		Jacobian storage form
 ///	</summary>
-#define USE_JACOBIAN_DEBUG
+//#define USE_JACOBIAN_DEBUG
 #define USE_JACOBIAN_GENERAL
 //#define USE_JACOBIAN_DIAGONAL
 

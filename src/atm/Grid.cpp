@@ -123,10 +123,17 @@ void Grid::InitializeVerticalCoordinate(
 		m_dREtaLevels.Initialize(1);
 		m_dREtaInterfaces.Initialize(2);
 
+		m_dREtaLevelsNormArea.Initialize(1);
+		m_dREtaInterfacesNormArea.Initialize(2);
+
 		// Uniform grid spacing
+		m_dREtaLevels[0] = 0.5;
 		m_dREtaInterfaces[0] = 0.0;
 		m_dREtaInterfaces[1] = 1.0;
-		m_dREtaLevels[0] = 0.5;
+
+		m_dREtaLevelsNormArea[0] = 1.0;
+		m_dREtaInterfacesNormArea[0] = 0.5;
+		m_dREtaInterfacesNormArea[1] = 0.5;
 
 		// Everything on model levels
 		if (fInitializeStaggering) {
@@ -153,12 +160,26 @@ void Grid::InitializeVerticalCoordinate(
 		m_dREtaLevels.Initialize(m_nRElements);
 		m_dREtaInterfaces.Initialize(m_nRElements+1);
 
-		// Uniform grid spacing
-		for (int k = 0; k <= m_nRElements; k++) {
-			m_dREtaInterfaces[k] = gridspacing.GetEdge(k);
-		}
+		m_dREtaLevelsNormArea.Initialize(m_nRElements);
+		m_dREtaInterfacesNormArea.Initialize(m_nRElements+1);
+
+		// Get node/interface location from GridSpacing
 		for (int k = 0; k < m_nRElements; k++) {
 			m_dREtaLevels[k] = gridspacing.GetNode(k);
+			m_dREtaLevelsNormArea[k] = gridspacing.GetNodeNormArea(k);
+		}
+		for (int k = 0; k <= m_nRElements; k++) {
+			m_dREtaInterfaces[k] = gridspacing.GetEdge(k);
+			m_dREtaInterfacesNormArea[k] = gridspacing.GetEdgeNormArea(k);
+		}
+
+		// Adjust normalized area on edges
+		m_dREtaInterfacesNormArea[0] /= 2.0;
+		m_dREtaInterfacesNormArea[m_nRElements] /= 2.0;
+
+		if (m_eVerticalStaggering == VerticalStaggering_Interfaces) {
+			m_dREtaLevelsNormArea[0] /= 2.0;
+			m_dREtaLevelsNormArea[m_nRElements-1] /= 2.0;
 		}
 
 		// Location of variables

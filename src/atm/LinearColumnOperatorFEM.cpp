@@ -626,15 +626,15 @@ void LinearColumnDiffFEM::InitializeGLLNodes(
 			// Temporary coefficients
 			DataVector<double> dTempCoeff;
 			dTempCoeff.Initialize(nVerticalOrder);
-			
+
 			// Calculate one-sided errors and derivative weights
 			double dDeltaREtaL =
-				  dREtaNode[(a+1) * nVerticalOrder]
-				- dREtaNode[ a    * nVerticalOrder];
+				  dREtaNode[(a+1) * (nVerticalOrder-1)]
+				- dREtaNode[ a    * (nVerticalOrder-1)];
 
 			double dDeltaREtaR =
-				  dREtaNode[(a+2) * nVerticalOrder]
-				- dREtaNode[(a+1) * nVerticalOrder];
+				  dREtaNode[(a+2) * (nVerticalOrder-1)]
+				- dREtaNode[(a+1) * (nVerticalOrder-1)];
 
 			double dErrorL =
 				pow(dDeltaREtaL, static_cast<double>(nVerticalOrder-1));

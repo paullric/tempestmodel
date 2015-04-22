@@ -59,6 +59,16 @@ public:
 	///	</summary>
 	virtual double GetEdge(int ix) const = 0;
 
+	///	<summary>
+	///		Get the normalized area of the given node.
+	///	</summary>
+	virtual double GetNodeNormArea(int ix) const = 0;
+
+	///	<summary>
+	///		Get the normalized area of the given edge.
+	///	</summary>
+	virtual double GetEdgeNormArea(int ix) const = 0;
+
 public:
 	///	<summary>
 	///		Get the element width.
@@ -111,6 +121,16 @@ public:
 	///		Get the edge coordinate with the given index.
 	///	</summary>
 	virtual double GetEdge(int ix) const;
+
+	///	<summary>
+	///		Get the normalized area of the given node.
+	///	</summary>
+	virtual double GetNodeNormArea(int ix) const;
+
+	///	<summary>
+	///		Get the normalized area of the given edge.
+	///	</summary>
+	virtual double GetEdgeNormArea(int ix) const;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -153,6 +173,16 @@ public:
 	///	</summary>
 	virtual double GetEdge(int ix) const;
 
+	///	<summary>
+	///		Get the normalized area of the given node.
+	///	</summary>
+	virtual double GetNodeNormArea(int ix) const;
+
+	///	<summary>
+	///		Get the normalized area of the given edge.
+	///	</summary>
+	virtual double GetEdgeNormArea(int ix) const;
+
 protected:
 	///	<summary>
 	///		Order of accuracy stored in each cell.
@@ -163,6 +193,11 @@ protected:
 	///		Gauss-Lobatto points on the reference element.
 	///	</summary>
 	DataVector<double> m_dG;
+
+	///	<summary>
+	///		Gauss-Lobatto weights on the reference element.
+	///	</summary>
+	DataVector<double> m_dW;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -205,6 +240,16 @@ public:
 	///	</summary>
 	virtual double GetEdge(int ix) const;
 
+	///	<summary>
+	///		Get the normalized area of the given node.
+	///	</summary>
+	virtual double GetNodeNormArea(int ix) const;
+
+	///	<summary>
+	///		Get the normalized area of the given edge.
+	///	</summary>
+	virtual double GetEdgeNormArea(int ix) const;
+
 protected:
 	///	<summary>
 	///		Order of accuracy stored in each cell.
@@ -215,6 +260,11 @@ protected:
 	///		Gauss-Lobatto points on the reference element.
 	///	</summary>
 	DataVector<double> m_dG;
+
+	///	<summary>
+	///		Gauss-Lobatto weights on the reference element.
+	///	</summary>
+	DataVector<double> m_dW;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -257,6 +307,16 @@ public:
 	///	</summary>
 	virtual double GetEdge(int ix) const;
 
+	///	<summary>
+	///		Get the normalized area of the given node.
+	///	</summary>
+	virtual double GetNodeNormArea(int ix) const;
+
+	///	<summary>
+	///		Get the normalized area of the given edge.
+	///	</summary>
+	virtual double GetEdgeNormArea(int ix) const;
+
 protected:
 	///	<summary>
 	///		Order of accuracy stored in each cell.
@@ -272,6 +332,17 @@ protected:
 	///		Gauss-Lobatto points on the reference element.
 	///	</summary>
 	DataVector<double> m_dGL;
+
+	///	<summary>
+	///		Gauss weights on the reference element.
+	///	</summary>
+	DataVector<double> m_dW;
+
+	///	<summary>
+	///		Gauss-Lobatto weights on the reference element.
+	///	</summary>
+	DataVector<double> m_dWL;
+
 };
 
 ///////////////////////////////////////////////////////////////////////////////

@@ -55,6 +55,18 @@ double GridSpacingUniform::GetEdge(int ix) const {
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+
+double GridSpacingUniform::GetNodeNormArea(int ix) const {
+	return (m_dDeltaElement);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+double GridSpacingUniform::GetEdgeNormArea(int ix) const {
+	return (m_dDeltaElement);
+}
+
+///////////////////////////////////////////////////////////////////////////////
 // GridSpacingGaussLobatto
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -72,9 +84,8 @@ GridSpacingGaussLobatto::GridSpacingGaussLobatto(
 	}
 
 	// Obtain GLL nodes
-	DataVector<double> dW;
-
-	GaussLobattoQuadrature::GetPoints(nOrder, 0.0, dDeltaElement, m_dG, dW);
+	GaussLobattoQuadrature::GetPoints(
+		nOrder, 0.0, dDeltaElement, m_dG, m_dW);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -119,6 +130,30 @@ double GridSpacingGaussLobatto::GetEdge(int ix) const {
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+
+double GridSpacingGaussLobatto::GetNodeNormArea(int ix) const {
+	int ixSubElement = (ix % (m_nOrder - 1));
+
+	if (ixSubElement == 0) {
+		return (2.0 * m_dW[0]);
+	} else {
+		return (m_dW[ixSubElement]);
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+double GridSpacingGaussLobatto::GetEdgeNormArea(int ix) const {
+	int ixSubElement = (ix % (m_nOrder - 1));
+
+	if (ixSubElement == 0) {
+		return (2.0 * m_dW[0]);
+	} else {
+		return (m_dW[ixSubElement]);
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
 // GridSpacingGaussLobattoRepeated
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -136,15 +171,14 @@ GridSpacingGaussLobattoRepeated::GridSpacingGaussLobattoRepeated(
 	}
 
 	// Obtain GLL nodes
-	DataVector<double> dW;
-
-	GaussLobattoQuadrature::GetPoints(nOrder, 0.0, dDeltaElement, m_dG, dW);
+	GaussLobattoQuadrature::GetPoints(
+		nOrder, 0.0, dDeltaElement, m_dG, m_dW);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 
 double GridSpacingGaussLobattoRepeated::GetNode(int ix) const {
-	int ixElement    = (ix / (m_nOrder - 1));
+	int ixElement    = (ix / m_nOrder);
 	int ixSubElement = (ix % m_nOrder);
 
 	// Case of a negative index
@@ -183,6 +217,22 @@ double GridSpacingGaussLobattoRepeated::GetEdge(int ix) const {
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+
+double GridSpacingGaussLobattoRepeated::GetNodeNormArea(int ix) const {
+	int ixSubElement = (ix % m_nOrder);
+
+	return (m_dW[ixSubElement]);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+double GridSpacingGaussLobattoRepeated::GetEdgeNormArea(int ix) const {
+	int ixSubElement = (ix % m_nOrder);
+
+	return (m_dW[ixSubElement]);
+}
+
+///////////////////////////////////////////////////////////////////////////////
 // GridSpacingMixedGaussLobatto
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -194,18 +244,18 @@ GridSpacingMixedGaussLobatto::GridSpacingMixedGaussLobatto(
 	GridSpacing(dDeltaElement, dZeroCoord),
 	m_nOrder(nOrder)
 {
-	DataVector<double> dW;
-
 	// Check order
 	if (m_nOrder < 1) {
 		_EXCEPTION1("Invalid order of accuracy %i (Order < 1)", m_nOrder);
 	}
 
 	// Obtain GLL nodes
-	GaussLobattoQuadrature::GetPoints(nOrder+1, 0.0, dDeltaElement, m_dGL, dW);
+	GaussLobattoQuadrature::GetPoints(
+		nOrder+1, 0.0, dDeltaElement, m_dGL, m_dWL);
 
 	// Obtain GL nodes
-	GaussQuadrature::GetPoints(nOrder, 0.0, dDeltaElement, m_dG, dW);
+	GaussQuadrature::GetPoints(
+		nOrder, 0.0, dDeltaElement, m_dG, m_dW);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -248,6 +298,26 @@ double GridSpacingMixedGaussLobatto::GetEdge(int ix) const {
 	return (m_dZeroCoord
 		+ m_dDeltaElement * static_cast<double>(ixElement)
 		+ m_dGL[ixSubElement]);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+double GridSpacingMixedGaussLobatto::GetNodeNormArea(int ix) const {
+	int ixSubElement = (ix % m_nOrder);
+
+	return (m_dW[ixSubElement]);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+double GridSpacingMixedGaussLobatto::GetEdgeNormArea(int ix) const {
+	int ixSubElement = (ix % m_nOrder);
+
+	if (ixSubElement == 0) {
+		return (2.0 * m_dWL[ixSubElement]);
+	} else {
+		return (m_dWL[ixSubElement]);
+	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////

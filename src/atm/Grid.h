@@ -581,6 +581,20 @@ public:
 	}
 
 	///	<summary>
+	///		Get the vector of normalized areas for radial element levels.
+	///	</summary>
+	const DataVector<double> & GetREtaLevelsNormArea() const {
+		return m_dREtaLevelsNormArea;
+	}
+
+	///	<summary>
+	///		Get the vector of normalized areas for radial element interfaces.
+	///	</summary>
+	const DataVector<double> & GetREtaInterfacesNormArea() const {
+		return m_dREtaInterfacesNormArea;
+	}
+
+	///	<summary>
 	///		Get the radial coordinate at the given level.
 	///	</summary>
 	double GetREtaStretchLevel(int ix) const {
@@ -785,6 +799,16 @@ protected:
 	///		REta coordinates of interfaces along radial axis.
 	///	</summary>
 	DataVector<double> m_dREtaInterfaces;
+
+	///	<summary>
+	///		Normalized area of REta elements along radial axis.
+	///	</summary>
+	DataVector<double> m_dREtaLevelsNormArea;
+
+	///	<summary>
+	///		Normalized area of REta interfaces along radial axis.
+	///	</summary>
+	DataVector<double> m_dREtaInterfacesNormArea;
 
 	///	<summary>
 	///		Stretched REta coordinates of levels along radial axis.

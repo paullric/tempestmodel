@@ -89,7 +89,7 @@ void GridPatchCartesianGLL::InitializeDataLocal() {
 	}
 
 	// Set the scale height for the decay of topography features
-	m_dSL = 10 * m_dTopoHeight;
+	m_dSL = 10.0 * m_dTopoHeight;
 
 	if (m_dSL >= m_grid.GetZtop()) {
  		_EXCEPTIONT("Coordinate scale height exceeds model top.");
@@ -176,32 +176,32 @@ void GridPatchCartesianGLL::EvaluateGeometricTerms() {
 
 	GaussLobattoQuadrature::GetPoints(m_nHorizontalOrder, 0.0, 1.0, dGL, dWL);
 
-	// Obtain Gaussian quadrature nodes and weights in the vertical
-	DataVector<double> dGNode;
-	DataVector<double> dWNode;
+	// Obtain normalized areas in the vertical
+	const DataVector<double> & dWNode =
+		m_grid.GetREtaLevelsNormArea();
+	const DataVector<double> & dWREdge =
+		m_grid.GetREtaInterfacesNormArea();
 
-	if (m_grid.GetVerticalStaggering() ==
-			Grid::VerticalStaggering_Interfaces
-	) {
-		GaussLobattoQuadrature::GetPoints(
-			m_nVerticalOrder, 0.0, 1.0, dGNode, dWNode);
-
-	} else {
-		GaussQuadrature::GetPoints(
-			m_nVerticalOrder, 0.0, 1.0, dGNode, dWNode);
+	// Verify that normalized areas are correct
+	double dWNodeSum = 0.0;
+	for (int k = 0; k < dWNode.GetRows(); k++) {
+		dWNodeSum += dWNode[k];
+	}
+	if (fabs(dWNodeSum - 1.0) > 1.0e-13) {
+		_EXCEPTION1("Error in normalized areas (%1.15e)", dWNodeSum);
 	}
 
-	// Obtain Gauss Lobatto quadrature nodes and weights in the vertical
-	DataVector<double> dGREdge;
-	DataVector<double> dWREdge;
-
-	GaussLobattoQuadrature::GetPoints(
-		m_nVerticalOrder+1, 0.0, 1.0, dGREdge, dWREdge);
-
-	// Vertical elemental grid spacing
-	double dElementDeltaXi = 
-		static_cast<double>(m_nVerticalOrder)
-		/ static_cast<double>(m_grid.GetRElements());
+	if (m_grid.GetVerticalStaggering() !=
+	    Grid::VerticalStaggering_Interfaces
+	) {
+		double dWREdgeSum = 0.0;
+		for (int k = 0; k < dWREdge.GetRows(); k++) {
+			dWREdgeSum += dWREdge[k];
+		}
+		if (fabs(dWREdgeSum - 1.0) > 1.0e-13) {
+			_EXCEPTION1("Error in normalized areas (%1.15e)", dWREdgeSum);
+		}
+	}
 
 	// Derivatives of basis functions
 	GridCartesianGLL & gridCartesianGLL =
@@ -236,46 +236,7 @@ void GridPatchCartesianGLL::EvaluateGeometricTerms() {
 
 			int iA = iElementA + i;
 			int iB = iElementB + j;
-/*
-			// Topography height and its derivatives
-			double dZs = m_dataTopography[iA][iB];
 
-			double dDaZs = 0.0;
-			double dDbZs = 0.0;
-
-			for (int s = 0; s < m_nHorizontalOrder; s++) {
-				dDaZs += dDxBasis1D[s][i] * m_dataTopography[iElementA+s][iB];
-				dDbZs += dDxBasis1D[s][j] * m_dataTopography[iA][iElementB+s];
-			}
-
-			if (i == 0) {
-				int aL = (a + GetElementCountA() - 1) % GetElementCountA();
-				int iElementAL =
-					m_box.GetAInteriorBegin() + aL * m_nHorizontalOrder;
-
-				for (int s = 0; s < m_nHorizontalOrder; s++) {
-					dDaZs +=
-						  dDxBasis1D[s][m_nHorizontalOrder-1]
-						* m_dataTopography[iElementAL+s][iB];
-				}
-				dDaZs /= 2.0;
-			}
-			if (i == m_nHorizontalOrder-1) {
-				int aR = (a + GetElementCountA() + 1) % GetElementCountA();
-				int iElementAR =
-					m_box.GetAInteriorBegin() + aR * m_nHorizontalOrder;
-
-				for (int s = 0; s < m_nHorizontalOrder; s++) {
-					dDaZs +=
-						  dDxBasis1D[s][0]
-						* m_dataTopography[iElementAR+s][iB];
-				}
-				dDaZs /= 2.0;
-			}
-
-			dDaZs /= GetElementDeltaA();
-			dDbZs /= GetElementDeltaB();
-*/
 			// Topography height and its derivatives
 			double dZs = m_dataTopography[iA][iB];
 			double dDaZs = m_dataTopographyDeriv[0][iA][iB];
@@ -300,9 +261,6 @@ void GridPatchCartesianGLL::EvaluateGeometricTerms() {
 
 			// Vertical coordinate transform and its derivatives
 			for (int k = 0; k < m_grid.GetRElements(); k++) {
-
-				// Sub-element index
-				int kx = k % m_nVerticalOrder;
 
 				// Gal-Chen and Somerville (1975) terrain following coord
 				// Schar Exponential Decay terrain following coord
@@ -329,16 +287,6 @@ void GridPatchCartesianGLL::EvaluateGeometricTerms() {
 					(m_dSL * sinh(m_grid.GetZtop() / m_dSL));
 				dDxZ *= dDxREtaStretch;
 
-/*
-				double dDaaZ = (1.0 - dREta) * dDaaZs;
-				double dDabZ = (1.0 - dREta) * dDabZs;
-				double dDbbZ = (1.0 - dREta) * dDbbZs;
-
-				double dDxZ = m_grid.GetZtop() - dZs;
-				double dDaxZ = - dDaZs;
-				double dDbxZ = - dDbZs;
-				double dDxxZ = 0.0;
-*/
 				// Calculate pointwise Jacobian
 				m_dataJacobian[k][iA][iB] =
 					dDxZ * m_dataJacobian2D[iA][iB];
@@ -348,7 +296,7 @@ void GridPatchCartesianGLL::EvaluateGeometricTerms() {
 					m_dataJacobian[k][iA][iB]
 					* dWL[i] * GetElementDeltaA()
 					* dWL[j] * GetElementDeltaB()
-					* dWNode[kx] * dElementDeltaXi;
+					* dWNode[k];
 
 				// Contravariant metric components
 				m_dataContraMetricA[k][iA][iB][0] =
@@ -407,7 +355,6 @@ void GridPatchCartesianGLL::EvaluateGeometricTerms() {
 
 			// Metric terms at vertical interfaces
 			for (int k = 0; k <= m_grid.GetRElements(); k++) {
-				int kx = k % m_nVerticalOrder;
 
 				// Gal-Chen and Somerville (1975) terrain following coord
 				// Schar Exponential decay terrain following coord
@@ -464,11 +411,7 @@ void GridPatchCartesianGLL::EvaluateGeometricTerms() {
 					m_dataJacobianREdge[k][iA][iB]
 					* dWL[i] * GetElementDeltaA()
 					* dWL[j] * GetElementDeltaB()
-					* dWREdge[kx] * dElementDeltaXi;
-
-				if ((k != 0) && (k != m_grid.GetRElements()) && (kx == 0)) {
-					m_dataElementAreaREdge[k][iA][iB] *= 2.0;
-				}
+					* dWREdge[k];
 
 				// Orthonormalization coefficients
 				m_dataOrthonormREdge[k][iA][iB][0] = - dDaZ / dDxZ;

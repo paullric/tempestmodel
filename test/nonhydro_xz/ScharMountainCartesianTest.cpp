@@ -279,8 +279,8 @@ public:
 		// Set the uniform U, V, W field for all time
 		dState[0] = m_dU0;
 		dState[1] = 0.0;
-		//dState[3] = 0.0;
-		dState[3] = sin(dZp / 11000.0);
+		dState[3] = 0.0;
+		//dState[3] = sin(dZp / 11000.0);
 
 		// Set the initial density based on the Exner pressure
 		double dExnerP = (dG * dG) / (dCp * m_dTheta0 * m_dNbar * m_dNbar);
