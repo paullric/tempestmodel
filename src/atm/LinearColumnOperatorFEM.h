@@ -113,4 +113,20 @@ public:
 
 ///////////////////////////////////////////////////////////////////////////////
 
+///	<summary>
+///		Linear second derivative operator working on a column.
+///	</summary>
+class LinearColumnDiffDiffFEM : public LinearColumnOperator {
+
+public:
+	///	<summary>
+	///		Default constructor.
+	///	</summary>
+	LinearColumnDiffDiffFEM() :
+		LinearColumnOperator()
+	{ }
+};
+
+///////////////////////////////////////////////////////////////////////////////
+
 #endif

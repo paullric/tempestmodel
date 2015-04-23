@@ -17,8 +17,6 @@
 #include "Defines.h"
 #include "VerticalDynamicsFEM.h"
 #include "TimestepScheme.h"
-#include "GaussQuadrature.h"
-#include "GaussLobattoQuadrature.h"
 
 #include "Model.h"
 #include "Grid.h"
@@ -194,19 +192,7 @@ void VerticalDynamicsFEM::Initialize() {
 
 	// Solution vector from JFNK
 	m_dSoln.Initialize(m_nColumnStateSize);
-/*
-	// Get points for Gaussian quadrature
-	DataVector<double> dG;
-	DataVector<double> dGL;
-	DataVector<double> dW;
-	DataVector<double> dWL;
 
-	// Reference element [0,1] model levels
-	GaussQuadrature::GetPoints(m_nVerticalOrder, 0.0, 1.0, dG, dW);
-
-	// Reference element [0,1] model interfaces
-	GaussLobattoQuadrature::GetPoints(m_nVerticalOrder+1, 0.0, 1.0, dGL, dWL);
-*/
 	// State vector at levels
 	m_dStateNode.Initialize(
 		m_model.GetEquationSet().GetComponents(),
@@ -216,13 +202,14 @@ void VerticalDynamicsFEM::Initialize() {
 	m_dStateREdge.Initialize(
 		m_model.GetEquationSet().GetComponents(),
 		nRElements+1);
-
+/*
 	// Auxiliary variables at interfaces
 	int nFiniteElements = nRElements / m_nVerticalOrder;
 	if (nRElements % m_nVerticalOrder != 0) {
 		_EXCEPTIONT("Logic error: Vertical order must divide RElements");
 	}
-
+*/
+	// Auxiliary variables
 	m_dStateAux.Initialize(nRElements+1);
 	m_dStateAuxDiff.Initialize(nRElements+1);
 

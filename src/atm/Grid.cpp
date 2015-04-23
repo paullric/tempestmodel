@@ -325,6 +325,14 @@ void Grid::EvaluateTestCase_StateOnly(
 
 ///////////////////////////////////////////////////////////////////////////////
 
+void Grid::EvaluateGeometricTerms() {
+	for (int n = 0; n < m_vecActiveGridPatches.size(); n++) {
+		m_vecActiveGridPatches[n]->EvaluateGeometricTerms();
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
 void Grid::ApplyBoundaryConditions(
 	int iDataIndex,
 	DataType eDataType
@@ -332,14 +340,6 @@ void Grid::ApplyBoundaryConditions(
 	for (int n = 0; n < GetActivePatchCount(); n++) {
 		m_vecActiveGridPatches[n]->
 			ApplyBoundaryConditions(iDataIndex, eDataType);
-	}
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
-void Grid::EvaluateGeometricTerms() {
-	for (int n = 0; n < m_vecActiveGridPatches.size(); n++) {
-		m_vecActiveGridPatches[n]->EvaluateGeometricTerms();
 	}
 }
 

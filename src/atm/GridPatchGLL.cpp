@@ -16,10 +16,6 @@
 
 #include "GridPatchGLL.h"
 
-#include "GaussLobattoQuadrature.h"
-
-#include "PolynomialInterp.h"
-
 ///////////////////////////////////////////////////////////////////////////////
 
 GridPatchGLL::GridPatchGLL(

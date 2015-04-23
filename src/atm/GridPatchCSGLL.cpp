@@ -25,7 +25,6 @@
 #include "Direction.h"
 #include "CubedSphereTrans.h"
 #include "PolynomialInterp.h"
-#include "GaussQuadrature.h"
 #include "GaussLobattoQuadrature.h"
 
 #include "Announce.h"

@@ -19,7 +19,6 @@
 #include "PhysicalConstants.h"
 #include "Model.h"
 #include "Grid.h"
-#include "GaussLobattoQuadrature.h"
 
 #include "GridGLL.h"
 #include "GridPatchGLL.h"

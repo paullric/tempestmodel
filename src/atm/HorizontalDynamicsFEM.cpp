@@ -19,7 +19,6 @@
 #include "PhysicalConstants.h"
 #include "Model.h"
 #include "Grid.h"
-#include "GaussLobattoQuadrature.h"
 
 #include "Announce.h"
 #include "GridGLL.h"
@@ -788,27 +787,7 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 						pGrid->DifferentiateNodeToNode(
 							&(dataInitialNode[VIx][0][iA][iB]),
 							k, nVerticalStateStride);
-/*
-					double dDxKE =
-						pGrid->DifferentiateNodeToNode(
-							&(m_dAuxDataNode[KIx][0][i][j]),
-							k, nVerticalElementStride);
 
-					double dDxRhoFluxXi =
-						pGrid->DifferentiateNodeToNode(
-							&(m_dAuxDataNode[RFluxIx][0][i][j]),
-							k, nVerticalElementStride);
-
-					double dDxPressureFluxXi =
-						pGrid->DifferentiateNodeToNode(
-							&(m_dAuxDataNode[PFluxIx][0][i][j]),
-							k, nVerticalElementStride);
-
-					double dDxP =
-						pGrid->DifferentiateNodeToNode(
-							&(dataInitialNode[PIx][0][iA][iB]),
-							k, nVerticalStateStride);
-*/
 					// Pointwise horizontal momentum update
 					double dLocalUpdateUa = 0.0;
 					double dLocalUpdateUb = 0.0;
@@ -847,7 +826,17 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 					double dDaPhi = phys.GetG() * dDerivRNode[k][iA][iB][0];
 					double dDbPhi = phys.GetG() * dDerivRNode[k][iA][iB][1];
 					double dDxPhi = phys.GetG() * dDerivRNode[k][iA][iB][2];
-
+/*
+					// Override everything in the merdional direction
+					dDbP = 0.0;
+					dCovDbUa = 0.0;
+					dCovDbUx = 0.0;
+					dDbKE = 0.0;
+					dDbPhi = 0.0;
+					dDbRhoFluxB = 0.0;
+					dDbPressureFluxB = 0.0;
+					dLocalUpdateUb = 0.0;
+*/
 					// Horizontal updates
 					double dDaUpdate =
 						  dDaP / dataInitialNode[RIx][k][iA][iB]
@@ -899,14 +888,32 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
  					// Apply update to horizontal velocity on model levels
 					dataUpdateNode[UIx][k][iA][iB] +=
 						dDeltaT * dLocalUpdateUa;
-					//dataUpdateNode[VIx][k][iA][iB] +=
-					//	dDeltaT * dLocalUpdateUb;
+					dataUpdateNode[VIx][k][iA][iB] +=
+						dDeltaT * dLocalUpdateUb;
 					dataUpdateNode[WIx][k][iA][iB] +=
 						dDeltaT * dLocalUpdateUr;
 
 					// Check boundary condition
 					if (k == 0) {
-						double dConUx =
+						double dConUxInitial =
+							dContraMetricXi[0][iA][iB][0]
+								* dataInitialNode[UIx][k][iA][iB]
+							+ dContraMetricXi[0][iA][iB][1]
+								* dataInitialNode[VIx][k][iA][iB]
+							+ dContraMetricXi[0][iA][iB][2]
+								* dDerivRNode[0][iA][iB][2]
+								* dataInitialNode[WIx][k][iA][iB];
+
+						if (fabs(dConUxInitial) > 1.0e-10) {
+							printf("%1.15e\n", dConUxInitial);
+							printf("%1.15e %1.15e %1.15e\n",
+								dataUpdateNode[UIx][k][iA][iB],
+								dataUpdateNode[VIx][k][iA][iB],
+								dataUpdateNode[WIx][k][iA][iB]);
+							_EXCEPTIONT("Boundary condition failure (initial)");
+						}
+
+						double dConUxUpdate =
 							dContraMetricXi[0][iA][iB][0]
 								* dataUpdateNode[UIx][k][iA][iB]
 							+ dContraMetricXi[0][iA][iB][1]
@@ -915,9 +922,13 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 								* dDerivRNode[0][iA][iB][2]
 								* dataUpdateNode[WIx][k][iA][iB];
 
-						if (fabs(dConUx) > 1.0e-12) {
-							printf("%1.15e\n", dConUx);
-							_EXCEPTIONT("Boundary condition failure");
+						if (fabs(dConUxUpdate) > 1.0e-10) {
+							printf("%1.15e\n", dConUxUpdate);
+							printf("%1.15e %1.15e %1.15e\n",
+								dataUpdateNode[UIx][k][iA][iB],
+								dataUpdateNode[VIx][k][iA][iB],
+								dataUpdateNode[WIx][k][iA][iB]);
+							_EXCEPTIONT("Boundary condition failure (update)");
 						}
 					}
 
@@ -1428,19 +1439,20 @@ void HorizontalDynamicsFEM::ApplyVectorHyperdiffusion(
 				// Apply update
 				double dUpdateUa =
 					+ dLocalNuDiv * dDaDiv
-					+ dLocalNuVort * dJacobian2D[iA][iB] * (
+					- dLocalNuVort * dJacobian2D[iA][iB] * (
 						  dContraMetric2DB[iA][iB][0] * dDaCurl
 						+ dContraMetric2DB[iA][iB][1] * dDbCurl);
 
 				double dUpdateUb =
 					+ dLocalNuDiv * dDbDiv
-					- dLocalNuVort * dJacobian2D[iA][iB] * (
+					+ dLocalNuVort * dJacobian2D[iA][iB] * (
 						  dContraMetric2DA[iA][iB][0] * dDaCurl
 						+ dContraMetric2DA[iA][iB][1] * dDbCurl);
 
 				dataUpdate[UIx][k][iA][iB] -= dDeltaT * dUpdateUa;
 
 				dataUpdate[VIx][k][iA][iB] -= dDeltaT * dUpdateUb;
+
 /*
 				if (k == 0) {
 					double dUpdateUr =
@@ -1553,7 +1565,7 @@ void HorizontalDynamicsFEM::ApplyRayleighFriction(
 		}
 
 		// Apply boundary conditions
-		pPatch->ApplyBoundaryConditions(iDataUpdate);
+		//pPatch->ApplyBoundaryConditions(iDataUpdate);
 	}
 }
 
@@ -1616,6 +1628,9 @@ void HorizontalDynamicsFEM::StepAfterSubCycle(
 		ApplyRayleighFriction(iDataUpdate, dDeltaT);
 	}
 #endif
+
+	// Apply boundary conditions
+	pGrid->ApplyBoundaryConditions(iDataUpdate);
 }
 
 ///////////////////////////////////////////////////////////////////////////////

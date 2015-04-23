@@ -312,7 +312,7 @@ void Model::Go() {
 		// Perform one time step
 		Announce("Step %s", m_time.ToString().c_str());
 		m_pTimestepScheme->Step(fFirstStep, fLastStep, m_time, dDeltaT);
-/*
+
 		// Energy and enstrophy
 		{
 			if (m_pGrid->GetVerticalStaggering() ==
@@ -326,7 +326,7 @@ void Model::Go() {
 				m_pGrid->ComputeTotalEnergy(0),
 				m_pGrid->ComputeTotalPotentialEnstrophy(0));
 		}
-*/
+
 /*
 		// L2 errors of the height field
 		{

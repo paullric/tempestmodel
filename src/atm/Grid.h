@@ -137,6 +137,12 @@ protected:
 	);
 
 	///	<summary>
+	///		Evaluate relevant geometric terms.
+	///	</summary>
+	void EvaluateGeometricTerms();
+
+public:
+	///	<summary>
 	///		Initialize state and tracer data from a TestCase.
 	///	</summary>
 	void ApplyBoundaryConditions(
@@ -144,12 +150,6 @@ protected:
 		DataType eDataType = DataType_State
 	);
 
-	///	<summary>
-	///		Evaluate relevant geometric terms.
-	///	</summary>
-	void EvaluateGeometricTerms();
-
-public:
 	///	<summary>
 	///		Perform post-processing of variables on the grid after each
 	///		TimeStep substage.

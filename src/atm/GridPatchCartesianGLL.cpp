@@ -25,7 +25,6 @@
 #include "Direction.h"
 #include "CubedSphereTrans.h"
 #include "PolynomialInterp.h"
-#include "GaussQuadrature.h"
 #include "GaussLobattoQuadrature.h"
 
 #include "Announce.h"
@@ -272,21 +271,24 @@ void GridPatchCartesianGLL::EvaluateGeometricTerms() {
 					dREta, dREtaStretch, dDxREtaStretch);
 
 				//double dZ = dZs + (m_grid.GetZtop() - dZs) * dREtaStretch;
-				double dbZ = sinh(m_grid.GetZtop() * (1.0 - dREtaStretch) / m_dSL) / 
-					sinh(m_grid.GetZtop() / m_dSL);
-				double dZ = m_grid.GetZtop() * dREtaStretch + dZs * dbZ;
-/*
+				//double dbZ = sinh(m_grid.GetZtop() * (1.0 - dREtaStretch) / m_dSL)
+				//	/ sinh(m_grid.GetZtop() / m_dSL);
+				//double dZ = m_grid.GetZtop() * dREtaStretch + dZs; // * dbZ;
+
+				double dZ = dZs + (m_grid.GetZtop() - dZs) * dREtaStretch;
+
 				double dDaZ = (1.0 - dREtaStretch) * dDaZs;
 				double dDbZ = (1.0 - dREtaStretch) * dDbZs;
-				double dDxZ = (m_grid.GetZ top() - dZs) * dDxREtaStretch;
-*/
+				double dDxZ = (m_grid.GetZtop() - dZs) * dDxREtaStretch;
+
+/*
 				double dDaZ = dbZ * dDaZs;
 				double dDbZ = dbZ * dDbZs;
 				double dDxZ = m_grid.GetZtop() - dZs * m_grid.GetZtop() * 
 					cosh(m_grid.GetZtop() * (1.0 - dREtaStretch) / m_dSL) /
 					(m_dSL * sinh(m_grid.GetZtop() / m_dSL));
 				dDxZ *= dDxREtaStretch;
-
+*/
 				// Calculate pointwise Jacobian
 				m_dataJacobian[k][iA][iB] =
 					dDxZ * m_dataJacobian2D[iA][iB];
@@ -375,23 +377,24 @@ void GridPatchCartesianGLL::EvaluateGeometricTerms() {
 				double dDxREtaStretch;
 				m_grid.EvaluateVerticalStretchF(
 					dREta, dREtaStretch, dDxREtaStretch);
-
+/*
 				//double dZ = dZs + (m_grid.GetZtop() - dZs) * dREtaStretch;
 				double dbZ = sinh(m_grid.GetZtop() * (1.0 - dREtaStretch) / m_dSL) / 
 					sinh(m_grid.GetZtop() / m_dSL);
 				double dZ = m_grid.GetZtop() * dREtaStretch + dZs * dbZ;
-/*
+*/
+
 				double dDaZ = (1.0 - dREtaStretch) * dDaZs;
 				double dDbZ = (1.0 - dREtaStretch) * dDbZs;
 		     	double dDxZ = (m_grid.GetZtop() - dZs) * dDxREtaStretch;
-*/
+/*
 				double dDaZ = dbZ * dDaZs;
 				double dDbZ = dbZ * dDbZs;
 				double dDxZ = m_grid.GetZtop() - dZs * m_grid.GetZtop() * 
 					cosh(m_grid.GetZtop() * (1.0 - dREtaStretch) / m_dSL) /
 					(m_dSL * sinh(m_grid.GetZtop() / m_dSL));
 				dDxZ *= dDxREtaStretch;
-
+*/
 /*
 				double dDaaZ = (1.0 - dREta) * dDaaZs;
 				double dDabZ = (1.0 - dREta) * dDabZs;
@@ -465,7 +468,7 @@ void GridPatchCartesianGLL::EvaluateTestCase(
 		if (m_dataTopography[i][j] >= m_grid.GetZtop()) {
 			_EXCEPTIONT("TestCase topography exceeds model top.");
 		}
-/*
+
 		// Gal-Chen and Sommerville vertical coordinate
 		for (int k = 0; k < m_grid.GetRElements(); k++) {
 			m_dataZLevels[k][i][j] =
@@ -479,7 +482,8 @@ void GridPatchCartesianGLL::EvaluateTestCase(
 					+ m_grid.GetREtaInterface(k)
 						* (m_grid.GetZtop() - m_dataTopography[i][j]);
 		}
-*/
+
+/*
 		// Schar Exponential Decay vertical coordinate
 		for (int k = 0; k < m_grid.GetRElements(); k++) {
 			m_dataZLevels[k][i][j] = m_grid.GetZtop() * m_grid.GetREtaLevel(k) + 
@@ -491,6 +495,7 @@ void GridPatchCartesianGLL::EvaluateTestCase(
 			m_dataTopography[i][j] * sinh(m_grid.GetZtop() * (1.0 - m_grid.GetREtaInterface(k)) / m_dSL) / 
 			sinh(m_grid.GetZtop() / m_dSL);
 		}
+*/
 	}
 	}
 
@@ -774,6 +779,10 @@ void GridPatchCartesianGLL::ComputeCurlAndDiv(
 	int nAFiniteElements = m_box.GetAInteriorWidth() / m_nHorizontalOrder;
 	int nBFiniteElements = m_box.GetBInteriorWidth() / m_nHorizontalOrder;
 
+	// Contravariant velocity within an element
+	DataMatrix<double> dConUa(m_nHorizontalOrder, m_nHorizontalOrder);
+	DataMatrix<double> dConUb(m_nHorizontalOrder, m_nHorizontalOrder);
+
 	// Loop over all elements in the box
 	for (int k = 0; k < gridCSGLL.GetRElements(); k++) {
 	for (int a = 0; a < nAFiniteElements; a++) {
@@ -783,12 +792,26 @@ void GridPatchCartesianGLL::ComputeCurlAndDiv(
 		int iA = a * m_nHorizontalOrder + m_box.GetHaloElements();
 		int iB = b * m_nHorizontalOrder + m_box.GetHaloElements();
 
+		// Calculate contravariant velocity at each node within the element
 		for (int i = 0; i < m_nHorizontalOrder; i++) {
 		for (int j = 0; j < m_nHorizontalOrder; j++) {
+			dConUa[i][j] =
+				  m_dataContraMetric2DA[iA+i][iB+j][0]
+				  	* dataUa[k][iA+i][iB+j]
+				+ m_dataContraMetric2DA[iA+i][iB+j][1]
+					* dataUb[k][iA+i][iB+j];
 
-			// Pointwise field values
-			double dUa = dataUa[k][iA+i][iB+j];
-			double dUb = dataUb[k][iA+i][iB+j];
+			dConUb[i][j] =
+				  m_dataContraMetric2DB[iA+i][iB+j][0]
+				  	* dataUa[k][iA+i][iB+j]
+				+ m_dataContraMetric2DB[iA+i][iB+j][1]
+					* dataUb[k][iA+i][iB+j];
+		}
+		}
+
+		// Calculate divergance and curl
+		for (int i = 0; i < m_nHorizontalOrder; i++) {
+		for (int j = 0; j < m_nHorizontalOrder; j++) {
 
 			// Compute derivatives at each node
 			double dDaJUa = 0.0;
@@ -798,25 +821,13 @@ void GridPatchCartesianGLL::ComputeCurlAndDiv(
 			double dCovDbUa = 0.0;
 
 			for (int s = 0; s < m_nHorizontalOrder; s++) {
-				double dConUa =
-					  m_dataContraMetric2DA[iA+s][iB+j][0]
-					  	* dataUa[k][iA+s][iB+j]
-					+ m_dataContraMetric2DA[iA+s][iB+j][1]
-						* dataUb[k][iA+s][iB+j];
-
-				double dConUb =
-					  m_dataContraMetric2DB[iA+s][iB+j][0]
-					  	* dataUa[k][iA+s][iB+j]
-					+ m_dataContraMetric2DB[iA+s][iB+j][1]
-						* dataUb[k][iA+s][iB+j];
-
 				dDaJUa += dDxBasis1D[s][i]
 					* m_dataJacobian2D[iA+s][iB+j]
-					* dConUa;
+					* dConUa[s][j];
 
 				dDbJUb += dDxBasis1D[s][j]
 					* m_dataJacobian2D[iA+i][iB+s]
-					* dConUb;
+					* dConUb[i][s];
 
 				dCovDaUb += dDxBasis1D[s][i] * dataUb[k][iA+s][iB+j];
 					//( m_dataCovMetric2DB[iA+s][iB+j][0] * dataUa[k][iA+s][iB+j]

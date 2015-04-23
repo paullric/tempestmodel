@@ -22,7 +22,6 @@
 #include "FluxCorrectionFunction.h"
 #include "PolynomialInterp.h"
 #include "GaussLobattoQuadrature.h"
-#include "GaussQuadrature.h"
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -140,22 +139,6 @@ void GridGLL::Initialize() {
 	FluxCorrectionFunction::GetDerivatives(
 		2, m_nHorizontalOrder, dGL, m_dFluxDeriv1D);
 
-#pragma message "Should not need to initialize these for VerticalStaggering_Interfaces"
-	// Interpolation operators
-	m_opInterpNodeToREdge.Initialize(
-		LinearColumnInterpFEM::InterpSource_Levels,
-		m_nVerticalOrder,
-		m_dREtaStretchLevels,
-		m_dREtaStretchInterfaces,
-		m_dREtaStretchInterfaces);
-
-	m_opInterpREdgeToNode.Initialize(
-		LinearColumnInterpFEM::InterpSource_Interfaces,
-		m_nVerticalOrder,
-		m_dREtaStretchLevels,
-		m_dREtaStretchInterfaces,
-		m_dREtaStretchLevels);
-
 	// Initialize differentiation operators
 	if (m_eVerticalStaggering == VerticalStaggering_Interfaces) {
 
@@ -166,6 +149,21 @@ void GridGLL::Initialize() {
 			m_dREtaLevels);
 
 	} else {
+		// Interpolation operators
+		m_opInterpNodeToREdge.Initialize(
+			LinearColumnInterpFEM::InterpSource_Levels,
+			m_nVerticalOrder,
+			m_dREtaStretchLevels,
+			m_dREtaStretchInterfaces,
+			m_dREtaStretchInterfaces);
+
+		m_opInterpREdgeToNode.Initialize(
+			LinearColumnInterpFEM::InterpSource_Interfaces,
+			m_nVerticalOrder,
+			m_dREtaStretchLevels,
+			m_dREtaStretchInterfaces,
+			m_dREtaStretchLevels);
+
 		// Differentiation operators
 		m_opDiffNodeToNode.Initialize(
 			LinearColumnDiffFEM::InterpSource_Levels,

@@ -171,7 +171,7 @@ public:
 		double dXp,
 		double dYp
 	) const {
-		const double dRayleighStrength = 8.0e-3;
+		const double dRayleighStrength = 4.0e-2;//8.0e-3;
 		const double dRayleighDepth = 10000.0;
 		const double dRayleighWidth = 10000.0;
 
