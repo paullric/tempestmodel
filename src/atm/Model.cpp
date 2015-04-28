@@ -316,6 +316,12 @@ void Model::Go() {
 		// Energy and enstrophy
 		{
 			if (m_pGrid->GetVerticalStaggering() ==
+			    Grid::VerticalStaggering_Lorenz
+			) {
+				m_pGrid->InterpolateREdgeToNode(3, 0);
+			}
+
+			if (m_pGrid->GetVerticalStaggering() ==
 			    Grid::VerticalStaggering_CharneyPhillips
 			) {
 				m_pGrid->InterpolateREdgeToNode(2, 0);

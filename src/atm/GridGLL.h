@@ -462,6 +462,17 @@ protected:
 	///		Differentiation operator from interfaces to interfaces.
 	///	</summary>
 	LinearColumnDiffFEM m_opDiffREdgeToREdge;
+
+	///	<summary>
+	///		Second derivative operator from levels to levels.
+	///	</summary>
+	LinearColumnDiffDiffFEM m_opDiffDiffNodeToNode;
+
+	///	<summary>
+	///		Second derivative operator from interfaces to interfaces.
+	///	</summary>
+	LinearColumnDiffDiffFEM m_opDiffDiffREdgeToREdge;
+
 /*
 	///	<summary>
 	///		Differentiation coefficients from interfaces to nodes.

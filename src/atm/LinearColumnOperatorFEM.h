@@ -87,11 +87,6 @@ public:
 	///	<summary>
 	///		Initialize the operator
 	///	</summary>
-	///	<param name="fContinuous">
-	///		Set to 'true' if a continuous element formulation is used for
-	///		the input column or set to 'false' if a discontinuous element
-	///		formulation is used.
-	///	</param>
 	void Initialize(
 		InterpSource eInterpSource,
 		int nVerticalOrder,
@@ -120,11 +115,38 @@ class LinearColumnDiffDiffFEM : public LinearColumnOperator {
 
 public:
 	///	<summary>
+	///		Source of interpolation.
+	///	</summary>
+	enum InterpSource {
+		InterpSource_Levels,
+		InterpSource_Interfaces
+	};
+
+public:
+	///	<summary>
 	///		Default constructor.
 	///	</summary>
 	LinearColumnDiffDiffFEM() :
 		LinearColumnOperator()
 	{ }
+
+	///	<summary>
+	///		Initialize the operator
+	///	</summary>
+	void Initialize(
+		InterpSource eInterpSource,
+		int nVerticalOrder,
+		const DataVector<double> & dREtaNode,
+		const DataVector<double> & dREtaREdge
+	);
+
+	///	<summary>
+	///		Initialize a differentiation operator applied to GLL nodes.
+	///	</summary>
+	void InitializeGLLNodes(
+		int nVerticalOrder,
+		const DataVector<double> & dREtaNode
+	);
 };
 
 ///////////////////////////////////////////////////////////////////////////////

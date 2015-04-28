@@ -148,6 +148,11 @@ void GridGLL::Initialize() {
 			m_dREtaLevels,
 			m_dREtaLevels);
 
+		// Special differentiation operator
+		m_opDiffDiffNodeToNode.InitializeGLLNodes(
+			m_nVerticalOrder,
+			m_dREtaLevels);
+
 	} else {
 		// Interpolation operators
 		m_opInterpNodeToREdge.Initialize(

@@ -20,6 +20,8 @@
 
 #include "PolynomialInterp.h"
 
+#include "GaussLobattoQuadrature.h"
+
 #include <cmath>
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -664,6 +666,177 @@ void LinearColumnDiffFEM::InitializeGLLNodes(
 			// Set bounds on coefficients
 			m_iBegin[l] =  a    * (nVerticalOrder-1);
 			m_iEnd[l]   = (a+2) * (nVerticalOrder-1) + 1;
+		}
+	}
+/*
+	// DEBUGGING
+	FILE * fp = fopen("op.txt", "w");
+	for (int i = 0; i < m_dCoeff.GetRows(); i++) {
+		for (int j = 0; j < m_dCoeff.GetColumns(); j++) {
+			fprintf(fp, "%1.15e\t", m_dCoeff[i][j]);
+		}
+		fprintf(fp, "\n");
+	}
+	fclose(fp);
+
+	FILE * fpn = fopen("rn.txt", "w");
+	for (int i = 0; i < dREtaNode.GetRows(); i++) {
+		fprintf(fpn, "%1.15e\n", dREtaNode[i]);
+	}
+	fclose(fpn);
+
+	for (int i = 0; i < m_iBegin.GetRows(); i++) {
+		printf("%i %i\n", m_iBegin[i], m_iEnd[i]);
+	}
+
+	_EXCEPTION();
+*/
+}
+
+///////////////////////////////////////////////////////////////////////////////
+/// LinearColumnDiffDiffFEM
+///////////////////////////////////////////////////////////////////////////////
+
+void LinearColumnDiffDiffFEM::Initialize(
+	InterpSource eInterpSource,
+	int nVerticalOrder,
+	const DataVector<double> & dREtaNode,
+	const DataVector<double> & dREtaREdge
+) {
+/*
+	const double ParamEpsilon = 1.0e-12;
+
+	const int nRElementsIn  = dREtaNode.GetRows();
+	const int nRElementsOut = dREtaREdge.GetRows();
+
+	const int nFiniteElements = nRElementsIn / nVerticalOrder;
+
+	// Verify input parameters
+	if (nRElementsIn == 0) {
+		_EXCEPTIONT("At least one row required for dREtaNode");
+	}
+	if (nRElementsIn % nVerticalOrder != 0) {
+		_EXCEPTIONT("Column RElements / VerticalOrder mismatch");
+	}
+
+	// Differentiation from levels to levels
+	if (eInterpSource == InterpSource_Levels) {
+
+		// Compute second differentiation coefficients from nodes to nodes
+		m_dDiffDiffNodeToNode.Initialize(
+			m_nVerticalOrder, m_nVerticalOrder);
+
+		for (int n = 0; n < m_nVerticalOrder; n++) {
+		for (int m = 0; m < m_nVerticalOrder; m++) {
+			m_dDiffDiffNodeToNode[n][m] = 0.0;
+			for (int s = 0; s < m_nVerticalOrder; s++) {
+				m_dDiffDiffNodeToNode[n][m] -=
+					  dDiffNodeToNode[s][n]
+					* dDiffNodeToNode[s][m]
+					* dW[s];
+			}
+			m_dDiffDiffNodeToNode[n][m] /= dW[n];
+		}
+		}
+
+		// Scale by 1/dxi
+		for (int n = 0; n < m_nVerticalOrder; n++) {
+		for (int m = 0; m < m_nVerticalOrder; m++) {
+			m_dDiffDiffNodeToNode[n][m] *= dElementDeltaXi;
+		}
+		}
+	}
+*/
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void LinearColumnDiffDiffFEM::InitializeGLLNodes(
+	int nVerticalOrder,
+	const DataVector<double> & dREtaNode
+) {
+
+	const double ParamEpsilon = 1.0e-12;
+
+	const int nRElementsIn  = dREtaNode.GetRows();
+	const int nRElementsOut = dREtaNode.GetRows();
+
+	const int nFiniteElements = (nRElementsIn - 1) / (nVerticalOrder - 1);
+
+	// Verify input parameters
+	if (nRElementsIn == 0) {
+		_EXCEPTIONT("At least one row required for dREtaNode");
+	}
+	if ((nRElementsIn - 1) % (nVerticalOrder - 1) != 0) {
+		_EXCEPTIONT("Column (RElements-1) / (VerticalOrder-1) mismatch");
+	}
+
+	// Initialize LinearColumnOperator for differentiation from interfaces
+	LinearColumnOperator::Initialize(nRElementsIn, nRElementsOut);
+
+	// Local differentiation coefficients
+	DataMatrix<double> dLocalDiffCoeff;
+	dLocalDiffCoeff.Initialize(nVerticalOrder, nVerticalOrder);
+
+	// Loop through all output elements
+	for (int a = 0; a < nFiniteElements; a++) {
+
+		// Gauss-Lobatto quadrature nodes
+		DataVector<double> dG;
+		DataVector<double> dW;
+		GaussLobattoQuadrature::GetPoints(
+			nVerticalOrder,
+			dREtaNode[a * (nVerticalOrder-1)],
+			dREtaNode[(a+1) * (nVerticalOrder-1)],
+			dG, dW);
+
+		// Get polynomial differentiation coefficients within this element
+		for (int i = 0; i < nVerticalOrder; i++) {
+			PolynomialInterp::DiffLagrangianPolynomialCoeffs(
+				nVerticalOrder,
+				&(dREtaNode[a * (nVerticalOrder-1)]),
+				dLocalDiffCoeff[i],
+				dG[i]);
+			//printf("%i %1.15e %1.15e\n", a, dREtaNode[a * (nVerticalOrder-1) + i], dG[i]);
+		}
+
+		// Add contributions to each output node
+		for (int j = 0; j < nVerticalOrder; j++) {
+			int jx = j + a * (nVerticalOrder-1);
+
+			double dWlocal = dW[j];
+
+			if ((j == 0) && (a != 0)) {
+				dWlocal *= 2.0;
+			}
+			if ((j == nVerticalOrder-1) && (a != nFiniteElements-1)) {
+				dWlocal *= 2.0;
+			}
+
+			for (int i = 0; i < nVerticalOrder; i++) {
+
+				int ix = i + a * (nVerticalOrder-1);
+				for (int s = 0; s < nVerticalOrder; s++) {
+					m_dCoeff[jx][ix] -=
+						  dLocalDiffCoeff[s][j]
+						* dLocalDiffCoeff[s][i]
+						* dW[s] / dWlocal;
+				}
+			}
+		}
+
+		// Add contributions at boundaries
+		if (a == 0) {
+			for (int i = 0; i < nVerticalOrder; i++) {
+				m_dCoeff[0][i] -=
+					dLocalDiffCoeff[0][i] / (dW[0]);
+			}
+		}
+		if (a == nFiniteElements-1) {
+			for (int i = 0; i < nVerticalOrder; i++) {
+				m_dCoeff[nRElementsOut-1][a * (nVerticalOrder-1) + i] +=
+					dLocalDiffCoeff[nVerticalOrder-1][i] / (dW[nVerticalOrder-1]);
+			}
 		}
 	}
 /*
