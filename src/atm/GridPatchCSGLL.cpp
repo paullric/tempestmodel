@@ -517,10 +517,10 @@ void GridPatchCSGLL::EvaluateGeometricTerms() {
 					dI11, dI12, dI13, dI22, dI23, dI33);
 			}
 
-			// Orthonormalization coefficients
-			m_dataOrthonormNode[k][iA][iB][0] = - dDaR / dDxR;
-			m_dataOrthonormNode[k][iA][iB][1] = - dDbR / dDxR;
-			m_dataOrthonormNode[k][iA][iB][2] = 1.0 / dDxR;
+			// Derivatives of the vertical coordinate transform
+			m_dataDerivRNode[k][iA][iB][0] = dDaR;
+			m_dataDerivRNode[k][iA][iB][1] = dDbR;
+			m_dataDerivRNode[k][iA][iB][2] = dDxR;
 		}
 
 		// Metric terms at vertical interfaces
@@ -556,10 +556,25 @@ void GridPatchCSGLL::EvaluateGeometricTerms() {
 				* dWL[j] * GetElementDeltaB()
 				* dWREdge[k];
 
-			// Orthonormalization coefficients
-			m_dataOrthonormREdge[k][iA][iB][0] = - dDaR / dDxR;
-			m_dataOrthonormREdge[k][iA][iB][1] = - dDbR / dDxR;
-			m_dataOrthonormREdge[k][iA][iB][2] = 1.0 / dDxR;
+			// Derivatives of the vertical coordinate transform
+			m_dataDerivRREdge[k][iA][iB][0] = dDaR;
+			m_dataDerivRREdge[k][iA][iB][1] = dDbR;
+			m_dataDerivRREdge[k][iA][iB][2] = dDxR;
+
+			// Contravariant metric (xi)
+			m_dataContraMetricXiREdge[k][iA][iB][0] =
+				- dContraMetricScale / dDxR * (
+					(1.0 + dY * dY) * dDaR + dX * dY * dDbR);
+
+			m_dataContraMetricXiREdge[k][iA][iB][1] =
+				- dContraMetricScale / dDxR * (
+					dX * dY * dDaR + (1.0 + dX * dX) * dDbR);
+
+			m_dataContraMetricXiREdge[k][iA][iB][2] =
+				  1.0 / (dDxR * dDxR)
+				- 1.0 / dDxR * (
+					  m_dataContraMetricXiREdge[k][iA][iB][0] * dDaR
+					+ m_dataContraMetricXiREdge[k][iA][iB][1] * dDbR);
 		}
 	}
 	}

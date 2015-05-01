@@ -154,9 +154,7 @@ public:
 	///	</summary>
 	void InterpolateNodeToREdge(
 		const double * dDataNode,
-		const double * dDataRefNode,
 		double * dDataREdge,
-		const double * dDataRefREdge,
 		bool fZeroBoundaries = false
 	) const;
 
@@ -165,9 +163,7 @@ public:
 	///	</summary>
 	void InterpolateREdgeToNode(
 		const double * dDataREdge,
-		const double * dDataRefREdge,
-		double * dDataNode,
-		const double * dDataRefNode
+		double * dDataNode
 	) const;
 
 	///	<summary>
@@ -447,6 +443,11 @@ protected:
 	///		Differentiation operator from levels to levels.
 	///	</summary>
 	LinearColumnDiffFEM m_opDiffNodeToNode;
+
+	///	<summary>
+	///		Differentiation operator from levels to levels with zero boundaries.
+	///	</summary>
+	LinearColumnDiffFEM m_opDiffNodeToNodeZeroBoundaries;
 
 	///	<summary>
 	///		Differentiation operator from levels to interfaces.

@@ -170,7 +170,7 @@ void GridGLL::Initialize() {
 			m_dREtaStretchLevels);
 
 		// Differentiation operators
-		m_opDiffNodeToNode.Initialize(
+		m_opDiffNodeToNode.InitializeInterfaceMethod(
 			LinearColumnDiffFEM::InterpSource_Levels,
 			m_nVerticalOrder,
 			m_dREtaLevels,
@@ -178,7 +178,15 @@ void GridGLL::Initialize() {
 			m_dREtaLevels,
 			false);
 
-		m_opDiffNodeToREdge.Initialize(
+		m_opDiffNodeToNodeZeroBoundaries.InitializeInterfaceMethod(
+			LinearColumnDiffFEM::InterpSource_Levels,
+			m_nVerticalOrder,
+			m_dREtaLevels,
+			m_dREtaInterfaces,
+			m_dREtaLevels,
+			true);
+
+		m_opDiffNodeToREdge.InitializeFluxCorrectionMethod(
 			LinearColumnDiffFEM::InterpSource_Levels,
 			m_nVerticalOrder,
 			m_dREtaLevels,
@@ -186,7 +194,7 @@ void GridGLL::Initialize() {
 			m_dREtaInterfaces,
 			false);
 
-		m_opDiffREdgeToNode.Initialize(
+		m_opDiffREdgeToNode.InitializeInterfaceMethod(
 			LinearColumnDiffFEM::InterpSource_Interfaces,
 			m_nVerticalOrder,
 			m_dREtaLevels,
@@ -194,7 +202,7 @@ void GridGLL::Initialize() {
 			m_dREtaLevels,
 			false);
 
-		m_opDiffREdgeToREdge.Initialize(
+		m_opDiffREdgeToREdge.InitializeInterfaceMethod(
 			LinearColumnDiffFEM::InterpSource_Interfaces,
 			m_nVerticalOrder,
 			m_dREtaLevels,
@@ -640,18 +648,14 @@ double GridGLL::DifferentiateREdgeToREdge(
 
 void GridGLL::InterpolateNodeToREdge(
 	const double * dDataNode,
-	const double * dDataRefNode,
 	double * dDataREdge,
-	const double * dDataRefREdge,
 	bool fZeroBoundaries
 ) const {
 
 	// Apply operator
 	m_opInterpNodeToREdge.Apply(
 		dDataNode,
-		dDataRefNode,
-		dDataREdge,
-		dDataRefREdge);
+		dDataREdge);
 
 	// Override boundary values if zero
 	if (fZeroBoundaries) {
@@ -664,17 +668,13 @@ void GridGLL::InterpolateNodeToREdge(
 
 void GridGLL::InterpolateREdgeToNode(
 	const double * dDataREdge,
-	const double * dDataRefREdge,
-	double * dDataNode,
-	const double * dDataRefNode
+	double * dDataNode
 ) const {
 
 	// Apply operator
 	m_opInterpREdgeToNode.Apply(
 		dDataREdge,
-		dDataRefREdge,
-		dDataNode,
-		dDataRefNode);
+		dDataNode);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -686,9 +686,16 @@ void GridGLL::DifferentiateNodeToNode(
 ) const {
 
 	// Apply operator
-	m_opDiffNodeToNode.Apply(
-		dDataNode,
-		dDiffNode);
+	if (fZeroBoundaries) {
+		m_opDiffNodeToNodeZeroBoundaries.Apply(
+			dDataNode,
+			dDiffNode);
+
+	} else {
+		m_opDiffNodeToNode.Apply(
+			dDataNode,
+			dDiffNode);
+	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////

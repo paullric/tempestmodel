@@ -57,6 +57,14 @@ public:
 		const LinearColumnOperator & op
 	);
 
+	///	<summary>
+	///		Output debug output to file.
+	///	</summary>
+	void DebugOutput(
+		const DataVector<double> * pREtaNode = NULL,
+		const DataVector<double> * pREtaREdge = NULL
+	);
+
 public:
 	///	<summary>
 	///		Apply the column operator to a column, but only produce output on

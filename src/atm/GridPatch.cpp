@@ -201,12 +201,6 @@ void GridPatch::InitializeDataLocal() {
 		m_box.GetBTotalWidth(),
 		3);
 
-	m_dataContraMetricXi.Initialize(
-		m_grid.GetRElements(),
-		m_box.GetATotalWidth(),
-		m_box.GetBTotalWidth(),
-		3);
-
 	// Covariant metric components at each node
 	m_dataCovMetricA.Initialize(
 		m_grid.GetRElements(),
@@ -215,12 +209,6 @@ void GridPatch::InitializeDataLocal() {
 		3);
 
 	m_dataCovMetricB.Initialize(
-		m_grid.GetRElements(),
-		m_box.GetATotalWidth(),
-		m_box.GetBTotalWidth(),
-		3);
-
-	m_dataCovMetricXi.Initialize(
 		m_grid.GetRElements(),
 		m_box.GetATotalWidth(),
 		m_box.GetBTotalWidth(),
@@ -236,7 +224,20 @@ void GridPatch::InitializeDataLocal() {
 	}
 
 	m_dataContraMetricXi.Initialize(
-		nWLevels,
+		m_grid.GetRElements(),
+		m_box.GetATotalWidth(),
+		m_box.GetBTotalWidth(),
+		3);
+
+	m_dataCovMetricXi.Initialize(
+		m_grid.GetRElements(),
+		m_box.GetATotalWidth(),
+		m_box.GetBTotalWidth(),
+		3);
+
+	// Xi contravariant metric on interfaces
+	m_dataContraMetricXiREdge.Initialize(
+		m_grid.GetRElements()+1,
 		m_box.GetATotalWidth(),
 		m_box.GetBTotalWidth(),
 		3);
@@ -248,14 +249,7 @@ void GridPatch::InitializeDataLocal() {
 		m_box.GetBTotalWidth(),
 		3);
 
-	// Orthonormalization components
-	m_dataOrthonormNode.Initialize(
-		m_grid.GetRElements(),
-		m_box.GetATotalWidth(),
-		m_box.GetBTotalWidth(),
-		3);
-
-	m_dataOrthonormREdge.Initialize(
+	m_dataDerivRREdge.Initialize(
 		m_grid.GetRElements()+1,
 		m_box.GetATotalWidth(),
 		m_box.GetBTotalWidth(),
@@ -560,9 +554,8 @@ void GridPatch::DeinitializeData() {
 	m_dataCovMetricA.Deinitialize();
 	m_dataCovMetricB.Deinitialize();
 	m_dataCovMetricXi.Deinitialize();
+	m_dataContraMetricXiREdge.Deinitialize();
 	m_dataDerivRNode.Deinitialize();
-	m_dataOrthonormNode.Deinitialize();
-	m_dataOrthonormREdge.Deinitialize();
 	m_dataElementArea.Deinitialize();
 	m_dataElementAreaREdge.Deinitialize();
 	m_dataTopography.Deinitialize();
@@ -1068,12 +1061,6 @@ double GridPatch::ComputeTotalEnergy(
 		}
 
 	} else {
-		if (m_grid.GetVarLocation(WIx) == DataLocation_REdge) {
-			_EXCEPTIONT("Not implemented");
-		}
-		if (m_grid.GetVarLocation(PIx) == DataLocation_REdge) {
-			_EXCEPTIONT("Not implemented");
-		}
 
 		// Loop over all elements
 		int k;

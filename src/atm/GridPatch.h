@@ -314,84 +314,6 @@ public:
 
 public:
 	///	<summary>
-	///		Compute velocity across xi surfaces (xi_dot) at nodes.
-	///	</summary>
-	inline double CalculateXiDotNode(
-		int k,
-		int iA,
-		int iB,
-		double dUa,
-		double dUb,
-		double dUr
-	) {
-		return
-			( m_dataOrthonormNode[k][iA][iB][0] * dUa
-			+ m_dataOrthonormNode[k][iA][iB][1] * dUb
-			+ m_dataOrthonormNode[k][iA][iB][2] * dUr);
-	}
-
-	///	<summary>
-	///		Compute velocity across xi surfaces (xi_dot) at interfaces.
-	///	</summary>
-	inline double CalculateXiDotREdge(
-		int k,
-		int iA,
-		int iB,
-		double dUa,
-		double dUb,
-		double dUr
-	) {
-		return
-			( m_dataOrthonormREdge[k][iA][iB][0] * dUa
-			+ m_dataOrthonormREdge[k][iA][iB][1] * dUb
-			+ m_dataOrthonormREdge[k][iA][iB][2] * dUr);
-	}
-
-	///	<summary>
-	///		Compute vertical velocity needed to enforce no flow condition
-	///		(xi_dot = 0) at node.
-	///	</summary>
-	inline double CalculateNoFlowUrNode(
-		int k,
-		int iA,
-		int iB,
-		double dUa,
-		double dUb
-	) {
-/*
-		if (iA == 75) {
-			printf("%1.10e %1.10e %1.10e %1.10e\n",
-				dUa,
-				m_dataOrthonormNode[k][iA][iB][0],
-				m_dataOrthonormNode[k][iA][iB][2],
-				- 1.0 / m_dataOrthonormNode[k][iA][iB][2] * (
-			  m_dataOrthonormNode[k][iA][iB][0] * dUa
-			+ m_dataOrthonormNode[k][iA][iB][1] * dUb));
-		}
-*/
-		return - 1.0 / m_dataOrthonormNode[k][iA][iB][2] * (
-			  m_dataOrthonormNode[k][iA][iB][0] * dUa
-			+ m_dataOrthonormNode[k][iA][iB][1] * dUb);
-	}
-
-	///	<summary>
-	///		Compute vertical velocity needed to enforce no flow condition
-	///		(xi_dot = 0) at interfaces.
-	///	</summary>
-	inline double CalculateNoFlowUrREdge(
-		int k,
-		int iA,
-		int iB,
-		double dUa,
-		double dUb
-	) {
-		return - 1.0 / m_dataOrthonormREdge[k][iA][iB][2] * (
-			  m_dataOrthonormREdge[k][iA][iB][0] * dUa
-			+ m_dataOrthonormREdge[k][iA][iB][1] * dUb);
-	}
-
-public:
-	///	<summary>
 	///		Linearly interpolate data horizontally to the specified points.
 	///	</summary>
 	virtual void InterpolateData(
@@ -475,7 +397,7 @@ public:
 	}
 
 	///	<summary>
-	///		Get the  components of the contravariant metric (alpha)
+	///		Get the components of the contravariant metric (alpha)
 	///	</summary>
 	const DataMatrix3D<double> & GetContraMetric2DA() const {
 		if (!m_fContainsData) {
@@ -486,7 +408,7 @@ public:
 	}
 
 	///	<summary>
-	///		Get the  components of the contravariant metric (beta)
+	///		Get the components of the contravariant metric (beta)
 	///	</summary>
 	const DataMatrix3D<double> & GetContraMetric2DB() const {
 		if (!m_fContainsData) {
@@ -497,7 +419,7 @@ public:
 	}
 
 	///	<summary>
-	///		Get the  components of the covariant metric (alpha)
+	///		Get the components of the covariant metric (alpha)
 	///	</summary>
 	const DataMatrix3D<double> & GetCovMetric2DA() const {
 		if (!m_fContainsData) {
@@ -508,7 +430,7 @@ public:
 	}
 
 	///	<summary>
-	///		Get the  components of the covariant metric (beta)
+	///		Get the components of the covariant metric (beta)
 	///	</summary>
 	const DataMatrix3D<double> & GetCovMetric2DB() const {
 		if (!m_fContainsData) {
@@ -541,7 +463,7 @@ public:
 	}
 
 	///	<summary>
-	///		Get the  components of the contravariant metric (alpha)
+	///		Get the components of the contravariant metric (alpha)
 	///	</summary>
 	const DataMatrix4D<double> & GetContraMetricA() const {
 		if (!m_fContainsData) {
@@ -552,7 +474,7 @@ public:
 	}
 
 	///	<summary>
-	///		Get the  components of the contravariant metric (beta)
+	///		Get the components of the contravariant metric (beta)
 	///	</summary>
 	const DataMatrix4D<double> & GetContraMetricB() const {
 		if (!m_fContainsData) {
@@ -563,7 +485,7 @@ public:
 	}
 
 	///	<summary>
-	///		Get the  components of the contravariant metric (xi)
+	///		Get the components of the contravariant metric (xi)
 	///	</summary>
 	const DataMatrix4D<double> & GetContraMetricXi() const {
 		if (!m_fContainsData) {
@@ -574,7 +496,18 @@ public:
 	}
 
 	///	<summary>
-	///		Get the  components of the covariant metric (alpha)
+	///		Get the components of the contravariant metric (xi)
+	///	</summary>
+	const DataMatrix4D<double> & GetContraMetricXiREdge() const {
+		if (!m_fContainsData) {
+			_EXCEPTIONT("Stub patch does not store data.");
+		}
+
+		return m_dataContraMetricXiREdge;
+	}
+
+	///	<summary>
+	///		Get the components of the covariant metric (alpha)
 	///	</summary>
 	const DataMatrix4D<double> & GetCovMetricA() const {
 		if (!m_fContainsData) {
@@ -619,25 +552,15 @@ public:
 	}
 
  	///	<summary>
-	///		Get the orthonormalization components at nodes.
+	///		Get the vertical coordinate transform (derivatives of the
+	///		radius) at edges.
 	///	</summary>
-	const DataMatrix4D<double> & GetOrthonormNode() const {
+	const DataMatrix4D<double> & GetDerivRREdge() const {
 		if (!m_fContainsData) {
 			_EXCEPTIONT("Stub patch does not store data.");
 		}
 
-		return m_dataOrthonormNode;
-	}
-
-	///	<summary>
-	///		Get the orthonormalization components at interfaces.
-	///	</summary>
-	const DataMatrix4D<double> & GetOrthonormREdge() const {
-		if (!m_fContainsData) {
-			_EXCEPTIONT("Stub patch does not store data.");
-		}
-
-		return m_dataOrthonormREdge;
+		return m_dataDerivRREdge;
 	}
 
 	///	<summary>
@@ -1258,6 +1181,11 @@ protected:
 	///	</summary>
 	DataMatrix4D<double> m_dataCovMetricXi;
 
+	///	<summary>
+	///		Contravariant metric (xi) components on interfaces.
+	///	</summary>
+	DataMatrix4D<double> m_dataContraMetricXiREdge;
+
  	///	<summary>
 	///		Vertical coordinate transform (derivatives of the radius)
 	///		at each node.
@@ -1265,14 +1193,10 @@ protected:
 	DataMatrix4D<double> m_dataDerivRNode;
 
  	///	<summary>
-	///		Orthonormalization coefficients at each node.
+	///		Vertical coordinate transform (derivatives of the radius)
+	///		at each interface.
 	///	</summary>
-	DataMatrix4D<double> m_dataOrthonormNode;
-
-	///	<summary>
-	///		Orthonormalization coefficients at each interface.
-	///	</summary>
-	DataMatrix4D<double> m_dataOrthonormREdge;
+	DataMatrix4D<double> m_dataDerivRREdge;
 
 	///	<summary>
 	///		Element area at each node.

@@ -216,7 +216,7 @@ void GridPatchCartesianGLL::EvaluateGeometricTerms() {
 	for (int i = 0; i < m_box.GetATotalWidth(); i++) {
 	for (int j = 0; j < m_box.GetBTotalWidth(); j++) {
 		// Coriolis force by beta approximation
-		m_dataCoriolisF[i][j] = dfp + dbetap * (m_dataLat[i][j] - dy0);
+		//m_dataCoriolisF[i][j] = dfp + dbetap * (m_dataLat[i][j] - dy0);
 		//m_dataCoriolisF[i][j] = dfp;
 		//m_dataCoriolisF[i][j] = 0.0;
 	}
@@ -348,11 +348,6 @@ void GridPatchCartesianGLL::EvaluateGeometricTerms() {
 				m_dataDerivRNode[k][iA][iB][0] = dDaZ;
 				m_dataDerivRNode[k][iA][iB][1] = dDbZ;
 				m_dataDerivRNode[k][iA][iB][2] = dDxZ;
-
-				// Orthonormalization coefficients
-				m_dataOrthonormNode[k][iA][iB][0] = - dDaZ / dDxZ;
-				m_dataOrthonormNode[k][iA][iB][1] = - dDbZ / dDxZ;
-				m_dataOrthonormNode[k][iA][iB][2] = 1.0 / dDxZ;
 			}
 
 			// Metric terms at vertical interfaces
@@ -416,10 +411,18 @@ void GridPatchCartesianGLL::EvaluateGeometricTerms() {
 					* dWL[j] * GetElementDeltaB()
 					* dWREdge[k];
 
-				// Orthonormalization coefficients
-				m_dataOrthonormREdge[k][iA][iB][0] = - dDaZ / dDxZ;
-				m_dataOrthonormREdge[k][iA][iB][1] = - dDbZ / dDxZ;
-				m_dataOrthonormREdge[k][iA][iB][2] = 1.0 / dDxZ;
+				// Derivatives of the vertical coordinate transform
+				m_dataDerivRREdge[k][iA][iB][0] = dDaZ;
+				m_dataDerivRREdge[k][iA][iB][1] = dDbZ;
+				m_dataDerivRREdge[k][iA][iB][2] = dDxZ;
+
+				// Components of the contravariant metric
+				m_dataContraMetricXiREdge[k][iA][iB][0] =
+					- dDaZ / dDxZ;
+				m_dataContraMetricXiREdge[k][iA][iB][1] =
+					- dDbZ / dDxZ;
+				m_dataContraMetricXiREdge[k][iA][iB][2] =
+					(1.0 + dDaZ * dDaZ + dDbZ * dDbZ) / (dDxZ * dDxZ);
 			}
 		}
 		}
@@ -626,8 +629,14 @@ void GridPatchCartesianGLL::ApplyBoundaryConditions(
 	const int WIx = 3;
 	const int RIx = 4;
 
-	// Impose boundary conditions
+	// Impose boundary conditions (everything on levels)
 	if (m_grid.GetVerticalStaggering() ==
+		Grid::VerticalStaggering_Levels
+	) {
+		_EXCEPTIONT("Not implemented");
+
+	// Impose boundary conditions (everything on interfaces)
+	} else if (m_grid.GetVerticalStaggering() ==
 		Grid::VerticalStaggering_Interfaces
 	) {
 		const int UIx = 0;
@@ -656,7 +665,38 @@ void GridPatchCartesianGLL::ApplyBoundaryConditions(
 #endif
 		}
 		}
+
+	// Impose boundary conditions (vertical velocity on interfaces)
+	} else {
+		const int UIx = 0;
+		const int VIx = 1;
+		const int WIx = 3;
+
+		for (int i = 0; i < m_box.GetATotalWidth(); i++) {
+		for (int j = 0; j < m_box.GetBTotalWidth(); j++) {
+
+#ifdef USE_COVARIANT_VELOCITIES
+			m_datavecStateREdge[iDataIndex][WIx][0][i][j] =
+				- ( m_dataContraMetricXi[0][i][j][0]
+					* m_datavecStateNode[iDataIndex][UIx][0][i][j]
+				  + m_dataContraMetricXi[0][i][j][1]
+					* m_datavecStateNode[iDataIndex][VIx][0][i][j])
+				/ m_dataContraMetricXi[0][i][j][2]
+				/ m_dataDerivRNode[0][i][j][2];
+
+
+#else
+			m_datavecStateNode[iDataIndex][WIx][0][i][j] =
+				CalculateNoFlowUrNode(
+					0, i, j,
+					m_datavecStateNode[iDataIndex][UIx][0][i][j],
+					m_datavecStateNode[iDataIndex][VIx][0][i][j]);
+#endif
+
+		}
+		}
 	}
+
 
 /*
 	// Check number of components

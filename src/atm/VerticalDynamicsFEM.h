@@ -343,6 +343,11 @@ protected:
 	DataVector<double> m_dDiffKineticEnergyNode;
 
 	///	<summary>
+	///		Derivatives of kinetic energy on model levels.
+	///	</summary>
+	DataVector<double> m_dDiffKineticEnergyREdge;
+
+	///	<summary>
 	///		Mass flux on model levels.
 	///	</summary>
 	DataVector<double> m_dMassFluxNode;

@@ -77,7 +77,7 @@ void LinearColumnOperator::ComposeWith(
 		bool fFoundBegin = false;
 		for (int j = 0; j < nRElementsIn; j++) {
 			if (dNewCoeff[i][j] != 0.0) {
-				iNewEnd[i] = j;
+				iNewEnd[i] = j + 1;
 				if (!fFoundBegin) {
 					fFoundBegin = true;
 					iNewBegin[i] = j;
@@ -90,6 +90,45 @@ void LinearColumnOperator::ComposeWith(
 	m_dCoeff = dNewCoeff;
 	m_iBegin = iNewBegin;
 	m_iEnd   = iNewEnd;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void LinearColumnOperator::DebugOutput(
+	const DataVector<double> * pREtaNode,
+	const DataVector<double> * pREtaREdge
+) {
+
+	FILE * fp = fopen("op.txt", "w");
+	for (int i = 0; i < m_dCoeff.GetRows(); i++) {
+		for (int j = 0; j < m_dCoeff.GetColumns(); j++) {
+			fprintf(fp, "%1.15e\t", m_dCoeff[i][j]);
+		}
+		fprintf(fp, "\n");
+	}
+	fclose(fp);
+
+	if (pREtaNode != NULL) {
+		FILE * fpn = fopen("rn.txt", "w");
+		for (int i = 0; i < pREtaNode->GetRows(); i++) {
+			fprintf(fpn, "%1.15e\n", (*pREtaNode)[i]);
+		}
+		fclose(fpn);
+	}
+
+	if (pREtaREdge != NULL) {
+		FILE * fpi = fopen("ri.txt", "w");
+		for (int i = 0; i < pREtaREdge->GetRows(); i++) {
+			fprintf(fpi, "%1.15e\n", (*pREtaREdge)[i]);
+		}
+		fclose(fpi);
+	}
+
+	for (int i = 0; i < m_iBegin.GetRows(); i++) {
+		printf("%i %i\n", m_iBegin[i], m_iEnd[i]);
+	}
+
+	_EXCEPTION();
 }
 
 ///////////////////////////////////////////////////////////////////////////////

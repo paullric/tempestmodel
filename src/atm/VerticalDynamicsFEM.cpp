@@ -222,6 +222,7 @@ void VerticalDynamicsFEM::Initialize() {
 	m_dHorizKineticEnergyNode.Initialize(nRElements);
 	m_dKineticEnergyNode.Initialize(nRElements);
 	m_dDiffKineticEnergyNode.Initialize(nRElements);
+	m_dDiffKineticEnergyREdge.Initialize(nRElements+1);
 
 	m_dMassFluxNode.Initialize(nRElements);
 	m_dDiffMassFluxNode.Initialize(nRElements);
@@ -563,9 +564,7 @@ void VerticalDynamicsFEM::SetupReferenceColumn(
 
 		pGrid->InterpolateNodeToREdge(
 			m_dStateNode[UIx],
-			m_dStateRefNode[UIx],
-			m_dStateREdge[UIx],
-			m_dStateRefREdge[UIx]);
+			m_dStateREdge[UIx]);
 
 	} else {
 		for (int k = 0; k <= nRElements; k++) {
@@ -574,9 +573,7 @@ void VerticalDynamicsFEM::SetupReferenceColumn(
 
 		pGrid->InterpolateREdgeToNode(
 			m_dStateREdge[UIx],
-			m_dStateRefREdge[UIx],
-			m_dStateNode[UIx],
-			m_dStateRefNode[UIx]);
+			m_dStateNode[UIx]);
 	}
 
 	// Store V in State structure
@@ -587,9 +584,7 @@ void VerticalDynamicsFEM::SetupReferenceColumn(
 
 		pGrid->InterpolateNodeToREdge(
 			m_dStateNode[VIx],
-			m_dStateRefNode[VIx],
-			m_dStateREdge[VIx],
-			m_dStateRefREdge[VIx]);
+			m_dStateREdge[VIx]);
 
 	} else {
 		for (int k = 0; k <= nRElements; k++) {
@@ -598,9 +593,7 @@ void VerticalDynamicsFEM::SetupReferenceColumn(
 
 		pGrid->InterpolateREdgeToNode(
 			m_dStateREdge[VIx],
-			m_dStateRefREdge[VIx],
-			m_dStateNode[VIx],
-			m_dStateRefNode[VIx]);
+			m_dStateNode[VIx]);
 	}
 /*
 #ifndef THREE_COMPONENT_SOLVE
@@ -1490,8 +1483,12 @@ void VerticalDynamicsFEM::PrepareColumn(
 		m_pPatch->GetJacobian();
 	const DataMatrix4D<double> & dDerivRNode =
 		m_pPatch->GetDerivRNode();
+	const DataMatrix4D<double> & dDerivRREdge =
+		m_pPatch->GetDerivRREdge();
 	const DataMatrix4D<double> & dContraMetricXi =
 		m_pPatch->GetContraMetricXi();
+	const DataMatrix4D<double> & dContraMetricXiREdge =
+		m_pPatch->GetContraMetricXiREdge();
 
 	// Physical constants
 	const PhysicalConstants & phys = m_model.GetPhysicalConstants();
@@ -1500,8 +1497,6 @@ void VerticalDynamicsFEM::PrepareColumn(
 	const int nRElements = pGrid->GetRElements();
 
 	for (int k = 0; k < nRElements; k++) {
-		//m_dStateNode[UIx][k] = dX[VecFIx(FUIx, k)];
-		//m_dStateNode[VIx][k] = dX[VecFIx(FVIx, k)];
 
 		// Store pressure
 		if (pGrid->GetVarLocation(PIx) == DataLocation_Node) {
@@ -1521,16 +1516,80 @@ void VerticalDynamicsFEM::PrepareColumn(
 		m_dStateNode[RIx][k] = dX[VecFIx(FRIx, k)];
 	}
 
+	// Compute u^xi on model levels
+	if (pGrid->GetVarLocation(WIx) == DataLocation_Node) {
+
 #ifdef FORMULATION_PRESSURE
-	// Calculate update for P
-	pGrid->DifferentiateNodeToNode(
-		m_dStateNode[PIx],
-		m_dDiffP);
+		// Calculate derivative of P at nodes
+		pGrid->DifferentiateNodeToNode(
+			m_dStateNode[PIx],
+			m_dDiffP);
 #endif
 
-	// Compute Xi dot on model levels
+	// Compute u^xi on model interfaces
+	} else {
+
+		// W is needed on model levels
+		pGrid->InterpolateREdgeToNode(
+			m_dStateREdge[WIx],
+			m_dStateNode[WIx]);
+
+		// U, V and Rho are needed on model interfaces
+		pGrid->InterpolateNodeToREdge(
+			m_dStateNode[UIx],
+			m_dStateREdge[UIx]);
+
+		pGrid->InterpolateNodeToREdge(
+			m_dStateNode[VIx],
+			m_dStateREdge[VIx]);
+
+		pGrid->InterpolateNodeToREdge(
+			m_dStateNode[RIx],
+			m_dStateREdge[RIx]);
+/*
+		// Calculate u^xi on model interfaces
+		for (int k = 1; k < nRElements; k++) {
+			double dCovUx =
+				m_dStateREdge[WIx][k] * dDerivRREdge[k][m_iA][m_iB][2];
+
+			m_dXiDotREdge[k] =
+				  dContraMetricXiREdge[k][m_iA][m_iB][0] * m_dStateREdge[UIx][k]
+				+ dContraMetricXiREdge[k][m_iA][m_iB][1] * m_dStateREdge[VIx][k]
+				+ dContraMetricXiREdge[k][m_iA][m_iB][2] * dCovUx;
+		}
+*/
+#ifdef FORMULATION_PRESSURE
+		// Calculate derivative of P at edges
+		pGrid->DifferentiateNodeToREdge(
+			m_dStateNode[PIx],
+			m_dDiffP);
+
+		// Calculate derivative of P at nodes
+		pGrid->DifferentiateNodeToNode(
+			m_dStateNode[PIx],
+			m_dStateAux);
+/*
+		for (int k = 1; k < nRElements; k++) {
+			m_dDiffP[k] /= m_dStateREdge[RIx][k];
+		}
+
+		for (int k = 0; k <= nRElements; k++) {
+			printf("%1.15e\n", m_dDiffP[k]);
+		}
+		_EXCEPTION();
+*/
+/*
+		for (int k = 0; k < nRElements; k++) {
+			printf("%1.15e\n", m_dStateAux[k] / m_dStateNode[RIx][k]);
+		}
+		_EXCEPTION();
+*/
+#endif
+
+	}
+
+	// Calculate u^xi on model levels
 	for (int k = 0; k < nRElements; k++) {
-#ifdef USE_COVARIANT_VELOCITIES
 		double dCovUx =
 			m_dStateNode[WIx][k] * dDerivRNode[k][m_iA][m_iB][2];
 
@@ -1538,21 +1597,29 @@ void VerticalDynamicsFEM::PrepareColumn(
 			  dContraMetricXi[k][m_iA][m_iB][0] * m_dStateNode[UIx][k]
 			+ dContraMetricXi[k][m_iA][m_iB][1] * m_dStateNode[VIx][k]
 			+ dContraMetricXi[k][m_iA][m_iB][2] * dCovUx;
-
-#else
-		m_dXiDotNode[k] =
-			m_pPatch->CalculateXiDotNode(
-				k, m_iA, m_iB,
-				m_dStateNode[UIx][k],
-				m_dStateNode[VIx][k],
-				m_dStateNode[WIx][k]);
-#endif
 	}
 
 	// Enforce conservation
-	m_dXiDotNode[0] = 0.0;
-	m_dXiDotNode[nRElements-1] = 0.0;
+	if (pGrid->GetVarLocation(WIx) == DataLocation_Node) {
+		m_dXiDotNode[0] = 0.0;
+		m_dXiDotNode[nRElements-1] = 0.0;
+	}
 
+/*
+	// W on model interfaces
+	if (pGrid->GetVarLocation(WIx) == DataLocation_REdge) {
+		for (int k = 0; k <= nRElements; k++) {
+			m_dStateREdge[WIx][k] = dX[VecFIx(FWIx, k)];
+		}
+
+		// W is needed on model levels
+		pGrid->InterpolateREdgeToNode(
+			m_dStateREdge[WIx],
+			m_dStateRefREdge[WIx],
+			m_dStateNode[WIx],
+			m_dStateRefNode[WIx]);
+	}
+*/
 /*
 	// Pressure on model interfaces
 	if (pGrid->GetVarLocation(PIx) == DataLocation_REdge) {
@@ -1598,20 +1665,8 @@ void VerticalDynamicsFEM::PrepareColumn(
 				m_dStateRefREdge[PIx]);
 		}
 	}
-
-	// W on model interfaces
-	if (pGrid->GetVarLocation(WIx) == DataLocation_REdge) {
-		for (int k = 0; k <= nRElements; k++) {
-			m_dStateREdge[WIx][k] = dX[VecFIx(FWIx, k)];
-		}
-
-		// W is needed on model levels
-		pGrid->InterpolateREdgeToNode(
-			m_dStateREdge[WIx],
-			m_dStateRefREdge[WIx],
-			m_dStateNode[WIx],
-			m_dStateRefNode[WIx]);
-
+*/
+/*
 	// W on model levels
 	} else {
 		for (int k = 0; k < nRElements; k++) {
@@ -1717,32 +1772,51 @@ void VerticalDynamicsFEM::BuildF(
 	// Metric terms
 	const DataMatrix3D<double> & dJacobian =
 		m_pPatch->GetJacobian();
+	const DataMatrix3D<double> & dJacobianREdge =
+		m_pPatch->GetJacobianREdge();
 	const DataMatrix4D<double> & dDerivRNode =
 		m_pPatch->GetDerivRNode();
+	const DataMatrix4D<double> & dDerivRREdge =
+		m_pPatch->GetDerivRREdge();
 	const DataMatrix4D<double> & dContraMetricXi =
 		m_pPatch->GetContraMetricXi();
+	const DataMatrix4D<double> & dContraMetricXiREdge =
+		m_pPatch->GetContraMetricXiREdge();
 	const DataMatrix3D<double> & dElementArea =
 		m_pPatch->GetElementArea();
 
+	// Under this configuration, set fluxes at boundaries to zero
+	bool fZeroBoundaries =
+		(pGrid->GetVarLocation(WIx) == DataLocation_REdge);
+
 	// Zero F
 	memset(dF, 0, m_nColumnStateSize * sizeof(double));
+/*
+	// Mass flux on model interfaces
+	for (int k = 1; k < nRElements; k++) {
+		m_dMassFluxREdge[k] =
+			dJacobianREdge[k][m_iA][m_iB]
+			* m_dStateREdge[RIx][k]
+			* m_dXiDotREdge[k];
+	}
+
+	pGrid->DifferentiateREdgeToNode(
+		m_dMassFluxREdge,
+		m_dDiffMassFluxNode);
+*/
 
 	// Mass flux on model levels
-	if (pGrid->GetVarLocation(WIx) == DataLocation_REdge) {
-		_EXCEPTIONT("Not implemented");
-
-	} else {
-		for (int k = 0; k < nRElements; k++) {
-			m_dMassFluxNode[k] =
-				dJacobian[k][m_iA][m_iB]
-				* m_dStateNode[RIx][k]
-				* m_dXiDotNode[k];
-		}
+	for (int k = 0; k < nRElements; k++) {
+		m_dMassFluxNode[k] =
+			dJacobian[k][m_iA][m_iB]
+			* m_dStateNode[RIx][k]
+			* m_dXiDotNode[k];
 	}
 
 	pGrid->DifferentiateNodeToNode(
 		m_dMassFluxNode,
-		m_dDiffMassFluxNode);
+		m_dDiffMassFluxNode,
+		fZeroBoundaries);
 
 	// Change in density on model levels
 	double dSum = 0.0;
@@ -1754,24 +1828,7 @@ void VerticalDynamicsFEM::BuildF(
 			/ dJacobian[k][m_iA][m_iB];
 	}
 
-/*
-	double dArea = 0.0;
-	double dDeltaMass = 0.0;
-	for (int k = 0; k < nRElements; k++) {
-		const DataMatrix4D<double> & dContraMetricXi =
-			m_pPatch->GetContraMetricXi();
-
-		dDeltaMass += dF[VecFIx(FRIx, k)] * dElementArea[k][m_iA][m_iB];
-		dArea += dElementArea[k][m_iA][m_iB];
-	}
-	if ((m_iA == 38) && (m_iB == 1)) {
-		printf("%1.15e\n", dDeltaMass);
-	}
-	if (fabs(dDeltaMass / dArea) > 1.0e-15) {
-		printf("%i %i\n", m_iA, m_iB);
-	}
-*/
-
+#ifdef FORMULATION_PRESSURE
 	// Pressure flux on model levels
 	for (int k = 0; k < nRElements; k++) {
 		m_dPressureFluxNode[k] =
@@ -1779,30 +1836,43 @@ void VerticalDynamicsFEM::BuildF(
 			* phys.GetGamma()
 			* m_dStateNode[PIx][k]
 			* m_dXiDotNode[k];
-
-		m_dStateAux[k] =
-			phys.PressureFromRhoTheta(m_dStateNode[PIx][k]);
 	}
 
 	pGrid->DifferentiateNodeToNode(
 		m_dPressureFluxNode,
-		m_dDiffPressureFluxNode);
+		m_dDiffPressureFluxNode,
+		fZeroBoundaries);
 
 	// Change in pressure on model levels
-	for (int k = 0; k < nRElements; k++) {
-		dF[VecFIx(FPIx, k)] =
-			- (phys.GetGamma() - 1.0)
-			* m_dXiDotNode[k]
-			* m_dDiffP[k];
+	if (pGrid->GetVarLocation(WIx) == DataLocation_Node) {
+		for (int k = 0; k < nRElements; k++) {
+			dF[VecFIx(FPIx, k)] =
+				- (phys.GetGamma() - 1.0)
+				* m_dXiDotNode[k]
+				* m_dDiffP[k];
 
-		dF[VecFIx(FPIx, k)] +=
-			m_dDiffPressureFluxNode[k]
-			/ dJacobian[k][m_iA][m_iB];
+			dF[VecFIx(FPIx, k)] +=
+				m_dDiffPressureFluxNode[k]
+				/ dJacobian[k][m_iA][m_iB];
+		}
+
+	} else {
+		for (int k = 0; k < nRElements; k++) {
+			dF[VecFIx(FPIx, k)] =
+				- (phys.GetGamma() - 1.0)
+				* m_dXiDotNode[k]
+				* m_dStateAux[k];
+				//* m_dStateNode[RIx][k];
+
+			dF[VecFIx(FPIx, k)] +=
+				m_dDiffPressureFluxNode[k]
+				/ dJacobian[k][m_iA][m_iB];
+		}
 	}
+#endif
 
 	// Kinetic energy on model levels
 	for (int k = 0; k < nRElements; k++) {
-#ifdef USE_COVARIANT_VELOCIITES
 		const DataMatrix4D<double> & dContraMetricA =
 			m_pPatch->GetContraMetricA();
 		const DataMatrix4D<double> & dContraMetricB =
@@ -1828,76 +1898,19 @@ void VerticalDynamicsFEM::BuildF(
 			  dContraMetricXi[k][m_iA][m_iB][0] * dCovUa
 			+ dContraMetricXi[k][m_iA][m_iB][1] * dCovUb
 			+ dContraMetricXi[k][m_iA][m_iB][2] * dCovUx;
-#else
-		const DataMatrix4D<double> & dCovMetricA =
-			m_pPatch->GetCovMetricA();
-		const DataMatrix4D<double> & dCovMetricB =
-			m_pPatch->GetCovMetricB();
-		const DataMatrix4D<double> & dCovMetricXi =
-			m_pPatch->GetCovMetricXi();
-
-		double dConUa = m_dStateNode[UIx][k];
-		double dConUb = m_dStateNode[VIx][k];
-		double dConUx = m_dXiDotNode[k];
-
-		double dCovUa =
-			  dCovMetricA[k][m_iA][m_iB][0] * dConUa
-			+ dCovMetricA[k][m_iA][m_iB][1] * dConUb
-			+ dCovMetricA[k][m_iA][m_iB][2] * dConUx;
-
-		double dCovUb =
-			  dCovMetricB[k][m_iA][m_iB][0] * dConUa
-			+ dCovMetricB[k][m_iA][m_iB][1] * dConUb
-			+ dCovMetricB[k][m_iA][m_iB][2] * dConUx;
-
-		double dCovUx =
-			  dCovMetricXi[k][m_iA][m_iB][0] * dConUa
-			+ dCovMetricXi[k][m_iA][m_iB][1] * dConUb
-			+ dCovMetricXi[k][m_iA][m_iB][2] * dConUx;
-#endif
 
 		// Specific kinetic energy
 		m_dKineticEnergyNode[k] =
 			  0.5 * (dConUa * dCovUa + dConUb * dCovUb + dConUx * dCovUx);
-
 	}
 
-	pGrid->DifferentiateNodeToNode(
-		m_dKineticEnergyNode,
-		m_dDiffKineticEnergyNode);
-/*
-#ifndef USE_COVARIANT_VELOCITIES
-	// Change in alpha/beta velocity on model levels
-	for (int k = 0; k < nRElements; k++) {
-		const DataMatrix4D<double> & dContraMetricA =
-			m_pPatch->GetContraMetricA();
-		const DataMatrix4D<double> & dContraMetricB =
-			m_pPatch->GetContraMetricB();
+	// Update equation for vertical velocity
+	if (pGrid->GetVarLocation(WIx) == DataLocation_Node) {
+		pGrid->DifferentiateNodeToNode(
+			m_dKineticEnergyNode,
+			m_dDiffKineticEnergyNode);
 
-		double dDerivUpdate =
-			  m_dDiffP[k] / m_dStateNode[RIx][k]
-			+ m_dDiffKineticEnergyNode[k]
-			+ phys.GetG() * dDerivRNode[k][m_iA][m_iB][2];
-
-		if (k == 0) {
-			dDerivUpdate = 0.0;
-		}
-
-		dF[VecFIx(FUIx, k)] =
-			dContraMetricA[k][m_iA][m_iB][2] * dDerivUpdate;
-
-		dF[VecFIx(FVIx, k)] =
-			dContraMetricB[k][m_iA][m_iB][2] * dDerivUpdate;
-	}
-#endif
-*/
-	// Change in vertical velocity on model levels
-	for (int k = 0; k < nRElements; k++) {
-
-		if ((k == 0) || (k == nRElements-1)) {
-			dF[VecFIx(FWIx, k)] = 0.0;
-
-		} else {
+		for (int k = 1; k < nRElements; k++) {
 			dF[VecFIx(FWIx, k)] =
 				(m_dDiffKineticEnergyNode[k]
 					+ m_dDiffP[k] / m_dStateNode[RIx][k])
@@ -1907,14 +1920,20 @@ void VerticalDynamicsFEM::BuildF(
 				phys.GetG();
 		}
 
-/*
-		if ((m_iA == 35) && (m_iB == 1)) {
-			printf("%i %1.5e %1.5e\n",
-				k,
-				m_dDiffKineticEnergyNode[k] / m_dDxRNode[k],
-				dF[VecFIx(FWIx, k)]);
+	} else {
+		pGrid->DifferentiateNodeToREdge(
+			m_dKineticEnergyNode,
+			m_dDiffKineticEnergyREdge);
+
+		for (int k = 1; k < nRElements; k++) {
+			dF[VecFIx(FWIx, k)] =
+				(m_dDiffKineticEnergyREdge[k]
+					+ m_dDiffP[k] / m_dStateREdge[RIx][k])
+				/ dDerivRREdge[k][m_iA][m_iB][2];
+
+			dF[VecFIx(FWIx, k)] +=
+				phys.GetG();
 		}
-*/
 	}
 
 	// Construct the time-dependent component of the RHS
@@ -1925,25 +1944,23 @@ void VerticalDynamicsFEM::BuildF(
 	// Apply boundary conditions to W
 	if (pGrid->GetVarLocation(WIx) == DataLocation_REdge) {
 		dF[VecFIx(FWIx, 0)] =
-			m_pPatch->CalculateXiDotREdge(
-				0, m_iA, m_iB,
-				m_dStateREdge[UIx][0],
-				m_dStateREdge[VIx][0],
-				m_dStateREdge[WIx][0]);
+			  dContraMetricXiREdge[0][m_iA][m_iB][0] * m_dStateREdge[UIx][0]
+			+ dContraMetricXiREdge[0][m_iA][m_iB][1] * m_dStateREdge[VIx][0]
+			+ dContraMetricXiREdge[0][m_iA][m_iB][2]
+				* dDerivRREdge[0][m_iA][m_iB][2] * m_dStateREdge[WIx][0];
 
-		dF[VecFIx(FWIx, nRElements)] =
-			m_pPatch->CalculateXiDotREdge(
-				nRElements, m_iA, m_iB,
-				m_dStateREdge[UIx][nRElements],
-				m_dStateREdge[VIx][nRElements],
-				m_dStateREdge[WIx][nRElements]);
+		int k = nRElements;
+
+		dF[VecFIx(FWIx, k)] =
+			  dContraMetricXiREdge[k][m_iA][m_iB][0] * m_dStateREdge[UIx][k]
+			+ dContraMetricXiREdge[k][m_iA][m_iB][1] * m_dStateREdge[VIx][k]
+			+ dContraMetricXiREdge[k][m_iA][m_iB][2]
+				* dDerivRREdge[k][m_iA][m_iB][2] * m_dStateREdge[WIx][k];
 
 	} else if (
 		pGrid->GetVerticalStaggering() ==
 			Grid::VerticalStaggering_Interfaces
 	) {
-
-#ifdef USE_COVARIANT_VELOCITIES
 		dF[VecFIx(FWIx, 0)] =
 			  dContraMetricXi[0][m_iA][m_iB][0] * m_dStateNode[UIx][0]
 			+ dContraMetricXi[0][m_iA][m_iB][1] * m_dStateNode[VIx][0]
@@ -1957,26 +1974,10 @@ void VerticalDynamicsFEM::BuildF(
 			+ dContraMetricXi[k][m_iA][m_iB][1] * m_dStateNode[VIx][k]
 			+ dContraMetricXi[k][m_iA][m_iB][2]
 				* dDerivRNode[k][m_iA][m_iB][2] * m_dStateNode[WIx][k];
-#else
-		dF[VecFIx(FWIx, 0)] =
-			m_pPatch->CalculateXiDotNode(
-				0, m_iA, m_iB,
-				m_dStateNode[UIx][0],
-				m_dStateNode[VIx][0],
-				m_dStateNode[WIx][0]);
-
-		dF[VecFIx(FWIx, nRElements-1)] =
-			m_pPatch->CalculateXiDotNode(
-				nRElements-1, m_iA, m_iB,
-				m_dStateNode[UIx][nRElements-1],
-				m_dStateNode[VIx][nRElements-1],
-				m_dStateNode[WIx][nRElements-1]);
-#endif
 
 	} else {
 		_EXCEPTIONT("UNIMPLEMENTED");
 	}
-
 /*
 #ifdef APPLY_RAYLEIGH_WITH_VERTICALDYN
 
@@ -2103,13 +2104,11 @@ void VerticalDynamicsFEM::BuildJacobianF(
 	const DataVector<int> & iDiffREdgeToREdgeEnd =
 		opDiffREdgeToREdge.GetIxEnd();
 
-	// Orthonormalization coefficients
+	// Metric components
 	const DataMatrix3D<double> & dJacobianNode =
 		m_pPatch->GetJacobian();
 	const DataMatrix3D<double> & dJacobianREdge =
 		m_pPatch->GetJacobianREdge();
-	const DataMatrix4D<double> & dOrthonomREdge =
-		m_pPatch->GetOrthonormREdge();
 	const DataMatrix4D<double> & dContraMetricXi =
 		m_pPatch->GetContraMetricXi();
 	const DataMatrix4D<double> & dDerivRNode =
@@ -2242,13 +2241,13 @@ void VerticalDynamicsFEM::BuildJacobianF(
 				* m_dXiDotREdge[k];
 		}
 	}
-
+/*
 	// dT_k/dW_k
 	for (int k = 0; k <= nRElements; k++) {
 		dDG[MatFIx(FWIx, k, FPIx, k)] =
 			m_dDiffP[k] * dOrthonomREdge[k][m_iA][m_iB][2];
 	}
-
+*/
 	// dW_k/dT_l and dW_k/dR_m
 	for (int k = 1; k < nRElements; k++) {
 
@@ -2299,13 +2298,13 @@ void VerticalDynamicsFEM::BuildJacobianF(
 			} else if (m_dXiDotREdge[k] > 0.0) {
 				dSignW = 1.0;
 			}
-
+/*
 			dDG[MatFIx(FWIx, k, FPIx, k)] -=
 				m_dHypervisCoeff
 				* dOrthonomREdge[k][m_iA][m_iB][2]
 				* dSignW
 				* m_dDiffDiffP[k];
-
+*/
 			// dT_k/dT_m
 			for (int m = 0; m <= nRElements; m++) {
 				dDG[MatFIx(FPIx, m, FPIx, k)] -=
@@ -2322,7 +2321,7 @@ void VerticalDynamicsFEM::BuildJacobianF(
 	// Vertical velocity on interfaces (CPH or LOR staggering)
 	if (pGrid->GetVarLocation(WIx) == DataLocation_REdge) {
 		for (int k = 0; k < nRElements; k++) {
-
+/*
 			// dRho_k/dW_l
 			int l = iDiffREdgeToNodeBegin[k];
 			for (; l < iDiffREdgeToNodeEnd[k]; l++) {
@@ -2333,6 +2332,7 @@ void VerticalDynamicsFEM::BuildJacobianF(
 					* m_dStateREdge[RIx][l]
 					* dOrthonomREdge[l][m_iA][m_iB][2];
 			}
+*/
 /*
 #ifdef UPWIND_RHO
 			// Diffusion of Rho (dRho_k/dW)

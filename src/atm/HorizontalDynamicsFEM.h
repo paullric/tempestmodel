@@ -165,9 +165,15 @@ protected:
 	DataMatrix<double> m_dBetaPressureFlux;
 
 	///	<summary>
-	///		Auxiliary data within an element.
+	///		Auxiliary data within an element (on nodes).
 	///	</summary>
 	DataMatrix4D<double> m_dAuxDataNode;
+
+	///	<summary>
+	///		Auxiliary data within an element (on edges).
+	///	</summary>
+	DataMatrix4D<double> m_dAuxDataREdge;
+
 /*
 	///	<summary>
 	///		Zero vector of length RElements+1.

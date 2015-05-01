@@ -56,7 +56,8 @@ public:
 		int nVerticalOrder,
 		const DataVector<double> & dREtaNode,
 		const DataVector<double> & dREtaREdge,
-		const DataVector<double> & dREtaOut
+		const DataVector<double> & dREtaOut,
+		bool fZeroBoundaries = false
 	);
 };
 
@@ -85,9 +86,23 @@ public:
 	{ }
 
 	///	<summary>
-	///		Initialize the operator
+	///		Initialize the operator by interpolating to interfaces and
+	///		differentiating.
 	///	</summary>
-	void Initialize(
+	void InitializeInterfaceMethod(
+		InterpSource eInterpSource,
+		int nVerticalOrder,
+		const DataVector<double> & dREtaNode,
+		const DataVector<double> & dREtaREdge,
+		const DataVector<double> & dREtaOut,
+		bool fZeroBoundaries
+	);
+
+	///	<summary>
+	///		Initialize a differentiation operator using a flux reconstruction
+	///		function based approach.
+	///	</summary>
+	void InitializeFluxCorrectionMethod(
 		InterpSource eInterpSource,
 		int nVerticalOrder,
 		const DataVector<double> & dREtaNode,
