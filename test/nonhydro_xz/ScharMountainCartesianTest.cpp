@@ -249,9 +249,9 @@ public:
 			dState[4] = dRho;
 
 			// Set the initial potential temperature field
-			dState[2] = phys.PressureFromRhoTheta(dThetaBar * dRho);
+			//dState[2] = phys.PressureFromRhoTheta(dThetaBar * dRho);
 			//dState[2] = (dThetaBar * dRho);
-			//dState[2] = dThetaBar;
+			dState[2] = dThetaBar;
 		}
 	}
 
@@ -289,10 +289,10 @@ public:
 		double dRho = dP0 / (dRd * dThetaBar) * pow(dExnerP,(dCv / dRd));
 		dState[4] = dRho;
 
-		// Set the initial pressure field
-		dState[2] = phys.PressureFromRhoTheta(dThetaBar * dRho);
+		// Set the initial theta field
+		//dState[2] = phys.PressureFromRhoTheta(dThetaBar * dRho);
 		//dState[2] = (dThetaBar * dRho);
-		//dState[2] = dThetaBar;
+		dState[2] = dThetaBar;
 	}
 };
 

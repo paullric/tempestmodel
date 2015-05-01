@@ -216,7 +216,8 @@ void VerticalDynamicsFEM::Initialize() {
 	m_dXiDotNode.Initialize(nRElements);
 	m_dXiDotREdge.Initialize(nRElements+1);
 
-	m_dDiffP.Initialize(nRElements+1);
+	m_dDiffPNode.Initialize(nRElements);
+	m_dDiffPREdge.Initialize(nRElements+1);
 	m_dDiffDiffP.Initialize(nRElements+1);
 
 	m_dHorizKineticEnergyNode.Initialize(nRElements);
@@ -1523,7 +1524,7 @@ void VerticalDynamicsFEM::PrepareColumn(
 		// Calculate derivative of P at nodes
 		pGrid->DifferentiateNodeToNode(
 			m_dStateNode[PIx],
-			m_dDiffP);
+			m_dDiffPNode);
 #endif
 
 	// Compute u^xi on model interfaces
@@ -1562,12 +1563,12 @@ void VerticalDynamicsFEM::PrepareColumn(
 		// Calculate derivative of P at edges
 		pGrid->DifferentiateNodeToREdge(
 			m_dStateNode[PIx],
-			m_dDiffP);
+			m_dDiffPREdge);
 
 		// Calculate derivative of P at nodes
 		pGrid->DifferentiateNodeToNode(
 			m_dStateNode[PIx],
-			m_dStateAux);
+			m_dDiffPNode);
 /*
 		for (int k = 1; k < nRElements; k++) {
 			m_dDiffP[k] /= m_dStateREdge[RIx][k];
@@ -1849,7 +1850,7 @@ void VerticalDynamicsFEM::BuildF(
 			dF[VecFIx(FPIx, k)] =
 				- (phys.GetGamma() - 1.0)
 				* m_dXiDotNode[k]
-				* m_dDiffP[k];
+				* m_dDiffPNode[k];
 
 			dF[VecFIx(FPIx, k)] +=
 				m_dDiffPressureFluxNode[k]
@@ -1861,8 +1862,7 @@ void VerticalDynamicsFEM::BuildF(
 			dF[VecFIx(FPIx, k)] =
 				- (phys.GetGamma() - 1.0)
 				* m_dXiDotNode[k]
-				* m_dStateAux[k];
-				//* m_dStateNode[RIx][k];
+				* m_dDiffPNode[k];
 
 			dF[VecFIx(FPIx, k)] +=
 				m_dDiffPressureFluxNode[k]
@@ -1913,7 +1913,7 @@ void VerticalDynamicsFEM::BuildF(
 		for (int k = 1; k < nRElements; k++) {
 			dF[VecFIx(FWIx, k)] =
 				(m_dDiffKineticEnergyNode[k]
-					+ m_dDiffP[k] / m_dStateNode[RIx][k])
+					+ m_dDiffPNode[k] / m_dStateNode[RIx][k])
 				/ dDerivRNode[k][m_iA][m_iB][2];
 
 			dF[VecFIx(FWIx, k)] +=
@@ -1928,7 +1928,7 @@ void VerticalDynamicsFEM::BuildF(
 		for (int k = 1; k < nRElements; k++) {
 			dF[VecFIx(FWIx, k)] =
 				(m_dDiffKineticEnergyREdge[k]
-					+ m_dDiffP[k] / m_dStateREdge[RIx][k])
+					+ m_dDiffPREdge[k] / m_dStateREdge[RIx][k])
 				/ dDerivRREdge[k][m_iA][m_iB][2];
 
 			dF[VecFIx(FWIx, k)] +=
@@ -2194,7 +2194,7 @@ void VerticalDynamicsFEM::BuildJacobianF(
 				- (phys.GetGamma() - 1.0)
 				* dContraMetricXi[k][m_iA][m_iB][2]
 				* dDerivRNode[k][m_iA][m_iB][2]
-				* m_dDiffP[k];
+				* m_dDiffPNode[k];
 		}
 
 		// Account for interfaces
@@ -2220,7 +2220,7 @@ void VerticalDynamicsFEM::BuildJacobianF(
 			}
 
 			dDG[MatFIx(FRIx, k, FWIx, k)] +=
-				- m_dDiffP[k]
+				- m_dDiffPNode[k]
 				/ dDerivRNode[k][m_iA][m_iB][2]
 				/ (m_dStateNode[RIx][k] * m_dStateNode[RIx][k]);
 		}

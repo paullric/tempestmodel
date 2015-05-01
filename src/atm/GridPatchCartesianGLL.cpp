@@ -525,8 +525,10 @@ void GridPatchCartesianGLL::EvaluateTestCase(
 	}
 
 	// Buffer vector for storing pointwise states
-	int nComponents = m_grid.GetModel().GetEquationSet().GetComponents();
-	int nTracers = m_grid.GetModel().GetEquationSet().GetTracers();
+	const EquationSet & eqns = m_grid.GetModel().GetEquationSet();
+
+	int nComponents = eqns.GetComponents();
+	int nTracers = eqns.GetTracers();
 
 	DataVector<double> dPointwiseState;
 	dPointwiseState.Initialize(nComponents);
@@ -554,6 +556,8 @@ void GridPatchCartesianGLL::EvaluateTestCase(
 			dPointwiseState,
 			dPointwiseTracers);
 
+		eqns.ConvertComponents(phys, dPointwiseState);
+
 		for (int c = 0; c < dPointwiseState.GetRows(); c++) {
 			m_datavecStateNode[iDataIndex][c][k][i][j] = dPointwiseState[c];
 		}
@@ -566,6 +570,8 @@ void GridPatchCartesianGLL::EvaluateTestCase(
 				m_dataLon[i][j],
 				m_dataLat[i][j],
 				dPointwiseRefState);
+
+			eqns.ConvertComponents(phys, dPointwiseRefState);
 
 			for (int c = 0; c < dPointwiseState.GetRows(); c++) {
 				m_dataRefStateNode[c][k][i][j] = dPointwiseRefState[c];
@@ -587,7 +593,7 @@ void GridPatchCartesianGLL::EvaluateTestCase(
 
 		// Evaluate pointwise state
 		test.EvaluatePointwiseState(
-			m_grid.GetModel().GetPhysicalConstants(),
+			phys,
 			time,
 			m_dataZInterfaces[k][i][j],
 			m_dataLon[i][j],
@@ -595,17 +601,21 @@ void GridPatchCartesianGLL::EvaluateTestCase(
 			dPointwiseState,
 			dPointwiseTracers);
 
+		eqns.ConvertComponents(phys, dPointwiseState);
+
 		for (int c = 0; c < dPointwiseState.GetRows(); c++) {
 			m_datavecStateREdge[iDataIndex][c][k][i][j] = dPointwiseState[c];
 		}
 
 		if (m_grid.HasReferenceState()) {
 			test.EvaluateReferenceState(
-				m_grid.GetModel().GetPhysicalConstants(),
+				phys,
 				m_dataZInterfaces[k][i][j],
 				m_dataLon[i][j],
 				m_dataLat[i][j],
 				dPointwiseRefState);
+
+			eqns.ConvertComponents(phys, dPointwiseRefState);
 
 			for (int c = 0; c < dPointwiseState.GetRows(); c++) {
 				m_dataRefStateREdge[c][k][i][j] = dPointwiseRefState[c];

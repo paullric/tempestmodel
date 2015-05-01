@@ -221,8 +221,6 @@ public:
 			  pow(dExnerP, (dCv / dRd));
 
 		dState[4] = dRho;
-
-		dState[2] = phys.PressureFromRhoTheta(dState[2] * dState[4]);
 	}
 };
 

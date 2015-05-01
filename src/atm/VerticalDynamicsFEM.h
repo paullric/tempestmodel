@@ -318,9 +318,14 @@ protected:
 	DataVector<double> m_dXiDotREdge;
 
 	///	<summary>
-	///		Auxiliary storage for derivative of theta.
+	///		Auxiliary storage for derivative of theta on nodes.
 	///	</summary>
-	DataVector<double> m_dDiffP;
+	DataVector<double> m_dDiffPNode;
+
+	///	<summary>
+	///		Auxiliary storage for derivative of theta on interfaces.
+	///	</summary>
+	DataVector<double> m_dDiffPREdge;
 
 	///	<summary>
 	///		Auxiliary storage for higher derivatives of theta.
