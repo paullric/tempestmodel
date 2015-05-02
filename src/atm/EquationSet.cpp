@@ -66,7 +66,7 @@ EquationSet::EquationSet(
 		m_strComponentShortNames.push_back("Theta");
 		m_strComponentFullNames.push_back("Potential Temperature");
 #endif
-#ifdef FORMULATION_RHOTHETA
+#if defined(FORMULATION_RHOTHETA_PI) || defined(FORMULATION_RHOTHETA_P)
 		m_strComponentShortNames.push_back("RhoTheta");
 		m_strComponentFullNames.push_back("Potential Temperature Density");
 #endif
@@ -89,17 +89,27 @@ void EquationSet::ConvertComponents(
 	const PhysicalConstants & phys,
 	DataVector<double> & dState
 ) const {
+
+	// Indices of EquationSet variables
+	const int UIx = 0;
+	const int VIx = 1;
+	const int HIx = 2;
+	const int PIx = 2;
+	const int WIx = 3;
+	const int RIx = 4;
+
+	// Primitive non-hydrostatic equations
 	if (m_eEquationSetType == PrimitiveNonhydrostaticEquations) {
 		if (dState.GetRows() != 5) {
 			_EXCEPTIONT("Invalid state vector length");
 		}
 #ifdef FORMULATION_PRESSURE
-		dState[2] = phys.PressureFromRhoTheta(dState[2] * dState[4]);
+		dState[PIx] = phys.PressureFromRhoTheta(dState[PIx] * dState[RIx]);
 #endif
 #ifdef FORMULATION_THETA
 #endif
-#ifdef FORMULATION_RHOTHETA
-		dState[2] = dState[2] * dState[4];
+#if defined(FORMULATION_RHOTHETA_PI) || defined(FORMULATION_RHOTHETA_P)
+		dState[PIx] *= dState[RIx];
 #endif
 	}
 }

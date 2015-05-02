@@ -234,17 +234,20 @@ void VerticalDynamicsFEM::Initialize() {
 	m_dDiffPressureFluxNode.Initialize(nRElements);
 	m_dPressureFluxREdge.Initialize(nRElements+1);
 	m_dDiffPressureFluxREdge.Initialize(nRElements+1);
+
+	m_dExnerNode.Initialize(nRElements);
+	m_dExnerREdge.Initialize(nRElements+1);
 /*
-	m_dExnerPertNode.Initialize(nRElements);
+	m_dExnerNode.Initialize(nRElements);
 	m_dExnerRefNode.Initialize(nRElements);
 
-	m_dDiffExnerPertNode.Initialize(nRElements);
+	m_dDiffExnerNode.Initialize(nRElements);
 	m_dDiffExnerRefNode.Initialize(nRElements);
 
-	m_dExnerPertREdge.Initialize(nRElements+1);
+	m_dExnerREdge.Initialize(nRElements+1);
 	m_dExnerRefREdge.Initialize(nRElements+1);
 
-	m_dDiffExnerPertREdge.Initialize(nRElements+1);
+	m_dDiffExnerREdge.Initialize(nRElements+1);
 	m_dDiffExnerRefREdge.Initialize(nRElements+1);
 */
 /*
@@ -563,9 +566,11 @@ void VerticalDynamicsFEM::SetupReferenceColumn(
 			m_dStateNode[UIx][k] = dataInitialNode[UIx][k][iA][iB];
 		}
 
-		pGrid->InterpolateNodeToREdge(
-			m_dStateNode[UIx],
-			m_dStateREdge[UIx]);
+		if (pGrid->GetVarsAtLocation(DataLocation_REdge) != 0) {
+			pGrid->InterpolateNodeToREdge(
+				m_dStateNode[UIx],
+				m_dStateREdge[UIx]);
+		}
 
 	} else {
 		for (int k = 0; k <= nRElements; k++) {
@@ -583,9 +588,11 @@ void VerticalDynamicsFEM::SetupReferenceColumn(
 			m_dStateNode[VIx][k] = dataInitialNode[VIx][k][iA][iB];
 		}
 
-		pGrid->InterpolateNodeToREdge(
-			m_dStateNode[VIx],
-			m_dStateREdge[VIx]);
+		if (pGrid->GetVarsAtLocation(DataLocation_REdge) != 0) {
+			pGrid->InterpolateNodeToREdge(
+				m_dStateNode[VIx],
+				m_dStateREdge[VIx]);
+		}
 
 	} else {
 		for (int k = 0; k <= nRElements; k++) {
@@ -1526,6 +1533,30 @@ void VerticalDynamicsFEM::PrepareColumn(
 			m_dStateNode[PIx],
 			m_dDiffPNode);
 #endif
+#ifdef FORMULATION_RHOTHETA_PI
+		// Calculate Exner pressure at nodes
+		for (int k = 0; k < nRElements; k++) {
+			m_dExnerNode[k] =
+				phys.ExnerPressureFromRhoTheta(m_dStateNode[PIx][k]);
+		}
+
+		// Calculate derivative of Exner pressure at nodes
+		pGrid->DifferentiateNodeToNode(
+			m_dExnerNode,
+			m_dDiffPNode);
+#endif
+#ifdef FORMULATION_RHOTHETA_P
+		// Calculate pressure at nodes
+		for (int k = 0; k < nRElements; k++) {
+			m_dExnerNode[k] =
+				phys.PressureFromRhoTheta(m_dStateNode[PIx][k]);
+		}
+
+		// Calculate derivative of Exner pressure at nodes
+		pGrid->DifferentiateNodeToNode(
+			m_dExnerNode,
+			m_dDiffPNode);
+#endif
 
 	// Compute u^xi on model interfaces
 	} else {
@@ -1535,15 +1566,9 @@ void VerticalDynamicsFEM::PrepareColumn(
 			m_dStateREdge[WIx],
 			m_dStateNode[WIx]);
 
-		// U, V and Rho are needed on model interfaces
-		pGrid->InterpolateNodeToREdge(
-			m_dStateNode[UIx],
-			m_dStateREdge[UIx]);
+		// U, V already interpolated in SetupReferenceColumn
 
-		pGrid->InterpolateNodeToREdge(
-			m_dStateNode[VIx],
-			m_dStateREdge[VIx]);
-
+		// Rho are needed on model interfaces
 		pGrid->InterpolateNodeToREdge(
 			m_dStateNode[RIx],
 			m_dStateREdge[RIx]);
@@ -1585,6 +1610,12 @@ void VerticalDynamicsFEM::PrepareColumn(
 		}
 		_EXCEPTION();
 */
+#endif
+#ifdef FORMULATION_RHOTHETA_P
+		_EXCEPTIONT("Not implemented");
+#endif
+#ifdef FORMULATION_RHOTHETA_PI
+		_EXCEPTIONT("Not implemented");
 #endif
 
 	}
@@ -1845,29 +1876,36 @@ void VerticalDynamicsFEM::BuildF(
 		fZeroBoundaries);
 
 	// Change in pressure on model levels
-	if (pGrid->GetVarLocation(WIx) == DataLocation_Node) {
-		for (int k = 0; k < nRElements; k++) {
-			dF[VecFIx(FPIx, k)] =
-				- (phys.GetGamma() - 1.0)
-				* m_dXiDotNode[k]
-				* m_dDiffPNode[k];
+	for (int k = 0; k < nRElements; k++) {
+		dF[VecFIx(FPIx, k)] =
+			- (phys.GetGamma() - 1.0)
+			* m_dXiDotNode[k]
+			* m_dDiffPNode[k];
 
-			dF[VecFIx(FPIx, k)] +=
-				m_dDiffPressureFluxNode[k]
-				/ dJacobian[k][m_iA][m_iB];
-		}
+		dF[VecFIx(FPIx, k)] +=
+			m_dDiffPressureFluxNode[k]
+			/ dJacobian[k][m_iA][m_iB];
+	}
+#endif
+#if defined(FORMULATION_RHOTHETA_PI) || defined(FORMULATION_RHOTHETA_P)
+	// RhoTheta flux on model levels
+	for (int k = 0; k < nRElements; k++) {
+		m_dPressureFluxNode[k] =
+			dJacobian[k][m_iA][m_iB]
+			* m_dStateNode[PIx][k]
+			* m_dXiDotNode[k];
+	}
 
-	} else {
-		for (int k = 0; k < nRElements; k++) {
-			dF[VecFIx(FPIx, k)] =
-				- (phys.GetGamma() - 1.0)
-				* m_dXiDotNode[k]
-				* m_dDiffPNode[k];
+	pGrid->DifferentiateNodeToNode(
+		m_dPressureFluxNode,
+		m_dDiffPressureFluxNode,
+		fZeroBoundaries);
 
-			dF[VecFIx(FPIx, k)] +=
-				m_dDiffPressureFluxNode[k]
-				/ dJacobian[k][m_iA][m_iB];
-		}
+	// Change in RhoTheta on model levels
+	for (int k = 0; k < nRElements; k++) {
+		dF[VecFIx(FPIx, k)] +=
+			m_dDiffPressureFluxNode[k]
+			/ dJacobian[k][m_iA][m_iB];
 	}
 #endif
 
@@ -1911,9 +1949,19 @@ void VerticalDynamicsFEM::BuildF(
 			m_dDiffKineticEnergyNode);
 
 		for (int k = 1; k < nRElements; k++) {
+
+#if defined(FORMULATION_PRESSURE) || defined(FORMULATION_RHOTHETA_P)
+			double dPressureGradientForce =
+				m_dDiffPNode[k] / m_dStateNode[RIx][k];
+#endif
+#ifdef FORMULATION_RHOTHETA_PI
+			double dPressureGradientForce =
+				  m_dDiffPNode[k]
+				* m_dStateNode[PIx][k]
+				/ m_dStateNode[RIx][k];
+#endif
 			dF[VecFIx(FWIx, k)] =
-				(m_dDiffKineticEnergyNode[k]
-					+ m_dDiffPNode[k] / m_dStateNode[RIx][k])
+				(m_dDiffKineticEnergyNode[k] + dPressureGradientForce)
 				/ dDerivRNode[k][m_iA][m_iB][2];
 
 			dF[VecFIx(FWIx, k)] +=
@@ -1926,9 +1974,19 @@ void VerticalDynamicsFEM::BuildF(
 			m_dDiffKineticEnergyREdge);
 
 		for (int k = 1; k < nRElements; k++) {
+#if defined(FORMULATION_PRESSURE) || defined(FORMULATION_RHOTHETA_P)
+			double dPressureGradientForce =
+				m_dDiffPREdge[k] / m_dStateREdge[RIx][k];
+#endif
+#ifdef FORMULATION_RHOTHETA_PI
+			double dPressureGradientForce =
+				  m_dDiffPREdge[k]
+				* m_dStateREdge[PIx][k]
+				/ m_dStateREdge[RIx][k];
+#endif
+
 			dF[VecFIx(FWIx, k)] =
-				(m_dDiffKineticEnergyREdge[k]
-					+ m_dDiffPREdge[k] / m_dStateREdge[RIx][k])
+				(m_dDiffKineticEnergyREdge[k] + dPressureGradientForce)
 				/ dDerivRREdge[k][m_iA][m_iB][2];
 
 			dF[VecFIx(FWIx, k)] +=
@@ -2227,6 +2285,12 @@ void VerticalDynamicsFEM::BuildJacobianF(
 	}
 
 #endif
+#ifdef FORMULATION_RHOTHETA_PI
+	_EXCEPTIONT("Not implemented");
+#endif
+#ifdef FORMULATION_RHOTHETA_P
+	_EXCEPTIONT("Not implemented");
+#endif
 
 //////////////////////////////////////////////
 // Prognostic thermodynamic variable theta
@@ -2262,7 +2326,7 @@ void VerticalDynamicsFEM::BuildJacobianF(
 			double dTEntry =
 				dRHSWCoeff 
 				* dDiffNodeToREdge[k][m]
-				* (m_dExnerPertNode[m] + m_dExnerRefNode[m])
+				* (m_dExnerNode[m] + m_dExnerRefNode[m])
 					/ m_dStateNode[PIx][m];
 
 			int l = iInterpREdgeToNodeBegin[m];
@@ -2274,7 +2338,7 @@ void VerticalDynamicsFEM::BuildJacobianF(
 			dDG[MatFIx(FRIx, m, FWIx, k)] +=
 				dRHSWCoeff
 				* dDiffNodeToREdge[k][m]
-				* (m_dExnerPertNode[m] + m_dExnerRefNode[m])
+				* (m_dExnerNode[m] + m_dExnerRefNode[m])
 					/ m_dStateNode[RIx][m];
 		}
 	}
@@ -2283,7 +2347,7 @@ void VerticalDynamicsFEM::BuildJacobianF(
 	for (int k = 1; k < nRElements; k++) {
 		dDG[MatFIx(FPIx, k, FWIx, k)] +=
 			 1.0 / m_dDxRREdge[k]
-			 * (m_dDiffExnerRefREdge[k] + m_dDiffExnerPertREdge[k]);
+			 * (m_dDiffExnerRefREdge[k] + m_dDiffExnerREdge[k]);
 	}
 
 #ifdef UPWIND_THETA

@@ -176,6 +176,11 @@ public:
 
 protected:
 	///	<summary>
+	///		A flag indicating this LinearColumnOperator has been initialized.
+	///	</summary>
+	bool m_fInitialized;
+
+	///	<summary>
 	///		Matrix of linear operator coefficients
 	///	</summary>
 	DataMatrix<double> m_dCoeff;

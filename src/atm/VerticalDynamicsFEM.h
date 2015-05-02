@@ -395,7 +395,7 @@ protected:
 	///	<summary>
 	///		Exner pressure perturbation at model levels.
 	///	</summary>
-	DataVector<double> m_dExnerPertNode;
+	DataVector<double> m_dExnerNode;
 
 	///	<summary>
 	///		Reference Exner pressure at model levels.
@@ -405,7 +405,7 @@ protected:
 	///	<summary>
 	///		Exner pressure perturbation at model interfaces.
 	///	</summary>
-	DataVector<double> m_dExnerPertREdge;
+	DataVector<double> m_dExnerREdge;
 
 	///	<summary>
 	///		Reference Exner pressure at model interfaces.

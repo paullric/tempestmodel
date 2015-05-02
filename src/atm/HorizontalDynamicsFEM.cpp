@@ -72,16 +72,15 @@ void HorizontalDynamicsFEM::Initialize() {
 		m_nHorizontalOrder,
 		m_nHorizontalOrder);
 
-#pragma message "Obtain number of auxiliary data elements from EquationSet type"
 	// Auxiliary data
 	m_dAuxDataNode.Initialize(
-		8,
+		9,
 		nRElements,
 		m_nHorizontalOrder,
 		m_nHorizontalOrder);
 
 	m_dAuxDataREdge.Initialize(
-		8,
+		9,
 		nRElements+1,
 		m_nHorizontalOrder,
 		m_nHorizontalOrder);
@@ -427,12 +426,11 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 	const int UCrossZetaAIx = 5;
 	const int UCrossZetaBIx = 6;
 	const int UCrossZetaXIx = 7;
+	const int ExnerIx = 8;
 
 	// Vertical level stride in local data arrays
 	const int nVerticalElementStride =
 		m_nHorizontalOrder * m_nHorizontalOrder;
-
-	//std::cout << "Inside the horizontal step! \n";
 
 	// Perform local update
 	for (int n = 0; n < pGrid->GetActivePatchCount(); n++) {
@@ -581,6 +579,19 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 					  m_dAuxDataNode[ConUaIx][k][i][j] * dCovUa
 					+ m_dAuxDataNode[ConUbIx][k][i][j] * dCovUb
 					+ m_dAuxDataNode[ConUxIx][k][i][j] * dCovUx);
+
+#ifdef FORMULATION_RHOTHETA_P
+				// Pressure
+				m_dAuxDataNode[ExnerIx][k][i][j] =
+					phys.PressureFromRhoTheta(
+						dataInitialNode[PIx][k][iA][iB]);
+#endif
+#ifdef FORMULATION_RHOTHETA_PI
+				// Exner pressure
+				m_dAuxDataNode[ExnerIx][k][i][j] =
+					phys.ExnerPressureFromRhoTheta(
+						dataInitialNode[PIx][k][iA][iB]);
+#endif
 			}
 			}
 			}
@@ -710,6 +721,7 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 						  dBetaBaseFlux
 						* dataInitialNode[RIx][k][iA][iB];
 
+#ifdef FORMULATION_PRESSURE
 					// Pressure flux
 					m_dAlphaPressureFlux[i][j] =
 						  dAlphaBaseFlux
@@ -720,6 +732,17 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 						  dBetaBaseFlux
 						* phys.GetGamma()
 						* dataInitialNode[PIx][k][iA][iB];
+#endif
+#if defined(FORMULATION_RHOTHETA_PI) || defined(FORMULATION_RHOTHETA_P)
+					// RhoTheta flux
+					m_dAlphaPressureFlux[i][j] =
+						  dAlphaBaseFlux
+						* dataInitialNode[PIx][k][iA][iB];
+
+					m_dBetaPressureFlux[i][j] =
+						  dBetaBaseFlux
+						* dataInitialNode[PIx][k][iA][iB];
+#endif
 				}
 				}
 
@@ -733,6 +756,13 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 					int iElementA = a * m_nHorizontalOrder + box.GetHaloElements();
 					int iElementB = b * m_nHorizontalOrder + box.GetHaloElements();
 
+					// Aliases for alpha and beta velocities
+					const double dConUa = m_dAuxDataNode[ConUaIx][k][i][j];
+					const double dConUb = m_dAuxDataNode[ConUbIx][k][i][j];
+					const double dConUx = m_dAuxDataNode[ConUxIx][k][i][j];
+
+					const double dCovUx = m_dAuxDataNode[CovUxIx][k][i][j];
+
 					// Derivative of the kinetic energy
 					double dDaKE = 0.0;
 					double dDbKE = 0.0;
@@ -740,13 +770,6 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 					// Derivatives of the pressure field
 					double dDaP = 0.0;
 					double dDbP = 0.0;
-
-					// Aliases for alpha and beta velocities
-					const double dConUa = m_dAuxDataNode[ConUaIx][k][i][j];
-					const double dConUb = m_dAuxDataNode[ConUbIx][k][i][j];
-					const double dConUx = m_dAuxDataNode[ConUxIx][k][i][j];
-
-					const double dCovUx = m_dAuxDataNode[CovUxIx][k][i][j];
 
 					// Calculate derivatives in the alpha direction
 					double dDaRhoFluxA = 0.0;
@@ -776,10 +799,18 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 							* dStiffness1D[i][s];
 #endif
 
+#ifdef FORMULATION_PRESSURE
 						// Derivative of pressure with respect to alpha
 						dDaP +=
 							dataInitialNode[PIx][k][iElementA+s][iB]
 							* dDxBasis1D[s][i];
+#endif
+#if defined(FORMULATION_RHOTHETA_PI) || defined(FORMULATION_RHOTHETA_P)
+						// Derivative of (Exner) pressure with respect to alpha
+						dDaP +=
+							m_dAuxDataNode[ExnerIx][k][s][j]
+							* dDxBasis1D[s][i];
+#endif
 
 						// Derivative of specific kinetic energy wrt alpha
 						dDaKE +=
@@ -815,10 +846,18 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 							* dStiffness1D[j][s];
 #endif
 
+#ifdef FORMULATION_PRESSURE
 						// Derivative of pressure with respect to beta
 						dDbP +=
 							dataInitialNode[PIx][k][iA][iElementB+s]
 							* dDxBasis1D[s][j];
+#endif
+#if defined(FORMULATION_RHOTHETA_PI) || defined(FORMULATION_RHOTHETA_P)
+						// Derivative of (Exner) pressure with respect to beta
+						dDbP +=
+							m_dAuxDataNode[ExnerIx][k][i][s]
+							* dDxBasis1D[s][j];
+#endif
 
 						// Derivative of specific kinetic energy wrt beta
 						dDbKE +=
@@ -827,11 +866,11 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 					}
 
 					// Scale derivatives
-					dDaP  /= dElementDeltaA;
-					dDbP  /= dElementDeltaB;
+					dDaP /= dElementDeltaA;
+					dDbP /= dElementDeltaB;
 
-					dDaKE    /= dElementDeltaA;
-					dDbKE    /= dElementDeltaB;
+					dDaKE /= dElementDeltaA;
+					dDbKE /= dElementDeltaB;
 
 					dDaRhoFluxA /= dElementDeltaA;
 					dDbRhoFluxB /= dElementDeltaB;
@@ -854,19 +893,34 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 					dLocalUpdateUb +=
 						dCoriolisF[iA][iB] * dJacobian2D[iA][iB] * dConUa;
 
+					// Pressure gradient force
+#if defined(FORMULATION_PRESSURE) || defined(FORMULATION_RHOTHETA_P)
+					double dPressureGradientForceUa =
+						dDaP / dataInitialNode[RIx][k][iA][iB];
+					double dPressureGradientForceUb =
+						dDbP / dataInitialNode[RIx][k][iA][iB];
+#endif
+#ifdef FORMULATION_RHOTHETA_PI
+					double dPressureGradientForceUa =
+						dDaP * dataInitialNode[PIx][k][iA][iB]
+						/ dataInitialNode[RIx][k][iA][iB];
+					double dPressureGradientForceUb =
+						dDbP * dataInitialNode[PIx][k][iA][iB]
+						/ dataInitialNode[RIx][k][iA][iB];
+#endif
+
 					// Gravity
 					double dDaPhi = phys.GetG() * dDerivRNode[k][iA][iB][0];
 					double dDbPhi = phys.GetG() * dDerivRNode[k][iA][iB][1];
 
-					// Horizontal updates
+					// Horizontal updates due to gradient terms
 					double dDaUpdate =
-						  dDaP / dataInitialNode[RIx][k][iA][iB]
-						+ dDaKE + dDaPhi;
+						dPressureGradientForceUa + dDaKE + dDaPhi;
 
 					double dDbUpdate =
-						  dDbP / dataInitialNode[RIx][k][iA][iB]
-						+ dDbKE + dDbPhi;
+						dPressureGradientForceUb + dDbKE + dDbPhi;
 
+					// Apply gradient term update to total update
 					dLocalUpdateUa -= dDaUpdate;
 					dLocalUpdateUb -= dDbUpdate;
 
@@ -876,18 +930,25 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 					dataUpdateNode[VIx][k][iA][iB] +=
 						dDeltaT * dLocalUpdateUb;
 
-#ifdef FORMULATION_PRESSURE
 					// Update density on model levels
 					dataUpdateNode[RIx][k][iA][iB] -=
 						dDeltaT / dJacobian[k][iA][iB] * (
 							  dDaRhoFluxA
 							+ dDbRhoFluxB);
 
+#ifdef FORMULATION_PRESSURE
 					// Update pressure on model levels
 					dataUpdateNode[PIx][k][iA][iB] +=
 						dDeltaT * (phys.GetGamma() - 1.0)
 						* (dConUa * dDaP + dConUb * dDbP);
 
+					dataUpdateNode[PIx][k][iA][iB] -=
+						dDeltaT / dJacobian[k][iA][iB] * (
+							  dDaPressureFluxA
+							+ dDbPressureFluxB);
+#endif
+#if defined(FORMULATION_RHOTHETA_PI) || defined(FORMULATION_RHOTHETA_P)
+					// Update RhoTheta on model levels
 					dataUpdateNode[PIx][k][iA][iB] -=
 						dDeltaT / dJacobian[k][iA][iB] * (
 							  dDaPressureFluxA
@@ -916,7 +977,7 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 						// Update vertical velocity
 						dataUpdateNode[WIx][k][iA][iB] +=
 							dDeltaT * dLocalUpdateUr;
-
+/*
 						// Check boundary condition
 						if (k == 0) {
 							double dConUxInitial =
@@ -955,6 +1016,7 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 								_EXCEPTIONT("Boundary condition failure (update)");
 							}
 						}
+*/
 					}
 					// Update tracers
 				}

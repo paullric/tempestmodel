@@ -418,39 +418,6 @@ void GridPatch::InitializeDataLocal() {
 			m_box.GetHaloElements());
 	}
 
-	// Kinetic Energy data
-	m_dataKineticEnergy.Initialize(
-		DataType_KineticEnergy,
-		DataLocation_Node,
-		m_grid.GetRElements(),
-		m_box.GetATotalWidth(),
-		m_box.GetBTotalWidth(),
-		m_box.GetHaloElements());
-/*
-	m_dataDaKineticEnergy.Initialize(
-		DataType_KineticEnergy,
-		DataLocation_Node,
-		m_grid.GetRElements(),
-		m_box.GetATotalWidth(),
-		m_box.GetBTotalWidth(),
-		m_box.GetHaloElements());
-
-	m_dataDbKineticEnergy.Initialize(
-		DataType_KineticEnergy,
-		DataLocation_Node,
-		m_grid.GetRElements(),
-		m_box.GetATotalWidth(),
-		m_box.GetBTotalWidth(),
-		m_box.GetHaloElements());
-*/
-	m_dataDxKineticEnergy.Initialize(
-		DataType_KineticEnergy,
-		DataLocation_Node,
-		m_grid.GetRElements(),
-		m_box.GetATotalWidth(),
-		m_box.GetBTotalWidth(),
-		m_box.GetHaloElements());
-
 	// Pressure data
 	m_dataPressure.Initialize(
 		DataType_Pressure,
@@ -582,9 +549,6 @@ void GridPatch::DeinitializeData() {
 
 	m_dataPressure.Deinitialize();
 	m_dataDxPressure.Deinitialize();
-
-	m_dataKineticEnergy.Deinitialize();
-	m_dataDxKineticEnergy.Deinitialize();
 
 	m_dataVorticity.Deinitialize();
 	m_dataDivergence.Deinitialize();
@@ -1135,8 +1099,14 @@ double GridPatch::ComputeTotalEnergy(
 			double dKineticEnergy =
 				0.5 * dataNode[RIx][k][i][j] * dUdotU;
 
+#ifdef FORMULATION_PRESSURE
+			double dPressure = dataNode[PIx][k][i][j];
+#endif
+#if defined(FORMULATION_RHOTHETA_PI) || defined(FORMULATION_RHOTHETA_P)
+			double dPressure = phys.PressureFromRhoTheta(dataNode[PIx][k][i][j]);
+#endif
 			double dInternalEnergy =
-				dataNode[PIx][k][i][j] / (phys.GetGamma() - 1.0);
+				dPressure / (phys.GetGamma() - 1.0);
 
 			double dPotentialEnergy =
 				phys.GetG() * dataNode[RIx][k][i][j] * m_dataZLevels[k][i][j];

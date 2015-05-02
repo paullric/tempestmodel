@@ -18,7 +18,9 @@
 
 ///////////////////////////////////////////////////////////////////////////////
 
-LinearColumnOperator::LinearColumnOperator() {
+LinearColumnOperator::LinearColumnOperator() :
+	m_fInitialized(false)
+{
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -36,6 +38,7 @@ void LinearColumnOperator::Initialize(
 	int nRElementsIn,
 	int nRElementsOut
 ) {
+	m_fInitialized = true;
 	m_dCoeff.Initialize(nRElementsOut, nRElementsIn);
 	m_iBegin.Initialize(nRElementsOut);
 	m_iEnd  .Initialize(nRElementsOut);
@@ -98,7 +101,6 @@ void LinearColumnOperator::DebugOutput(
 	const DataVector<double> * pREtaNode,
 	const DataVector<double> * pREtaREdge
 ) {
-
 	FILE * fp = fopen("op.txt", "w");
 	for (int i = 0; i < m_dCoeff.GetRows(); i++) {
 		for (int j = 0; j < m_dCoeff.GetColumns(); j++) {
@@ -138,6 +140,10 @@ double LinearColumnOperator::Apply(
 	int iRout,
 	int nStride
 ) const {
+	if (!m_fInitialized) {
+		_EXCEPTIONT("Attempting to Apply uninitialized LinearColumnOperator");
+	}
+
 	double dOut = 0.0;
 	for (int l = m_iBegin[iRout]; l < m_iEnd[iRout]; l++) {
 		int lx = l * nStride;
@@ -156,6 +162,10 @@ double LinearColumnOperator::Apply(
 	int iRout,
 	int nStride
 ) const {
+	if (!m_fInitialized) {
+		_EXCEPTIONT("Attempting to Apply uninitialized LinearColumnOperator");
+	}
+
 	double dOut = dColumnRefOut;
 	for (int l = m_iBegin[iRout]; l < m_iEnd[iRout]; l++) {
 		int lx = l * nStride;
@@ -172,6 +182,10 @@ void LinearColumnOperator::Apply(
 	const double * dColumnIn,
 	double * dColumnOut
 ) const {
+	if (!m_fInitialized) {
+		_EXCEPTIONT("Attempting to Apply uninitialized LinearColumnOperator");
+	}
+
 	const int nRElementsOut = m_dCoeff.GetRows();
 
 	for (int k = 0; k < nRElementsOut; k++) {
@@ -191,6 +205,10 @@ void LinearColumnOperator::Apply(
 	int nStrideIn,
 	int nStrideOut
 ) const {
+	if (!m_fInitialized) {
+		_EXCEPTIONT("Attempting to Apply uninitialized LinearColumnOperator");
+	}
+
 	const int nRElementsOut = m_dCoeff.GetRows();
 
 	for (int k = 0; k < nRElementsOut; k++) {
@@ -214,6 +232,10 @@ void LinearColumnOperator::Apply(
 	double * dColumnOut,
 	const double * dColumnRefOut
 ) const {
+	if (!m_fInitialized) {
+		_EXCEPTIONT("Attempting to Apply uninitialized LinearColumnOperator");
+	}
+
 	const int nRElementsOut = m_dCoeff.GetRows();
 
 	for (int k = 0; k < nRElementsOut; k++) {
@@ -236,6 +258,10 @@ void LinearColumnOperator::Apply(
 	int nStrideIn,
 	int nStrideOut
 ) const {
+	if (!m_fInitialized) {
+		_EXCEPTIONT("Attempting to Apply uninitialized LinearColumnOperator");
+	}
+
 	const int nRElementsOut = m_dCoeff.GetRows();
 
 	for (int k = 0; k < nRElementsOut; k++) {

@@ -953,62 +953,6 @@ public:
 	}
 
 	///	<summary>
-	///		Get the kinetic energy data.
-	///	</summary>
-	GridData3D & GetDataKineticEnergy() {
-		return m_dataKineticEnergy;
-	}
-
-	///	<summary>
-	///		Get the kinetic energy data.
-	///	</summary>
-	const GridData3D & GetDataKineticEnergy() const {
-		return m_dataKineticEnergy;
-	}
-/*
-	///	<summary>
-	///		Get the alpha direction kinetic energy derivative data.
-	///	</summary>
-	GridData3D & GetDataDaKineticEnergy() {
-		return m_dataDaKineticEnergy;
-	}
-
-	///	<summary>
-	///		Get the alpha direction kinetic energy derivative data.
-	///	</summary>
-	const GridData3D & GetDataDaKineticEnergy() const {
-		return m_dataDaKineticEnergy;
-	}
-
-	///	<summary>
-	///		Get the beta direction kinetic energy derivative data.
-	///	</summary>
-	GridData3D & GetDataDbKineticEnergy() {
-		return m_dataDbKineticEnergy;
-	}
-
-	///	<summary>
-	///		Get the beta direction kinetic energy derivative data.
-	///	</summary>
-	const GridData3D & GetDataDbKineticEnergy() const {
-		return m_dataDbKineticEnergy;
-	}
-*/
-	///	<summary>
-	///		Get the kinetic energy derivative data.
-	///	</summary>
-	GridData3D & GetDataDxKineticEnergy() {
-		return m_dataDxKineticEnergy;
-	}
-
-	///	<summary>
-	///		Get the kinetic energy derivative data.
-	///	</summary>
-	const GridData3D & GetDataDxKineticEnergy() const {
-		return m_dataDxKineticEnergy;
-	}
-
-	///	<summary>
 	///		Get the vorticity data.
 	///	</summary>
 	GridData3D & GetDataVorticity() {
@@ -1282,41 +1226,11 @@ protected:
 	///		Computed pointwise pressures.
 	///	</summary>
 	GridData3D m_dataPressure;
-/*
-	///	<summary>
-	///		Computed pointwise alpha pressure derivatives.
-	///	</summary>
-	GridData3D m_dataDaPressure;
 
-	///	<summary>
-	///		Computed pointwise beta pressure derivatives.
-	///	</summary>
-	GridData3D m_dataDbPressure;
-*/
 	///	<summary>
 	///		Computed pointwise vertical pressure derivatives.
 	///	</summary>
 	GridData3D m_dataDxPressure;
-
-	///	<summary>
-	///		Computed pointwise kinetic energys.
-	///	</summary>
-	GridData3D m_dataKineticEnergy;
-/*
-	///	<summary>
-	///		Computed pointwise alpha kinetic energy derivatives.
-	///	</summary>
-	GridData3D m_dataDaKineticEnergy;
-
-	///	<summary>
-	///		Computed pointwise beta kinetic energy derivatives.
-	///	</summary>
-	GridData3D m_dataDbKineticEnergy;
-*/
-	///	<summary>
-	///		Computed pointwise vertical kinetic energy derivatives.
-	///	</summary>
-	GridData3D m_dataDxKineticEnergy;
 
 	///	<summary>
 	///		Computed vorticity.
