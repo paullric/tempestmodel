@@ -220,6 +220,9 @@ void VerticalDynamicsFEM::Initialize() {
 	m_dDiffPREdge.Initialize(nRElements+1);
 	m_dDiffDiffP.Initialize(nRElements+1);
 
+	m_dDiffThetaNode.Initialize(nRElements);
+	m_dDiffThetaREdge.Initialize(nRElements+1);
+
 	m_dHorizKineticEnergyNode.Initialize(nRElements);
 	m_dKineticEnergyNode.Initialize(nRElements);
 	m_dDiffKineticEnergyNode.Initialize(nRElements);
@@ -1557,21 +1560,35 @@ void VerticalDynamicsFEM::PrepareColumn(
 			m_dExnerNode,
 			m_dDiffPNode);
 #endif
+#ifdef FORMULATION_THETA
+		// Calculate Exner pressure at nodes
+		for (int k = 0; k < nRElements; k++) {
+			m_dExnerNode[k] =
+				phys.ExnerPressureFromRhoTheta(
+					m_dStateNode[RIx][k] * m_dStateNode[PIx][k]);
+		}
+
+		// Calculate derivative of Exner pressure at nodes
+		pGrid->DifferentiateNodeToNode(
+			m_dExnerNode,
+			m_dDiffPNode);
+#endif
 
 	// Compute u^xi on model interfaces
 	} else {
+
+		// U, V already interpolated in SetupReferenceColumn
 
 		// W is needed on model levels
 		pGrid->InterpolateREdgeToNode(
 			m_dStateREdge[WIx],
 			m_dStateNode[WIx]);
 
-		// U, V already interpolated in SetupReferenceColumn
-
 		// Rho are needed on model interfaces
 		pGrid->InterpolateNodeToREdge(
 			m_dStateNode[RIx],
 			m_dStateREdge[RIx]);
+
 /*
 		// Calculate u^xi on model interfaces
 		for (int k = 1; k < nRElements; k++) {
@@ -1615,6 +1632,14 @@ void VerticalDynamicsFEM::PrepareColumn(
 		_EXCEPTIONT("Not implemented");
 #endif
 #ifdef FORMULATION_RHOTHETA_PI
+		_EXCEPTIONT("Not implemented");
+#endif
+#ifdef FORMULATION_THETA
+		// Theta is needed on model interfaces
+		pGrid->InterpolateNodeToREdge(
+			m_dStateREdge[PIx],
+			m_dStateNode[PIx]);
+
 		_EXCEPTIONT("Not implemented");
 #endif
 
@@ -1908,6 +1933,18 @@ void VerticalDynamicsFEM::BuildF(
 			/ dJacobian[k][m_iA][m_iB];
 	}
 #endif
+#ifdef FORMULATION_THETA
+	// Theta derivatives on model levels
+	pGrid->DifferentiateNodeToNode(
+		m_dStateNode[PIx],
+		m_dDiffThetaNode);
+
+	// Change in Theta on model levels
+	for (int k = 0; k < nRElements; k++) {
+		dF[VecFIx(FPIx, k)] +=
+			m_dXiDotNode[k] * m_dDiffThetaNode[k];
+	}
+#endif
 
 	// Kinetic energy on model levels
 	for (int k = 0; k < nRElements; k++) {
@@ -1950,7 +1987,8 @@ void VerticalDynamicsFEM::BuildF(
 
 		for (int k = 1; k < nRElements; k++) {
 
-#if defined(FORMULATION_PRESSURE) || defined(FORMULATION_RHOTHETA_P)
+#if defined(FORMULATION_PRESSURE) \
+ || defined(FORMULATION_RHOTHETA_P)
 			double dPressureGradientForce =
 				m_dDiffPNode[k] / m_dStateNode[RIx][k];
 #endif
@@ -1959,6 +1997,11 @@ void VerticalDynamicsFEM::BuildF(
 				  m_dDiffPNode[k]
 				* m_dStateNode[PIx][k]
 				/ m_dStateNode[RIx][k];
+#endif
+#ifdef FORMULATION_THETA
+			double dPressureGradientForce =
+				  m_dDiffPNode[k]
+				* m_dStateNode[PIx][k];
 #endif
 			dF[VecFIx(FWIx, k)] =
 				(m_dDiffKineticEnergyNode[k] + dPressureGradientForce)
@@ -1983,6 +2026,11 @@ void VerticalDynamicsFEM::BuildF(
 				  m_dDiffPREdge[k]
 				* m_dStateREdge[PIx][k]
 				/ m_dStateREdge[RIx][k];
+#endif
+#ifdef FORMULATION_THETA
+			double dPressureGradientForce =
+				  m_dDiffPREdge[k]
+				* m_dStateREdge[PIx][k];
 #endif
 
 			dF[VecFIx(FWIx, k)] =
@@ -2295,7 +2343,8 @@ void VerticalDynamicsFEM::BuildJacobianF(
 //////////////////////////////////////////////
 // Prognostic thermodynamic variable theta
 #ifdef FORMULATION_THETA
-
+	_EXCEPTIONT("Not implemented");
+/*
 	// dT_k/dT_l
 	for (int k = 0; k <= nRElements; k++) {
 		int l = iDiffREdgeToREdgeBegin[k];
@@ -2305,13 +2354,13 @@ void VerticalDynamicsFEM::BuildJacobianF(
 				* m_dXiDotREdge[k];
 		}
 	}
-/*
+
 	// dT_k/dW_k
 	for (int k = 0; k <= nRElements; k++) {
 		dDG[MatFIx(FWIx, k, FPIx, k)] =
 			m_dDiffP[k] * dOrthonomREdge[k][m_iA][m_iB][2];
 	}
-*/
+
 	// dW_k/dT_l and dW_k/dR_m
 	for (int k = 1; k < nRElements; k++) {
 
@@ -2362,13 +2411,13 @@ void VerticalDynamicsFEM::BuildJacobianF(
 			} else if (m_dXiDotREdge[k] > 0.0) {
 				dSignW = 1.0;
 			}
-/*
+
 			dDG[MatFIx(FWIx, k, FPIx, k)] -=
 				m_dHypervisCoeff
 				* dOrthonomREdge[k][m_iA][m_iB][2]
 				* dSignW
 				* m_dDiffDiffP[k];
-*/
+
 			// dT_k/dT_m
 			for (int m = 0; m <= nRElements; m++) {
 				dDG[MatFIx(FPIx, m, FPIx, k)] -=
@@ -2379,7 +2428,7 @@ void VerticalDynamicsFEM::BuildJacobianF(
 		}
 	}
 #endif
-
+*/
 #endif
 
 	// Vertical velocity on interfaces (CPH or LOR staggering)

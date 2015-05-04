@@ -318,12 +318,12 @@ protected:
 	DataVector<double> m_dXiDotREdge;
 
 	///	<summary>
-	///		Auxiliary storage for derivative of theta on nodes.
+	///		Auxiliary storage for derivative of pressure on nodes.
 	///	</summary>
 	DataVector<double> m_dDiffPNode;
 
 	///	<summary>
-	///		Auxiliary storage for derivative of theta on interfaces.
+	///		Auxiliary storage for derivative of pressure on interfaces.
 	///	</summary>
 	DataVector<double> m_dDiffPREdge;
 
@@ -331,6 +331,16 @@ protected:
 	///		Auxiliary storage for higher derivatives of theta.
 	///	</summary>
 	DataVector<double> m_dDiffDiffP;
+
+	///	<summary>
+	///		Auxiliary storage for derivative of theta on nodes.
+	///	</summary>
+	DataVector<double> m_dDiffThetaNode;
+
+	///	<summary>
+	///		Auxiliary storage for derivative of theta on interfaces.
+	///	</summary>
+	DataVector<double> m_dDiffThetaREdge;
 
 	///	<summary>
 	///		Horizontal Kinetic energy on model levels.

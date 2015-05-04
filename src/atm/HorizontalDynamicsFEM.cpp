@@ -592,6 +592,13 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 					phys.ExnerPressureFromRhoTheta(
 						dataInitialNode[PIx][k][iA][iB]);
 #endif
+#ifdef FORMULATION_THETA
+				// Exner pressure
+				m_dAuxDataNode[ExnerIx][k][i][j] =
+					phys.ExnerPressureFromRhoTheta(
+						  dataInitialNode[RIx][k][iA][iB]
+						* dataInitialNode[PIx][k][iA][iB]);
+#endif
 			}
 			}
 			}
@@ -733,7 +740,8 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 						* phys.GetGamma()
 						* dataInitialNode[PIx][k][iA][iB];
 #endif
-#if defined(FORMULATION_RHOTHETA_PI) || defined(FORMULATION_RHOTHETA_P)
+#if defined(FORMULATION_RHOTHETA_PI) \
+ || defined(FORMULATION_RHOTHETA_P)
 					// RhoTheta flux
 					m_dAlphaPressureFlux[i][j] =
 						  dAlphaBaseFlux
@@ -771,6 +779,10 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 					double dDaP = 0.0;
 					double dDbP = 0.0;
 
+					// Derivatives of the theta field
+					double dDaTheta = 0.0;
+					double dDbTheta = 0.0;
+
 					// Calculate derivatives in the alpha direction
 					double dDaRhoFluxA = 0.0;
 					double dDaPressureFluxA = 0.0;
@@ -805,10 +817,18 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 							dataInitialNode[PIx][k][iElementA+s][iB]
 							* dDxBasis1D[s][i];
 #endif
-#if defined(FORMULATION_RHOTHETA_PI) || defined(FORMULATION_RHOTHETA_P)
+#if defined(FORMULATION_RHOTHETA_PI) \
+ || defined(FORMULATION_RHOTHETA_P) \
+ || defined(FORMULATION_THETA)
 						// Derivative of (Exner) pressure with respect to alpha
 						dDaP +=
 							m_dAuxDataNode[ExnerIx][k][s][j]
+							* dDxBasis1D[s][i];
+#endif
+#ifdef FORMULATION_THETA
+						// Derivative of theta with respect to alpha
+						dDaTheta +=
+							dataInitialNode[PIx][k][iElementA+s][iB]
 							* dDxBasis1D[s][i];
 #endif
 
@@ -852,10 +872,18 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 							dataInitialNode[PIx][k][iA][iElementB+s]
 							* dDxBasis1D[s][j];
 #endif
-#if defined(FORMULATION_RHOTHETA_PI) || defined(FORMULATION_RHOTHETA_P)
+#if defined(FORMULATION_RHOTHETA_PI) \
+ || defined(FORMULATION_RHOTHETA_P) \
+ || defined(FORMULATION_THETA)
 						// Derivative of (Exner) pressure with respect to beta
 						dDbP +=
 							m_dAuxDataNode[ExnerIx][k][i][s]
+							* dDxBasis1D[s][j];
+#endif
+#ifdef FORMULATION_THETA
+						// Derivative of theta respect to beta
+						dDbTheta +=
+							dataInitialNode[PIx][k][iA][iElementB+s]
 							* dDxBasis1D[s][j];
 #endif
 
@@ -866,17 +894,22 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 					}
 
 					// Scale derivatives
-					dDaP /= dElementDeltaA;
-					dDbP /= dElementDeltaB;
-
-					dDaKE /= dElementDeltaA;
-					dDbKE /= dElementDeltaB;
-
 					dDaRhoFluxA /= dElementDeltaA;
 					dDbRhoFluxB /= dElementDeltaB;
 
 					dDaPressureFluxA /= dElementDeltaA;
 					dDbPressureFluxB /= dElementDeltaB;
+
+					dDaP /= dElementDeltaA;
+					dDbP /= dElementDeltaB;
+
+#ifdef FORMULATION_THETA
+					dDaTheta /= dElementDeltaA;
+					dDbTheta /= dElementDeltaB;
+#endif
+
+					dDaKE /= dElementDeltaA;
+					dDbKE /= dElementDeltaB;
 
 					// Pointwise momentum updates
 					double dLocalUpdateUa = 0.0;
@@ -907,6 +940,12 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 					double dPressureGradientForceUb =
 						dDbP * dataInitialNode[PIx][k][iA][iB]
 						/ dataInitialNode[RIx][k][iA][iB];
+#endif
+#ifdef FORMULATION_THETA
+					double dPressureGradientForceUa =
+						dDaP * dataInitialNode[PIx][k][iA][iB];
+					double dPressureGradientForceUb =
+						dDbP * dataInitialNode[PIx][k][iA][iB];
 #endif
 
 					// Gravity
@@ -953,6 +992,11 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 						dDeltaT / dJacobian[k][iA][iB] * (
 							  dDaPressureFluxA
 							+ dDbPressureFluxB);
+#endif
+#ifdef FORMULATION_THETA
+					// Update Theta on model levels
+					dataUpdateNode[PIx][k][iA][iB] -=
+						dDeltaT * (dConUa * dDaTheta + dConUb * dDbTheta);
 #endif
 
 					// Update vertical velocity on nodes
