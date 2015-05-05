@@ -201,6 +201,12 @@ void GridPatch::InitializeDataLocal() {
 		m_box.GetBTotalWidth(),
 		3);
 
+	m_dataContraMetricXi.Initialize(
+		m_grid.GetRElements(),
+		m_box.GetATotalWidth(),
+		m_box.GetBTotalWidth(),
+		3);
+
 	// Covariant metric components at each node
 	m_dataCovMetricA.Initialize(
 		m_grid.GetRElements(),
@@ -214,21 +220,6 @@ void GridPatch::InitializeDataLocal() {
 		m_box.GetBTotalWidth(),
 		3);
 
-	// Vertical metric components on nodes or interfaces
-#pragma message "This should pull from EquationSet by name"
-	int nWLevels = m_grid.GetRElements();
-	if (m_grid.GetModel().GetEquationSet().GetDimensionality() == 3) {
-		if (m_grid.GetVarLocation(3) == DataLocation_REdge) {
-			nWLevels = m_grid.GetRElements()+1;
-		}
-	}
-
-	m_dataContraMetricXi.Initialize(
-		m_grid.GetRElements(),
-		m_box.GetATotalWidth(),
-		m_box.GetBTotalWidth(),
-		3);
-
 	m_dataCovMetricXi.Initialize(
 		m_grid.GetRElements(),
 		m_box.GetATotalWidth(),
@@ -236,6 +227,18 @@ void GridPatch::InitializeDataLocal() {
 		3);
 
 	// Xi contravariant metric on interfaces
+	m_dataContraMetricAREdge.Initialize(
+		m_grid.GetRElements()+1,
+		m_box.GetATotalWidth(),
+		m_box.GetBTotalWidth(),
+		3);
+
+	m_dataContraMetricBREdge.Initialize(
+		m_grid.GetRElements()+1,
+		m_box.GetATotalWidth(),
+		m_box.GetBTotalWidth(),
+		3);
+
 	m_dataContraMetricXiREdge.Initialize(
 		m_grid.GetRElements()+1,
 		m_box.GetATotalWidth(),

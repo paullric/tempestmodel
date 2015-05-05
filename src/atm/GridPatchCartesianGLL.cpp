@@ -417,6 +417,20 @@ void GridPatchCartesianGLL::EvaluateGeometricTerms() {
 				m_dataDerivRREdge[k][iA][iB][2] = dDxZ;
 
 				// Components of the contravariant metric
+				m_dataContraMetricAREdge[k][iA][iB][0] =
+					m_dataContraMetric2DA[iA][iB][0];
+				m_dataContraMetricAREdge[k][iA][iB][1] =
+					m_dataContraMetric2DA[iA][iB][1];
+				m_dataContraMetricAREdge[k][iA][iB][2] =
+					- dDaZ / dDxZ;
+
+				m_dataContraMetricBREdge[k][iA][iB][0] =
+					m_dataContraMetric2DB[iA][iB][0];
+				m_dataContraMetricBREdge[k][iA][iB][1] =
+					m_dataContraMetric2DB[iA][iB][1];
+				m_dataContraMetricBREdge[k][iA][iB][2] =
+					- dDbZ / dDxZ;
+
 				m_dataContraMetricXiREdge[k][iA][iB][0] =
 					- dDaZ / dDxZ;
 				m_dataContraMetricXiREdge[k][iA][iB][1] =

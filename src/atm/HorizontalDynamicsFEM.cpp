@@ -140,6 +140,7 @@ void HorizontalDynamicsFEM::StepShallowWater(
 	const Time & time,
 	double dDeltaT
 ) {
+
 	// Get a copy of the GLL grid
 	GridGLL * pGrid = dynamic_cast<GridGLL*>(m_model.GetGrid());
 
@@ -451,25 +452,17 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 			pPatch->GetContraMetricB();
 		const DataMatrix4D<double> & dContraMetricXi =
 			pPatch->GetContraMetricXi();
+		const DataMatrix4D<double> & dContraMetricAREdge =
+			pPatch->GetContraMetricAREdge();
+		const DataMatrix4D<double> & dContraMetricBREdge =
+			pPatch->GetContraMetricBREdge();
 		const DataMatrix4D<double> & dContraMetricXiREdge =
 			pPatch->GetContraMetricXiREdge();
 
 		const DataMatrix4D<double> & dDerivRNode =
 			pPatch->GetDerivRNode();
 		const DataMatrix4D<double> & dDerivRREdge =
-			pPatch->GetDerivRNode();
-
-		const DataMatrix3D<double> & dCovMetric2DA =
-			pPatch->GetCovMetric2DA();
-		const DataMatrix3D<double> & dCovMetric2DB =
-			pPatch->GetCovMetric2DB();
-
-		const DataMatrix4D<double> & dCovMetricA =
-			pPatch->GetCovMetricA();
-		const DataMatrix4D<double> & dCovMetricB =
-			pPatch->GetCovMetricB();
-		const DataMatrix4D<double> & dCovMetricXi =
-			pPatch->GetCovMetricXi();
+			pPatch->GetDerivRREdge();
 
 		const DataMatrix<double> & dCoriolisF =
 			pPatch->GetCoriolisF();
@@ -509,17 +502,11 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 				pPatch->InterpolateNodeToREdge(UIx, iDataInitial);
 				pPatch->InterpolateNodeToREdge(VIx, iDataInitial);
 			}
-/*
+
 			// Interpolate Theta to model levels
 			if (pGrid->GetVarLocation(PIx) == DataLocation_REdge) {
 				pPatch->InterpolateREdgeToNode(PIx, iDataInitial);
 			}
-			if ((pGrid->GetVarLocation(PIx) == DataLocation_Node) &&
-				(pGrid->GetVarLocation(WIx) == DataLocation_REdge)
-			) {
-				pPatch->InterpolateNodeToREdge(PIx, iDataInitial);
-			}
-*/
 		}
 
 		// Element grid spacing and derivative coefficients
@@ -548,7 +535,6 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 				// Contravariant velocities
 				double dCovUa = dataInitialNode[UIx][k][iA][iB];
 				double dCovUb = dataInitialNode[VIx][k][iA][iB];
-				double dCovUr = dataInitialNode[WIx][k][iA][iB];
 
 				// Calculate Ux
 				double dCovUx =
@@ -779,10 +765,6 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 					double dDaP = 0.0;
 					double dDbP = 0.0;
 
-					// Derivatives of the theta field
-					double dDaTheta = 0.0;
-					double dDbTheta = 0.0;
-
 					// Calculate derivatives in the alpha direction
 					double dDaRhoFluxA = 0.0;
 					double dDaPressureFluxA = 0.0;
@@ -823,12 +805,6 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 						// Derivative of (Exner) pressure with respect to alpha
 						dDaP +=
 							m_dAuxDataNode[ExnerIx][k][s][j]
-							* dDxBasis1D[s][i];
-#endif
-#ifdef FORMULATION_THETA
-						// Derivative of theta with respect to alpha
-						dDaTheta +=
-							dataInitialNode[PIx][k][iElementA+s][iB]
 							* dDxBasis1D[s][i];
 #endif
 
@@ -880,12 +856,6 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 							m_dAuxDataNode[ExnerIx][k][i][s]
 							* dDxBasis1D[s][j];
 #endif
-#ifdef FORMULATION_THETA
-						// Derivative of theta respect to beta
-						dDbTheta +=
-							dataInitialNode[PIx][k][iA][iElementB+s]
-							* dDxBasis1D[s][j];
-#endif
 
 						// Derivative of specific kinetic energy wrt beta
 						dDbKE +=
@@ -902,11 +872,6 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 
 					dDaP /= dElementDeltaA;
 					dDbP /= dElementDeltaB;
-
-#ifdef FORMULATION_THETA
-					dDaTheta /= dElementDeltaA;
-					dDbTheta /= dElementDeltaB;
-#endif
 
 					dDaKE /= dElementDeltaA;
 					dDbKE /= dElementDeltaB;
@@ -993,11 +958,6 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 							  dDaPressureFluxA
 							+ dDbPressureFluxB);
 #endif
-#ifdef FORMULATION_THETA
-					// Update Theta on model levels
-					dataUpdateNode[PIx][k][iA][iB] -=
-						dDeltaT * (dConUa * dDaTheta + dConUb * dDbTheta);
-#endif
 
 					// Update vertical velocity on nodes
 					if (pGrid->GetVarLocation(WIx) == DataLocation_Node) {
@@ -1062,6 +1022,34 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 						}
 */
 					}
+
+#ifdef FORMULATION_THETA
+					// Update thermodynamic variable on nodes
+					if (pGrid->GetVarLocation(PIx) == DataLocation_Node) {
+
+						// Derivatives of the theta field
+						double dDaTheta = 0.0;
+						double dDbTheta = 0.0;
+
+						for (int s = 0; s < m_nHorizontalOrder; s++) {
+							dDaTheta +=
+								dataInitialNode[PIx][k][iElementA+s][iB]
+								* dDxBasis1D[s][i];
+
+							dDbTheta +=
+								dataInitialNode[PIx][k][iA][iElementB+s]
+								* dDxBasis1D[s][j];
+						}
+
+						dDaTheta /= dElementDeltaA;
+						dDbTheta /= dElementDeltaB;
+
+						// Update Theta on model levels
+						dataUpdateNode[PIx][k][iA][iB] -=
+							dDeltaT * (dConUa * dDaTheta + dConUb * dDbTheta);
+					}
+#endif
+
 					// Update tracers
 				}
 				}
@@ -1121,15 +1109,11 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 				}
 				}
 			}
-		}
-		}
 
-/*
-			// Update quantities on model interfaces
-			for (int a = 0; a < nElementCountA; a++) {
-			for (int b = 0; b < nElementCountB; b++) {
+			// Update thermodynamic variable on interfaces
+			if (pGrid->GetVarLocation(PIx) == DataLocation_REdge) {
 
-				// Pointwise update of horizontal velocities
+				for (int k = 0; k <= nRElements; k++) {
 				for (int i = 0; i < m_nHorizontalOrder; i++) {
 				for (int j = 0; j < m_nHorizontalOrder; j++) {
 
@@ -1139,79 +1123,52 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 					int iElementA = a * m_nHorizontalOrder + box.GetHaloElements();
 					int iElementB = b * m_nHorizontalOrder + box.GetHaloElements();
 
-					// Update the vertical velocity (on model interfaces)
-					for (int k = 1; k < pGrid->GetRElements(); k++) {
-						if (pGrid->GetVarLocation(WIx) != DataLocation_REdge) {
-							break;
-						}
+					// Contravariant velocities
+					double dCovUa = dataInitialREdge[UIx][k][iA][iB];
+					double dCovUb = dataInitialREdge[VIx][k][iA][iB];
 
-						double dDaUx = 0.0;
-						double dDbUx = 0.0;
+					// Calculate covariant Ux
+					double dCovUx =
+						  dataInitialREdge[WIx][k][iA][iB]
+						* dDerivRREdge[k][iA][iB][2];
 
-						double dUaREdge = dataInitialREdge[UIx][k][iA][iB];
-						double dUbREdge = dataInitialREdge[VIx][k][iA][iB];
-						double dUxREdge = dataInitialREdge[WIx][k][iA][iB];
+					// Contravariant velocities on interfaces
+					double dConUa =
+						  dContraMetricAREdge[k][iA][iB][0] * dCovUa
+						+ dContraMetricAREdge[k][iA][iB][1] * dCovUb
+						+ dContraMetricAREdge[k][iA][iB][2] * dCovUx;
 
-						for (int s = 0; s < m_nHorizontalOrder; s++) {
-							// Derivative of xi velocity with respect to alpha
-							dDaUx +=
-								dataInitialREdge[WIx][k][iElementA+s][iB]
-								* dDxBasis1D[s][i];
+					double dConUb =
+						  dContraMetricBREdge[k][iA][iB][0] * dCovUa
+						+ dContraMetricBREdge[k][iA][iB][1] * dCovUb
+						+ dContraMetricBREdge[k][iA][iB][2] * dCovUx;
 
-							// Derivative of xi velocity with respect to beta
-							dDbUx +=
-								dataInitialREdge[WIx][k][iA][iElementB+s]
-								* dDxBasis1D[s][j];
-						}
+					// Derivatives of the theta field on interfaces
+					double dDaTheta = 0.0;
+					double dDbTheta = 0.0;
 
-						// Scale derivatives
-						dDaUx /= dElementDeltaA;
-						dDbUx /= dElementDeltaB;
+					for (int s = 0; s < m_nHorizontalOrder; s++) {
+						dDaTheta +=
+							dataInitialREdge[PIx][k][iElementA+s][iB]
+							* dDxBasis1D[s][i];
 
-						// Update vertical velocity
-						dataUpdateREdge[WIx][k][iA][iB] -=
-							dDeltaT * (dUaREdge * dDaUx + dUbREdge * dDbUx);
+						dDbTheta +=
+							dataInitialREdge[PIx][k][iA][iElementB+s]
+							* dDxBasis1D[s][j];
 					}
 
-					// Update the potential temperature (on model interfaces)
-					for (int k = 0; k <= pGrid->GetRElements(); k++) {
-						if (pGrid->GetVarLocation(PIx) != DataLocation_REdge) {
-							break;
-						}
+					dDaTheta /= dElementDeltaA;
+					dDbTheta /= dElementDeltaB;
 
-						_EXCEPTION();
-
-						double dDaTheta = 0.0;
-						double dDbTheta = 0.0;
-
-						const double dUaREdge = dataInitialREdge[UIx][k][iA][iB];
-						const double dUbREdge = dataInitialREdge[VIx][k][iA][iB];
-
-						for (int s = 0; s < m_nHorizontalOrder; s++) {
-							// Derivative of theta with respect to alpha
-							dDaTheta +=
-								dataInitialREdge[PIx][k][iElementA+s][iB]
-								* dDxBasis1D[s][i];
-
-							// Derivative of theta with respect to beta
-							dDbTheta +=
-								dataInitialREdge[PIx][k][iA][iElementB+s]
-								* dDxBasis1D[s][j];
-						}
-
-						// Scale derivatives
-						dDaTheta /= dElementDeltaA;
-						dDbTheta /= dElementDeltaB;
-
-						// Update potential temperature
-						dataUpdateREdge[PIx][k][iA][iB] -=
-							dDeltaT * (dUaREdge * dDaTheta + dUbREdge * dDbTheta);
-					}
+					// Update Theta on interfaces
+					dataUpdateREdge[PIx][k][iA][iB] -=
+						dDeltaT * (dConUa * dDaTheta + dConUb * dDbTheta);
+				}
 				}
 				}
 			}
-			}
-*/
+		}
+		}
 	}
 }
 

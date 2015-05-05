@@ -330,15 +330,15 @@ void LinearColumnDiffFEM::InitializeInterfaceMethod(
 			fZeroBoundaries);
 
 		ComposeWith(opInterp);
-/*
-		// DEBUGGING
-		if ((m_dCoeff.GetRows() == dREtaREdge.GetRows()) &&
-		    (m_dCoeff.GetColumns() == dREtaNode.GetRows())
-		) {
-			DebugOutput(&dREtaNode, &dREtaREdge);
-		}
-*/
 	}
+/*
+	// DEBUGGING
+	if ((m_dCoeff.GetRows() == dREtaREdge.GetRows()) &&
+	    (m_dCoeff.GetColumns() == dREtaREdge.GetRows())
+	) {
+		DebugOutput(&dREtaNode, &dREtaREdge);
+	}
+*/
 }
 
 ///////////////////////////////////////////////////////////////////////////////

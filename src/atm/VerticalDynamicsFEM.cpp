@@ -1527,7 +1527,11 @@ void VerticalDynamicsFEM::PrepareColumn(
 		m_dStateNode[RIx][k] = dX[VecFIx(FRIx, k)];
 	}
 
-	// Compute u^xi on model levels
+	if (pGrid->GetVarLocation(PIx) == DataLocation_REdge) {
+		m_dStateREdge[PIx][nRElements] = dX[VecFIx(FPIx, nRElements)];
+	}
+
+	// Vertical velocity on model levels
 	if (pGrid->GetVarLocation(WIx) == DataLocation_Node) {
 
 #ifdef FORMULATION_PRESSURE
@@ -1574,7 +1578,7 @@ void VerticalDynamicsFEM::PrepareColumn(
 			m_dDiffPNode);
 #endif
 
-	// Compute u^xi on model interfaces
+	// Vertical velocity on model interfaces
 	} else {
 
 		// U, V already interpolated in SetupReferenceColumn
@@ -1589,18 +1593,6 @@ void VerticalDynamicsFEM::PrepareColumn(
 			m_dStateNode[RIx],
 			m_dStateREdge[RIx]);
 
-/*
-		// Calculate u^xi on model interfaces
-		for (int k = 1; k < nRElements; k++) {
-			double dCovUx =
-				m_dStateREdge[WIx][k] * dDerivRREdge[k][m_iA][m_iB][2];
-
-			m_dXiDotREdge[k] =
-				  dContraMetricXiREdge[k][m_iA][m_iB][0] * m_dStateREdge[UIx][k]
-				+ dContraMetricXiREdge[k][m_iA][m_iB][1] * m_dStateREdge[VIx][k]
-				+ dContraMetricXiREdge[k][m_iA][m_iB][2] * dCovUx;
-		}
-*/
 #ifdef FORMULATION_PRESSURE
 		// Calculate derivative of P at edges
 		pGrid->DifferentiateNodeToREdge(
@@ -1608,25 +1600,11 @@ void VerticalDynamicsFEM::PrepareColumn(
 			m_dDiffPREdge);
 
 		// Calculate derivative of P at nodes
-		pGrid->DifferentiateNodeToNode(
-			m_dStateNode[PIx],
-			m_dDiffPNode);
-/*
-		for (int k = 1; k < nRElements; k++) {
-			m_dDiffP[k] /= m_dStateREdge[RIx][k];
+		if (pGrid->GetVarLocation(PIx) == DataLocation_Node) {
+			pGrid->DifferentiateNodeToNode(
+				m_dStateNode[PIx],
+				m_dDiffPNode);
 		}
-
-		for (int k = 0; k <= nRElements; k++) {
-			printf("%1.15e\n", m_dDiffP[k]);
-		}
-		_EXCEPTION();
-*/
-/*
-		for (int k = 0; k < nRElements; k++) {
-			printf("%1.15e\n", m_dStateAux[k] / m_dStateNode[RIx][k]);
-		}
-		_EXCEPTION();
-*/
 #endif
 #ifdef FORMULATION_RHOTHETA_P
 		_EXCEPTIONT("Not implemented");
@@ -1635,14 +1613,51 @@ void VerticalDynamicsFEM::PrepareColumn(
 		_EXCEPTIONT("Not implemented");
 #endif
 #ifdef FORMULATION_THETA
-		// Theta is needed on model interfaces
-		pGrid->InterpolateNodeToREdge(
-			m_dStateREdge[PIx],
-			m_dStateNode[PIx]);
 
-		_EXCEPTIONT("Not implemented");
+		// Theta on model levels
+		if (pGrid->GetVarLocation(PIx) == DataLocation_Node) {	
+			// Theta is needed on model interfaces
+			pGrid->InterpolateNodeToREdge(
+				m_dStateNode[PIx],
+				m_dStateREdge[PIx]);
+
+		// Theta on model interfaces
+		} else {
+			// Calculate u^xi on model levels
+			for (int k = 1; k < nRElements; k++) {
+				double dCovUx =
+					m_dStateREdge[WIx][k] * dDerivRREdge[k][m_iA][m_iB][2];
+
+				m_dXiDotREdge[k] =
+					  dContraMetricXiREdge[k][m_iA][m_iB][0]
+						* m_dStateREdge[UIx][k]
+					+ dContraMetricXiREdge[k][m_iA][m_iB][1]
+						* m_dStateREdge[VIx][k]
+					+ dContraMetricXiREdge[k][m_iA][m_iB][2]
+						* dCovUx;
+			}
+
+			m_dXiDotREdge[0] = 0.0;
+			m_dXiDotREdge[nRElements] = 0.0;
+
+			// Theta is needed on model levels
+			pGrid->InterpolateREdgeToNode(
+				m_dStateREdge[PIx],
+				m_dStateNode[PIx]);
+		}
+
+		// Calculate Exner pressure at nodes
+		for (int k = 0; k < nRElements; k++) {
+			m_dExnerNode[k] =
+				phys.ExnerPressureFromRhoTheta(
+					m_dStateNode[RIx][k] * m_dStateNode[PIx][k]);
+		}
+
+		// Calculate derivative of Exner pressure at interfaces
+		pGrid->DifferentiateNodeToREdge(
+			m_dExnerNode,
+			m_dDiffPREdge);
 #endif
-
 	}
 
 	// Calculate u^xi on model levels
@@ -1661,118 +1676,6 @@ void VerticalDynamicsFEM::PrepareColumn(
 		m_dXiDotNode[0] = 0.0;
 		m_dXiDotNode[nRElements-1] = 0.0;
 	}
-
-/*
-	// W on model interfaces
-	if (pGrid->GetVarLocation(WIx) == DataLocation_REdge) {
-		for (int k = 0; k <= nRElements; k++) {
-			m_dStateREdge[WIx][k] = dX[VecFIx(FWIx, k)];
-		}
-
-		// W is needed on model levels
-		pGrid->InterpolateREdgeToNode(
-			m_dStateREdge[WIx],
-			m_dStateRefREdge[WIx],
-			m_dStateNode[WIx],
-			m_dStateRefNode[WIx]);
-	}
-*/
-/*
-	// Pressure on model interfaces
-	if (pGrid->GetVarLocation(PIx) == DataLocation_REdge) {
-		for (int k = 0; k <= nRElements; k++) {
-			m_dStateREdge[PIx][k] = dX[VecFIx(FPIx, k)];
-		}
-
-		// Calculate update for P
-		pGrid->DifferentiateREdgeToREdge(
-			m_dStateREdge[PIx],
-			m_dDiffP);
-
-		// P is needed on model levels
-		if ((m_fExnerPressureOnLevels) ||
-			(pGrid->GetVarLocation(WIx) == DataLocation_Node)
-		) {
-			pGrid->InterpolateREdgeToNode(
-				m_dStateREdge[PIx],
-				m_dStateRefREdge[PIx],
-				m_dStateNode[PIx],
-				m_dStateRefNode[PIx]);
-		}
-
-	// Pressure on model levels
-	} else {
-		for (int k = 0; k < nRElements; k++) {
-			m_dStateNode[PIx][k] = dX[VecFIx(FPIx, k)];
-		}
-
-		// Calculate update for P
-		pGrid->DifferentiateNodeToNode(
-			m_dStateNode[PIx],
-			m_dDiffP);
-
-		// Pressure is needed on model interfaces
-		if ((!m_fExnerPressureOnLevels) ||
-			(pGrid->GetVarLocation(WIx) == DataLocation_REdge)
-		) {
-			pGrid->InterpolateNodeToREdge(
-				m_dStateNode[PIx],
-				m_dStateRefNode[PIx],
-				m_dStateREdge[PIx],
-				m_dStateRefREdge[PIx]);
-		}
-	}
-*/
-/*
-	// W on model levels
-	} else {
-		for (int k = 0; k < nRElements; k++) {
-			m_dStateNode[WIx][k] = dX[VecFIx(FWIx, k)];
-		}
-
-		// W is needed on model interfaces
-		pGrid->InterpolateNodeToREdge(
-			m_dStateNode[WIx],
-			m_dStateRefNode[WIx],
-			m_dStateREdge[WIx],
-			m_dStateRefREdge[WIx]);
-	}
-
-	// Rho on model interfaces
-	if (pGrid->GetVarLocation(RIx) == DataLocation_REdge) {
-		for (int k = 0; k <= nRElements; k++) {
-			m_dStateREdge[RIx][k] = dX[VecFIx(FRIx, k)];
-		}
-
-		// Rho is needed on model levels
-		if ((m_fMassFluxOnLevels) ||
-			(m_fExnerPressureOnLevels)
-		) {
-			pGrid->InterpolateREdgeToNode(
-				m_dStateREdge[RIx],
-				m_dStateRefREdge[RIx],
-				m_dStateNode[RIx],
-				m_dStateRefNode[RIx]);
-		}
-
-	// Rho on model levels
-	} else {
-		for (int k = 0; k < nRElements; k++) {
-			m_dStateNode[RIx][k] = dX[VecFIx(FRIx, k)];
-		}
-
-		// Rho is needed on model interfaces
-		if ((!m_fMassFluxOnLevels) ||
-			(!m_fExnerPressureOnLevels)
-		) {
-			pGrid->InterpolateNodeToREdge(
-				m_dStateNode[RIx],
-				m_dStateRefNode[RIx],
-				m_dStateREdge[RIx],
-				m_dStateRefREdge[RIx]);
-		}
-	}
-*/
 /*
 #ifdef UPWIND_THETA
 	// Compute second derivatives of theta
@@ -1934,15 +1837,31 @@ void VerticalDynamicsFEM::BuildF(
 	}
 #endif
 #ifdef FORMULATION_THETA
-	// Theta derivatives on model levels
-	pGrid->DifferentiateNodeToNode(
-		m_dStateNode[PIx],
-		m_dDiffThetaNode);
+	// Update theta on model levels
+	if (pGrid->GetVarLocation(PIx) == DataLocation_Node) {
+		// Theta derivatives on model levels
+		pGrid->DifferentiateNodeToNode(
+			m_dStateNode[PIx],
+			m_dDiffThetaNode);
 
-	// Change in Theta on model levels
-	for (int k = 0; k < nRElements; k++) {
-		dF[VecFIx(FPIx, k)] +=
-			m_dXiDotNode[k] * m_dDiffThetaNode[k];
+		// Change in Theta on model levels
+		for (int k = 0; k < nRElements; k++) {
+			dF[VecFIx(FPIx, k)] +=
+				m_dXiDotNode[k] * m_dDiffThetaNode[k];
+		}
+
+	// Update theta on model interfaces
+	} else {
+		// Theta derivatives on model interfaces
+		pGrid->DifferentiateREdgeToREdge(
+			m_dStateREdge[PIx],
+			m_dDiffThetaREdge);
+
+		// Change in Theta on model interfaces
+		for (int k = 0; k <= nRElements; k++) {
+			dF[VecFIx(FPIx, k)] +=
+				m_dXiDotREdge[k] * m_dDiffThetaREdge[k];
+		}
 	}
 #endif
 
@@ -1979,7 +1898,7 @@ void VerticalDynamicsFEM::BuildF(
 			  0.5 * (dConUa * dCovUa + dConUb * dCovUb + dConUx * dCovUx);
 	}
 
-	// Update equation for vertical velocity
+	// Update equation for vertical velocity on levels
 	if (pGrid->GetVarLocation(WIx) == DataLocation_Node) {
 		pGrid->DifferentiateNodeToNode(
 			m_dKineticEnergyNode,
@@ -2011,6 +1930,7 @@ void VerticalDynamicsFEM::BuildF(
 				phys.GetG();
 		}
 
+	// Update equation for vertical velocity on interfaces
 	} else {
 		pGrid->DifferentiateNodeToREdge(
 			m_dKineticEnergyNode,

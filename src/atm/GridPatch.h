@@ -496,7 +496,32 @@ public:
 	}
 
 	///	<summary>
+	///		Get the components of the contravariant metric (alpha)
+	///		on interfaces.
+	///	</summary>
+	const DataMatrix4D<double> & GetContraMetricAREdge() const {
+		if (!m_fContainsData) {
+			_EXCEPTIONT("Stub patch does not store data.");
+		}
+
+		return m_dataContraMetricAREdge;
+	}
+
+	///	<summary>
+	///		Get the components of the contravariant metric (beta)
+	///		on interfaces.
+	///	</summary>
+	const DataMatrix4D<double> & GetContraMetricBREdge() const {
+		if (!m_fContainsData) {
+			_EXCEPTIONT("Stub patch does not store data.");
+		}
+
+		return m_dataContraMetricBREdge;
+	}
+
+	///	<summary>
 	///		Get the components of the contravariant metric (xi)
+	///		on interfaces.
 	///	</summary>
 	const DataMatrix4D<double> & GetContraMetricXiREdge() const {
 		if (!m_fContainsData) {
@@ -1124,6 +1149,16 @@ protected:
 	///		Covariant metric (xi) components.
 	///	</summary>
 	DataMatrix4D<double> m_dataCovMetricXi;
+
+	///	<summary>
+	///		Contravariant metric (alpha) components on interfaces.
+	///	</summary>
+	DataMatrix4D<double> m_dataContraMetricAREdge;
+
+	///	<summary>
+	///		Contravariant metric (beta) components on interfaces.
+	///	</summary>
+	DataMatrix4D<double> m_dataContraMetricBREdge;
 
 	///	<summary>
 	///		Contravariant metric (xi) components on interfaces.

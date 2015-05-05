@@ -561,6 +561,24 @@ void GridPatchCSGLL::EvaluateGeometricTerms() {
 			m_dataDerivRREdge[k][iA][iB][1] = dDbR;
 			m_dataDerivRREdge[k][iA][iB][2] = dDxR;
 
+			// Contravariant metric (alpha)
+			m_dataContraMetricAREdge[k][iA][iB][0] =
+				m_dataContraMetric2DA[iA][iB][0];
+			m_dataContraMetricAREdge[k][iA][iB][1] =
+				m_dataContraMetric2DA[iA][iB][1];
+			m_dataContraMetricAREdge[k][iA][iB][2] =
+				- dContraMetricScale / dDxR * (
+					(1.0 + dY * dY) * dDaR + dX * dY * dDbR);
+
+			// Contravariant metric (beta)
+			m_dataContraMetricBREdge[k][iA][iB][0] =
+				m_dataContraMetric2DB[iA][iB][0];
+			m_dataContraMetricBREdge[k][iA][iB][1] =
+				m_dataContraMetric2DB[iA][iB][1];
+			m_dataContraMetricBREdge[k][iA][iB][2] =
+				- dContraMetricScale / dDxR * (
+					dX * dY * dDaR + (1.0 + dX * dX) * dDbR);
+
 			// Contravariant metric (xi)
 			m_dataContraMetricXiREdge[k][iA][iB][0] =
 				- dContraMetricScale / dDxR * (
