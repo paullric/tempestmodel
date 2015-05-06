@@ -62,7 +62,7 @@ EquationSet::EquationSet(
 		m_strComponentShortNames.push_back("P");
 		m_strComponentFullNames.push_back("Pressure");
 #endif
-#ifdef FORMULATION_THETA
+#if defined(FORMULATION_THETA) || defined(FORMULATION_THETA_FLUX)
 		m_strComponentShortNames.push_back("Theta");
 		m_strComponentFullNames.push_back("Potential Temperature");
 #endif
@@ -106,7 +106,7 @@ void EquationSet::ConvertComponents(
 #ifdef FORMULATION_PRESSURE
 		dState[PIx] = phys.PressureFromRhoTheta(dState[PIx] * dState[RIx]);
 #endif
-#ifdef FORMULATION_THETA
+#if defined(FORMULATION_THETA) || defined(FORMULATION_THETA_FLUX)
 #endif
 #if defined(FORMULATION_RHOTHETA_PI) || defined(FORMULATION_RHOTHETA_P)
 		dState[PIx] *= dState[RIx];

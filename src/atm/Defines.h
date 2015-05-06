@@ -46,6 +46,7 @@
 //#define FORMULATION_RHOTHETA_PI
 //#define FORMULATION_RHOTHETA_P
 #define FORMULATION_THETA
+//#define FORMULATION_THETA_FLUX
 
 ///	<summary>
 ///		When to apply Rayleigh damping.

@@ -446,6 +446,8 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 			pPatch->GetJacobian2D();
 		const DataMatrix3D<double> & dJacobian =
 			pPatch->GetJacobian();
+		const DataMatrix3D<double> & dJacobianREdge =
+			pPatch->GetJacobianREdge();
 		const DataMatrix4D<double> & dContraMetricA =
 			pPatch->GetContraMetricA();
 		const DataMatrix4D<double> & dContraMetricB =
@@ -578,7 +580,7 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 					phys.ExnerPressureFromRhoTheta(
 						dataInitialNode[PIx][k][iA][iB]);
 #endif
-#ifdef FORMULATION_THETA
+#if defined(FORMULATION_THETA) || defined(FORMULATION_THETA_FLUX)
 				// Exner pressure
 				m_dAuxDataNode[ExnerIx][k][i][j] =
 					phys.ExnerPressureFromRhoTheta(
@@ -801,7 +803,8 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 #endif
 #if defined(FORMULATION_RHOTHETA_PI) \
  || defined(FORMULATION_RHOTHETA_P) \
- || defined(FORMULATION_THETA)
+ || defined(FORMULATION_THETA) \
+ || defined(FORMULATION_THETA_FLUX)
 						// Derivative of (Exner) pressure with respect to alpha
 						dDaP +=
 							m_dAuxDataNode[ExnerIx][k][s][j]
@@ -850,7 +853,8 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 #endif
 #if defined(FORMULATION_RHOTHETA_PI) \
  || defined(FORMULATION_RHOTHETA_P) \
- || defined(FORMULATION_THETA)
+ || defined(FORMULATION_THETA) \
+ || defined(FORMULATION_THETA_FLUX)
 						// Derivative of (Exner) pressure with respect to beta
 						dDbP +=
 							m_dAuxDataNode[ExnerIx][k][i][s]
@@ -906,7 +910,7 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 						dDbP * dataInitialNode[PIx][k][iA][iB]
 						/ dataInitialNode[RIx][k][iA][iB];
 #endif
-#ifdef FORMULATION_THETA
+#if defined(FORMULATION_THETA) || defined(FORMULATION_THETA_FLUX)
 					double dPressureGradientForceUa =
 						dDaP * dataInitialNode[PIx][k][iA][iB];
 					double dPressureGradientForceUb =
@@ -1049,6 +1053,59 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 							dDeltaT * (dConUa * dDaTheta + dConUb * dDbTheta);
 					}
 #endif
+#ifdef FORMULATION_THETA_FLUX
+					// Update thermodynamic variable on nodes
+					if (pGrid->GetVarLocation(PIx) == DataLocation_Node) {
+
+						// Derivatives of the theta field
+						double dDaJUa = 0.0;
+						double dDbJUb = 0.0;
+
+						double dDaJThetaUa = 0.0;
+						double dDbJThetaUb = 0.0;
+
+						for (int s = 0; s < m_nHorizontalOrder; s++) {
+							dDaJUa +=
+								dJacobian[k][iElementA+s][iB]
+								* m_dAuxDataNode[ConUaIx][k][s][j]
+								* dDxBasis1D[s][i];
+
+							dDbJUb +=
+								dJacobian[k][iA][iElementB+s]
+								* m_dAuxDataNode[ConUbIx][k][i][s]
+								* dDxBasis1D[s][j];
+
+							dDaJThetaUa +=
+								dJacobian[k][iElementA+s][iB]
+								* dataInitialNode[PIx][k][iElementA+s][iB]
+								* m_dAuxDataNode[ConUaIx][k][s][j]
+								* dDxBasis1D[s][i];
+
+							dDbJThetaUb +=
+								dJacobian[k][iA][iElementB+s]
+								* dataInitialNode[PIx][k][iA][iElementB+s]
+								* m_dAuxDataNode[ConUbIx][k][i][s]
+								* dDxBasis1D[s][j];
+						}
+
+						dDaJUa /= dElementDeltaA;
+						dDbJUb /= dElementDeltaB;
+
+						dDaJThetaUa /= dElementDeltaA;
+						dDbJThetaUb /= dElementDeltaB;
+
+						// Update Theta on model levels
+						double dUpdateTheta =
+							(dDaJThetaUa + dDbJThetaUb)
+							- dataInitialNode[PIx][k][iA][iB]
+								* (dDaJUa + dDbJUb);
+
+						dataUpdateNode[PIx][k][iA][iB] -=
+							dDeltaT
+							* dUpdateTheta
+							/ dJacobian[k][iA][iB];
+					}
+#endif
 
 					// Update tracers
 				}
@@ -1110,6 +1167,7 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 				}
 			}
 
+#if defined(FORMULATION_THETA) || defined(FORMULATION_THETA_FLUX)
 			// Update thermodynamic variable on interfaces
 			if (pGrid->GetVarLocation(PIx) == DataLocation_REdge) {
 
@@ -1119,9 +1177,6 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 
 					int iA = a * m_nHorizontalOrder + i + box.GetHaloElements();
 					int iB = b * m_nHorizontalOrder + j + box.GetHaloElements();
-
-					int iElementA = a * m_nHorizontalOrder + box.GetHaloElements();
-					int iElementB = b * m_nHorizontalOrder + box.GetHaloElements();
 
 					// Contravariant velocities
 					double dCovUa = dataInitialREdge[UIx][k][iA][iB];
@@ -1133,16 +1188,30 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 						* dDerivRREdge[k][iA][iB][2];
 
 					// Contravariant velocities on interfaces
-					double dConUa =
+					m_dAuxDataREdge[ConUaIx][k][i][j] =
 						  dContraMetricAREdge[k][iA][iB][0] * dCovUa
 						+ dContraMetricAREdge[k][iA][iB][1] * dCovUb
 						+ dContraMetricAREdge[k][iA][iB][2] * dCovUx;
 
-					double dConUb =
+					m_dAuxDataREdge[ConUbIx][k][i][j] =
 						  dContraMetricBREdge[k][iA][iB][0] * dCovUa
 						+ dContraMetricBREdge[k][iA][iB][1] * dCovUb
 						+ dContraMetricBREdge[k][iA][iB][2] * dCovUx;
+				}
+				}
+				}
 
+				for (int k = 0; k <= nRElements; k++) {
+				for (int i = 0; i < m_nHorizontalOrder; i++) {
+				for (int j = 0; j < m_nHorizontalOrder; j++) {
+
+					int iA = a * m_nHorizontalOrder + i + box.GetHaloElements();
+					int iB = b * m_nHorizontalOrder + j + box.GetHaloElements();
+
+					int iElementA = a * m_nHorizontalOrder + box.GetHaloElements();
+					int iElementB = b * m_nHorizontalOrder + box.GetHaloElements();
+
+#if defined(FORMULATION_THETA) || defined(FORMULATION_THETA_FLUX)
 					// Derivatives of the theta field on interfaces
 					double dDaTheta = 0.0;
 					double dDbTheta = 0.0;
@@ -1161,12 +1230,66 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 					dDbTheta /= dElementDeltaB;
 
 					// Update Theta on interfaces
+					double dConUa = m_dAuxDataREdge[ConUaIx][k][i][j];
+					double dConUb = m_dAuxDataREdge[ConUbIx][k][i][j];
+
 					dataUpdateREdge[PIx][k][iA][iB] -=
 						dDeltaT * (dConUa * dDaTheta + dConUb * dDbTheta);
+#endif
+#ifdef FORMULATION_THETA_FLUX
+					// Derivatives of the theta field
+					double dDaJUa = 0.0;
+					double dDbJUb = 0.0;
+
+					double dDaJThetaUa = 0.0;
+					double dDbJThetaUb = 0.0;
+
+					for (int s = 0; s < m_nHorizontalOrder; s++) {
+						dDaJUa +=
+							dJacobianREdge[k][iElementA+s][iB]
+							* m_dAuxDataREdge[ConUaIx][k][s][j]
+							* dDxBasis1D[s][i];
+
+						dDbJUb +=
+							dJacobianREdge[k][iA][iElementB+s]
+							* m_dAuxDataREdge[ConUbIx][k][i][s]
+							* dDxBasis1D[s][j];
+
+						dDaJThetaUa +=
+							dJacobianREdge[k][iElementA+s][iB]
+							* dataInitialREdge[PIx][k][iElementA+s][iB]
+							* m_dAuxDataREdge[ConUaIx][k][s][j]
+							* dDxBasis1D[s][i];
+
+						dDbJThetaUb +=
+							dJacobianREdge[k][iA][iElementB+s]
+							* dataInitialREdge[PIx][k][iA][iElementB+s]
+							* m_dAuxDataREdge[ConUbIx][k][i][s]
+							* dDxBasis1D[s][j];
+					}
+
+					dDaJUa /= dElementDeltaA;
+					dDbJUb /= dElementDeltaB;
+
+					dDaJThetaUa /= dElementDeltaA;
+					dDbJThetaUb /= dElementDeltaB;
+
+					// Update Theta on model levels
+					double dUpdateTheta =
+						(dDaJThetaUa + dDbJThetaUb)
+						- dataInitialREdge[PIx][k][iA][iB]
+							* (dDaJUa + dDbJUb);
+
+					dataUpdateREdge[PIx][k][iA][iB] -=
+						dDeltaT
+						* dUpdateTheta
+						/ dJacobianREdge[k][iA][iB];
+#endif
 				}
 				}
 				}
 			}
+#endif
 		}
 		}
 	}

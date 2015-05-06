@@ -1108,7 +1108,7 @@ double GridPatch::ComputeTotalEnergy(
 #if defined(FORMULATION_RHOTHETA_PI) || defined(FORMULATION_RHOTHETA_P)
 			double dPressure = phys.PressureFromRhoTheta(dataNode[PIx][k][i][j]);
 #endif
-#ifdef FORMULATION_THETA
+#if defined(FORMULATION_THETA) || defined(FORMULATION_THETA_FLUX)
 			double dPressure =
 				phys.PressureFromRhoTheta(
 					dataNode[RIx][k][i][j] * dataNode[PIx][k][i][j]);

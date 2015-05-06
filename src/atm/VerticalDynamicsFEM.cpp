@@ -1564,7 +1564,7 @@ void VerticalDynamicsFEM::PrepareColumn(
 			m_dExnerNode,
 			m_dDiffPNode);
 #endif
-#ifdef FORMULATION_THETA
+#if defined(FORMULATION_THETA) || defined(FORMULATION_THETA_FLUX)
 		// Calculate Exner pressure at nodes
 		for (int k = 0; k < nRElements; k++) {
 			m_dExnerNode[k] =
@@ -1612,7 +1612,7 @@ void VerticalDynamicsFEM::PrepareColumn(
 #ifdef FORMULATION_RHOTHETA_PI
 		_EXCEPTIONT("Not implemented");
 #endif
-#ifdef FORMULATION_THETA
+#if defined(FORMULATION_THETA) || defined(FORMULATION_THETA_FLUX)
 
 		// Theta on model levels
 		if (pGrid->GetVarLocation(PIx) == DataLocation_Node) {	
@@ -1864,6 +1864,69 @@ void VerticalDynamicsFEM::BuildF(
 		}
 	}
 #endif
+#ifdef FORMULATION_THETA_FLUX
+	// Update theta on model levels
+	if (pGrid->GetVarLocation(PIx) == DataLocation_Node) {
+		// Pressure flux on model levels
+		for (int k = 0; k < nRElements; k++) {
+			m_dPressureFluxNode[k] =
+				dJacobian[k][m_iA][m_iB]
+				* m_dStateNode[PIx][k]
+				* m_dXiDotNode[k];
+		}
+
+		// Xidot derivatives on model levels
+		pGrid->DifferentiateNodeToNode(
+			m_dXiDotNode,
+			m_dStateAuxDiff);
+
+		// Theta flux derivatives on model levels
+		pGrid->DifferentiateNodeToNode(
+			m_dPressureFluxNode,
+			m_dDiffPressureFluxNode);
+
+		// Change in Theta on model levels
+		for (int k = 0; k < nRElements; k++) {
+			dF[VecFIx(FPIx, k)] +=
+				m_dDiffPressureFluxNode[k] / dJacobian[k][m_iA][m_iB];
+
+			dF[VecFIx(FPIx, k)] -=
+				m_dStateNode[PIx][k] * m_dStateAuxDiff[k];
+		}
+
+	// Update theta on model interfaces
+	} else {
+		// Pressure flux on model levels
+		for (int k = 0; k <= nRElements; k++) {
+			m_dPressureFluxREdge[k] =
+				dJacobianREdge[k][m_iA][m_iB]
+				* m_dStateREdge[PIx][k]
+				* m_dXiDotREdge[k];
+
+			m_dStateAux[k] =
+				dJacobianREdge[k][m_iA][m_iB]
+				* m_dXiDotREdge[k];
+		}
+
+		// Xidot divergence on model interfaces
+		pGrid->DifferentiateREdgeToREdge(
+			m_dStateAux,
+			m_dStateAuxDiff);
+
+		// Theta flux derivatives on model interfaces
+		pGrid->DifferentiateREdgeToREdge(
+			m_dPressureFluxREdge,
+			m_dDiffPressureFluxREdge);
+
+		// Change in Theta on model interfaces
+		for (int k = 0; k <= nRElements; k++) {
+			dF[VecFIx(FPIx, k)] +=
+				(m_dDiffPressureFluxREdge[k]
+				- m_dStateREdge[PIx][k] * m_dStateAuxDiff[k])
+			   	/ dJacobianREdge[k][m_iA][m_iB];
+		}
+	}
+#endif
 
 	// Kinetic energy on model levels
 	for (int k = 0; k < nRElements; k++) {
@@ -1917,7 +1980,7 @@ void VerticalDynamicsFEM::BuildF(
 				* m_dStateNode[PIx][k]
 				/ m_dStateNode[RIx][k];
 #endif
-#ifdef FORMULATION_THETA
+#if defined(FORMULATION_THETA) || defined(FORMULATION_THETA_FLUX)
 			double dPressureGradientForce =
 				  m_dDiffPNode[k]
 				* m_dStateNode[PIx][k];
@@ -1947,7 +2010,7 @@ void VerticalDynamicsFEM::BuildF(
 				* m_dStateREdge[PIx][k]
 				/ m_dStateREdge[RIx][k];
 #endif
-#ifdef FORMULATION_THETA
+#if defined(FORMULATION_THETA) || defined(FORMULATION_THETA_FLUX)
 			double dPressureGradientForce =
 				  m_dDiffPREdge[k]
 				* m_dStateREdge[PIx][k];
@@ -1960,6 +2023,7 @@ void VerticalDynamicsFEM::BuildF(
 			dF[VecFIx(FWIx, k)] +=
 				phys.GetG();
 		}
+
 	}
 
 	// Construct the time-dependent component of the RHS
