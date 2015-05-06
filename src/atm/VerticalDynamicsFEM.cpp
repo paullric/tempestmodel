@@ -1527,6 +1527,9 @@ void VerticalDynamicsFEM::PrepareColumn(
 		m_dStateNode[RIx][k] = dX[VecFIx(FRIx, k)];
 	}
 
+	if (pGrid->GetVarLocation(WIx) == DataLocation_REdge) {
+		m_dStateREdge[WIx][nRElements] = dX[VecFIx(FWIx, nRElements)];
+	}
 	if (pGrid->GetVarLocation(PIx) == DataLocation_REdge) {
 		m_dStateREdge[PIx][nRElements] = dX[VecFIx(FPIx, nRElements)];
 	}
@@ -1623,23 +1626,6 @@ void VerticalDynamicsFEM::PrepareColumn(
 
 		// Theta on model interfaces
 		} else {
-			// Calculate u^xi on model levels
-			for (int k = 1; k < nRElements; k++) {
-				double dCovUx =
-					m_dStateREdge[WIx][k] * dDerivRREdge[k][m_iA][m_iB][2];
-
-				m_dXiDotREdge[k] =
-					  dContraMetricXiREdge[k][m_iA][m_iB][0]
-						* m_dStateREdge[UIx][k]
-					+ dContraMetricXiREdge[k][m_iA][m_iB][1]
-						* m_dStateREdge[VIx][k]
-					+ dContraMetricXiREdge[k][m_iA][m_iB][2]
-						* dCovUx;
-			}
-
-			m_dXiDotREdge[0] = 0.0;
-			m_dXiDotREdge[nRElements] = 0.0;
-
 			// Theta is needed on model levels
 			pGrid->InterpolateREdgeToNode(
 				m_dStateREdge[PIx],
@@ -1669,6 +1655,27 @@ void VerticalDynamicsFEM::PrepareColumn(
 			  dContraMetricXi[k][m_iA][m_iB][0] * m_dStateNode[UIx][k]
 			+ dContraMetricXi[k][m_iA][m_iB][1] * m_dStateNode[VIx][k]
 			+ dContraMetricXi[k][m_iA][m_iB][2] * dCovUx;
+	}
+
+	// Calculate u^xi on model interfaces
+	if ((pGrid->GetVarLocation(WIx) == DataLocation_REdge) ||
+	    (pGrid->GetVarLocation(PIx) == DataLocation_REdge)
+	) {
+		for (int k = 1; k < nRElements; k++) {
+			double dCovUx =
+				m_dStateREdge[WIx][k] * dDerivRREdge[k][m_iA][m_iB][2];
+
+			m_dXiDotREdge[k] =
+				  dContraMetricXiREdge[k][m_iA][m_iB][0]
+					* m_dStateREdge[UIx][k]
+				+ dContraMetricXiREdge[k][m_iA][m_iB][1]
+					* m_dStateREdge[VIx][k]
+				+ dContraMetricXiREdge[k][m_iA][m_iB][2]
+					* dCovUx;
+		}
+
+		m_dXiDotREdge[0] = 0.0;
+		m_dXiDotREdge[nRElements] = 0.0;
 	}
 
 	// Enforce conservation
@@ -1751,32 +1758,34 @@ void VerticalDynamicsFEM::BuildF(
 
 	// Zero F
 	memset(dF, 0, m_nColumnStateSize * sizeof(double));
-/*
-	// Mass flux on model interfaces
-	for (int k = 1; k < nRElements; k++) {
-		m_dMassFluxREdge[k] =
-			dJacobianREdge[k][m_iA][m_iB]
-			* m_dStateREdge[RIx][k]
-			* m_dXiDotREdge[k];
-	}
 
-	pGrid->DifferentiateREdgeToNode(
-		m_dMassFluxREdge,
-		m_dDiffMassFluxNode);
-*/
+	// Mass flux on model interfaces
+	if (pGrid->GetVarLocation(WIx) == DataLocation_REdge) {
+		for (int k = 1; k < nRElements; k++) {
+			m_dMassFluxREdge[k] =
+				dJacobianREdge[k][m_iA][m_iB]
+				* m_dStateREdge[RIx][k]
+				* m_dXiDotREdge[k];
+		}
+
+		pGrid->DifferentiateREdgeToNode(
+			m_dMassFluxREdge,
+			m_dDiffMassFluxNode);
 
 	// Mass flux on model levels
-	for (int k = 0; k < nRElements; k++) {
-		m_dMassFluxNode[k] =
-			dJacobian[k][m_iA][m_iB]
-			* m_dStateNode[RIx][k]
-			* m_dXiDotNode[k];
-	}
+	} else {
+		for (int k = 0; k < nRElements; k++) {
+			m_dMassFluxNode[k] =
+				dJacobian[k][m_iA][m_iB]
+				* m_dStateNode[RIx][k]
+				* m_dXiDotNode[k];
+		}
 
-	pGrid->DifferentiateNodeToNode(
-		m_dMassFluxNode,
-		m_dDiffMassFluxNode,
-		fZeroBoundaries);
+		pGrid->DifferentiateNodeToNode(
+			m_dMassFluxNode,
+			m_dDiffMassFluxNode,
+			fZeroBoundaries);
+	}
 
 	// Change in density on model levels
 	double dSum = 0.0;
@@ -2026,11 +2035,27 @@ void VerticalDynamicsFEM::BuildF(
 
 	}
 
+#ifdef DEBUG
+	if (dF[VecFIx(FWIx, 0)] != 0.0) {
+		_EXCEPTIONT("No updates to W at bottom boundary allowed");
+	}
+	if (pGrid->GetVarLocation(WIx) == DataLocation_REdge) {
+		if (dF[VecFIx(FWIx, nRElements)] != 0.0) {
+			_EXCEPTIONT("No updates to W at top boundary allowed");
+		}
+	} else {
+		if (dF[VecFIx(FWIx, nRElements-1)] != 0.0) {
+			_EXCEPTIONT("No updates to W at top boundary allowed");
+		}
+	}
+#endif
+
 	// Construct the time-dependent component of the RHS
 	for (int i = 0; i < m_nColumnStateSize; i++) {
 		dF[i] += (dX[i] - m_dColumnState[i]) / m_dDeltaT;
 	}
 
+/*
 	// Apply boundary conditions to W
 	if (pGrid->GetVarLocation(WIx) == DataLocation_REdge) {
 		dF[VecFIx(FWIx, 0)] =
@@ -2068,6 +2093,7 @@ void VerticalDynamicsFEM::BuildF(
 	} else {
 		_EXCEPTIONT("UNIMPLEMENTED");
 	}
+*/
 /*
 #ifdef APPLY_RAYLEIGH_WITH_VERTICALDYN
 
