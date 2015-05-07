@@ -23,8 +23,6 @@
 #include "Direction.h"
 #include "CubedSphereTrans.h"
 #include "PolynomialInterp.h"
-#include "GaussQuadrature.h"
-#include "GaussLobattoQuadrature.h"
 
 #include "Announce.h"
 #include "MathHelper.h"
@@ -420,6 +418,12 @@ void GridCSGLL::ApplyDSS(
 		if (eDataType == DataType_State) {
 			pPatch->TransformHaloVelocities(iDataUpdate);
 		}
+		if (eDataType == DataType_TopographyDeriv) {
+			pPatch->TransformTopographyDeriv();
+
+			const GridData3D & dataTopographyDeriv =
+				pPatch->GetTopographyDeriv();
+		}
 
 		// Panels in each coordinate direction
 		int ixRightPanel =
@@ -450,6 +454,8 @@ void GridCSGLL::ApplyDSS(
 			nComponents = 1;
 		} else if (eDataType == DataType_Divergence) {
 			nComponents = 1;
+		} else if (eDataType == DataType_TopographyDeriv) {
+			nComponents = 1;
 		} else {
 			_EXCEPTIONT("Invalid DataType");
 		}
@@ -475,6 +481,10 @@ void GridCSGLL::ApplyDSS(
 				pDataUpdate = pPatch->GetDataVorticity();
 			} else if (eDataType == DataType_Divergence) {
 				pDataUpdate = pPatch->GetDataDivergence();
+			} else if (eDataType == DataType_TopographyDeriv) {
+				pDataUpdate = pPatch->GetTopographyDeriv();
+
+				nRElements = 2;
 			}
 
 			for (int k = 0; k < nRElements; k++) {

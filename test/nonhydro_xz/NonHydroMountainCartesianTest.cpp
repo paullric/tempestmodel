@@ -250,15 +250,15 @@ public:
 		dState[1] = 0.0;
 		dState[3] = 0.0;
 
-		// Set the initial potential temperature field
-		dState[2] = dThetaBar;
-
 		// Set the initial density based on the Exner pressure
 		double dExnerP = (dG * dG) / (dCp * m_dTheta0 * dNbar * dNbar);
 		dExnerP *= (exp(-dNbar * dNbar / dG * dZp) - 1.0);
 		dExnerP += 1.0;
 		double dRho = dP0 / (dRd * dThetaBar) * pow(dExnerP,(dCv / dRd));
 		dState[4] = dRho;
+
+		// Set the initial potential temperature field
+		dState[2] = phys.PressureFromRhoTheta(dThetaBar * dRho);
 	}
 };
 

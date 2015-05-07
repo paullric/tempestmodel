@@ -17,6 +17,7 @@ FILES= CubedSphereTrans.cpp \
        ConsolidationStatus.cpp \
        Connectivity.cpp \
        Model.cpp \
+	   EquationSet.cpp \
        TimestepSchemeStrang.cpp \
        TimestepSchemeARK2.cpp \
        TimestepSchemeARK3.cpp \
@@ -43,7 +44,6 @@ FILES= CubedSphereTrans.cpp \
        GridPatchCSGLL.cpp \
        GridPatchCartesianGLL.cpp \
        Direction.cpp \
-       FluxBuffer.cpp \
        GridData3D.cpp \
        GridData4D.cpp \
        TestCase.cpp \

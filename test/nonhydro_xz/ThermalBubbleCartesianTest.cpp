@@ -211,7 +211,7 @@ public:
 		dState[3] = 0.0;
 
 		// Set the initial potential temperature field
-		dState[2] = m_dThetaBar + EvaluateTPrime(phys, dXp, dZp);;
+		dState[2] = m_dThetaBar + EvaluateTPrime(phys, dXp, dZp);
 
 		// Set the initial density based on the Exner pressure
 		double dExnerP =

@@ -406,6 +406,21 @@ public:
 		return m_dP0 / m_dR * exp((m_dCp - m_dR) / m_dR * log(dPi / m_dCp));
 	}
 
+public:
+	///	<summary>
+	///		Calculate the Exner pressure from pressure.
+	///	</summary>
+	inline double ExnerPressureFromPressure(double dP) const {
+		return m_dCp * exp(m_dR / m_dCp * log(dP / m_dP0));
+	}
+
+	///	<summary>
+	///		Calculate the pressure from Exner pressure.
+	///	</summary>
+	inline double PressureFromExnerPressure(double dPi) const {
+		return m_dP0 * exp(m_dCp / m_dR * log(dPi / m_dCp));
+	}
+
 #ifdef NETCDFENABLED
 public:
 	///	<summary>

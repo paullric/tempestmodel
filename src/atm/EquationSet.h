@@ -18,9 +18,14 @@
 #define _EQUATIONSET_H_
 
 #include "Exception.h"
+#include "DataVector.h"
 
 #include <vector>
 #include <string>
+
+///////////////////////////////////////////////////////////////////////////////
+
+class PhysicalConstants;
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -54,76 +59,7 @@ public:
 	///	<summary>
 	///		Constructor.
 	///	</summary>
-	EquationSet(
-		Type eEquationSetType
-	) :
-		m_eEquationSetType(eEquationSetType),
-		m_nTracers(0)
-	{
-		// Advection equations
-		if (eEquationSetType == AdvectionEquations) {
-			m_nDimensionality = 3;
-
-			m_nComponents = 0;
-
-		// Shallow water equations
-		} else if (eEquationSetType == ShallowWaterEquations) {
-			m_nDimensionality = 2;
-
-			m_nComponents = 3;
-
-			m_strComponentShortNames.push_back("U");
-			m_strComponentShortNames.push_back("V");
-			m_strComponentShortNames.push_back("H");
-
-			m_strComponentFullNames.push_back("Alpha velocity");
-			m_strComponentFullNames.push_back("Beta velocity");
-			m_strComponentFullNames.push_back("Free surface height");
-
-		// Primitive nonhydrostatic equations
-		} else if (eEquationSetType == PrimitiveNonhydrostaticEquations) {
-			m_nDimensionality = 3;
-
-			m_nComponents = 5;
-
-			m_strComponentShortNames.push_back("U");
-			m_strComponentShortNames.push_back("V");
-			m_strComponentShortNames.push_back("Theta");
-			m_strComponentShortNames.push_back("W");
-			m_strComponentShortNames.push_back("Rho");
-
-			m_strComponentFullNames.push_back("Alpha velocity");
-			m_strComponentFullNames.push_back("Beta velocity");
-			m_strComponentFullNames.push_back("Potential temperature");
-			m_strComponentFullNames.push_back("Vertical velocity");
-			m_strComponentFullNames.push_back("Density");
-
-		// Invalid equation set
-		} else {
-			_EXCEPTIONT("Invalid equation set.");
-		}
-	}
-/*
-	///	<summary>
-	///		Set the Tracer count.
-	///	</summary>
-	void SetTracerCount(int nTracers) {
-
-		m_nTracers = nTracers;
-
-		// Initialize tracers
-		for (int c = 0; c < nTracers; c++) {
-			char szTracerShortName[80];
-			sprintf(szTracerShortName, "Q%i", c);
-
-			char szTracerFullName[80];
-			sprintf(szTracerFullName, "Tracer %i", c);
-
-			m_strTracerShortNames.push_back(szTracerShortName);
-			m_strTracerFullNames.push_back(szTracerFullName);
-		}
-	}
-*/
+	EquationSet(Type eEquationSetType);
 
 public:
 	///	<summary>
@@ -210,6 +146,16 @@ public:
 	inline const std::string & GetTracerFullName(int ix) const {
 		return m_strTracerFullNames[ix];
 	}
+
+public:
+	///	<summary>
+	///		Convert output from TestCase::EvaluatePointwiseState to
+	///		state variables consistent with this EquationSet.
+	///	</summary>
+	void ConvertComponents(
+		const PhysicalConstants & phys,
+		DataVector<double> & dState
+	) const;
 
 private:
 	///	<summary>

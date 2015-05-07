@@ -22,7 +22,6 @@
 #include "DataMatrix3D.h"
 #include "GridData3D.h"
 #include "GridData4D.h"
-#include "FluxBuffer.h"
 #include "PatchBox.h"
 #include "Connectivity.h"
 #include "ChecksumType.h"
@@ -133,6 +132,15 @@ public:
 		int iDataIndex = 0
 	) {
 		_EXCEPTIONT("Unimplemented.");
+	}
+
+	///	<summary>
+	///		Apply boundary conditions to the state.
+	///	</summary>
+	virtual void ApplyBoundaryConditions(
+		int iDataIndex = 0,
+		DataType eDataType = DataType_State
+	) {
 	}
 
 public:
@@ -306,57 +314,6 @@ public:
 
 public:
 	///	<summary>
-	///		Compute velocity across xi surfaces (xi_dot) at nodes.
-	///	</summary>
-	inline double CalculateXiDotNode(
-		int k,
-		int iA,
-		int iB,
-		double dUa,
-		double dUb,
-		double dUr
-	) {
-		return
-			( m_dataOrthonormNode[k][iA][iB][0] * dUa
-			+ m_dataOrthonormNode[k][iA][iB][1] * dUb
-			+ m_dataOrthonormNode[k][iA][iB][2] * dUr);
-	}
-
-	///	<summary>
-	///		Compute velocity across xi surfaces (xi_dot) at interfaces.
-	///	</summary>
-	inline double CalculateXiDotREdge(
-		int k,
-		int iA,
-		int iB,
-		double dUa,
-		double dUb,
-		double dUr
-	) {
-		return
-			( m_dataOrthonormREdge[k][iA][iB][0] * dUa
-			+ m_dataOrthonormREdge[k][iA][iB][1] * dUb
-			+ m_dataOrthonormREdge[k][iA][iB][2] * dUr);
-	}
-
-	///	<summary>
-	///		Compute vertical velocity needed to enforce no flow condition
-	///		(xi_dot = 0) at interfaces.
-	///	</summary>
-	inline double CalculateNoFlowUrREdge(
-		int k,
-		int iA,
-		int iB,
-		double dUa,
-		double dUb
-	) {
-		return - 1.0 / m_dataOrthonormREdge[k][iA][iB][2] * (
-			  m_dataOrthonormREdge[k][iA][iB][0] * dUa
-			+ m_dataOrthonormREdge[k][iA][iB][1] * dUb);
-	}
-
-public:
-	///	<summary>
 	///		Linearly interpolate data horizontally to the specified points.
 	///	</summary>
 	virtual void InterpolateData(
@@ -440,7 +397,7 @@ public:
 	}
 
 	///	<summary>
-	///		Get the  components of the contravariant metric (alpha)
+	///		Get the components of the contravariant metric (alpha)
 	///	</summary>
 	const DataMatrix3D<double> & GetContraMetric2DA() const {
 		if (!m_fContainsData) {
@@ -451,7 +408,7 @@ public:
 	}
 
 	///	<summary>
-	///		Get the  components of the contravariant metric (beta)
+	///		Get the components of the contravariant metric (beta)
 	///	</summary>
 	const DataMatrix3D<double> & GetContraMetric2DB() const {
 		if (!m_fContainsData) {
@@ -462,7 +419,7 @@ public:
 	}
 
 	///	<summary>
-	///		Get the  components of the covariant metric (alpha)
+	///		Get the components of the covariant metric (alpha)
 	///	</summary>
 	const DataMatrix3D<double> & GetCovMetric2DA() const {
 		if (!m_fContainsData) {
@@ -473,7 +430,7 @@ public:
 	}
 
 	///	<summary>
-	///		Get the  components of the covariant metric (beta)
+	///		Get the components of the covariant metric (beta)
 	///	</summary>
 	const DataMatrix3D<double> & GetCovMetric2DB() const {
 		if (!m_fContainsData) {
@@ -506,7 +463,7 @@ public:
 	}
 
 	///	<summary>
-	///		Get the  components of the contravariant metric (alpha)
+	///		Get the components of the contravariant metric (alpha)
 	///	</summary>
 	const DataMatrix4D<double> & GetContraMetricA() const {
 		if (!m_fContainsData) {
@@ -517,7 +474,7 @@ public:
 	}
 
 	///	<summary>
-	///		Get the  components of the contravariant metric (beta)
+	///		Get the components of the contravariant metric (beta)
 	///	</summary>
 	const DataMatrix4D<double> & GetContraMetricB() const {
 		if (!m_fContainsData) {
@@ -528,7 +485,7 @@ public:
 	}
 
 	///	<summary>
-	///		Get the  components of the contravariant metric (xi)
+	///		Get the components of the contravariant metric (xi)
 	///	</summary>
 	const DataMatrix4D<double> & GetContraMetricXi() const {
 		if (!m_fContainsData) {
@@ -539,7 +496,43 @@ public:
 	}
 
 	///	<summary>
-	///		Get the  components of the covariant metric (alpha)
+	///		Get the components of the contravariant metric (alpha)
+	///		on interfaces.
+	///	</summary>
+	const DataMatrix4D<double> & GetContraMetricAREdge() const {
+		if (!m_fContainsData) {
+			_EXCEPTIONT("Stub patch does not store data.");
+		}
+
+		return m_dataContraMetricAREdge;
+	}
+
+	///	<summary>
+	///		Get the components of the contravariant metric (beta)
+	///		on interfaces.
+	///	</summary>
+	const DataMatrix4D<double> & GetContraMetricBREdge() const {
+		if (!m_fContainsData) {
+			_EXCEPTIONT("Stub patch does not store data.");
+		}
+
+		return m_dataContraMetricBREdge;
+	}
+
+	///	<summary>
+	///		Get the components of the contravariant metric (xi)
+	///		on interfaces.
+	///	</summary>
+	const DataMatrix4D<double> & GetContraMetricXiREdge() const {
+		if (!m_fContainsData) {
+			_EXCEPTIONT("Stub patch does not store data.");
+		}
+
+		return m_dataContraMetricXiREdge;
+	}
+
+	///	<summary>
+	///		Get the components of the covariant metric (alpha)
 	///	</summary>
 	const DataMatrix4D<double> & GetCovMetricA() const {
 		if (!m_fContainsData) {
@@ -571,59 +564,28 @@ public:
 		return m_dataCovMetricXi;
 	}
 
-	///	<summary>
-	///		Get the nodal components of the Christoffel alpha symbols.
-	///	</summary>
-	const DataMatrix3D<double> & GetChristoffelA() const {
-		if (!m_fContainsData) {
-			_EXCEPTIONT("Stub patch does not store data.");
-		}
-
-		return m_dataChristoffelA;
-	}
-
-	///	<summary>
-	///		Get the nodal components of the Christoffel beta symbols.
-	///	</summary>
-	const DataMatrix3D<double> & GetChristoffelB() const {
-		if (!m_fContainsData) {
-			_EXCEPTIONT("Stub patch does not store data.");
-		}
-
-		return m_dataChristoffelB;
-	}
-
-	///	<summary>
-	///		Get the nodal components of the Christoffel xi symbols.
-	///	</summary>
-	const DataMatrix4D<double> & GetChristoffelXi() const {
-		if (!m_fContainsData) {
-			_EXCEPTIONT("Stub patch does not store data.");
-		}
-
-		return m_dataChristoffelXi;
-	}
- 
  	///	<summary>
-	///		Get the orthonormalization components at nodes.
+	///		Get the vertical coordinate transform (derivatives of the
+	///		radius) at nodes.
 	///	</summary>
-	const DataMatrix4D<double> & GetOrthonormNode() const {
+	const DataMatrix4D<double> & GetDerivRNode() const {
 		if (!m_fContainsData) {
 			_EXCEPTIONT("Stub patch does not store data.");
 		}
 
-		return m_dataOrthonormNode;
+		return m_dataDerivRNode;
 	}
 
-	///	<summary>
-	///		Get the orthonormalization components at interfaces.
+ 	///	<summary>
+	///		Get the vertical coordinate transform (derivatives of the
+	///		radius) at edges.
 	///	</summary>
-	const DataMatrix4D<double> & GetOrthonormREdge() const {
+	const DataMatrix4D<double> & GetDerivRREdge() const {
 		if (!m_fContainsData) {
 			_EXCEPTIONT("Stub patch does not store data.");
 		}
 
-		return m_dataOrthonormREdge;
+		return m_dataDerivRREdge;
 	}
 
 	///	<summary>
@@ -649,7 +611,7 @@ public:
 	}
 
 	///	<summary>
-	///		Get the nodal topography matrix.
+	///		Get the nodal topography.
 	///	</summary>
 	DataMatrix<double> & GetTopography() {
 		if (!m_fContainsData) {
@@ -660,7 +622,7 @@ public:
 	}
 
 	///	<summary>
-	///		Get the nodal topography matrix.
+	///		Get the nodal topography.
 	///	</summary>
 	const DataMatrix<double> & GetTopography() const {
 		if (!m_fContainsData) {
@@ -668,6 +630,28 @@ public:
 		}
 
 		return m_dataTopography;
+	}
+
+	///	<summary>
+	///		Get the derivatives of the topography.
+	///	</summary>
+	GridData3D & GetTopographyDeriv() {
+		if (!m_fContainsData) {
+			_EXCEPTIONT("Stub patch does not store data.");
+		}
+
+		return m_dataTopographyDeriv;
+	}
+
+	///	<summary>
+	///		Get the derivatives of the topography.
+	///	</summary>
+	const GridData3D & GetTopographyDeriv() const {
+		if (!m_fContainsData) {
+			_EXCEPTIONT("Stub patch does not store data.");
+		}
+
+		return m_dataTopographyDeriv;
 	}
 
 	///	<summary>
@@ -950,7 +934,7 @@ public:
 	const GridData3D & GetDataPressure() const {
 		return m_dataPressure;
 	}
-
+/*
 	///	<summary>
 	///		Get the alpha direction pressure derivative data.
 	///	</summary>
@@ -978,7 +962,7 @@ public:
 	const GridData3D & GetDataDbPressure() const {
 		return m_dataDbPressure;
 	}
-
+*/
 	///	<summary>
 	///		Get the pressure derivative data.
 	///	</summary>
@@ -1064,34 +1048,7 @@ public:
 			_EXCEPTIONT("Invalid location");
 		}
 	}
-/*
-	///	<summary>
-	///		Get the count of FluxBuffers.
-	///	</summary>
-	inline int GetFluxBufferCount() const {
-		return static_cast<int>(m_vecFluxBuffers.size());
-	}
 
-	///	<summary>
-	///		Get the specified FluxBuffer.
-	///	</summary>
-	FluxBuffer & GetFluxBuffer(int ix) {
-		if ((ix < 0) || (ix >= GetFluxBufferCount())) {
-			_EXCEPTIONT("FluxBuffer index out of range");
-		}
-		return m_vecFluxBuffers[ix];
-	}
-
-	///	<summary>
-	///		Get the specified FluxBuffer.
-	///	</summary>
-	const FluxBuffer & GetFluxBuffer(int ix) const {
-		if ((ix < 0) || (ix >= GetFluxBufferCount())) {
-			_EXCEPTIONT("FluxBuffer index out of range");
-		}
-		return m_vecFluxBuffers[ix];
-	}
-*/
 protected:
 	///	<summary>
 	///		Reference to parent grid.
@@ -1194,29 +1151,31 @@ protected:
 	DataMatrix4D<double> m_dataCovMetricXi;
 
 	///	<summary>
-	///		Christoffel symbol (alpha) components at each node.
+	///		Contravariant metric (alpha) components on interfaces.
 	///	</summary>
-	DataMatrix3D<double> m_dataChristoffelA;
+	DataMatrix4D<double> m_dataContraMetricAREdge;
 
 	///	<summary>
-	///		Christoffel symbol (beta) components at each node.
+	///		Contravariant metric (beta) components on interfaces.
 	///	</summary>
-	DataMatrix3D<double> m_dataChristoffelB;
+	DataMatrix4D<double> m_dataContraMetricBREdge;
 
 	///	<summary>
-	///		Christoffel symbol (xi) components at each node.
+	///		Contravariant metric (xi) components on interfaces.
 	///	</summary>
-	DataMatrix4D<double> m_dataChristoffelXi;
+	DataMatrix4D<double> m_dataContraMetricXiREdge;
 
  	///	<summary>
-	///		Orthonormalization coefficients at each node.
+	///		Vertical coordinate transform (derivatives of the radius)
+	///		at each node.
 	///	</summary>
-	DataMatrix4D<double> m_dataOrthonormNode;
+	DataMatrix4D<double> m_dataDerivRNode;
 
-	///	<summary>
-	///		Orthonormalization coefficients at each interface.
+ 	///	<summary>
+	///		Vertical coordinate transform (derivatives of the radius)
+	///		at each interface.
 	///	</summary>
-	DataMatrix4D<double> m_dataOrthonormREdge;
+	DataMatrix4D<double> m_dataDerivRREdge;
 
 	///	<summary>
 	///		Element area at each node.
@@ -1232,6 +1191,11 @@ protected:
 	///		Topography height at each node.
 	///	</summary>
 	DataMatrix<double> m_dataTopography;
+
+	///	<summary>
+	///		Derivatives of topography at each node.
+	///	</summary>
+	GridData3D m_dataTopographyDeriv;
 
 	///	<summary>
 	///		Longitude at each node.
@@ -1299,16 +1263,6 @@ protected:
 	GridData3D m_dataPressure;
 
 	///	<summary>
-	///		Computed pointwise alpha pressure derivatives.
-	///	</summary>
-	GridData3D m_dataDaPressure;
-
-	///	<summary>
-	///		Computed pointwise beta pressure derivatives.
-	///	</summary>
-	GridData3D m_dataDbPressure;
-
-	///	<summary>
 	///		Computed pointwise vertical pressure derivatives.
 	///	</summary>
 	GridData3D m_dataDxPressure;
@@ -1337,12 +1291,6 @@ protected:
 	///		Rayleigh friction strength on interfaces.
 	///	</summary>
 	GridData3D m_dataRayleighStrengthREdge;
-
-	///	<summary>
-	///		Vector of flux buffers.
-	///	</summary>
-	FluxBufferVector m_vecFluxBuffers;
-
 };
 
 ///////////////////////////////////////////////////////////////////////////////

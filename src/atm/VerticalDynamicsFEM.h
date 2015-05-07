@@ -31,9 +31,9 @@
 #include <petscsnes.h>
 #endif
 
-#ifdef USE_JACOBIAN_DEBUG
+//#ifdef USE_JACOBIAN_DEBUG
 #include "Model.h"
-#endif
+//#endif
 
 class GridPatch;
 class Time;
@@ -79,9 +79,11 @@ protected:
 	///		Component indices into the F vector.
 	///	</summary>
 	typedef int FComp;
-	static const FComp FTIx = 0;
+	static const FComp FPIx = 0;
 	static const FComp FWIx = 1;
 	static const FComp FRIx = 2;
+
+	static const FComp FTot = 3;
 
 	///	<summary>
 	///		Get the index of the component and level of the F vector.
@@ -91,7 +93,7 @@ protected:
 		int nREdges = m_model.GetGrid()->GetRElements() + 1;
 		return (nREdges * c + k);
 #else
-		return (3*k + c);
+		return (FTot*k + c);
 #endif
 	}
 
@@ -104,10 +106,10 @@ protected:
 		int nREdges = m_model.GetGrid()->GetRElements() + 1;
 		return (m_nColumnStateSize * (nREdges * c0 + k0) + (nREdges * c1 + k1));
 #elif defined(USE_JACOBIAN_GENERAL)
-		return (m_nColumnStateSize * (3*k0 + c0) + (3*k1 + c1));
+		return (m_nColumnStateSize * (FTot*k0 + c0) + (FTot*k1 + c1));
 #elif defined(USE_JACOBIAN_DIAGONAL)
-		return (2 * m_nJacobianFKL + (3*k1 + c1) - (3*k0 + c0))
-			+ m_nColumnStateSize * (3*k0 + c0);
+		return (2 * m_nJacobianFKL + (FTot*k1 + c1) - (FTot*k0 + c0))
+			+ m_nColumnStateSize * (FTot*k0 + c0);
 #else
 		_EXCEPTION();
 #endif
@@ -130,17 +132,16 @@ public:
 		GridPatch * pPatch,
 		int iA,
 		int iB,
-		const DataMatrix<double> & dataJacobian2D,
-		const DataMatrix3D<double> & dataJacobian3DNode,
-		const DataMatrix3D<double> & dataJacobian3DREdge,
 		const GridData4D & dataRefNode,
 		const GridData4D & dataInitialNode,
 		const GridData4D & dataRefREdge,
-		const GridData4D & dataInitialREdge,
+		const GridData4D & dataInitialREdge
+/*
 		const GridData3D & dataExnerNode,
 		const GridData3D & dataDiffExnerNode,
 		const GridData3D & dataExnerREdge,
 		const GridData3D & dataDiffExnerREdge
+*/
 	);
  
 	///	<summary>
@@ -188,14 +189,6 @@ public:
 	///		Build the Jacobian matrix.
 	///	</summary>
 	void BuildJacobianF(
-		const double * dX,
-		double * dDG
-	);
-
-	///	<summary>
-	///		Build the Jacobian matrix.
-	///	</summary>
-	void BuildJacobianF2(
 		const double * dX,
 		double * dDG
 	);
@@ -325,14 +318,49 @@ protected:
 	DataVector<double> m_dXiDotREdge;
 
 	///	<summary>
-	///		Auxiliary storage for derivative of theta.
+	///		Auxiliary storage for derivative of pressure on nodes.
 	///	</summary>
-	DataVector<double> m_dDiffTheta;
+	DataVector<double> m_dDiffPNode;
+
+	///	<summary>
+	///		Auxiliary storage for derivative of pressure on interfaces.
+	///	</summary>
+	DataVector<double> m_dDiffPREdge;
 
 	///	<summary>
 	///		Auxiliary storage for higher derivatives of theta.
 	///	</summary>
-	DataVector<double> m_dDiffDiffTheta;
+	DataVector<double> m_dDiffDiffP;
+
+	///	<summary>
+	///		Auxiliary storage for derivative of theta on nodes.
+	///	</summary>
+	DataVector<double> m_dDiffThetaNode;
+
+	///	<summary>
+	///		Auxiliary storage for derivative of theta on interfaces.
+	///	</summary>
+	DataVector<double> m_dDiffThetaREdge;
+
+	///	<summary>
+	///		Horizontal Kinetic energy on model levels.
+	///	</summary>
+	DataVector<double> m_dHorizKineticEnergyNode;
+
+	///	<summary>
+	///		Kinetic energy on model levels.
+	///	</summary>
+	DataVector<double> m_dKineticEnergyNode;
+
+	///	<summary>
+	///		Derivatives of kinetic energy on model levels.
+	///	</summary>
+	DataVector<double> m_dDiffKineticEnergyNode;
+
+	///	<summary>
+	///		Derivatives of kinetic energy on model levels.
+	///	</summary>
+	DataVector<double> m_dDiffKineticEnergyREdge;
 
 	///	<summary>
 	///		Mass flux on model levels.
@@ -355,9 +383,29 @@ protected:
 	DataVector<double> m_dDiffMassFluxREdge;
 
 	///	<summary>
+	///		Pressure flux on model levels.
+	///	</summary>
+	DataVector<double> m_dPressureFluxNode;
+
+	///	<summary>
+	///		Pressure flux on model interfaces.
+	///	</summary>
+	DataVector<double> m_dPressureFluxREdge;
+
+	///	<summary>
+	///		Derivatives of pressure flux on model levels.
+	///	</summary>
+	DataVector<double> m_dDiffPressureFluxNode;
+
+	///	<summary>
+	///		Derivatives of pressure flux on model interfaces.
+	///	</summary>
+	DataVector<double> m_dDiffPressureFluxREdge;
+
+	///	<summary>
 	///		Exner pressure perturbation at model levels.
 	///	</summary>
-	DataVector<double> m_dExnerPertNode;
+	DataVector<double> m_dExnerNode;
 
 	///	<summary>
 	///		Reference Exner pressure at model levels.
@@ -367,7 +415,7 @@ protected:
 	///	<summary>
 	///		Exner pressure perturbation at model interfaces.
 	///	</summary>
-	DataVector<double> m_dExnerPertREdge;
+	DataVector<double> m_dExnerREdge;
 
 	///	<summary>
 	///		Reference Exner pressure at model interfaces.
@@ -418,26 +466,6 @@ protected:
 	///		Hyperviscosity coefficients from edges to edges.
 	///	</summary>
 	DataMatrix<double> m_dHypervisREdgeToREdge;
-
-	///	<summary>
-	///		DxR in the column stored at nodes.
-	///	</summary>
-	DataVector<double> m_dDxRNode;
-
-	///	<summary>
-	///		DxR in the column stored at interfaces.
-	///	</summary>
-	DataVector<double> m_dDxRREdge;
-
-	///	<summary>
-	///		3D Jacobian in the column stored on nodes.
-	///	</summary>
-	DataVector<double> m_dJacobian3DNode;
-
-	///	<summary>
-	///		3D Jacobian in the column stored on interfaces.
-	///	</summary>
-	DataVector<double> m_dJacobian3DREdge;
 
 #ifdef USE_JFNK_PETSC
 private:

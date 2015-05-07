@@ -195,8 +195,16 @@ void TimestepSchemeStrang::Step(
 		pGrid->LinearCombineData(m_dCarryoverCombination, 0, DataType_State);
 	}
 
+	// Forward Euler
+	if (m_eExplicitDiscretization == ForwardEuler) {
+		pGrid->CopyData(0, 4, DataType_State);
+		pHorizontalDynamics->StepExplicit(0, 4, time, dDeltaT);
+		pVerticalDynamics->StepExplicit(0, 4, time, dDeltaT);
+		pGrid->PostProcessSubstage(4, DataType_State);
+		pGrid->PostProcessSubstage(4, DataType_Tracers);
+
 	// Explicit fourth-order Runge-Kutta
-	if (m_eExplicitDiscretization == RungeKutta4) {
+	} else if (m_eExplicitDiscretization == RungeKutta4) {
 		pGrid->CopyData(0, 1, DataType_State);
 		pHorizontalDynamics->StepExplicit(0, 1, time, dHalfDeltaT);
 		pVerticalDynamics->StepExplicit(0, 1, time, dHalfDeltaT);

@@ -7,8 +7,8 @@ NETCDF_INCLUDEDIR= /opt/local/include
 NETCDF_LIBDIR= /opt/local/lib
 
 # PetSc directory
-PETSC_INCLUDEDIR= /opt/local/petsc/include
-PETSC_LIBDIR= /opt/local/petsc/lib
+PETSC_INCLUDEDIR= /opt/local/lib/petsc/include
+PETSC_LIBDIR= /opt/local/lib/petsc/lib
 
 # X11 lib directory
 X11_LIBDIR= /opt/X11/lib
@@ -41,6 +41,7 @@ endif
 
 # PetSc include directory
 ifdef USE_PETSC
+  CFLAGS+= -DUSE_PETSC -I$(PETSC_INCLUDEDIR)
   LDFILES+= -lX11 -lpetsc
   LDFLAGS+= -L$(X11_LIBDIR) -L$(PETSC_LIBDIR)
 endif

@@ -18,6 +18,7 @@
 #define _GRIDPATCHGLL_H_
 
 #include "GridPatch.h"
+#include "GridGLL.h"
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -37,6 +38,23 @@ public:
 		const PatchBox & box,
 		int nHorizontalOrder,
 		int nVerticalOrder = 1
+	);
+
+public:
+	///	<summary>
+	///		Interpolate data vertically from nodes to interfaces.
+	///	</summary>
+	virtual void InterpolateNodeToREdge(
+		int iVar,
+		int iDataIndex
+	);
+
+	///	<summary>
+	///		Interpolate data vertically from interfaces to nodes.
+	///	</summary>
+	virtual void InterpolateREdgeToNode(
+		int iVar,
+		int iDataIndex
 	);
 
 public:

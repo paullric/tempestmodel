@@ -85,7 +85,7 @@ public:
 	///	<summary>
 	///		Check if data has been received by this neighbor.
 	///	</summary>
-	bool CheckReceive();
+	virtual bool CheckReceive();
 
 	///	<summary>
 	///		Set the complete flag.
@@ -312,6 +312,11 @@ public:
 
 public:
 	///	<summary>
+	///		Check if data has been received by this neighbor.
+	///	</summary>
+	virtual bool CheckReceive();
+
+	///	<summary>
 	///		Prepare an asynchronous receive.
 	///	</summary>
 	virtual void PrepareExchange();
@@ -389,6 +394,13 @@ class InteriorNeighbor : public Neighbor {
 	///	</summary>
 
 public:
+	///	<summary>
+	///		Check if data has been received by this neighbor.
+	///	</summary>
+	virtual bool CheckReceive() {
+		return true;
+	}
+
 	///	<summary>
 	///		Prepare an asynchronous receive.
 	///	</summary>

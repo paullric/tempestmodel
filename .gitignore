@@ -89,3 +89,17 @@ util/MountainWavesSphere/GenerateMountainResponse
 util/MountainWavesSphere/GenerateScharTopography
 
 util/MountainWavesSphere/GenerateWaveTopography
+
+*.tgz
+
+test/nonhydro_xz/DG.txt
+
+test/nonhydro_xz/DG2.txt
+
+test/nonhydro_xz/DGRef.txt
+
+test/nonhydro_xz/G.txt
+
+test/nonhydro_xz/lev.txt
+
+test/nonhydro_xz/Baroclinic3DCartesianTest

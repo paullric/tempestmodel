@@ -388,8 +388,8 @@ void CubedSphereTrans::VecTransABPFromRLL(
 	int nP,
 	double dUlon,
 	double dUlat,
-	double &dUalpha,
-	double &dUbeta
+	double & dUalpha,
+	double & dUbeta
 ) {
 	double dDelta2 = 1.0 + dX * dX + dY * dY;
 	double dRadius;
@@ -474,8 +474,8 @@ void CubedSphereTrans::VecTransRLLFromABP(
 	int nP,
 	double dUalpha,
 	double dUbeta,
-	double &dUlon,
-	double &dUlat
+	double & dUlon,
+	double & dUlat
 ) {
 	double dDelta2 = 1.0 + dX * dX + dY * dY;
 	double dRadius;
@@ -534,6 +534,180 @@ void CubedSphereTrans::VecTransRLLFromABP(
 			// Convert spherical coords to unit basis
 			lat = -0.5 * M_PI + atan(sqrt(dX * dX + dY * dY));
 			dUlon = dUlon * cos(lat);
+
+			break;
+
+		// Invalid panel
+		default:
+			_EXCEPTION1(
+				"Invalid nP coordinate.  Given: %d, Expected: [0-5].\n", nP);
+	}
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+void CubedSphereTrans::CoVecTransABPFromRLL(
+	double dX,
+	double dY,
+	int nP,
+	double dUlon,
+	double dUlat,
+	double & dUalpha,
+	double & dUbeta
+) {
+	double dDelta2 = 1.0 + dX * dX + dY * dY;
+	double dRadius;
+
+	double lat;
+
+	if ((nP > 3) && (fabs(dX) < 1.0e-13) && (fabs(dY) < 1.0e-13)) {
+		if (nP == 4) {
+			dUalpha = dUlon;
+		} else {
+			dUalpha = - dUlon;
+		}
+		dUbeta = dUlat;
+		return;
+	}
+
+	switch (nP) {
+		// Equatorial panels
+		case 0:
+		case 1:
+		case 2:
+		case 3:
+			// Convert Ulon from geometric basis
+			lat = atan(dY / sqrt(1.0 + dX * dX));
+			dUlon = dUlon / cos(lat);
+
+			// Calculate vector component
+			dUalpha =
+				  (1.0 + dX * dX) / dDelta2 * dUlon
+				- dX * dY * sqrt(1.0 + dX * dX) / dDelta2 * dUlat;
+			dUbeta = 
+				sqrt(1.0 + dX * dX) * (1.0 + dY * dY) / dDelta2 * dUlat;
+
+			break;
+
+		// North polar panel
+		case 4:
+			// Convert Ulon from geometric basis
+			lat = 0.5 * M_PI - atan(sqrt(dX * dX + dY * dY));
+			dUlon = dUlon / cos(lat);
+
+			// Calculate vector component
+			dRadius = sqrt(dX * dX + dY * dY);
+
+			dUalpha = 
+				- dY * (1.0 + dX * dX) / dDelta2 * dUlon
+				- dX * (1.0 + dX * dX) / (dDelta2 * dRadius) * dUlat;
+
+			dUbeta =
+				+ dX * (1.0 + dY * dY) / dDelta2 * dUlon
+				- dY * (1.0 + dY * dY) / (dDelta2 * dRadius) * dUlat;
+
+			break;
+
+		// South polar panel
+		case 5:
+
+			// Convert Ulon from geometric basis
+			lat = -0.5 * M_PI + atan(sqrt(dX * dX + dY * dY));
+			dUlon = dUlon / cos(lat);
+
+			// Calculate vector component
+			dRadius = sqrt(dX * dX + dY * dY);
+
+			dUalpha = 
+				+ dY * (1.0 + dX * dX) / dDelta2 * dUlon
+				+ dX * (1.0 + dX * dX) / (dDelta2 * dRadius) * dUlat;
+
+			dUbeta =
+				- dX * (1.0 + dY * dY) / dDelta2 * dUlon
+				+ dY * (1.0 + dY * dY) / (dDelta2 * dRadius) * dUlat;
+
+			break;
+
+		// Invalid panel
+		default:
+			_EXCEPTION1(
+				"Invalid nP coordinate.  Given: %d, Expected: [0-5].\n", nP);
+	}
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+void CubedSphereTrans::CoVecTransRLLFromABP(
+	double dX,
+	double dY,
+	int nP,
+	double dUalpha,
+	double dUbeta,
+	double & dUlon,
+	double & dUlat
+) {
+	double dDelta2 = 1.0 + dX * dX + dY * dY;
+	double dRadius;
+	double dRadius2;
+
+	double lat;
+
+	switch (nP) {
+		// Equatorial panels
+		case 0:
+		case 1:
+		case 2:
+		case 3:
+			// Calculate new vector components
+			dUlon =
+				  dDelta2 / (1.0 + dX * dX) * dUalpha
+				+ dDelta2 * dX * dY / (1.0 + dX * dX) / (1.0 + dY * dY) * dUbeta;
+			dUlat =
+				  dDelta2 / sqrt(1.0 + dX * dX) / (1.0 + dY * dY) * dUbeta;
+
+			// Convert spherical coords to geometric basis
+			lat = atan(dY / sqrt(1.0 + dX * dX));
+			dUlon *= cos(lat);
+
+			break;
+
+		// North polar panel
+		case 4:
+			// Calculate new vector components
+			dRadius2 = (dX * dX + dY * dY);
+			dRadius = sqrt(dRadius2);
+
+			dUlon =
+				- dDelta2 * dY / (1.0 + dX * dX) / dRadius2 * dUalpha
+				+ dDelta2 * dX / (1.0 + dY * dY) / dRadius2 * dUbeta;
+
+			dUlat =
+				- dDelta2 * dX / (1.0 + dX * dX) / dRadius * dUalpha
+				- dDelta2 * dY / (1.0 + dY * dY) / dRadius * dUbeta;
+
+			// Convert spherical coords to geometric basis
+			lat = 0.5 * M_PI - atan(sqrt(dX * dX + dY * dY));
+			dUlon *= cos(lat);
+
+			break;
+
+		// South polar panel
+		case 5:
+			// Calculate new vector components
+			dRadius2 = (dX * dX + dY * dY);
+			dRadius = sqrt(dRadius2);
+
+			dUlon =
+				+ dDelta2 * dY / (1.0 + dX * dX) / dRadius2 * dUalpha
+				- dDelta2 * dX / (1.0 + dY * dY) / dRadius2 * dUbeta;
+
+			dUlat =
+				+ dDelta2 * dX / (1.0 + dX * dX) / dRadius * dUalpha
+				+ dDelta2 * dY / (1.0 + dY * dY) / dRadius * dUbeta;
+
+			// Convert spherical coords to geometric basis
+			lat = 0.5 * M_PI - atan(sqrt(dX * dX + dY * dY));
+			dUlon *= cos(lat);
 
 			break;
 

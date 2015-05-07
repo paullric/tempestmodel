@@ -20,7 +20,7 @@
 #include "HorizontalDynamics.h"
 #include "DataVector.h"
 #include "DataMatrix.h"
-#include "DataMatrix3D.h"
+#include "DataMatrix4D.h"
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -145,20 +145,36 @@ protected:
 	int m_nHorizontalOrder;
 
 	///	<summary>
-	///		Nodal alpha fluxes.
+	///		Nodal alpha mass fluxes.
 	///	</summary>
-	DataMatrix<double> m_dAlphaFlux;
+	DataMatrix<double> m_dAlphaMassFlux;
 
 	///	<summary>
-	///		Nodal beta fluxes.
+	///		Nodal beta mass fluxes.
 	///	</summary>
-	DataMatrix<double> m_dBetaFlux;
+	DataMatrix<double> m_dBetaMassFlux;
 
 	///	<summary>
-	///		Nodal pointwise pressures.
+	///		Nodal alpha pressure fluxes.
 	///	</summary>
-	DataMatrix<double> m_dPressure;
+	DataMatrix<double> m_dAlphaPressureFlux;
 
+	///	<summary>
+	///		Nodal beta pressure fluxes.
+	///	</summary>
+	DataMatrix<double> m_dBetaPressureFlux;
+
+	///	<summary>
+	///		Auxiliary data within an element (on nodes).
+	///	</summary>
+	DataMatrix4D<double> m_dAuxDataNode;
+
+	///	<summary>
+	///		Auxiliary data within an element (on edges).
+	///	</summary>
+	DataMatrix4D<double> m_dAuxDataREdge;
+
+/*
 	///	<summary>
 	///		Zero vector of length RElements+1.
 	///	</summary>
@@ -175,6 +191,21 @@ protected:
 	DataVector<double> m_dColumnDxPressure;
 
 	///	<summary>
+	///		Nodal pointwise kinetic energy in a column.
+	///	</summary>
+	DataVector<double> m_dColumnKineticEnergy;
+
+	///	<summary>
+	///		Nodal pointwise pressure xi derivatives in a column.
+	///	</summary>
+	DataVector<double> m_dColumnDxKineticEnergy;
+
+	///	<summary>
+	///		Nodal xi velocity.
+	///	</summary>
+	DataMatrix<double> m_dUx;
+
+	///	<summary>
 	///		Nodal pointwise covariant alpha velocity.
 	///	</summary>
 	DataMatrix<double> m_dCovUa;
@@ -185,16 +216,16 @@ protected:
 	DataMatrix<double> m_dCovUb;
 
 	///	<summary>
+	///		Nodal pointwise covariant xi velocity.
+	///	</summary>
+	DataMatrix<double> m_dCovUx;
+
+	///	<summary>
 	///		Nodal pointwise kinetic energy.
 	///	</summary>
 	DataMatrix<double> m_dEnergy;
-
+*/
 protected:
-	///	<summary>
-	///		Nodal pointwise gradient.
-	///	</summary>
-	DataMatrix3D<double> m_dGradient;
-
 	///	<summary>
 	///		Nodal pointwise gradient of Jacobian in alpha direction (buffer).
 	///	</summary>

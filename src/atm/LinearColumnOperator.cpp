@@ -18,7 +18,9 @@
 
 ///////////////////////////////////////////////////////////////////////////////
 
-LinearColumnOperator::LinearColumnOperator() {
+LinearColumnOperator::LinearColumnOperator() :
+	m_fInitialized(false)
+{
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -36,6 +38,7 @@ void LinearColumnOperator::Initialize(
 	int nRElementsIn,
 	int nRElementsOut
 ) {
+	m_fInitialized = true;
 	m_dCoeff.Initialize(nRElementsOut, nRElementsIn);
 	m_iBegin.Initialize(nRElementsOut);
 	m_iEnd  .Initialize(nRElementsOut);
@@ -43,10 +46,146 @@ void LinearColumnOperator::Initialize(
 
 ///////////////////////////////////////////////////////////////////////////////
 
+void LinearColumnOperator::ComposeWith(
+	const LinearColumnOperator & op
+) {
+	// Verify dimensions
+	if (m_dCoeff.GetColumns() != op.m_dCoeff.GetRows()) {
+		_EXCEPTION2("Composed operator dimension mismatch (%i, %i)",
+			m_dCoeff.GetColumns(), op.m_dCoeff.GetRows());
+	}
+
+	// Intermediate size
+	int nRElementsInter = m_dCoeff.GetColumns();
+
+	// Construct composed operator
+	int nRElementsOut = m_iBegin.GetRows();
+	int nRElementsIn  = op.m_dCoeff.GetColumns();
+
+	DataMatrix<double> dNewCoeff(nRElementsOut, nRElementsIn);
+	DataVector<int> iNewBegin(nRElementsOut);
+	DataVector<int> iNewEnd(nRElementsOut);
+
+	// Perform matrix product
+	for (int i = 0; i < nRElementsOut; i++) {
+	for (int j = 0; j < nRElementsIn; j++) {
+		for (int k = 0; k < nRElementsInter; k++) {
+			dNewCoeff[i][j] += m_dCoeff[i][k] * op.m_dCoeff[k][j];
+		}
+	}
+	}
+
+	// Determine non-zero intervals
+	for (int i = 0; i < nRElementsOut; i++) {
+		bool fFoundBegin = false;
+		for (int j = 0; j < nRElementsIn; j++) {
+			if (dNewCoeff[i][j] != 0.0) {
+				iNewEnd[i] = j + 1;
+				if (!fFoundBegin) {
+					fFoundBegin = true;
+					iNewBegin[i] = j;
+				}
+			}
+		}
+	}
+
+	// Overwrite current op
+	m_dCoeff = dNewCoeff;
+	m_iBegin = iNewBegin;
+	m_iEnd   = iNewEnd;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void LinearColumnOperator::DebugOutput(
+	const DataVector<double> * pREtaNode,
+	const DataVector<double> * pREtaREdge
+) {
+	FILE * fp = fopen("op.txt", "w");
+	for (int i = 0; i < m_dCoeff.GetRows(); i++) {
+		for (int j = 0; j < m_dCoeff.GetColumns(); j++) {
+			fprintf(fp, "%1.15e\t", m_dCoeff[i][j]);
+		}
+		fprintf(fp, "\n");
+	}
+	fclose(fp);
+
+	if (pREtaNode != NULL) {
+		FILE * fpn = fopen("rn.txt", "w");
+		for (int i = 0; i < pREtaNode->GetRows(); i++) {
+			fprintf(fpn, "%1.15e\n", (*pREtaNode)[i]);
+		}
+		fclose(fpn);
+	}
+
+	if (pREtaREdge != NULL) {
+		FILE * fpi = fopen("ri.txt", "w");
+		for (int i = 0; i < pREtaREdge->GetRows(); i++) {
+			fprintf(fpi, "%1.15e\n", (*pREtaREdge)[i]);
+		}
+		fclose(fpi);
+	}
+
+	for (int i = 0; i < m_iBegin.GetRows(); i++) {
+		printf("%i %i\n", m_iBegin[i], m_iEnd[i]);
+	}
+
+	_EXCEPTION();
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+double LinearColumnOperator::Apply(
+	const double * dColumnIn,
+	int iRout,
+	int nStride
+) const {
+	if (!m_fInitialized) {
+		_EXCEPTIONT("Attempting to Apply uninitialized LinearColumnOperator");
+	}
+
+	double dOut = 0.0;
+	for (int l = m_iBegin[iRout]; l < m_iEnd[iRout]; l++) {
+		int lx = l * nStride;
+
+		dOut += m_dCoeff[iRout][l] * dColumnIn[lx];
+	}
+	return dOut;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+double LinearColumnOperator::Apply(
+	const double * dColumnIn,
+	const double * dColumnRefIn,
+	double dColumnRefOut,
+	int iRout,
+	int nStride
+) const {
+	if (!m_fInitialized) {
+		_EXCEPTIONT("Attempting to Apply uninitialized LinearColumnOperator");
+	}
+
+	double dOut = dColumnRefOut;
+	for (int l = m_iBegin[iRout]; l < m_iEnd[iRout]; l++) {
+		int lx = l * nStride;
+
+		dOut += m_dCoeff[iRout][l] * (dColumnIn[lx] - dColumnRefIn[lx]);
+	}
+	return dOut;
+}
+
+
+///////////////////////////////////////////////////////////////////////////////
+
 void LinearColumnOperator::Apply(
 	const double * dColumnIn,
 	double * dColumnOut
 ) const {
+	if (!m_fInitialized) {
+		_EXCEPTIONT("Attempting to Apply uninitialized LinearColumnOperator");
+	}
+
 	const int nRElementsOut = m_dCoeff.GetRows();
 
 	for (int k = 0; k < nRElementsOut; k++) {
@@ -66,6 +205,10 @@ void LinearColumnOperator::Apply(
 	int nStrideIn,
 	int nStrideOut
 ) const {
+	if (!m_fInitialized) {
+		_EXCEPTIONT("Attempting to Apply uninitialized LinearColumnOperator");
+	}
+
 	const int nRElementsOut = m_dCoeff.GetRows();
 
 	for (int k = 0; k < nRElementsOut; k++) {
@@ -89,6 +232,10 @@ void LinearColumnOperator::Apply(
 	double * dColumnOut,
 	const double * dColumnRefOut
 ) const {
+	if (!m_fInitialized) {
+		_EXCEPTIONT("Attempting to Apply uninitialized LinearColumnOperator");
+	}
+
 	const int nRElementsOut = m_dCoeff.GetRows();
 
 	for (int k = 0; k < nRElementsOut; k++) {
@@ -111,6 +258,10 @@ void LinearColumnOperator::Apply(
 	int nStrideIn,
 	int nStrideOut
 ) const {
+	if (!m_fInitialized) {
+		_EXCEPTIONT("Attempting to Apply uninitialized LinearColumnOperator");
+	}
+
 	const int nRElementsOut = m_dCoeff.GetRows();
 
 	for (int k = 0; k < nRElementsOut; k++) {

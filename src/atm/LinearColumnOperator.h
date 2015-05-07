@@ -49,6 +49,45 @@ public:
 		int nRElementsOut
 	);
 
+	///	<summary>
+	///		Compose this operator with another LinearColumnOperator.  The
+	///		resulting operator will be (this) o (op)
+	///	</summary>
+	void ComposeWith(
+		const LinearColumnOperator & op
+	);
+
+	///	<summary>
+	///		Output debug output to file.
+	///	</summary>
+	void DebugOutput(
+		const DataVector<double> * pREtaNode = NULL,
+		const DataVector<double> * pREtaREdge = NULL
+	);
+
+public:
+	///	<summary>
+	///		Apply the column operator to a column, but only produce output on
+	///		one level.  Stride indicates the sparsity of the dColumnIn array.
+	///	</summary>
+	double Apply(
+		const double * dColumnIn,
+		int iRout,
+		int nStride = 1
+	) const;
+
+	///	<summary>
+	///		Apply the column operator to a column, but only produce output on
+	///		one level.  Stride indicates the sparsity of the dColumnIn array.
+	///	</summary>
+	double Apply(
+		const double * dColumnIn,
+		const double * dColumnRefIn,
+		double dColumnRefOut,
+		int iRout,
+		int nStride = 1
+	) const;
+
 public:
 	///	<summary>
 	///		Apply the operator to a column.
@@ -136,6 +175,11 @@ public:
 	}
 
 protected:
+	///	<summary>
+	///		A flag indicating this LinearColumnOperator has been initialized.
+	///	</summary>
+	bool m_fInitialized;
+
 	///	<summary>
 	///		Matrix of linear operator coefficients
 	///	</summary>

@@ -152,6 +152,7 @@ public:
 		double hsm = m_dhC * exp(-dXp/m_daC * dXp/m_daC) *
                      cos(M_PI * dXp / m_dlC) * cos(M_PI * dXp / m_dlC);
         //std::cout << hsm << "\n";
+
 		return hsm;
 	}
 
@@ -170,7 +171,7 @@ public:
 		double dXp,
 		double dYp
 	) const {
-		const double dRayleighStrength = 8.0e-3;
+		const double dRayleighStrength = 4.0e-2;//8.0e-3;
 		const double dRayleighDepth = 10000.0;
 		const double dRayleighWidth = 10000.0;
 
@@ -231,15 +232,27 @@ public:
 		dState[1] = 0.0;
 		dState[3] = 0.0;
 
-		// Set the initial potential temperature field
-		dState[2] = dThetaBar;
+		// Zero gravity case
+		if (dG == 0.0) {
+			static double dT0 = 300.0;
 
-		// Set the initial density based on the Exner pressure
-		double dExnerP = (dG * dG) / (dCp * m_dTheta0 * m_dNbar * m_dNbar);
-		dExnerP *= (exp(-m_dNbar * m_dNbar / dG * dZp) - 1.0);
-		dExnerP += 1.0;
-		double dRho = dP0 / (dRd * dThetaBar) * pow(dExnerP,(dCv / dRd));
-		dState[4] = dRho;
+			dState[2] = dT0 * pow(dP0, (dRd / dCp));
+			dState[4] = dP0 / (dRd * dT0);
+
+		// Stratification with gravity
+		} else {
+			// Set the initial density based on the Exner pressure
+			double dExnerP = (dG * dG) / (dCp * m_dTheta0 * m_dNbar * m_dNbar);
+			dExnerP *= (exp(-m_dNbar * m_dNbar / dG * dZp) - 1.0);
+			dExnerP += 1.0;
+			double dRho = dP0 / (dRd * dThetaBar) * pow(dExnerP,(dCv / dRd));
+			dState[4] = dRho;
+
+			// Set the initial potential temperature field
+			//dState[2] = phys.PressureFromRhoTheta(dThetaBar * dRho);
+			//dState[2] = (dThetaBar * dRho);
+			dState[2] = dThetaBar;
+		}
 	}
 
 	///	<summary>
@@ -267,10 +280,7 @@ public:
 		dState[0] = m_dU0;
 		dState[1] = 0.0;
 		dState[3] = 0.0;
-		//dState[3] = sin(dZp / 11000.0);
-
-		// Set the initial potential temperature field
-		dState[2] = dThetaBar;
+		//dState[3] = sin(M_PI * dZp / m_dGDim[5]);
 
 		// Set the initial density based on the Exner pressure
 		double dExnerP = (dG * dG) / (dCp * m_dTheta0 * m_dNbar * m_dNbar);
@@ -278,6 +288,11 @@ public:
 		dExnerP += 1.0;
 		double dRho = dP0 / (dRd * dThetaBar) * pow(dExnerP,(dCv / dRd));
 		dState[4] = dRho;
+
+		// Set the initial theta field
+		//dState[2] = phys.PressureFromRhoTheta(dThetaBar * dRho);
+		//dState[2] = (dThetaBar * dRho);
+		dState[2] = dThetaBar;
 	}
 };
 

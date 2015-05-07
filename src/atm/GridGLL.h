@@ -52,6 +52,16 @@ public:
 	///	</summary>
 	void Initialize();
 
+	///	<summary>
+	///		Initialize topography height/derivatives, state and tracer data
+	///		from a TestCase.
+	///	</summary>
+	virtual void EvaluateTestCase(
+		const TestCase & test,
+		const Time & time,
+		int iDataIndex = 0
+	);
+
 public:
 	///	<summary>
 	///		Perform post-processing of variables on the grid after each
@@ -79,23 +89,63 @@ public:
 		int iDataIndex
 	);
 
-private:
+public:
 	///	<summary>
-	///		Compute the central difference penalty (difference of left and
-	///		right state from average of left and right state) at interfaces.
+	///		Interpolate one column of data from nodes to the given interface.
 	///	</summary>
-	void InterpolateCentralDiffPenalty(
+	double InterpolateNodeToREdge(
 		const double * dDataNode,
-		bool fZeroBoundaries
+		const double * dDataRefNode,
+		int iRint,
+		double dDataRefREdge,
+		int nStride = 1
 	) const;
 
 	///	<summary>
-	///		Compute interpolated values of a variable array at edges and
-	///		store in m_dStateFEEdge.
+	///		Interpolate one column of data from interfaces to the given node.
 	///	</summary>
-	void InterpolateNodeToFEEdges(
+	double InterpolateREdgeToNode(
+		const double * dDataREdge,
+		const double * dDataRefREdge,
+		int iRnode,
+		double dDataRefNode,
+		int nStride = 1
+	) const;
+
+	///	<summary>
+	///		Differentiate a variable from nodes to the given node.
+	///	</summary>
+	double DifferentiateNodeToNode(
 		const double * dDataNode,
-		bool fZeroBoundaries
+		int iRnode,
+		int nStride = 1
+	) const;
+
+	///	<summary>
+	///		Differentiate a variable from nodes to the given interface.
+	///	</summary>
+	double DifferentiateNodeToREdge(
+		const double * dDataNode,
+		int iRnode,
+		int nStride = 1
+	) const;
+
+	///	<summary>
+	///		Differentiate a variable from interfaces to the given node.
+	///	</summary>
+	double DifferentiateREdgeToNode(
+		const double * dDataREdge,
+		int iRnode,
+		int nStride = 1
+	) const;
+
+	///	<summary>
+	///		Differentiate a variable from interfaces to the given interface.
+	///	</summary>
+	double DifferentiateREdgeToREdge(
+		const double * dDataREdge,
+		int iRint,
+		int nStride = 1
 	) const;
 
 public:
@@ -104,9 +154,7 @@ public:
 	///	</summary>
 	void InterpolateNodeToREdge(
 		const double * dDataNode,
-		const double * dDataRefNode,
 		double * dDataREdge,
-		const double * dDataRefREdge,
 		bool fZeroBoundaries = false
 	) const;
 
@@ -115,9 +163,7 @@ public:
 	///	</summary>
 	void InterpolateREdgeToNode(
 		const double * dDataREdge,
-		const double * dDataRefREdge,
-		double * dDataNode,
-		const double * dDataRefNode
+		double * dDataNode
 	) const;
 
 	///	<summary>
@@ -130,7 +176,7 @@ public:
 	) const;
 
 	///	<summary>
-	///		Differentiate a variable from interfaces to interfaces.
+	///		Differentiate a variable from nodes to interfaces.
 	///	</summary>
 	void DifferentiateNodeToREdge(
 		const double * dDataNode,
@@ -139,7 +185,7 @@ public:
 	) const;
 
 	///	<summary>
-	///		Differentiate a variable from interfaces to interfaces.
+	///		Differentiate a variable from interfaces to nodes.
 	///	</summary>
 	void DifferentiateREdgeToNode(
 		const double * dDataREdge,
@@ -152,16 +198,6 @@ public:
 	void DifferentiateREdgeToREdge(
 		const double * dDataREdge,
 		double * dDiffREdge
-	) const;
-
-	///	<summary>
-	///		Apply discontinuous penalization to nodes.
-	///	</summary>
-	void CalculateDiscontinuousPenalty(
-		const double * dWaveSpeedREdge,
-		const double * dDataNode,
-		double * dDataUpdate,
-		bool fZeroBoundaries = false
 	) const;
 
 public:
@@ -252,7 +288,7 @@ public:
 	const LinearColumnDiffFEM & GetOpDiffREdgeToREdge() const {
 		return m_opDiffREdgeToREdge;
 	}
-
+/*
 public:
 	///	<summary>
 	///		Get the interpolation coefficients from levels to interfaces.
@@ -347,7 +383,7 @@ private:
 	///		right and average components)
 	///	</summary>
 	mutable DataMatrix<double> m_dStateFEEdge;
-
+*/
 protected:
 	///	<summary>
 	///		Order of accuracy of the method (number of nodes per element).
@@ -382,7 +418,7 @@ protected:
 	///		discontinuous Galerkin dynamics).
 	///	</summary>
 	DataVector<double> m_dFluxDeriv1D;
-
+/*
 	///	<summary>
 	///		Interpolation coefficients from levels to interfaces.
 	///	</summary>
@@ -392,7 +428,7 @@ protected:
 	///		Interpolation coefficients from interfaces to levels.
 	///	</summary>
 	DataMatrix<double> m_dInterpREdgeToNode;
-
+*/
 	///	<summary>
 	///		Interpolation operator from levels to interfaces.
 	///	</summary>
@@ -409,6 +445,11 @@ protected:
 	LinearColumnDiffFEM m_opDiffNodeToNode;
 
 	///	<summary>
+	///		Differentiation operator from levels to levels with zero boundaries.
+	///	</summary>
+	LinearColumnDiffFEM m_opDiffNodeToNodeZeroBoundaries;
+
+	///	<summary>
 	///		Differentiation operator from levels to interfaces.
 	///	</summary>
 	LinearColumnDiffFEM m_opDiffNodeToREdge;
@@ -423,6 +464,17 @@ protected:
 	///	</summary>
 	LinearColumnDiffFEM m_opDiffREdgeToREdge;
 
+	///	<summary>
+	///		Second derivative operator from levels to levels.
+	///	</summary>
+	LinearColumnDiffDiffFEM m_opDiffDiffNodeToNode;
+
+	///	<summary>
+	///		Second derivative operator from interfaces to interfaces.
+	///	</summary>
+	LinearColumnDiffDiffFEM m_opDiffDiffREdgeToREdge;
+
+/*
 	///	<summary>
 	///		Differentiation coefficients from interfaces to nodes.
 	///	</summary>
@@ -476,7 +528,7 @@ protected:
 	///		Derivatives of reconstruction polynomial on interfaces.
 	///	</summary>
 	DataVector<double> m_dDiffReconsPolyREdge;
-
+*/
 };
 
 ///////////////////////////////////////////////////////////////////////////////

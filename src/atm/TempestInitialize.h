@@ -156,6 +156,11 @@ void _TempestSetupMethodOfLines(
 		model.SetTimestepScheme(
 			new TimestepSchemeStrang(model));
 
+	} else if (vars.strTimestepScheme == "strang/fe") {
+		model.SetTimestepScheme(
+			new TimestepSchemeStrang(
+				model, 0.0, TimestepSchemeStrang::ForwardEuler));
+
 	} else if (vars.strTimestepScheme == "strang/rk4") {
 		model.SetTimestepScheme(
 			new TimestepSchemeStrang(

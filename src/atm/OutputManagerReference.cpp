@@ -481,10 +481,6 @@ void OutputManagerReference::Output(
 	if (!m_fOutputAllVarsOnNodes) {
 		m_dataStateREdge.Zero();
 
-#pragma message "Get rid of these calls when switching to w"
-		m_grid.InterpolateNodeToREdge(0, 0);
-		m_grid.InterpolateNodeToREdge(1, 0);
-
 		m_grid.ReduceInterpolate(
 			m_dAlpha, m_dBeta, m_iPatch,
 			DataType_State, DataLocation_REdge, false,

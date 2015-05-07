@@ -118,10 +118,10 @@ protected:
 	);
 
 	///	<summary>
-	///		Initialize state and tracer data from a TestCase.  Also adjust
-	///		geometric quantities that are dependent on the TestCase.
+	///		Initialize topography height/derivatives, state and tracer data
+	///		from a TestCase.
 	///	</summary>
-	void EvaluateTestCase(
+	virtual void EvaluateTestCase(
 		const TestCase & test,
 		const Time & time,
 		int iDataIndex = 0
@@ -142,6 +142,14 @@ protected:
 	void EvaluateGeometricTerms();
 
 public:
+	///	<summary>
+	///		Initialize state and tracer data from a TestCase.
+	///	</summary>
+	void ApplyBoundaryConditions(
+		int iDataIndex = 0,
+		DataType eDataType = DataType_State
+	);
+
 	///	<summary>
 	///		Perform post-processing of variables on the grid after each
 	///		TimeStep substage.
@@ -573,6 +581,20 @@ public:
 	}
 
 	///	<summary>
+	///		Get the vector of normalized areas for radial element levels.
+	///	</summary>
+	const DataVector<double> & GetREtaLevelsNormArea() const {
+		return m_dREtaLevelsNormArea;
+	}
+
+	///	<summary>
+	///		Get the vector of normalized areas for radial element interfaces.
+	///	</summary>
+	const DataVector<double> & GetREtaInterfacesNormArea() const {
+		return m_dREtaInterfacesNormArea;
+	}
+
+	///	<summary>
 	///		Get the radial coordinate at the given level.
 	///	</summary>
 	double GetREtaStretchLevel(int ix) const {
@@ -777,6 +799,16 @@ protected:
 	///		REta coordinates of interfaces along radial axis.
 	///	</summary>
 	DataVector<double> m_dREtaInterfaces;
+
+	///	<summary>
+	///		Normalized area of REta elements along radial axis.
+	///	</summary>
+	DataVector<double> m_dREtaLevelsNormArea;
+
+	///	<summary>
+	///		Normalized area of REta interfaces along radial axis.
+	///	</summary>
+	DataVector<double> m_dREtaInterfacesNormArea;
 
 	///	<summary>
 	///		Stretched REta coordinates of levels along radial axis.

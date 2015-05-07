@@ -19,7 +19,6 @@
 #include "PhysicalConstants.h"
 #include "Model.h"
 #include "Grid.h"
-#include "GaussLobattoQuadrature.h"
 
 #include "GridGLL.h"
 #include "GridPatchGLL.h"
@@ -64,6 +63,7 @@ void HorizontalDynamicsDG::StepShallowWater(
 	const Time & time,
 	double dDeltaT
 ) {
+/*
 	// Get a copy of the GLL grid
 	GridGLL * pGrid = dynamic_cast<GridGLL*>(m_model.GetGrid());
 
@@ -300,6 +300,7 @@ void HorizontalDynamicsDG::StepShallowWater(
 		}
 		}
 	}
+*/
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -624,6 +625,7 @@ void HorizontalDynamicsDG::StepNonhydrostaticPrimitive(
 	const Time & time,
 	double dDeltaT
 ) {
+/*
 	// Get a copy of the GLL grid
 	GridGLL * pGrid = dynamic_cast<GridGLL*>(m_model.GetGrid());
 
@@ -722,8 +724,6 @@ void HorizontalDynamicsDG::StepNonhydrostaticPrimitive(
 
 		// Pressure data
 		GridData3D & dataPressure = pPatch->GetDataPressure();
-		GridData3D & dataDaPressure = pPatch->GetDataDaPressure();
-		GridData3D & dataDbPressure = pPatch->GetDataDbPressure();
 		GridData3D & dataDxPressure = pPatch->GetDataDxPressure();
 
 #pragma message "This can be optimized at finite element edges"
@@ -875,10 +875,6 @@ void HorizontalDynamicsDG::StepNonhydrostaticPrimitive(
 
 #pragma message "Reference state?"
 				dDxP  = dataDxPressure[k][iA][iB];
-
-				// Store local horizontal pressure derivatives
-				dataDaPressure[k][iA][iB] = dDaP;
-				dataDbPressure[k][iA][iB] = dDbP;
 
 				// Momentum advection terms
 				double dLocalUpdateUa = 0.0;
@@ -1081,6 +1077,7 @@ void HorizontalDynamicsDG::StepNonhydrostaticPrimitive(
 		}
 		}
 	}
+*/
 }
 
 ///////////////////////////////////////////////////////////////////////////////

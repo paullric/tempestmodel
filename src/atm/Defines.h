@@ -35,6 +35,20 @@
 //#define USE_JACOBIAN_DIAGONAL
 
 ///	<summary>
+///		Use covariant velocities (UNSUPPORTED; DO NOT MODIFY)
+///	</summary>
+#define USE_COVARIANT_VELOCITIES
+
+///	<summary>
+///		Thermodynamic closure to use.
+///	</summary>
+//#define FORMULATION_PRESSURE
+//#define FORMULATION_RHOTHETA_PI
+//#define FORMULATION_RHOTHETA_P
+#define FORMULATION_THETA
+//#define FORMULATION_THETA_FLUX
+
+///	<summary>
 ///		When to apply Rayleigh damping.
 ///	</summary>
 #define APPLY_RAYLEIGH_WITH_HYPERVIS
