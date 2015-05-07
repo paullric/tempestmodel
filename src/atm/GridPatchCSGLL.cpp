@@ -1310,6 +1310,7 @@ void GridPatchCSGLL::InterpolateData(
 					pData = (const double ***)(m_datavecStateNode[0][c]);
 				} else {
 					pData = (const double ***)(m_datavecStateREdge[0][c]);
+					nRElements++;
 				}
 
 			} else if (eDataType == DataType_Tracers) {
