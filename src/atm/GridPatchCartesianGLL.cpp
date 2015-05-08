@@ -390,16 +390,6 @@ void GridPatchCartesianGLL::EvaluateGeometricTerms() {
 					(m_dSL * sinh(m_grid.GetZtop() / m_dSL));
 				dDxZ *= dDxREtaStretch;
 */
-/*
-				double dDaaZ = (1.0 - dREta) * dDaaZs;
-				double dDabZ = (1.0 - dREta) * dDabZs;
-				double dDbbZ = (1.0 - dREta) * dDbbZs;
-
-				double dDxZ = m_grid.GetZtop() - dZs;
-				double dDaxZ = - dDaZs;
-				double dDbxZ = - dDbZs;
-				double dDxxZ = 0.0;
-*/
 				// Calculate pointwise Jacobian
 				m_dataJacobianREdge[k][iA][iB] =
 					dDxZ * m_dataJacobian2D[iA][iB];
@@ -410,11 +400,6 @@ void GridPatchCartesianGLL::EvaluateGeometricTerms() {
 					* dWL[i] * GetElementDeltaA()
 					* dWL[j] * GetElementDeltaB()
 					* dWREdge[k];
-
-				// Derivatives of the vertical coordinate transform
-				m_dataDerivRREdge[k][iA][iB][0] = dDaZ;
-				m_dataDerivRREdge[k][iA][iB][1] = dDbZ;
-				m_dataDerivRREdge[k][iA][iB][2] = dDxZ;
 
 				// Components of the contravariant metric
 				m_dataContraMetricAREdge[k][iA][iB][0] =
@@ -437,6 +422,11 @@ void GridPatchCartesianGLL::EvaluateGeometricTerms() {
 					- dDbZ / dDxZ;
 				m_dataContraMetricXiREdge[k][iA][iB][2] =
 					(1.0 + dDaZ * dDaZ + dDbZ * dDbZ) / (dDxZ * dDxZ);
+
+				// Derivatives of the vertical coordinate transform
+				m_dataDerivRREdge[k][iA][iB][0] = dDaZ;
+				m_dataDerivRREdge[k][iA][iB][1] = dDbZ;
+				m_dataDerivRREdge[k][iA][iB][2] = dDxZ;
 			}
 		}
 		}

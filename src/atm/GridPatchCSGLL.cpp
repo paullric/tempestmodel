@@ -556,11 +556,6 @@ void GridPatchCSGLL::EvaluateGeometricTerms() {
 				* dWL[j] * GetElementDeltaB()
 				* dWREdge[k];
 
-			// Derivatives of the vertical coordinate transform
-			m_dataDerivRREdge[k][iA][iB][0] = dDaR;
-			m_dataDerivRREdge[k][iA][iB][1] = dDbR;
-			m_dataDerivRREdge[k][iA][iB][2] = dDxR;
-
 			// Contravariant metric (alpha)
 			m_dataContraMetricAREdge[k][iA][iB][0] =
 				m_dataContraMetric2DA[iA][iB][0];
@@ -593,6 +588,11 @@ void GridPatchCSGLL::EvaluateGeometricTerms() {
 				- 1.0 / dDxR * (
 					  m_dataContraMetricXiREdge[k][iA][iB][0] * dDaR
 					+ m_dataContraMetricXiREdge[k][iA][iB][1] * dDbR);
+
+			// Derivatives of the vertical coordinate transform
+			m_dataDerivRREdge[k][iA][iB][0] = dDaR;
+			m_dataDerivRREdge[k][iA][iB][1] = dDbR;
+			m_dataDerivRREdge[k][iA][iB][2] = dDxR;
 		}
 	}
 	}
