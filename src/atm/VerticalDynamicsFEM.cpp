@@ -37,6 +37,8 @@
 
 ///////////////////////////////////////////////////////////////////////////////
 
+#define DEBUG
+
 #define THREE_COMPONENT_SOLVE
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -215,6 +217,9 @@ void VerticalDynamicsFEM::Initialize() {
 
 	m_dXiDotNode.Initialize(nRElements);
 	m_dXiDotREdge.Initialize(nRElements+1);
+
+	m_dDiffUa.Initialize(nRElements+1);
+	m_dDiffUb.Initialize(nRElements+1);
 
 	m_dDiffPNode.Initialize(nRElements);
 	m_dDiffPREdge.Initialize(nRElements+1);
@@ -606,6 +611,27 @@ void VerticalDynamicsFEM::SetupReferenceColumn(
 			m_dStateREdge[VIx],
 			m_dStateNode[VIx]);
 	}
+
+	// Calculate vertical derivatives of horizontal velocity
+	if (pGrid->GetVarLocation(WIx) == DataLocation_Node) {
+		pGrid->DifferentiateNodeToNode(
+			m_dStateNode[UIx],
+			m_dDiffUa);
+
+		pGrid->DifferentiateNodeToNode(
+			m_dStateNode[VIx],
+			m_dDiffUb);
+
+	} else {
+		pGrid->DifferentiateNodeToREdge(
+			m_dStateNode[UIx],
+			m_dDiffUa);
+
+		pGrid->DifferentiateNodeToREdge(
+			m_dStateNode[VIx],
+			m_dDiffUb);
+	}
+
 /*
 #ifndef THREE_COMPONENT_SOLVE
 	// Copy over U
@@ -1314,76 +1340,10 @@ void VerticalDynamicsFEM::StepImplicit(
 						m_dSoln[VecFIx(FRIx, k)];
 				}
 			} else {
-				const DataMatrix3D<double> & dElementArea =
-					m_pPatch->GetElementArea();
-
-				double dPreMass = 0.0;
-				double dFinalMass = 0.0;
-				double dArea = 0.0;
 				for (int k = 0; k < pGrid->GetRElements(); k++) {
-					dArea += dElementArea[k][iA][iB];
-
-					dPreMass +=
-						dataInitialNode[RIx][k][iA][iB]
-						* dElementArea[k][iA][iB];
-
 					dataUpdateNode[RIx][k][iA][iB] =
 						m_dSoln[VecFIx(FRIx, k)];
-
-					dFinalMass +=
-						dataUpdateNode[RIx][k][iA][iB]
-						* dElementArea[k][iA][iB];
 				}
-/*
-				{
-					DataVector<double> dEval;
-					dEval.Initialize(m_dColumnState.GetRows());
-					Evaluate(m_dSoln, dEval);
-
-					if ((m_iA == 38) && (m_iB == 1)) {
-						double dRes = 0.0;
-						for (int k = 0; k < dEval.GetRows(); k++) {
-							dRes += fabs(dEval[k]);
-						}
-						printf("%1.15e\n", dRes);
-					}
-				}
-*/
-
-				//if ((m_iA == 38) && (m_iB == 1)) {
-				if (fabs(dPreMass - dFinalMass) / dArea > 1.0e-10) {
-
-					printf("Conservation failure in %i %i (%1.15e %1.15e)\n", m_iA, m_iB, dPreMass, dFinalMass);
-
-					const DataMatrix3D<double> & dElementArea =
-						m_pPatch->GetElementArea();
-					FILE * fparea = fopen("Area.txt", "w");
-					for (int k = 0; k < dElementArea.GetRows(); k++) {
-						fprintf(fparea, "%1.15e\n", dElementArea[k][m_iA][m_iB]);
-					}
-
-					FILE * fpsoln = fopen("Soln.txt", "w");
-					for (int k = 0; k < m_dSoln.GetRows(); k++) {
-						fprintf(fpsoln, "%1.15e\n", m_dColumnState[k] - m_dSoln[k]);
-					}
-					fclose(fpsoln);
-
-					BootstrapJacobian();
-					
-					DataVector<double> dEval;
-					dEval.Initialize(m_dColumnState.GetRows());
-					Evaluate(m_dSoln, dEval);
-
-					for (int k = 0; k < dEval.GetRows(); k++) {
-						printf("%i %1.15e\n", k, dEval[k]);
-					}
-					
-
-					printf("%i %i\n", iA, iB);
-					printf("%1.15e %1.15e\n", dPreMass, dFinalMass);
-					_EXCEPTION();
-				}
-
 			}
 		}
 		}
@@ -1745,8 +1705,16 @@ void VerticalDynamicsFEM::BuildF(
 		m_pPatch->GetDerivRNode();
 	const DataMatrix4D<double> & dDerivRREdge =
 		m_pPatch->GetDerivRREdge();
+	const DataMatrix4D<double> & dContraMetricA =
+		m_pPatch->GetContraMetricA();
+	const DataMatrix4D<double> & dContraMetricB =
+		m_pPatch->GetContraMetricB();
 	const DataMatrix4D<double> & dContraMetricXi =
 		m_pPatch->GetContraMetricXi();
+	const DataMatrix4D<double> & dContraMetricAREdge =
+		m_pPatch->GetContraMetricAREdge();
+	const DataMatrix4D<double> & dContraMetricBREdge =
+		m_pPatch->GetContraMetricBREdge();
 	const DataMatrix4D<double> & dContraMetricXiREdge =
 		m_pPatch->GetContraMetricXiREdge();
 	const DataMatrix3D<double> & dElementArea =
@@ -1939,13 +1907,6 @@ void VerticalDynamicsFEM::BuildF(
 
 	// Kinetic energy on model levels
 	for (int k = 0; k < nRElements; k++) {
-		const DataMatrix4D<double> & dContraMetricA =
-			m_pPatch->GetContraMetricA();
-		const DataMatrix4D<double> & dContraMetricB =
-			m_pPatch->GetContraMetricB();
-		const DataMatrix4D<double> & dContraMetricXi =
-			m_pPatch->GetContraMetricXi();
-
 		double dCovUa = m_dStateNode[UIx][k];
 		double dCovUb = m_dStateNode[VIx][k];
 		double dCovUx = m_dStateNode[WIx][k] * dDerivRNode[k][m_iA][m_iB][2];
@@ -1976,7 +1937,7 @@ void VerticalDynamicsFEM::BuildF(
 			m_dKineticEnergyNode,
 			m_dDiffKineticEnergyNode);
 
-		for (int k = 1; k < nRElements; k++) {
+		for (int k = 1; k < nRElements-1; k++) {
 
 #if defined(FORMULATION_PRESSURE) \
  || defined(FORMULATION_RHOTHETA_P)
@@ -2008,6 +1969,10 @@ void VerticalDynamicsFEM::BuildF(
 			m_dKineticEnergyNode,
 			m_dDiffKineticEnergyREdge);
 
+		pGrid->DifferentiateREdgeToREdge(
+			m_dStateREdge[WIx],
+			m_dStateAuxDiff);
+
 		for (int k = 1; k < nRElements; k++) {
 #if defined(FORMULATION_PRESSURE) || defined(FORMULATION_RHOTHETA_P)
 			double dPressureGradientForce =
@@ -2025,14 +1990,45 @@ void VerticalDynamicsFEM::BuildF(
 				* m_dStateREdge[PIx][k];
 #endif
 
-			dF[VecFIx(FWIx, k)] =
-				(m_dDiffKineticEnergyREdge[k] + dPressureGradientForce)
-				/ dDerivRREdge[k][m_iA][m_iB][2];
+			double dCovUa = m_dStateREdge[UIx][k];
+			double dCovUb = m_dStateREdge[VIx][k];
+			double dCovUx = m_dStateREdge[WIx][k] * dDerivRREdge[k][m_iA][m_iB][2];
 
+			double dConUa =
+				  dContraMetricAREdge[k][m_iA][m_iB][0] * dCovUa
+				+ dContraMetricAREdge[k][m_iA][m_iB][1] * dCovUb
+				+ dContraMetricAREdge[k][m_iA][m_iB][2] * dCovUx;
+
+			double dConUb =
+				  dContraMetricBREdge[k][m_iA][m_iB][0] * dCovUa
+				+ dContraMetricBREdge[k][m_iA][m_iB][1] * dCovUb
+				+ dContraMetricBREdge[k][m_iA][m_iB][2] * dCovUx;
+
+			double dCurlTerm =
+				- dConUa * m_dDiffUa[k]
+				- dConUb * m_dDiffUb[k];
+
+			dF[VecFIx(FWIx, k)] =
+				(m_dDiffKineticEnergyREdge[k]
+					+ dCurlTerm
+					+ dPressureGradientForce)
+				/ dDerivRREdge[k][m_iA][m_iB][2];
+/*
+			if ((m_pPatch->GetPatchIndex() == 0) && (m_iA == 5) && (m_iB == 5)) {
+				//printf("%i %1.15e\n", k, dPressureGradientForce / dDerivRREdge[k][m_iA][m_iB][2] + phys.GetG());
+			printf("%i %1.15e %1.15e\n", k,
+				m_dStateREdge[WIx][k] * m_dStateAuxDiff[k]
+					/ dDerivRREdge[k][m_iA][m_iB][2],
+				(m_dDiffKineticEnergyREdge[k] + dCurlTerm)
+					/ dDerivRREdge[k][m_iA][m_iB][2]);
+
+			}
+*/
 			dF[VecFIx(FWIx, k)] +=
 				phys.GetG();
 		}
 
+		//_EXCEPTION();
 	}
 
 #ifdef DEBUG
@@ -2093,61 +2089,6 @@ void VerticalDynamicsFEM::BuildF(
 	} else {
 		_EXCEPTIONT("UNIMPLEMENTED");
 	}
-*/
-/*
-#ifdef APPLY_RAYLEIGH_WITH_VERTICALDYN
-
-	// Rayleigh friction strength
-	const GridData3D & dataRayleighStrengthNode =
-		m_pPatch->GetRayleighStrength(DataLocation_Node);
-
-	const GridData3D & dataRayleighStrengthREdge =
-		m_pPatch->GetRayleighStrength(DataLocation_REdge);
-
-	// Rayleigh damping on nodes
-	for (int k = 0; k < pGrid->GetRElements(); k++) {
-		double dNu = dataRayleighStrengthNode[k][m_iA][m_iB];
-
-		if (dNu == 0.0) {
-			continue;
-		}
-
-		if (pGrid->GetVarLocation(PIx) == DataLocation_Node) {
-			dF[VecFIx(FPIx, k)] =
-				dNu * (m_dStateNode[VIx][k] - m_dStateRefNode[VIx][k]);
-		}
-		if (pGrid->GetVarLocation(WIx) == DataLocation_Node) {
-			dF[VecFIx(FWIx, k)] =
-				dNu * (m_dStateNode[WIx][k] - m_dStateRefNode[WIx][k]);
-		}
-		if (pGrid->GetVarLocation(RIx) == DataLocation_Node) {
-			dF[VecFIx(FRIx, k)] =
-				dNu * (m_dStateNode[RIx][k] - m_dStateRefNode[RIx][k]);
-		}
-	}
-
-	// Rayleigh damping on interfaces
-	for (int k = 0; k <= pGrid->GetRElements(); k++) {
-		double dNu = dataRayleighStrengthREdge[k][m_iA][m_iB];
-
-		if (dNu == 0.0) {
-			continue;
-		}
-
-		if (pGrid->GetVarLocation(PIx) == DataLocation_REdge) {
-			dF[VecFIx(FPIx, k)] =
-				dNu * (m_dStateREdge[VIx][k] - m_dStateRefREdge[VIx][k]);
-		}
-		if (pGrid->GetVarLocation(WIx) == DataLocation_REdge) {
-			dF[VecFIx(FWIx, k)] =
-				dNu * (m_dStateREdge[WIx][k] - m_dStateRefREdge[WIx][k]);
-		}
-		if (pGrid->GetVarLocation(RIx) == DataLocation_REdge) {
-			dF[VecFIx(FRIx, k)] =
-				dNu * (m_dStateREdge[RIx][k] - m_dStateRefREdge[RIx][k]);
-		}
-	}
-#endif
 */
 }
 

@@ -491,6 +491,14 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 		GridData4D & dataUpdateREdge =
 			pPatch->GetDataState(iDataUpdate, DataLocation_REdge);
 
+		GridData4D & dataInitialTracer =
+			pPatch->GetDataTracers(iDataInitial);
+
+		GridData4D & dataUpdateTracer =
+			pPatch->GetDataTracers(iDataUpdate);
+
+		const int nTracerCount = dataInitialTracer.GetComponents();
+
 		const int nVerticalStateStride =
 			dataInitialNode.GetAElements() * dataInitialNode.GetBElements();
 
@@ -603,6 +611,9 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 				int iElementB = b * m_nHorizontalOrder + box.GetHaloElements();
 
 				// Vertical derivatives
+				double dCovDxUa = 0.0;
+				double dCovDxUb = 0.0;
+/*
 				double dCovDxUa =
 					pGrid->DifferentiateNodeToNode(
 						&(dataInitialNode[UIx][0][iA][iB]),
@@ -612,7 +623,7 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 					pGrid->DifferentiateNodeToNode(
 						&(dataInitialNode[VIx][0][iA][iB]),
 						k, nVerticalStateStride);
-
+*/
 				// Derivatives of the covariant velocity field
 				double dCovDaUb = 0.0;
 				double dCovDaUx = 0.0;
@@ -667,6 +678,13 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 				m_dAuxDataNode[UCrossZetaAIx][k][i][j] = dCovUCrossZetaA;
 				m_dAuxDataNode[UCrossZetaBIx][k][i][j] = dCovUCrossZetaB;
 				m_dAuxDataNode[UCrossZetaXIx][k][i][j] = dCovUCrossZetaX;
+/*
+				if ((n == 5) && (k == 3) && (iA == 5) && (iB == 5)) {
+					printf("%1.5e : %1.5e %1.5e %1.5e %1.5e \n", dCovUCrossZetaX, dConUa, dJZetaB, dConUb, dJZetaA);
+					printf("%1.5e %1.5e %1.5e\n", dataInitialNode[UIx][k][iA][iB] / phys.GetEarthRadius(), dCovDxUa / phys.GetEarthRadius(), dCovDaUx);
+					//printf("%1.5e %1.5e\n", dCovUCrossZetaX, dDxKE);
+				}
+*/
 			}
 			}
 			}
@@ -889,10 +907,10 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 					dLocalUpdateUb += m_dAuxDataNode[UCrossZetaBIx][k][i][j];
 
 					// Coriolis terms
-					dLocalUpdateUa -=
+					dLocalUpdateUa +=
 						dCoriolisF[iA][iB] * dJacobian2D[iA][iB] * dConUb;
 
-					dLocalUpdateUb +=
+					dLocalUpdateUb -=
 						dCoriolisF[iA][iB] * dJacobian2D[iA][iB] * dConUa;
 
 					// Pressure gradient force
@@ -931,6 +949,15 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 					// Apply gradient term update to total update
 					dLocalUpdateUa -= dDaUpdate;
 					dLocalUpdateUb -= dDbUpdate;
+/*
+					if ((n == 0) && (k == 3) && (iA == 3) && (iB == 3)) {
+						printf("%1.10e : %1.10e %1.10e\n",
+							dLocalUpdateUa,
+							- dPressureGradientForceUa,
+							- dDaKE + m_dAuxDataNode[UCrossZetaAIx][k][i][j]
+							+ dCoriolisF[iA][iB] * dJacobian2D[iA][iB] * dConUb);
+					}
+*/
 
  					// Apply update to horizontal velocity on model levels
 					dataUpdateNode[UIx][k][iA][iB] +=
@@ -1108,6 +1135,29 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 #endif
 
 					// Update tracers
+					for (int c = 0; c < nTracerCount; c++) {
+						double dDaTracerFluxA = 0.0;
+						double dDbTracerFluxB = 0.0;
+
+						for (int s = 0; s < m_nHorizontalOrder; s++) {
+							dDaTracerFluxA -=
+								dJacobian[k][iElementA+s][iB]
+								* dataInitialTracer[c][k][iElementA+s][iB]
+								* dataInitialNode[UIx][k][iElementA+s][iB]
+								* dStiffness1D[i][s];
+
+							dDbTracerFluxB -=
+								dJacobian[k][iA][iElementB+s]
+								* dataInitialTracer[c][k][iA][iElementB+s]
+								* dataInitialNode[VIx][k][iA][iElementB+s]
+								* dStiffness1D[j][s];
+						}
+
+					dataUpdateTracer[c][k][iA][iB] -=
+						dDeltaT / dJacobian[k][iA][iB] * (
+							  dDaRhoFluxA
+							+ dDbRhoFluxB);
+					}
 				}
 				}
 			}
@@ -1211,7 +1261,7 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 					int iElementA = a * m_nHorizontalOrder + box.GetHaloElements();
 					int iElementB = b * m_nHorizontalOrder + box.GetHaloElements();
 
-#if defined(FORMULATION_THETA) || defined(FORMULATION_THETA_FLUX)
+#ifdef FORMULATION_THETA
 					// Derivatives of the theta field on interfaces
 					double dDaTheta = 0.0;
 					double dDbTheta = 0.0;

@@ -660,7 +660,6 @@ void GridPatchCartesianGLL::ApplyBoundaryConditions(
 		for (int i = 0; i < m_box.GetATotalWidth(); i++) {
 		for (int j = 0; j < m_box.GetBTotalWidth(); j++) {
 
-#ifdef USE_COVARIANT_VELOCITIES
 			m_datavecStateNode[iDataIndex][WIx][0][i][j] =
 				- ( m_dataContraMetricXi[0][i][j][0]
 					* m_datavecStateNode[iDataIndex][UIx][0][i][j]
@@ -668,15 +667,6 @@ void GridPatchCartesianGLL::ApplyBoundaryConditions(
 					* m_datavecStateNode[iDataIndex][VIx][0][i][j])
 				/ m_dataContraMetricXi[0][i][j][2]
 				/ m_dataDerivRNode[0][i][j][2];
-
-
-#else
-			m_datavecStateNode[iDataIndex][WIx][0][i][j] =
-				CalculateNoFlowUrNode(
-					0, i, j,
-					m_datavecStateNode[iDataIndex][UIx][0][i][j],
-					m_datavecStateNode[iDataIndex][VIx][0][i][j]);
-#endif
 		}
 		}
 
@@ -689,24 +679,13 @@ void GridPatchCartesianGLL::ApplyBoundaryConditions(
 		for (int i = 0; i < m_box.GetATotalWidth(); i++) {
 		for (int j = 0; j < m_box.GetBTotalWidth(); j++) {
 
-#ifdef USE_COVARIANT_VELOCITIES
 			m_datavecStateREdge[iDataIndex][WIx][0][i][j] =
-				- ( m_dataContraMetricXi[0][i][j][0]
-					* m_datavecStateNode[iDataIndex][UIx][0][i][j]
-				  + m_dataContraMetricXi[0][i][j][1]
-					* m_datavecStateNode[iDataIndex][VIx][0][i][j])
-				/ m_dataContraMetricXi[0][i][j][2]
-				/ m_dataDerivRNode[0][i][j][2];
-
-
-#else
-			m_datavecStateNode[iDataIndex][WIx][0][i][j] =
-				CalculateNoFlowUrNode(
-					0, i, j,
-					m_datavecStateNode[iDataIndex][UIx][0][i][j],
-					m_datavecStateNode[iDataIndex][VIx][0][i][j]);
-#endif
-
+				- ( m_dataContraMetricXiREdge[0][i][j][0]
+					* m_datavecStateREdge[iDataIndex][UIx][0][i][j]
+				  + m_dataContraMetricXiREdge[0][i][j][1]
+					* m_datavecStateREdge[iDataIndex][VIx][0][i][j])
+				/ m_dataContraMetricXiREdge[0][i][j][2]
+				/ m_dataDerivRREdge[0][i][j][2];
 		}
 		}
 	}

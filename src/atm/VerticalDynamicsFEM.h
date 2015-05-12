@@ -318,6 +318,16 @@ protected:
 	DataVector<double> m_dXiDotREdge;
 
 	///	<summary>
+	///		Auxiliary storage for derivative of alpha velocity.
+	///	</summary>
+	DataVector<double> m_dDiffUa;
+
+	///	<summary>
+	///		Auxiliary storage for derivative of beta velocity.
+	///	</summary>
+	DataVector<double> m_dDiffUb;
+
+	///	<summary>
 	///		Auxiliary storage for derivative of pressure on nodes.
 	///	</summary>
 	DataVector<double> m_dDiffPNode;
