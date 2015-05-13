@@ -59,8 +59,7 @@ public:
 		int nHypervisOrder = 0,
 		bool fFullyExplicit = false,
 		bool fUseReferenceState = true,
-		bool fExnerPressureOnLevels = true,
-		bool fMassFluxOnLevels = false
+		bool fForceMassFluxOnLevels = false
 	);
 
 	///	<summary>
@@ -225,16 +224,10 @@ protected:
 	bool m_fUseReferenceState;
 
 	///	<summary>
-	///		Flag indicating that Exner pressure should be stored on model
+	///		Flag indicating that mass flux should be calculated on model
 	///		levels.
 	///	</summary>
-	bool m_fExnerPressureOnLevels;
-
-	///	<summary>
-	///		Flag indicating that mass flux should be stored on model
-	///		levels.
-	///	</summary>
-	bool m_fMassFluxOnLevels;
+	bool m_fForceMassFluxOnLevels;
 
 	///	<summary>
 	///		Hypervis coefficient.

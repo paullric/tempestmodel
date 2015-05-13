@@ -67,6 +67,7 @@ struct _TempestCommandLineVariables {
 	double dNuVort;
 	bool fExplicitVertical;
 	std::string strVerticalStaggering;
+	bool fForceMassFluxOnLevels;
 	std::string strVerticalStretch;
 	int nVerticalHyperdiffOrder;
 	std::string strTimestepScheme;
@@ -100,6 +101,7 @@ struct _TempestCommandLineVariables {
 	CommandLineDouble(_tempestvars.dNuVort, "nuv", 1.0e15); \
 	CommandLineBool(_tempestvars.fExplicitVertical, "explicitvertical"); \
 	CommandLineStringD(_tempestvars.strVerticalStaggering, "vstagger", "CPH", "(LEV | INT | LOR | CPH)"); \
+	CommandLineBool(_tempestvars.fForceMassFluxOnLevels, "vmassfluxlevels"); \
 	CommandLineString(_tempestvars.strVerticalStretch, "vstretch", "uniform"); \
 	CommandLineInt(_tempestvars.nVerticalHyperdiffOrder, "verthypervisorder", 0); \
 	CommandLineString(_tempestvars.strTimestepScheme, "timescheme", "strang"); \
@@ -246,8 +248,7 @@ void _TempestSetupMethodOfLines(
 				vars.nVerticalHyperdiffOrder,
 				vars.fExplicitVertical,
 				!vars.fNoReferenceState,
-				true,
-				true));
+				vars.fForceMassFluxOnLevels));
 
 	} else {
 		model.SetVerticalDynamics(
@@ -257,7 +258,8 @@ void _TempestSetupMethodOfLines(
 				vars.nVerticalOrder,
 				vars.nVerticalHyperdiffOrder,
 				vars.fExplicitVertical,
-				!vars.fNoReferenceState));
+				!vars.fNoReferenceState,
+				vars.fForceMassFluxOnLevels));
 	}
 
 	AnnounceEndBlock("Done");

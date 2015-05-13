@@ -949,15 +949,6 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 					// Apply gradient term update to total update
 					dLocalUpdateUa -= dDaUpdate;
 					dLocalUpdateUb -= dDbUpdate;
-/*
-					if ((n == 0) && (k == 3) && (iA == 3) && (iB == 3)) {
-						printf("%1.10e : %1.10e %1.10e\n",
-							dLocalUpdateUa,
-							- dPressureGradientForceUa,
-							- dDaKE + m_dAuxDataNode[UCrossZetaAIx][k][i][j]
-							+ dCoriolisF[iA][iB] * dJacobian2D[iA][iB] * dConUb);
-					}
-*/
 
  					// Apply update to horizontal velocity on model levels
 					dataUpdateNode[UIx][k][iA][iB] +=
