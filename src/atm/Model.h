@@ -78,9 +78,14 @@ class Model {
 
 public:
 	///	<summary>
-	///		Constructor.
+	///		Constructor that specifies an EquationSet::Type
 	///	</summary>
 	Model(EquationSet::Type eEquationSetType);
+
+	///	<summary>
+	///		Constructor that specifies an EquationSet
+	///	</summary>
+	Model(const EquationSet & eqn);
 
 public:
 	///	<summary>

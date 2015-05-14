@@ -154,7 +154,8 @@ public:
 	///	</summary>
 	void ConvertComponents(
 		const PhysicalConstants & phys,
-		DataVector<double> & dState
+		DataVector<double> & dState,
+		DataVector<double> & dTracer
 	) const;
 
 private:

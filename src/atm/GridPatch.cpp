@@ -1435,6 +1435,11 @@ void GridPatch::LinearCombineData(
 			_EXCEPTIONT("Too many elements in coefficient vector.");
 		}
 
+		// If tracers are not initialized, do nothing
+		if (!m_datavecTracers[ixDest].IsInitialized()) {
+			return;
+		}
+
 		// Premultiply
 		if (dCoeff[ixDest] == 0.0) {
 			m_datavecTracers[ixDest].Zero();
@@ -1480,6 +1485,10 @@ void GridPatch::ZeroData(
 	} else if (eDataType == DataType_Tracers) {
 		if ((ixData < 0) || (ixData >= m_datavecTracers.size())) {
 			_EXCEPTIONT("Invalid ixData index in LinearCombineData.");
+		}
+
+		if (!m_datavecTracers[ixData].IsInitialized()) {
+			return;
 		}
 
 		m_datavecTracers[ixData].Zero();

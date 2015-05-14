@@ -20,6 +20,7 @@
 #include "HorizontalDynamics.h"
 #include "DataVector.h"
 #include "DataMatrix.h"
+#include "DataMatrix3D.h"
 #include "DataMatrix4D.h"
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -163,6 +164,16 @@ protected:
 	///		Nodal beta pressure fluxes.
 	///	</summary>
 	DataMatrix<double> m_dBetaPressureFlux;
+
+	///	<summary>
+	///		Nodal alpha tracer fluxes.
+	///	</summary>
+	DataMatrix3D<double> m_dAlphaTracerFlux;
+
+	///	<summary>
+	///		Nodal beta tracer fluxes.
+	///	</summary>
+	DataMatrix3D<double> m_dBetaTracerFlux;
 
 	///	<summary>
 	///		Auxiliary data within an element (on nodes).

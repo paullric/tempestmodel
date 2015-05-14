@@ -560,7 +560,8 @@ void GridPatchCartesianGLL::EvaluateTestCase(
 			dPointwiseState,
 			dPointwiseTracers);
 
-		eqns.ConvertComponents(phys, dPointwiseState);
+		eqns.ConvertComponents(
+			phys, dPointwiseState, dPointwiseTracers);
 
 		for (int c = 0; c < dPointwiseState.GetRows(); c++) {
 			m_datavecStateNode[iDataIndex][c][k][i][j] = dPointwiseState[c];
@@ -575,7 +576,9 @@ void GridPatchCartesianGLL::EvaluateTestCase(
 				m_dataLat[i][j],
 				dPointwiseRefState);
 
-			eqns.ConvertComponents(phys, dPointwiseRefState);
+			DataVector<double> dPointwiseRefTracers;
+			eqns.ConvertComponents(
+				phys, dPointwiseRefState, dPointwiseRefTracers);
 
 			for (int c = 0; c < dPointwiseState.GetRows(); c++) {
 				m_dataRefStateNode[c][k][i][j] = dPointwiseRefState[c];
@@ -605,7 +608,7 @@ void GridPatchCartesianGLL::EvaluateTestCase(
 			dPointwiseState,
 			dPointwiseTracers);
 
-		eqns.ConvertComponents(phys, dPointwiseState);
+		eqns.ConvertComponents(phys, dPointwiseState, dPointwiseTracers);
 
 		for (int c = 0; c < dPointwiseState.GetRows(); c++) {
 			m_datavecStateREdge[iDataIndex][c][k][i][j] = dPointwiseState[c];
@@ -619,7 +622,9 @@ void GridPatchCartesianGLL::EvaluateTestCase(
 				m_dataLat[i][j],
 				dPointwiseRefState);
 
-			eqns.ConvertComponents(phys, dPointwiseRefState);
+			DataVector<double> dPointwiseRefTracers;
+			eqns.ConvertComponents(
+				phys, dPointwiseRefState, dPointwiseRefTracers);
 
 			for (int c = 0; c < dPointwiseState.GetRows(); c++) {
 				m_dataRefStateREdge[c][k][i][j] = dPointwiseRefState[c];

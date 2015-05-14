@@ -54,6 +54,8 @@ void HorizontalDynamicsFEM::Initialize() {
 
 	int nRElements = m_model.GetGrid()->GetRElements();
 
+	int nTracerCount = m_model.GetEquationSet().GetTracers();
+
 	// Initialize the alpha and beta mass fluxes
 	m_dAlphaMassFlux.Initialize(
 		m_nHorizontalOrder,
@@ -72,6 +74,17 @@ void HorizontalDynamicsFEM::Initialize() {
 		m_nHorizontalOrder,
 		m_nHorizontalOrder);
 
+	// Initialize tracer fluxes
+	m_dAlphaTracerFlux.Initialize(
+		nTracerCount,
+		m_nHorizontalOrder,
+		m_nHorizontalOrder);
+
+	m_dBetaTracerFlux.Initialize(
+		nTracerCount,
+		m_nHorizontalOrder,
+		m_nHorizontalOrder);
+
 	// Auxiliary data
 	m_dAuxDataNode.Initialize(
 		9,
@@ -84,43 +97,7 @@ void HorizontalDynamicsFEM::Initialize() {
 		nRElements+1,
 		m_nHorizontalOrder,
 		m_nHorizontalOrder);
-/*
 
-	m_dPressure.Initialize(
-		m_nHorizontalOrder,
-		m_nHorizontalOrder);
-
-	m_dUx.Initialize(
-		m_nHorizontalOrder,
-		m_nHorizontalOrder);
-
-	m_dCovUa.Initialize(
-		m_nHorizontalOrder,
-		m_nHorizontalOrder);
-
-	m_dCovUb.Initialize(
-		m_nHorizontalOrder,
-		m_nHorizontalOrder);
-
-	m_dCovUx.Initialize(
-		m_nHorizontalOrder,
-		m_nHorizontalOrder);
-
-	m_dEnergy.Initialize(
-		m_nHorizontalOrder,
-		m_nHorizontalOrder);
-
-	// Column storage
-	m_dZeroColumn.Initialize(nRElements + 1);
-
-	m_dColumnPressure.Initialize(nRElements);
-
-	m_dColumnDxPressure.Initialize(nRElements);
-
-	m_dColumnKineticEnergy.Initialize(nRElements);
-
-	m_dColumnDxKineticEnergy.Initialize(nRElements);
-*/
 	// Initialize buffers for derivatives of Jacobian
 	m_dJGradientA.Initialize(
 		m_nHorizontalOrder,
@@ -757,6 +734,15 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 						  dBetaBaseFlux
 						* dataInitialNode[PIx][k][iA][iB];
 #endif
+					for (int c = 0; c < nTracerCount; c++) {
+						m_dAlphaTracerFlux[c][i][j] =
+							dAlphaBaseFlux
+							* dataInitialTracer[c][k][iA][iB];
+
+						m_dBetaTracerFlux[c][i][j] =
+							dBetaBaseFlux
+							* dataInitialTracer[c][k][iA][iB];
+					}
 				}
 				}
 
@@ -796,6 +782,7 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 							m_dAlphaMassFlux[s][j]
 							* dDxBasis1D[s][i];
 
+#pragma message "Only evaluate pressure flux for relevant formulations"
 						// Update pressure: Differential formulation
 						dDaPressureFluxA +=
 							m_dAlphaPressureFlux[s][j]
@@ -1132,22 +1119,21 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 
 						for (int s = 0; s < m_nHorizontalOrder; s++) {
 							dDaTracerFluxA -=
-								dJacobian[k][iElementA+s][iB]
-								* dataInitialTracer[c][k][iElementA+s][iB]
-								* dataInitialNode[UIx][k][iElementA+s][iB]
+								m_dAlphaTracerFlux[c][s][j]
 								* dStiffness1D[i][s];
 
 							dDbTracerFluxB -=
-								dJacobian[k][iA][iElementB+s]
-								* dataInitialTracer[c][k][iA][iElementB+s]
-								* dataInitialNode[VIx][k][iA][iElementB+s]
+								m_dBetaTracerFlux[c][i][s]
 								* dStiffness1D[j][s];
 						}
 
-					dataUpdateTracer[c][k][iA][iB] -=
-						dDeltaT / dJacobian[k][iA][iB] * (
-							  dDaRhoFluxA
-							+ dDbRhoFluxB);
+						dDaTracerFluxA /= dElementDeltaA;
+						dDbTracerFluxB /= dElementDeltaB;
+
+						dataUpdateTracer[c][k][iA][iB] -=
+							dDeltaT / dJacobian[k][iA][iB] * (
+								  dDaTracerFluxA
+								+ dDbTracerFluxB);
 					}
 				}
 				}
@@ -1415,6 +1401,13 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusion(
 		GridData4D & dataUpdateREdge =
 			pPatch->GetDataState(iDataUpdate, DataLocation_REdge);
 
+		// Tracer data
+		GridData4D & dataInitialTracer =
+			pPatch->GetDataTracers(iDataInitial);
+
+		GridData4D & dataUpdateTracer =
+			pPatch->GetDataTracers(iDataUpdate);
+
 		// Element grid spacing and derivative coefficients
 		const double dElementDeltaA = pPatch->GetElementDeltaA();
 		const double dElementDeltaB = pPatch->GetElementDeltaB();
@@ -1434,103 +1427,128 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusion(
 			dLocalNu *= pow(dElementDeltaA / dReferenceLength, 3.2);
 		}
 
-		// Loop over all components
-		int nComponents = m_model.GetEquationSet().GetComponents();
-		for (int c = 2; c < nComponents; c++) {
+		// State variables and tracers
+		for (int iType = 0; iType < 2; iType++) {
 
-			int nElementCountR;
+			int nComponentStart;
+			int nComponentEnd;
 
-			double *** pDataInitial;
-			double *** pDataUpdate;
-			double *** pJacobian;
-			if (pGrid->GetVarLocation(c) == DataLocation_Node) {
-				pDataInitial = dataInitialNode[c];
-				pDataUpdate  = dataUpdateNode[c];
-				nElementCountR = dataInitialNode.GetRElements();
-				pJacobian = dJacobianNode;
-
-			} else if (pGrid->GetVarLocation(c) == DataLocation_REdge) {
-				pDataInitial = dataInitialREdge[c];
-				pDataUpdate  = dataUpdateREdge[c];
-				nElementCountR = dataInitialREdge.GetRElements();
-				pJacobian = dJacobianREdge;
+			if (iType == 0) {
+				nComponentStart = 2;
+				nComponentEnd = m_model.GetEquationSet().GetComponents();
 
 			} else {
-				_EXCEPTIONT("UNIMPLEMENTED");
+				nComponentStart = 0;
+				nComponentEnd = m_model.GetEquationSet().GetTracers();
 			}
 
-			// Loop over all finite elements
-			for (int k = 0; k < nElementCountR; k++) {
-			for (int a = 0; a < nElementCountA; a++) {
-			for (int b = 0; b < nElementCountB; b++) {
+			// Loop over all components
+			for (int c = nComponentStart; c < nComponentEnd; c++) {
 
-				int iElementA = a * m_nHorizontalOrder + box.GetHaloElements();
-				int iElementB = b * m_nHorizontalOrder + box.GetHaloElements();
+				int nElementCountR;
 
-				// Calculate the pointwise gradient of the scalar field
-				for (int i = 0; i < m_nHorizontalOrder; i++) {
-				for (int j = 0; j < m_nHorizontalOrder; j++) {
-					int iA = iElementA + i;
-					int iB = iElementB + j;
+				double *** pDataInitial;
+				double *** pDataUpdate;
+				double *** pJacobian;
+				if (iType == 0) {
+					if (pGrid->GetVarLocation(c) == DataLocation_Node) {
+						pDataInitial = dataInitialNode[c];
+						pDataUpdate  = dataUpdateNode[c];
+						nElementCountR = dataInitialNode.GetRElements();
+						pJacobian = dJacobianNode;
 
-					double dDaPsi = 0.0;
-					double dDbPsi = 0.0;
-					for (int s = 0; s < m_nHorizontalOrder; s++) {
-						dDaPsi +=
-							pDataInitial[k][iElementA+s][iB]
-							* dDxBasis1D[s][i];
+					} else if (pGrid->GetVarLocation(c) == DataLocation_REdge) {
+						pDataInitial = dataInitialREdge[c];
+						pDataUpdate  = dataUpdateREdge[c];
+						nElementCountR = dataInitialREdge.GetRElements();
+						pJacobian = dJacobianREdge;
 
-						dDbPsi +=
-							pDataInitial[k][iA][iElementB+s]
-							* dDxBasis1D[s][j];
+					} else {
+						_EXCEPTIONT("UNIMPLEMENTED");
 					}
 
-					dDaPsi /= dElementDeltaA;
-					dDbPsi /= dElementDeltaB;
-
-					m_dJGradientA[i][j] = pJacobian[k][iA][iB] * (
-						+ dContraMetricA[iA][iB][0] * dDaPsi
-						+ dContraMetricA[iA][iB][1] * dDbPsi);
-
-					m_dJGradientB[i][j] = pJacobian[k][iA][iB] * (
-						+ dContraMetricB[iA][iB][0] * dDaPsi
-						+ dContraMetricB[iA][iB][1] * dDbPsi);
-				}
+				} else {
+					pDataInitial = dataInitialTracer[c];
+					pDataUpdate = dataUpdateTracer[c];
+					nElementCountR = dataInitialTracer.GetRElements();
+					pJacobian = dJacobianNode;
 				}
 
-				// Pointwise updates
-				for (int i = 0; i < m_nHorizontalOrder; i++) {
-				for (int j = 0; j < m_nHorizontalOrder; j++) {
-					int iA = iElementA + i;
-					int iB = iElementB + j;
+				// Loop over all finite elements
+				for (int k = 0; k < nElementCountR; k++) {
+				for (int a = 0; a < nElementCountA; a++) {
+				for (int b = 0; b < nElementCountB; b++) {
 
-					// Compute integral term
-					double dUpdateA = 0.0;
-					double dUpdateB = 0.0;
+					int iElementA =
+						a * m_nHorizontalOrder + box.GetHaloElements();
+					int iElementB =
+						b * m_nHorizontalOrder + box.GetHaloElements();
 
-					for (int s = 0; s < m_nHorizontalOrder; s++) {
-						dUpdateA +=
-							m_dJGradientA[s][j]
-							* dStiffness1D[i][s];
+					// Calculate the pointwise gradient of the scalar field
+					for (int i = 0; i < m_nHorizontalOrder; i++) {
+					for (int j = 0; j < m_nHorizontalOrder; j++) {
+						int iA = iElementA + i;
+						int iB = iElementB + j;
 
-						dUpdateB +=
-							m_dJGradientB[i][s]
-							* dStiffness1D[j][s];
+						double dDaPsi = 0.0;
+						double dDbPsi = 0.0;
+						for (int s = 0; s < m_nHorizontalOrder; s++) {
+							dDaPsi +=
+								pDataInitial[k][iElementA+s][iB]
+								* dDxBasis1D[s][i];
+
+							dDbPsi +=
+								pDataInitial[k][iA][iElementB+s]
+								* dDxBasis1D[s][j];
+						}
+
+						dDaPsi /= dElementDeltaA;
+						dDbPsi /= dElementDeltaB;
+
+						m_dJGradientA[i][j] = pJacobian[k][iA][iB] * (
+							+ dContraMetricA[iA][iB][0] * dDaPsi
+							+ dContraMetricA[iA][iB][1] * dDbPsi);
+
+						m_dJGradientB[i][j] = pJacobian[k][iA][iB] * (
+							+ dContraMetricB[iA][iB][0] * dDaPsi
+							+ dContraMetricB[iA][iB][1] * dDbPsi);
+					}
 					}
 
-					dUpdateA /= dElementDeltaA;
-					dUpdateB /= dElementDeltaB;
+					// Pointwise updates
+					for (int i = 0; i < m_nHorizontalOrder; i++) {
+					for (int j = 0; j < m_nHorizontalOrder; j++) {
+						int iA = iElementA + i;
+						int iB = iElementB + j;
 
-					// Apply update
-					double dInvJacobian = 1.0 / pJacobian[k][iA][iB];
+						// Compute integral term
+						double dUpdateA = 0.0;
+						double dUpdateB = 0.0;
 
-					pDataUpdate[k][iA][iB] -=
-						dDeltaT * dInvJacobian * dLocalNu
-							* (dUpdateA + dUpdateB);
+						for (int s = 0; s < m_nHorizontalOrder; s++) {
+							dUpdateA +=
+								m_dJGradientA[s][j]
+								* dStiffness1D[i][s];
+
+							dUpdateB +=
+								m_dJGradientB[i][s]
+								* dStiffness1D[j][s];
+						}
+
+						dUpdateA /= dElementDeltaA;
+						dUpdateB /= dElementDeltaB;
+
+						// Apply update
+						double dInvJacobian = 1.0 / pJacobian[k][iA][iB];
+
+						pDataUpdate[k][iA][iB] -=
+							dDeltaT * dInvJacobian * dLocalNu
+								* (dUpdateA + dUpdateB);
+					}
+					}
 				}
 				}
-			}
-			}
+				}
 			}
 		}
 	}
@@ -1799,7 +1817,6 @@ void HorizontalDynamicsFEM::StepAfterSubCycle(
 	const Time & time,
 	double dDeltaT
 ) {
-
 	// Check indices
 	if (iDataInitial == iDataWorking) {
 		_EXCEPTIONT("Invalid indices "
@@ -1821,7 +1838,7 @@ void HorizontalDynamicsFEM::StepAfterSubCycle(
 
 		// Apply scalar and vector hyperdiffusion (first application)
 		pGrid->ZeroData(iDataWorking, DataType_State);
-		//pGrid->CopyData(iDataInitial, iDataWorking, DataType_State);
+		pGrid->ZeroData(iDataWorking, DataType_Tracers);
 
 		ApplyScalarHyperdiffusion(
 			iDataInitial, iDataWorking, 1.0, 1.0, false);
@@ -1833,6 +1850,7 @@ void HorizontalDynamicsFEM::StepAfterSubCycle(
 
 		// Apply scalar and vector hyperdiffusion (second application)
 		pGrid->CopyData(iDataInitial, iDataUpdate, DataType_State);
+		pGrid->CopyData(iDataInitial, iDataUpdate, DataType_Tracers);
 
 		ApplyScalarHyperdiffusion(
 			iDataWorking, iDataUpdate, -dDeltaT, m_dNuScalar, true);

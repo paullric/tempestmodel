@@ -702,6 +702,8 @@ void GridPatchCSGLL::EvaluateTestCase(
 	}
 
 	// Buffer vector for storing pointwise states
+	const EquationSet & eqns = m_grid.GetModel().GetEquationSet();
+
 	int nComponents = m_grid.GetModel().GetEquationSet().GetComponents();
 	int nTracers = m_grid.GetModel().GetEquationSet().GetTracers();
 
@@ -730,6 +732,9 @@ void GridPatchCSGLL::EvaluateTestCase(
 			m_dataLat[i][j],
 			dPointwiseState,
 			dPointwiseTracers);
+
+		eqns.ConvertComponents(
+			phys, dPointwiseState, dPointwiseTracers);
 
 		for (int c = 0; c < dPointwiseState.GetRows(); c++) {
 			m_datavecStateNode[iDataIndex][c][k][i][j] = dPointwiseState[c];
@@ -761,6 +766,10 @@ void GridPatchCSGLL::EvaluateTestCase(
 				m_dataLon[i][j],
 				m_dataLat[i][j],
 				dPointwiseRefState);
+
+			DataVector<double> dPointwiseRefTracers;
+			eqns.ConvertComponents(
+				phys, dPointwiseRefState, dPointwiseRefTracers);
 
 			for (int c = 0; c < dPointwiseState.GetRows(); c++) {
 				m_dataRefStateNode[c][k][i][j] = dPointwiseRefState[c];

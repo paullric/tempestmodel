@@ -193,11 +193,13 @@ void TimestepSchemeStrang::Step(
 
 	} else {
 		pGrid->LinearCombineData(m_dCarryoverCombination, 0, DataType_State);
+		pGrid->LinearCombineData(m_dCarryoverCombination, 0, DataType_Tracers);
 	}
 
 	// Forward Euler
 	if (m_eExplicitDiscretization == ForwardEuler) {
 		pGrid->CopyData(0, 4, DataType_State);
+		pGrid->CopyData(0, 4, DataType_Tracers);
 		pHorizontalDynamics->StepExplicit(0, 4, time, dDeltaT);
 		pVerticalDynamics->StepExplicit(0, 4, time, dDeltaT);
 		pGrid->PostProcessSubstage(4, DataType_State);
@@ -206,24 +208,28 @@ void TimestepSchemeStrang::Step(
 	// Explicit fourth-order Runge-Kutta
 	} else if (m_eExplicitDiscretization == RungeKutta4) {
 		pGrid->CopyData(0, 1, DataType_State);
+		pGrid->CopyData(0, 1, DataType_Tracers);
 		pHorizontalDynamics->StepExplicit(0, 1, time, dHalfDeltaT);
 		pVerticalDynamics->StepExplicit(0, 1, time, dHalfDeltaT);
 		pGrid->PostProcessSubstage(1, DataType_State);
 		pGrid->PostProcessSubstage(1, DataType_Tracers);
 
 		pGrid->CopyData(0, 2, DataType_State);
+		pGrid->CopyData(0, 2, DataType_Tracers);
 		pHorizontalDynamics->StepExplicit(1, 2, time, dHalfDeltaT);
 		pVerticalDynamics->StepExplicit(1, 2, time, dHalfDeltaT);
 		pGrid->PostProcessSubstage(2, DataType_State);
 		pGrid->PostProcessSubstage(2, DataType_Tracers);
 
 		pGrid->CopyData(0, 3, DataType_State);
+		pGrid->CopyData(0, 3, DataType_Tracers);
 		pHorizontalDynamics->StepExplicit(2, 3, time, dDeltaT);
 		pVerticalDynamics->StepExplicit(2, 3, time, dDeltaT);
 		pGrid->PostProcessSubstage(3, DataType_State);
 		pGrid->PostProcessSubstage(3, DataType_Tracers);
 
 		pGrid->LinearCombineData(m_dRK4Combination, 4, DataType_State);
+		pGrid->LinearCombineData(m_dRK4Combination, 4, DataType_Tracers);
 
 		pHorizontalDynamics->StepExplicit(3, 4, time, dDeltaT / 6.0);
 		pVerticalDynamics->StepExplicit(3, 4, time, dDeltaT / 6.0);
@@ -234,18 +240,21 @@ void TimestepSchemeStrang::Step(
 	} else if (m_eExplicitDiscretization == RungeKuttaSSP3) {
 
 		pGrid->CopyData(0, 1, DataType_State);
+		pGrid->CopyData(0, 1, DataType_Tracers);
 		pHorizontalDynamics->StepExplicit(0, 1, time, dDeltaT);
 		pVerticalDynamics->StepExplicit(0, 1, time, dDeltaT);
 		pGrid->PostProcessSubstage(1, DataType_State);
 		pGrid->PostProcessSubstage(1, DataType_Tracers);
 
 		pGrid->LinearCombineData(m_dSSPRK3CombinationA, 2, DataType_State);
+		pGrid->LinearCombineData(m_dSSPRK3CombinationA, 2, DataType_Tracers);
 		pHorizontalDynamics->StepExplicit(1, 2, time, 0.25 * dDeltaT);
 		pVerticalDynamics->StepExplicit(1, 2, time, 0.25 * dDeltaT);
 		pGrid->PostProcessSubstage(2, DataType_State);
 		pGrid->PostProcessSubstage(2, DataType_Tracers);
 
 		pGrid->LinearCombineData(m_dSSPRK3CombinationB, 4, DataType_State);
+		pGrid->LinearCombineData(m_dSSPRK3CombinationB, 4, DataType_Tracers);
 		pHorizontalDynamics->StepExplicit(2, 4, time, (2.0/3.0) * dDeltaT);
 		pVerticalDynamics->StepExplicit(2, 4, time, (2.0/3.0) * dDeltaT);
 		pGrid->PostProcessSubstage(4, DataType_State);
@@ -255,24 +264,28 @@ void TimestepSchemeStrang::Step(
 	} else if (m_eExplicitDiscretization == KinnmarkGrayUllrich35) {
 
 		pGrid->CopyData(0, 1, DataType_State);
+		pGrid->CopyData(0, 1, DataType_Tracers);
 		pHorizontalDynamics->StepExplicit(0, 1, time, dDeltaT / 5.0);
 		pVerticalDynamics->StepExplicit(0, 1, time, dDeltaT / 5.0);
 		pGrid->PostProcessSubstage(1, DataType_State);
 		pGrid->PostProcessSubstage(1, DataType_Tracers);
 
 		pGrid->CopyData(0, 2, DataType_State);
+		pGrid->CopyData(0, 2, DataType_Tracers);
 		pHorizontalDynamics->StepExplicit(1, 2, time, dDeltaT / 5.0);
 		pVerticalDynamics->StepExplicit(1, 2, time, dDeltaT / 5.0);
 		pGrid->PostProcessSubstage(2, DataType_State);
 		pGrid->PostProcessSubstage(2, DataType_Tracers);
 
 		pGrid->CopyData(0, 3, DataType_State);
+		pGrid->CopyData(0, 3, DataType_Tracers);
 		pHorizontalDynamics->StepExplicit(2, 3, time, dDeltaT / 3.0);
 		pVerticalDynamics->StepExplicit(2, 3, time, dDeltaT / 3.0);
 		pGrid->PostProcessSubstage(3, DataType_State);
 		pGrid->PostProcessSubstage(3, DataType_Tracers);
 
 		pGrid->CopyData(0, 2, DataType_State);
+		pGrid->CopyData(0, 2, DataType_Tracers);
 		pHorizontalDynamics->StepExplicit(3, 2, time, 2.0 * dDeltaT / 3.0);
 		pVerticalDynamics->StepExplicit(3, 2, time, 2.0 * dDeltaT / 3.0);
 		pGrid->PostProcessSubstage(2, DataType_State);
@@ -280,6 +293,8 @@ void TimestepSchemeStrang::Step(
 
 		pGrid->LinearCombineData(
 			m_dKinnmarkGrayUllrichCombination, 4, DataType_State);
+		pGrid->LinearCombineData(
+			m_dKinnmarkGrayUllrichCombination, 4, DataType_Tracers);
 		pHorizontalDynamics->StepExplicit(2, 4, time, 3.0 * dDeltaT / 4.0);
 		pVerticalDynamics->StepExplicit(2, 4, time, 3.0 * dDeltaT / 4.0);
 		pGrid->PostProcessSubstage(4, DataType_State);
@@ -291,12 +306,14 @@ void TimestepSchemeStrang::Step(
 		const double dStepOne = 0.377268915331368;
 
 		pGrid->CopyData(0, 1, DataType_State);
+		pGrid->CopyData(0, 1, DataType_Tracers);
 		pHorizontalDynamics->StepExplicit(0, 1, time, dStepOne * dDeltaT);
 		pVerticalDynamics->StepExplicit(0, 1, time, dStepOne * dDeltaT);
 		pGrid->PostProcessSubstage(1, DataType_State);
 		pGrid->PostProcessSubstage(1, DataType_Tracers);
 
 		pGrid->CopyData(1, 2, DataType_State);
+		pGrid->CopyData(1, 2, DataType_Tracers);
 		pHorizontalDynamics->StepExplicit(1, 2, time, dStepOne * dDeltaT);
 		pVerticalDynamics->StepExplicit(1, 2, time, dStepOne * dDeltaT);
 		pGrid->PostProcessSubstage(2, DataType_State);
@@ -305,6 +322,7 @@ void TimestepSchemeStrang::Step(
 		const double dStepThree = 0.242995220537396;
 
 		pGrid->LinearCombineData(m_dSSPRK53CombinationA, 3, DataType_State);
+		pGrid->LinearCombineData(m_dSSPRK53CombinationA, 3, DataType_Tracers);
 		pHorizontalDynamics->StepExplicit(2, 3, time, dStepThree * dDeltaT);
 		pVerticalDynamics->StepExplicit(2, 3, time, dStepThree * dDeltaT);
 		pGrid->PostProcessSubstage(3, DataType_State);
@@ -313,6 +331,7 @@ void TimestepSchemeStrang::Step(
 		const double dStepFour = 0.238458932846290;
 
 		pGrid->LinearCombineData(m_dSSPRK53CombinationB, 0, DataType_State);
+		pGrid->LinearCombineData(m_dSSPRK53CombinationB, 0, DataType_Tracers);
 		pHorizontalDynamics->StepExplicit(3, 0, time, dStepFour * dDeltaT);
 		pVerticalDynamics->StepExplicit(3, 0, time, dStepFour * dDeltaT);
 		pGrid->PostProcessSubstage(0, DataType_State);
@@ -321,6 +340,7 @@ void TimestepSchemeStrang::Step(
 		const double dStepFive = 0.287632146308408;
 
 		pGrid->LinearCombineData(m_dSSPRK53CombinationC, 4, DataType_State);
+		pGrid->LinearCombineData(m_dSSPRK53CombinationC, 4, DataType_Tracers);
 		pHorizontalDynamics->StepExplicit(0, 4, time, dStepFive * dDeltaT);
 		pVerticalDynamics->StepExplicit(0, 4, time, dStepFive * dDeltaT);
 		pGrid->PostProcessSubstage(4, DataType_State);
@@ -333,18 +353,22 @@ void TimestepSchemeStrang::Step(
 
 	// Apply hyperdiffusion
 	pGrid->CopyData(4, 1, DataType_State);
+	pGrid->CopyData(4, 1, DataType_Tracers);
 	pHorizontalDynamics->StepAfterSubCycle(4, 1, 2, time, dDeltaT);
 
 	// Vertical timestep
 	double dOffCenterDeltaT = 0.5 * (1.0 + m_dOffCentering) * dDeltaT;
 
 	pGrid->CopyData(1, 0, DataType_State);
+	pGrid->CopyData(1, 0, DataType_Tracers);
 	pVerticalDynamics->StepImplicit(0, 0, time, dOffCenterDeltaT);
 
 	pGrid->LinearCombineData(m_dOffCenteringCombination, 0, DataType_State);
+	pGrid->LinearCombineData(m_dOffCenteringCombination, 0, DataType_Tracers);
 
 	if (!fLastStep) {
 		pGrid->LinearCombineData(m_dCarryoverFinal, 1, DataType_State);
+		pGrid->LinearCombineData(m_dCarryoverFinal, 1, DataType_Tracers);
 	}
 
 	//pGrid->CopyData(0, 1, DataType_State);

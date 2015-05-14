@@ -114,35 +114,7 @@ protected:
 #endif
 	}
 
-protected:
-	///	<summary>
-	///		Second derivative of a variable from interfaces to interfaces.
-	///	</summary>
-	void DiffDiffREdgeToREdge(
-		const double * dDataREdge,
-		double * dDiffDiffREdge
-	);
-
 public:
-	///	<summary>
-	///		Setup the reference column.
-	///	</summary>
-	void SetupReferenceColumn(
-		GridPatch * pPatch,
-		int iA,
-		int iB,
-		const GridData4D & dataRefNode,
-		const GridData4D & dataInitialNode,
-		const GridData4D & dataRefREdge,
-		const GridData4D & dataInitialREdge
-/*
-		const GridData3D & dataExnerNode,
-		const GridData3D & dataDiffExnerNode,
-		const GridData3D & dataExnerREdge,
-		const GridData3D & dataDiffExnerREdge
-*/
-	);
- 
 	///	<summary>
 	///		Advance explicit terms of the vertical column one substep.
 	///	</summary>
@@ -170,14 +142,30 @@ public:
 
 public:
 	///	<summary>
-	///		Prepare interpolated and differentiated column data.
+	///		Set up the reference column.  This function is called once for
+	///		each column prior to the solve.
+	///	</summary>
+	void SetupReferenceColumn(
+		GridPatch * pPatch,
+		int iA,
+		int iB,
+		const GridData4D & dataRefNode,
+		const GridData4D & dataInitialNode,
+		const GridData4D & dataRefREdge,
+		const GridData4D & dataInitialREdge
+	);
+
+	///	<summary>
+	///		Prepare interpolated and differentiated column data.  This
+	///		function contains shared initialization between BuildF and
+	///		BuildJacobianF.
 	///	</summary>
 	void PrepareColumn(
 		const double * dX
 	);
 
 	///	<summary>
-	///		Evaluate the zero equations.
+	///		Evaluate the zero equations for the implicit solve.
 	///	</summary>
 	void BuildF(
 		const double * dX,
@@ -185,7 +173,7 @@ public:
 	);
 
 	///	<summary>
-	///		Build the Jacobian matrix.
+	///		Build the Jacobian matrix associated with the zero equations.
 	///	</summary>
 	void BuildJacobianF(
 		const double * dX,
@@ -199,6 +187,19 @@ public:
 	void Evaluate(
 		const double * dX,
 		double * dF
+	);
+
+protected:
+	///	<summary>
+	///		Update tracers in the vertical.
+	///	</summary>
+	void UpdateColumnTracers(
+		const GridData4D & dataInitialNode,
+		const GridData4D & dataUpdateNode,
+		const GridData4D & dataInitialREdge,
+		const GridData4D & dataUpdateREdge,
+		const GridData4D & dataInitialTracer,
+		const GridData4D & dataUpdateTracer
 	);
 
 protected:
@@ -291,12 +292,12 @@ protected:
 	DataMatrix<double> m_dStateREdge;
 
 	///	<summary>
-	///		Auxiliary state, used by StepExplicit.
+	///		Auxiliary state data.
 	///	</summary>
 	DataVector<double> m_dStateAux;
 
 	///	<summary>
-	///		Derivative of auxiliary state, used by StepExplicit.
+	///		Derivative of auxiliary state data.
 	///	</summary>
 	DataVector<double> m_dStateAuxDiff;
 
@@ -446,6 +447,36 @@ protected:
 	DataVector<double> m_dDiffExnerRefREdge;
 
 	///	<summary>
+	///		Tracer density on model levels.
+	///	</summary>
+	DataVector<double> m_dTracerDensityNode;
+
+	///	<summary>
+	///		Tracer density on model interfaces.
+	///	</summary>
+	DataVector<double> m_dTracerDensityREdge;
+
+	///	<summary>
+	///		Initial density on model levels.
+	///	</summary>
+	DataVector<double> m_dInitialDensityNode;
+
+	///	<summary>
+	///		Initial density on model interfaces.
+	///	</summary>
+	DataVector<double> m_dInitialDensityREdge;
+
+	///	<summary>
+	///		Updated density on model levels.
+	///	</summary>
+	DataVector<double> m_dUpdateDensityNode;
+
+	///	<summary>
+	///		Updated density on model interfaces.
+	///	</summary>
+	DataVector<double> m_dUpdateDensityREdge;
+
+	///	<summary>
 	///		Solution vector from the implicit solve.
 	///	</summary>
 	DataVector<double> m_dSoln;
@@ -492,19 +523,8 @@ private:
 	///	</summary>
 	Vec m_vecR;
 #endif
-#ifdef USE_DIRECTSOLVE_APPROXJ
-private:
-	///	<summary>
-	///		Jacobian matrix used in direct solve.
-	///	</summary>
-	DataMatrix<double> m_matJacobianF;
-
-	///	<summary>
-	///		Pivot matrix used in direct solve.
-	///	</summary>
-	DataVector<int> m_vecIPiv;
-#endif
-#ifdef USE_DIRECTSOLVE
+#if defined(USE_DIRECTSOLVE_APPROXJ) \
+ || defined(USE_DIRECTSOLVE)
 private:
 	///	<summary>
 	///		Jacobian matrix used in direct solve.

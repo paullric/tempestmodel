@@ -45,6 +45,23 @@ Model::Model(
 
 ///////////////////////////////////////////////////////////////////////////////
 
+Model::Model(
+	const EquationSet & eqn
+) :
+	m_pGrid(NULL),
+	m_pTimestepScheme(NULL),
+	m_pHorizontalDynamics(NULL),
+	m_pVerticalDynamics(NULL),
+	m_pTestCase(NULL),
+	m_eqn(eqn),
+	m_time()
+{
+	// Initialize staggering from equation set
+	m_stag.Initialize(m_eqn);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
 Model::~Model() {
 	if (m_pGrid != NULL) {
 		delete m_pGrid;

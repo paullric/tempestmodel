@@ -87,7 +87,8 @@ EquationSet::EquationSet(
 
 void EquationSet::ConvertComponents(
 	const PhysicalConstants & phys,
-	DataVector<double> & dState
+	DataVector<double> & dState,
+	DataVector<double> & dTracer
 ) const {
 
 	// Indices of EquationSet variables
@@ -97,6 +98,16 @@ void EquationSet::ConvertComponents(
 	const int PIx = 2;
 	const int WIx = 3;
 	const int RIx = 4;
+
+	// Shallow water equations
+	if (m_eEquationSetType == ShallowWaterEquations) {
+		if (dState.GetRows() != 3) {
+			_EXCEPTIONT("Invalid state vector length");
+		}
+		for (int c = 0; c < dTracer.GetRows(); c++) {
+			dTracer[c] *= dState[HIx];
+		}
+	}
 
 	// Primitive non-hydrostatic equations
 	if (m_eEquationSetType == PrimitiveNonhydrostaticEquations) {
@@ -111,6 +122,9 @@ void EquationSet::ConvertComponents(
 #if defined(FORMULATION_RHOTHETA_PI) || defined(FORMULATION_RHOTHETA_P)
 		dState[PIx] *= dState[RIx];
 #endif
+		for (int c = 0; c < dTracer.GetRows(); c++) {
+			dTracer[c] *= dState[RIx];
+		}
 	}
 }
 
