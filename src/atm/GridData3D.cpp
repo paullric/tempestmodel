@@ -26,6 +26,14 @@ void GridData3D::Initialize(
 	int nBElements,
 	int nHaloElements
 ) {
+	if ((nRElements == 0) ||
+	    (nAElements == 0) ||
+	    (nBElements == 0)
+	) {
+		Deinitialize();
+		return;
+	}
+
 	m_eDataType = eDataType;
 	if (m_eDataType == DataType_All) {
 		_EXCEPTIONT("A specific DataType must be used for data objects.");

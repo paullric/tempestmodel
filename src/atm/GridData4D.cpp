@@ -27,6 +27,15 @@ void GridData4D::Initialize(
 	int nBElements,
 	int nHaloElements
 ) {
+	if ((nComponents == 0) ||
+	    (nRElements == 0) ||
+	    (nAElements == 0) ||
+	    (nBElements == 0)
+	) {
+		Deinitialize();
+		return;
+	}
+
 	m_eDataType = eDataType;
 	if (m_eDataType == DataType_All) {
 		_EXCEPTIONT("A specific DataType must be used for data objects.");

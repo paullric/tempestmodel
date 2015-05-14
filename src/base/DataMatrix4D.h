@@ -270,7 +270,7 @@ class DataMatrix4D {
 			// Check initialization status
 			if (!IsInitialized()) {
 				_EXCEPTIONT(
-					"Attempted operation on uninitialized DataMatrix3D.");
+					"Attempted operation on uninitialized DataMatrix4D.");
 			}
 
 			// Set content to zero

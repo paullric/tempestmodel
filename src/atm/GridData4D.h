@@ -129,6 +129,13 @@ public:
 
 public:
 	///	<summary>
+	///		Check if this object is initialized.
+	///	</summary>
+	bool IsInitialized() const {
+		return m_fInitialized;
+	}
+
+	///	<summary>
 	///		Bracket accessor.
 	///	</summary>
 	inline double*** operator[](int n) const {
