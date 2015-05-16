@@ -474,10 +474,13 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 		GridData4D & dataUpdateTracer =
 			pPatch->GetDataTracers(iDataUpdate);
 
+		// Number of tracers
 		const int nTracerCount = dataInitialTracer.GetComponents();
 
+		// Spacing between vertical levels in dataInitialNode
 		const int nVerticalStateStride =
-			dataInitialNode.GetAElements() * dataInitialNode.GetBElements();
+			  dataInitialNode.GetAElements()
+			* dataInitialNode.GetBElements();
 
 		// Perform interpolations as required due to vertical staggering
 		if (pGrid->GetVarsAtLocation(DataLocation_REdge) != 0) {
@@ -1317,6 +1320,51 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 				}
 			}
 #endif
+
+			// Apply positive definite filter to tracers
+			for (int c = 0; c < nTracerCount; c++) {
+			for (int k = 0; k < nRElements; k++) {
+
+				// Compute total mass and non-negative mass
+				double dTotalMass = 0.0;
+				double dNonNegativeMass = 0.0;
+
+				for (int i = 0; i < m_nHorizontalOrder; i++) {
+				for (int j = 0; j < m_nHorizontalOrder; j++) {
+
+					int iA = a * m_nHorizontalOrder + i + box.GetHaloElements();
+					int iB = b * m_nHorizontalOrder + j + box.GetHaloElements();
+
+					double dPointwiseMass =
+						  dataUpdateTracer[c][k][iA][iB]
+						* dElementArea[k][iA][iB];
+
+					dTotalMass += dPointwiseMass;
+
+					if (dataUpdateTracer[c][k][iA][iB] >= 0.0) {
+						dNonNegativeMass += dPointwiseMass;
+					}
+				}
+				}
+
+				// Apply scaling ratio to points with non-negative mass
+				double dR = dTotalMass / dNonNegativeMass;
+
+				for (int i = 0; i < m_nHorizontalOrder; i++) {
+				for (int j = 0; j < m_nHorizontalOrder; j++) {
+
+					int iA = a * m_nHorizontalOrder + i + box.GetHaloElements();
+					int iB = b * m_nHorizontalOrder + j + box.GetHaloElements();
+
+					if (dataUpdateTracer[c][k][iA][iB] > 0.0) {
+						dataUpdateTracer[c][k][iA][iB] *= dR;
+					} else {
+						dataUpdateTracer[c][k][iA][iB] = 0.0;
+					}
+				}
+				}
+			}
+			}
 		}
 		}
 	}

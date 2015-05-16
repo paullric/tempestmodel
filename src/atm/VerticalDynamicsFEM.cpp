@@ -2653,6 +2653,8 @@ void VerticalDynamicsFEM::UpdateColumnTracers(
 		m_pPatch->GetContraMetricXi();
 	const DataMatrix4D<double> & dContraMetricXiREdge =
 		m_pPatch->GetContraMetricXiREdge();
+	const DataMatrix3D<double> & dElementArea =
+		m_pPatch->GetElementArea();
 	const DataMatrix3D<double> & dJacobianNode =
 		m_pPatch->GetJacobian();
 	const DataMatrix3D<double> & dJacobianREdge =
@@ -2810,6 +2812,33 @@ void VerticalDynamicsFEM::UpdateColumnTracers(
 			dataUpdateTracer[c][k][m_iA][m_iB] -=
 				m_dDiffMassFluxNode[k]
 				/ dJacobianNode[k][m_iA][m_iB];
+		}
+
+#pragma message "Apply limiter only to finite element?"
+		// Apply positive definite limiter to the tracers
+		double dTotalMass = 0.0;
+		double dNonNegativeMass = 0.0;
+		for (int k = 0; k < nRElements; k++) {
+			double dPointwiseMass =
+				  dataUpdateTracer[c][k][m_iA][m_iB]
+				* dElementArea[k][m_iA][m_iB];
+
+			dTotalMass += dPointwiseMass;
+
+			if (dataUpdateTracer[c][k][m_iA][m_iB] >= 0.0) {
+				dNonNegativeMass += dPointwiseMass;
+			}
+		}
+
+		// Apply scaling ratio to points with non-negative mass
+		double dR = dTotalMass / dNonNegativeMass;
+
+		for (int k = 0; k < nRElements; k++) {
+			if (dataUpdateTracer[c][k][m_iA][m_iB] > 0.0) {
+				dataUpdateTracer[c][k][m_iA][m_iB] *= dR;
+			} else {
+				dataUpdateTracer[c][k][m_iA][m_iB] = 0.0;
+			}
 		}
 	}
 }
