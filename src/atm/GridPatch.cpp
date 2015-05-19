@@ -751,14 +751,25 @@ void GridPatch::ComputeTemperature(
 			InterpolateREdgeToNode(RIx, iDataIndex);
 		}
 
-		const GridData4D & dataState = m_datavecStateNode[iDataIndex];
+		const GridData4D & dataNode = m_datavecStateNode[iDataIndex];
 
 		for (k = 0; k < m_grid.GetRElements(); k++) {
 		for (i = m_box.GetAInteriorBegin(); i < m_box.GetAInteriorEnd(); i++) {
 		for (j = m_box.GetBInteriorBegin(); j < m_box.GetBInteriorEnd(); j++) {
+
+#ifdef FORMULATION_PRESSURE
+			double dPressure = dataNode[PIx][k][i][j];
+#endif
+#if defined(FORMULATION_RHOTHETA_PI) || defined(FORMULATION_RHOTHETA_P)
+			double dPressure = phys.PressureFromRhoTheta(dataNode[PIx][k][i][j]);
+#endif
+#if defined(FORMULATION_THETA) || defined(FORMULATION_THETA_FLUX)
+			double dPressure =
+				phys.PressureFromRhoTheta(
+					dataNode[RIx][k][i][j] * dataNode[PIx][k][i][j]);
+#endif
 			m_dataTemperature[k][i][j] =
-				dataState[PIx][k][i][j]
-				/ (dataState[RIx][k][i][j] * phys.GetR());
+				dPressure / (dataNode[RIx][k][i][j] * phys.GetR());
 		}
 		}
 		}
@@ -775,14 +786,26 @@ void GridPatch::ComputeTemperature(
 			InterpolateNodeToREdge(RIx, iDataIndex);
 		}
 
-		const GridData4D & dataState = m_datavecStateREdge[iDataIndex];
+		const GridData4D & dataNode = m_datavecStateREdge[iDataIndex];
 
 		for (k = 0; k <= m_grid.GetRElements(); k++) {
 		for (i = m_box.GetAInteriorBegin(); i < m_box.GetAInteriorEnd(); i++) {
 		for (j = m_box.GetBInteriorBegin(); j < m_box.GetBInteriorEnd(); j++) {
+
+#ifdef FORMULATION_PRESSURE
+			double dPressure = dataNode[PIx][k][i][j];
+#endif
+#if defined(FORMULATION_RHOTHETA_PI) || defined(FORMULATION_RHOTHETA_P)
+			double dPressure = phys.PressureFromRhoTheta(dataNode[PIx][k][i][j]);
+#endif
+#if defined(FORMULATION_THETA) || defined(FORMULATION_THETA_FLUX)
+			double dPressure =
+				phys.PressureFromRhoTheta(
+					dataNode[RIx][k][i][j] * dataNode[PIx][k][i][j]);
+#endif
+
 			m_dataTemperature[k][i][j] =
-				dataState[PIx][k][i][j]
-				/ (dataState[RIx][k][i][j] * phys.GetR());
+				dPressure / (dataNode[RIx][k][i][j] * phys.GetR());
 		}
 		}
 		}

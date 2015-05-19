@@ -59,9 +59,11 @@ GridCartesianGLL::GridCartesianGLL(
 	// Set the reference length scale (110km)
 	m_dReferenceLength = 110000.0;
 
-	// Bring in the reference latitude (if any) for large regions where the
-	// beta plane approximation is necessary in the equations
-	m_dRefLat = dRefLat;
+	// Boundary condition
+	m_eBoundaryCondition[0] = BoundaryCondition_Periodic;
+	m_eBoundaryCondition[1] = BoundaryCondition_Periodic;
+	m_eBoundaryCondition[2] = BoundaryCondition_Periodic;
+	m_eBoundaryCondition[3] = BoundaryCondition_Periodic;
 
 	// Bring through the grid dimensions
 	m_dGDim[0] = dGDim[0]; m_dGDim[1] = dGDim[1];
@@ -69,6 +71,10 @@ GridCartesianGLL::GridCartesianGLL(
 	m_dGDim[4] = dGDim[4]; m_dGDim[5] = dGDim[5];
 
 	m_dZtop = dGDim[5];
+
+	// Bring in the reference latitude (if any) for large regions where the
+	// beta plane approximation is necessary in the equations
+	m_dRefLat = dRefLat;
 
 	// Set the max topography height from the test case definition
 	m_dTopoHeight = dTopoHeight;
@@ -270,16 +276,48 @@ void GridCartesianGLL::GetPatchFromCoordinateIndex(
 
 		// Wrap global indices
 		if (iA < 0) {
-			iA += nLocalResolutionA;
+			BoundaryCondition eLeftBoundary =
+				m_eBoundaryCondition[Direction_Left];
+
+			if (eLeftBoundary == BoundaryCondition_Periodic) {
+				iA += nLocalResolutionA;
+			} else {
+				vecPatchIndex[i] = GridPatch::InvalidIndex;
+				continue;
+			}
 		}
 		if (iA >= nLocalResolutionA) {
-			iA -= nLocalResolutionA;
+			BoundaryCondition eRightBoundary =
+				m_eBoundaryCondition[Direction_Right];
+
+			if (eRightBoundary == BoundaryCondition_Periodic) {
+				iA -= nLocalResolutionA;
+			} else {
+				vecPatchIndex[i] = GridPatch::InvalidIndex;
+				continue;
+			}
 		}
 		if (iB < 0) {
-			iB += nLocalResolutionB;
+			BoundaryCondition eBottomBoundary =
+				m_eBoundaryCondition[Direction_Bottom];
+
+			if (eBottomBoundary == BoundaryCondition_Periodic) {
+				iB += nLocalResolutionB;
+			} else {
+				vecPatchIndex[i] = GridPatch::InvalidIndex;
+				continue;
+			}
 		}
 		if (iB >= nLocalResolutionB) {
-			iB -= nLocalResolutionB;
+			BoundaryCondition eTopBoundary =
+				m_eBoundaryCondition[Direction_Top];
+
+			if (eTopBoundary == BoundaryCondition_Periodic) {
+				iB -= nLocalResolutionB;
+			} else {
+				vecPatchIndex[i] = GridPatch::InvalidIndex;
+				continue;
+			}
 		}
 
 		// Check the last patch searched

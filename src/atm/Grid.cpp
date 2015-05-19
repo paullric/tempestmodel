@@ -72,6 +72,21 @@ Grid::~Grid() {
 
 ///////////////////////////////////////////////////////////////////////////////
 
+void Grid::SetBoundaryCondition(
+	Direction eDir,
+	BoundaryCondition eBoundaryCondition
+) {
+	int iDir = static_cast<int>(eDir);
+
+	if ((iDir < 0) || (iDir > 3)) {
+		_EXCEPTIONT("Invalid Direction specified");
+	}
+
+	m_eBoundaryCondition[iDir] = eBoundaryCondition;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
 void Grid::SetVerticalStretchFunction(
 	VerticalStretchFunction * pVerticalStretchF
 ) {

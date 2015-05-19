@@ -59,6 +59,16 @@ public:
 
 public:
 	///	<summary>
+	///		Boundary condition type applied in each direction.
+	///	</summary>
+	enum BoundaryCondition {
+		BoundaryCondition_Default = 0,
+		BoundaryCondition_Periodic = BoundaryCondition_Default,
+		BoundaryCondition_NoFlux = 1
+	};
+
+public:
+	///	<summary>
 	///		Constructor.
 	///	</summary>
 	Grid(
@@ -75,6 +85,24 @@ public:
 	///		Virtual destructor.
 	///	</summary>
 	virtual ~Grid();
+
+public:
+	///	<summary>
+	///		Get the boundary condition in the specified direction.
+	///	</summary>
+	BoundaryCondition GetBoundaryCondition(
+		Direction eDir
+	) {
+		return m_eBoundaryCondition[static_cast<int>(eDir)];
+	}
+
+	///	<summary>
+	///		Set the boundary condition in the specified direction.
+	///	</summary>
+	void SetBoundaryCondition(
+		Direction eDir,
+		BoundaryCondition eBoundaryCondition
+	);
 
 public:
 	///	<summary>
@@ -743,6 +771,11 @@ protected:
 	///		Reference to the model.
 	///	</summary>
 	Model & m_model;
+
+	///	<summary>
+	///		Boundary condition in each coordinate direction.
+	///	</summary>
+	BoundaryCondition m_eBoundaryCondition[4];
 
 	///	<summary>
 	///		Block exchange operations between processors.

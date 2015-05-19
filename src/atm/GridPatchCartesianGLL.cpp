@@ -658,10 +658,6 @@ void GridPatchCartesianGLL::ApplyBoundaryConditions(
 	} else if (m_grid.GetVerticalStaggering() ==
 		Grid::VerticalStaggering_Interfaces
 	) {
-		const int UIx = 0;
-		const int VIx = 1;
-		const int WIx = 3;
-
 		for (int i = 0; i < m_box.GetATotalWidth(); i++) {
 		for (int j = 0; j < m_box.GetBTotalWidth(); j++) {
 
@@ -677,10 +673,6 @@ void GridPatchCartesianGLL::ApplyBoundaryConditions(
 
 	// Impose boundary conditions (vertical velocity on interfaces)
 	} else {
-		const int UIx = 0;
-		const int VIx = 1;
-		const int WIx = 3;
-
 		for (int i = 0; i < m_box.GetATotalWidth(); i++) {
 		for (int j = 0; j < m_box.GetBTotalWidth(); j++) {
 
@@ -693,111 +685,109 @@ void GridPatchCartesianGLL::ApplyBoundaryConditions(
 				/ m_dataDerivRREdge[0][i][j][2];
 		}
 		}
+
+		// Interpolated W values needed for lateral boundary conditions
+		m_grid.InterpolateREdgeToNode(WIx, iDataIndex);
 	}
 
+	// Impose boundary conditions along right edge
+	Grid::BoundaryCondition eBoundaryRight =
+		m_grid.GetBoundaryCondition(Direction_Right);
+	if (eBoundaryRight == Grid::BoundaryCondition_NoFlux) {
+		int i = m_box.GetAInteriorEnd();
 
-/*
-	// Check number of components
-	if (m_grid.GetModel().GetEquationSet().GetComponents() != 5) {
-		_EXCEPTIONT("Unimplemented");
-	}
+		for (int k = 0; k < m_grid.GetRElements(); k++) {
+		for (int j = 0; j < m_box.GetBTotalWidth(); j++) {
+			m_datavecStateNode[iDataIndex][UIx][k][i][j] =
+				- 1.0 / m_dataContraMetricA[k][i-1][j][0] * (
+					  m_dataContraMetricA[k][i-1][j][1]
+						* m_datavecStateNode[iDataIndex][UIx][k][i-1][j]
+					+ m_dataContraMetricA[k][i-1][j][2]
+						* m_datavecStateNode[iDataIndex][WIx][k][i-1][j]);
 
-	// Working data
-	GridData4D & dataREdge = GetDataState(iDataUpdate, DataLocation_REdge);
-	GridData4D & dataNode  = GetDataState(iDataUpdate, DataLocation_Node);
+			m_datavecStateNode[iDataIndex][VIx][k][i][j] =
+				m_datavecStateNode[iDataIndex][VIx][k][i-1][j];
 
-	// Apply boundary conditions on model levels
-	for (int k = 0; k < m_grid.GetRElements(); k++) {
-		int i;
-		int j;
-
-		// Evaluate boundary conditions along right edge
-		i = m_box.GetAInteriorEnd();
-		for (j = m_box.GetBInteriorBegin(); j < m_box.GetBInteriorEnd(); j++) {
-			dataNode[UIx][k][i][j] =   dataNode[UIx][k][i-1][j];
-			dataNode[VIx][k][i][j] =   dataNode[VIx][k][i-1][j];
-			dataNode[TIx][k][i][j] =   dataNode[TIx][k][i-1][j];
-			dataNode[WIx][k][i][j] =   dataNode[WIx][k][i-1][j];
-			dataNode[RIx][k][i][j] =   dataNode[RIx][k][i-1][j];
+			m_datavecStateNode[iDataIndex][WIx][k][i][j] =
+				m_datavecStateNode[iDataIndex][WIx][k][i-1][j];
 		}
-
-		// Evaluate boundary conditions along left edge
-		i = m_box.GetAInteriorBegin()-1;
-		for (j = m_box.GetBInteriorBegin(); j < m_box.GetBInteriorEnd(); j++) {
-			dataNode[UIx][k][i][j] =   dataNode[UIx][k][i+1][j];
-			dataNode[VIx][k][i][j] =   dataNode[VIx][k][i+1][j];
-			dataNode[TIx][k][i][j] =   dataNode[TIx][k][i+1][j];
-			dataNode[WIx][k][i][j] =   dataNode[WIx][k][i+1][j];
-			dataNode[RIx][k][i][j] =   dataNode[RIx][k][i+1][j];
-		}
-
-		// Evaluate boundary conditions along top edge
-		j = m_box.GetBInteriorEnd();
-		for (i = m_box.GetAInteriorBegin()-1; i < m_box.GetAInteriorEnd()+1; i++) {
-			dataNode[UIx][k][i][j] =   dataNode[UIx][k][i][j-1];
-			dataNode[VIx][k][i][j] = - dataNode[VIx][k][i][j-1];
-			dataNode[TIx][k][i][j] =   dataNode[TIx][k][i][j-1];
-			dataNode[WIx][k][i][j] =   dataNode[WIx][k][i][j-1];
-			dataNode[RIx][k][i][j] =   dataNode[RIx][k][i][j-1];
-		}
-
-		// Evaluate boundary conditions along bottom edge
-		j = m_box.GetBInteriorBegin()-1;
-		for (i = m_box.GetAInteriorBegin()-1; i < m_box.GetAInteriorEnd()+1; i++) {
-			dataNode[UIx][k][i][j] =   dataNode[UIx][k][i][j+1];
-			dataNode[VIx][k][i][j] = - dataNode[VIx][k][i][j+1];
-			dataNode[TIx][k][i][j] =   dataNode[TIx][k][i][j+1];
-			dataNode[WIx][k][i][j] =   dataNode[WIx][k][i][j+1];
-			dataNode[RIx][k][i][j] =   dataNode[RIx][k][i][j+1];
 		}
 	}
 
-	// Apply boundary conditions on interfaces
-	for (int k = 0; k <= m_grid.GetRElements(); k++) {
-		int i;
-		int j;
+	// Impose boundary conditions along top edge
+	Grid::BoundaryCondition eBoundaryTop =
+		m_grid.GetBoundaryCondition(Direction_Top);
+	if (eBoundaryTop == Grid::BoundaryCondition_NoFlux) {
+		int j = m_box.GetBInteriorEnd();
 
-		// Evaluate boundary conditions along right edge
-		i = m_box.GetAInteriorEnd();
-		for (j = m_box.GetBInteriorBegin(); j < m_box.GetBInteriorEnd(); j++) {
-			dataREdge[UIx][k][i][j] =   dataREdge[UIx][k][i-1][j];
-			dataREdge[VIx][k][i][j] =   dataREdge[VIx][k][i-1][j];
-			dataREdge[TIx][k][i][j] =   dataREdge[TIx][k][i-1][j];
-			dataREdge[WIx][k][i][j] =   dataREdge[WIx][k][i-1][j];
-			dataREdge[RIx][k][i][j] =   dataREdge[RIx][k][i-1][j];
+		for (int k = 0; k < m_grid.GetRElements(); k++) {
+		for (int i = 0; i < m_box.GetATotalWidth(); i++) {
+			m_datavecStateNode[iDataIndex][VIx][k][i][j] =
+				- 1.0 / m_dataContraMetricB[k][i][j-1][0] * (
+					  m_dataContraMetricB[k][i][j-1][1]
+						* m_datavecStateNode[iDataIndex][UIx][k][i][j-1]
+					+ m_dataContraMetricB[k][i][j-1][2]
+						* m_datavecStateNode[iDataIndex][WIx][k][i][j-1]);
+
+			m_datavecStateNode[iDataIndex][UIx][k][i][j] =
+				m_datavecStateNode[iDataIndex][UIx][k][i][j-1];
+
+			m_datavecStateNode[iDataIndex][WIx][k][i][j] =
+				m_datavecStateNode[iDataIndex][WIx][k][i][j-1];
+
 		}
-
-		// Evaluate boundary conditions along left edge
-		i = m_box.GetAInteriorBegin()-1;
-		for (j = m_box.GetBInteriorBegin(); j < m_box.GetBInteriorEnd(); j++) {
-			dataREdge[UIx][k][i][j] =   dataREdge[UIx][k][i+1][j];
-			dataREdge[VIx][k][i][j] =   dataREdge[VIx][k][i+1][j];
-			dataREdge[TIx][k][i][j] =   dataREdge[TIx][k][i+1][j];
-			dataREdge[WIx][k][i][j] =   dataREdge[WIx][k][i+1][j];
-			dataREdge[RIx][k][i][j] =   dataREdge[RIx][k][i+1][j];
-		}
-
-		// Evaluate boundary conditions along top edge
-		j = m_box.GetBInteriorEnd();
-		for (i = m_box.GetAInteriorBegin()-1; i < m_box.GetAInteriorEnd()+1; i++) {
-			dataREdge[UIx][k][i][j] =   dataREdge[UIx][k][i][j-1];
-			dataREdge[VIx][k][i][j] = - dataREdge[VIx][k][i][j-1];
-			dataREdge[TIx][k][i][j] =   dataREdge[TIx][k][i][j-1];
-			dataREdge[WIx][k][i][j] =   dataREdge[WIx][k][i][j-1];
-			dataREdge[RIx][k][i][j] =   dataREdge[RIx][k][i][j-1];
-		}
-
-		// Evaluate boundary conditions along bottom edge
-		j = m_box.GetBInteriorBegin()-1;
-		for (i = m_box.GetAInteriorBegin()-1; i < m_box.GetAInteriorEnd()+1; i++) {
-			dataREdge[UIx][k][i][j] =   dataREdge[UIx][k][i][j+1];
-			dataREdge[VIx][k][i][j] = - dataREdge[VIx][k][i][j+1];
-			dataREdge[TIx][k][i][j] =   dataREdge[TIx][k][i][j+1];
-			dataREdge[WIx][k][i][j] =   dataREdge[WIx][k][i][j+1];
-			dataREdge[RIx][k][i][j] =   dataREdge[RIx][k][i][j+1];
 		}
 	}
-*/
+
+	// Impose boundary conditions along left edge
+	Grid::BoundaryCondition eBoundaryLeft =
+		m_grid.GetBoundaryCondition(Direction_Left);
+	if (eBoundaryLeft == Grid::BoundaryCondition_NoFlux) {
+		int i = m_box.GetAInteriorBegin()-1;
+
+		for (int k = 0; k < m_grid.GetRElements(); k++) {
+		for (int j = 0; j < m_box.GetBTotalWidth(); j++) {
+			m_datavecStateNode[iDataIndex][UIx][k][i][j] =
+				- 1.0 / m_dataContraMetricA[k][i+1][j][0] * (
+					  m_dataContraMetricA[k][i+1][j][1]
+						* m_datavecStateNode[iDataIndex][UIx][k][i+1][j]
+					+ m_dataContraMetricA[k][i+1][j][2]
+						* m_datavecStateNode[iDataIndex][WIx][k][i+1][j]);
+
+			m_datavecStateNode[iDataIndex][VIx][k][i][j] =
+				m_datavecStateNode[iDataIndex][VIx][k][i+1][j];
+
+			m_datavecStateNode[iDataIndex][WIx][k][i][j] =
+				m_datavecStateNode[iDataIndex][WIx][k][i+1][j];
+		}
+		}
+	}
+
+	// Impose boundary conditions along bottom edge
+	Grid::BoundaryCondition eBoundaryBottom =
+		m_grid.GetBoundaryCondition(Direction_Bottom);
+	if (eBoundaryTop == Grid::BoundaryCondition_NoFlux) {
+		int j = m_box.GetBInteriorBegin()-1;
+
+		for (int k = 0; k < m_grid.GetRElements(); k++) {
+		for (int i = 0; i < m_box.GetATotalWidth(); i++) {
+			m_datavecStateNode[iDataIndex][VIx][k][i][j] =
+				- 1.0 / m_dataContraMetricB[k][i][j+1][0] * (
+					  m_dataContraMetricB[k][i][j+1][1]
+						* m_datavecStateNode[iDataIndex][UIx][k][i][j+1]
+					+ m_dataContraMetricB[k][i][j+1][2]
+						* m_datavecStateNode[iDataIndex][WIx][k][i][j+1]);
+
+			m_datavecStateNode[iDataIndex][UIx][k][i][j] =
+				m_datavecStateNode[iDataIndex][UIx][k][i][j+1];
+
+			m_datavecStateNode[iDataIndex][WIx][k][i][j] =
+				m_datavecStateNode[iDataIndex][WIx][k][i][j+1];
+		}
+		}
+	}
+
+#pragma message "Interpolate boundary conditions for W back to interfaces somehow"
 }
 
 ///////////////////////////////////////////////////////////////////////////////
