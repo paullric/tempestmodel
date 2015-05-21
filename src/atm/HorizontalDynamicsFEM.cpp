@@ -591,9 +591,9 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 				int iElementB = b * m_nHorizontalOrder + box.GetHaloElements();
 
 				// Vertical derivatives
-				double dCovDxUa = 0.0;
-				double dCovDxUb = 0.0;
-/*
+				//double dCovDxUa = 0.0;
+				//double dCovDxUb = 0.0;
+
 				double dCovDxUa =
 					pGrid->DifferentiateNodeToNode(
 						&(dataInitialNode[UIx][0][iA][iB]),
@@ -603,7 +603,7 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 					pGrid->DifferentiateNodeToNode(
 						&(dataInitialNode[VIx][0][iA][iB]),
 						k, nVerticalStateStride);
-*/
+
 				// Derivatives of the covariant velocity field
 				double dCovDaUb = 0.0;
 				double dCovDaUx = 0.0;
@@ -639,16 +639,16 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 				dCovDbUa /= dElementDeltaB;
 				dCovDbUx /= dElementDeltaB;
 
-				// Relative vorticity (contravariant)
-				double dJZetaA = (dCovDbUx - dCovDxUb);
-				double dJZetaB = (dCovDxUa - dCovDaUx);
-				double dJZetaX = (dCovDaUb - dCovDbUa);
-
 				// Contravariant velocities
 				double dConUa = m_dAuxDataNode[ConUaIx][k][i][j];
 				double dConUb = m_dAuxDataNode[ConUbIx][k][i][j];
 				double dConUx = m_dAuxDataNode[ConUxIx][k][i][j];
 
+				// Relative vorticity (contravariant)
+				double dJZetaA = (dCovDbUx - dCovDxUb);
+				double dJZetaB = (dCovDxUa - dCovDaUx);
+				double dJZetaX = (dCovDaUb - dCovDbUa);
+/*
 				// Rotational terms (covariant)
 				double dCovUCrossZetaA = dConUb * dJZetaX - dConUx * dJZetaB;
 				double dCovUCrossZetaB = dConUx * dJZetaA - dConUa * dJZetaX;
@@ -658,6 +658,17 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 				m_dAuxDataNode[UCrossZetaAIx][k][i][j] = dCovUCrossZetaA;
 				m_dAuxDataNode[UCrossZetaBIx][k][i][j] = dCovUCrossZetaB;
 				m_dAuxDataNode[UCrossZetaXIx][k][i][j] = dCovUCrossZetaX;
+*/
+				// U cross Relative Vorticity (contravariant)
+				m_dAuxDataNode[UCrossZetaAIx][k][i][j] =
+					dConUb * dJZetaX - dConUx * dJZetaB;
+
+				m_dAuxDataNode[UCrossZetaBIx][k][i][j] =
+					dConUx * dJZetaA - dConUa * dJZetaX;
+
+				m_dAuxDataNode[UCrossZetaXIx][k][i][j] =
+					- dConUa * dCovDaUx - dConUb * dCovDbUx;
+
 /*
 				if ((n == 5) && (k == 3) && (iA == 5) && (iB == 5)) {
 					printf("%1.5e : %1.5e %1.5e %1.5e %1.5e \n", dCovUCrossZetaX, dConUa, dJZetaB, dConUb, dJZetaA);

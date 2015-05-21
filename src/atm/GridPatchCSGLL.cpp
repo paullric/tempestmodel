@@ -814,6 +814,9 @@ void GridPatchCSGLL::EvaluateTestCase(
 			dPointwiseState,
 			dPointwiseTracers);
 
+		eqns.ConvertComponents(
+			phys, dPointwiseState, dPointwiseTracers);
+
 		for (int c = 0; c < dPointwiseState.GetRows(); c++) {
 			m_datavecStateREdge[iDataIndex][c][k][i][j] = dPointwiseState[c];
 		}
@@ -843,6 +846,10 @@ void GridPatchCSGLL::EvaluateTestCase(
 				m_dataLon[i][j],
 				m_dataLat[i][j],
 				dPointwiseRefState);
+
+			DataVector<double> dPointwiseRefTracers;
+			eqns.ConvertComponents(
+				phys, dPointwiseRefState, dPointwiseRefTracers);
 
 			for (int c = 0; c < dPointwiseState.GetRows(); c++) {
 				m_dataRefStateREdge[c][k][i][j] = dPointwiseRefState[c];
