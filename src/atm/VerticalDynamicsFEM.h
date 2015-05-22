@@ -194,6 +194,7 @@ protected:
 	///		Update tracers in the vertical.
 	///	</summary>
 	void UpdateColumnTracers(
+		double dDeltaT,
 		const GridData4D & dataInitialNode,
 		const GridData4D & dataUpdateNode,
 		const GridData4D & dataInitialREdge,
