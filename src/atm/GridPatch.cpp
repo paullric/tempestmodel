@@ -1089,7 +1089,6 @@ double GridPatch::ComputeTotalEnergy(
 				dCovUa * dUa + dCovUb * dUb + dCovUx * dUx;
 */
 
-#ifdef USE_COVARIANT_VELOCITIES
 			double dCovUa = dataNode[UIx][k][i][j];
 			double dCovUb = dataNode[VIx][k][i][j];
 			double dCovUx = dataNode[WIx][k][i][j] * m_dataDerivRNode[k][i][j][2];
@@ -1110,17 +1109,6 @@ double GridPatch::ComputeTotalEnergy(
 				+ m_dataContraMetricXi[k][i][j][2] * dCovUx;
 
 			double dUdotU = dConUa * dCovUa + dConUb * dCovUb + dConUx * dCovUx;
-#else
-			double dUdotU =
-				+ m_dataCovMetric2DA[i][j][0]
-					* dataNode[UIx][k][i][j] * dataNode[UIx][k][i][j]
-				+ (m_dataCovMetric2DA[i][j][1] + m_dataCovMetric2DB[i][j][0])
-					* dataNode[UIx][k][i][j] * dataNode[VIx][k][i][j]
-				+ m_dataCovMetric2DB[i][j][1]
-					* dataNode[VIx][k][i][j] * dataNode[VIx][k][i][j];
-
-			dUdotU += dataNode[WIx][k][i][j] * dataNode[WIx][k][i][j];
-#endif
 
 			double dKineticEnergy =
 				0.5 * dataNode[RIx][k][i][j] * dUdotU;
