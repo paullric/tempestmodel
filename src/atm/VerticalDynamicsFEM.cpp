@@ -30,7 +30,7 @@
 
 //#define UPWIND_HORIZONTAL_VELOCITIES
 //#define UPWIND_RHO
-//#define UPWIND_THETA
+//#define UPWIND_THERMO
 
 //#define DETECT_CFL_VIOLATION
 //#define CAP_VERTICAL_VELOCITY
@@ -39,7 +39,7 @@
 
 #define DEBUG
 
-#define THREE_COMPONENT_SOLVE
+//#define THREE_COMPONENT_SOLVE
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -221,7 +221,7 @@ void VerticalDynamicsFEM::Initialize() {
 
 	m_dDiffPNode.Initialize(nRElements);
 	m_dDiffPREdge.Initialize(nRElements+1);
-	m_dDiffDiffP.Initialize(nRElements+1);
+	m_dDiffDiffTheta.Initialize(nRElements+1);
 
 	m_dDiffThetaNode.Initialize(nRElements);
 	m_dDiffThetaREdge.Initialize(nRElements+1);
@@ -1631,6 +1631,13 @@ void VerticalDynamicsFEM::PrepareColumn(
 				m_dStateNode[PIx],
 				m_dDiffThetaNode);
 
+#ifdef UPWIND_THERMO
+			// Second derivatives of theta on model levels
+			pGrid->DiffDiffNodeToNode(
+				m_dStateNode[PIx],
+				m_dDiffDiffTheta);
+#endif
+
 		// Theta on model interfaces
 		} else {
 			// Theta is needed on model levels
@@ -1642,6 +1649,13 @@ void VerticalDynamicsFEM::PrepareColumn(
 			pGrid->DifferentiateREdgeToREdge(
 				m_dStateREdge[PIx],
 				m_dDiffThetaREdge);
+
+#ifdef UPWIND_THERMO
+			// Second derivatives of theta on interfaces
+			pGrid->DiffDiffREdgeToREdge(
+				m_dStateREdge[PIx],
+				m_dDiffDiffTheta);
+#endif
 		}
 
 		// Calculate Exner pressure at nodes
@@ -1700,7 +1714,7 @@ void VerticalDynamicsFEM::PrepareColumn(
 	// Compute second derivatives of theta
 	DiffDiffREdgeToREdge(
 		m_dStateREdge[PIx],
-		m_dDiffDiffP
+		m_dDiffDiffTheta
 	);
 
 	// Compute higher derivatives of theta used for hyperdiffusion
@@ -1713,12 +1727,12 @@ void VerticalDynamicsFEM::PrepareColumn(
 		for (int h = 2; h < m_nHypervisOrder; h += 2) {
 			memcpy(
 				m_dStateAux,
-				m_dDiffDiffP,
+				m_dDiffDiffTheta,
 				(nRElements + 1) * sizeof(double));
 
 			DiffDiffREdgeToREdge(
 				m_dStateAux,
-				m_dDiffDiffP
+				m_dDiffDiffTheta
 			);
 		}
 	}
@@ -1915,6 +1929,14 @@ void VerticalDynamicsFEM::BuildF(
 				m_dXiDotNode[k] * m_dDiffThetaNode[k];
 		}
 
+#ifdef UPWIND_THERMO
+		double dDeltaXi = 1.0 / static_cast<double>(nRElements);
+		for (int k = 0; k < nRElements; k++) {
+			dF[VecFIx(FPIx, k)] -=
+				0.5 * fabs(m_dXiDotNode[k]) * dDeltaXi * m_dDiffDiffTheta[k];
+		}
+#endif
+
 	// Update theta on model interfaces
 	} else {
 		// Change in Theta on model interfaces
@@ -1922,6 +1944,15 @@ void VerticalDynamicsFEM::BuildF(
 			dF[VecFIx(FPIx, k)] +=
 				m_dXiDotREdge[k] * m_dDiffThetaREdge[k];
 		}
+
+#ifdef UPWIND_THERMO
+		double dDeltaXi = 1.0 / static_cast<double>(nRElements);
+		for (int k = 0; k <= nRElements; k++) {
+			dF[VecFIx(FPIx, k)] -=
+				0.5 * fabs(m_dXiDotREdge[k]) * dDeltaXi * m_dDiffDiffTheta[k];
+		}
+#endif
+
 	}
 #endif
 #ifdef FORMULATION_THETA_FLUX
@@ -2118,17 +2149,7 @@ void VerticalDynamicsFEM::BuildF(
 					+ dCurlTerm
 					+ dPressureGradientForce)
 				/ dDerivRREdge[k][m_iA][m_iB][2];
-/*
-			if ((m_pPatch->GetPatchIndex() == 0) && (m_iA == 5) && (m_iB == 5)) {
-				//printf("%i %1.15e\n", k, dPressureGradientForce / dDerivRREdge[k][m_iA][m_iB][2] + phys.GetG());
-			printf("%i %1.15e %1.15e\n", k,
-				m_dStateREdge[WIx][k] * m_dStateAuxDiff[k]
-					/ dDerivRREdge[k][m_iA][m_iB][2],
-				(m_dDiffKineticEnergyREdge[k] + dCurlTerm)
-					/ dDerivRREdge[k][m_iA][m_iB][2]);
 
-			}
-*/
 			dF[VecFIx(FWIx, k)] +=
 				phys.GetG();
 		}
@@ -2562,7 +2583,7 @@ void VerticalDynamicsFEM::BuildJacobianF(
 				m_dHypervisCoeff
 				* dOrthonomREdge[k][m_iA][m_iB][2]
 				* dSignW
-				* m_dDiffDiffP[k];
+				* m_dDiffDiffTheta[k];
 
 			// dT_k/dT_m
 			for (int m = 0; m <= nRElements; m++) {

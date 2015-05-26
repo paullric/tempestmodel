@@ -335,7 +335,7 @@ protected:
 	///	<summary>
 	///		Auxiliary storage for higher derivatives of theta.
 	///	</summary>
-	DataVector<double> m_dDiffDiffP;
+	DataVector<double> m_dDiffDiffTheta;
 
 	///	<summary>
 	///		Auxiliary storage for derivative of theta on nodes.

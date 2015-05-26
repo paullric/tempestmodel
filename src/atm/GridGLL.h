@@ -200,6 +200,22 @@ public:
 		double * dDiffREdge
 	) const;
 
+	///	<summary>
+	///		Differentiate twice a variable from nodes to nodes.
+	///	</summary>
+	void DiffDiffNodeToNode(
+		const double * dDataNode,
+		double * dDiffDiffNode
+	) const;
+
+	///	<summary>
+	///		Differentiate twice a variable from interfaces to interfaces.
+	///	</summary>
+	void DiffDiffREdgeToREdge(
+		const double * dDataREdge,
+		double * dDiffDiffREdge
+	) const;
+
 public:
 	///	<summary>
 	///		Get the order of accuracy of the method.
@@ -288,6 +304,21 @@ public:
 	const LinearColumnDiffFEM & GetOpDiffREdgeToREdge() const {
 		return m_opDiffREdgeToREdge;
 	}
+
+	///	<summary>
+	///		Get the second derivative operator from levels to levels.
+	///	</summary>
+	const LinearColumnDiffDiffFEM & GetOpDiffDiffNodeToNode() const {
+		return m_opDiffDiffNodeToNode;
+	}
+
+	///	<summary>
+	///		Get the second derivative operator from interfaces to interfaces.
+	///	</summary>
+	const LinearColumnDiffDiffFEM & GetOpDiffDiffREdgeToREdge() const {
+		return m_opDiffDiffREdgeToREdge;
+	}
+
 /*
 public:
 	///	<summary>

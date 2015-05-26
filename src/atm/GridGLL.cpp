@@ -217,7 +217,7 @@ void GridGLL::Initialize() {
 			m_dREtaLevels,
 			m_dREtaInterfaces);
 
-		m_opDiffDiffNodeToNode.Initialize(
+		m_opDiffDiffREdgeToREdge.Initialize(
 			LinearColumnDiffDiffFEM::InterpSource_Interfaces,
 			m_nVerticalOrder,
 			m_dREtaLevels,
@@ -753,6 +753,32 @@ void GridGLL::DifferentiateREdgeToREdge(
 	m_opDiffREdgeToREdge.Apply(
 		dDataREdge,
 		dDiffREdge);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void GridGLL::DiffDiffNodeToNode(
+	const double * dDataNode,
+	double * dDiffDiffNode
+) const {
+
+	// Apply operator
+	m_opDiffDiffNodeToNode.Apply(
+		dDataNode,
+		dDiffDiffNode);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void GridGLL::DiffDiffREdgeToREdge(
+	const double * dDataREdge,
+	double * dDiffDiffREdge
+) const {
+
+	// Apply operator
+	m_opDiffDiffREdgeToREdge.Apply(
+		dDataREdge,
+		dDiffDiffREdge);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
