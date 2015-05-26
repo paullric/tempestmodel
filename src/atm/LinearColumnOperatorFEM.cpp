@@ -20,6 +20,7 @@
 
 #include "PolynomialInterp.h"
 
+#include "GaussQuadrature.h"
 #include "GaussLobattoQuadrature.h"
 
 #include <cmath>
@@ -212,8 +213,6 @@ void LinearColumnDiffFEM::InitializeInterfaceMethod(
 	const DataVector<double> & dREtaOut,
 	bool fZeroBoundaries
 ) {
-	//const int ParamFluxCorrectionType = 2;
-
 	const double ParamEpsilon = 1.0e-12;
 
 	const int nRElementsIn  = dREtaNode.GetRows();
@@ -701,11 +700,12 @@ void LinearColumnDiffDiffFEM::Initialize(
 	const DataVector<double> & dREtaNode,
 	const DataVector<double> & dREtaREdge
 ) {
-/*
+	const int ParamFluxCorrectionType = 2;
+
 	const double ParamEpsilon = 1.0e-12;
 
 	const int nRElementsIn  = dREtaNode.GetRows();
-	const int nRElementsOut = dREtaREdge.GetRows();
+	const int nRElementsOut = dREtaNode.GetRows();
 
 	const int nFiniteElements = nRElementsIn / nVerticalOrder;
 
@@ -717,33 +717,223 @@ void LinearColumnDiffDiffFEM::Initialize(
 		_EXCEPTIONT("Column RElements / VerticalOrder mismatch");
 	}
 
+	// Initialize LinearColumnOperator for differentiation from interfaces
+	LinearColumnOperator::Initialize(nRElementsIn, nRElementsOut);
+
 	// Differentiation from levels to levels
 	if (eInterpSource == InterpSource_Levels) {
 
-		// Compute second differentiation coefficients from nodes to nodes
-		m_dDiffDiffNodeToNode.Initialize(
-			m_nVerticalOrder, m_nVerticalOrder);
+		// Construct differentiation operator
+		DataMatrix<double> dDiffNodeToNode(
+			nVerticalOrder, nVerticalOrder);
 
-		for (int n = 0; n < m_nVerticalOrder; n++) {
-		for (int m = 0; m < m_nVerticalOrder; m++) {
-			m_dDiffDiffNodeToNode[n][m] = 0.0;
-			for (int s = 0; s < m_nVerticalOrder; s++) {
-				m_dDiffDiffNodeToNode[n][m] -=
-					  dDiffNodeToNode[s][n]
-					* dDiffNodeToNode[s][m]
-					* dW[s];
+		// Compute weights of all nodes
+		DataVector<double> dW(nRElementsOut);
+
+		for (int a = 0; a < nFiniteElements; a++) {
+			DataVector<double> dG;
+			DataVector<double> dWtemp;
+			GaussQuadrature::GetPoints(
+				nVerticalOrder,
+				dREtaREdge[ a    * nVerticalOrder],
+				dREtaREdge[(a+1) * nVerticalOrder],
+				dG,
+				dWtemp);
+
+			for (int i = 0; i < nVerticalOrder; i++) {
+				dW[a * nVerticalOrder + i] = dWtemp[i];
 			}
-			m_dDiffDiffNodeToNode[n][m] /= dW[n];
-		}
 		}
 
-		// Scale by 1/dxi
-		for (int n = 0; n < m_nVerticalOrder; n++) {
-		for (int m = 0; m < m_nVerticalOrder; m++) {
-			m_dDiffDiffNodeToNode[n][m] *= dElementDeltaXi;
+		// Compute second derivative operator in all elements
+		for (int a = 0; a < nFiniteElements; a++) {
+
+			// Get the derivatives from the FluxCorrectionFunction
+			double dElementDeltaXi =
+				dREtaREdge[(a+1) * nVerticalOrder]
+				- dREtaREdge[a * nVerticalOrder];
+
+			DataVector<double> dStandardNode(nVerticalOrder);
+			dStandardNode[0] = 1.0;
+
+			DataVector<double> dDiffCorrectionFn(1);
+			FluxCorrectionFunction::GetDerivatives(
+				ParamFluxCorrectionType,
+				nVerticalOrder+1,
+				dStandardNode,
+				dDiffCorrectionFn);
+
+			dDiffCorrectionFn[0] /= dElementDeltaXi;
+
+			// Build local first derivative operator
+			DataMatrix<double> dDiffNodeToNode(
+				nVerticalOrder, nVerticalOrder);
+
+			for (int n = 0; n < nVerticalOrder; n++) {
+				PolynomialInterp::DiffLagrangianPolynomialCoeffs(
+					nVerticalOrder,
+					&(dREtaNode[a * nVerticalOrder]),
+					dDiffNodeToNode[n],
+					dREtaNode[a * nVerticalOrder + n]);
+			}
+
+			// Interior integral term
+			int ax = a * nVerticalOrder;
+
+			for (int j = 0; j < nVerticalOrder; j++) {
+			for (int i = 0; i < nVerticalOrder; i++) {
+				m_dCoeff[ax+j][ax+i] = 0.0;
+				for (int s = 0; s < nVerticalOrder; s++) {
+					m_dCoeff[ax+j][ax+i] -=
+						  dDiffNodeToNode[s][j]
+						* dDiffNodeToNode[s][i]
+						* dW[ax+s];
+				}
+			}
+			}
+
+			// Boundary term
+			DataVector<double> dBasisPoly(nVerticalOrder);
+			DataVector<double> dCoeffL(nVerticalOrder);
+			DataVector<double> dCoeffR(nVerticalOrder);
+
+			for (int j = 0; j < nVerticalOrder; j++) {
+				dBasisPoly.Zero();
+				dBasisPoly[j] = 1.0;
+
+				// Value of basis function at boundary
+				double dPhiL =
+					PolynomialInterp::Interpolate(
+						nVerticalOrder,
+						&(dREtaNode[a * nVerticalOrder]),
+						dBasisPoly,
+						dREtaREdge[a * nVerticalOrder]);
+
+				double dPhiR =
+					PolynomialInterp::Interpolate(
+						nVerticalOrder,
+						&(dREtaNode[a * nVerticalOrder]),
+						dBasisPoly,
+						dREtaREdge[(a+1) * nVerticalOrder]);
+
+				// Interior contribution to boundary integral
+				if (a != 0) {
+					PolynomialInterp::DiffLagrangianPolynomialCoeffs(
+						nVerticalOrder,
+						&(dREtaNode[a * nVerticalOrder]),
+						dCoeffL,
+						dREtaREdge[a * nVerticalOrder]);
+
+					for (int i = 0; i < nVerticalOrder; i++) {
+						m_dCoeff[ax+j][ax+i] -= 0.5 * dPhiL * dCoeffL[i];
+					}
+
+					PolynomialInterp::DiffLagrangianPolynomialCoeffs(
+						nVerticalOrder,
+						&(dREtaNode[(a-1) * nVerticalOrder]),
+						dCoeffL,
+						dREtaREdge[a * nVerticalOrder]);
+
+					for (int i = 0; i < nVerticalOrder; i++) {
+						m_dCoeff[ax+j][ax-nVerticalOrder+i] -=
+							0.5 * dPhiL * dCoeffL[i];
+					}
+				}
+				if (a != nFiniteElements-1) {
+					PolynomialInterp::DiffLagrangianPolynomialCoeffs(
+						nVerticalOrder,
+						&(dREtaNode[a * nVerticalOrder]),
+						dCoeffR,
+						dREtaREdge[(a+1) * nVerticalOrder]);
+
+					for (int i = 0; i < nVerticalOrder; i++) {
+						m_dCoeff[ax+j][ax+i] += 0.5 * dPhiR * dCoeffR[i];
+					}
+
+					PolynomialInterp::DiffLagrangianPolynomialCoeffs(
+						nVerticalOrder,
+						&(dREtaNode[(a+1) * nVerticalOrder]),
+						dCoeffR,
+						dREtaREdge[(a+1) * nVerticalOrder]);
+
+					for (int i = 0; i < nVerticalOrder; i++) {
+						m_dCoeff[ax+j][ax+nVerticalOrder+i] +=
+							0.5 * dPhiR * dCoeffR[i];
+					}
+				}
+
+				// Flux correction contribution to boundary integral
+				// at right edge.
+				if ((a+1) < nFiniteElements) {
+					PolynomialInterp::LagrangianPolynomialCoeffs(
+						nVerticalOrder,
+						&(dREtaNode[(a+1) * nVerticalOrder]),
+						dCoeffR,
+						dREtaREdge[(a+1) * nVerticalOrder]);
+
+					PolynomialInterp::LagrangianPolynomialCoeffs(
+						nVerticalOrder,
+						&(dREtaNode[a * nVerticalOrder]),
+						dCoeffL,
+						dREtaREdge[(a+1) * nVerticalOrder]);
+
+					for (int i = 0; i < nVerticalOrder; i++) {
+						m_dCoeff[ax+j][ax+i] -=
+							0.5 * dPhiR * dCoeffL[i] * dDiffCorrectionFn[0];
+						m_dCoeff[ax+j][ax+nVerticalOrder+i] +=
+							0.5 * dPhiR * dCoeffR[i] * dDiffCorrectionFn[0];
+					}
+				}
+
+				// Flux correction contribution to boundary integral
+				// at left edge.
+				if (a > 0) {
+					PolynomialInterp::LagrangianPolynomialCoeffs(
+						nVerticalOrder,
+						&(dREtaNode[a * nVerticalOrder]),
+						dCoeffR,
+						dREtaREdge[a * nVerticalOrder]);
+
+					PolynomialInterp::LagrangianPolynomialCoeffs(
+						nVerticalOrder,
+						&(dREtaNode[(a-1) * nVerticalOrder]),
+						dCoeffL,
+						dREtaREdge[a * nVerticalOrder]);
+
+					for (int i = 0; i < nVerticalOrder; i++) {
+						m_dCoeff[ax+j][ax-nVerticalOrder+i] +=
+							0.5 * dPhiL * dCoeffL[i] * dDiffCorrectionFn[0];
+						m_dCoeff[ax+j][ax+i] -=
+							0.5 * dPhiL * dCoeffR[i] * dDiffCorrectionFn[0];
+					}
+				}
+			}
+
+			// Set bounds on coefficient indices
+			for (int j = 0; j < nVerticalOrder; j++) {
+				if (a == 0) {
+					m_iBegin[ax+j] = 0;
+				} else {
+					m_iBegin[ax+j] = (a-1) * nVerticalOrder;
+				}
+				if (a == nFiniteElements-1) {
+					m_iEnd[ax+j] = (a+1) * nVerticalOrder;
+				} else {
+					m_iEnd[ax+j] = (a+2) * nVerticalOrder;
+				}
+			}
+		}
+
+		// Multiply through by inverse mass matrix (reweight rows)
+		for (int j = 0; j < m_dCoeff.GetRows(); j++) {
+		for (int i = 0; i < m_dCoeff.GetColumns(); i++) {
+			m_dCoeff[j][i] /= dW[j];
 		}
 		}
 	}
+/*
+	// DEBUGGING
+	DebugOutput(&dREtaNode, &dREtaREdge);
 */
 }
 

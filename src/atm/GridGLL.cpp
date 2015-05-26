@@ -209,6 +209,13 @@ void GridGLL::Initialize() {
 			m_dREtaInterfaces,
 			m_dREtaInterfaces,
 			false);
+
+		// Initialize second derivative operators
+		m_opDiffDiffNodeToNode.Initialize(
+			LinearColumnDiffDiffFEM::InterpSource_Levels,
+			m_nVerticalOrder,
+			m_dREtaLevels,
+			m_dREtaInterfaces);
 	}
 /*
 	FILE * fp1 = fopen("op1.txt", "w");
