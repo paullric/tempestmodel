@@ -704,16 +704,23 @@ void LinearColumnDiffDiffFEM::Initialize(
 
 	const double ParamEpsilon = 1.0e-12;
 
-	const int nRElementsIn  = dREtaNode.GetRows();
-	const int nRElementsOut = dREtaNode.GetRows();
+	int nRElementsIn;
+	int nRElementsOut;
+	if (eInterpSource == InterpSource_Levels) {
+		nRElementsIn  = dREtaNode.GetRows();
+		nRElementsOut = dREtaNode.GetRows();
+	} else {
+		nRElementsIn  = dREtaREdge.GetRows();
+		nRElementsOut = dREtaREdge.GetRows();
+	}
 
-	const int nFiniteElements = nRElementsIn / nVerticalOrder;
+	const int nFiniteElements = dREtaNode.GetRows() / nVerticalOrder;
 
 	// Verify input parameters
 	if (nRElementsIn == 0) {
 		_EXCEPTIONT("At least one row required for dREtaNode");
 	}
-	if (nRElementsIn % nVerticalOrder != 0) {
+	if (dREtaNode.GetRows() % nVerticalOrder != 0) {
 		_EXCEPTIONT("Column RElements / VerticalOrder mismatch");
 	}
 
@@ -930,6 +937,79 @@ void LinearColumnDiffDiffFEM::Initialize(
 			m_dCoeff[j][i] /= dW[j];
 		}
 		}
+
+	// Differentiation on edges
+	} else if (eInterpSource == InterpSource_Interfaces) {
+
+		// Local differentiation coefficients
+		DataMatrix<double> dLocalDiffCoeff;
+		dLocalDiffCoeff.Initialize(nVerticalOrder+1, nVerticalOrder+1);
+
+		// Loop through all output elements
+		for (int a = 0; a < nFiniteElements; a++) {
+
+			// Gauss-Lobatto quadrature nodes
+			DataVector<double> dG;
+			DataVector<double> dW;
+			GaussLobattoQuadrature::GetPoints(
+				nVerticalOrder+1,
+				dREtaREdge[a * nVerticalOrder],
+				dREtaREdge[(a+1) * nVerticalOrder],
+				dG, dW);
+
+			// Get polynomial differentiation coefficients within this element
+			for (int i = 0; i <= nVerticalOrder; i++) {
+				PolynomialInterp::DiffLagrangianPolynomialCoeffs(
+					nVerticalOrder+1,
+					&(dREtaREdge[a * nVerticalOrder]),
+					dLocalDiffCoeff[i],
+					dREtaREdge[a * nVerticalOrder + i]);
+			}
+
+			// Add contributions to each output node
+			for (int j = 0; j <= nVerticalOrder; j++) {
+				int jx = j + a * nVerticalOrder;
+
+				double dWlocal = dW[j];
+
+				if ((j == 0) && (a != 0)) {
+					dWlocal *= 2.0;
+				}
+				if ((j == nVerticalOrder) && (a != nFiniteElements-1)) {
+					dWlocal *= 2.0;
+				}
+
+				for (int i = 0; i <= nVerticalOrder; i++) {
+
+					int ix = i + a * nVerticalOrder;
+					for (int s = 0; s <= nVerticalOrder; s++) {
+						m_dCoeff[jx][ix] -=
+							  dLocalDiffCoeff[s][j]
+							* dLocalDiffCoeff[s][i]
+							* dW[s] / dWlocal;
+					}
+				}
+			}
+
+			// Set bounds on coefficient indices
+			if (a == 0) {
+				m_iBegin[0] = 0;
+				m_iEnd[0] = nVerticalOrder + 1;
+			} else {
+				m_iBegin[a * nVerticalOrder] = (a-1) * nVerticalOrder;
+				m_iEnd[a * nVerticalOrder] = (a+1) * nVerticalOrder + 1;
+			}
+
+			if (a == nFiniteElements-1) {
+				m_iBegin[(a+1) * nVerticalOrder] = a * nVerticalOrder;
+				m_iEnd[(a+1) * nVerticalOrder] = (a+1) * nVerticalOrder + 1;
+			}
+
+			for (int j = 1; j < nVerticalOrder; j++) {
+				m_iBegin[a * nVerticalOrder + j] = a * nVerticalOrder;
+				m_iEnd[a * nVerticalOrder + j] = (a+1) * nVerticalOrder + 1;
+			}
+		}
 	}
 /*
 	// DEBUGGING
@@ -1012,7 +1092,7 @@ void LinearColumnDiffDiffFEM::InitializeGLLNodes(
 				}
 			}
 		}
-
+/*
 		// Add contributions at boundaries
 		if (a == 0) {
 			for (int i = 0; i < nVerticalOrder; i++) {
@@ -1026,10 +1106,31 @@ void LinearColumnDiffDiffFEM::InitializeGLLNodes(
 					dLocalDiffCoeff[nVerticalOrder-1][i] / (dW[nVerticalOrder-1]);
 			}
 		}
+*/
+
+		// Set bounds on coefficient indices
+		if (a == 0) {
+			m_iBegin[0] = 0;
+			m_iEnd[0] = nVerticalOrder;
+		} else {
+			m_iBegin[a * (nVerticalOrder-1)] = (a-1) * (nVerticalOrder-1);
+			m_iEnd[a * (nVerticalOrder-1)] = (a+1) * (nVerticalOrder-1) + 1;
+		}
+
+		if (a == nFiniteElements-1) {
+			m_iBegin[(a+1) * (nVerticalOrder-1)] = a * (nVerticalOrder-1);
+			m_iEnd[(a+1) * (nVerticalOrder-1)] = (a+1) * (nVerticalOrder-1) + 1;
+		}
+
+		for (int j = 1; j < nVerticalOrder-1; j++) {
+			m_iBegin[a * (nVerticalOrder-1) + j] = a * (nVerticalOrder-1);
+			m_iEnd[a * (nVerticalOrder-1) + j] = (a+1) * (nVerticalOrder-1) + 1;
+		}
+
 	}
 /*
 	// DEBUGGING
-	DebugOutput(&dREtaNode, &dREtaREdge);
+	DebugOutput(&dREtaNode, &dREtaNode);
 */
 }
 

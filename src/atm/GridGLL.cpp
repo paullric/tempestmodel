@@ -216,6 +216,12 @@ void GridGLL::Initialize() {
 			m_nVerticalOrder,
 			m_dREtaLevels,
 			m_dREtaInterfaces);
+
+		m_opDiffDiffNodeToNode.Initialize(
+			LinearColumnDiffDiffFEM::InterpSource_Interfaces,
+			m_nVerticalOrder,
+			m_dREtaLevels,
+			m_dREtaInterfaces);
 	}
 /*
 	FILE * fp1 = fopen("op1.txt", "w");
