@@ -30,7 +30,7 @@
 
 //#define UPWIND_HORIZONTAL_VELOCITIES
 //#define UPWIND_RHO
-//#define UPWIND_THERMO
+#define UPWIND_THERMO
 
 //#define DETECT_CFL_VIOLATION
 //#define CAP_VERTICAL_VELOCITY
@@ -158,6 +158,7 @@ void VerticalDynamicsFEM::Initialize() {
 	// Initialize pivot vector
 	m_vecIPiv.Initialize(m_nColumnStateSize);
 #endif
+#if defined(USE_DIRECTSOLVE_APPROXJ) || defined(USE_DIRECTSOLVE)
 #ifdef USE_JACOBIAN_DIAGONAL
 	if (m_nHypervisOrder > 2) {
 		_EXCEPTIONT("Diagonal Jacobian only implemented for "
@@ -181,6 +182,7 @@ void VerticalDynamicsFEM::Initialize() {
 	} else {
 		_EXCEPTIONT("UNIMPLEMENTED: At this vertical order");
 	}
+#endif
 #endif
 
 	// Allocate column for JFNK
@@ -379,28 +381,6 @@ void VerticalDynamicsFEM::Initialize() {
 		_EXCEPTIONT("UNIMPLEMENTED: Vertical hyperdiffusion order > 8");
 	}
 
-/*
-	// Compute higher powers of the second derivative operator
-	DataMatrix<double> dHypervisFirstBuffer;
-	dHypervisFirstBuffer.Initialize(nRElements+1, nRElements+1);
-
-	DataMatrix<double> dHypervisSecondBuffer;
-	dHypervisSecondBuffer.Initialize(nRElements+1, nRElements+1);
-
-	if (m_nHypervisOrder > 2) {
-		dHypervisFirstBuffer = m_dHypervisREdgeToREdge;
-
-		for (int h = 2; h < m_nHypervisOrder; h += 2) {
-			dHypervisSecondBuffer = m_dHypervisREdgeToREdge;
-
-			LAPACK::DGEMM(
-				m_dHypervisREdgeToREdge,
-				dHypervisFirstBuffer,
-				dHypervisSecondBuffer,
-				1.0, 0.0);
-		}
-	}
-*/
 /*
 	// Calculate Exner pressure reference profile
 	for (int n = 0; n < pGrid->GetActivePatchCount(); n++) {
@@ -1632,10 +1612,25 @@ void VerticalDynamicsFEM::PrepareColumn(
 				m_dDiffThetaNode);
 
 #ifdef UPWIND_THERMO
-			// Second derivatives of theta on model levels
-			pGrid->DiffDiffNodeToNode(
-				m_dStateNode[PIx],
-				m_dDiffDiffTheta);
+			if (m_nHypervisOrder > 0) {
+				// Second derivatives of theta on model levels
+				pGrid->DiffDiffNodeToNode(
+					m_dStateNode[PIx],
+					m_dDiffDiffTheta);
+
+				// Compute higher derivatives of theta used for hyperdiffusion
+				for (int h = 2; h < m_nHypervisOrder; h += 2) {
+					memcpy(
+						m_dStateAux,
+						m_dDiffDiffTheta,
+						nRElements * sizeof(double));
+
+					pGrid->DiffDiffNodeToNode(
+						m_dStateAux,
+						m_dDiffDiffTheta
+					);
+				}
+			}
 #endif
 
 		// Theta on model interfaces
@@ -1651,10 +1646,25 @@ void VerticalDynamicsFEM::PrepareColumn(
 				m_dDiffThetaREdge);
 
 #ifdef UPWIND_THERMO
-			// Second derivatives of theta on interfaces
-			pGrid->DiffDiffREdgeToREdge(
-				m_dStateREdge[PIx],
-				m_dDiffDiffTheta);
+			if (m_nHypervisOrder > 0) {
+				// Second derivatives of theta on interfaces
+				pGrid->DiffDiffREdgeToREdge(
+					m_dStateREdge[PIx],
+					m_dDiffDiffTheta);
+
+				// Compute higher derivatives of theta used for hyperdiffusion
+				for (int h = 2; h < m_nHypervisOrder; h += 2) {
+					memcpy(
+						m_dStateAux,
+						m_dDiffDiffTheta,
+						(nRElements+1) * sizeof(double));
+
+					pGrid->DiffDiffREdgeToREdge(
+						m_dStateAux,
+						m_dDiffDiffTheta
+					);
+				}
+			}
 #endif
 		}
 
@@ -1930,10 +1940,11 @@ void VerticalDynamicsFEM::BuildF(
 		}
 
 #ifdef UPWIND_THERMO
-		double dDeltaXi = 1.0 / static_cast<double>(nRElements);
 		for (int k = 0; k < nRElements; k++) {
 			dF[VecFIx(FPIx, k)] -=
-				0.5 * fabs(m_dXiDotNode[k]) * dDeltaXi * m_dDiffDiffTheta[k];
+				m_dHypervisCoeff
+				* fabs(m_dXiDotNode[k])
+				* m_dDiffDiffTheta[k];
 		}
 #endif
 
@@ -1946,10 +1957,11 @@ void VerticalDynamicsFEM::BuildF(
 		}
 
 #ifdef UPWIND_THERMO
-		double dDeltaXi = 1.0 / static_cast<double>(nRElements);
 		for (int k = 0; k <= nRElements; k++) {
 			dF[VecFIx(FPIx, k)] -=
-				0.5 * fabs(m_dXiDotREdge[k]) * dDeltaXi * m_dDiffDiffTheta[k];
+				m_dHypervisCoeff
+				* fabs(m_dXiDotREdge[k])
+				* m_dDiffDiffTheta[k];
 		}
 #endif
 

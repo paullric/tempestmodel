@@ -103,7 +103,7 @@ struct _TempestCommandLineVariables {
 	CommandLineStringD(_tempestvars.strVerticalStaggering, "vstagger", "CPH", "(LEV | INT | LOR | CPH)"); \
 	CommandLineBool(_tempestvars.fForceMassFluxOnLevels, "vmassfluxlevels"); \
 	CommandLineString(_tempestvars.strVerticalStretch, "vstretch", "uniform"); \
-	CommandLineInt(_tempestvars.nVerticalHyperdiffOrder, "verthypervisorder", 0); \
+	CommandLineInt(_tempestvars.nVerticalHyperdiffOrder, "vhypervisorder", 0); \
 	CommandLineString(_tempestvars.strTimestepScheme, "timescheme", "strang"); \
 	CommandLineStringD(_tempestvars.strHorizontalDynamics, "method", "SE", "(SE | DG)");
 
