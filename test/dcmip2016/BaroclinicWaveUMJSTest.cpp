@@ -16,6 +16,8 @@
 
 #include "Tempest.h"
 
+#include "KesslerPhysics.h"
+
 extern "C" {
 	void tc_baroclinic_(
                       double * dLon,
@@ -345,6 +347,8 @@ public:
 		double dLon,
 		double dLat,
 		double * dState
+        
+
 	) const {
 
 		// Radius
@@ -433,6 +437,11 @@ public:
 		dState[2] = phys.RhoThetaFromPressure(dPressure) / dRho;
 		dState[3] = 0.0;
 		dState[4] = dRho;
+        
+        
+
+        
+        
 	}
 
 	///	<summary>
@@ -563,6 +572,17 @@ public:
 		dState[2] = dT*pow((100000.0/dP),(phys.GetR()/phys.GetCp()));
 		dState[3] = 0.0;
 		dState[4] = dRho;
+        
+        //std::cout << dQ <<"  Q"<< std::endl;
+        //std::cout << dRho << "  Rho" <<  std::endl;
+        //std::cout << dQ*dRho <<  std::endl;
+
+        
+        dTracer[0] = dQ*dRho;
+        dTracer[1] = 0;
+        dTracer[2] = 0;
+        
+
 
 	}
 };
@@ -612,9 +632,18 @@ try {
 	// Setup the Model
 	AnnounceBanner("MODEL SETUP");
 
-	Model model(EquationSet::PrimitiveNonhydrostaticEquations);
 
-	TempestSetupCubedSphereModel(model);
+	
+    
+    EquationSet eqn(EquationSet::PrimitiveNonhydrostaticEquations);
+    
+    eqn.InsertTracer("RhoQv", "RhoQv");
+    eqn.InsertTracer("RhoQc", "RhoQc");
+    eqn.InsertTracer("RhoQr", "RhoQr");
+    
+    Model model(eqn);
+
+    TempestSetupCubedSphereModel(model);
 
 	// Set the test case for the model
 	AnnounceStartBlock("Initializing test case");
@@ -640,6 +669,15 @@ try {
 			ePerturbationType));
 
 	AnnounceEndBlock("Done");
+    
+    // Add Kessler physics
+	
+   /* model.AttachWorkflowProcess(
+        new KesslerPhysics(
+            model,
+            model.GetDeltaT()));*/
+    
+
 
 	// Begin execution
 	AnnounceBanner("SIMULATION");

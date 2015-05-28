@@ -30,7 +30,7 @@
     Integer(4) :: deep, moist, pertt, zcoords
 
     deep=0
-    moist=0
+    moist=1
     pertt=0
     X=1.0d0
     zcoords=1
@@ -68,7 +68,7 @@
     Integer(4) :: deep, moist, pertt, zcoords
 
     deep=0
-    moist=0
+    moist=1
     pertt=0
     X=1.0d0
     zcoords=1
@@ -78,6 +78,33 @@
 
 
   END SUBROUTINE tc_baroclinic
+
+SUBROUTINE tc_kessler(t,qv,qc,qr,rho,pk,z,nz)
+
+    REAL(8), INTENT(INOUT)  :: &
+                t(nz),           & ! Potential temperature
+                qv(nz),          & ! water vapor mixing ratio
+                qc(nz),          & ! could water mix ratio
+                qr(nz),          & ! rain water mixing ratio
+                rho(nz)            ! density
+
+
+    REAL(8), INTENT(IN)  :: &
+
+                pk(nz),          & ! Exner function
+                z              ! Column height
+                
+
+                
+    INTEGER, INTENT(IN) :: nz   ! number of thermodynamic levels in the column
+
+    REAL(8) ::  rainc, dt
+    rainc=10000d0 ! accumulated precip beneath the grid column (mm)
+    dt=200d0       ! time step
+
+    CALL KESSLER( t, qv, qc, qr, rho, pk, dt, z, nz, rainc )
+
+END SUBROUTINE tc_kessler
 
 
 
