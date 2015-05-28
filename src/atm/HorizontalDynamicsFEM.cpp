@@ -30,6 +30,8 @@
 #pragma message "WARNING: DIFFERENTIAL_FORM will lose mass over topography"
 #endif
 
+//#define INSTEP_DIVERGENCE_DAMPING
+
 ///////////////////////////////////////////////////////////////////////////////
 
 HorizontalDynamicsFEM::HorizontalDynamicsFEM(
@@ -37,15 +39,16 @@ HorizontalDynamicsFEM::HorizontalDynamicsFEM(
 	int nHorizontalOrder,
 	double dNuScalar,
 	double dNuDiv,
-	double dNuVort
+	double dNuVort,
+	double dInstepNuDiv
 ) :
 	HorizontalDynamics(model),
 	m_nHorizontalOrder(nHorizontalOrder),
 	m_dNuScalar(dNuScalar),
 	m_dNuDiv(dNuDiv),
-	m_dNuVort(dNuVort)
+	m_dNuVort(dNuVort),
+	m_dInstepNuDiv(dInstepNuDiv)
 {
-
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -95,6 +98,11 @@ void HorizontalDynamicsFEM::Initialize() {
 	m_dAuxDataREdge.Initialize(
 		9,
 		nRElements+1,
+		m_nHorizontalOrder,
+		m_nHorizontalOrder);
+
+	m_dDivergence.Initialize(
+		nRElements,
 		m_nHorizontalOrder,
 		m_nHorizontalOrder);
 
@@ -704,8 +712,13 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 				for (int i = 0; i < m_nHorizontalOrder; i++) {
 				for (int j = 0; j < m_nHorizontalOrder; j++) {
 
-					int iA = a * m_nHorizontalOrder + i + box.GetHaloElements();
-					int iB = b * m_nHorizontalOrder + j + box.GetHaloElements();
+					int iElementA =
+						a * m_nHorizontalOrder + box.GetHaloElements();
+					int iElementB =
+						b * m_nHorizontalOrder + box.GetHaloElements();
+
+					int iA = iElementA + i;
+					int iB = iElementB + j;
 
 					// Base fluxes (area times velocity)
 					double dAlphaBaseFlux =
@@ -757,6 +770,32 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 							dBetaBaseFlux
 							* dataInitialTracer[c][k][iA][iB];
 					}
+
+#ifdef INSTEP_DIVERGENCE_DAMPING
+					// Derivatives of J U^i
+					double dDaJUa = 0.0;
+					double dDbJUb = 0.0;
+
+					for (int s = 0; s < m_nHorizontalOrder; s++) {
+						// Alpha derivative of J U^a
+						dDaJUa +=
+							dJacobian[k][iElementA+s][iB]
+							* m_dAuxDataNode[ConUaIx][k][s][j]
+							* dDxBasis1D[s][i]; 
+
+						// Beta derivative of J U^b
+						dDbJUb +=
+							dJacobian[k][iA][iElementB+s]
+							* m_dAuxDataNode[ConUbIx][k][i][s]
+							* dDxBasis1D[s][j];
+					}
+
+					dDaJUa /= dElementDeltaA;
+					dDbJUb /= dElementDeltaB;
+
+					m_dDivergence[k][i][j] =
+						(dDaJUa + dDbJUb) / dJacobian[k][iA][iB];
+#endif
 				}
 				}
 
@@ -784,6 +823,10 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 					// Derivatives of the pressure field
 					double dDaP = 0.0;
 					double dDbP = 0.0;
+
+					// Gradient of the divergence
+					double dDaDiv = 0.0;
+					double dDbDiv = 0.0;
 
 					// Calculate derivatives in the alpha direction
 					double dDaRhoFluxA = 0.0;
@@ -834,6 +877,12 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 						dDaKE +=
 							m_dAuxDataNode[KIx][k][s][j]
 							* dDxBasis1D[s][i];
+
+#ifdef INSTEP_DIVERGENCE_DAMPING
+						dDaDiv +=
+							m_dDivergence[k][s][j]
+							* dDxBasis1D[s][i];
+#endif
 					}
 
 					// Calculate derivatives in the beta direction
@@ -884,6 +933,12 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 						dDbKE +=
 							m_dAuxDataNode[KIx][k][i][s]
 							* dDxBasis1D[s][j];
+
+#ifdef INSTEP_DIVERGENCE_DAMPING
+						dDbDiv +=
+							m_dDivergence[k][i][s]
+							* dDxBasis1D[s][j];
+#endif
 					}
 
 					// Scale derivatives
@@ -898,6 +953,11 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 
 					dDaKE /= dElementDeltaA;
 					dDbKE /= dElementDeltaB;
+
+#ifdef INSTEP_DIVERGENCE_DAMPING
+					dDaDiv /= dElementDeltaA;
+					dDbDiv /= dElementDeltaB;
+#endif
 
 					// Pointwise momentum updates
 					double dLocalUpdateUa = 0.0;
@@ -956,6 +1016,14 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 						dDeltaT * dLocalUpdateUa;
 					dataUpdateNode[VIx][k][iA][iB] +=
 						dDeltaT * dLocalUpdateUb;
+
+#ifdef INSTEP_DIVERGENCE_DAMPING
+					// Apply instep divergence
+					dataUpdateNode[UIx][k][iA][iB] +=
+						dDeltaT * m_dInstepNuDiv * dDaDiv;
+					dataUpdateNode[VIx][k][iA][iB] +=
+						dDeltaT * m_dInstepNuDiv * dDbDiv;
+#endif
 
 					// Update density on model levels
 					dataUpdateNode[RIx][k][iA][iB] -=
@@ -1928,7 +1996,7 @@ void HorizontalDynamicsFEM::StepAfterSubCycle(
 #endif
 
 	// Apply boundary conditions
-	pGrid->ApplyBoundaryConditions(iDataUpdate);
+	//pGrid->ApplyBoundaryConditions(iDataUpdate);
 }
 
 ///////////////////////////////////////////////////////////////////////////////

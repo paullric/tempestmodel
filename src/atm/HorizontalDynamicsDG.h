@@ -44,7 +44,8 @@ public:
 		int nHorizontalOrder,
 		double dNuScalar,
 		double dNuDiv,
-		double dNuVort
+		double dNuVort,
+		double dInstepNuDiv
 	);
 
 public:

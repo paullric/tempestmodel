@@ -44,14 +44,16 @@ HorizontalDynamicsDG::HorizontalDynamicsDG(
 	int nHorizontalOrder,
 	double dNuScalar,
 	double dNuDiv,
-	double dNuVort
+	double dNuVort,
+	double dInstepNuDiv
 ) :
 	HorizontalDynamicsFEM(
 		model,
 		nHorizontalOrder,
 		dNuScalar,
 		dNuDiv,
-		dNuVort)
+		dNuVort,
+		dInstepNuDiv)
 {
 }
 

@@ -65,6 +65,7 @@ struct _TempestCommandLineVariables {
 	double dNuScalar;
 	double dNuDiv;
 	double dNuVort;
+	double dInstepNuDiv;
 	bool fExplicitVertical;
 	std::string strVerticalStaggering;
 	bool fForceMassFluxOnLevels;
@@ -99,6 +100,7 @@ struct _TempestCommandLineVariables {
 	CommandLineDouble(_tempestvars.dNuScalar, "nu", 1.0e15); \
 	CommandLineDouble(_tempestvars.dNuDiv, "nud", 1.0e15); \
 	CommandLineDouble(_tempestvars.dNuVort, "nuv", 1.0e15); \
+	CommandLineDouble(_tempestvars.dInstepNuDiv, "inud", 0.0); \
 	CommandLineBool(_tempestvars.fExplicitVertical, "explicitvertical"); \
 	CommandLineStringD(_tempestvars.strVerticalStaggering, "vstagger", "CPH", "(LEV | INT | LOR | CPH)"); \
 	CommandLineBool(_tempestvars.fForceMassFluxOnLevels, "vmassfluxlevels"); \
@@ -214,7 +216,8 @@ void _TempestSetupMethodOfLines(
 				vars.nHorizontalOrder,
 				vars.dNuScalar,
 				vars.dNuDiv,
-				vars.dNuVort));
+				vars.dNuVort,
+				vars.dInstepNuDiv));
 
 	} else if (vars.strHorizontalDynamics == "dg") {
 		model.SetHorizontalDynamics(
@@ -223,7 +226,8 @@ void _TempestSetupMethodOfLines(
 				vars.nHorizontalOrder,
 				vars.dNuScalar,
 				vars.dNuDiv,
-				vars.dNuVort));
+				vars.dNuVort,
+				vars.dInstepNuDiv));
 
 	} else {
 		_EXCEPTIONT("Invalid method: Expected \"SE\" or \"DG\"");

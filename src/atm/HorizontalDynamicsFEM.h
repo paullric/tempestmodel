@@ -45,7 +45,8 @@ public:
 		int nHorizontalOrder,
 		double dNuScalar,
 		double dNuDiv,
-		double dNuVort
+		double dNuVort,
+		double dInstepNuDiv
 	);
 
 	///	<summary>
@@ -185,57 +186,11 @@ protected:
 	///	</summary>
 	DataMatrix4D<double> m_dAuxDataREdge;
 
-/*
 	///	<summary>
-	///		Zero vector of length RElements+1.
+	///		Divergence within an element (on nodes).
 	///	</summary>
-	DataVector<double> m_dZeroColumn;
+	DataMatrix3D<double> m_dDivergence;
 
-	///	<summary>
-	///		Nodal pointwise pressures in a column.
-	///	</summary>
-	DataVector<double> m_dColumnPressure;
-
-	///	<summary>
-	///		Nodal pointwise pressure xi derivatives in a column.
-	///	</summary>
-	DataVector<double> m_dColumnDxPressure;
-
-	///	<summary>
-	///		Nodal pointwise kinetic energy in a column.
-	///	</summary>
-	DataVector<double> m_dColumnKineticEnergy;
-
-	///	<summary>
-	///		Nodal pointwise pressure xi derivatives in a column.
-	///	</summary>
-	DataVector<double> m_dColumnDxKineticEnergy;
-
-	///	<summary>
-	///		Nodal xi velocity.
-	///	</summary>
-	DataMatrix<double> m_dUx;
-
-	///	<summary>
-	///		Nodal pointwise covariant alpha velocity.
-	///	</summary>
-	DataMatrix<double> m_dCovUa;
-
-	///	<summary>
-	///		Nodal pointwise covariant beta velocity.
-	///	</summary>
-	DataMatrix<double> m_dCovUb;
-
-	///	<summary>
-	///		Nodal pointwise covariant xi velocity.
-	///	</summary>
-	DataMatrix<double> m_dCovUx;
-
-	///	<summary>
-	///		Nodal pointwise kinetic energy.
-	///	</summary>
-	DataMatrix<double> m_dEnergy;
-*/
 protected:
 	///	<summary>
 	///		Nodal pointwise gradient of Jacobian in alpha direction (buffer).
@@ -262,6 +217,11 @@ protected:
 	///		Vortical hyperviscosity coefficient (at 1 degree resolution).
 	///	</summary>
 	double m_dNuVort;
+
+	///	<summary>
+	///		Instep divergent viscosity coefficient.
+	///	</summary>
+	double m_dInstepNuDiv;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
