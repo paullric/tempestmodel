@@ -879,9 +879,9 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 							* dDxBasis1D[s][i];
 
 #ifdef INSTEP_DIVERGENCE_DAMPING
-						dDaDiv +=
+						dDaDiv -=
 							m_dDivergence[k][s][j]
-							* dDxBasis1D[s][i];
+							* dStiffness1D[i][s];
 #endif
 					}
 
@@ -935,9 +935,9 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 							* dDxBasis1D[s][j];
 
 #ifdef INSTEP_DIVERGENCE_DAMPING
-						dDbDiv +=
+						dDbDiv -=
 							m_dDivergence[k][i][s]
-							* dDxBasis1D[s][j];
+							* dStiffness1D[j][s];
 #endif
 					}
 
