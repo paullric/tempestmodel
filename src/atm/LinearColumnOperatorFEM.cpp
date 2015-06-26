@@ -332,8 +332,8 @@ void LinearColumnDiffFEM::InitializeInterfaceMethod(
 	}
 /*
 	// DEBUGGING
-	if ((m_dCoeff.GetRows() == dREtaREdge.GetRows()) &&
-	    (m_dCoeff.GetColumns() == dREtaREdge.GetRows())
+	if ((m_dCoeff.GetRows() == dREtaNode.GetRows()) &&
+	    (m_dCoeff.GetColumns() == dREtaNode.GetRows())
 	) {
 		DebugOutput(&dREtaNode, &dREtaREdge);
 	}
@@ -1013,7 +1013,9 @@ void LinearColumnDiffDiffFEM::Initialize(
 	}
 /*
 	// DEBUGGING
-	DebugOutput(&dREtaNode, &dREtaREdge);
+	if (eInterpSource == InterpSource_Levels) {
+		DebugOutput(&dREtaNode, &dREtaREdge);
+	}
 */
 }
 

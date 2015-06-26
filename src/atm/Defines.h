@@ -31,13 +31,8 @@
 ///		Jacobian storage form
 ///	</summary>
 //#define USE_JACOBIAN_DEBUG
-#define USE_JACOBIAN_GENERAL
-//#define USE_JACOBIAN_DIAGONAL
-
-///	<summary>
-///		Use covariant velocities (UNSUPPORTED; DO NOT MODIFY)
-///	</summary>
-#define USE_COVARIANT_VELOCITIES
+//#define USE_JACOBIAN_GENERAL
+#define USE_JACOBIAN_DIAGONAL
 
 ///	<summary>
 ///		Thermodynamic closure to use.

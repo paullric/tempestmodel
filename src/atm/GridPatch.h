@@ -826,102 +826,6 @@ public:
 	}
 
 	///	<summary>
-	///		Get the auxiliary grid data with the specified index.
-	///	</summary>
-	GridData3D & GetHorizontalDynamicsAuxData(
-		int ix,
-		DataLocation loc = DataLocation_Node
-	) {
-		if (!m_fContainsData) {
-			_EXCEPTIONT("Stub patch does not store data.");
-		}
-		if ((ix < 0) || (ix > m_datavecAuxNode[0].size())) {
-			_EXCEPTIONT("Invalid index in TracersData vector.");
-		}
-		if (loc == DataLocation_Node) {
-			return m_datavecAuxNode[0][ix];
-
-		} else if (loc == DataLocation_REdge) {
-			return m_datavecAuxREdge[0][ix];
-
-		} else {
-			_EXCEPTIONT("Invalid DataLocation.");
-		}
-	}
-
-	///	<summary>
-	///		Get the auxiliary grid data with the specified index.
-	///	</summary>
-	const GridData3D & GetHorizontalDynamicsAuxData(
-		int ix,
-		DataLocation loc = DataLocation_Node
-	) const {
-		if (!m_fContainsData) {
-			_EXCEPTIONT("Stub patch does not store data.");
-		}
-		if ((ix < 0) || (ix > m_datavecAuxNode[0].size())) {
-			_EXCEPTIONT("Invalid index in TracersData vector.");
-		}
-		if (loc == DataLocation_Node) {
-			return m_datavecAuxNode[0][ix];
-
-		} else if (loc == DataLocation_REdge) {
-			return m_datavecAuxREdge[0][ix];
-
-		} else {
-			_EXCEPTIONT("Invalid DataLocation.");
-		}
-	}
-
-	///	<summary>
-	///		Get the auxiliary grid data with the specified index.
-	///	</summary>
-	GridData3D & GetVerticalDynamicsAuxData(
-		int ix,
-		DataLocation loc = DataLocation_Node
-	) {
-		if (!m_fContainsData) {
-			_EXCEPTIONT("Stub patch does not store data.");
-		}
-		if ((ix < 0) || (ix > m_datavecAuxNode[1].size())) {
-			_EXCEPTIONT("Invalid index in TracersData vector.");
-		}
-		if (loc == DataLocation_Node) {
-			return m_datavecAuxNode[1][ix];
-
-		} else if (loc == DataLocation_REdge) {
-			return m_datavecAuxREdge[1][ix];
-
-		} else {
-			_EXCEPTIONT("Invalid DataLocation.");
-		}
-	}
-
-	///	<summary>
-	///		Get the auxiliary grid data with the specified index.
-	///	</summary>
-	const GridData3D & GetVerticalDynamicsAuxData(
-		int ix,
-		DataLocation loc = DataLocation_Node
-	) const {
-		if (!m_fContainsData) {
-			_EXCEPTIONT("Stub patch does not store data.");
-		}
-		if ((ix < 0) || (ix > m_datavecAuxNode[1].size())) {
-			_EXCEPTIONT("Invalid index in TracersData vector.");
-		}
-		if (loc == DataLocation_Node) {
-			return m_datavecAuxNode[1][ix];
-
-		} else if (loc == DataLocation_REdge) {
-			return m_datavecAuxREdge[1][ix];
-
-		} else {
-			_EXCEPTIONT("Invalid DataLocation.");
-		}
-	}
-
-	///	<summary>
 	///		Get the pressure data.
 	///	</summary>
 	GridData3D & GetDataPressure() {
@@ -934,35 +838,7 @@ public:
 	const GridData3D & GetDataPressure() const {
 		return m_dataPressure;
 	}
-/*
-	///	<summary>
-	///		Get the alpha direction pressure derivative data.
-	///	</summary>
-	GridData3D & GetDataDaPressure() {
-		return m_dataDaPressure;
-	}
 
-	///	<summary>
-	///		Get the alpha direction pressure derivative data.
-	///	</summary>
-	const GridData3D & GetDataDaPressure() const {
-		return m_dataDaPressure;
-	}
-
-	///	<summary>
-	///		Get the beta direction pressure derivative data.
-	///	</summary>
-	GridData3D & GetDataDbPressure() {
-		return m_dataDbPressure;
-	}
-
-	///	<summary>
-	///		Get the beta direction pressure derivative data.
-	///	</summary>
-	const GridData3D & GetDataDbPressure() const {
-		return m_dataDbPressure;
-	}
-*/
 	///	<summary>
 	///		Get the pressure derivative data.
 	///	</summary>
@@ -1246,16 +1122,6 @@ protected:
 	///		Grid data for tracer variables.
 	///	</summary>
 	GridData4DVector m_datavecTracers;
-
-	///	<summary>
-	///		Auxiliary grid data on model levels.
-	///	</summary>
-	GridData3DVectorVector m_datavecAuxNode;
-
-	///	<summary>
-	///		Auxiliary grid data on model interfaces.
-	///	</summary>
-	GridData3DVectorVector m_datavecAuxREdge;
 
 	///	<summary>
 	///		Computed pointwise pressures.

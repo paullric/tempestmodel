@@ -181,30 +181,6 @@ public:
 		return m_pTimestepScheme->GetTracerDataInstances();
 	}
 
-	///	<summary>
-	///		Get the number of auxiliary data objects required by
-	///		HorizontalDynamics.
-	///	</summary>
-	int GetHorizontalDynamicsAuxDataCount() const {
-		if (m_pHorizontalDynamics == NULL) {
-			_EXCEPTIONT("HorizontalDynamics not initialized");
-		}
-
-		return 0;
-	}
-
-	///	<summary>
-	///		Get the number of auxiliary data objects required by
-	///		VerticalDynamics.
-	///	</summary>
-	int GetVerticalDynamicsAuxDataCount() const {
-		if (m_pVerticalDynamics == NULL) {
-			_EXCEPTIONT("VerticalDynamics not initialized");
-		}
-
-		return m_pVerticalDynamics->GetAuxDataCount();
-	}
-
 public:
 	///	<summary>
 	///		Begin the model.

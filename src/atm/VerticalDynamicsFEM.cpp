@@ -104,6 +104,9 @@ void VerticalDynamicsFEM::Initialize() {
 	// Number of radial elements
 	int nRElements = pGrid->GetRElements();
 
+	// Number of radial elements in the column
+	m_nRElements = nRElements;
+
 	// Number of degrees of freedom per column in u/v/rho/w/theta
 	m_nColumnStateSize = FTot * (nRElements + 1);
 
@@ -254,6 +257,10 @@ void VerticalDynamicsFEM::Initialize() {
 
 	m_dUpdateDensityNode.Initialize(nRElements);
 	m_dUpdateDensityREdge.Initialize(nRElements+1);
+
+	m_vecTracersF.Initialize(nRElements);
+	m_matTracersLUDF.Initialize(nRElements, nRElements);
+	m_vecTracersIPiv.Initialize(nRElements);
 /*
 	m_dExnerNode.Initialize(nRElements);
 	m_dExnerRefNode.Initialize(nRElements);
@@ -380,109 +387,6 @@ void VerticalDynamicsFEM::Initialize() {
 	} else {
 		_EXCEPTIONT("UNIMPLEMENTED: Vertical hyperdiffusion order > 8");
 	}
-
-/*
-	// Calculate Exner pressure reference profile
-	for (int n = 0; n < pGrid->GetActivePatchCount(); n++) {
-		GridPatch * pPatch = pGrid->GetActivePatch(n);
-
-		const PatchBox & box = pPatch->GetPatchBox();
-
-		// Data
-		const GridData4D & dataRefNode =
-			pPatch->GetReferenceState(DataLocation_Node);
-
-		const GridData4D & dataRefREdge =
-			pPatch->GetReferenceState(DataLocation_REdge);
-
-		GridData3D & dataExnerNode =
-			pPatch->GetVerticalDynamicsAuxData(0, DataLocation_Node);
-
-		GridData3D & dataDiffExnerNode =
-			pPatch->GetVerticalDynamicsAuxData(1, DataLocation_Node);
-
-		GridData3D & dataExnerREdge =
-			pPatch->GetVerticalDynamicsAuxData(0, DataLocation_REdge);
-
-		GridData3D & dataDiffExnerREdge =
-			pPatch->GetVerticalDynamicsAuxData(1, DataLocation_REdge);
-
-		// Loop over all nodes
-		for (int i = box.GetAInteriorBegin(); i < box.GetAInteriorEnd(); i++) {
-		for (int j = box.GetBInteriorBegin(); j < box.GetBInteriorEnd(); j++) {
-
-			// Initialize reference Exner pressure at model levels
-			for (int k = 0; k < nRElements; k++) {
-				dataExnerNode[k][i][j] =
-					phys.ExnerPressureFromRhoTheta(
-						  dataRefNode[PIx][k][i][j]
-						* dataRefNode[RIx][k][i][j]);
-
-				m_dExnerRefNode[k] = dataExnerNode[k][i][j];
-			}
-
-			// Initialize reference Exner pressure at model interfaces
-			for (int k = 0; k <= nRElements; k++) {
-				dataExnerREdge[k][i][j] =
-					phys.ExnerPressureFromRhoTheta(
-						  dataRefREdge[PIx][k][i][j]
-						* dataRefREdge[RIx][k][i][j]);
-
-				m_dExnerRefREdge[k] = dataExnerREdge[k][i][j];
-			}
-
-			// Differentiate the reference Exner pressure
-			if ((pGrid->GetVarLocation(RIx) == DataLocation_Node) &&
-				(pGrid->GetVarLocation(WIx) == DataLocation_Node)
-			) {
-				pGrid->DifferentiateNodeToNode(
-					m_dExnerRefNode,
-					m_dDiffExnerRefNode);
-
-				pGrid->DifferentiateREdgeToREdge(
-					m_dExnerRefREdge,
-					m_dDiffExnerRefREdge);
-
-			} else if (
-				(pGrid->GetVarLocation(RIx) == DataLocation_Node) &&
-				(pGrid->GetVarLocation(WIx) == DataLocation_REdge)
-			) {
-				if (m_fExnerPressureOnLevels) {
-					pGrid->DifferentiateNodeToNode(
-						m_dExnerRefNode,
-						m_dDiffExnerRefNode);
-
-					pGrid->DifferentiateNodeToREdge(
-						m_dExnerRefNode,
-						m_dDiffExnerRefREdge);
-
-				} else {
-					pGrid->DifferentiateREdgeToNode(
-						m_dExnerRefREdge,
-						m_dDiffExnerRefNode);
-
-					pGrid->DifferentiateREdgeToREdge(
-						m_dExnerRefREdge,
-						m_dDiffExnerRefREdge);
-				}
-
-			} else {
-				_EXCEPTIONT("Invalid variable staggering"
-					" (possibly UNIMPLEMENTED)");
-			}
-
-			// Store derivatives at this point
-			for (int k = 0; k < nRElements; k++) {
-				dataDiffExnerNode[k][i][j] = m_dDiffExnerRefNode[k];
-			}
-
-			for (int k = 0; k <= nRElements; k++) {
-				dataDiffExnerREdge[k][i][j] = m_dDiffExnerRefREdge[k];
-			}
-		}
-		}
-	}
-*/
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -549,19 +453,6 @@ void VerticalDynamicsFEM::StepExplicit(
 
 		GridData4D & dataUpdateTracer =
 			pPatch->GetDataTracers(iDataUpdate);
-
-		// Auxiliary data storing Exner pressure
-		const GridData3D & dataExnerNode =
-			pPatch->GetVerticalDynamicsAuxData(0, DataLocation_Node);
-
-		const GridData3D & dataExnerREdge =
-			pPatch->GetVerticalDynamicsAuxData(0, DataLocation_REdge);
-
-		const GridData3D & dataDiffExnerNode =
-			pPatch->GetVerticalDynamicsAuxData(1, DataLocation_Node);
-
-		const GridData3D & dataDiffExnerREdge =
-			pPatch->GetVerticalDynamicsAuxData(1, DataLocation_REdge);
 
 		// Loop over all nodes
 		for (int i = box.GetAInteriorBegin(); i < box.GetAInteriorEnd(); i++) {
@@ -659,7 +550,6 @@ void VerticalDynamicsFEM::StepExplicit(
 					dataUpdateREdge,
 					dataInitialTracer,
 					dataUpdateTracer);
-
 /*
 				// Check boundary condition
 				{
@@ -832,19 +722,6 @@ void VerticalDynamicsFEM::StepImplicit(
 
 		// Number of tracers
 		const int nTracerCount = dataInitialTracer.GetComponents();
-
-		// Auxiliary data storing Exner pressure
-		const GridData3D & dataExnerNode =
-			pPatch->GetVerticalDynamicsAuxData(0, DataLocation_Node);
-
-		const GridData3D & dataExnerREdge =
-			pPatch->GetVerticalDynamicsAuxData(0, DataLocation_REdge);
-
-		const GridData3D & dataDiffExnerNode =
-			pPatch->GetVerticalDynamicsAuxData(1, DataLocation_Node);
-
-		const GridData3D & dataDiffExnerREdge =
-			pPatch->GetVerticalDynamicsAuxData(1, DataLocation_REdge);
 
 		// Number of finite elements
 		int nAElements =
@@ -1019,6 +896,22 @@ void VerticalDynamicsFEM::StepImplicit(
 			BuildJacobianF(m_dColumnState, &(m_matJacobianF[0][0]));
 
 #ifdef USE_JACOBIAN_GENERAL
+/*
+			FILE * fpDF = fopen("StateDF.txt", "w");
+			for (int k = 0; k < 3*(m_nRElements+1); k++) {
+				for (int i = 0; i < 3*(m_nRElements+1); i++) {
+					fprintf(fpDF, "%1.15e\t", m_matJacobianF[k][i]);
+				}
+				fprintf(fpDF, "\n");
+			}
+			fclose(fpDF);
+
+			FILE * fpF = fopen("StateF.txt", "w");
+			for (int k = 0; k < 3*(m_nRElements+1); k++) {
+				fprintf(fpF, "%1.15e\n", m_dSoln[k]);
+			}
+			fclose(fpF);
+*/
 			// Use direct solver
 			LAPACK::DGESV(m_matJacobianF, m_dSoln, m_vecIPiv);
 #endif
@@ -1327,35 +1220,6 @@ void VerticalDynamicsFEM::SetupReferenceColumn(
 			m_dDiffUb);
 	}
 
-/*
-#ifndef THREE_COMPONENT_SOLVE
-	// Copy over U
-	if (pGrid->GetVarLocation(UIx) == DataLocation_REdge) {
-		for (int k = 0; k <= pGrid->GetRElements(); k++) {
-			m_dColumnState[VecFIx(FUIx, k)] =
-				dataInitialREdge[UIx][k][iA][iB];
-		}
-	} else {
-		for (int k = 0; k < pGrid->GetRElements(); k++) {
-			m_dColumnState[VecFIx(FUIx, k)] =
-				dataInitialNode[UIx][k][iA][iB];
-		}
-	}
-
-	// Copy over V
-	if (pGrid->GetVarLocation(VIx) == DataLocation_REdge) {
-		for (int k = 0; k <= pGrid->GetRElements(); k++) {
-			m_dColumnState[VecFIx(FVIx, k)] =
-				dataInitialREdge[VIx][k][iA][iB];
-		}
-	} else {
-		for (int k = 0; k < pGrid->GetRElements(); k++) {
-			m_dColumnState[VecFIx(FVIx, k)] =
-				dataInitialNode[VIx][k][iA][iB];
-		}
-	}
-#endif
-*/
 	// Copy over Theta
 	if (pGrid->GetVarLocation(PIx) == DataLocation_REdge) {
 		for (int k = 0; k <= pGrid->GetRElements(); k++) {
@@ -2792,6 +2656,40 @@ void VerticalDynamicsFEM::UpdateColumnTracers(
 	// Number of tracer components
 	const int nComponents = dataInitialTracer.GetComponents();
 
+	// If no tracer components, no update necessary
+	if (nComponents == 0) {
+		return;
+	}
+
+	// Get the column interpolation and differentiation coefficients
+	const LinearColumnInterpFEM & opInterpNodeToREdge =
+		pGrid->GetOpInterpNodeToREdge();
+	const LinearColumnDiffFEM & opDiffNodeToNode =
+		pGrid->GetOpDiffNodeToNode();
+	const LinearColumnDiffFEM & opDiffREdgeToNode =
+		pGrid->GetOpDiffREdgeToNode();
+
+	const DataMatrix<double> & dInterpNodeToREdge =
+		opInterpNodeToREdge.GetCoeffs();
+	const DataMatrix<double> & dDiffNodeToNode =
+		opDiffNodeToNode.GetCoeffs();
+	const DataMatrix<double> & dDiffREdgeToNode =
+		opDiffREdgeToNode.GetCoeffs();
+
+	const DataVector<int> & iInterpNodeToREdgeBegin =
+		opInterpNodeToREdge.GetIxBegin();
+	const DataVector<int> & iDiffNodeToNodeBegin =
+		opDiffNodeToNode.GetIxBegin();
+	const DataVector<int> & iDiffREdgeToNodeBegin =
+		opDiffREdgeToNode.GetIxBegin();
+
+	const DataVector<int> & iInterpNodeToREdgeEnd =
+		opInterpNodeToREdge.GetIxEnd();
+	const DataVector<int> & iDiffNodeToNodeEnd =
+		opDiffNodeToNode.GetIxEnd();
+	const DataVector<int> & iDiffREdgeToNodeEnd =
+		opDiffREdgeToNode.GetIxEnd();
+
 	// Metric quantities
 	const DataMatrix4D<double> & dContraMetricXi =
 		m_pPatch->GetContraMetricXi();
@@ -2820,8 +2718,157 @@ void VerticalDynamicsFEM::UpdateColumnTracers(
 		fMassFluxOnLevels = true;
 	}
 
-	// Calculate u^xi on model levels
+	// Zero the Jacobian
+	m_matTracersLUDF.Zero();
+	double * dTracersLUDF = &(m_matTracersLUDF[0][0]);
+
+	// Only compute off-diagonal terms of the Jacobian if implicit advection
+	// is being performed.
+	if (!m_fFullyExplicit) {
+
+		// Mass flux on model levels
+		if (fMassFluxOnLevels) {
+
+			// Calculate u^xi on model levels
+			if (pGrid->GetVarLocation(WIx) == DataLocation_REdge) {
+				for (int k = 0; k <= nRElements; k++) {
+					m_dStateREdge[WIx][k] = m_dColumnState[VecFIx(FWIx, k)];
+				}
+
+				pGrid->InterpolateREdgeToNode(
+					m_dStateREdge[WIx],
+					m_dStateNode[WIx]);
+
+			} else {
+				for (int k = 0; k < nRElements; k++) {
+					m_dStateNode[WIx][k] = m_dColumnState[VecFIx(FWIx, k)];
+				}
+			}
+
+			for (int k = 1; k < nRElements-1; k++) {
+				double dCovUx =
+					m_dStateNode[WIx][k] * dDerivRNode[k][m_iA][m_iB][2];
+
+				m_dXiDotNode[k] =
+					  dContraMetricXi[k][m_iA][m_iB][0] * m_dStateNode[UIx][k]
+					+ dContraMetricXi[k][m_iA][m_iB][1] * m_dStateNode[VIx][k]
+					+ dContraMetricXi[k][m_iA][m_iB][2] * dCovUx;
+			}
+
+			m_dXiDotNode[0] = 0.0;
+			m_dXiDotNode[nRElements-1] = 0.0;
+
+			// dRhoQ_k/dRhoQ_n
+			for (int k = 0; k < nRElements; k++) {
+
+				int n = iDiffNodeToNodeBegin[k];
+				for (; n < iDiffNodeToNodeEnd[k]; n++) {
+
+					dTracersLUDF[TracerMatFIx(n, k)] +=
+						dDiffNodeToNode[k][n]
+						* dJacobianNode[n][m_iA][m_iB]
+						/ dJacobianNode[k][m_iA][m_iB]
+						* m_dXiDotNode[n];
+				}
+			}
+
+		// Mass flux on model interfaces
+		} else {
+
+			// Calculate u^xi on model interfaces
+			if (pGrid->GetVarLocation(WIx) == DataLocation_REdge) {
+				for (int k = 0; k <= nRElements; k++) {
+					m_dStateREdge[WIx][k] = m_dColumnState[VecFIx(FWIx, k)];
+				}
+
+			} else {
+				for (int k = 0; k < nRElements; k++) {
+					m_dStateNode[WIx][k] = m_dColumnState[VecFIx(FWIx, k)];
+				}
+
+				pGrid->InterpolateNodeToREdge(
+					m_dStateNode[WIx],
+					m_dStateREdge[WIx]);
+			}
+
+			for (int k = 1; k < nRElements; k++) {
+				double dCovUx =
+					m_dStateREdge[WIx][k] * dDerivRREdge[k][m_iA][m_iB][2];
+
+				m_dXiDotREdge[k] =
+					  dContraMetricXiREdge[k][m_iA][m_iB][0]
+						* m_dStateREdge[UIx][k]
+					+ dContraMetricXiREdge[k][m_iA][m_iB][1]
+						* m_dStateREdge[VIx][k]
+					+ dContraMetricXiREdge[k][m_iA][m_iB][2]
+						* dCovUx;
+			}
+
+			m_dXiDotREdge[0] = 0.0;
+			m_dXiDotREdge[nRElements] = 0.0;
+
+			// dRhoQ_k/dRhoQ_n
+			for (int k = 0; k < nRElements; k++) {
+
+				int m = iDiffREdgeToNodeBegin[k];
+				for (; m < iDiffREdgeToNodeEnd[k]; m++) {
+
+					int n = iInterpNodeToREdgeBegin[m];
+					for (; n < iInterpNodeToREdgeEnd[m]; n++) {
+
+						dTracersLUDF[TracerMatFIx(n, k)] +=
+							dDiffREdgeToNode[k][m]
+							* dJacobianREdge[m][m_iA][m_iB]
+							/ dJacobianNode[k][m_iA][m_iB]
+							* dInterpNodeToREdge[m][n]
+							* m_dXiDotREdge[m];
+					}
+				}
+			}
+		}
+	}
+
+	// Add the identity components
+	for (int k = 0; k < nRElements; k++) {
+		dTracersLUDF[TracerMatFIx(k, k)] += 1.0 / m_dDeltaT;
+	}
+/*
+		FILE * fpLUDF = fopen("TracersLUDF.txt", "w");
+		for (int k = 0; k < nRElements; k++) {
+			for (int i = 0; i < nRElements; i++) {
+				fprintf(fpLUDF, "%1.15e\t", m_matTracersLUDF[k][i]);
+			}
+			fprintf(fpLUDF, "\n");
+		}
+		fclose(fpLUDF);
+*/
+#if defined(USE_JACOBIAN_GENERAL) || defined(USE_JACOBIAN_DEBUG)
+	// LU Decomposition
+	int iInfo =
+		LAPACK::DGETRF(
+			m_matTracersLUDF,
+			m_vecTracersIPiv);
+#elif defined(USE_JACOBIAN_DIAGONAL)
+	// Banded diagonal LU decomposition
+	int iInfo =
+		LAPACK::DGBTRF(
+			m_matTracersLUDF,
+			m_vecTracersIPiv,
+			2 * m_nVerticalOrder - 1,
+			2 * m_nVerticalOrder - 1);
+#else
+	_EXCEPTIONT("Invalid Jacobian type");
+#endif
+
+	if (iInfo != 0) {
+		_EXCEPTIONT("Triangulation failure");
+	}
+
+	// Calculate xi dot using the updated vertical velocity
+	// with mass flux on levels
 	if (fMassFluxOnLevels) {
+
+		// Calculate u^xi on model levels
 		if (pGrid->GetVarLocation(WIx) == DataLocation_REdge) {
 			for (int k = 0; k <= nRElements; k++) {
 				m_dStateREdge[WIx][k] = dataUpdateREdge[WIx][k][m_iA][m_iB];
@@ -2837,7 +2884,7 @@ void VerticalDynamicsFEM::UpdateColumnTracers(
 			}
 		}
 
-		for (int k = 0; k < nRElements; k++) {
+		for (int k = 1; k < nRElements-1; k++) {
 			double dCovUx =
 				m_dStateNode[WIx][k] * dDerivRNode[k][m_iA][m_iB][2];
 
@@ -2847,10 +2894,15 @@ void VerticalDynamicsFEM::UpdateColumnTracers(
 				+ dContraMetricXi[k][m_iA][m_iB][2] * dCovUx;
 		}
 
-	// Calculate u^xi on model interfaces
+		m_dXiDotNode[0] = 0.0;
+		m_dXiDotNode[nRElements-1] = 0.0;
+
+	// Mass flux on model interfaces
 	} else {
+
+		// Calculate u^xi on model interfaces
 		if (pGrid->GetVarLocation(WIx) == DataLocation_REdge) {
-			for (int k = 1; k < nRElements; k++) {
+			for (int k = 0; k <= nRElements; k++) {
 				m_dStateREdge[WIx][k] = dataUpdateREdge[WIx][k][m_iA][m_iB];
 			}
 
@@ -2881,13 +2933,7 @@ void VerticalDynamicsFEM::UpdateColumnTracers(
 		m_dXiDotREdge[nRElements] = 0.0;
 	}
 
-	// Strictly enforce conservation
-	if (pGrid->GetVarLocation(WIx) == DataLocation_Node) {
-		m_dXiDotNode[0] = 0.0;
-		m_dXiDotNode[nRElements-1] = 0.0;
-	}
-
-	// Loop through all tracer species
+	// Loop through all tracer species and apply update
 	for (int c = 0; c < nComponents; c++) {
 
 		// Calculate mass flux on nodes
@@ -2896,8 +2942,6 @@ void VerticalDynamicsFEM::UpdateColumnTracers(
 				m_dMassFluxNode[k] =
 					dJacobianNode[k][m_iA][m_iB]
 					* dataInitialTracer[c][k][m_iA][m_iB]
-					* dataUpdateNode[RIx][k][m_iA][m_iB]
-					/ dataInitialNode[RIx][k][m_iA][m_iB]
 					* m_dXiDotNode[k];
 			}
 
@@ -2908,24 +2952,6 @@ void VerticalDynamicsFEM::UpdateColumnTracers(
 
 		// Calculate mass flux on interfaces
 		} else {
-
-			// Interpolate initial density to interfaces
-			for (int k = 0; k < nRElements; k++) {
-				m_dInitialDensityNode[k] = dataInitialNode[RIx][k][m_iA][m_iB];
-			}
-
-			pGrid->InterpolateNodeToREdge(
-				m_dInitialDensityNode,
-				m_dInitialDensityREdge);
-
-			// Interpolate updated density to interfaces
-			for (int k = 0; k < nRElements; k++) {
-				m_dUpdateDensityNode[k] = dataUpdateNode[RIx][k][m_iA][m_iB];
-			}
-
-			pGrid->InterpolateNodeToREdge(
-				m_dUpdateDensityNode,
-				m_dUpdateDensityREdge);
 
 			// Interpolate tracer density to interfaces
 			for (int k = 0; k < nRElements; k++) {
@@ -2941,8 +2967,6 @@ void VerticalDynamicsFEM::UpdateColumnTracers(
 				m_dMassFluxREdge[k] =
 					dJacobianREdge[k][m_iA][m_iB]
 					* m_dTracerDensityREdge[k]
-					* dataUpdateREdge[RIx][k][m_iA][m_iB]
-					/ dataInitialREdge[RIx][k][m_iA][m_iB]
 					* m_dXiDotREdge[k];
 			}
 
@@ -2953,10 +2977,56 @@ void VerticalDynamicsFEM::UpdateColumnTracers(
 
 		// Update tracers
 		for (int k = 0; k < nRElements; k++) {
-			dataUpdateTracer[c][k][m_iA][m_iB] -=
-				dDeltaT
-				* m_dDiffMassFluxNode[k]
+			m_vecTracersF[k] =
+				m_dDiffMassFluxNode[k]
 				/ dJacobianNode[k][m_iA][m_iB];
+		}
+/*
+		FILE * fpF = fopen("TracersF.txt", "w");
+		for (int k = 0; k < nRElements; k++) {
+			fprintf(fpF, "%1.15e\n", m_vecTracersF[k]);
+		}
+		fclose(fpF);
+*/
+#if defined(USE_JACOBIAN_GENERAL) || defined(USE_JACOBIAN_DEBUG)
+		// Solve the matrix system using LU decomposed matrix
+		int iInfo =
+			LAPACK::DGETRS(
+				'N',
+				m_matTracersLUDF,
+				m_vecTracersF,
+				m_vecTracersIPiv);
+
+#elif defined(USE_JACOBIAN_DIAGONAL)
+		// Solve the matrix system using banded LU decomposed matrix
+		int iInfo =
+			LAPACK::DGBTRS(
+				'N',
+				m_matTracersLUDF,
+				m_vecTracersF,
+				m_vecTracersIPiv,
+				2 * m_nVerticalOrder - 1,
+				2 * m_nVerticalOrder - 1);
+#else
+	_EXCEPTIONT("Invalid Jacobian type");
+#endif
+
+		if (iInfo != 0) {
+			_EXCEPTIONT("Inversion failure");
+		}
+
+/*
+		FILE * fpX = fopen("TracersX.txt", "w");
+		for (int k = 0; k < nRElements; k++) {
+			fprintf(fpX, "%1.15e\n", m_vecTracersF[k]);
+		}
+		fclose(fpX);
+*/
+
+		// Update the state
+		for (int k = 0; k < nRElements; k++) {
+			dataUpdateTracer[c][k][m_iA][m_iB] -=
+				m_vecTracersF[k];
 		}
 
 #pragma message "Apply limiter only to finite element?"
@@ -2986,6 +3056,14 @@ void VerticalDynamicsFEM::UpdateColumnTracers(
 			}
 		}
 	}
+/*
+	for (int k = 0; k < nRElements; k++) {
+		printf("%1.15e %1.15e\n",
+			dataUpdateTracer[0][k][m_iA][m_iB],
+			dataUpdateNode[RIx][k][m_iA][m_iB]);
+	}
+	_EXCEPTION();
+*/
 }
 
 ///////////////////////////////////////////////////////////////////////////////

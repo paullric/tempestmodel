@@ -374,53 +374,6 @@ void GridPatch::InitializeDataLocal() {
 			m_box.GetHaloElements());
 	}
 
-#pragma message "Make these processes more generic"
-	// Initialize auxiliary data
-	m_datavecAuxNode.resize(2);
-	m_datavecAuxREdge.resize(2);
-
-	m_datavecAuxNode[0].resize(model.GetHorizontalDynamicsAuxDataCount());
-	m_datavecAuxREdge[0].resize(model.GetHorizontalDynamicsAuxDataCount());
-
-	m_datavecAuxNode[1].resize(model.GetVerticalDynamicsAuxDataCount());
-	m_datavecAuxREdge[1].resize(model.GetVerticalDynamicsAuxDataCount());
-
-	for (int m = 0; m < model.GetHorizontalDynamicsAuxDataCount(); m++) {
-		m_datavecAuxNode[0][m].Initialize(
-			DataType_Auxiliary,
-			DataLocation_Node,
-			m_grid.GetRElements(),
-			m_box.GetATotalWidth(),
-			m_box.GetBTotalWidth(),
-			m_box.GetHaloElements());
-
-		m_datavecAuxREdge[0][m].Initialize(
-			DataType_Auxiliary,
-			DataLocation_REdge,
-			m_grid.GetRElements(),
-			m_box.GetATotalWidth(),
-			m_box.GetBTotalWidth(),
-			m_box.GetHaloElements());
-	}
-
-	for (int m = 0; m < model.GetVerticalDynamicsAuxDataCount(); m++) {
-		m_datavecAuxNode[1][m].Initialize(
-			DataType_Auxiliary,
-			DataLocation_Node,
-			m_grid.GetRElements(),
-			m_box.GetATotalWidth(),
-			m_box.GetBTotalWidth(),
-			m_box.GetHaloElements());
-
-		m_datavecAuxREdge[1][m].Initialize(
-			DataType_Auxiliary,
-			DataLocation_REdge,
-			m_grid.GetRElements(),
-			m_box.GetATotalWidth(),
-			m_box.GetBTotalWidth(),
-			m_box.GetHaloElements());
-	}
-
 	// Pressure data
 	m_dataPressure.Initialize(
 		DataType_Pressure,
@@ -537,18 +490,6 @@ void GridPatch::DeinitializeData() {
 	m_datavecStateNode.Deinitialize();
 	m_datavecStateREdge.Deinitialize();
 	m_datavecTracers.Deinitialize();
-
-	for (int n = 0; n < m_datavecAuxNode.size(); n++) {
-	for (int m = 0; m < m_datavecAuxNode[n].size(); m++) {
-		m_datavecAuxNode[n][m].Deinitialize();
-	}
-	}
-
-	for (int n = 0; n < m_datavecAuxREdge.size(); n++) {
-	for (int m = 0; m < m_datavecAuxREdge[n].size(); m++) {
-		m_datavecAuxREdge[n][m].Deinitialize();
-	}
-	}
 
 	m_dataPressure.Deinitialize();
 	m_dataDxPressure.Deinitialize();

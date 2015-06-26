@@ -114,6 +114,21 @@ protected:
 #endif
 	}
 
+	///	<summary>
+	///		Get the index of for the component / level pair of the F Jacobian.
+	///		Note:  Is composed using Fortran ordering.
+	///	</summary>
+	inline int TracerMatFIx(int k0, int k1) {
+#if defined(USE_JACOBIAN_DEBUG) || defined(USE_JACOBIAN_GENERAL)
+		return (m_nRElements * k0 + k1);
+#elif defined(USE_JACOBIAN_DIAGONAL)
+		int nOffDiagonals = 2 * (2 * m_nVerticalOrder - 1);
+		return (nOffDiagonals + k1 - k0) + m_nRElements * k0;
+#else
+		_EXCEPTION();
+#endif
+	}
+
 public:
 	///	<summary>
 	///		Advance explicit terms of the vertical column one substep.
@@ -260,6 +275,11 @@ protected:
 	///		Active beta index on m_pPatch.
 	///	</summary>
 	int m_iB;
+
+	///	<summary>
+	///		Number of radial elements in the vertical column.
+	///	</summary>
+	int m_nRElements;
 
 	///	<summary>
 	///		Number of degrees of freedom in vertical solution vector.
@@ -501,6 +521,22 @@ protected:
 	///		Hyperviscosity coefficients from edges to edges.
 	///	</summary>
 	DataMatrix<double> m_dHypervisREdgeToREdge;
+
+private:
+	///	<summary>
+	///		Flux vector for tracer advection.
+	///	</summary>
+	DataVector<double> m_vecTracersF;
+
+	///	<summary>
+	///		LU decomposition of Jacobian matrix used for tracer advection.
+	///	</summary>
+	DataMatrix<double> m_matTracersLUDF;
+
+	///	<summary>
+	///		Pivot matrix used for updating tracers.
+	///	</summary>
+	DataVector<int> m_vecTracersIPiv;
 
 #ifdef USE_JFNK_PETSC
 private:

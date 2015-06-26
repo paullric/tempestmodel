@@ -249,6 +249,96 @@ int LAPACK::DGETRF(
 
 ///////////////////////////////////////////////////////////////////////////////
 
+int LAPACK::DGBTRF(
+	DataMatrix<double> & dA,
+	DataVector<int> & iPIV,
+	int iKL,
+	int iKU
+) {
+	int m = dA.GetRows();
+	int n = dA.GetColumns();
+
+	int lda = m;
+
+	int nInfo;
+
+#ifdef USEACML
+	dgbtrf(m, n, &iKL, &iKU, &(dA[0][0]), lda, &(iPIV[0]), &nInfo);
+#endif
+#ifdef USEESSL
+	dgbtrf(m, n, iKL, iKU, &(dA[0][0]), lda, &(iPIV[0]), nInfo);
+#endif
+#if defined USEVECLIB || defined USEMKL
+	dgbtrf_(&m, &n, &iKL, &iKU, &(dA[0][0]), &lda, &(iPIV[0]), &nInfo);
+#endif
+
+	return nInfo;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+int LAPACK::DGETRS(
+	char chTrans,
+	DataMatrix<double> & dA,
+	DataVector<double> & dB,
+	DataVector<int> & iPIV
+) {
+	int m = dA.GetRows();
+	int n = dA.GetColumns();
+
+	int nrhs = 1;
+	int lda = m;
+	int ldb = m;
+
+	int nInfo = 0;
+
+#ifdef USEACML
+	dgetrs(chTrans, n, nrhs, &(dA[0][0]), lda, &(iPIV[0]), &(dB[0]), ldb, &nInfo);
+#endif
+#ifdef USEESSL
+	dgetrs(chTrans, n, nrhs, &(dA[0][0]), lda, &(iPIV[0]), &(dB[0]), ldb, nInfo);
+#endif
+#if defined USEVECLIB || defined USEMKL
+	dgetrs_(&chTrans, &n, &nrhs, &(dA[0][0]), &lda, &(iPIV[0]), &(dB[0]), &ldb, &nInfo);
+#endif
+
+	return nInfo;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+int LAPACK::DGBTRS(
+	char chTrans,
+	DataMatrix<double> & dA,
+	DataVector<double> & dB,
+	DataVector<int> & iPIV,
+	int iKL,
+	int iKU
+) {
+	int m = dA.GetRows();
+	int n = dA.GetColumns();
+
+	int lda = m;
+	int ldb = dB.GetRows();
+	int nRHS = 1;
+
+	int nInfo;
+
+#ifdef USEACML
+	dgbtrs(chTrans, n, iKL, iKU, nRHS, &(dA[0][0]), lda, &(iPIV[0]), &(dB[0]), ldb, &nInfo);
+#endif
+#ifdef USEESSL
+	dgbtrs(chTrans, n, iKL, iKU, nRHS, &(dA[0][0]), lda, &(iPIV[0]), &(dB[0]), ldb, nInfo);
+#endif
+#if defined USEVECLIB || defined USEMKL
+	dgbtrs_(&chTrans, &n, &iKL, &iKU, &nRHS, &(dA[0][0]), &lda, &(iPIV[0]), &(dB[0]), &ldb, &nInfo);
+#endif
+
+	return nInfo;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
 int LAPACK::DGETRI(
 	DataMatrix<double> & dA,
 	DataVector<int> & iPIV,

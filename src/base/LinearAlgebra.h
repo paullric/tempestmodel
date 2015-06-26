@@ -76,8 +76,17 @@ int dtpsv_(char *uplo, char *trace, char *diag, int *n, double *a, double *x, in
 ///	General banded matrix solver from CLAPACK
 int dgbsv_(int *n, int *kl, int *ku, int *nrhs, double *ab, int *ldab, int *ipiv, double *b, int *ldb, int *info); 
 
-/// LU decomposition from CLAPACK from CLAPACK
+/// LU decomposition from CLAPACK
 int dgetrf_(int *m, int *n, double *a, int *lda, int *ipiv, int *info);
+
+/// General banded matrix LU decomposition from CLAPACK
+int dgbtrf_(int *m, int *n, int *kl, int *ku, double *ab, int *ldab, int *ipiv, int *info);
+
+///	Solve a matrix system using LU decomposition from dgetrf
+int dgetrs_(char *trans, int *n, int *nrhs, double *a, int *lda, int *ipiv, double *b, int *ldb, int *info);
+
+///	Solve a general banded matrix system using LU decomposition from dgbtrf
+int dgbtrs_(char *trans, int *n, int *kl, int *ku, int *nrhs, double *ab, int *ldab, int *ipiv, double *b, int *ldb, int *info);
 
 ///	General matrix inverse.
 int dgetri_(int *n, double *a, int *lda, int *ipiv, double *work, int *lwork, int *info);
@@ -368,6 +377,38 @@ public:
 	static int DGETRF(
 		DataMatrix<double> & dA,
 		DataVector<int> & iPIV
+	);
+
+	///	<summary>
+	///		Calculate the LU decomposition of a given banded matrix.
+	///	</summary>
+	static int DGBTRF(
+		DataMatrix<double> & dA,
+		DataVector<int> & iPIV,
+		int iKL,
+		int iKU
+	);
+
+	///	<summary>
+	///		Solve the matrix system using LU decomposition from DGETRF.
+	///	</summary>
+	static int DGETRS(
+		char chTrans,
+		DataMatrix<double> & dA,
+		DataVector<double> & dB,
+		DataVector<int> & iPIV
+	);
+
+	///	<summary>
+	///		Solve the banded matrix system using LU decomposition from DGBTRF.
+	///	</summary>
+	static int DGBTRS(
+		char chTrans,
+		DataMatrix<double> & dA,
+		DataVector<double> & dB,
+		DataVector<int> & iPIV,
+		int iKL,
+		int iKU
 	);
 
 	///	<summary>
