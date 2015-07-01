@@ -38,11 +38,6 @@ public:
 
 private:
 	///	<summary>
-	///		Top of the model domain.
-	///	</summary>
-	double m_dH0;
-
-	///	<summary>
 	///		Uniform +X flow field.
 	///	</summary>
 	double m_dU0;
@@ -87,7 +82,6 @@ public:
 	///		Constructor. (with physical constants defined privately here)
 	///	</summary>
 	ScharMountainCartesianTest(
-		double dH0,
 		double dU0,
 		double dNbar,
 		double dTheta0,
@@ -95,9 +89,9 @@ public:
 		double dhC,
 		double daC,
 		double dlC,
+		double dpiC,
 		bool fNoRayleighFriction
 	) :
-		m_dH0(dH0),
 		m_dU0(dU0),
 		m_dNbar(dNbar),
 		m_dTheta0(dTheta0),
@@ -105,6 +99,7 @@ public:
 		m_dhC(dhC),
 		m_daC(daC),
 		m_dlC(dlC),
+		m_dpiC(dpiC),
 		m_fNoRayleighFriction(fNoRayleighFriction)
 	{
 		// Set the dimensions of the box
@@ -141,6 +136,20 @@ public:
 	}
 
 	///	<summary>
+	///		Flag indicating that a reference state is available.
+	///	</summary>
+	virtual bool HasReferenceState() const {
+		return true;
+	}
+
+	///	<summary>
+	///		Flag indicating whether or not Rayleigh friction strength is given.
+	///	</summary>
+	virtual bool HasRayleighFriction() const {
+		return !m_fNoRayleighFriction;
+	}
+
+	///	<summary>
 	///		Evaluate the topography at the given point. (cartesian version)
 	///	</summary>
 	virtual double EvaluateTopography(
@@ -154,13 +163,6 @@ public:
         //std::cout << hsm << "\n";
 
 		return hsm;
-	}
-
-	///	<summary>
-	///		Flag indicating whether or not Rayleigh friction strength is given.
-	///	</summary>
-	virtual bool HasRayleighFriction() const {
-		return !m_fNoRayleighFriction;
 	}
 
 	///	<summary>
@@ -199,13 +201,6 @@ public:
 			return dNuRight;
 		}
 		return dNuLeft;
-	}
-
-	///	<summary>
-	///		Flag indicating that a reference state is available.
-	///	</summary>
-	virtual bool HasReferenceState() const {
-		return true;
 	}
 
 	///	<summary>
@@ -304,9 +299,6 @@ int main(int argc, char** argv) {
 	TempestInitialize(&argc, &argv);
 
 try {
-	// Background height field.
-	double dH0;
-
 	// Uniform +X flow field.
 	double dU0;
 
@@ -328,6 +320,9 @@ try {
 	// Parameter reference length for mountain profile
 	double dlC;
 
+	// Parameter Archimede's Constant (essentially Pi but to some digits)
+	double dpiC;
+
 	// No Rayleigh friction
 	bool fNoRayleighFriction;
 
@@ -342,7 +337,6 @@ try {
 		SetDefaultHorizontalOrder(4);
 		SetDefaultVerticalOrder(4);
 
-		CommandLineDouble(dH0, "h0", 21000.0);
 		CommandLineDouble(dU0, "u0", 10.0);
 		CommandLineDouble(dNbar, "Nbar", 0.01);
 		CommandLineDouble(dTheta0, "Theta0", 280.0);
@@ -350,6 +344,7 @@ try {
 		CommandLineDouble(dhC, "hC", 250.0);
 		CommandLineDouble(daC, "aC", 5000.0);
 		CommandLineDouble(dlC, "lC", 4000.0);
+		CommandLineDouble(dlC, "piC", 3.14159265);
 		CommandLineBool(fNoRayleighFriction, "norayleigh");
 
 		ParseCommandLine(argc, argv);
@@ -358,14 +353,14 @@ try {
 	// Create a new instance of the test
 	ScharMountainCartesianTest * test =
 		new ScharMountainCartesianTest(
-			dH0,
 			dU0,
 			dNbar,
 			dTheta0,
 			dThetaC,
 			dhC,
 			daC,
-			dlC, 
+			dlC,
+			dpiC,
 			fNoRayleighFriction);
 
 	// Setup the Model

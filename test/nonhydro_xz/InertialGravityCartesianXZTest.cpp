@@ -33,11 +33,6 @@ public:
 
 private:
 	///	<summary>
-	///		Background height field.
-	///	</summary>
-	double m_dH0;
-
-	///	<summary>
 	///		Uniform +X flow field.
 	///	</summary>
 	double m_dU0;
@@ -78,27 +73,34 @@ private:
 	double m_dpiC;
 
 	///	<summary>
-	///		Flag indicating that the reference profile should be used.
+	///		Flag indicating that Rayleigh friction is inactive.
 	///	</summary>
-	bool m_fNoReferenceState;
+	bool m_fNoRayleighFriction;
 
 public:
 	///	<summary>
 	///		Constructor. (with physical constants defined privately here)
 	///	</summary>
 	InertialGravityCartesianXZTest(
-		bool fNoReferenceState
+		double dU0,
+		double dNbar,
+		double dTheta0,
+		double dThetaC,
+		double dhC,
+		double daC,
+		double dxC,
+		double dpiC,
+		bool fNoRayleighFriction
 	) :
-		m_dH0(10000.),
-		m_dU0(20.),
-		m_dNbar(0.01),
-		m_dTheta0(300.0),
-		m_dThetaC(1.0),
-		m_dhC(10000.),
-		m_daC(5000.),
-		m_dxC(1.0E+5),
-		m_dpiC(3.14159265),
-		m_fNoReferenceState(fNoReferenceState)
+		m_dU0(dU0),
+		m_dNbar(dNbar),
+		m_dTheta0(dTheta0),
+		m_dThetaC(dThetaC),
+		m_dhC(dhC),
+		m_daC(daC),
+		m_dxC(dxC),
+		m_dpiC(dpiC),
+		m_fNoRayleighFriction(fNoRayleighFriction)
 	{
 		// Set the dimensions of the box
 		m_dGDim[0] = 0.0;
@@ -128,7 +130,14 @@ public:
 	///		Flag indicating that a reference state is available.
 	///	</summary>
 	virtual bool HasReferenceState() const {
-		return !m_fNoReferenceState;
+		return true;
+	}
+
+	///	<summary>
+	///		Flag indicating whether or not Rayleigh friction strength is given.
+	///	</summary>
+	virtual bool HasRayleighFriction() const {
+		return !m_fNoRayleighFriction;
 	}
 
 	///	<summary>
@@ -138,6 +147,44 @@ public:
 		PhysicalConstants & phys
 	) const {
 		// Do nothing to the PhysicalConstants for global simulations
+	}
+
+	///	<summary>
+	///		Evaluate the Rayleigh friction strength at the given point.
+	///	</summary>
+	virtual double EvaluateRayleighStrength(
+		double dZ,
+		double dXp,
+		double dYp
+	) const {
+		const double dRayleighStrength = 8.0e-3;
+		const double dRayleighDepth = 0.0;
+		const double dRayleighWidth = 2000.0;
+
+		double dNuDepth = 0.0;
+		double dNuRight = 0.0;
+		double dNuLeft  = 0.0;
+
+		if (dZ > m_dGDim[5] - dRayleighDepth) {
+			double dNormZ = (m_dGDim[5] - dZ) / dRayleighDepth;
+			dNuDepth = 0.5 * dRayleighStrength * (1.0 + cos(M_PI * dNormZ));
+		}
+		if (dXp > m_dGDim[1] - dRayleighWidth) {
+			double dNormX = (m_dGDim[1] - dXp) / dRayleighWidth;
+			dNuRight = 0.5 * dRayleighStrength * (1.0 + cos(M_PI * dNormX));
+		}
+		if (dXp < m_dGDim[0] + dRayleighWidth) {
+			double dNormX = (dXp - m_dGDim[0]) / dRayleighWidth;
+			dNuLeft = 0.5 * dRayleighStrength * (1.0 + cos(M_PI * dNormX));
+		}
+
+		if ((dNuDepth >= dNuRight) && (dNuDepth >= dNuLeft)) {
+			return dNuDepth;
+		}
+		if (dNuRight >= dNuLeft) {
+			return dNuRight;
+		}
+		return dNuLeft;
 	}
 
 	///	<summary>
@@ -159,7 +206,7 @@ public:
 		double dXp,
 		double dZp
 	) const {
-		double dG = phys.GetG();
+		const double dG = phys.GetG();
 
 		// Potential temperature perturbation
 		double dThetaHat1 = m_dThetaC * sin(m_dpiC * dZp / m_dhC);
@@ -252,6 +299,30 @@ int main(int argc, char** argv) {
 	TempestInitialize(&argc, &argv);
 
 try {
+	// Uniform +X flow field.
+	double dU0;
+
+	// Brunt-Vaisala frequency
+	double dNbar;
+
+	// Reference pontential temperature
+	double dTheta0;
+
+	// Parameter factor for temperature disturbance
+	double dThetaC;
+
+	// Parameter reference height for temperature disturbance
+	double dhC;
+
+	// Parameter reference length a for temperature disturbance
+	double daC;
+
+	// Parameter reference length for mountain profile
+	double dxC;
+
+	// Parameter Archimede's Constant (essentially Pi but to some digits)
+	double dpiC;
+
 	// No Rayleigh friction
 	bool fNoRayleighFriction;
 
@@ -266,6 +337,14 @@ try {
 		SetDefaultHorizontalOrder(4);
 		SetDefaultVerticalOrder(3);
 
+		CommandLineDouble(dU0, "u0", 20.0);
+		CommandLineDouble(dNbar, "Nbar", 0.01);
+		CommandLineDouble(dTheta0, "Theta0", 300.0);
+		CommandLineDouble(dThetaC, "ThetaC", 1.0);
+		CommandLineDouble(dhC, "hC", 10000.0);
+		CommandLineDouble(daC, "aC", 5000.0);
+		CommandLineDouble(dxC, "xC", 1.0E+5);
+		CommandLineDouble(dpiC, "piC", 3.14159265);
 		CommandLineBool(fNoRayleighFriction, "norayleigh");
 
 		ParseCommandLine(argc, argv);
@@ -273,7 +352,16 @@ try {
 
 	// Create a new instance of the test
 	InertialGravityCartesianXZTest * test =
-		new InertialGravityCartesianXZTest(fNoRayleighFriction);
+		new InertialGravityCartesianXZTest(
+			dU0,
+			dNbar,
+			dTheta0,
+			dThetaC,
+			dhC,
+			daC,
+			dxC,
+			dpiC,
+			fNoRayleighFriction);
 
 	// Setup the Model
 	AnnounceBanner("MODEL SETUP");

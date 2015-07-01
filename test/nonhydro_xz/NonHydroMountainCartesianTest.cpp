@@ -1,6 +1,6 @@
 ///////////////////////////////////////////////////////////////////////////////
 ///
-///	\file    NonHydroMountainCartesianTest.cpp
+///	\file    NonHydrostaticMountainCartesianTest.cpp
 ///	\author  Paul Ullrich, Jorge Guerra
 ///	\version January 23, 2014
 ///
@@ -21,9 +21,9 @@
 ///	<summary>
 ///		Giraldo et al. (2007)
 ///
-///		NonHydro Mountain Uniform Flow test case.
+///		Hydrostatic Mountain Uniform Flow test case.
 ///	</summary>
-class NonHydroMountainCartesianTest : public TestCase {
+class NonHydrostaticMountainCartesianTest : public TestCase {
 
 public:
 	/// <summary>
@@ -38,14 +38,19 @@ public:
 
 private:
 	///	<summary>
-	///		Reference potential temperature
-	///	</summary>
-	double m_dTheta0;
-
-	///	<summary>
 	///		Uniform +X flow field.
 	///	</summary>
 	double m_dU0;
+
+	///	<summary>
+	///		Brunt-Vaisala frequency
+	///	</summary>
+	double m_dNbar;
+
+	///	<summary>
+	///		Background potential temperature field.
+	///	</summary>
+	double m_dTheta0;
 
 	///	<summary>
 	///		Parameter reference length for temperature disturbance
@@ -71,19 +76,28 @@ public:
 	///	<summary>
 	///		Constructor. (with physical constants defined privately here)
 	///	</summary>
-	NonHydroMountainCartesianTest(
+	NonHydrostaticMountainCartesianTest(
+		double dU0,
+		double dNbar,
+		double dTheta0,
+		double dhC,
+		double dxC,
+		double daC,
+		double dpiC,
 		bool fNoRayleighFriction
 	) :
-		m_dTheta0(280.),
-		m_dU0(10.0),
-		m_dhC(1.0),
-		m_dxC(72000.),
-		m_daC(1000.),
+		m_dU0(dU0),
+		m_dNbar(dNbar),
+		m_dTheta0(dTheta0),
+		m_dhC(dhC),
+		m_dxC(dxC),
+		m_daC(daC),
+		m_dpiC(dpiC),
 		m_fNoRayleighFriction(fNoRayleighFriction)
 	{
 		// Set the dimensions of the box
 		m_dGDim[0] = 0.0;
-		m_dGDim[1] = 144000.0;
+		m_dGDim[1] = 240000.0;
 		m_dGDim[2] = -1000.0;
 		m_dGDim[3] = 1000.0;
 		m_dGDim[4] = 0.0;
@@ -122,7 +136,7 @@ public:
 	   double dXp,
 	   double dYp
 	) const {
-		// Specify the NonHydro Mountain (case 6 from Giraldo et al. 2008)
+		// Specify the Hydrostatic Mountain (case 6 from Giraldo et al. 2008)
 		double hsm = m_dhC / (1.0 + ((dXp - m_dxC)/m_daC) *
                                     ((dXp - m_dxC)/m_daC));
         //std::cout << hsm << "\n";
@@ -146,7 +160,7 @@ public:
 	) const {
 		const double dRayleighStrength = 8.0e-3;
 		const double dRayleighDepth = 10000.0;
-		const double dRayleighWidth = 10000.0;
+		const double dRayleighWidth = 20000.0;
 
 		double dNuDepth = 0.0;
 		double dNuRight = 0.0;
@@ -161,7 +175,7 @@ public:
 			dNuRight = 0.5 * dRayleighStrength * (1.0 + cos(M_PI * dNormX));
 		}
 		if (dXp < m_dGDim[0] + dRayleighWidth) {
-			double dNormX = (dXp - m_dGDim[0]) / dRayleighWidth;
+			double dNormX = 1.0 - (dXp - m_dGDim[0]) / dRayleighWidth;
 			dNuLeft = 0.5 * dRayleighStrength * (1.0 + cos(M_PI * dNormX));
 		}
 
@@ -197,27 +211,35 @@ public:
 		const double dRd = phys.GetR();
 		const double dP0 = phys.GetP0();
 
-		// The Brunt-Vaisala frequency
-		const double dNbar = 0.01;
-
 		// Base potential temperature field
-		const double dTheta0 = m_dTheta0;
-		double dThetaBar = dTheta0 * exp(dNbar * dNbar / dG * dZp);
+		double dThetaBar = m_dTheta0 * exp(m_dNbar * m_dNbar / dG * dZp);
 
 		// Set the uniform U, V, W field for all time
 		dState[0] = m_dU0;
 		dState[1] = 0.0;
 		dState[3] = 0.0;
 
-		// Set the initial potential temperature field
-		dState[2] = dThetaBar;
+		// Zero gravity case
+		if (dG == 0.0) {
+			static double dT0 = 300.0;
 
-		// Set the initial density based on the Exner pressure
-		double dExnerP = (dG * dG) / (dCp * m_dTheta0 * dNbar * dNbar);
-		dExnerP *= (exp(-dNbar * dNbar / dG * dZp) - 1.0);
-		dExnerP += 1.0;
-		double dRho = dP0 / (dRd * dThetaBar) * pow(dExnerP,(dCv / dRd));
-		dState[4] = dRho;
+			dState[2] = dT0 * pow(dP0, (dRd / dCp));
+			dState[4] = dP0 / (dRd * dT0);
+
+		// Stratification with gravity
+		} else {
+			// Set the initial density based on the Exner pressure
+			double dExnerP = (dG * dG) / (dCp * m_dTheta0 * m_dNbar * m_dNbar);
+			dExnerP *= (exp(-m_dNbar * m_dNbar / dG * dZp) - 1.0);
+			dExnerP += 1.0;
+			double dRho = dP0 / (dRd * dThetaBar) * pow(dExnerP,(dCv / dRd));
+			dState[4] = dRho;
+
+			// Set the initial potential temperature field
+			//dState[2] = phys.PressureFromRhoTheta(dThetaBar * dRho);
+			//dState[2] = (dThetaBar * dRho);
+			dState[2] = dThetaBar;
+		}
 	}
 
 	///	<summary>
@@ -238,27 +260,26 @@ public:
 		const double dRd = phys.GetR();
 		const double dP0 = phys.GetP0();
 
-		// The Brunt-Vaisala frequency
-		const double dNbar = 0.01;
-
 		// Base potential temperature field
-		const double dTheta0 = m_dTheta0;
-		double dThetaBar = dTheta0 * exp(dNbar * dNbar / dG * dZp);
+		double dThetaBar = m_dTheta0 * exp(m_dNbar * m_dNbar / dG * dZp);
 
 		// Set the uniform U, V, W field for all time
 		dState[0] = m_dU0;
 		dState[1] = 0.0;
 		dState[3] = 0.0;
+		//dState[3] = sin(M_PI * dZp / m_dGDim[5]);
 
 		// Set the initial density based on the Exner pressure
-		double dExnerP = (dG * dG) / (dCp * m_dTheta0 * dNbar * dNbar);
-		dExnerP *= (exp(-dNbar * dNbar / dG * dZp) - 1.0);
+		double dExnerP = (dG * dG) / (dCp * m_dTheta0 * m_dNbar * m_dNbar);
+		dExnerP *= (exp(-m_dNbar * m_dNbar / dG * dZp) - 1.0);
 		dExnerP += 1.0;
 		double dRho = dP0 / (dRd * dThetaBar) * pow(dExnerP,(dCv / dRd));
 		dState[4] = dRho;
 
-		// Set the initial potential temperature field
-		dState[2] = phys.PressureFromRhoTheta(dThetaBar * dRho);
+		// Set the initial theta field
+		//dState[2] = phys.PressureFromRhoTheta(dThetaBar * dRho);
+		//dState[2] = (dThetaBar * dRho);
+		dState[2] = dThetaBar;
 	}
 };
 
@@ -270,28 +291,65 @@ int main(int argc, char** argv) {
 	TempestInitialize(&argc, &argv);
 
 try {
+	// Uniform +X flow field.
+	double dU0;
+
+	// Brunt-Vaisala frequency
+	double dNbar;
+
+	// Reference potential temperature
+	double dTheta0;
+
+	// Parameter reference height for temperature disturbance
+	double dhC;
+
+	// Parameter reference length a for temperature disturbance
+	double daC;
+
+	// Parameter reference length for mountain profile
+	double dxC;
+
+	// Parameter Archimede's Constant (essentially Pi but to some digits)
+	double dpiC;
+
 	// No Rayleigh friction
 	bool fNoRayleighFriction;
 
+
 	// Parse the command line
-	BeginTempestCommandLine("HydrostaticMountainCartesianTest");
+	BeginTempestCommandLine("NonHydrostaticMountainCartesianTest");
 		SetDefaultResolutionX(40);
 		SetDefaultResolutionY(1);
 		SetDefaultLevels(48);
-		SetDefaultOutputDeltaT("1800s");
+		SetDefaultOutputDeltaT("10m");
 		SetDefaultDeltaT("1s");
-		SetDefaultEndTime("36000s");
+		SetDefaultEndTime("5h");
 		SetDefaultHorizontalOrder(4);
 		SetDefaultVerticalOrder(4);
 
+		CommandLineDouble(dU0, "u0", 10.0);
+		CommandLineDouble(dNbar, "Nbar", 0.01);
+		CommandLineDouble(dTheta0, "Theta0", 280.0);
+		CommandLineDouble(dhC, "hC", 1.0);
+		CommandLineDouble(daC, "aC", 1000.0);
+		CommandLineDouble(dxC, "xC", 7.2E+4);
+		CommandLineDouble(dpiC, "piC", 3.14159265);
 		CommandLineBool(fNoRayleighFriction, "norayleigh");
 
 		ParseCommandLine(argc, argv);
 	EndCommandLine(argv)
 
 	// Create a new instance of the test
-	NonHydroMountainCartesianTest * test =
-		new NonHydroMountainCartesianTest(fNoRayleighFriction);
+	NonHydrostaticMountainCartesianTest * test =
+		new NonHydrostaticMountainCartesianTest(
+			dU0,
+			dNbar,
+			dTheta0,
+			dhC,
+			dxC,
+			daC,
+			dpiC,
+			fNoRayleighFriction);
 
 	// Setup the Model
 	AnnounceBanner("MODEL SETUP");

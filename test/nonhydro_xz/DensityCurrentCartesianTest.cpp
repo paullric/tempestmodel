@@ -1,8 +1,8 @@
 ///////////////////////////////////////////////////////////////////////////////
 ///
-///	\file    HydrostaticMountainCartesianTest.cpp
+///	\file    DensityCurrentCartesianTest.cpp
 ///	\author  Paul Ullrich, Jorge Guerra
-///	\version January 23, 2014
+///	\version July 09, 2014
 ///
 ///	<remarks>
 ///		Copyright 2000-2010 Paul Ullrich
@@ -19,11 +19,11 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 ///	<summary>
-///		Giraldo et al. (2007)
+///		Giraldo et al. (2008)
 ///
-///		Hydrostatic Mountain Uniform Flow test case.
+///		Cold density current test case.
 ///	</summary>
-class HydrostaticMountainCartesianTest : public TestCase {
+class DensityCurrentCartesianTest : public TestCase {
 
 public:
 	/// <summary>
@@ -31,31 +31,31 @@ public:
 	///	</summary>
 	double m_dGDim[6];
 
-	///	<summary>
-	///		Parameter reference height for topography disturbance
-	///	</summary>
-	double m_dhC;
-
 private:
 	///	<summary>
-	///		Background temperature field.
+	///		Reference constant background pontential temperature
 	///	</summary>
-	double m_dT0;
+	double m_dThetaBar;
 
 	///	<summary>
-	///		Uniform +X flow field.
+	///		Parameter factor for temperature disturbance
 	///	</summary>
-	double m_dU0;
+	double m_dThetaC;
 
 	///	<summary>
-	///		Parameter reference length for temperature disturbance
+	///		Parameter reference bubble radius
+	///	</summary>
+	double m_drC;
+
+	///	<summary>
+	///		Parameter reference length x for temperature disturbance
 	///	</summary>
 	double m_dxC;
 
 	///	<summary>
-	///		Parameter reference length a for temperature disturbance
+	///		Parameter reference length z for temperature disturbance
 	///	</summary>
-	double m_daC;
+	double m_dzC;
 
 	///	<summary>
 	///		Parameter Archimede's Constant (essentially Pi but to some digits)
@@ -71,30 +71,30 @@ public:
 	///	<summary>
 	///		Constructor. (with physical constants defined privately here)
 	///	</summary>
-	HydrostaticMountainCartesianTest(
-		double dT0,
-		double dU0,
-		double dhC,
+	DensityCurrentCartesianTest(
+		double dThetaBar,
+		double dThetaC,
+		double drC,
 		double dxC,
-		double daC,
+		double dzC,
 		double dpiC,
-		bool fNoRayleighFriction
+		double fNoRayleighFriction
 	) :
-		m_dT0(dT0),
-		m_dU0(dU0),
-		m_dhC(dhC),
+		m_dThetaBar(dThetaBar),
+		m_dThetaC(dThetaC),
+		m_drC(drC),
 		m_dxC(dxC),
-		m_daC(daC),
+		m_dzC(dzC),
 		m_dpiC(dpiC),
 		m_fNoRayleighFriction(fNoRayleighFriction)
 	{
 		// Set the dimensions of the box
-		m_dGDim[0] = 0.0;
-		m_dGDim[1] = 240000.0;
-		m_dGDim[2] = -1000.0;
-		m_dGDim[3] = 1000.0;
+		m_dGDim[0] = -25600.0;
+		m_dGDim[1] = 25600.0;
+		m_dGDim[2] = -100.0;
+		m_dGDim[3] = 100.0;
 		m_dGDim[4] = 0.0;
-		m_dGDim[5] = 30000.0;
+		m_dGDim[5] = 6400.0;
 	}
 
 public:
@@ -113,6 +113,13 @@ public:
 	}
 
 	///	<summary>
+	///		Flag indicating that a reference state is available.
+	///	</summary>
+	virtual bool HasReferenceState() const {
+		return true;
+	}
+
+	///	<summary>
 	///		Obtain test case specific physical constants.
 	///	</summary>
 	virtual void EvaluatePhysicalConstants(
@@ -125,15 +132,11 @@ public:
 	///		Evaluate the topography at the given point. (cartesian version)
 	///	</summary>
 	virtual double EvaluateTopography(
-       const PhysicalConstants & phys,
 	   double dXp,
 	   double dYp
 	) const {
-		// Specify the Hydrostatic Mountain (case 6 from Giraldo et al. 2008)
-		double hsm = m_dhC / (1.0 + ((dXp - m_dxC)/m_daC) *
-                                    ((dXp - m_dxC)/m_daC));
-        //std::cout << hsm << "\n";
-		return hsm;
+		// This test case has no topography associated with it
+		return 0.0;
 	}
 
 	///	<summary>
@@ -151,9 +154,9 @@ public:
 		double dXp,
 		double dYp
 	) const {
-		const double dRayleighStrength = 8.0e-3;
-		const double dRayleighDepth = 10000.0;
-		const double dRayleighWidth = 20000.0;
+		const double dRayleighStrength = 8.0E-3;
+		const double dRayleighDepth = 1400.0;
+		const double dRayleighWidth = 1000.0;
 
 		double dNuDepth = 0.0;
 		double dNuRight = 0.0;
@@ -168,7 +171,7 @@ public:
 			dNuRight = 0.5 * dRayleighStrength * (1.0 + cos(M_PI * dNormX));
 		}
 		if (dXp < m_dGDim[0] + dRayleighWidth) {
-			double dNormX = 1.0 - (dXp - m_dGDim[0]) / dRayleighWidth;
+			double dNormX = (dXp - m_dGDim[0]) / dRayleighWidth;
 			dNuLeft = 0.5 * dRayleighStrength * (1.0 + cos(M_PI * dNormX));
 		}
 
@@ -182,10 +185,28 @@ public:
 	}
 
 	///	<summary>
-	///		Flag indicating that a reference state is available.
+	///		Evaluate the potential temperature field perturbation.
 	///	</summary>
-	virtual bool HasReferenceState() const {
-		return true;
+	double EvaluateTPrime(
+		const PhysicalConstants & phys,
+		double dXp,
+		double dZp,
+		double dExnerP
+	) const {
+
+		// Potential temperature perturbation bubble using radius
+		double xL2 = (dXp - m_dxC) * (dXp - m_dxC) / (4000.0 * 4000.0);
+		double zL2 = (dZp - m_dzC) * (dZp - m_dzC) / (2000.0 * 2000.0);
+		double dRp = sqrt(xL2 + zL2);
+
+		double dThetaHat = 1.0;
+		if (dRp <= m_drC) {
+			dThetaHat = 0.5 * m_dThetaC * (1.0 + cos(m_dpiC * dRp)) / dExnerP;
+		} else if (dRp > m_drC) {
+			dThetaHat = 0.0;
+		}
+
+		return dThetaHat;
 	}
 
 	///	<summary>
@@ -198,30 +219,26 @@ public:
 		double dYp,
 		double * dState
 	) const {
-		const double dG = phys.GetG();
+	    const double dG = phys.GetG();
 		const double dCv = phys.GetCv();
 		const double dCp = phys.GetCp();
 		const double dRd = phys.GetR();
 		const double dP0 = phys.GetP0();
-
-		// The Brunt-Vaisala frequency
-		const double dNbar = dG / sqrt(dCp * m_dT0);
-
-		// Base potential temperature field
-		const double dTheta0 = m_dT0;
-		double dThetaBar = dTheta0 * exp(dNbar * dNbar / dG * dZp);
-
 		// Set the uniform U, V, W field for all time
-		dState[0] = m_dU0;
+		dState[0] = 0.0;
 		dState[1] = 0.0;
 		dState[3] = 0.0;
 
 		// Set the initial potential temperature field
-		dState[2] = dThetaBar;
+		dState[2] = m_dThetaBar;
 
 		// Set the initial density based on the Exner pressure
-		double dExnerP = exp(-dG / (dCp * m_dT0) * dZp);
-		double dRho = dP0 / (dRd * dThetaBar) * pow(dExnerP,(dCv / dRd));
+		double dExnerP =
+			- dG / (dCp * m_dThetaBar) * dZp + 1.0;
+		double dRho =
+			dP0 / (dRd * m_dThetaBar) *
+			  pow(dExnerP, (dCv / dRd));
+
 		dState[4] = dRho;
 	}
 
@@ -237,30 +254,26 @@ public:
 		double * dState,
 		double * dTracer
 	) const {
-		const double dG = phys.GetG();
+	    const double dG = phys.GetG();
 		const double dCv = phys.GetCv();
 		const double dCp = phys.GetCp();
 		const double dRd = phys.GetR();
 		const double dP0 = phys.GetP0();
-
-		// The Brunt-Vaisala frequency
-		const double dNbar = dG / sqrt(dCp * m_dT0);
-
-		// Base potential temperature field
-		const double dTheta0 = m_dT0;
-		double dThetaBar = dTheta0 * exp(dNbar * dNbar / dG * dZp);
-
 		// Set the uniform U, V, W field for all time
-		dState[0] = m_dU0;
+		dState[0] = 0.0;
 		dState[1] = 0.0;
 		dState[3] = 0.0;
 
-		// Set the initial potential temperature field
-		dState[2] = dThetaBar;
-
 		// Set the initial density based on the Exner pressure
-		double dExnerP = exp(-dG / (dCp * m_dT0) * dZp);
-		double dRho = dP0 / (dRd * dThetaBar) * pow(dExnerP,(dCv / dRd));
+		double dExnerP =
+			- dG / (dCp * m_dThetaBar) * dZp + 1.0;
+		// Set the initial potential temperature field
+		dState[2] = m_dThetaBar + EvaluateTPrime(phys, dXp, dZp, dExnerP);
+
+		double dRho =
+			dP0 / (dRd * m_dThetaBar) *
+			  pow(dExnerP, (dCv / dRd));
+
 		dState[4] = dRho;
 	}
 };
@@ -273,44 +286,43 @@ int main(int argc, char** argv) {
 	TempestInitialize(&argc, &argv);
 
 try {
-	// Uniform +X flow field.
-	double dU0;
+	// Reference constant background pontential temperature
+	double dThetaBar;
 
-	// Reference temperature
-	double dT0;
+	// Parameter factor for temperature disturbance
+	double dThetaC;
 
-	// Parameter reference height for temperature disturbance
-	double dhC;
+	// Parameter reference bubble radius
+	double drC;
 
-	// Parameter reference length a for temperature disturbance
-	double daC;
-
-	// Parameter reference length for mountain profile
+	// Parameter reference length x for temperature disturbance
 	double dxC;
+
+	// Parameter reference length z for temperature disturbance
+	double dzC;
 
 	// Parameter Archimede's Constant (essentially Pi but to some digits)
 	double dpiC;
 
-	// No Rayleigh friction
+	// Flag indicating that Rayleigh friction is inactive.
 	bool fNoRayleighFriction;
 
-
 	// Parse the command line
-	BeginTempestCommandLine("HydrostaticMountainCartesianTest");
-		SetDefaultResolutionX(40);
+	BeginTempestCommandLine("DensityCurrentCartesianTest");
+		SetDefaultResolutionX(36);
 		SetDefaultResolutionY(1);
-		SetDefaultLevels(48);
-		SetDefaultOutputDeltaT("1800s");
-		SetDefaultDeltaT("1s");
-		SetDefaultEndTime("36000s");
+		SetDefaultLevels(72);
+		SetDefaultOutputDeltaT("20s");
+		SetDefaultDeltaT("10000u");
+		SetDefaultEndTime("900s");
 		SetDefaultHorizontalOrder(4);
 		SetDefaultVerticalOrder(4);
 
-		CommandLineDouble(dU0, "u0", 20.0);
-		CommandLineDouble(dT0, "T0", 250.0);
-		CommandLineDouble(dhC, "hC", 1.0);
-		CommandLineDouble(daC, "aC", 10000.0);
-		CommandLineDouble(dxC, "xC", 1.2E+5);
+		CommandLineDouble(dThetaBar, "ThetaBar", 300.0);
+		CommandLineDouble(dThetaC, "ThetaC", -15.0);
+		CommandLineDouble(drC, "rC", 1.0);
+		CommandLineDouble(dxC, "xC", 0.0);
+		CommandLineDouble(dzC, "zC", 3000.0);
 		CommandLineDouble(dpiC, "piC", 3.14159265);
 		CommandLineBool(fNoRayleighFriction, "norayleigh");
 
@@ -318,13 +330,13 @@ try {
 	EndCommandLine(argv)
 
 	// Create a new instance of the test
-	HydrostaticMountainCartesianTest * test =
-		new HydrostaticMountainCartesianTest(
-			dT0,
-			dU0,
-			dhC,
+	DensityCurrentCartesianTest * test =
+		new DensityCurrentCartesianTest(
+			dThetaBar,
+			dThetaC,
+			drC,
 			dxC,
-			daC, 
+			dzC,
 			dpiC,
 			fNoRayleighFriction);
 
@@ -333,7 +345,7 @@ try {
 
 	Model model(EquationSet::PrimitiveNonhydrostaticEquations);
 
-	TempestSetupCartesianModel(model, test->m_dGDim, 0.0, test->m_dhC);
+	TempestSetupCartesianModel(model, test->m_dGDim, 0.0, 0.0);
 
 	// Set the test case for the model
 	AnnounceStartBlock("Initializing test case");

@@ -71,14 +71,20 @@ public:
 	///	<summary>
 	///		Constructor. (with physical constants defined privately here)
 	///	</summary>
-	ThermalBubbleCartesianTest() :
-		m_dH0(10000.),
-		m_dThetaBar(300.0),
-		m_dThetaC(0.5),
-		m_drC(250.),
-		m_dxC(500.),
-		m_dzC(350.),
-		m_dpiC(3.14159265)
+	ThermalBubbleCartesianTest(
+		double dThetaBar,
+		double dThetaC,
+		double drC,
+		double dxC,
+		double dzC,
+		double dpiC
+	) :
+		m_dThetaBar(dThetaBar),
+		m_dThetaC(dThetaC),
+		m_drC(drC),
+		m_dxC(dxC),
+		m_dzC(dzC),
+		m_dpiC(dpiC)
 	{
 		// Set the dimensions of the box
 		m_dGDim[0] = 0.0;
@@ -232,6 +238,23 @@ int main(int argc, char** argv) {
 	TempestInitialize(&argc, &argv);
 
 try {
+	// Reference constant background pontential temperature
+	double dThetaBar;
+
+	// Parameter factor for temperature disturbance
+	double dThetaC;
+
+	// Parameter reference bubble radius
+	double drC;
+
+	// Parameter reference length x for temperature disturbance
+	double dxC;
+
+	// Parameter reference length z for temperature disturbance
+	double dzC;
+
+	// Parameter Archimede's Constant (essentially Pi but to some digits)
+	double dpiC;
 
 	// Parse the command line
 	BeginTempestCommandLine("ThermalBubbleCartesianTest");
@@ -244,12 +267,25 @@ try {
 		SetDefaultHorizontalOrder(4);
 		SetDefaultVerticalOrder(1);
 
+		CommandLineDouble(dThetaBar, "ThetaBar", 300.0);
+		CommandLineDouble(dThetaC, "ThetaC", 0.5);
+		CommandLineDouble(drC, "rC", 250.0);
+		CommandLineDouble(dxC, "xC", 500.0);
+		CommandLineDouble(dzC, "zC", 350.0);
+		CommandLineDouble(dpiC, "piC", 3.14159265);
+
 		ParseCommandLine(argc, argv);
 	EndCommandLine(argv)
 
 	// Create a new instance of the test
 	ThermalBubbleCartesianTest * test =
-		new ThermalBubbleCartesianTest();
+		new ThermalBubbleCartesianTest(
+			dThetaBar,
+			dThetaC,
+			drC,
+			dxC,
+			dzC,
+			dpiC);
 
 	// Setup the Model
 	AnnounceBanner("MODEL SETUP");
