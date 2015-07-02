@@ -10,7 +10,7 @@ include $(TEMPESTBASEDIR)/mk/Make.defs
 ##
 ## Build instructions
 ##
-all: atm InertialGravityCartesianXZTest ThermalBubbleCartesianTest ScharMountainCartesianTest HydrostaticMountainCartesianTest NonHydroMountainCartesianTest Baroclinic3DCartesianTest Baroclinic3DCartesianRidgeTest DensityCurrentCartesianTest
+all: atm InertialGravityCartesianXZTest ThermalBubbleCartesianTest ScharMountainCartesianTest HydrostaticMountainCartesianTest NonHydroMountainCartesianTest Baroclinic3DCartesianTest Baroclinic3DCartesianRidgeTest RobertBubbleCartesianTest DensityCurrentCartesianTest
 
 atm:
 	cd $(TEMPESTBASEDIR)/src/base; make
@@ -21,6 +21,9 @@ atm:
 ##
 ThermalBubbleCartesianTest: $(BUILDDIR)/ThermalBubbleCartesianTest.o $(FILES:%.cpp=$(BUILDDIR)/%.o) $(TEMPESTLIBS)
 	$(CC) $(LDFLAGS) -o $@ $(BUILDDIR)/ThermalBubbleCartesianTest.o $(FILES:%.cpp=$(BUILDDIR)/%.o) $(LDFILES)
+
+RobertBubbleCartesianTest: $(BUILDDIR)/RobertBubbleCartesianTest.o $(FILES:%.cpp=$(BUILDDIR)/%.o) $(TEMPESTLIBS)
+	$(CC) $(LDFLAGS) -o $@ $(BUILDDIR)/RobertBubbleCartesianTest.o $(FILES:%.cpp=$(BUILDDIR)/%.o) $(LDFILES)
 
 DensityCurrentCartesianTest: $(BUILDDIR)/DensityCurrentCartesianTest.o $(FILES:%.cpp=$(BUILDDIR)/%.o) $(TEMPESTLIBS)
 	$(CC) $(LDFLAGS) -o $@ $(BUILDDIR)/DensityCurrentCartesianTest.o $(FILES:%.cpp=$(BUILDDIR)/%.o) $(LDFILES)
