@@ -23,16 +23,16 @@
 ///		Method to solve the vertical system.
 ///	</summary>
 //#define USE_JFNK_PETSC
-#define USE_JFNK_GMRES
+//#define USE_JFNK_GMRES
 //#define USE_DIRECTSOLVE_APPROXJ
-//#define USE_DIRECTSOLVE
+#define USE_DIRECTSOLVE
 
 ///	<summary>
 ///		Jacobian storage form
 ///	</summary>
 //#define USE_JACOBIAN_DEBUG
-//#define USE_JACOBIAN_GENERAL
-#define USE_JACOBIAN_DIAGONAL
+#define USE_JACOBIAN_GENERAL
+//#define USE_JACOBIAN_DIAGONAL
 
 ///	<summary>
 ///		Thermodynamic closure to use.
@@ -48,6 +48,11 @@
 ///	</summary>
 #define APPLY_RAYLEIGH_WITH_HYPERVIS
 //#define APPLY_RAYLEIGH_WITH_VERTICALDYN
+
+///	<summary>
+///		Apply positive definite filter to tracers.
+///	</summary>
+#define POSITIVE_DEFINITE_FILTER_TRACERS
 
 ///////////////////////////////////////////////////////////////////////////////
 

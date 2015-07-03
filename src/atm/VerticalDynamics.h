@@ -95,6 +95,14 @@ public:
 	) {
 	}
 
+	///	<summary>
+	///		Filter negative tracers in all columns.
+	///	</summary>
+	virtual void FilterNegativeTracers(
+		int iDataUpdate
+	) {
+	}
+
 protected:
 	///	<summary>
 	///		Reference to the model.

@@ -194,6 +194,8 @@ void TimestepSchemeStrang::Step(
 	} else {
 		pGrid->LinearCombineData(m_dCarryoverCombination, 0, DataType_State);
 		pGrid->LinearCombineData(m_dCarryoverCombination, 0, DataType_Tracers);
+
+		pVerticalDynamics->FilterNegativeTracers(0);
 	}
 
 	// Forward Euler

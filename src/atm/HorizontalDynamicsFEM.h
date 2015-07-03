@@ -28,6 +28,7 @@
 class Time;
 class GridData3D;
 class GridData4D;
+class GridPatchGLL;
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -63,6 +64,13 @@ public:
 	}
 
 public:
+	///	<summary>
+	///		Apply a positive definite filter to all tracers.
+	///	</summary>
+	void FilterNegativeTracers(
+		int iDataUpdate
+	);
+
 	///	<summary>
 	///		Perform one Forward Euler step for the interior terms of the
 	///		shallow water equations.

@@ -103,3 +103,13 @@ test/nonhydro_xz/G.txt
 test/nonhydro_xz/lev.txt
 
 test/nonhydro_xz/Baroclinic3DCartesianTest
+
+test/dcmip2016/BaroclinicWaveUMJSTest
+
+*.mod
+
+test/dcmip2016/TropicalCycloneTest
+
+test/nonhydro_xz/DensityCurrentCartesianTest
+
+test/nonhydro_xz/RobertBubbleCartesianTest

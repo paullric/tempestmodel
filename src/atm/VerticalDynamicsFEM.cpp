@@ -1123,6 +1123,9 @@ void VerticalDynamicsFEM::StepImplicit(
 		}
 		}
 	}
+
+	// Filter negative tracers
+	FilterNegativeTracers(iDataUpdate);
 }
 
 
@@ -2758,6 +2761,7 @@ void VerticalDynamicsFEM::UpdateColumnTracers(
 			m_dXiDotNode[0] = 0.0;
 			m_dXiDotNode[nRElements-1] = 0.0;
 
+			_EXCEPTION();
 			// dRhoQ_k/dRhoQ_n
 			for (int k = 0; k < nRElements; k++) {
 
@@ -2806,7 +2810,7 @@ void VerticalDynamicsFEM::UpdateColumnTracers(
 
 			m_dXiDotREdge[0] = 0.0;
 			m_dXiDotREdge[nRElements] = 0.0;
-
+/*
 			// dRhoQ_k/dRhoQ_n
 			for (int k = 0; k < nRElements; k++) {
 
@@ -2825,6 +2829,7 @@ void VerticalDynamicsFEM::UpdateColumnTracers(
 					}
 				}
 			}
+*/
 		}
 	}
 
@@ -2963,7 +2968,7 @@ void VerticalDynamicsFEM::UpdateColumnTracers(
 				m_dTracerDensityREdge);
 
 			// Calculate mass flux
-			for (int k = 0; k < nRElements; k++) {
+			for (int k = 0; k <= nRElements; k++) {
 				m_dMassFluxREdge[k] =
 					dJacobianREdge[k][m_iA][m_iB]
 					* m_dTracerDensityREdge[k]
@@ -2981,6 +2986,28 @@ void VerticalDynamicsFEM::UpdateColumnTracers(
 				m_dDiffMassFluxNode[k]
 				/ dJacobianNode[k][m_iA][m_iB];
 		}
+
+		double dDiff = 0.0;
+		double dSum = 0.0;
+		for (int k = 0; k < nRElements; k++) {
+			dDiff += m_vecTracersF[k] * dJacobianNode[k][m_iA][m_iB];
+			dSum += m_dTracerDensityNode[k] * dJacobianNode[k][m_iA][m_iB];
+		}
+
+		if (c == 0) {
+			//printf("%i %i %i %1.15e\n", m_pPatch->GetPatchIndex(), m_iA, m_iB, dSum);
+			if ((fabs(dDiff) > 1.0e-12 * dSum) && (dSum > 1.0e-12)) {
+				printf("%1.15e %1.15e\n", dDiff, dSum);
+				for (int k = 0; k <= nRElements; k++) {
+					printf("%i %1.15e\n", k, m_dMassFluxREdge[k]);
+				}
+				for (int k = 0; k < nRElements; k++) {
+					printf("%i %1.15e\n", k, m_dDiffMassFluxNode[k]);
+				}
+				_EXCEPTION();
+			}
+		}
+
 /*
 		FILE * fpF = fopen("TracersF.txt", "w");
 		for (int k = 0; k < nRElements; k++) {
@@ -2988,6 +3015,7 @@ void VerticalDynamicsFEM::UpdateColumnTracers(
 		}
 		fclose(fpF);
 */
+/*
 #if defined(USE_JACOBIAN_GENERAL) || defined(USE_JACOBIAN_DEBUG)
 		// Solve the matrix system using LU decomposed matrix
 		int iInfo =
@@ -3010,7 +3038,7 @@ void VerticalDynamicsFEM::UpdateColumnTracers(
 #else
 	_EXCEPTIONT("Invalid Jacobian type");
 #endif
-
+*/
 		if (iInfo != 0) {
 			_EXCEPTIONT("Inversion failure");
 		}
@@ -3028,34 +3056,8 @@ void VerticalDynamicsFEM::UpdateColumnTracers(
 			dataUpdateTracer[c][k][m_iA][m_iB] -=
 				m_vecTracersF[k];
 		}
-
-#pragma message "Apply limiter only to finite element?"
-		// Apply positive definite limiter to the tracers
-		double dTotalMass = 0.0;
-		double dNonNegativeMass = 0.0;
-		for (int k = 0; k < nRElements; k++) {
-			double dPointwiseMass =
-				  dataUpdateTracer[c][k][m_iA][m_iB]
-				* dElementArea[k][m_iA][m_iB];
-
-			dTotalMass += dPointwiseMass;
-
-			if (dataUpdateTracer[c][k][m_iA][m_iB] >= 0.0) {
-				dNonNegativeMass += dPointwiseMass;
-			}
-		}
-
-		// Apply scaling ratio to points with non-negative mass
-		double dR = dTotalMass / dNonNegativeMass;
-
-		for (int k = 0; k < nRElements; k++) {
-			if (dataUpdateTracer[c][k][m_iA][m_iB] > 0.0) {
-				dataUpdateTracer[c][k][m_iA][m_iB] *= dR;
-			} else {
-				dataUpdateTracer[c][k][m_iA][m_iB] = 0.0;
-			}
-		}
 	}
+
 /*
 	for (int k = 0; k < nRElements; k++) {
 		printf("%1.15e %1.15e\n",
@@ -3064,6 +3066,71 @@ void VerticalDynamicsFEM::UpdateColumnTracers(
 	}
 	_EXCEPTION();
 */
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void VerticalDynamicsFEM::FilterNegativeTracers(
+	int iDataUpdate
+) {
+#ifdef POSITIVE_DEFINITE_FILTER_TRACERS
+#pragma message "Apply limiter only to finite element?"
+	// Get a copy of the GLL grid
+	GridGLL * pGrid = dynamic_cast<GridGLL*>(m_model.GetGrid());
+
+	// Number of vertical elements
+	const int nRElements = pGrid->GetRElements();
+
+	// Perform local update
+	for (int n = 0; n < pGrid->GetActivePatchCount(); n++) {
+		GridPatch * pPatch = pGrid->GetActivePatch(n);
+
+		const PatchBox & box = pPatch->GetPatchBox();
+
+		const DataMatrix3D<double> & dElementArea =
+			pPatch->GetElementArea();
+
+		GridData4D & dataUpdateTracer =
+			pPatch->GetDataTracers(iDataUpdate);
+
+		// Number of tracers
+		const int nTracerCount = dataUpdateTracer.GetComponents();
+
+		for (int i = box.GetAInteriorBegin(); i < box.GetAInteriorEnd(); i++) {
+		for (int j = box.GetBInteriorBegin(); j < box.GetBInteriorEnd(); j++) {
+
+			for (int c = 0; c < nTracerCount; c++) {
+
+				// Calculate total mass and non-negative mass
+				double dTotalMass = 0.0;
+				double dNonNegativeMass = 0.0;
+				for (int k = 0; k < nRElements; k++) {
+					double dPointwiseMass =
+						  dataUpdateTracer[c][k][i][j]
+						* dElementArea[k][i][j];
+
+					dTotalMass += dPointwiseMass;
+
+					if (dataUpdateTracer[c][k][i][j] >= 0.0) {
+						dNonNegativeMass += dPointwiseMass;
+					}
+				}
+
+				// Apply scaling ratio to points with non-negative mass
+				double dR = dTotalMass / dNonNegativeMass;
+
+				for (int k = 0; k < nRElements; k++) {
+					if (dataUpdateTracer[c][k][i][j] > 0.0) {
+						dataUpdateTracer[c][k][i][j] *= dR;
+					} else {
+						dataUpdateTracer[c][k][i][j] = 0.0;
+					}
+				}
+			}
+		}
+		}
+	}
+#endif
 }
 
 ///////////////////////////////////////////////////////////////////////////////

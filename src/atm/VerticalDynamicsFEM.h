@@ -218,6 +218,14 @@ protected:
 		const GridData4D & dataUpdateTracer
 	);
 
+public:
+	///	<summary>
+	///		Apply a positive definite filter to tracers in each column.
+	///	</summary>
+	virtual void FilterNegativeTracers(
+		int iDataUpdate
+	);
+
 protected:
 	///	<summary>
 	///		Horizontal order of accuracy of the method.

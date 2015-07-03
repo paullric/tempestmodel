@@ -119,6 +119,99 @@ void HorizontalDynamicsFEM::Initialize() {
 
 ///////////////////////////////////////////////////////////////////////////////
 
+void HorizontalDynamicsFEM::FilterNegativeTracers(
+	int iDataUpdate
+) {
+#ifdef POSITIVE_DEFINITE_FILTER_TRACERS
+	// Get a copy of the GLL grid
+	GridGLL * pGrid = dynamic_cast<GridGLL*>(m_model.GetGrid());
+
+	// Number of vertical elements
+	const int nRElements = pGrid->GetRElements();
+
+	// Perform local update
+	for (int n = 0; n < pGrid->GetActivePatchCount(); n++) {
+		GridPatchGLL * pPatch =
+			dynamic_cast<GridPatchGLL*>(pGrid->GetActivePatch(n));
+
+		const PatchBox & box = pPatch->GetPatchBox();
+
+		const DataMatrix3D<double> & dElementArea =
+			pPatch->GetElementArea();
+
+		GridData4D & dataUpdateTracer =
+			pPatch->GetDataTracers(iDataUpdate);
+
+		// Number of tracers
+		const int nTracerCount = dataUpdateTracer.GetComponents();
+
+		// Get number of finite elements in each coordinate direction
+		int nElementCountA = pPatch->GetElementCountA();
+		int nElementCountB = pPatch->GetElementCountB();
+
+		// Loop over all elements
+		for (int a = 0; a < nElementCountA; a++) {
+		for (int b = 0; b < nElementCountB; b++) {
+
+			// Loop overall tracers and vertical levels
+			for (int c = 0; c < nTracerCount; c++) {
+			for (int k = 0; k < nRElements; k++) {
+
+				// Compute total mass and non-negative mass
+				double dTotalInitialMass = 0.0;
+				double dTotalMass = 0.0;
+				double dNonNegativeMass = 0.0;
+
+				for (int i = 0; i < m_nHorizontalOrder; i++) {
+				for (int j = 0; j < m_nHorizontalOrder; j++) {
+
+					int iA = a * m_nHorizontalOrder + i + box.GetHaloElements();
+					int iB = b * m_nHorizontalOrder + j + box.GetHaloElements();
+
+					double dPointwiseMass =
+						  dataUpdateTracer[c][k][iA][iB]
+						* dElementArea[k][iA][iB];
+
+					dTotalMass += dPointwiseMass;
+
+					if (dataUpdateTracer[c][k][iA][iB] >= 0.0) {
+						dNonNegativeMass += dPointwiseMass;
+					}
+				}
+				}
+/*
+				// Check for negative total mass
+				if (dTotalMass < 1.0e-14) {
+					printf("%i %i %i %1.15e %1.15e\n", n, a, b, dTotalInitialMass, dTotalMass);
+					_EXCEPTIONT("Negative element mass detected in filter");
+				}
+*/
+				// Apply scaling ratio to points with non-negative mass
+				double dR = dTotalMass / dNonNegativeMass;
+
+				for (int i = 0; i < m_nHorizontalOrder; i++) {
+				for (int j = 0; j < m_nHorizontalOrder; j++) {
+
+					int iA = a * m_nHorizontalOrder + i + box.GetHaloElements();
+					int iB = b * m_nHorizontalOrder + j + box.GetHaloElements();
+
+					if (dataUpdateTracer[c][k][iA][iB] > 0.0) {
+						dataUpdateTracer[c][k][iA][iB] *= dR;
+					} else {
+						dataUpdateTracer[c][k][iA][iB] = 0.0;
+					}
+				}
+				}
+			}
+			}
+		}
+		}
+	}
+#endif
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
 void HorizontalDynamicsFEM::StepShallowWater(
 	int iDataInitial,
 	int iDataUpdate,
@@ -1399,54 +1492,12 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 				}
 			}
 #endif
-
-			// Apply positive definite filter to tracers
-			for (int c = 0; c < nTracerCount; c++) {
-			for (int k = 0; k < nRElements; k++) {
-
-				// Compute total mass and non-negative mass
-				double dTotalMass = 0.0;
-				double dNonNegativeMass = 0.0;
-
-				for (int i = 0; i < m_nHorizontalOrder; i++) {
-				for (int j = 0; j < m_nHorizontalOrder; j++) {
-
-					int iA = a * m_nHorizontalOrder + i + box.GetHaloElements();
-					int iB = b * m_nHorizontalOrder + j + box.GetHaloElements();
-
-					double dPointwiseMass =
-						  dataUpdateTracer[c][k][iA][iB]
-						* dElementArea[k][iA][iB];
-
-					dTotalMass += dPointwiseMass;
-
-					if (dataUpdateTracer[c][k][iA][iB] >= 0.0) {
-						dNonNegativeMass += dPointwiseMass;
-					}
-				}
-				}
-
-				// Apply scaling ratio to points with non-negative mass
-				double dR = dTotalMass / dNonNegativeMass;
-
-				for (int i = 0; i < m_nHorizontalOrder; i++) {
-				for (int j = 0; j < m_nHorizontalOrder; j++) {
-
-					int iA = a * m_nHorizontalOrder + i + box.GetHaloElements();
-					int iB = b * m_nHorizontalOrder + j + box.GetHaloElements();
-
-					if (dataUpdateTracer[c][k][iA][iB] > 0.0) {
-						dataUpdateTracer[c][k][iA][iB] *= dR;
-					} else {
-						dataUpdateTracer[c][k][iA][iB] = 0.0;
-					}
-				}
-				}
-			}
-			}
 		}
 		}
 	}
+
+	// Apply positive definite filter to tracers
+	FilterNegativeTracers(iDataUpdate);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1498,6 +1549,9 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusion(
 ) {
 	// Get a copy of the GLL grid
 	GridGLL * pGrid = dynamic_cast<GridGLL*>(m_model.GetGrid());
+
+	// Number of radial elements in grid
+	int nRElements = pGrid->GetRElements();
 
 	// Perform local update
 	for (int n = 0; n < pGrid->GetActivePatchCount(); n++) {
@@ -1581,13 +1635,13 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusion(
 					if (pGrid->GetVarLocation(c) == DataLocation_Node) {
 						pDataInitial = dataInitialNode[c];
 						pDataUpdate  = dataUpdateNode[c];
-						nElementCountR = dataInitialNode.GetRElements();
+						nElementCountR = nRElements;
 						pJacobian = dJacobianNode;
 
 					} else if (pGrid->GetVarLocation(c) == DataLocation_REdge) {
 						pDataInitial = dataInitialREdge[c];
 						pDataUpdate  = dataUpdateREdge[c];
-						nElementCountR = dataInitialREdge.GetRElements();
+						nElementCountR = nRElements + 1;
 						pJacobian = dJacobianREdge;
 
 					} else {
@@ -1597,7 +1651,7 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusion(
 				} else {
 					pDataInitial = dataInitialTracer[c];
 					pDataUpdate = dataUpdateTracer[c];
-					nElementCountR = dataInitialTracer.GetRElements();
+					nElementCountR = nRElements;
 					pJacobian = dJacobianNode;
 				}
 
@@ -1973,7 +2027,8 @@ void HorizontalDynamicsFEM::StepAfterSubCycle(
 			iDataInitial, iDataWorking, 1.0, 1.0, 1.0, false);
 
 		// Apply Direct Stiffness Summation
-		pGrid->ApplyDSS(iDataWorking);
+		pGrid->ApplyDSS(iDataWorking, DataType_State);
+		pGrid->ApplyDSS(iDataWorking, DataType_Tracers);
 
 		// Apply scalar and vector hyperdiffusion (second application)
 		pGrid->CopyData(iDataInitial, iDataUpdate, DataType_State);
@@ -1984,8 +2039,12 @@ void HorizontalDynamicsFEM::StepAfterSubCycle(
 		ApplyVectorHyperdiffusion(
 			iDataWorking, iDataUpdate, -dDeltaT, m_dNuDiv, m_dNuVort, true);
 
+		// Apply positive definite filter to tracers
+		FilterNegativeTracers(iDataUpdate);
+
 		// Apply Direct Stiffness Summation
-		pGrid->ApplyDSS(iDataUpdate);
+		pGrid->ApplyDSS(iDataUpdate, DataType_State);
+		pGrid->ApplyDSS(iDataUpdate, DataType_Tracers);
 	}
 
 #ifdef APPLY_RAYLEIGH_WITH_HYPERVIS
