@@ -12,13 +12,15 @@ include $(TEMPESTBASEDIR)/mk/Make.defs
 ## Build instructions
 ##
 all: atm TropicalCycloneTest BaroclinicWaveUMJSTest
- 
 atm:
 	cd $(TEMPESTBASEDIR)/src/base; make
 	cd $(TEMPESTBASEDIR)/src/atm; make
 	cd interface; make 
 
 INTERFACE_FILES= interface/main.o interface/tropical_cyclone_test.o interface/Terminator.o interface/test_baroclinic.o interface/kessler.o
+
+#Local files
+FILES=KesslerPhysics.cpp
 
 ##
 ## Individual test case build instructions
