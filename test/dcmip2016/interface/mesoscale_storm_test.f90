@@ -351,6 +351,7 @@ CONTAINS
                 rho,        & ! density (kg m^-3)
                 q             ! water vapor mixing ratio (kg/kg)
 
+    ! Absolute latitude
     REAL(8) :: nh_lat
 
     ! Assembled variable values in a column
@@ -423,10 +424,7 @@ CONTAINS
     t = exner * theta
 
     ! Density
-    rho = p / (Rd * t)
-
-    write(*,*), z, nh_lat * 180.d0 / pi, rho, p, t
-    stop
+    rho = p / (Rd * exner * thetav)
 
   END SUBROUTINE mesoscale_storm_test
 

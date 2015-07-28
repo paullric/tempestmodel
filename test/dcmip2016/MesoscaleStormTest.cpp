@@ -23,7 +23,6 @@ extern "C" {
 	);
 
 	void mesoscale_storm_test(
-		double * dX,
 		double * dLon,
 		double * dLat,
 		double * dP,
@@ -32,7 +31,7 @@ extern "C" {
 		double * dU,
 		double * dV,
 		double * dT,
-		double * dTheta,
+		double * dThetaV,
 		double * dPs,
 		double * dRho,
 		double * dQ
@@ -57,79 +56,16 @@ protected:
 	///	</summary>
 	double m_dEarthScaling;
 
-	///	<summary>
-	///		Earth rotation rate parameter.
-	///	</summary>
-	double m_dOmega;
-
-	///	<summary>
-	///		Background wind speed.
-	///	</summary>
-	double m_dU0;
-
-	///	<summary>
-	///		Background Brunt-Vaisala frequency.
-	///	</summary>
-	double m_dN;
-
-	///	<summary>
-	///		Surface temperature at the equator.
-	///	</summary>
-	double m_dTeq;
-
-	///	<summary>
-	///		Potential temperature perturbation width parameter (m).
-	///	</summary>
-	double m_dPertWidth;
-
-	///	<summary>
-	///		Longitudinal centerpoint of the potential temperature pert.
-	///	</summary>
-	double m_dPertLonC;
-
-	///	<summary>
-	///		Latitudinal centerpoint of the potential temperature pert.
-	///	</summary>
-	double m_dPertLatC;
-
-	///	<summary>
-	///		Magnitude of the potential temperature perturbation.
-	///	</summary>
-	double m_dPertMagnitude;
-
-	///	<summary>
-	///		Vertical wavelength of the potential temperature perturbation.
-	///	</summary>
-	double m_dPertVerticalWavelength;
-
 public:
 	///	<summary>
 	///		Constructor.
 	///	</summary>
 	MesoscaleStormTest(
 		double dZtop,
-		double dEarthScaling,
-		double dOmega,
-		double dU0,
-		double dN,
-		double dTeq,
-		double dPertWidth,
-		double dPertLonC,
-		double dPertLatC,
-		double dPertMagnitude,
-		double dPertVerticalWavelength
+		double dEarthScaling
 	) :
 		m_dZtop(dZtop),
-		m_dEarthScaling(dEarthScaling),
-		m_dOmega(dOmega),
-		m_dU0(dU0),
-		m_dN(dN),
-		m_dTeq(dTeq),
-		m_dPertWidth(dPertWidth),
-		m_dPertLonC(dPertLonC * M_PI / 180.0),
-		m_dPertLatC(dPertLatC * M_PI / 180.0),
-		m_dPertMagnitude(dPertMagnitude),
-		m_dPertVerticalWavelength(dPertVerticalWavelength)
+		m_dEarthScaling(dEarthScaling)
 	{
 		mesoscale_storm_init();
 	}
@@ -139,7 +75,7 @@ public:
 	///		Number of tracers used in this test.
 	///	</summary>
 	virtual int GetTracerCount() const {
-		return 0;
+		return 3;
 	}
 
 	///	<summary>
@@ -162,6 +98,8 @@ public:
 	virtual void EvaluatePhysicalConstants(
 		PhysicalConstants & phys
 	) const {
+		phys.SetEarthRadius(phys.GetEarthRadius() / m_dEarthScaling);
+		phys.SetOmega(phys.GetOmega() * m_dEarthScaling);
 	}
 
 	///	<summary>
@@ -228,7 +166,6 @@ public:
 		// Calculate the reference state
 		//EvaluateReferenceState(phys, dZ, dLon, dLat, dState);
 		mesoscale_storm_test(
-			&dX,
 			&dLon,
 			&dLat,
 			&dP,
@@ -244,22 +181,13 @@ public:
 
 		dState[0] = dU;
 		dState[1] = dV;
-		dState[2] = dT*pow((phys.GetP0()/dP),(phys.GetR()/phys.GetCp()));
+		dState[2] = dThetaV;
 		dState[3] = 0.0;
 		dState[4] = dRho;
 
-	 // std::cout << "z: " << dZ<< std::endl;
-		
-		// Add in the potential temperature perturbation
-		double dR = phys.GetEarthRadius() * acos(
-			sin(m_dPertLatC) * sin(dLat)
-			+ cos(m_dPertLatC) * cos(dLat) * cos(dLon - m_dPertLonC));
-
-		double dS = m_dPertWidth * m_dPertWidth /
-			(m_dPertWidth * m_dPertWidth + dR * dR);
-
-		dState[2] += m_dPertMagnitude
-			* dS * sin(2.0 * M_PI * dZ / m_dPertVerticalWavelength);
+		dTracer[0] = dRho * dQ;
+		dTracer[1] = 0.0;
+		dTracer[2] = 0.0;
 	}
 };
 
@@ -272,60 +200,24 @@ int main(int argc, char** argv) {
 	
 
 try {
-	// Model cap.
+	// Model cap
 	double dZtop;
 
-	// Earth radius scaling parameter.
+	// Earth radius scaling parameter
 	double dEarthScaling;
-
-	// Earth rotation rate parameter.
-	double dOmega;
-
-	// Background wind speed.
-	double dU0;
-
-	// Background Brunt-Vaisala frequency.
-	double dN;
-
-	// Surface temperature at the equator.
-	double dTeq;
-
-	// Potential temperature perturbation width parameter (m).
-	double dPertWidth;
-
-	// Longitudinal centerpoint of the potential temperature pert.
-	double dPertLonC;
-
-	// Latitudinal centerpoint of the potential temperature pert.
-	double dPertLatC;
-
-	// Magnitude of the potential temperature perturbation.
-	double dPertMagnitude;
-
-	// Vertical wavelength of the potential temperature perturbation.
-	double dPertVerticalWavelength;
 
 	// Parse the command line
 	BeginTempestCommandLine("MesoscaleStormTest");
 		SetDefaultResolution(20);
 		SetDefaultLevels(10);
-		SetDefaultOutputDeltaT("1500000u");
-		SetDefaultDeltaT("1500000u");
-		SetDefaultEndTime("1500000u");
+		SetDefaultOutputDeltaT("60s");
+		SetDefaultDeltaT("60s");
+		SetDefaultEndTime("60s");
 		SetDefaultHorizontalOrder(4);
 		SetDefaultVerticalOrder(1);
 
 		CommandLineDouble(dZtop, "ztop", 10000.0);
-		CommandLineDouble(dEarthScaling, "X", 125.0);
-		CommandLineDouble(dOmega, "omega", 0.0);
-		CommandLineDouble(dU0, "u0", 20.0);
-		CommandLineDouble(dN, "N", 0.01);
-		CommandLineDouble(dTeq, "Teq", 310.0);
-		CommandLineDouble(dPertWidth, "d", 1.0/6.0);
-		CommandLineDouble(dPertLonC, "lon_c", M_PI/9.0 );
-		CommandLineDouble(dPertLatC, "lat_c", 2.0*M_PI/9.0);
-		CommandLineDouble(dPertMagnitude, "dtheta", 1.0);
-		CommandLineDouble(dPertVerticalWavelength, "Lz", 20000.0);
+		CommandLineDouble(dEarthScaling, "X", 1.0);
 
 		ParseCommandLine(argc, argv);
 	EndTempestCommandLine(argv)
@@ -333,7 +225,13 @@ try {
 	// Setup the Model
 	AnnounceBanner("MODEL SETUP");
 
-	Model model(EquationSet::PrimitiveNonhydrostaticEquations);
+    EquationSet eqn(EquationSet::PrimitiveNonhydrostaticEquations);
+ 
+    eqn.InsertTracer("RhoQv", "RhoQv");
+    eqn.InsertTracer("RhoQc", "RhoQc");
+    eqn.InsertTracer("RhoQr", "RhoQr");
+
+	Model model(eqn);
 
 	TempestSetupCubedSphereModel(model);
 	
@@ -342,18 +240,15 @@ try {
 	model.SetTestCase(
 		new MesoscaleStormTest(
 			dZtop,
-			dEarthScaling,
-			dOmega,
-			dU0,
-			dN,
-			dTeq,
-			dPertWidth,
-			dPertLonC,
-			dPertLatC,
-			dPertMagnitude,
-			dPertVerticalWavelength));
+			dEarthScaling));
 	AnnounceEndBlock("Done");
-
+/*
+	// Add Kessler physics
+	model.AttachWorkflowProcess(
+		new KesslerPhysics(
+			model,
+			model.GetDeltaT()));
+*/
 	// Begin execution
 	AnnounceBanner("SIMULATION");
 	model.Go();
