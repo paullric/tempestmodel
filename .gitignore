@@ -113,3 +113,11 @@ test/dcmip2016/TropicalCycloneTest
 test/nonhydro_xz/DensityCurrentCartesianTest
 
 test/nonhydro_xz/RobertBubbleCartesianTest
+
+test/dcmip2016/TracersLUDF.txt
+
+test/nonhydro_sphere/Area.txt
+
+test/nonhydro_sphere/Soln.txt
+
+test/dcmip2016/MesoscaleStormTest
