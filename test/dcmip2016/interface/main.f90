@@ -20,7 +20,7 @@
                 u,          & ! Zonal wind (m s^-1)
                 v,          & ! Meridional wind (m s^-1)
                 t,          & ! Temperature (K)
-                thetav      & ! 
+                thetav      & ! Virtual potential temperature (K)
                 phis,       & ! Surface Geopotential (m^2 s^-2)
                 ps,         & ! Surface Pressure (Pa)
                 rho,        & ! density (kg m^-3)
