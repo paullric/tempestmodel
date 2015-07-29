@@ -1,7 +1,7 @@
 
 
 
-  SUBROUTINE tc_tropical(lon, lat, p, z, u,v,t,phis,ps,rho,q)
+  SUBROUTINE tc_tropical(lon,lat,p,z,zcoords,u,v,t,thetav,phis,ps,rho,q)
   USE tropical_cyclone_test
 
     REAL(8), INTENT(INOUT)  :: &
@@ -20,6 +20,7 @@
                 u,          & ! Zonal wind (m s^-1)
                 v,          & ! Meridional wind (m s^-1)
                 t,          & ! Temperature (K)
+                thetav      & ! 
                 phis,       & ! Surface Geopotential (m^2 s^-2)
                 ps,         & ! Surface Pressure (Pa)
                 rho,        & ! density (kg m^-3)
@@ -35,7 +36,7 @@
     X=1.0d0
     zcoords=1
 
-    CALL tc_initial_vortex(lon,lat,p,z,zcoords,u,v,t,phis,ps,rho,q)
+    CALL tc_initial_vortex(lon,lat,p,z,zcoords,u,v,t,thetav,phis,ps,rho,q)
 
 
 
