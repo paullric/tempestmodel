@@ -5,18 +5,19 @@ MODULE tropical_cyclone_test
   !  Function for setting up idealized tropical cyclone initial conditions
   !
   !  Given a point specified by: 
-  !  	longitude (radians) 
-  ! 	latitude (radians) 
-  ! 	pressure/height
+  !    longitude (radians) 
+  !   latitude (radians) 
+  !   pressure/height
   !  the functions will return:
-  !	u	zonal wind (m s^-1)
-  !	v	meridional wind (m s^-1)
-  !	t	temperature (K)
-  !	phis	surface geopotential (m^2 s^-2)
-  !	ps	surface pressure (Pa)
-  !	rho	density (kj m^-3)
-  !	q	specific humidity (kg/kg)
-  !	qi	tracers (kg/kg)
+  !  u  zonal wind (m s^-1)
+  !  v  meridional wind (m s^-1)
+  !  t  temperature (K)
+  !  thetav  virtual potential temperature (K)
+  !  phis  surface geopotential (m^2 s^-2)
+  !  ps  surface pressure (Pa)
+  !  rho  density (kj m^-3)
+  !  q  specific humidity (kg/kg)
+  !  qi  tracers (kg/kg)
   !     p       pressure if height based (Pa)  
   !
   !  Initial data are currently identical to:
@@ -31,16 +32,23 @@ MODULE tropical_cyclone_test
 
   IMPLICIT NONE
 
-!-----------------------------------------------------------------------
-!     Physical Parameters (or use a module?)
-!-----------------------------------------------------------------------
+!=======================================================================
+! physical constants
+!=======================================================================
 
-	real(8), parameter ::	a	= 6371220.d0,	&	! Earth's Radius (m)
-				Rd 	= 287.04d0,	&	! Ideal gas const dry air (J kg^-1 K^1)
-				g	= 9.80616d0,	&	! Gravity (m s^2)
-                                omega   = 7.292115d-5,  &       ! angular velocity 1/s
-                                pi      = 4.d0*atan(1.d0), &    ! pi
-                                convert = 180.d0/pi
+  REAL(8), PARAMETER ::               &
+       a     = 6371220.0d0,           & ! Reference Earth's Radius (m)
+       Rd    = 287.0d0,               & ! Ideal gas const dry air (J kg^-1 K^1)
+       g     = 9.80616d0,             & ! Gravity (m s^2)
+       cp    = 1004.5d0,              & ! Specific heat capacity (J kg^-1 K^1)
+       Lvap  = 2.5d6,                 & ! Latent heat of vaporization of water
+       Rvap  = 461.5d0,               & ! Ideal gas constnat for water vapor
+       Mvap  = 0.608d0,               & ! Ratio of molar mass of dry air/water
+       pi    = 3.14159265358979d0,    & ! pi
+       p0    = 100000.0d0,            & ! surface pressure (Pa)
+       kappa = 2.d0/7.d0,             & ! Ratio of Rd to cp
+       omega = 7.29212d-5,            & ! Reference rotation rate of the Earth (s^-1)
+       deg2rad  = pi/180.d0             ! Conversion factor of degrees to radians
 
 !-----------------------------------------------------------------------
 !     Tropical Cyclone Test Case Tuning Parameters
@@ -52,7 +60,6 @@ MODULE tropical_cyclone_test
                             gamma      = 0.007d0,    & ! lapse rate
                             Ts0        = 302.15d0,   & ! Surface temperature (SST)
                             p00        = 101500.d0,  & ! global mean surface pressure
-                            p0         = 100000.d0,  & ! p for model level calculation
                             cen_lat    = 10.d0,      & ! Center latitude of initial vortex
                             cen_lon    = 180.d0,     & ! Center longitufe of initial vortex
                             zq1        = 3000.d0,    & ! Height 1 for q calculation
@@ -73,11 +80,11 @@ MODULE tropical_cyclone_test
 CONTAINS 
 
 
-!==========================================================================================
-! TEST CASE 5 - Tropical Cyclone 
-!==========================================================================================
+!=======================================================================
+!     Reed and Jablonowski Tropical Cyclone test
+!=======================================================================
 
-SUBROUTINE tc_initial_vortex(lon,lat,p,z,zcoords,u,v,t,phis,ps,rho,q)
+SUBROUTINE tc_initial_vortex(lon,lat,p,z,zcoords,u,v,t,thetav,phis,ps,rho,q)
 
 IMPLICIT NONE
 
@@ -85,24 +92,26 @@ IMPLICIT NONE
 !     input/output params parameters at given location
 !-----------------------------------------------------------------------
 
-	real(8), intent(in)  :: lon, &		! Longitude (radians)
-				lat                    ! Latitude (radians)
-				
+  real(8), intent(in)  ::      &
+              lon,             &     ! Longitude (radians)
+              lat                    ! Latitude (radians)
 
-	real(8), intent(inout) :: p, &      ! Pressure  (Pa)
-                z                       ! Height (m)
+  real(8), intent(inout) ::    &
+              p,               &     ! Pressure (Pa)
+              z                      ! Height (m)
 
-	integer,  intent(in) :: zcoords 	! 0 or 1 see below
-	real(8), intent(out) :: u, & 		! Zonal wind (m s^-1)
-				v, &		! Meridional wind (m s^-1)
-				t, & 		! Temperature (K)
-				phis, & 	! Surface Geopotential (m^2 s^-2)
-				ps, & 		! Surface Pressure (Pa)
-				rho, & 		! density (kg m^-3)
-				q  		! Specific Humidity (kg/kg)
+  INTEGER, INTENT(IN) :: zcoords     ! 1 if z coordinates are specified
+                                     ! 0 if p coordinates are specified
 
-	! if zcoords = 1, then we use z and output p
-	! if zcoords = 0, then we use p
+  real(8), intent(out) ::      &
+              u,               &     ! Zonal wind (m s^-1)
+              v,               &     ! Meridional wind (m s^-1)
+              t,               &     ! Temperature (K)
+              thetav,          &     ! Virtual potential temperature (K)
+              phis,            &     ! Surface Geopotential (m^2 s^-2)
+              ps,              &     ! Surface Pressure (Pa)
+              rho,             &     ! Density (kg m^-3)
+              q                      ! Specific Humidity (kg/kg)
 
 !-----------------------------------------------------------------------
 !    Additional parameters
@@ -115,11 +124,9 @@ IMPLICIT NONE
 !    Define Great circle distance (gr) and Coriolis parameter (f)
 !-----------------------------------------------------------------------
 
-    f  = 2.d0*omega*sin(cen_lat/convert)           ! Coriolis parameter
-    gr = a*acos(sin(cen_lat/convert)*sin(lat) + &  ! Great circle radius
-         (cos(cen_lat/convert)*cos(lat)*cos(lon-cen_lon/convert)))
-
-
+    f  = 2.d0*omega*sin(cen_lat*deg2rad)           ! Coriolis parameter
+    gr = a*acos(sin(cen_lat*deg2rad)*sin(lat) + &  ! Great circle radius
+         (cos(cen_lat*deg2rad)*cos(lat)*cos(lon-cen_lon*deg2rad)))
 
 !-----------------------------------------------------------------------
 !    initialize PS (surface pressure)
@@ -163,18 +170,15 @@ IMPLICIT NONE
           end if
           height = zn
        end if
-
-       
-
     end if
 
 !-----------------------------------------------------------------------
 !    initialize U and V (wind components)
 !-----------------------------------------------------------------------
 
-    d1 = sin(cen_lat/convert)*cos(lat) - &
-         cos(cen_lat/convert)*sin(lat)*cos(lon-cen_lon/convert)
-    d2 = cos(cen_lat/convert)*sin(lon-cen_lon/convert)
+    d1 = sin(cen_lat*deg2rad)*cos(lat) - &
+         cos(cen_lat*deg2rad)*sin(lat)*cos(lon-cen_lon*deg2rad)
+    d2 = cos(cen_lat*deg2rad)*sin(lon-cen_lon*deg2rad)
     d  = max(epsilon, sqrt(d1**2.d0 + d2**2.d0))
     ufac = d1/d
     vfac = d2/d
@@ -182,9 +186,6 @@ IMPLICIT NONE
     if (height > ztrop) then
         u = 0.d0
         v = 0.d0
-
-    
-
     else
         v = vfac*(-f*gr/2.d0+sqrt((f*gr/2.d0)**(2.d0) &
             - exppr*(gr/rp)**exppr*Rd*(T0-gamma*height) &
@@ -216,6 +217,11 @@ IMPLICIT NONE
         t = (T0-gamma*height)/(1.d0+constTv*q)/(1.d0+exppz*Rd*(T0-gamma*height)*height &
             /(g*zp**exppz*(1.d0-p00/dp*exp((gr/rp)**exppr)*exp((height/zp)**exppz))))
     end if
+
+!-----------------------------------------------------------------------
+!    initialize thetav (virtual potential temperature)
+!-----------------------------------------------------------------------
+    thetav = t * (1.d0+constTv*q) * (p0/p)**(Rd/cp)
 
 !-----------------------------------------------------------------------
 !    initialize PHIS (surface geopotential)

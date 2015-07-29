@@ -1,6 +1,6 @@
 ///////////////////////////////////////////////////////////////////////////////
 ///
-///	\file    TropicalCycloneTest.cpp
+///	\file	TropicalCycloneTest.cpp
 ///	\author  Paul Ullrich
 ///	\version June 23, 2013
 ///
@@ -23,14 +23,15 @@
 		double * dLon,
 		double * dLat,
 		double * dP,
-        double * dZ,
-        double * dU,
-        double * dV,
-        double * dT,
-        double * dPhis,
-        double * dPs,
-        double * dRho,
-        double * dQ
+		double * dZ,
+		double * dU,
+		double * dV,
+		double * dT,
+		double * dThetaV,
+		double * dPhis,
+		double * dPs,
+		double * dRho,
+		double * dQ
 	);
 } 
 
@@ -52,79 +53,16 @@ protected:
 	///	</summary>
 	double m_dEarthScaling;
 
-	///	<summary>
-	///		Earth rotation rate parameter.
-	///	</summary>
-	double m_dOmega;
-
-	///	<summary>
-	///		Background wind speed.
-	///	</summary>
-	double m_dU0;
-
-	///	<summary>
-	///		Background Brunt-Vaisala frequency.
-	///	</summary>
-	double m_dN;
-
-	///	<summary>
-	///		Surface temperature at the equator.
-	///	</summary>
-	double m_dTeq;
-
-	///	<summary>
-	///		Potential temperature perturbation width parameter (m).
-	///	</summary>
-	double m_dPertWidth;
-
-	///	<summary>
-	///		Longitudinal centerpoint of the potential temperature pert.
-	///	</summary>
-	double m_dPertLonC;
-
-	///	<summary>
-	///		Latitudinal centerpoint of the potential temperature pert.
-	///	</summary>
-	double m_dPertLatC;
-
-	///	<summary>
-	///		Magnitude of the potential temperature perturbation.
-	///	</summary>
-	double m_dPertMagnitude;
-
-	///	<summary>
-	///		Vertical wavelength of the potential temperature perturbation.
-	///	</summary>
-	double m_dPertVerticalWavelength;
-
 public:
 	///	<summary>
 	///		Constructor.
 	///	</summary>
 	TropicalCycloneTest(
 		double dZtop,
-		double dEarthScaling,
-		double dOmega,
-		double dU0,
-		double dN,
-		double dTeq,
-		double dPertWidth,
-		double dPertLonC,
-		double dPertLatC,
-		double dPertMagnitude,
-		double dPertVerticalWavelength
+		double dEarthScaling
 	) :
 		m_dZtop(dZtop),
-		m_dEarthScaling(dEarthScaling),
-		m_dOmega(dOmega),
-		m_dU0(dU0),
-		m_dN(dN),
-		m_dTeq(dTeq),
-		m_dPertWidth(dPertWidth),
-		m_dPertLonC(dPertLonC * M_PI / 180.0),
-		m_dPertLatC(dPertLatC * M_PI / 180.0),
-		m_dPertMagnitude(dPertMagnitude),
-		m_dPertVerticalWavelength(dPertVerticalWavelength)
+		m_dEarthScaling(dEarthScaling)
 	{ }
 
 public:
@@ -132,7 +70,7 @@ public:
 	///		Number of tracers used in this test.
 	///	</summary>
 	virtual int GetTracerCount() const {
-		return 0;
+		return 3;
 	}
 
 	///	<summary>
@@ -146,7 +84,7 @@ public:
 	///		Flag indicating that a reference state is available.
 	///	</summary>
 	virtual bool HasReferenceState() const {
-		return true;
+		return false;
 	}
 
 	///	<summary>
@@ -187,13 +125,13 @@ public:
 		// State 4 = Density (kg/m^3)
 		dState[0] = 0.0;
 		dState[1] = 0.0;
-		dState[2] = 0.5;
+		dState[2] = 0.0;
 		dState[3] = 0.0;
 		dState[4] = 0.0;
 	}
-    
-    
-    
+	
+	
+	
 
 	///	<summary>
 	///		Evaluate the state vector at the given point.
@@ -207,41 +145,28 @@ public:
 		double * dState,
 		double * dTracer
 	) const {
-        
-        
-        double dRho;
-        double dU;
-        double dV;
-        double dP;
-        double dT;
-        double dPhis;
-        double dPs;
-        double dQ;
-        
-        
+		double dRho;
+		double dU;
+		double dV;
+		double dP;
+		double dT;
+		double dThetaV;
+		double dPhis;
+		double dPs;
+		double dQ;
+
 		// Calculate the reference state
-		//EvaluateReferenceState(phys, dZ, dLon, dLat, dState);
-       tc_tropical_(&dLon, &dLat,&dP,&dZ,&dU,&dV,&dT,&dPhis,&dPs,&dRho,&dQ);
-        
-     
-        dState[0] = dU;
+		tc_tropical_(&dLon,&dLat,&dP,&dZ,&dU,&dV,&dT,&dThetaV,&dPhis,&dPs,&dRho,&dQ);
+		
+		dState[0] = dU;
 		dState[1] = dV;
-		dState[2] = dT*pow((phys.GetP0()/dP),(phys.GetR()/phys.GetCp()));
+		dState[2] = dThetaV;
 		dState[3] = 0.0;
 		dState[4] = dRho;
 
-     // std::cout << "z: " << dZ<< std::endl;
-        
-		// Add in the potential temperature perturbation
-		double dR = phys.GetEarthRadius() * acos(
-			sin(m_dPertLatC) * sin(dLat)
-			+ cos(m_dPertLatC) * cos(dLat) * cos(dLon - m_dPertLonC));
-
-		double dS = m_dPertWidth * m_dPertWidth /
-			(m_dPertWidth * m_dPertWidth + dR * dR);
-
-		dState[2] += m_dPertMagnitude
-			* dS * sin(2.0 * M_PI * dZ / m_dPertVerticalWavelength);
+		dTracer[0] = dRho * dQ;
+		dTracer[1] = 0.0;
+		dTracer[2] = 0.0;
 	}
 };
 
@@ -251,7 +176,7 @@ int main(int argc, char** argv) {
 
 	// Initialize Tempest
 	TempestInitialize(&argc, &argv);
-    
+	
 
 try {
 	// Model cap.
@@ -259,33 +184,6 @@ try {
 
 	// Earth radius scaling parameter.
 	double dEarthScaling;
-
-	// Earth rotation rate parameter.
-	double dOmega;
-
-	// Background wind speed.
-	double dU0;
-
-	// Background Brunt-Vaisala frequency.
-	double dN;
-
-	// Surface temperature at the equator.
-	double dTeq;
-
-	// Potential temperature perturbation width parameter (m).
-	double dPertWidth;
-
-	// Longitudinal centerpoint of the potential temperature pert.
-	double dPertLonC;
-
-	// Latitudinal centerpoint of the potential temperature pert.
-	double dPertLatC;
-
-	// Magnitude of the potential temperature perturbation.
-	double dPertMagnitude;
-
-	// Vertical wavelength of the potential temperature perturbation.
-	double dPertVerticalWavelength;
 
 	// Parse the command line
 	BeginTempestCommandLine("TropicalCycloneTest");
@@ -299,15 +197,6 @@ try {
 
 		CommandLineDouble(dZtop, "ztop", 10000.0);
 		CommandLineDouble(dEarthScaling, "X", 125.0);
-		CommandLineDouble(dOmega, "omega", 0.0);
-		CommandLineDouble(dU0, "u0", 20.0);
-		CommandLineDouble(dN, "N", 0.01);
-		CommandLineDouble(dTeq, "Teq", 310.0);
-		CommandLineDouble(dPertWidth, "d", 1.0/6.0);
-		CommandLineDouble(dPertLonC, "lon_c", 3.14159265358979/9.0 );
-		CommandLineDouble(dPertLatC, "lat_c", 2.0*3.14159265358979/9.0);
-		CommandLineDouble(dPertMagnitude, "dtheta", 1.0);
-		CommandLineDouble(dPertVerticalWavelength, "Lz", 20000.0);
 
 		ParseCommandLine(argc, argv);
 	EndTempestCommandLine(argv)
@@ -315,29 +204,30 @@ try {
 	// Setup the Model
 	AnnounceBanner("MODEL SETUP");
 
-	Model model(EquationSet::PrimitiveNonhydrostaticEquations);
+    EquationSet eqn(EquationSet::PrimitiveNonhydrostaticEquations);
+ 
+    eqn.InsertTracer("RhoQv", "RhoQv");
+    eqn.InsertTracer("RhoQc", "RhoQc");
+    eqn.InsertTracer("RhoQr", "RhoQr");
+
+	Model model(eqn);
 
 	TempestSetupCubedSphereModel(model);
-    
 
 	// Set the test case for the model
 	AnnounceStartBlock("Initializing test case");
 	model.SetTestCase(
-            new TropicalCycloneTest(
+			new TropicalCycloneTest(
 			dZtop,
-			dEarthScaling,
-			dOmega,
-			dU0,
-			dN,
-			dTeq,
-			dPertWidth,
-			dPertLonC,
-			dPertLatC,
-			dPertMagnitude,
-			dPertVerticalWavelength)
-                      );
+			dEarthScaling));
 	AnnounceEndBlock("Done");
-
+/*
+	// Add Kessler physics
+	model.AttachWorkflowProcess(
+		new KesslerPhysics(
+			model,
+			model.GetDeltaT()));
+*/
 	// Begin execution
 	AnnounceBanner("SIMULATION");
 	model.Go();
