@@ -24,6 +24,7 @@
 		double * dLat,
 		double * dP,
 		double * dZ,
+		int * iZCoords,
 		double * dU,
 		double * dV,
 		double * dT,
@@ -145,6 +146,8 @@ public:
 		double * dState,
 		double * dTracer
 	) const {
+		int iZCoords = 1;
+
 		double dRho;
 		double dU;
 		double dV;
@@ -156,7 +159,20 @@ public:
 		double dQ;
 
 		// Calculate the reference state
-		tropical_cyclone_test(&dLon,&dLat,&dP,&dZ,&dU,&dV,&dT,&dThetaV,&dPhis,&dPs,&dRho,&dQ);
+		tropical_cyclone_test(
+			&dLon,
+			&dLat,
+			&dP,
+			&dZ,
+			&iZCoords,
+			&dU,
+			&dV,
+			&dT,
+			&dThetaV,
+			&dPhis,
+			&dPs,
+			&dRho,
+			&dQ);
 		
 		dState[0] = dU;
 		dState[1] = dV;
