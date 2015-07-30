@@ -17,7 +17,7 @@ atm:
 	cd $(TEMPESTBASEDIR)/src/atm; make
 	cd interface; make 
 
-INTERFACE_FILES= interface/main.o interface/tropical_cyclone_test.o interface/Terminator.o interface/test_baroclinic.o interface/mesoscale_storm_test.o interface/kessler.o
+INTERFACE_FILES= interface/tropical_cyclone_test.o interface/Terminator.o interface/baroclinic_wave_test.o interface/mesoscale_storm_test.o interface/kessler.o
 
 #Local files
 FILES=KesslerPhysics.cpp

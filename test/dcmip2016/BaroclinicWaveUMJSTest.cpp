@@ -19,15 +19,15 @@
 #include "KesslerPhysics.h"
 
 extern "C" {
-	void tc_baroclinic_(
+	void baroclinic_wave_test(
 					  double * dLon,
 					  double * dLat,
 					  double * dP,
 					  double * dZ,
 					  double * dU,
 					  double * dV,
-					  double * dW,
 					  double * dT,
+					  double * dThetaV,
 					  double * dPhis,
 					  double * dPs,
 					  double * dRho,
@@ -140,19 +140,19 @@ public:
 		double dRho;
 		double dU;
 		double dV;
-		double dW;
 		double dP;
 		double dT;
+		double dThetaV;
 		double dPhis;
 		double dPs;
 		double dQ;
 		
-		tc_baroclinic_(&dLon,&dLat,&dP,&dZ,&dU,&dV,&dW,&dT,&dPhis,&dPs,&dRho,&dQ);
+		baroclinic_wave_test(&dLon,&dLat,&dP,&dZ,&dU,&dV,&dT,&dThetaV,&dPhis,&dPs,&dRho,&dQ);
 
 		// Store the state
 		dState[0] = dU;
 		dState[1] = dV;
-		dState[2] = dT*pow((100000.0/dP),(phys.GetR()/phys.GetCp()));
+		dState[2] = dThetaV;
 		dState[3] = 0.0;
 		dState[4] = dRho;
 		

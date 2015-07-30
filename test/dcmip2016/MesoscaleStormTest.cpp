@@ -150,7 +150,7 @@ public:
 		double * dTracer
 	) const {
 
-		int iZcoords = 1;	
+		int iZcoords = 1;
 		
 		double dX = m_dEarthScaling;
 		double dP;
@@ -188,6 +188,8 @@ public:
 		dTracer[0] = dRho * dQ;
 		dTracer[1] = 0.0;
 		dTracer[2] = 0.0;
+
+		_EXCEPTION();
 	}
 };
 

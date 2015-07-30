@@ -19,7 +19,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 
  extern "C" {
-	void tc_tropical_(
+	void tropical_cyclone_test(
 		double * dLon,
 		double * dLat,
 		double * dP,
@@ -156,7 +156,7 @@ public:
 		double dQ;
 
 		// Calculate the reference state
-		tc_tropical_(&dLon,&dLat,&dP,&dZ,&dU,&dV,&dT,&dThetaV,&dPhis,&dPs,&dRho,&dQ);
+		tropical_cyclone_test(&dLon,&dLat,&dP,&dZ,&dU,&dV,&dT,&dThetaV,&dPhis,&dPs,&dRho,&dQ);
 		
 		dState[0] = dU;
 		dState[1] = dV;

@@ -1,44 +1,46 @@
-MODULE test_mesoscale_storm
+MODULE mesoscale_storm
 
-  !=======================================================================
-  !
-  !  Date:  July 28, 2015
-  !
-  !  Functions for setting up idealized initial conditions for the
-  !  Klemp et al. mesoscale storm test.  Before sampling the result,
-  !  mesoscale_storm_init() must be called.
-  !
-  !  Sampling is then performed via mesoscale_storm_test()
-  !
-  !  Given a point specified by: 
-  !     lon    longitude (radians) 
-  !     lat    latitude (radians) 
-  !     p/z    pressure (Pa) / height (m)
-  ! zcoords    1 if z is specified, 0 if p is specified
-  !
-  !  the functions will return:
-  !       p    pressure if z is specified
-  !       z    geopotential height if p is specified
-  !       u    zonal wind (m s^-1)
-  !       v    meridional wind (m s^-1)
-  !       t    temperature (K)
-  !  thetav    virtual potential temperature (K)
-  !      ps    surface pressure (Pa)
-  !     rho    density (kj m^-3)
-  !       q    water vapor mixing ratio (kg/kg)
-  !
-  !  Authors: Paul Ullrich
-  !           (University of California, Davis)
-  !
-  !           Based on a code by Joseph Klemp
-  !           (National Center for Atmospheric Research)
-  !
-  !=======================================================================
+!=======================================================================
+!
+!  Date:  July 28, 2015
+!
+!  Functions for setting up idealized initial conditions for the
+!  Klemp et al. mesoscale storm test.  Before sampling the result,
+!  mesoscale_storm_test_init() must be called.
+!
+!  SUBROUTINE mesoscale_storm_sample(
+!    lon,lat,p,z,zcoords,u,v,t,thetav,ps,rho,q)
+!
+!  Given a point specified by: 
+!      lon    longitude (radians) 
+!      lat    latitude (radians) 
+!      p/z    pressure (Pa) / height (m)
+!  zcoords    1 if z is specified, 0 if p is specified
+!
+!  the functions will return:
+!        p    pressure if z is specified (Pa)
+!        z    geopotential height if p is specified (m)
+!        u    zonal wind (m s^-1)
+!        v    meridional wind (m s^-1)
+!        t    temperature (K)
+!   thetav    virtual potential temperature (K)
+!       ps    surface pressure (Pa)
+!      rho    density (kj m^-3)
+!        q    water vapor mixing ratio (kg/kg)
+!
+!  Author: Paul Ullrich
+!          University of California, Davis
+!          Email: paullrich@ucdavis.edu
+!
+!          Based on a code by Joseph Klemp
+!          (National Center for Atmospheric Research)
+!
+!=======================================================================
 
   IMPLICIT NONE
 
 !=======================================================================
-! physical constants
+!    Physical constants
 !=======================================================================
 
   REAL(8), PARAMETER ::               &
@@ -55,18 +57,19 @@ MODULE test_mesoscale_storm
        omega = 7.29212d-5,            & ! Reference rotation rate of the Earth (s^-1)
        deg2rad  = pi/180.d0             ! Conversion factor of degrees to radians
 
-!-----------------------------------------------------------------------
-! parameters
-!----------------------------------------------------------------------- 
+!=======================================================================
+!    Test case parameters
+!=======================================================================
   INTEGER(4), PARAMETER ::            &
        nz         = 30         ,      & ! number of vertical levels in init
        nphi       = 16                  ! number of meridional points in init
 
   REAL(8), PARAMETER ::               &
        z1         = 0.0d0      ,      & ! lower sample altitude
-       z2         = 30000.0d0           ! upper sample altitude
+       z2         = 50000.0d0           ! upper sample altitude
 
   REAL(8), PARAMETER ::               &
+       X          = 120.d0     ,      & ! Earth reduction factor
        theta0     = 300.d0     ,      & ! theta at the equatorial surface
        theta_tr   = 343.d0     ,      & ! theta at the tropopause
        z_tr       = 12000.d0   ,      & ! altitude at the tropopause
@@ -78,8 +81,16 @@ MODULE test_mesoscale_storm
        zs         = 5000.d0    ,      & ! lower altitude of maximum velocity
        zt         = 1000.d0             ! transition distance of velocity
  
+  REAL(8), PARAMETER ::               &
+       pert_dtheta = 3.d0         ,   & ! perturbation magnitude
+       pert_lonc   = 0.d0         ,   & ! perturbation longitude
+       pert_latc   = 0.d0         ,   & ! perturbation latitude
+       pert_rh     = 10000.d0 * X ,   & ! perturbation horiz. halfwidth
+       pert_zc     = 1500.d0      ,   & ! perturbation center altitude
+       pert_rz     = 1500.d0            ! perturbation vert. halfwidth
+
 !-----------------------------------------------------------------------
-! initialization coefficients
+!    Coefficients computed from initialization
 !----------------------------------------------------------------------- 
   INTEGER(4)                  :: initialized = 0
 
@@ -91,10 +102,11 @@ MODULE test_mesoscale_storm
 
 CONTAINS
 
-!-----------------------------------------------------------------------
+!=======================================================================
 !    Generate the mesoscale storm initial conditions
-!-----------------------------------------------------------------------
-  SUBROUTINE mesoscale_storm_init() bind(c, name = "mesoscale_storm_init")
+!=======================================================================
+  SUBROUTINE mesoscale_storm_init() &
+    BIND(c, name = "mesoscale_storm_init")
 
     IMPLICIT NONE
 
@@ -324,13 +336,14 @@ CONTAINS
 !-----------------------------------------------------------------------
 !    Evaluate the mesoscale storm initial conditions
 !-----------------------------------------------------------------------
-  SUBROUTINE mesoscale_storm_test(lon,lat,p,z,zcoords,u,v,t,thetav,ps,rho,q) bind(c, name = "mesoscale_storm_test")
+  SUBROUTINE mesoscale_storm_test(lon,lat,p,z,zcoords,u,v,t,thetav,ps,rho,q) &
+    BIND(c, name = "mesoscale_storm_test")
  
     IMPLICIT NONE
 
-!-----------------------------------------------------------------------
-!     input/output params parameters at given location
-!-----------------------------------------------------------------------
+    !------------------------------------------------
+    !   Input / output parameters
+    !------------------------------------------------
     REAL(8), INTENT(IN)  :: &
                 lon,        & ! Longitude (radians)
                 lat           ! Latitude (radians)
@@ -351,27 +364,22 @@ CONTAINS
                 rho,        & ! density (kg m^-3)
                 q             ! water vapor mixing ratio (kg/kg)
 
+    !------------------------------------------------
+    !   Local variables
+    !------------------------------------------------
+
     ! Absolute latitude
     REAL(8) :: nh_lat
 
-    ! Assembled variable values in a column
-    REAL(8), DIMENSION(nz) :: varcol
-
-    ! Coefficients for computing a polynomial fit in each coordinate
-    REAL(8), DIMENSION(nphi) :: fitphi
-    REAL(8), DIMENSION(nz)   :: fitz
-
-    ! Potential temperature and Exner pressure
-    REAL(8) :: theta, exner
-
-    ! Vertical loop index
-    INTEGER(4) :: k
-
     ! Check that we are initialized
     if (initialized .ne. 1) then
-      write(*,*) 'mesoscale_storm_init has not been called'
+      write(*,*) 'mesoscale_storm_init() has not been called'
       stop
     end if
+
+    !------------------------------------------------
+    !   Begin sampling
+    !------------------------------------------------
 
     ! Northern hemisphere latitude
     if (lat .le. 0.0d0) then
@@ -380,30 +388,16 @@ CONTAINS
       nh_lat = lat
     end if
 
-    ! Sample the initialized fit at this point for pres
-    if (zcoords .eq. 1) then
-      CALL lagrangian_polynomial_coeffs(nz, zcoord, fitz, z)
-      CALL lagrangian_polynomial_coeffs(nphi, phicoord, fitphi, nh_lat)
-
-      do k = 1, nz
-        varcol(k) = dot_product(fitphi, exneryz(:,k))
-      end do
-      exner = dot_product(fitz, varcol)
-      p = p0 * exner**(cp/Rd)
-
-    ! Iterate to obtain z coordinate location
-    else
-      CALL lagrangian_polynomial_coeffs(nz, zcoord, fitz, z)
-      CALL lagrangian_polynomial_coeffs(nphi, phicoord, fitphi, nh_lat)
-      STOP
-    end if
-
     ! Sample surface pressure
-    ps = dot_product(fitphi, exneryz(:,1))
+    CALL mesoscale_storm_z(lon, lat, 0.d0, ps, thetav, rho, q)
     ps = p0 * ps**(cp/Rd)
 
-    ! Sample water vapor mixing ratio
-    q = dot_product(fitz, qveq)
+    ! Calculate dependent variables
+    if (zcoords .eq. 1) then
+      CALL mesoscale_storm_z(lon, lat, z, p, thetav, rho, q)
+    else
+      CALL mesoscale_storm_p(lon, lat, p, z, thetav, rho, q)
+    end if
 
     ! Sample the zonal velocity
     u = zonal_velocity(z, lat)
@@ -411,50 +405,174 @@ CONTAINS
     ! Zero meridional velocity
     v = 0.d0
 
-    ! Sample the initialized fit at this point for theta_v
-    do k = 1, nz
-      varcol(k) = dot_product(fitphi, thetavyz(:,k))
-    end do
-    thetav = dot_product(fitz, varcol)
-
-    ! Potential temperature
-    theta = thetav / (1.d0 + 0.61d0 * q)
-
     ! Temperature
-    t = exner * theta
-
-    ! Density
-    rho = p / (Rd * exner * thetav)
+    t = thetav / (1.d0 + 0.61d0 * q) * (p / p0)**(Rd/cp)
 
   END SUBROUTINE mesoscale_storm_test
 
 !-----------------------------------------------------------------------
 !    Calculate pointwise pressure and temperature
 !-----------------------------------------------------------------------
-  SUBROUTINE evaluate_pressure_from_z(lon, lat, z, p)
+  SUBROUTINE mesoscale_storm_z(lon, lat, z, p, thetav, rho, q)
 
     REAL(8), INTENT(IN)  :: &
                 lon,        & ! Longitude (radians)
                 lat,        & ! Latitude (radians)
                 z             ! Altitude (m)
 
-    REAL(8), INTENT(OUT) :: p ! Pressure (Pa)
+    ! Evaluated variables
+    REAL(8), INTENT(OUT) :: p, thetav, rho, q
 
-  END SUBROUTINE evaluate_pressure_from_z
+    ! Northern hemisphere latitude
+    REAL(8) :: nh_lat
+
+    ! Pointwise Exner pressure
+    REAL(8) :: exner
+
+    ! Assembled variable values in a column
+    REAL(8), DIMENSION(nz) :: varcol
+
+    ! Coefficients for computing a polynomial fit in each coordinate
+    REAL(8), DIMENSION(nphi) :: fitphi
+    REAL(8), DIMENSION(nz)   :: fitz
+
+    ! Loop indices
+    INTEGER(4) :: k
+
+    ! Northern hemisphere latitude
+    if (lat .le. 0.0d0) then
+      nh_lat = -lat
+    else
+      nh_lat = lat
+    end if
+
+    ! Perform fit
+    CALL lagrangian_polynomial_coeffs(nz, zcoord, fitz, z)
+    CALL lagrangian_polynomial_coeffs(nphi, phicoord, fitphi, nh_lat)
+
+    ! Obtain exner pressure of background state
+    do k = 1, nz
+      varcol(k) = dot_product(fitphi, exneryz(:,k))
+    end do
+    exner = dot_product(fitz, varcol)
+    p = p0 * exner**(cp/Rd)
+
+    ! Sample the initialized fit at this point for theta_v
+    do k = 1, nz
+      varcol(k) = dot_product(fitphi, thetavyz(:,k))
+    end do
+    thetav = dot_product(fitz, varcol)
+
+    ! Sample water vapor mixing ratio
+    q = dot_product(fitz, qveq)
+
+    ! Fixed density
+    rho = p / (Rd * exner * thetav)
+
+    ! Modified virtual potential temperature
+    thetav = thetav &
+      + thermal_perturbation(lon, lat, z) * (1.d0 + 0.61d0 * q)
+
+    ! Updated pressure
+    p = p0 * (rho * Rd * thetav / p0)**(cp/(cp-Rd))
+
+  END SUBROUTINE mesoscale_storm_z
 
 !-----------------------------------------------------------------------
 !    Calculate pointwise z and temperature given pressure
 !-----------------------------------------------------------------------
-  SUBROUTINE evaluate_z_from_pressure(lon, lat, p, z)
+  SUBROUTINE mesoscale_storm_p(lon, lat, p, z, thetav, rho, q)
 
     REAL(8), INTENT(IN)  :: &
                 lon,        & ! Longitude (radians)
                 lat,        & ! Latitude (radians)
                 p             ! Pressure (Pa)
 
-    REAL(8), INTENT(OUT) :: z ! Pressure (Pa)
+    ! Evaluated variables
+    REAL(8), INTENT(OUT) :: z, thetav, rho, q
 
-  END SUBROUTINE evaluate_z_from_pressure
+    ! Bounding interval and sampled values
+    REAL(8) :: za, zb, zc, pa, pb, pc
+
+    ! Iterate
+    INTEGER(4) :: iter
+
+    za = z1
+    zb = z2
+
+    CALL mesoscale_storm_z(lon, lat, za, pa, thetav, rho, q)
+    CALL mesoscale_storm_z(lon, lat, zb, pb, thetav, rho, q)
+
+    if (pa .lt. p) then
+      write(*,*) 'Requested pressure out of range on bottom, adjust sample interval'
+      write(*,*) pa, p
+      stop
+    end if
+    if (pb .gt. p) then
+      write(*,*) 'Requested pressure out of range on top, adjust sample interval'
+      write(*,*) pb, p
+      stop
+    end if
+
+    ! Iterate using fixed point method
+    do iter = 1, 20
+
+      zc = (za * (pb - p) - zb * (pa - p)) / (pb - pa)
+
+      CALL mesoscale_storm_z(lon, lat, zc, pc, thetav, rho, q)
+
+      !write(*,*) pc
+
+      if (abs((pc - p) / p) .lt. 1.d-12) then
+        exit
+      end if
+
+      if (pc .gt. p) then
+        za = zc
+        pa = pc
+      else
+        zb = zc
+        pb = pc
+      end if
+    end do
+
+    if (iter .eq. 21) then
+      write(*,*) 'Iteration failed to converge'
+      stop
+    end if
+
+    z = zc
+
+  END SUBROUTINE mesoscale_storm_p
+
+!-----------------------------------------------------------------------
+!    Calculate pointwise z and temperature given pressure
+!-----------------------------------------------------------------------
+  REAL(8) FUNCTION thermal_perturbation(lon, lat, z)
+
+    REAL(8), INTENT(IN)  :: &
+                lon,        & ! Longitude (radians)
+                lat,        & ! Latitude (radians)
+                z             ! Altitude (m)
+
+    ! Great circle radius from the perturbation centerpoint
+    REAL(8) :: gr
+
+    ! Approximately spherical radius from the perturbation centerpoint
+    REAL(8) :: Rtheta
+
+    gr = a*acos(sin(pert_latc*deg2rad)*sin(lat) + &
+         (cos(pert_latc*deg2rad)*cos(lat)*cos(lon-pert_lonc*deg2rad)))
+
+    Rtheta = sqrt((gr/pert_rh)**2 + ((z - pert_zc) / pert_rz)**2)
+
+    if (Rtheta .le. 1.d0) then
+      thermal_perturbation = pert_dtheta * (cos(0.5d0 * pi * Rtheta))**2
+    else
+      thermal_perturbation = 0.0d0
+    end if
+
+  END FUNCTION thermal_perturbation
 
 !-----------------------------------------------------------------------
 !    Calculate the reference zonal velocity
@@ -641,4 +759,4 @@ CONTAINS
 
   END SUBROUTINE
 
-END MODULE test_mesoscale_storm
+END MODULE mesoscale_storm

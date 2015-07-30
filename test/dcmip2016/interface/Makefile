@@ -1,12 +1,12 @@
 # This is an commentary line in a makefile
 # Start of the makefile
  
-all:  test_baroclinic.o tropical_cyclone_test.o mesoscale_storm_test.o kessler.o
+all:  baroclinic_wave_test.o tropical_cyclone_test.o mesoscale_storm_test.o kessler.o
 
 #Terminator.o: Terminator.f90
 #	gfortran -c Terminator.f90
-test_baroclinic.o: test_baroclinic.f90
-	gfortran -c test_baroclinic.f90
+baroclinic_wave_test.o: baroclinic_wave_test.f90
+	gfortran -c baroclinic_wave_test.f90
 tropical_cyclone_test.o: tropical_cyclone_test.f90
 	gfortran -c tropical_cyclone_test.f90
 mesoscale_storm_test.o: mesoscale_storm_test.f90

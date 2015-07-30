@@ -1,42 +1,49 @@
-MODULE test_baroclinic
+MODULE baroclinic_wave
 
-  !=======================================================================
-  !
-  !  Functions for setting up idealized initial conditions for the
-  !  Ullrich, Melvin, Staniforth and Jablonowski baroclinic instability.
-  !
-  !  Options:
-  !    deep    deep atmosphere (1 = yes or 0 = no)
-  !   moist    include moisture (1 = yes or 0 = no)
-  !   pertt    type of perturbation (0 = exponential, 1 = stream function)
-  !
-  !  Given a point specified by: 
-  !     lon    longitude (radians) 
-  !     lat    latitude (radians) 
-  !     p/z    pressure (Pa) / height (m)
-  ! zcoords    1 if z is specified, 0 if p is specified
-  !
-  !  the functions will return:
-  !       p    pressure if z is specified and zcoords = 1 (Pa)
-  !       u    zonal wind (m s^-1)
-  !       v    meridional wind (m s^-1)
-  !       w    vertical velocity (m s^-1)
-  !       t    temperature (K)
-  !    phis    surface geopotential (m^2 s^-2)
-  !      ps    surface pressure (Pa)
-  !     rho    density (kj m^-3)
-  !       q    water vapor mixing ratio (kg/kg)
-  !
-  !
-  !  Authors: Paul Ullrich
-  !           (University of California, Davis)
-  !
-  !=======================================================================
+!=======================================================================
+!
+!  Date:  July 29, 2015
+!
+!  Functions for setting up idealized initial conditions for the
+!  Ullrich, Melvin, Staniforth and Jablonowski baroclinic instability.
+!
+!  SUBROUTINE baroclinic_wave_sample(
+!    deep,moist,pertt,X,lon,lat,p,z,zcoords,u,v,w,t,phis,ps,rho,q)
+!
+!  Options:
+!     deep    deep atmosphere (1 = yes or 0 = no)
+!    moist    include moisture (1 = yes or 0 = no)
+!    pertt    type of perturbation (0 = exponential, 1 = stream function)
+!        X    Earth scaling factor
+!
+!  Given a point specified by: 
+!      lon    longitude (radians) 
+!      lat    latitude (radians) 
+!      p/z    pressure (Pa) / height (m)
+!  zcoords    1 if z is specified, 0 if p is specified
+!
+!  the functions will return:
+!        p    pressure if z is specified and zcoords = 1 (Pa)
+!        u    zonal wind (m s^-1)
+!        v    meridional wind (m s^-1)
+!        t    temperature (K)
+!   thetav    virtual potential temperature (K)
+!     phis    surface geopotential (m^2 s^-2)
+!       ps    surface pressure (Pa)
+!      rho    density (kj m^-3)
+!        q    water vapor mixing ratio (kg/kg)
+!
+!
+!  Author: Paul Ullrich
+!          University of California, Davis
+!          Email: paullrich@ucdavis.edu
+!
+!=======================================================================
 
   IMPLICIT NONE
 
 !=======================================================================
-! use physical constants
+!    Physical constants
 !=======================================================================
 
   REAL(8), PARAMETER ::               &
@@ -53,9 +60,9 @@ MODULE test_baroclinic
        omega = 7.29212d-5,            & ! Reference rotation rate of the Earth (s^-1)
        deg2rad  = pi/180.d0             ! Conversion factor of degrees to radians
 
-!-----------------------------------------------------------------------
-! parameters
-!----------------------------------------------------------------------- 
+!=======================================================================
+!    Test case parameters
+!=======================================================================
   REAL(8), PARAMETER ::               &
        T0E        = 310.d0     ,      & ! temperature at equatorial surface (K)
        T0P        = 240.d0     ,      & ! temperature at polar surface (K)
@@ -84,7 +91,11 @@ MODULE test_baroclinic
 
 CONTAINS
 
-  SUBROUTINE baroclinic_instability_alt(deep,moist,pertt,X,lon,lat,p,z,zcoords,u,v,w,t,phis,ps,rho,q)
+!=======================================================================
+!    Generate the baroclinic instability initial conditions
+!=======================================================================
+  SUBROUTINE baroclinic_wave_test(deep,moist,pertt,X,lon,lat,p,z,zcoords,u,v,t,thetav,phis,ps,rho,q) &
+    BIND(c, name = "baroclinic_wave_test")
  
     IMPLICIT NONE
 
@@ -111,30 +122,33 @@ CONTAINS
     REAL(8), INTENT(OUT) :: &
                 u,          & ! Zonal wind (m s^-1)
                 v,          & ! Meridional wind (m s^-1)
-                w,          & ! Vertical Velocity (m s^-1)
                 t,          & ! Temperature (K)
+                thetav,     & ! Virtual potential temperature (K)
                 phis,       & ! Surface Geopotential (m^2 s^-2)
                 ps,         & ! Surface Pressure (Pa)
                 rho,        & ! density (kg m^-3)
                 q             ! water vapor mixing ratio (kg/kg)
 
+    !------------------------------------------------
+    !   Local variables
+    !------------------------------------------------
     REAL(8) :: aref, omegaref
     REAL(8) :: T0, constH, constC, scaledZ, inttau2, rratio
     REAL(8) :: inttermU, bigU, rcoslat, omegarcoslat
     REAL(8) :: eta, qratio, qnum, qden
 
-!-----------------------------------------------------------------------
-!    pressure and temperature
-!-----------------------------------------------------------------------
+    !------------------------------------------------
+    !   Pressure and temperature
+    !------------------------------------------------
     if (zcoords .eq. 1) then
       CALL evaluate_pressure_temperature(deep, X, lon, lat, z, p, t)
     else
       CALL evaluate_z_temperature(deep, X, lon, lat, p, z, t)
     end if
 
-!-----------------------------------------------------------------------
-!    constants
-!-----------------------------------------------------------------------
+    !------------------------------------------------
+    !   Compute test case constants
+    !------------------------------------------------
     aref = a / X
     omegaref = omega * X
 
@@ -155,19 +169,14 @@ CONTAINS
       rratio = (z + aref) / aref;
     end if
 
-!-----------------------------------------------------------------------
-!    density (via ideal gas law)
-!-----------------------------------------------------------------------
-    rho = p / (Rd * t)
-
-!-----------------------------------------------------------------------
-!    calculate pointwise surface pressure
-!-----------------------------------------------------------------------
+    !-----------------------------------------------------
+    !   Initialize surface pressure
+    !-----------------------------------------------------
     ps = p0
 
-!-----------------------------------------------------------------------
-!    velocity field
-!-----------------------------------------------------------------------
+    !-----------------------------------------------------
+    !   Initialize velocity field
+    !-----------------------------------------------------
     inttermU = (rratio * cos(lat))**(K - 1.d0) - (rratio * cos(lat))**(K + 1.d0)
     bigU = g / aref * K * inttau2 * inttermU * t
     if (deep .eq. 0) then
@@ -180,11 +189,10 @@ CONTAINS
     
     u = - omegarcoslat + sqrt(omegarcoslat**2 + rcoslat * bigU)
     v = 0.d0
-    w = 0.d0
 
-!-----------------------------------------------------------------------
-!    perturbation on velocity field
-!-----------------------------------------------------------------------
+    !-----------------------------------------------------
+    !   Add perturbation to the velocity field
+    !-----------------------------------------------------
 
     ! Exponential type
     if (pertt .eq. 0) then
@@ -201,19 +209,14 @@ CONTAINS
           - evaluate_streamfunction(lon - dxepsilon, lat, z))
     end if
 
-!-----------------------------------------------------------------------
-!    surface geopotential
-!-----------------------------------------------------------------------
+    !-----------------------------------------------------
+    !   Initialize surface geopotential
+    !-----------------------------------------------------
     phis = 0.d0
 
-!-----------------------------------------------------------------------
-!    initialize density from ideal gas law
-!-----------------------------------------------------------------------
-    rho = p/(t*Rd)
-
-!-----------------------------------------------------------------------
-!    initialize specific humidity
-!-----------------------------------------------------------------------
+    !-----------------------------------------------------
+    !   Initialize specific humidity
+    !-----------------------------------------------------
     if (moist .eq. 1) then
       eta = p/p0
 
@@ -235,7 +238,17 @@ CONTAINS
       q = 0.d0
     end if
 
-  END SUBROUTINE baroclinic_instability_alt
+    !-----------------------------------------------------
+    !   Initialize density (rho)
+    !-----------------------------------------------------
+    rho = p / (Rd * t * (1.d0 + 0.61d0 * q))
+
+    !-----------------------------------------------------
+    !   Initialize virtual potential temperature
+    !-----------------------------------------------------
+    thetav = t * (1.d0 + 0.61d0 * q) * (p0 / p)**(Rd / cp)
+
+  END SUBROUTINE baroclinic_wave_test
 
 !-----------------------------------------------------------------------
 !    Calculate pointwise pressure and temperature
@@ -344,9 +357,6 @@ CONTAINS
 
       CALL evaluate_pressure_temperature(deep, X, lon, lat, z2, p2, t)
 
-      !PRINT *, "P", p0, p1, p2
-      !PRINT *, "Z", z0, z1, z2
-
       IF (ABS((p2 - p)/p) .lt. 1.0d-13) THEN
         EXIT
       END IF
@@ -431,4 +441,4 @@ CONTAINS
 
   END FUNCTION evaluate_streamfunction
 
-END MODULE test_baroclinic
+END MODULE baroclinic_wave
