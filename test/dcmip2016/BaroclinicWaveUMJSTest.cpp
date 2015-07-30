@@ -20,19 +20,23 @@
 
 extern "C" {
 	void baroclinic_wave_test(
-					  double * dLon,
-					  double * dLat,
-					  double * dP,
-					  double * dZ,
-					  double * dU,
-					  double * dV,
-					  double * dT,
-					  double * dThetaV,
-					  double * dPhis,
-					  double * dPs,
-					  double * dRho,
-					  double * dQ
-					  );
+		int * iDeep,
+		int * iMoist,
+		int * iPertT,
+		double * dX,
+		double * dLon,
+		double * dLat,
+		double * dP,
+		double * dZ,
+		int * iZCoords,
+		double * dU,
+		double * dV,
+		double * dT,
+		double * dThetaV,
+		double * dPhis,
+		double * dPs,
+		double * dRho,
+		double * dQ);
 }
 
 
@@ -137,6 +141,12 @@ public:
 		double * dState,
 		double * dTracer
 	) const {
+		int iDeep = 0;
+		int iMoist = 1;
+		int iPertT = 0;
+		int iZCoords = 1;
+		double dX = 1.0;
+
 		double dRho;
 		double dU;
 		double dV;
@@ -147,7 +157,24 @@ public:
 		double dPs;
 		double dQ;
 		
-		baroclinic_wave_test(&dLon,&dLat,&dP,&dZ,&dU,&dV,&dT,&dThetaV,&dPhis,&dPs,&dRho,&dQ);
+		baroclinic_wave_test(
+			&iDeep,
+			&iMoist,
+			&iPertT,
+			&dX,
+			&dLon,
+			&dLat,
+			&dP,
+			&dZ,
+			&iZCoords,
+			&dU,
+			&dV,
+			&dT,
+			&dThetaV,
+			&dPhis,
+			&dPs,
+			&dRho,
+			&dQ);
 
 		// Store the state
 		dState[0] = dU;
