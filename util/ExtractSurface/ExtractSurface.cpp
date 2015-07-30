@@ -670,9 +670,21 @@ try {
 		DataMatrix3D<double> dataP;
 		dataP.Initialize(nLev, nLat, nLon);
 
-		NcVar * varP = ncdf_in.get_var("P");
-		varP->set_cur(t, 0, 0, 0);
-		varP->get(&(dataP[0][0][0]), 1, nLev, nLat, nLon);
+		bool fHasPressure = false;
+		for (int v = 0; v < ncdf_in.num_vars(); v++) {
+			if (strcmp(ncdf_in.get_var(v)->name(), "P") == 0) {
+				fHasPressure = true;
+			}
+		}
+		if (fHasPressure) {
+			NcVar * varP = ncdf_in.get_var("P");
+			varP->set_cur(t, 0, 0, 0);
+			varP->get(&(dataP[0][0][0]), 1, nLev, nLat, nLon);
+		} else {
+			if (nPressureLevels != 0) {
+				_EXCEPTIONT("File does not contain \"P\" variable");
+			}
+		}
 /*
 		// Populate pressure array
 		if (nPressureLevels > 0) {
