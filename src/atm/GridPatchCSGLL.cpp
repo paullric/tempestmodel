@@ -992,6 +992,10 @@ void GridPatchCSGLL::ComputeCurlAndDiv(
 	DataMatrix<double> dConUa(m_nHorizontalOrder, m_nHorizontalOrder);
 	DataMatrix<double> dConUb(m_nHorizontalOrder, m_nHorizontalOrder);
 
+	// Inverse grid spacings
+	const double dInvElementDeltaA = 1.0 / GetElementDeltaA();
+	const double dInvElementDeltaB = 1.0 / GetElementDeltaB();
+
 	// Loop over all elements in the box
 	for (int k = 0; k < gridCSGLL.GetRElements(); k++) {
 	for (int a = 0; a < nAFiniteElements; a++) {
@@ -1055,17 +1059,15 @@ void GridPatchCSGLL::ComputeCurlAndDiv(
 					* dDxBasis1D[s][j];
 			}
 
-			//dDaUa /= GetElementDeltaA();
-			dDaUb /= GetElementDeltaA();
-			dDbUa /= GetElementDeltaB();
-			//dDbUb /= GetElementDeltaB();
+			dDaUb *= dInvElementDeltaA;
+			dDbUa *= dInvElementDeltaB;
 
-			dDaJUa /= GetElementDeltaA();
-			dDbJUb /= GetElementDeltaB();
-
+			dDaJUa *= dInvElementDeltaA;
+			dDbJUb *= dInvElementDeltaB;
+/*
 			if (fDiscontinuous) {
 				_EXCEPTIONT("This needs to be updated for covariant indices");
-/*
+
 				double dUpdateDerivA =
 					  dFluxDeriv1D[m_nHorizontalOrder-1] / GetElementDeltaA();
 				double dUpdateDerivB =
@@ -1107,9 +1109,8 @@ void GridPatchCSGLL::ComputeCurlAndDiv(
 					dDbUa += 0.5 * dUpdateDerivB * (dUaR - dUaL);
 					dDbUb += 0.5 * dUpdateDerivB * (dUbR - dUbL);
 				}
-*/
 			}
-
+*/
 			m_dataDivergence[k][iA][iB] =
 				(dDaJUa + dDbJUb) / m_dataJacobian2D[iA][iB];
 			m_dataVorticity[k][iA][iB] =

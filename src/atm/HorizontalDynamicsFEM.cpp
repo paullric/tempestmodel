@@ -1593,6 +1593,9 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusion(
 		const double dElementDeltaA = pPatch->GetElementDeltaA();
 		const double dElementDeltaB = pPatch->GetElementDeltaB();
 
+		const double dInvElementDeltaA = 1.0 / dElementDeltaA;
+		const double dInvElementDeltaB = 1.0 / dElementDeltaB;
+
 		const DataMatrix<double> & dDxBasis1D = pGrid->GetDxBasis1D();
 		const DataMatrix<double> & dStiffness1D = pGrid->GetStiffness1D();
 
@@ -1683,8 +1686,8 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusion(
 								* dDxBasis1D[s][j];
 						}
 
-						dDaPsi /= dElementDeltaA;
-						dDbPsi /= dElementDeltaB;
+						dDaPsi *= dInvElementDeltaA;
+						dDbPsi *= dInvElementDeltaB;
 
 						m_dJGradientA[i][j] = pJacobian[k][iA][iB] * (
 							+ dContraMetricA[iA][iB][0] * dDaPsi
@@ -1702,6 +1705,8 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusion(
 						int iA = iElementA + i;
 						int iB = iElementB + j;
 
+						double dInvJacobian = 1.0 / pJacobian[k][iA][iB];
+
 						// Compute integral term
 						double dUpdateA = 0.0;
 						double dUpdateB = 0.0;
@@ -1716,12 +1721,10 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusion(
 								* dStiffness1D[j][s];
 						}
 
-						dUpdateA /= dElementDeltaA;
-						dUpdateB /= dElementDeltaB;
+						dUpdateA *= dInvElementDeltaA;
+						dUpdateB *= dInvElementDeltaB;
 
 						// Apply update
-						double dInvJacobian = 1.0 / pJacobian[k][iA][iB];
-
 						pDataUpdate[k][iA][iB] -=
 							dDeltaT * dInvJacobian * dLocalNu
 								* (dUpdateA + dUpdateB);
@@ -1776,6 +1779,9 @@ void HorizontalDynamicsFEM::ApplyVectorHyperdiffusion(
 		// Element grid spacing and derivative coefficients
 		const double dElementDeltaA = pPatch->GetElementDeltaA();
 		const double dElementDeltaB = pPatch->GetElementDeltaB();
+
+		const double dInvElementDeltaA = 1.0 / dElementDeltaA;
+		const double dInvElementDeltaB = 1.0 / dElementDeltaB;
 
 		const DataMatrix<double> & dDxBasis1D = pGrid->GetDxBasis1D();
 		const DataMatrix<double> & dStiffness1D = pGrid->GetStiffness1D();
@@ -1850,11 +1856,11 @@ void HorizontalDynamicsFEM::ApplyVectorHyperdiffusion(
 						* dataCurl[k][iA][iElementB+s];
 				}
 
-				dDaDiv /= dElementDeltaA;
-				dDbDiv /= dElementDeltaB;
+				dDaDiv *= dInvElementDeltaA;
+				dDbDiv *= dInvElementDeltaB;
 
-				dDaCurl /= dElementDeltaA;
-				dDbCurl /= dElementDeltaB;
+				dDaCurl *= dInvElementDeltaA;
+				dDbCurl *= dInvElementDeltaB;
 
 				// Apply update
 				double dUpdateUa =
