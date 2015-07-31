@@ -85,6 +85,13 @@ protected:
 	static const FComp FTot = 3;
 
 	///	<summary>
+	///		Convert from standard state indices to component indices.
+	///	</summary>
+	FComp FIxFromCIx(int iC) {
+		return (iC - 2);
+	}
+
+	///	<summary>
 	///		Get the index of the component and level of the F vector.
 	///	</summary>
 	inline int VecFIx(FComp c, int k) {
@@ -260,6 +267,11 @@ protected:
 	double m_dHypervisCoeff;
 
 	///	<summary>
+	///		Variables to upwind.
+	///	</summary>
+	DataVector<bool> m_fUpwind;
+
+	///	<summary>
 	///		Order of hyperdiffusion to apply (must be even).
 	///	</summary>
 	int m_nHypervisOrder;
@@ -361,9 +373,9 @@ protected:
 	DataVector<double> m_dDiffPREdge;
 
 	///	<summary>
-	///		Auxiliary storage for higher derivatives of theta.
+	///		Auxiliary storage for higher derivatives of the state
 	///	</summary>
-	DataVector<double> m_dDiffDiffTheta;
+	DataMatrix<double> m_dDiffDiffState;
 
 	///	<summary>
 	///		Auxiliary storage for derivative of theta on nodes.

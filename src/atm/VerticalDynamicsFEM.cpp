@@ -29,8 +29,9 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 //#define UPWIND_HORIZONTAL_VELOCITIES
-//#define UPWIND_RHO
 #define UPWIND_THERMO
+//#define UPWIND_VERTICAL_VELOCITY
+#define UPWIND_RHO
 
 //#define DETECT_CFL_VIOLATION
 //#define CAP_VERTICAL_VELOCITY
@@ -226,7 +227,9 @@ void VerticalDynamicsFEM::Initialize() {
 
 	m_dDiffPNode.Initialize(nRElements);
 	m_dDiffPREdge.Initialize(nRElements+1);
-	m_dDiffDiffTheta.Initialize(nRElements+1);
+	m_dDiffDiffState.Initialize(
+		m_model.GetEquationSet().GetComponents(),
+		nRElements+1);
 
 	m_dDiffThetaNode.Initialize(nRElements);
 	m_dDiffThetaREdge.Initialize(nRElements+1);
@@ -274,96 +277,23 @@ void VerticalDynamicsFEM::Initialize() {
 	m_dDiffExnerREdge.Initialize(nRElements+1);
 	m_dDiffExnerRefREdge.Initialize(nRElements+1);
 */
-/*
-	// Vertical elemental grid spacing
-	double dElementDeltaXi =
-		static_cast<double>(m_nVerticalOrder)
-		/ static_cast<double>(nRElements);
-*/
-/*
-	// Compute second differentiation coefficients from nodes to nodes
-	m_dDiffDiffNodeToNode.Initialize(
-		m_nVerticalOrder, m_nVerticalOrder);
+	// Variables to upwind
+	m_fUpwind.Initialize(m_model.GetEquationSet().GetComponents());
+#ifdef UPWIND_HORIZONTAL_VELOCITIES
+	m_fUpwind[UIx] = true;
+	m_fUpwind[VIx] = true;
+	_EXCEPTIONT("Upwind Horizontal Velocities not implemented");
+#endif
+#ifdef UPWIND_THERMO
+	m_fUpwind[PIx] = true;
+#endif
+#ifdef UPWIND_VERTICAL_VELOCITY
+	m_fUpwind[VIx] = true;
+#endif
+#ifdef UPWIND_RHO
+	m_fUpwind[RIx] = true;
+#endif
 
-	for (int n = 0; n < m_nVerticalOrder; n++) {
-	for (int m = 0; m < m_nVerticalOrder; m++) {
-		m_dDiffDiffNodeToNode[n][m] = 0.0;
-		for (int s = 0; s < m_nVerticalOrder; s++) {
-			m_dDiffDiffNodeToNode[n][m] -=
-				  dDiffNodeToNode[s][n]
-				* dDiffNodeToNode[s][m]
-				* dW[s];
-		}
-		m_dDiffDiffNodeToNode[n][m] /= dW[n];
-	}
-	}
-*/
-/*
-	// Scale by 1/dxi
-	for (int n = 0; n < m_nVerticalOrder; n++) {
-	for (int m = 0; m < m_nVerticalOrder; m++) {
-		m_dDiffDiffNodeToNode[n][m] *= dElementDeltaXi;
-	}
-	}
-*/
-/*
-	// Compute second differentiation coefficients from edges to edges
-	m_dDiffDiffREdgeToREdge.Initialize(
-		m_nVerticalOrder+1, m_nVerticalOrder+1);
-
-	for (int n = 0; n <= m_nVerticalOrder; n++) {
-	for (int m = 0; m <= m_nVerticalOrder; m++) {
-		m_dDiffDiffREdgeToREdge[n][m] = 0.0;
-		for (int s = 0; s <= m_nVerticalOrder; s++) {
-			m_dDiffDiffREdgeToREdge[n][m] -=
-				  dDiffREdgeToREdge[s][n]
-				* dDiffREdgeToREdge[s][m]
-				* dWL[s];
-		}
-		m_dDiffDiffREdgeToREdge[n][m] /= dWL[n];
-	}
-	}
-*/
-/*
-	// Scale by 1/dxi
-	for (int n = 0; n <= m_nVerticalOrder; n++) {
-	for (int m = 0; m <= m_nVerticalOrder; m++) {
-		m_dDiffDiffREdgeToREdge[n][m] *= dElementDeltaXi;
-	}
-	}
-*/
-/*
-	// Compute hyperviscosity operator
-	m_dHypervisREdgeToREdge.Initialize(
-		nRElements+1, nRElements+1);
-
-	// Compute second derivative operator over whole column
-	for (int a = 0; a < nFiniteElements; a++) {
-		for (int n = 0; n <= m_nVerticalOrder; n++) {
-		for (int m = 0; m <= m_nVerticalOrder; m++) {
-
-			int iCol = a * m_nVerticalOrder + n;
-			int iRow = a * m_nVerticalOrder + m;
-
-			m_dHypervisREdgeToREdge[iRow][iCol] +=
-				m_dDiffDiffREdgeToREdge[n][m];
-		}
-		}
-	}
-*/
-/*
-	for (int n = 0; n < nRElements+1; n++) {
-		m_dHypervisREdgeToREdge[n][0] = 0.0;
-		m_dHypervisREdgeToREdge[n][nFiniteElements * m_nVerticalOrder] = 0.0;
-	}
-*/
-/*
-	for (int a = 1; a < nFiniteElements; a++) {
-		for (int n = 0; n < nRElements+1; n++) {
-			m_dHypervisREdgeToREdge[n][a * m_nVerticalOrder] *= 0.5;
-		}
-	}
-*/
 	// Compute hyperviscosity coefficient
 	if (m_nHypervisOrder == 0) {
 		m_dHypervisCoeff = 0.0;
@@ -1483,18 +1413,18 @@ void VerticalDynamicsFEM::PrepareColumn(
 				// Second derivatives of theta on model levels
 				pGrid->DiffDiffNodeToNode(
 					m_dStateNode[PIx],
-					m_dDiffDiffTheta);
+					m_dDiffDiffState[PIx]);
 
 				// Compute higher derivatives of theta used for hyperdiffusion
 				for (int h = 2; h < m_nHypervisOrder; h += 2) {
 					memcpy(
 						m_dStateAux,
-						m_dDiffDiffTheta,
+						m_dDiffDiffState[PIx],
 						nRElements * sizeof(double));
 
 					pGrid->DiffDiffNodeToNode(
 						m_dStateAux,
-						m_dDiffDiffTheta
+						m_dDiffDiffState[PIx]
 					);
 				}
 			}
@@ -1513,25 +1443,6 @@ void VerticalDynamicsFEM::PrepareColumn(
 				m_dDiffThetaREdge);
 
 #ifdef UPWIND_THERMO
-			if (m_nHypervisOrder > 0) {
-				// Second derivatives of theta on interfaces
-				pGrid->DiffDiffREdgeToREdge(
-					m_dStateREdge[PIx],
-					m_dDiffDiffTheta);
-
-				// Compute higher derivatives of theta used for hyperdiffusion
-				for (int h = 2; h < m_nHypervisOrder; h += 2) {
-					memcpy(
-						m_dStateAux,
-						m_dDiffDiffTheta,
-						(nRElements+1) * sizeof(double));
-
-					pGrid->DiffDiffREdgeToREdge(
-						m_dStateAux,
-						m_dDiffDiffTheta
-					);
-				}
-			}
 #endif
 		}
 
@@ -1586,35 +1497,56 @@ void VerticalDynamicsFEM::PrepareColumn(
 		m_dXiDotNode[0] = 0.0;
 		m_dXiDotNode[nRElements-1] = 0.0;
 	}
-/*
-#ifdef UPWIND_THETA
-	// Compute second derivatives of theta
-	DiffDiffREdgeToREdge(
-		m_dStateREdge[PIx],
-		m_dDiffDiffTheta
-	);
 
-	// Compute higher derivatives of theta used for hyperdiffusion
+	// Calculate second derivatives of other state variables
 	if (m_nHypervisOrder > 0) {
 
-		if (pGrid->GetVarLocation(PIx) != DataLocation_REdge) {
-			_EXCEPTIONT("Not implemented");
-		}
+		// Do not upwind horizontal velocity here
+		for (int c = 2; c < 5; c++) {
 
-		for (int h = 2; h < m_nHypervisOrder; h += 2) {
-			memcpy(
-				m_dStateAux,
-				m_dDiffDiffTheta,
-				(nRElements + 1) * sizeof(double));
+			// Only upwind select variables
+			if (!m_fUpwind[c]) {
+				continue;
+			}
 
-			DiffDiffREdgeToREdge(
-				m_dStateAux,
-				m_dDiffDiffTheta
-			);
+			// Hyperviscosity derivatives on interfaces
+			if (pGrid->GetVarLocation(c) == DataLocation_REdge) {
+				pGrid->DiffDiffREdgeToREdge(
+					m_dStateREdge[c],
+					m_dDiffDiffState[c]);
+
+				for (int h = 2; h < m_nHypervisOrder; h += 2) {
+					memcpy(
+						m_dStateAux,
+						m_dDiffDiffState[c],
+						(nRElements+1) * sizeof(double));
+
+					pGrid->DiffDiffREdgeToREdge(
+						m_dStateAux,
+						m_dDiffDiffState[c]
+					);
+				}
+
+			// Hyperviscosity derivatives on levels
+			} else {
+				pGrid->DiffDiffNodeToNode(
+					m_dStateNode[c],
+					m_dDiffDiffState[c]);
+
+				for (int h = 2; h < m_nHypervisOrder; h += 2) {
+					memcpy(
+						m_dStateAux,
+						m_dDiffDiffState[c],
+						nRElements * sizeof(double));
+
+					pGrid->DiffDiffNodeToNode(
+						m_dStateAux,
+						m_dDiffDiffState[c]
+					);
+				}
+			}
 		}
 	}
-#endif
-*/
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1806,15 +1738,6 @@ void VerticalDynamicsFEM::BuildF(
 				m_dXiDotNode[k] * m_dDiffThetaNode[k];
 		}
 
-#ifdef UPWIND_THERMO
-		for (int k = 0; k < nRElements; k++) {
-			dF[VecFIx(FPIx, k)] -=
-				m_dHypervisCoeff
-				* fabs(m_dXiDotNode[k])
-				* m_dDiffDiffTheta[k];
-		}
-#endif
-
 	// Update theta on model interfaces
 	} else {
 		// Change in Theta on model interfaces
@@ -1822,16 +1745,6 @@ void VerticalDynamicsFEM::BuildF(
 			dF[VecFIx(FPIx, k)] +=
 				m_dXiDotREdge[k] * m_dDiffThetaREdge[k];
 		}
-
-#ifdef UPWIND_THERMO
-		for (int k = 0; k <= nRElements; k++) {
-			dF[VecFIx(FPIx, k)] -=
-				m_dHypervisCoeff
-				* fabs(m_dXiDotREdge[k])
-				* m_dDiffDiffTheta[k];
-		}
-#endif
-
 	}
 #endif
 #ifdef FORMULATION_THETA_FLUX
@@ -2036,6 +1949,36 @@ void VerticalDynamicsFEM::BuildF(
 		//_EXCEPTION();
 	}
 
+	
+	// Apply hyperviscosity
+	if (m_nHypervisOrder > 0) {
+		for (int c = 2; c < 5; c++) {
+
+			// Only upwind select variables
+			if (!m_fUpwind[c]) {
+				continue;
+			}
+
+			// Hyperviscosity derivatives on interfaces
+			if (pGrid->GetVarLocation(c) == DataLocation_REdge) {
+				for (int k = 0; k <= nRElements; k++) {
+					dF[VecFIx(FIxFromCIx(c), k)] -=
+						m_dHypervisCoeff
+						* fabs(m_dXiDotREdge[k])
+						* m_dDiffDiffState[c][k];
+				}
+
+			} else {
+				for (int k = 0; k < nRElements; k++) {
+					dF[VecFIx(FIxFromCIx(c), k)] -=
+						m_dHypervisCoeff
+						* fabs(m_dXiDotNode[k])
+						* m_dDiffDiffState[c][k];
+				}
+			}
+		}
+	}
+
 #ifdef DEBUG
 	if (dF[VecFIx(FWIx, 0)] != 0.0) {
 		_EXCEPTIONT("No updates to W at bottom boundary allowed");
@@ -2200,6 +2143,13 @@ void VerticalDynamicsFEM::BuildJacobianF(
 
 	if (fMassFluxOnLevels) {
 		_EXCEPTIONT("Mass flux on levels -- not implemented");
+	}
+
+	// Check upwinding
+	for (int c = 2; c < 5; c++) {
+		if (m_fUpwind[c]) {
+			_EXCEPTIONT("Upwinding not implemented in BuildJacobian");
+		}
 	}
 
 //////////////////////////////////////////////
