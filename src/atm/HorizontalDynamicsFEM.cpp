@@ -269,6 +269,9 @@ void HorizontalDynamicsFEM::StepShallowWater(
 		const double dElementDeltaA = pPatch->GetElementDeltaA();
 		const double dElementDeltaB = pPatch->GetElementDeltaB();
 
+		const double dInvElementDeltaA = 1.0 / dElementDeltaA;
+		const double dInvElementDeltaB = 1.0 / dElementDeltaB;
+
 		const DataMatrix<double> & dDxBasis1D = pGrid->GetDxBasis1D();
 		const DataMatrix<double> & dStiffness1D = pGrid->GetStiffness1D();
 
@@ -349,6 +352,9 @@ void HorizontalDynamicsFEM::StepShallowWater(
 					int iElementA = a * m_nHorizontalOrder + box.GetHaloElements();
 					int iElementB = b * m_nHorizontalOrder + box.GetHaloElements();
 
+					// Inverse Jacobian
+					double dInvJacobian2D = 1.0 / dJacobian2D[iA][iB];
+
 					// Derivatives of the covariant velocity field
 					double dCovDaUb = 0.0;
 					double dCovDbUa = 0.0;
@@ -415,13 +421,13 @@ void HorizontalDynamicsFEM::StepShallowWater(
 					}
 
 					// Scale derivatives
-					dDaMassFluxA /= dElementDeltaA;
-					dCovDaUb     /= dElementDeltaA;
-					dDaKE        /= dElementDeltaA;
+					dDaMassFluxA *= dInvElementDeltaA;
+					dCovDaUb     *= dInvElementDeltaA;
+					dDaKE        *= dInvElementDeltaA;
 
-					dDbMassFluxB /= dElementDeltaB;
-					dCovDbUa     /= dElementDeltaB;
-					dDbKE        /= dElementDeltaB;
+					dDbMassFluxB *= dInvElementDeltaB;
+					dCovDbUa     *= dInvElementDeltaB;
+					dDbKE        *= dInvElementDeltaB;
 
 					// Pointwise horizontal momentum update
 					double dLocalUpdateUa = 0.0;
@@ -461,7 +467,7 @@ void HorizontalDynamicsFEM::StepShallowWater(
 
 					// Update height
 					dataUpdateNode[HIx][k][iA][iB] -=
-						dDeltaT / dJacobian2D[iA][iB] * (
+						dDeltaT * dInvJacobian2D * (
 							  dDaMassFluxA
 							+ dDbMassFluxB);
 				}
@@ -604,6 +610,9 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 		const double dElementDeltaA = pPatch->GetElementDeltaA();
 		const double dElementDeltaB = pPatch->GetElementDeltaB();
 
+		const double dInvElementDeltaA = 1.0 / dElementDeltaA;
+		const double dInvElementDeltaB = 1.0 / dElementDeltaB;
+
 		const DataMatrix<double> & dDxBasis1D = pGrid->GetDxBasis1D();
 		const DataMatrix<double> & dStiffness1D = pGrid->GetStiffness1D();
 
@@ -735,10 +744,10 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 						* dDxBasis1D[s][j];
 				}
 
-				dCovDaUb /= dElementDeltaA;
-				dCovDaUx /= dElementDeltaA;
-				dCovDbUa /= dElementDeltaB;
-				dCovDbUx /= dElementDeltaB;
+				dCovDaUb *= dInvElementDeltaA;
+				dCovDaUx *= dInvElementDeltaA;
+				dCovDbUa *= dInvElementDeltaB;
+				dCovDbUx *= dInvElementDeltaB;
 
 				// Contravariant velocities
 				double dConUa = m_dAuxDataNode[ConUaIx][k][i][j];
@@ -883,8 +892,8 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 							* dDxBasis1D[s][j];
 					}
 
-					dDaJUa /= dElementDeltaA;
-					dDbJUb /= dElementDeltaB;
+					dDaJUa *= dInvElementDeltaA;
+					dDbJUb *= dInvElementDeltaB;
 
 					m_dDivergence[k][i][j] =
 						(dDaJUa + dDbJUb) / dJacobian[k][iA][iB];
@@ -901,6 +910,9 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 
 					int iElementA = a * m_nHorizontalOrder + box.GetHaloElements();
 					int iElementB = b * m_nHorizontalOrder + box.GetHaloElements();
+
+					// Inverse Jacobian
+					const double dInvJacobian = 1.0 / dJacobian[k][iA][iB];
 
 					// Aliases for alpha and beta velocities
 					const double dConUa = m_dAuxDataNode[ConUaIx][k][i][j];
@@ -1035,21 +1047,21 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 					}
 
 					// Scale derivatives
-					dDaRhoFluxA /= dElementDeltaA;
-					dDbRhoFluxB /= dElementDeltaB;
+					dDaRhoFluxA *= dInvElementDeltaA;
+					dDbRhoFluxB *= dInvElementDeltaB;
 
-					dDaPressureFluxA /= dElementDeltaA;
-					dDbPressureFluxB /= dElementDeltaB;
+					dDaPressureFluxA *= dInvElementDeltaA;
+					dDbPressureFluxB *= dInvElementDeltaB;
 
-					dDaP /= dElementDeltaA;
-					dDbP /= dElementDeltaB;
+					dDaP *= dInvElementDeltaA;
+					dDbP *= dInvElementDeltaB;
 
-					dDaKE /= dElementDeltaA;
-					dDbKE /= dElementDeltaB;
+					dDaKE *= dInvElementDeltaA;
+					dDbKE *= dInvElementDeltaB;
 
 #ifdef INSTEP_DIVERGENCE_DAMPING
-					dDaDiv /= dElementDeltaA;
-					dDbDiv /= dElementDeltaB;
+					dDaDiv *= dInvElementDeltaA;
+					dDbDiv *= dInvElementDeltaB;
 #endif
 
 					// Pointwise momentum updates
@@ -1120,7 +1132,7 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 
 					// Update density on model levels
 					dataUpdateNode[RIx][k][iA][iB] -=
-						dDeltaT / dJacobian[k][iA][iB] * (
+						dDeltaT * dInvJacobian * (
 							  dDaRhoFluxA
 							+ dDbRhoFluxB);
 
@@ -1131,14 +1143,14 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 						* (dConUa * dDaP + dConUb * dDbP);
 
 					dataUpdateNode[PIx][k][iA][iB] -=
-						dDeltaT / dJacobian[k][iA][iB] * (
+						dDeltaT * dInvJacobian * (
 							  dDaPressureFluxA
 							+ dDbPressureFluxB);
 #endif
 #if defined(FORMULATION_RHOTHETA_PI) || defined(FORMULATION_RHOTHETA_P)
 					// Update RhoTheta on model levels
 					dataUpdateNode[PIx][k][iA][iB] -=
-						dDeltaT / dJacobian[k][iA][iB] * (
+						dDeltaT * dInvJacobian * (
 							  dDaPressureFluxA
 							+ dDbPressureFluxB);
 #endif
@@ -1225,8 +1237,8 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 								* dDxBasis1D[s][j];
 						}
 
-						dDaTheta /= dElementDeltaA;
-						dDbTheta /= dElementDeltaB;
+						dDaTheta *= dInvElementDeltaA;
+						dDbTheta *= dInvElementDeltaB;
 
 						// Update Theta on model levels
 						dataUpdateNode[PIx][k][iA][iB] -=
@@ -1268,11 +1280,11 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 								* dDxBasis1D[s][j];
 						}
 
-						dDaJUa /= dElementDeltaA;
-						dDbJUb /= dElementDeltaB;
+						dDaJUa *= dInvElementDeltaA;
+						dDbJUb *= dInvElementDeltaB;
 
-						dDaJThetaUa /= dElementDeltaA;
-						dDbJThetaUb /= dElementDeltaB;
+						dDaJThetaUa *= dInvElementDeltaA;
+						dDbJThetaUb *= dInvElementDeltaB;
 
 						// Update Theta on model levels
 						double dUpdateTheta =
@@ -1283,7 +1295,7 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 						dataUpdateNode[PIx][k][iA][iB] -=
 							dDeltaT
 							* dUpdateTheta
-							/ dJacobian[k][iA][iB];
+							* dInvJacobian;
 					}
 #endif
 
@@ -1302,11 +1314,11 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 								* dStiffness1D[j][s];
 						}
 
-						dDaTracerFluxA /= dElementDeltaA;
-						dDbTracerFluxB /= dElementDeltaB;
+						dDaTracerFluxA *= dInvElementDeltaA;
+						dDbTracerFluxB *= dInvElementDeltaB;
 
 						dataUpdateTracer[c][k][iA][iB] -=
-							dDeltaT / dJacobian[k][iA][iB] * (
+							dDeltaT * dInvJacobian * (
 								  dDaTracerFluxA
 								+ dDbTracerFluxB);
 					}
@@ -1428,8 +1440,8 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 							* dDxBasis1D[s][j];
 					}
 
-					dDaTheta /= dElementDeltaA;
-					dDbTheta /= dElementDeltaB;
+					dDaTheta *= dInvElementDeltaA;
+					dDbTheta *= dInvElementDeltaB;
 
 					// Update Theta on interfaces
 					double dConUa = m_dAuxDataREdge[ConUaIx][k][i][j];
@@ -1470,11 +1482,11 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 							* dDxBasis1D[s][j];
 					}
 
-					dDaJUa /= dElementDeltaA;
-					dDbJUb /= dElementDeltaB;
+					dDaJUa *= dInvElementDeltaA;
+					dDbJUb *= dInvElementDeltaB;
 
-					dDaJThetaUa /= dElementDeltaA;
-					dDbJThetaUb /= dElementDeltaB;
+					dDaJThetaUa *= dInvElementDeltaA;
+					dDbJThetaUb *= dInvElementDeltaB;
 
 					// Update Theta on model levels
 					double dUpdateTheta =
