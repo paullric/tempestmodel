@@ -360,28 +360,28 @@ void VerticalDynamicsFEM::StepExplicit(
 		const PatchBox & box = pPatch->GetPatchBox();
 
 		// Data
-		const GridData4D & dataRefNode =
+		const DataArray4D<double> & dataRefNode =
 			pPatch->GetReferenceState(DataLocation_Node);
 
-		const GridData4D & dataInitialNode =
+		const DataArray4D<double> & dataInitialNode =
 			pPatch->GetDataState(iDataInitial, DataLocation_Node);
 
-		GridData4D & dataUpdateNode =
+		DataArray4D<double> & dataUpdateNode =
 			pPatch->GetDataState(iDataUpdate, DataLocation_Node);
 
-		const GridData4D & dataRefREdge =
+		const DataArray4D<double> & dataRefREdge =
 			pPatch->GetReferenceState(DataLocation_REdge);
 
-		const GridData4D & dataInitialREdge =
+		const DataArray4D<double> & dataInitialREdge =
 			pPatch->GetDataState(iDataInitial, DataLocation_REdge);
 
-		GridData4D & dataUpdateREdge =
+		DataArray4D<double> & dataUpdateREdge =
 			pPatch->GetDataState(iDataUpdate, DataLocation_REdge);
 
-		GridData4D & dataInitialTracer =
+		DataArray4D<double> & dataInitialTracer =
 			pPatch->GetDataTracers(iDataInitial);
 
-		GridData4D & dataUpdateTracer =
+		DataArray4D<double> & dataUpdateTracer =
 			pPatch->GetDataTracers(iDataUpdate);
 
 		// Loop over all nodes
@@ -618,33 +618,33 @@ void VerticalDynamicsFEM::StepImplicit(
 			pPatch->GetContraMetricB();
 
 		// State Data
-		const GridData4D & dataRefNode =
+		const DataArray4D<double> & dataRefNode =
 			pPatch->GetReferenceState(DataLocation_Node);
 
-		const GridData4D & dataInitialNode =
+		const DataArray4D<double> & dataInitialNode =
 			pPatch->GetDataState(iDataInitial, DataLocation_Node);
 
-		GridData4D & dataUpdateNode =
+		DataArray4D<double> & dataUpdateNode =
 			pPatch->GetDataState(iDataUpdate, DataLocation_Node);
 
-		const GridData4D & dataRefREdge =
+		const DataArray4D<double> & dataRefREdge =
 			pPatch->GetReferenceState(DataLocation_REdge);
 
-		const GridData4D & dataInitialREdge =
+		const DataArray4D<double> & dataInitialREdge =
 			pPatch->GetDataState(iDataInitial, DataLocation_REdge);
 
-		GridData4D & dataUpdateREdge =
+		DataArray4D<double> & dataUpdateREdge =
 			pPatch->GetDataState(iDataUpdate, DataLocation_REdge);
 
 		// Tracer Data
-		GridData4D & dataInitialTracer =
+		DataArray4D<double> & dataInitialTracer =
 			pPatch->GetDataTracers(iDataInitial);
 
-		GridData4D & dataUpdateTracer =
+		DataArray4D<double> & dataUpdateTracer =
 			pPatch->GetDataTracers(iDataUpdate);
 
 		// Number of tracers
-		const int nTracerCount = dataInitialTracer.GetComponents();
+		const int nTracerCount = dataInitialTracer.GetSize(0);
 
 		// Number of finite elements
 		int nAElements =
@@ -1058,10 +1058,10 @@ void VerticalDynamicsFEM::SetupReferenceColumn(
 	GridPatch * pPatch,
 	int iA,
 	int iB,
-	const GridData4D & dataRefNode,
-	const GridData4D & dataInitialNode,
-	const GridData4D & dataRefREdge,
-	const GridData4D & dataInitialREdge
+	const DataArray4D<double> & dataRefNode,
+	const DataArray4D<double> & dataInitialNode,
+	const DataArray4D<double> & dataRefREdge,
+	const DataArray4D<double> & dataInitialREdge
 ) {
 
 	// Indices of EquationSet variables
@@ -2579,12 +2579,12 @@ void VerticalDynamicsFEM::Evaluate(
 
 void VerticalDynamicsFEM::UpdateColumnTracers(
 	double dDeltaT,
-	const GridData4D & dataInitialNode,
-	const GridData4D & dataUpdateNode,
-	const GridData4D & dataInitialREdge,
-	const GridData4D & dataUpdateREdge,
-	const GridData4D & dataInitialTracer,
-	const GridData4D & dataUpdateTracer
+	const DataArray4D<double> & dataInitialNode,
+	const DataArray4D<double> & dataUpdateNode,
+	const DataArray4D<double> & dataInitialREdge,
+	const DataArray4D<double> & dataUpdateREdge,
+	const DataArray4D<double> & dataInitialTracer,
+	const DataArray4D<double> & dataUpdateTracer
 ) {
 	// Indices of EquationSet variables
 	const int UIx = 0;
@@ -2600,7 +2600,7 @@ void VerticalDynamicsFEM::UpdateColumnTracers(
 	const int nRElements = pGrid->GetRElements();
 
 	// Number of tracer components
-	const int nComponents = dataInitialTracer.GetComponents();
+	const int nComponents = dataInitialTracer.GetSize(0);
 
 	// If no tracer components, no update necessary
 	if (nComponents == 0) {
@@ -3033,11 +3033,11 @@ void VerticalDynamicsFEM::FilterNegativeTracers(
 		const DataArray3D<double> & dElementArea =
 			pPatch->GetElementArea();
 
-		GridData4D & dataUpdateTracer =
+		DataArray4D<double> & dataUpdateTracer =
 			pPatch->GetDataTracers(iDataUpdate);
 
 		// Number of tracers
-		const int nTracerCount = dataUpdateTracer.GetComponents();
+		const int nTracerCount = dataUpdateTracer.GetSize(0);
 
 		for (int i = box.GetAInteriorBegin(); i < box.GetAInteriorEnd(); i++) {
 		for (int j = box.GetBInteriorBegin(); j < box.GetBInteriorEnd(); j++) {

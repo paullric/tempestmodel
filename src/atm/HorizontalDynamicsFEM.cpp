@@ -141,11 +141,11 @@ void HorizontalDynamicsFEM::FilterNegativeTracers(
 		const DataArray3D<double> & dElementArea =
 			pPatch->GetElementArea();
 
-		GridData4D & dataUpdateTracer =
+		DataArray4D<double> & dataUpdateTracer =
 			pPatch->GetDataTracers(iDataUpdate);
 
 		// Number of tracers
-		const int nTracerCount = dataUpdateTracer.GetComponents();
+		const int nTracerCount = dataUpdateTracer.GetSize(0);
 
 		// Get number of finite elements in each coordinate direction
 		int nElementCountA = pPatch->GetElementCountA();
@@ -261,10 +261,10 @@ void HorizontalDynamicsFEM::StepShallowWater(
 			pPatch->GetTopography();
 
 		// Data
-		const GridData4D & dataInitialNode =
+		const DataArray4D<double> & dataInitialNode =
 			pPatch->GetDataState(iDataInitial, DataLocation_Node);
 
-		GridData4D & dataUpdateNode =
+		DataArray4D<double> & dataUpdateNode =
 			pPatch->GetDataState(iDataUpdate, DataLocation_Node);
 
 		// Element grid spacing and derivative coefficients
@@ -565,31 +565,31 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 		const DataArray3D<double> & dZLevels    = pPatch->GetZLevels();
 
 		// Data
-		GridData4D & dataInitialNode =
+		DataArray4D<double> & dataInitialNode =
 			pPatch->GetDataState(iDataInitial, DataLocation_Node);
 
-		GridData4D & dataUpdateNode =
+		DataArray4D<double> & dataUpdateNode =
 			pPatch->GetDataState(iDataUpdate, DataLocation_Node);
 
-		GridData4D & dataInitialREdge =
+		DataArray4D<double> & dataInitialREdge =
 			pPatch->GetDataState(iDataInitial, DataLocation_REdge);
 
-		GridData4D & dataUpdateREdge =
+		DataArray4D<double> & dataUpdateREdge =
 			pPatch->GetDataState(iDataUpdate, DataLocation_REdge);
 
-		GridData4D & dataInitialTracer =
+		DataArray4D<double> & dataInitialTracer =
 			pPatch->GetDataTracers(iDataInitial);
 
-		GridData4D & dataUpdateTracer =
+		DataArray4D<double> & dataUpdateTracer =
 			pPatch->GetDataTracers(iDataUpdate);
 
 		// Number of tracers
-		const int nTracerCount = dataInitialTracer.GetComponents();
+		const int nTracerCount = dataInitialTracer.GetSize(0);
 
 		// Spacing between vertical levels in dataInitialNode
 		const int nVerticalStateStride =
-			  dataInitialNode.GetAElements()
-			* dataInitialNode.GetBElements();
+			  dataInitialNode.GetSize(2)
+			* dataInitialNode.GetSize(3);
 
 		// Perform interpolations as required due to vertical staggering
 		if (pGrid->GetVarsAtLocation(DataLocation_REdge) != 0) {
@@ -1584,23 +1584,23 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusion(
 			pPatch->GetContraMetric2DB();
 
 		// Grid data
-		GridData4D & dataInitialNode =
+		DataArray4D<double> & dataInitialNode =
 			pPatch->GetDataState(iDataInitial, DataLocation_Node);
 
-		GridData4D & dataInitialREdge =
+		DataArray4D<double> & dataInitialREdge =
 			pPatch->GetDataState(iDataInitial, DataLocation_REdge);
 
-		GridData4D & dataUpdateNode =
+		DataArray4D<double> & dataUpdateNode =
 			pPatch->GetDataState(iDataUpdate, DataLocation_Node);
 
-		GridData4D & dataUpdateREdge =
+		DataArray4D<double> & dataUpdateREdge =
 			pPatch->GetDataState(iDataUpdate, DataLocation_REdge);
 
 		// Tracer data
-		GridData4D & dataInitialTracer =
+		DataArray4D<double> & dataInitialTracer =
 			pPatch->GetDataTracers(iDataInitial);
 
-		GridData4D & dataUpdateTracer =
+		DataArray4D<double> & dataUpdateTracer =
 			pPatch->GetDataTracers(iDataUpdate);
 
 		// Element grid spacing and derivative coefficients
@@ -1784,10 +1784,10 @@ void HorizontalDynamicsFEM::ApplyVectorHyperdiffusion(
 		const DataArray3D<double> & dContraMetric2DB =
 			pPatch->GetContraMetric2DB();
 
-		GridData4D & dataInitial =
+		DataArray4D<double> & dataInitial =
 			pPatch->GetDataState(iDataInitial, DataLocation_Node);
 
-		GridData4D & dataUpdate =
+		DataArray4D<double> & dataUpdate =
 			pPatch->GetDataState(iDataUpdate, DataLocation_Node);
 
 		// Element grid spacing and derivative coefficients
@@ -1801,18 +1801,31 @@ void HorizontalDynamicsFEM::ApplyVectorHyperdiffusion(
 		const DataArray2D<double> & dStiffness1D = pGrid->GetStiffness1D();
 
 		// Compute curl and divergence of U on the grid
-		GridData3D dataUa;
-		GridData3D dataUb;
+		DataArray3D<double> dataUa(
+			dataInitial.GetSize(1),
+			dataInitial.GetSize(2),
+			dataInitial.GetSize(3),
+			dataInitial.GetDataType(),
+			dataInitial.GetDataLocation(),
+			false);
 
-		dataInitial.GetAsGridData3D(UIx, dataUa);
-		dataInitial.GetAsGridData3D(VIx, dataUb);
+		DataArray3D<double> dataUb(
+			dataInitial.GetSize(1),
+			dataInitial.GetSize(2),
+			dataInitial.GetSize(3),
+			dataInitial.GetDataType(),
+			dataInitial.GetDataLocation(),
+			false);
+
+		dataUa.AttachTo(dataInitial[UIx][0][0]);
+		dataUb.AttachTo(dataInitial[VIx][0][0]);
 
 		// Compute curl and divergence of U on the grid
 		pPatch->ComputeCurlAndDiv(dataUa, dataUb);
 
 		// Get curl and divergence
-		const GridData3D & dataCurl = pPatch->GetDataVorticity();
-		const GridData3D & dataDiv  = pPatch->GetDataDivergence();
+		const DataArray3D<double> & dataCurl = pPatch->GetDataVorticity();
+		const DataArray3D<double> & dataDiv  = pPatch->GetDataDivergence();
 
 		// Compute new hyperviscosity coefficient
 		double dLocalNuDiv  = dNuDiv;
@@ -1932,24 +1945,24 @@ void HorizontalDynamicsFEM::ApplyRayleighFriction(
 		const PatchBox & box = pPatch->GetPatchBox();
 
 		// Grid data
-		GridData4D & dataUpdateNode =
+		DataArray4D<double> & dataUpdateNode =
 			pPatch->GetDataState(iDataUpdate, DataLocation_Node);
 
-		GridData4D & dataUpdateREdge =
+		DataArray4D<double> & dataUpdateREdge =
 			pPatch->GetDataState(iDataUpdate, DataLocation_REdge);
 
 		// Reference state
-		const GridData4D & dataReferenceNode =
+		const DataArray4D<double> & dataReferenceNode =
 			pPatch->GetReferenceState(DataLocation_Node);
 
-		const GridData4D & dataReferenceREdge =
+		const DataArray4D<double> & dataReferenceREdge =
 			pPatch->GetReferenceState(DataLocation_REdge);
 
 		// Rayleigh friction strength
-		const GridData3D & dataRayleighStrengthNode =
+		const DataArray3D<double> & dataRayleighStrengthNode =
 			pPatch->GetRayleighStrength(DataLocation_Node);
 
-		const GridData3D & dataRayleighStrengthREdge =
+		const DataArray3D<double> & dataRayleighStrengthREdge =
 			pPatch->GetRayleighStrength(DataLocation_REdge);
 
 		// Loop over all nodes in patch

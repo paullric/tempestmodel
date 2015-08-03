@@ -962,8 +962,8 @@ void GridPatchCSGLL::EvaluateTestCase_StateOnly(
 ///////////////////////////////////////////////////////////////////////////////
 
 void GridPatchCSGLL::ComputeCurlAndDiv(
-	const GridData3D & dataUa,
-	const GridData3D & dataUb
+	const DataArray3D<double> & dataUa,
+	const DataArray3D<double> & dataUb
 ) const {
 	// Parent grid
 	const GridCSGLL & gridCSGLL = dynamic_cast<const GridCSGLL &>(m_grid);
@@ -1164,19 +1164,31 @@ void GridPatchCSGLL::ComputeVorticityDivergence(
 	const PhysicalConstants & phys = m_grid.GetModel().GetPhysicalConstants();
 
 	// Working data
-	const GridData4D & dataState = GetDataState(iDataIndex, DataLocation_Node);
+	const DataArray4D<double> & dataState =
+		GetDataState(iDataIndex, DataLocation_Node);
 
-	if (dataState.GetComponents() < 2) {
+	if (dataState.GetSize(0) < 2) {
 		_EXCEPTIONT(
 			"Insufficient components for vorticity calculation");
 	}
 
 	// Get the alpha and beta components of vorticity
-	GridData3D dataUa;
-	GridData3D dataUb;
+	DataArray3D<double> dataUa(
+		dataState.GetSize(1),
+		dataState.GetSize(2),
+		dataState.GetSize(3),
+		dataState.GetDataType(),
+		dataState.GetDataLocation());
 
-	dataState.GetAsGridData3D(0, dataUa);
-	dataState.GetAsGridData3D(1, dataUb);
+	DataArray3D<double> dataUb(
+		dataState.GetSize(1),
+		dataState.GetSize(2),
+		dataState.GetSize(3),
+		dataState.GetDataType(),
+		dataState.GetDataLocation());
+
+	dataUa.AttachTo(dataState[0][0][0]);
+	dataUb.AttachTo(dataState[1][0][0]);
 
 	// Compute the radial component of the curl of the velocity field
 	ComputeCurlAndDiv(dataUa, dataUb);
@@ -1277,15 +1289,15 @@ void GridPatchCSGLL::InterpolateData(
 		// State Data: Perform interpolation on all variables
 		if (eDataType == DataType_State) {
 			if (eDataLocation == DataLocation_Node) {
-				nComponents = m_datavecStateNode[0].GetComponents();
+				nComponents = m_datavecStateNode[0].GetSize(0);
 			} else {
-				nComponents = m_datavecStateREdge[0].GetComponents();
+				nComponents = m_datavecStateREdge[0].GetSize(0);
 				nRElements = m_grid.GetRElements() + 1;
 			}
 
 		// Tracer Data: Perform interpolation on all variables
 		} else if (eDataType == DataType_Tracers) {
-			nComponents = m_datavecTracers[0].GetComponents();
+			nComponents = m_datavecTracers[0].GetSize(0);
 
 		// Topography Data: Special handling due to 2D nature of data
 		} else if (eDataType == DataType_Topography) {
@@ -1412,10 +1424,10 @@ void GridPatchCSGLL::TransformHaloVelocities(
 	const int VIx = 1;
 
 	// Velocity data
-	GridData4D * pDataVelocity =
+	DataArray4D<double> * pDataVelocity =
 		&(GetDataState(iDataUpdate, m_grid.GetVarLocation(UIx)));
 
-	if (pDataVelocity->GetComponents() < 2) {
+	if (pDataVelocity->GetSize(0) < 2) {
 		_EXCEPTIONT("Invalid number of components.");
 	}
 
@@ -1439,7 +1451,7 @@ void GridPatchCSGLL::TransformHaloVelocities(
 		int jEnd = m_box.GetBInteriorEnd()+1;
 
 		i = m_box.GetAInteriorEnd();
-		for (int k = 0; k < pDataVelocity->GetRElements(); k++) {
+		for (int k = 0; k < pDataVelocity->GetSize(1); k++) {
 		for (j = jBegin; j < jEnd; j++) {
 			CubedSphereTrans::CoVecPanelTrans(
 				ixRightPanel,
@@ -1461,7 +1473,7 @@ void GridPatchCSGLL::TransformHaloVelocities(
 		int iEnd = m_box.GetAInteriorEnd()+1;
 
 		j = m_box.GetBInteriorEnd();
-		for (int k = 0; k < pDataVelocity->GetRElements(); k++) {
+		for (int k = 0; k < pDataVelocity->GetSize(1); k++) {
 		for (i = iBegin; i < iEnd; i++) {
 			CubedSphereTrans::CoVecPanelTrans(
 				ixTopPanel,
@@ -1483,7 +1495,7 @@ void GridPatchCSGLL::TransformHaloVelocities(
 		int jEnd = m_box.GetBInteriorEnd()+1;
 
 		i = m_box.GetAInteriorBegin()-1;
-		for (int k = 0; k < pDataVelocity->GetRElements(); k++) {
+		for (int k = 0; k < pDataVelocity->GetSize(1); k++) {
 		for (j = jBegin; j < jEnd; j++) {
 			CubedSphereTrans::CoVecPanelTrans(
 				ixLeftPanel,
@@ -1505,7 +1517,7 @@ void GridPatchCSGLL::TransformHaloVelocities(
 		int iEnd = m_box.GetAInteriorEnd()+1;
 
 		j = m_box.GetBInteriorBegin()-1;
-		for (int k = 0; k < pDataVelocity->GetRElements(); k++) {
+		for (int k = 0; k < pDataVelocity->GetSize(1); k++) {
 		for (i = iBegin; i < iEnd; i++) {
 			CubedSphereTrans::CoVecPanelTrans(
 				ixBottomPanel,

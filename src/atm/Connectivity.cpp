@@ -26,21 +26,29 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 void Neighbor::InitializeBuffers(
-	int nRElements,
-	int nHaloElements,
-	int nComponents
+	size_t sRElements,
+	size_t sHaloElements,
+	size_t sComponents
 ) {
 
 	// Store buffer size
-	m_nMaxRElements = nRElements + 1;
-	m_nHaloElements = nHaloElements;
-	m_nComponents = nComponents;
+	m_sMaxRElements = sRElements + 1;
+	m_sHaloElements = sHaloElements;
+	m_sComponents = sComponents;
 
 	// Resize buffers
 	m_vecSendBuffer.Allocate(
-		m_nBoundarySize * m_nMaxRElements * m_nHaloElements * m_nComponents);
+		  m_sBoundarySize
+		* m_sMaxRElements
+		* m_sHaloElements
+		* m_sComponents);
+
 	m_vecRecvBuffer.Allocate(
-		m_nBoundarySize * m_nMaxRElements * m_nHaloElements * m_nComponents);
+		  m_sBoundarySize
+		* m_sMaxRElements
+		* m_sHaloElements
+		* m_sComponents);
+
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -99,16 +107,20 @@ void ExteriorNeighbor::PrepareExchange() {
 ///////////////////////////////////////////////////////////////////////////////
 
 void ExteriorNeighbor::Pack(
-	const GridData3D & data
+	const DataArray3D<double> & data
 ) {
+	const size_t sRElements = data.GetSize(0);
+	const size_t sAElements = data.GetSize(1);
+	const size_t sBElements = data.GetSize(2);
+
 	// Check matrix bounds
 	if (((m_dir == Direction_Right) || (m_dir == Direction_Left)) &&
-		(m_ixSecond > data.GetBElements())
+		(m_ixSecond > sBElements)
 	) {
 		_EXCEPTIONT("GridData / ExteriorNeighbor inconsistency.");
 	}
 	if (((m_dir == Direction_Top) || (m_dir == Direction_Bottom)) &&
-		(m_ixSecond > data.GetAElements())
+		(m_ixSecond > sAElements)
 	) {
 		_EXCEPTIONT("GridData / ExteriorNeighbor inconsistency.");
 	}
@@ -130,18 +142,18 @@ void ExteriorNeighbor::Pack(
 
 	// Pack data to send right
 	if (m_dir == Direction_Right) {
-		ixBoundaryBegin = data.GetAElements() - 2 * data.GetHaloElements();
-		ixBoundaryEnd   = data.GetAElements() - data.GetHaloElements();
+		ixBoundaryBegin = sAElements - 2 * m_sHaloElements;
+		ixBoundaryEnd   = sAElements - m_sHaloElements;
 
 		// Check that sufficient data remains in send buffer
 		int nTotalValues =
-			  data.GetRElements()
+			  sRElements
 			* (ixBoundaryEnd - ixBoundaryBegin)
 			* (m_ixSecond - m_ixFirst);
 
 		// Pack the SendBuffer
 		if (m_fReverseDirection) {
-			for (int k = 0; k < data.GetRElements(); k++) {
+			for (int k = 0; k < sRElements; k++) {
 			for (int i = ixBoundaryBegin; i < ixBoundaryEnd; i++) {
 			for (int j = m_ixSecond-1; j >= m_ixFirst; j--) {
 				m_vecSendBuffer[m_ixSendBuffer++] = data[k][i][j];
@@ -150,7 +162,7 @@ void ExteriorNeighbor::Pack(
 			}
 
 		} else {
-			for (int k = 0; k < data.GetRElements(); k++) {
+			for (int k = 0; k < sRElements; k++) {
 			for (int i = ixBoundaryBegin; i < ixBoundaryEnd; i++) {
 			for (int j = m_ixFirst; j < m_ixSecond; j++) {
 				m_vecSendBuffer[m_ixSendBuffer++] = data[k][i][j];	
@@ -161,12 +173,12 @@ void ExteriorNeighbor::Pack(
 	
 	// Pack data to send topward
 	} else if (m_dir == Direction_Top) {
-		ixBoundaryBegin = data.GetBElements() - 2 * data.GetHaloElements();
-		ixBoundaryEnd   = data.GetBElements() - data.GetHaloElements();
+		ixBoundaryBegin = sBElements - 2 * m_sHaloElements;
+		ixBoundaryEnd   = sBElements - m_sHaloElements;
 
 		// Check that sufficient data remains in send buffer
 		int nTotalValues =
-			  data.GetRElements()
+			  sRElements
 			* (ixBoundaryEnd - ixBoundaryBegin)
 			* (m_ixSecond - m_ixFirst);
 
@@ -176,7 +188,7 @@ void ExteriorNeighbor::Pack(
 
 		// Pack the SendBuffer
 		if (m_fReverseDirection) {
-			for (int k = 0; k < data.GetRElements(); k++) {
+			for (int k = 0; k < sRElements; k++) {
 			for (int j = ixBoundaryBegin; j < ixBoundaryEnd; j++) {
 			for (int i = m_ixSecond-1; i >= m_ixFirst; i--) {
 				m_vecSendBuffer[m_ixSendBuffer++] = data[k][i][j];
@@ -185,7 +197,7 @@ void ExteriorNeighbor::Pack(
 			}
 
 		} else {
-			for (int k = 0; k < data.GetRElements(); k++) {
+			for (int k = 0; k < sRElements; k++) {
 			for (int j = ixBoundaryBegin; j < ixBoundaryEnd; j++) {
 			for (int i = m_ixFirst; i < m_ixSecond; i++) {
 				m_vecSendBuffer[m_ixSendBuffer++] = data[k][i][j];
@@ -196,12 +208,12 @@ void ExteriorNeighbor::Pack(
 
 	// Pack data to send left
 	} else if (m_dir == Direction_Left) {
-		ixBoundaryBegin = data.GetHaloElements();
-		ixBoundaryEnd   = 2 * data.GetHaloElements();
+		ixBoundaryBegin = m_sHaloElements;
+		ixBoundaryEnd   = 2 * m_sHaloElements;
 
 		// Check that sufficient data remains in send buffer
 		int nTotalValues =
-			  data.GetRElements()
+			  sRElements
 			* (ixBoundaryEnd - ixBoundaryBegin)
 			* (m_ixSecond - m_ixFirst);
 
@@ -211,7 +223,7 @@ void ExteriorNeighbor::Pack(
 
 		// Pack the SendBuffer
 		if (m_fReverseDirection) {
-			for (int k = 0; k < data.GetRElements(); k++) {
+			for (int k = 0; k < sRElements; k++) {
 			for (int i = ixBoundaryEnd-1; i >= ixBoundaryBegin; i--) {
 			for (int j = m_ixSecond-1; j >= m_ixFirst; j--) {
 				m_vecSendBuffer[m_ixSendBuffer++] = data[k][i][j];
@@ -220,7 +232,7 @@ void ExteriorNeighbor::Pack(
 			}
 
 		} else {
-			for (int k = 0; k < data.GetRElements(); k++) {
+			for (int k = 0; k < sRElements; k++) {
 			for (int i = ixBoundaryEnd-1; i >= ixBoundaryBegin; i--) {
 			for (int j = m_ixFirst; j < m_ixSecond; j++) {
 				m_vecSendBuffer[m_ixSendBuffer++] = data[k][i][j];
@@ -231,12 +243,12 @@ void ExteriorNeighbor::Pack(
 
 	// Pack data to send bottomward
 	} else if (m_dir == Direction_Bottom) {
-		ixBoundaryBegin = data.GetHaloElements();
-		ixBoundaryEnd   = 2 * data.GetHaloElements();
+		ixBoundaryBegin = m_sHaloElements;
+		ixBoundaryEnd   = 2 * m_sHaloElements;
 
 		// Check that sufficient data remains in send buffer
 		int nTotalValues =
-			  data.GetRElements()
+			  sRElements
 			* (ixBoundaryEnd - ixBoundaryBegin)
 			* (m_ixSecond - m_ixFirst);
 
@@ -246,7 +258,7 @@ void ExteriorNeighbor::Pack(
 
 		// Pack the SendBuffer
 		if (m_fReverseDirection) {
-			for (int k = 0; k < data.GetRElements(); k++) {
+			for (int k = 0; k < sRElements; k++) {
 			for (int j = ixBoundaryEnd-1; j >= ixBoundaryBegin; j--) {
 			for (int i = m_ixSecond-1; i >= m_ixFirst; i--) {
 				m_vecSendBuffer[m_ixSendBuffer++] = data[k][i][j];
@@ -255,7 +267,7 @@ void ExteriorNeighbor::Pack(
 			}
 
 		} else {
-			for (int k = 0; k < data.GetRElements(); k++) {
+			for (int k = 0; k < sRElements; k++) {
 			for (int j = ixBoundaryEnd-1; j >= ixBoundaryBegin; j--) {
 			for (int i = m_ixFirst; i < m_ixSecond; i++) {
 				m_vecSendBuffer[m_ixSendBuffer++] = data[k][i][j];
@@ -266,14 +278,14 @@ void ExteriorNeighbor::Pack(
 
 	// Pack data to send toprightward 
 	} else if (m_dir == Direction_TopRight) {
-		ixABoundaryBegin = m_ixFirst - data.GetHaloElements() + 1;
+		ixABoundaryBegin = m_ixFirst - m_sHaloElements + 1;
 		ixABoundaryEnd   = m_ixFirst + 1;
-		ixBBoundaryBegin = m_ixSecond - data.GetHaloElements() + 1;
+		ixBBoundaryBegin = m_ixSecond - m_sHaloElements + 1;
 		ixBBoundaryEnd   = m_ixSecond + 1;
  
 		// Check that sufficient data remains in send buffer
 		int nTotalValues =
-			  data.GetRElements()
+			  sRElements
 			* (ixABoundaryEnd - ixABoundaryBegin)
 			* (ixBBoundaryEnd - ixBBoundaryBegin);
 
@@ -283,7 +295,7 @@ void ExteriorNeighbor::Pack(
 
 		// Pack the SendBuffer
 		if (m_fReverseDirection) {
-			for (int k = 0; k < data.GetRElements(); k++) {
+			for (int k = 0; k < sRElements; k++) {
 			for (int i = ixABoundaryBegin; i < ixABoundaryEnd; i++) {
 			for (int j = ixBBoundaryBegin; j < ixBBoundaryEnd; j++) {
 				m_vecSendBuffer[m_ixSendBuffer++] = data[k][i][j];
@@ -292,7 +304,7 @@ void ExteriorNeighbor::Pack(
 			}
 
 		} else {
-			for (int k = 0; k < data.GetRElements(); k++) {
+			for (int k = 0; k < sRElements; k++) {
 			for (int j = ixBBoundaryBegin; j < ixBBoundaryEnd; j++) {
 			for (int i = ixABoundaryBegin; i < ixABoundaryEnd; i++) {
 				m_vecSendBuffer[m_ixSendBuffer++] = data[k][i][j];
@@ -304,13 +316,13 @@ void ExteriorNeighbor::Pack(
 	// Pack data to send topleftward 
 	} else if (m_dir == Direction_TopLeft) {
 		ixABoundaryBegin = m_ixFirst;
-		ixABoundaryEnd   = m_ixFirst + data.GetHaloElements();
-		ixBBoundaryBegin = m_ixSecond - data.GetHaloElements() + 1;
+		ixABoundaryEnd   = m_ixFirst + m_sHaloElements;
+		ixBBoundaryBegin = m_ixSecond - m_sHaloElements + 1;
 		ixBBoundaryEnd   = m_ixSecond + 1;
  
 		// Check that sufficient data remains in send buffer
 		int nTotalValues =
-			  data.GetRElements()
+			  sRElements
 			* (ixABoundaryEnd - ixABoundaryBegin)
 			* (ixBBoundaryEnd - ixBBoundaryBegin);
 
@@ -320,7 +332,7 @@ void ExteriorNeighbor::Pack(
 
 		// Pack the SendBuffer
 		if (m_fReverseDirection) {
-			for (int k = 0; k < data.GetRElements(); k++) {
+			for (int k = 0; k < sRElements; k++) {
 			for (int i = ixABoundaryEnd-1; i >= ixABoundaryBegin; i--) {
 			for (int j = ixBBoundaryBegin; j < ixBBoundaryEnd; j++) {
 				m_vecSendBuffer[m_ixSendBuffer++] = data[k][i][j];
@@ -329,7 +341,7 @@ void ExteriorNeighbor::Pack(
 			}
 
 		} else {
-			for (int k = 0; k < data.GetRElements(); k++) {
+			for (int k = 0; k < sRElements; k++) {
 			for (int j = ixBBoundaryBegin; j < ixBBoundaryEnd; j++) {
 			for (int i = ixABoundaryEnd-1; i >= ixABoundaryBegin; i--) {
 				m_vecSendBuffer[m_ixSendBuffer++] = data[k][i][j];
@@ -341,13 +353,13 @@ void ExteriorNeighbor::Pack(
 	// Pack data to send bottomleftward 
 	} else if (m_dir == Direction_BottomLeft) {
 		ixABoundaryBegin = m_ixFirst;
-		ixABoundaryEnd   = m_ixFirst + data.GetHaloElements();
+		ixABoundaryEnd   = m_ixFirst + m_sHaloElements;
 		ixBBoundaryBegin = m_ixSecond;
-		ixBBoundaryEnd   = m_ixSecond + data.GetHaloElements();
+		ixBBoundaryEnd   = m_ixSecond + m_sHaloElements;
  
 		// Check that sufficient data remains in send buffer
 		int nTotalValues =
-			  data.GetRElements()
+			  sRElements
 			* (ixABoundaryEnd - ixABoundaryBegin)
 			* (ixBBoundaryEnd - ixBBoundaryBegin);
 
@@ -357,7 +369,7 @@ void ExteriorNeighbor::Pack(
 
 		// Pack the SendBuffer
 		if (m_fReverseDirection) {
-			for (int k = 0; k < data.GetRElements(); k++) {
+			for (int k = 0; k < sRElements; k++) {
 			for (int i = ixABoundaryEnd-1; i >= ixABoundaryBegin; i--) {
 			for (int j = ixBBoundaryEnd-1; j >= ixBBoundaryBegin; j--) {
 				m_vecSendBuffer[m_ixSendBuffer++] = data[k][i][j];
@@ -366,7 +378,7 @@ void ExteriorNeighbor::Pack(
 			}
 
 		} else {
-			for (int k = 0; k < data.GetRElements(); k++) {
+			for (int k = 0; k < sRElements; k++) {
 			for (int j = ixBBoundaryEnd-1; j >= ixBBoundaryBegin; j--) {
 			for (int i = ixABoundaryEnd-1; i >= ixABoundaryBegin; i--) {
 				m_vecSendBuffer[m_ixSendBuffer++] = data[k][i][j];
@@ -377,14 +389,14 @@ void ExteriorNeighbor::Pack(
 
 	// Pack data to send bottomrightward 
 	} else if (m_dir == Direction_BottomRight) {
-		ixABoundaryBegin = m_ixFirst - data.GetHaloElements() + 1;
+		ixABoundaryBegin = m_ixFirst - m_sHaloElements + 1;
 		ixABoundaryEnd   = m_ixFirst + 1;
 		ixBBoundaryBegin = m_ixSecond;
-		ixBBoundaryEnd   = m_ixSecond + data.GetHaloElements();
+		ixBBoundaryEnd   = m_ixSecond + m_sHaloElements;
  
 		// Check that sufficient data remains in send buffer
 		int nTotalValues =
-			  data.GetRElements()
+			  sRElements
 			* (ixABoundaryEnd - ixABoundaryBegin)
 			* (ixBBoundaryEnd - ixBBoundaryBegin);
 
@@ -394,7 +406,7 @@ void ExteriorNeighbor::Pack(
 
 		// Pack the SendBuffer
 		if (m_fReverseDirection) {
-			for (int k = 0; k < data.GetRElements(); k++) {
+			for (int k = 0; k < sRElements; k++) {
 			for (int i = ixABoundaryBegin; i < ixABoundaryEnd; i++) {
 			for (int j = ixBBoundaryEnd-1; j >= ixBBoundaryBegin; j--) {
 				m_vecSendBuffer[m_ixSendBuffer++] = data[k][i][j];
@@ -403,7 +415,7 @@ void ExteriorNeighbor::Pack(
 			}
 
 		} else {
-			for (int k = 0; k < data.GetRElements(); k++) {
+			for (int k = 0; k < sRElements; k++) {
 			for (int j = ixBBoundaryEnd-1; j >= ixBBoundaryBegin; j--) {
 			for (int i = ixABoundaryBegin; i < ixABoundaryEnd; i++) {
 				m_vecSendBuffer[m_ixSendBuffer++] = data[k][i][j];
@@ -421,31 +433,42 @@ void ExteriorNeighbor::Pack(
 ///////////////////////////////////////////////////////////////////////////////
 
 void ExteriorNeighbor::Pack(
-	const GridData4D & data
+	const DataArray4D<double> & data
 ) {
 	// Model grid
 	const Grid & grid = m_pConnect->GetGridPatch().GetGrid();
 
+	// Number of components in data
+	size_t sComponents = data.GetSize(0);
+
 	// 3D Grid Data
-	GridData3D data3D;
+	DataArray3D<double> data3D(
+		data.GetSize(1),
+		data.GetSize(2),
+		data.GetSize(3),
+		data.GetDataType(),
+		data.GetDataLocation(),
+		false);
 
 	// For state data exclude non-collacted data points
 	if (data.GetDataType() == DataType_State) {
 		// List of variable indices to send
 		// - exclude variables which are not-collocated with this data structure
-		for (int c = 0; c < data.GetComponents(); c++) {
+		for (int c = 0; c < sComponents; c++) {
 			if (grid.GetVarLocation(c) != data.GetDataLocation()) {
 				continue;
 			}
-			data.GetAsGridData3D(c, data3D);
+			data3D.AttachTo(data[c][0][0]);
 			Pack(data3D);
+			data3D.Detach();
 		}
 
 	// Send everything
 	} else {
-		for (int c = 0; c < data.GetComponents(); c++) {
-			data.GetAsGridData3D(c, data3D);
+		for (int c = 0; c < sComponents; c++) {
+			data3D.AttachTo(data[c][0][0]);
 			Pack(data3D);
+			data3D.Detach();
 		}
 	}
 }
@@ -494,7 +517,7 @@ void ExteriorNeighbor::Send() {
 ///////////////////////////////////////////////////////////////////////////////
 
 void ExteriorNeighbor::Unpack(
-	GridData3D & data
+	DataArray3D<double> & data
 ) {
 /*
 	// Check receive status
@@ -506,6 +529,10 @@ void ExteriorNeighbor::Unpack(
 	}
 	std::cout << "Test: " << status.MPI_TAG << std::endl;
 */
+	const size_t sRElements = data.GetSize(0);
+	const size_t sAElements = data.GetSize(1);
+	const size_t sBElements = data.GetSize(2);
+
 	// Model grid
 	const Grid & grid = m_pConnect->GetGridPatch().GetGrid();
 
@@ -521,12 +548,12 @@ void ExteriorNeighbor::Unpack(
 
 	// Unpack data from right
 	if (m_dir == Direction_Right) {
-		ixBoundaryBegin = data.GetAElements() - data.GetHaloElements();
-		ixBoundaryEnd   = data.GetAElements();
+		ixBoundaryBegin = sAElements - m_sHaloElements;
+		ixBoundaryEnd   = sAElements;
 
 		// Check that sufficient data remains in send buffer
 		int nTotalValues =
-			  data.GetRElements()
+			  sRElements
 			* (ixBoundaryEnd - ixBoundaryBegin)
 			* (m_ixSecond - m_ixFirst);
 
@@ -535,7 +562,7 @@ void ExteriorNeighbor::Unpack(
 		}
 
 		// Unpack data
-		for (int k = 0; k < data.GetRElements(); k++) {
+		for (int k = 0; k < sRElements; k++) {
 		for (int i = ixBoundaryEnd-1; i >= ixBoundaryBegin; i--) {
 		for (int j = m_ixFirst; j < m_ixSecond; j++) {
 			data[k][i][j] = m_vecRecvBuffer[m_ixRecvBuffer++];
@@ -545,12 +572,12 @@ void ExteriorNeighbor::Unpack(
 
 	// Unpack data from top
 	} else if (m_dir == Direction_Top) {
-		ixBoundaryBegin = data.GetBElements() - data.GetHaloElements();
-		ixBoundaryEnd   = data.GetBElements();
+		ixBoundaryBegin = sBElements - m_sHaloElements;
+		ixBoundaryEnd   = sBElements;
 
 		// Check that sufficient data remains in send buffer
 		int nTotalValues =
-			  data.GetRElements()
+			  sRElements
 			* (ixBoundaryEnd - ixBoundaryBegin)
 			* (m_ixSecond - m_ixFirst);
 
@@ -559,7 +586,7 @@ void ExteriorNeighbor::Unpack(
 		}
 
 		// Unpack data
-		for (int k = 0; k < data.GetRElements(); k++) {
+		for (int k = 0; k < sRElements; k++) {
 		for (int j = ixBoundaryEnd-1; j >= ixBoundaryBegin; j--) {
 		for (int i = m_ixFirst; i < m_ixSecond; i++) {
 			data[k][i][j] = m_vecRecvBuffer[m_ixRecvBuffer++];
@@ -570,11 +597,11 @@ void ExteriorNeighbor::Unpack(
 	// Unpack data from left
 	} else if (m_dir == Direction_Left) {
 		ixBoundaryBegin = 0;
-		ixBoundaryEnd   = data.GetHaloElements();
+		ixBoundaryEnd   = m_sHaloElements;
 
 		// Check that sufficient data remains in send buffer
 		int nTotalValues =
-			  data.GetRElements()
+			  sRElements
 			* (ixBoundaryEnd - ixBoundaryBegin)
 			* (m_ixSecond - m_ixFirst);
 
@@ -583,7 +610,7 @@ void ExteriorNeighbor::Unpack(
 		}
 
 		// Unpack data
-		for (int k = 0; k < data.GetRElements(); k++) {
+		for (int k = 0; k < sRElements; k++) {
 		for (int i = ixBoundaryBegin; i < ixBoundaryEnd; i++) {
 		for (int j = m_ixFirst; j < m_ixSecond; j++) {
 			data[k][i][j] = m_vecRecvBuffer[m_ixRecvBuffer++];
@@ -594,11 +621,11 @@ void ExteriorNeighbor::Unpack(
 	// Unpack data from bottom
 	} else if (m_dir == Direction_Bottom) {
 		ixBoundaryBegin = 0;
-		ixBoundaryEnd   = data.GetHaloElements();
+		ixBoundaryEnd   = m_sHaloElements;
 
 		// Check that sufficient data remains in send buffer
 		int nTotalValues =
-			  data.GetRElements()
+			  sRElements
 			* (ixBoundaryEnd - ixBoundaryBegin)
 			* (m_ixSecond - m_ixFirst);
 
@@ -607,7 +634,7 @@ void ExteriorNeighbor::Unpack(
 		}
 
 		// Unpack data
-		for (int k = 0; k < data.GetRElements(); k++) {
+		for (int k = 0; k < sRElements; k++) {
 		for (int j = ixBoundaryBegin; j < ixBoundaryEnd; j++) {
 		for (int i = m_ixFirst; i < m_ixSecond; i++) {
 			data[k][i][j] = m_vecRecvBuffer[m_ixRecvBuffer++];
@@ -618,18 +645,18 @@ void ExteriorNeighbor::Unpack(
 	// Unpack data from top-right
 	} else if (m_dir == Direction_TopRight) {
 		ixABoundaryBegin = m_ixFirst + 1;
-		ixABoundaryEnd   = m_ixFirst + data.GetHaloElements() + 1;
+		ixABoundaryEnd   = m_ixFirst + m_sHaloElements + 1;
 		ixBBoundaryBegin = m_ixSecond + 1;
-		ixBBoundaryEnd   = m_ixSecond + data.GetHaloElements() + 1;
+		ixBBoundaryEnd   = m_ixSecond + m_sHaloElements + 1;
 
 		// Check that sufficient data remains in send buffer
 		int nTotalValues =
-			  data.GetRElements()
+			  sRElements
 			* (ixABoundaryEnd - ixABoundaryBegin)
 			* (ixBBoundaryEnd - ixBBoundaryBegin);
 
 		// Unpack data
-		for (int k = 0; k < data.GetRElements(); k++) {
+		for (int k = 0; k < sRElements; k++) {
 		for (int j = ixBBoundaryEnd-1; j >= ixBBoundaryBegin; j--) {
 		for (int i = ixABoundaryEnd-1; i >= ixABoundaryBegin; i--) {
 			data[k][i][j] = m_vecRecvBuffer[m_ixRecvBuffer++];
@@ -639,19 +666,19 @@ void ExteriorNeighbor::Unpack(
 
 	// Unpack data from top-left
 	} else if (m_dir == Direction_TopLeft) {
-		ixABoundaryBegin = m_ixFirst - data.GetHaloElements();
+		ixABoundaryBegin = m_ixFirst - m_sHaloElements;
 		ixABoundaryEnd   = m_ixFirst;
 		ixBBoundaryBegin = m_ixSecond + 1;
-		ixBBoundaryEnd   = m_ixSecond + data.GetHaloElements() + 1;
+		ixBBoundaryEnd   = m_ixSecond + m_sHaloElements + 1;
 
 		// Check that sufficient data remains in send buffer
 		int nTotalValues =
-			  data.GetRElements()
+			  sRElements
 			* (ixABoundaryEnd - ixABoundaryBegin)
 			* (ixBBoundaryEnd - ixBBoundaryBegin);
 
 		// Unpack data
-		for (int k = 0; k < data.GetRElements(); k++) {
+		for (int k = 0; k < sRElements; k++) {
 		for (int j = ixBBoundaryEnd-1; j >= ixBBoundaryBegin; j--) {
 		for (int i = ixABoundaryBegin; i < ixABoundaryEnd; i++) {
 			data[k][i][j] = m_vecRecvBuffer[m_ixRecvBuffer++];
@@ -661,19 +688,19 @@ void ExteriorNeighbor::Unpack(
 
 	// Unpack data from bottom-left
 	} else if (m_dir == Direction_BottomLeft) {
-		ixABoundaryBegin = m_ixFirst - data.GetHaloElements();
+		ixABoundaryBegin = m_ixFirst - m_sHaloElements;
 		ixABoundaryEnd   = m_ixFirst;
-		ixBBoundaryBegin = m_ixSecond - data.GetHaloElements();
+		ixBBoundaryBegin = m_ixSecond - m_sHaloElements;
 		ixBBoundaryEnd   = m_ixSecond;
 
 		// Check that sufficient data remains in send buffer
 		int nTotalValues =
-			  data.GetRElements()
+			  sRElements
 			* (ixABoundaryEnd - ixABoundaryBegin)
 			* (ixBBoundaryEnd - ixBBoundaryBegin);
 
 		// Unpack data
-		for (int k = 0; k < data.GetRElements(); k++) {
+		for (int k = 0; k < sRElements; k++) {
 		for (int j = ixBBoundaryBegin; j < ixBBoundaryEnd; j++) {
 		for (int i = ixABoundaryBegin; i < ixABoundaryEnd; i++) {
 			data[k][i][j] = m_vecRecvBuffer[m_ixRecvBuffer++];
@@ -684,18 +711,18 @@ void ExteriorNeighbor::Unpack(
 	// Unpack data from bottom-right
 	} else if (m_dir == Direction_BottomRight) {
 		ixABoundaryBegin = m_ixFirst + 1;
-		ixABoundaryEnd   = m_ixFirst + data.GetHaloElements() + 1;
-		ixBBoundaryBegin = m_ixSecond - data.GetHaloElements();
+		ixABoundaryEnd   = m_ixFirst + m_sHaloElements + 1;
+		ixBBoundaryBegin = m_ixSecond - m_sHaloElements;
 		ixBBoundaryEnd   = m_ixSecond;
 
 		// Check that sufficient data remains in send buffer
 		int nTotalValues =
-			  data.GetRElements()
+			  sRElements
 			* (ixABoundaryEnd - ixABoundaryBegin)
 			* (ixBBoundaryEnd - ixBBoundaryBegin);
 
 		// Unpack data
-		for (int k = 0; k < data.GetRElements(); k++) {
+		for (int k = 0; k < sRElements; k++) {
 		for (int j = ixBBoundaryBegin; j < ixBBoundaryEnd; j++) {
 		for (int i = ixABoundaryEnd-1; i >= ixABoundaryBegin; i--) {
 			data[k][i][j] = m_vecRecvBuffer[m_ixRecvBuffer++];
@@ -712,30 +739,41 @@ void ExteriorNeighbor::Unpack(
 ///////////////////////////////////////////////////////////////////////////////
 
 void ExteriorNeighbor::Unpack(
-	GridData4D & data
+	DataArray4D<double> & data
 ) {
 	// Model grid
 	const Grid & grid = m_pConnect->GetGridPatch().GetGrid();
 
-	// 3D data
-	GridData3D data3D;
+	// Number of components in data
+	size_t sComponents = data.GetSize(0);
+
+	// 3D Grid Data
+	DataArray3D<double> data3D(
+		data.GetSize(1),
+		data.GetSize(2),
+		data.GetSize(3),
+		data.GetDataType(),
+		data.GetDataLocation(),
+		false);
 
 	// List of variable indices to receive
 	// - exclude variables which are not-collocated with this data structure
 	if (data.GetDataType() == DataType_State) {
-		for (int c = 0; c < data.GetComponents(); c++) {
+		for (int c = 0; c < sComponents; c++) {
 			if (grid.GetVarLocation(c) != data.GetDataLocation()) {
 				continue;
 			}
-			data.GetAsGridData3D(c, data3D);
+			data3D.AttachTo(data[c][0][0]);;
 			Unpack(data3D);
+			data3D.Detach();
 		}
 
 	// Unpack all variables
 	} else {
-		for (int c = 0; c < data.GetComponents(); c++) {
-			data.GetAsGridData3D(c, data3D);
+		for (int c = 0; c < sComponents; c++) {
+			data3D.AttachTo(data[c][0][0]);;
 			Unpack(data3D);
+			data3D.Detach();
 		}
 	}
 }
@@ -850,7 +888,7 @@ void Connectivity::PrepareExchange() {
 ///////////////////////////////////////////////////////////////////////////////
 
 void Connectivity::Pack(
-	const GridData3D & data
+	const DataArray3D<double> & data
 ) {
 	// Pack data to exterior neighbors
 	for (int m = 0; m < m_vecExteriorNeighbors.size(); m++) {
@@ -861,7 +899,7 @@ void Connectivity::Pack(
 ///////////////////////////////////////////////////////////////////////////////
 
 void Connectivity::Pack(
-	const GridData4D & data
+	const DataArray4D<double> & data
 ) {
 	// Pack data to exterior neighbors
 	for (int m = 0; m < m_vecExteriorNeighbors.size(); m++) {

@@ -106,10 +106,10 @@ void HorizontalDynamicsDG::StepShallowWater(
 		Connectivity & connect = pPatch->GetConnectivity();
 
 		// Data
-		const GridData4D & dataInitialNode =
+		const DataArray4D<double> & dataInitialNode =
 			pPatch->GetDataState(iDataInitial, DataLocation_Node);
 
-		GridData4D & dataUpdateNode =
+		DataArray4D<double> & dataUpdateNode =
 			pPatch->GetDataState(iDataUpdate, DataLocation_Node);
 
 		// Element grid spacing and derivative coefficients
@@ -347,9 +347,9 @@ void HorizontalDynamicsDG::ElementFluxesShallowWater(
 		const DataArray1D<double> & dFluxDeriv1D = pGrid->GetFluxDeriv1D();
 
 		// Data
-		GridData4D & dataInitialNode =
+		DataArray4D<double> & dataInitialNode =
 			pPatch->GetDataState(iDataInitial, DataLocation_Node);
-		GridData4D & dataUpdateNode =
+		DataArray4D<double> & dataUpdateNode =
 			pPatch->GetDataState(iDataUpdate, DataLocation_Node);
 
 		// Element grid spacing and derivative coefficients
@@ -674,16 +674,16 @@ void HorizontalDynamicsDG::StepNonhydrostaticPrimitive(
 		const double dZtop = pGrid->GetZtop();
 
 		// Data
-		GridData4D & dataInitialNode =
+		DataArray4D<double> & dataInitialNode =
 			pPatch->GetDataState(iDataInitial, DataLocation_Node);
 
-		GridData4D & dataUpdateNode =
+		DataArray4D<double> & dataUpdateNode =
 			pPatch->GetDataState(iDataUpdate, DataLocation_Node);
 
-		GridData4D & dataInitialREdge =
+		DataArray4D<double> & dataInitialREdge =
 			pPatch->GetDataState(iDataInitial, DataLocation_REdge);
 
-		GridData4D & dataUpdateREdge =
+		DataArray4D<double> & dataUpdateREdge =
 			pPatch->GetDataState(iDataUpdate, DataLocation_REdge);
 
 		// Perform interpolations as required due to vertical staggering
@@ -725,8 +725,8 @@ void HorizontalDynamicsDG::StepNonhydrostaticPrimitive(
 		int nElementCountB = pPatch->GetElementCountB();
 
 		// Pressure data
-		GridData3D & dataPressure = pPatch->GetDataPressure();
-		GridData3D & dataDxPressure = pPatch->GetDataDxPressure();
+		DataArray3D<double> & dataPressure = pPatch->GetDataPressure();
+		DataArray3D<double> & dataDxPressure = pPatch->GetDataDxPressure();
 
 #pragma message "This can be optimized at finite element edges"
 		// Loop over all nodes and compute pressure
@@ -1168,14 +1168,14 @@ void HorizontalDynamicsDG::ApplyScalarHyperdiffusionToBoundary(
 		Connectivity & connect = pPatch->GetConnectivity();
 
 		// Data
-		GridData4D & dataStateNode =
+		DataArray4D<double> & dataStateNode =
 			pPatch->GetDataState(iDataState, DataLocation_Node);
-		GridData4D & dataUpdateNode =
+		DataArray4D<double> & dataUpdateNode =
 			pPatch->GetDataState(iDataUpdate, DataLocation_Node);
 
-		GridData4D & dataStateREdge =
+		DataArray4D<double> & dataStateREdge =
 			pPatch->GetDataState(iDataState, DataLocation_REdge);
-		GridData4D & dataUpdateREdge =
+		DataArray4D<double> & dataUpdateREdge =
 			pPatch->GetDataState(iDataUpdate, DataLocation_REdge);
 
 		// Element grid spacing and derivative coefficients
@@ -1215,12 +1215,12 @@ void HorizontalDynamicsDG::ApplyScalarHyperdiffusionToBoundary(
 			if (pGrid->GetVarLocation(c) == DataLocation_Node) {
 				pDataState = dataStateNode[c];
 				pDataUpdate = dataUpdateNode[c];
-				nElementCountR = dataStateNode.GetRElements();
+				nElementCountR = pGrid->GetRElements();
 
 			} else if (pGrid->GetVarLocation(c) == DataLocation_REdge) {
 				pDataState = dataStateREdge[c];
 				pDataUpdate = dataUpdateREdge[c];
-				nElementCountR = dataStateREdge.GetRElements();
+				nElementCountR = pGrid->GetRElements()+1;
 
 			} else {
 				_EXCEPTIONT("UNIMPLEMENTED");
@@ -1414,14 +1414,14 @@ void HorizontalDynamicsDG::ApplyVectorHyperdiffusionToBoundary(
 		Connectivity & connect = pPatch->GetConnectivity();
 
 		// Data
-		GridData4D & dataStateNode =
+		DataArray4D<double> & dataStateNode =
 			pPatch->GetDataState(iDataState, DataLocation_Node);
-		GridData4D & dataUpdateNode =
+		DataArray4D<double> & dataUpdateNode =
 			pPatch->GetDataState(iDataUpdate, DataLocation_Node);
 
-		GridData4D & dataStateREdge =
+		DataArray4D<double> & dataStateREdge =
 			pPatch->GetDataState(iDataState, DataLocation_REdge);
-		GridData4D & dataUpdateREdge =
+		DataArray4D<double> & dataUpdateREdge =
 			pPatch->GetDataState(iDataUpdate, DataLocation_REdge);
 
 		// Element grid spacing and derivative coefficients
@@ -1437,8 +1437,8 @@ void HorizontalDynamicsDG::ApplyVectorHyperdiffusionToBoundary(
 		int nElementCountB = pPatch->GetElementCountB();
 
 		// Get curl and divergence
-		const GridData3D & dataCurl = pPatch->GetDataVorticity();
-		const GridData3D & dataDiv  = pPatch->GetDataDivergence();
+		const DataArray3D<double> & dataCurl = pPatch->GetDataVorticity();
+		const DataArray3D<double> & dataDiv  = pPatch->GetDataDivergence();
 
 		// Compute new hyperviscosity coefficient
 		double dLocalNuDiv  = dNuDiv;
@@ -1457,24 +1457,65 @@ void HorizontalDynamicsDG::ApplyVectorHyperdiffusionToBoundary(
 		// Pointers to data
 		int nElementCountR;
 
-		GridData3D dataStateU;
-		GridData3D dataStateV;
-		GridData3D dataUpdateU;
-		GridData3D dataUpdateV;
+		DataArray3D<double> dataStateU;
+		DataArray3D<double> dataStateV;
+
+		DataArray3D<double> dataUpdateU;
+		DataArray3D<double> dataUpdateV;
 
 		if (pGrid->GetVarLocation(UIx) == DataLocation_Node) {
-			dataStateNode.GetAsGridData3D(UIx, dataStateU);
-			dataStateNode.GetAsGridData3D(VIx, dataStateV);
-			dataUpdateNode.GetAsGridData3D(UIx, dataUpdateU);
-			dataUpdateNode.GetAsGridData3D(VIx, dataUpdateV);
-			nElementCountR = dataStateNode.GetRElements();
+			dataStateU.SetSize(
+				dataStateNode.GetSize(1),
+				dataStateNode.GetSize(2),
+				dataStateNode.GetSize(3));
+
+			dataStateV.SetSize(
+				dataStateNode.GetSize(1),
+				dataStateNode.GetSize(2),
+				dataStateNode.GetSize(3));
+
+			dataUpdateU.SetSize(
+				dataStateNode.GetSize(1),
+				dataStateNode.GetSize(2),
+				dataStateNode.GetSize(3));
+
+			dataUpdateV.SetSize(
+				dataStateNode.GetSize(1),
+				dataStateNode.GetSize(2),
+				dataStateNode.GetSize(3));
+
+			dataStateU.AttachTo(dataStateNode[UIx]);
+			dataStateV.AttachTo(dataStateNode[VIx]);
+			dataUpdateU.AttachTo(dataStateNode[UIx]);
+			dataUpdateV.AttachTo(dataStateNode[VIx]);
+			nElementCountR = dataStateNode.GetSize(1);
 
 		} else if (pGrid->GetVarLocation(UIx) == DataLocation_REdge) {
-			dataStateREdge.GetAsGridData3D(UIx, dataStateU);
-			dataStateREdge.GetAsGridData3D(VIx, dataStateV);
-			dataUpdateREdge.GetAsGridData3D(UIx, dataUpdateU);
-			dataUpdateREdge.GetAsGridData3D(VIx, dataUpdateV);
-			nElementCountR = dataStateREdge.GetRElements();
+			dataStateU.SetSize(
+				dataStateREdge.GetSize(1),
+				dataStateREdge.GetSize(2),
+				dataStateREdge.GetSize(3));
+
+			dataStateV.SetSize(
+				dataStateREdge.GetSize(1),
+				dataStateREdge.GetSize(2),
+				dataStateREdge.GetSize(3));
+
+			dataUpdateU.SetSize(
+				dataStateREdge.GetSize(1),
+				dataStateREdge.GetSize(2),
+				dataStateREdge.GetSize(3));
+
+			dataUpdateV.SetSize(
+				dataStateREdge.GetSize(1),
+				dataStateREdge.GetSize(2),
+				dataStateREdge.GetSize(3));
+
+			dataStateU.AttachTo(dataStateREdge[UIx]);
+			dataStateV.AttachTo(dataStateREdge[VIx]);
+			dataUpdateU.AttachTo(dataStateREdge[UIx]);
+			dataUpdateV.AttachTo(dataStateREdge[VIx]);
+			nElementCountR = dataStateREdge.GetSize(1);
 
 		} else {
 			_EXCEPTIONT("UNIMPLEMENTED");
@@ -1659,9 +1700,9 @@ void HorizontalDynamicsDG::FinalizeApplyHyperdiffusionToBoundary(
 		Connectivity & connect = pPatch->GetConnectivity();
 
 		// Data
-		GridData4D & dataUpdateNode =
+		DataArray4D<double> & dataUpdateNode =
 			pPatch->GetDataState(iDataUpdate, DataLocation_Node);
-		GridData4D & dataUpdateREdge =
+		DataArray4D<double> & dataUpdateREdge =
 			pPatch->GetDataState(iDataUpdate, DataLocation_REdge);
 
 		// Loop over all components
@@ -1673,11 +1714,11 @@ void HorizontalDynamicsDG::FinalizeApplyHyperdiffusionToBoundary(
 			double *** pDataUpdate;
 			if (pGrid->GetVarLocation(c) == DataLocation_Node) {
 				pDataUpdate = dataUpdateNode[c];
-				nElementCountR = dataUpdateNode.GetRElements();
+				nElementCountR = pGrid->GetRElements();
 
 			} else if (pGrid->GetVarLocation(c) == DataLocation_REdge) {
 				pDataUpdate = dataUpdateREdge[c];
-				nElementCountR = dataUpdateREdge.GetRElements();
+				nElementCountR = pGrid->GetRElements()+1;
 
 			} else {
 				_EXCEPTIONT("UNIMPLEMENTED");

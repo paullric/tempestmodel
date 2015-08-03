@@ -74,8 +74,10 @@ void GridPatchGLL::InterpolateNodeToREdge(
 ) {
 
 	// Working data
-	GridData4D & dataNode  = GetDataState(iDataIndex, DataLocation_Node);
-	GridData4D & dataREdge = GetDataState(iDataIndex, DataLocation_REdge);
+	DataArray4D<double> & dataNode =
+		GetDataState(iDataIndex, DataLocation_Node);
+	DataArray4D<double> & dataREdge =
+		GetDataState(iDataIndex, DataLocation_REdge);
 
 	// Parent grid, containing the vertical remapping information
 	GridGLL * pGLLGrid = dynamic_cast<GridGLL*>(&m_grid);
@@ -109,8 +111,10 @@ void GridPatchGLL::InterpolateREdgeToNode(
 ) {
 
 	// Working data
-	GridData4D & dataREdge = GetDataState(iDataIndex, DataLocation_REdge);
-	GridData4D & dataNode  = GetDataState(iDataIndex, DataLocation_Node);
+	DataArray4D<double> & dataREdge =
+		GetDataState(iDataIndex, DataLocation_REdge);
+	DataArray4D<double> & dataNode =
+		GetDataState(iDataIndex, DataLocation_Node);
 
 	// Parent grid, containing the vertical remapping information
 	GridGLL * pGLLGrid = dynamic_cast<GridGLL*>(&m_grid);

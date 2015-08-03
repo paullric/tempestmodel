@@ -44,8 +44,6 @@ FILES= CubedSphereTrans.cpp \
        GridPatchCSGLL.cpp \
        GridPatchCartesianGLL.cpp \
        Direction.cpp \
-       GridData3D.cpp \
-       GridData4D.cpp \
        TestCase.cpp \
 	   WorkflowProcess.cpp \
 	   HeldSuarezPhysics.cpp

@@ -512,9 +512,9 @@ Time OutputManagerComposite::Input(
 		varTopography->get(dataTopography[0], nPatchNodeCount);
 
 		// Input Rayleigh strength here
-		GridData3D & dataRayleighStrengthNode =
+		DataArray3D<double> & dataRayleighStrengthNode =
 			pPatch->GetRayleighStrength(DataLocation_Node);
-		GridData3D & dataRayleighStrengthREdge =
+		DataArray3D<double> & dataRayleighStrengthREdge =
 			pPatch->GetRayleighStrength(DataLocation_REdge);
 
 		NcVar * varRayleighNode = pNcFile->get_var("Rayleigh_Node");
@@ -534,14 +534,14 @@ Time OutputManagerComposite::Input(
 			pPatch->GetTotalNodeCount(DataLocation_REdge));
 
 		// Input state
-		GridData4D & dataStateNode =
+		DataArray4D<double> & dataStateNode =
 			pPatch->GetDataState(0, DataLocation_Node);
-		GridData4D & dataStateREdge =
+		DataArray4D<double> & dataStateREdge =
 			pPatch->GetDataState(0, DataLocation_REdge);
 
-		GridData4D & dataRefStateNode =
+		DataArray4D<double> & dataRefStateNode =
 			pPatch->GetReferenceState(DataLocation_Node);
-		GridData4D & dataRefStateREdge =
+		DataArray4D<double> & dataRefStateREdge =
 			pPatch->GetReferenceState(DataLocation_REdge);
 
 		for (int c = 0; c < eqn.GetComponents(); c++) {

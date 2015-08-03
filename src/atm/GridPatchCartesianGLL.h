@@ -19,12 +19,12 @@
 
 #include "Grid.h"
 #include "GridPatchGLL.h"
+#include "DataArray3D.h"
 
 ///////////////////////////////////////////////////////////////////////////////
 
 class Time;
 class GridCartesianGLL;
-class GridData3D;
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -95,8 +95,8 @@ public:
 	///		contravariant vector fields.
 	///	</summary>
 	virtual void ComputeCurlAndDiv(
-		const GridData3D & dataUa,
-		const GridData3D & dataUb
+		const DataArray3D<double> & dataUa,
+		const DataArray3D<double> & dataUb
 	) const;
 
 	///	<summary>

@@ -318,6 +318,20 @@ public:
 
 public:
 	///	<summary>
+	///		Set the DataLocation.
+	///	</summary>
+	inline void SetDataLocation(const DataLocation & eDataLocation) {
+		m_eDataLocation = eDataLocation;
+	}
+
+	///	<summary>
+	///		Set the DataType.
+	///	</summary>
+	inline void SetDataType(const DataType & eDataType) {
+		m_eDataType = eDataType;
+	}
+
+	///	<summary>
 	///		Get the DataLocation.
 	///	</summary>
 	inline DataLocation GetDataLocation() const {

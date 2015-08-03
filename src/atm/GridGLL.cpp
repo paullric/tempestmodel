@@ -467,8 +467,8 @@ void GridGLL::EvaluateTestCase(
 	const GridPatch * pPatch3 = GetPatch(3);
 	const GridPatch * pPatch4 = GetPatch(4);
 
-	const GridData3D & dataTopographyDeriv3 = pPatch3->GetTopographyDeriv();
-	const GridData3D & dataTopographyDeriv4 = pPatch4->GetTopographyDeriv();
+	const DataArray3D<double> & dataTopographyDeriv3 = pPatch3->GetTopographyDeriv();
+	const DataArray3D<double> & dataTopographyDeriv4 = pPatch4->GetTopographyDeriv();
 
 	printf("\n\n");
 	printf("3i %1.15e %1.15e\n",

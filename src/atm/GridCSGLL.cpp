@@ -421,7 +421,7 @@ void GridCSGLL::ApplyDSS(
 		if (eDataType == DataType_TopographyDeriv) {
 			pPatch->TransformTopographyDeriv();
 
-			const GridData3D & dataTopographyDeriv =
+			const DataArray3D<double> & dataTopographyDeriv =
 				pPatch->GetTopographyDeriv();
 		}
 

@@ -24,8 +24,8 @@
 #include "JacobianFreeNewtonKrylov.h"
 #include "DataArray1D.h"
 #include "DataArray2D.h"
-#include "GridData3D.h"
-#include "GridData4D.h"
+#include "DataArray3D.h"
+#include "DataArray4D.h"
 
 #ifdef USE_JFNK_PETSC
 #include <petscsnes.h>
@@ -171,10 +171,10 @@ public:
 		GridPatch * pPatch,
 		int iA,
 		int iB,
-		const GridData4D & dataRefNode,
-		const GridData4D & dataInitialNode,
-		const GridData4D & dataRefREdge,
-		const GridData4D & dataInitialREdge
+		const DataArray4D<double> & dataRefNode,
+		const DataArray4D<double> & dataInitialNode,
+		const DataArray4D<double> & dataRefREdge,
+		const DataArray4D<double> & dataInitialREdge
 	);
 
 	///	<summary>
@@ -217,12 +217,12 @@ protected:
 	///	</summary>
 	void UpdateColumnTracers(
 		double dDeltaT,
-		const GridData4D & dataInitialNode,
-		const GridData4D & dataUpdateNode,
-		const GridData4D & dataInitialREdge,
-		const GridData4D & dataUpdateREdge,
-		const GridData4D & dataInitialTracer,
-		const GridData4D & dataUpdateTracer
+		const DataArray4D<double> & dataInitialNode,
+		const DataArray4D<double> & dataUpdateNode,
+		const DataArray4D<double> & dataInitialREdge,
+		const DataArray4D<double> & dataUpdateREdge,
+		const DataArray4D<double> & dataInitialTracer,
+		const DataArray4D<double> & dataUpdateTracer
 	);
 
 public:

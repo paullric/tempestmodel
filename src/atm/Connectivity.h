@@ -20,7 +20,8 @@
 #include "Direction.h"
 
 #include "DataArray1D.h"
-#include "GridData4D.h"
+#include "DataArray3D.h"
+#include "DataArray4D.h"
 
 #include "mpi.h"
 #include <vector>
@@ -46,24 +47,20 @@ public:
 		int ixNeighbor,
 		bool fReverseDirection,
 		bool fFlippedCoordinate,
-		int nBoundarySize
+		size_t sBoundarySize
 	) : 
 		m_pConnect(pConnect),
 		m_ixNeighbor(ixNeighbor),
 		m_fReverseDirection(fReverseDirection),
 		m_fFlippedCoordinate(fFlippedCoordinate),
-		m_nBoundarySize(nBoundarySize),
-		m_nMaxRElements(0),
-		m_nHaloElements(0),
-		m_nComponents(0),
+		m_sBoundarySize(sBoundarySize),
+		m_sMaxRElements(0),
+		m_sHaloElements(0),
+		m_sComponents(0),
 		m_fComplete(false),
 		m_ixSendBuffer(0),
 		m_ixRecvBuffer(0)
-	{
-		if (m_nBoundarySize < 0) {
-			_EXCEPTIONT("Invalid boundary size");
-		}
-	}
+	{ }
 
 	///	<summary>
 	///		Virtual destructor.
@@ -76,9 +73,9 @@ public:
 	///		Initialize the exchange buffers.
 	///	</summary>
 	void InitializeBuffers(
-		int nRElements,
-		int nHaloElements,
-		int nComponents
+		size_t sRElements,
+		size_t sHaloElements,
+		size_t sComponents
 	);
 
 public:
@@ -117,14 +114,14 @@ public:
 	///		Pack data into the send buffer.
 	///	</summary>
 	virtual void Pack(
-		const GridData3D & data
+		const DataArray3D<double> & data
 	) = 0;
 
 	///	<summary>
 	///		Pack data into the send buffer.
 	///	</summary>
 	virtual void Pack(
-		const GridData4D & data
+		const DataArray4D<double> & data
 	) = 0;
 
 	///	<summary>
@@ -132,10 +129,10 @@ public:
 	///	</summary>
 	void ResetSendBufferSize() {
 		m_ixSendBuffer =
-			  m_nBoundarySize
-			* m_nMaxRElements
-			* m_nHaloElements
-			* m_nComponents;
+			  m_sBoundarySize
+			* m_sMaxRElements
+			* m_sHaloElements
+			* m_sComponents;
 	}
 
 	///	<summary>
@@ -147,14 +144,14 @@ public:
 	///		Receive data from other processors.
 	///	</summary>
 	virtual void Unpack(
-		GridData3D & data
+		DataArray3D<double> & data
 	) = 0;
 
 	///	<summary>
 	///		Receive data from other processors.
 	///	</summary>
 	virtual void Unpack(
-		GridData4D & data
+		DataArray4D<double> & data
 	) = 0;
 
 	///	<summary>
@@ -195,22 +192,22 @@ public:
 	///	<summary>
 	///		Number of independent grid cells along boundary.
 	///	</summary>
-	int m_nBoundarySize;
+	size_t m_sBoundarySize;
 
 	///	<summary>
 	///		Number of radial elements.
 	///	</summary>
-	int m_nMaxRElements;
+	size_t m_sMaxRElements;
 
 	///	<summary>
 	///		Number of halo elements.
 	///	</summary>
-	int m_nHaloElements;
+	size_t m_sHaloElements;
 
 	///	<summary>
 	///		Number of variables.
 	///	</summary>
-	int m_nComponents;
+	size_t m_sComponents;
 
 	///	<summary>
 	///		Flag indicating if this neighbor has been received and processed.
@@ -258,7 +255,7 @@ public:
 		int ixNeighbor,
 		bool fReverseDirection,
 		bool fFlippedCoordinate,
-		int nBoundarySize,
+		size_t sBoundarySize,
 		int ixFirst,
 		int ixSecond
 	) :
@@ -269,7 +266,7 @@ public:
 			ixNeighbor,
 			fReverseDirection,
 			fFlippedCoordinate,
-			nBoundarySize),
+			sBoundarySize),
 		m_ixFirst(ixFirst),
 		m_ixSecond(ixSecond)
 	{ }
@@ -284,7 +281,7 @@ public:
 		int iA,
 		double dValue
 	) {
-		int ix = (iC * (m_nMaxRElements-1) + iK) * m_nBoundarySize;
+		int ix = (iC * (m_sMaxRElements-1) + iK) * m_sBoundarySize;
 
 		if (m_fReverseDirection) {
 			ix += m_ixSecond - iA - 1;
@@ -304,7 +301,7 @@ public:
 		int iA
 	) const {
 		int ix =
-			(iC * (m_nMaxRElements-1) + iK) * m_nBoundarySize
+			(iC * (m_sMaxRElements-1) + iK) * m_sBoundarySize
 				+ (iA - m_ixFirst);
 
 		return m_vecRecvBuffer[ix];
@@ -320,14 +317,14 @@ public:
 	///		Pack data into the send buffer.
 	///	</summary>
 	virtual void Pack(
-		const GridData3D & data
+		const DataArray3D<double> & data
 	);
 
 	///	<summary>
 	///		Pack data into the send buffer.
 	///	</summary>
 	virtual void Pack(
-		const GridData4D & data
+		const DataArray4D<double> & data
 	);
 
 	///	<summary>
@@ -339,14 +336,14 @@ public:
 	///		Unpack data from the receive buffer.
 	///	</summary>
 	void Unpack(
-		GridData3D & data
+		DataArray3D<double> & data
 	);
 
 	///	<summary>
 	///		Unpack data from the receive buffer.
 	///	</summary>
 	void Unpack(
-		GridData4D & data
+		DataArray4D<double> & data
 	);
 
 	///	<summary>
@@ -399,7 +396,7 @@ public:
 	///		Pack data into the send buffer.
 	///	</summary>
 	virtual void Pack(
-		const GridData3D & data
+		const DataArray3D<double> & data
 	) {
 	}
 
@@ -407,7 +404,7 @@ public:
 	///		Pack data into the send buffer.
 	///	</summary>
 	virtual void Pack(
-		const GridData4D & data
+		const DataArray4D<double> & data
 	) {
 	}
 
@@ -421,7 +418,7 @@ public:
 	///		Unpack data from the receive buffer.
 	///	</summary>
 	void Unpack(
-		GridData3D & data
+		DataArray3D<double> & data
 	) {
 	}
 
@@ -429,7 +426,7 @@ public:
 	///		Unpack data from the receive buffer.
 	///	</summary>
 	virtual void Unpack(
-		const GridData4D & data
+		const DataArray4D<double> & data
 	) {
 	}
 
@@ -497,14 +494,14 @@ public:
 	///		Pack data into the send buffer in preparation for a send.
 	///	</summary>
 	void Pack(
-		const GridData3D & data
+		const DataArray3D<double> & data
 	);
 
 	///	<summary>
 	///		Pack data into the send buffer in preparation for a send.
 	///	</summary>
 	void Pack(
-		const GridData4D & data
+		const DataArray4D<double> & data
 	);
 
 	///	<summary>

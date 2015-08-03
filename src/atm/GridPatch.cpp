@@ -276,13 +276,11 @@ void GridPatch::InitializeDataLocal() {
 		m_box.GetBTotalWidth());
 
 	// Topography derivatives at each node
-	m_dataTopographyDeriv.Initialize(
-		DataType_TopographyDeriv,
-		DataLocation_Node,
+	m_dataTopographyDeriv.SetDataType(DataType_TopographyDeriv);
+	m_dataTopographyDeriv.Allocate(
 		2,
 		m_box.GetATotalWidth(),
-		m_box.GetBTotalWidth(),
-		m_box.GetHaloElements());
+		m_box.GetBTotalWidth());
 
 	// Longitude at each node
 	m_dataLon.Allocate(
@@ -318,46 +316,42 @@ void GridPatch::InitializeDataLocal() {
 	const EquationSet & eqn = model.GetEquationSet();
 
 	// Initialize reference state
-	m_dataRefStateNode.Initialize(
-		DataType_State,
-		DataLocation_Node,
+	m_dataRefStateNode.SetDataType(DataType_State);
+	m_dataRefStateNode.SetDataLocation(DataLocation_Node);
+	m_dataRefStateNode.Allocate(
 		eqn.GetComponents(),
 		m_grid.GetRElements(),
 		m_box.GetATotalWidth(),
-		m_box.GetBTotalWidth(),
-		m_box.GetHaloElements());
+		m_box.GetBTotalWidth());
 
-	m_dataRefStateREdge.Initialize(
-		DataType_State,
-		DataLocation_REdge,
+	m_dataRefStateREdge.SetDataType(DataType_State);
+	m_dataRefStateREdge.SetDataLocation(DataLocation_REdge);
+	m_dataRefStateREdge.Allocate(
 		eqn.GetComponents(),
-		m_grid.GetRElements(),
+		m_grid.GetRElements()+1,
 		m_box.GetATotalWidth(),
-		m_box.GetBTotalWidth(),
-		m_box.GetHaloElements());
+		m_box.GetBTotalWidth());
 
 	// Initialize component data
 	m_datavecStateNode .resize(model.GetComponentDataInstances());
 	m_datavecStateREdge.resize(model.GetComponentDataInstances());
 
 	for (int m = 0; m < model.GetComponentDataInstances(); m++) {
-		m_datavecStateNode[m].Initialize(
-			DataType_State,
-			DataLocation_Node,
+		m_datavecStateNode[m].SetDataType(DataType_State);
+		m_datavecStateNode[m].SetDataLocation(DataLocation_Node);
+		m_datavecStateNode[m].Allocate(
 			eqn.GetComponents(),
 			m_grid.GetRElements(),
 			m_box.GetATotalWidth(),
-			m_box.GetBTotalWidth(),
-			m_box.GetHaloElements());
+			m_box.GetBTotalWidth());
 
-		m_datavecStateREdge[m].Initialize(
-			DataType_State,
-			DataLocation_REdge,
+		m_datavecStateREdge[m].SetDataType(DataType_State);
+		m_datavecStateREdge[m].SetDataLocation(DataLocation_REdge);
+		m_datavecStateREdge[m].Allocate(
 			eqn.GetComponents(),
-			m_grid.GetRElements(),
+			m_grid.GetRElements()+1,
 			m_box.GetATotalWidth(),
-			m_box.GetBTotalWidth(),
-			m_box.GetHaloElements());
+			m_box.GetBTotalWidth());
 	}
 
 	// Initialize tracer data
@@ -365,78 +359,70 @@ void GridPatch::InitializeDataLocal() {
 
 	if (eqn.GetTracers() != 0) {
 		for (int m = 0; m < model.GetTracerDataInstances(); m++) {
-			m_datavecTracers[m].Initialize(
-				DataType_Tracers,
-				DataLocation_Node,
+			m_datavecTracers[m].SetDataType(DataType_Tracers);
+			m_datavecTracers[m].SetDataLocation(DataLocation_Node);
+			m_datavecTracers[m].Allocate(
 				eqn.GetTracers(),
 				m_grid.GetRElements(),
 				m_box.GetATotalWidth(),
-				m_box.GetBTotalWidth(),
-				m_box.GetHaloElements());
+				m_box.GetBTotalWidth());
 		}
 	}
 
 	// Pressure data
-	m_dataPressure.Initialize(
-		DataType_Pressure,
-		DataLocation_Node,
+	m_dataPressure.SetDataType(DataType_Pressure);
+	m_dataPressure.SetDataLocation(DataLocation_Node);
+	m_dataPressure.Allocate(
 		m_grid.GetRElements(),
 		m_box.GetATotalWidth(),
-		m_box.GetBTotalWidth(),
-		m_box.GetHaloElements());
+		m_box.GetBTotalWidth());
 
-	m_dataDxPressure.Initialize(
-		DataType_Pressure,
-		DataLocation_Node,
+	m_dataPressure.SetDataType(DataType_Pressure);
+	m_dataPressure.SetDataLocation(DataLocation_Node);
+	m_dataDxPressure.Allocate(
 		m_grid.GetRElements(),
 		m_box.GetATotalWidth(),
-		m_box.GetBTotalWidth(),
-		m_box.GetHaloElements());
+		m_box.GetBTotalWidth());
 
 	// Vorticity data
-	m_dataVorticity.Initialize(
-		DataType_Vorticity,
-		DataLocation_Node,
+	m_dataVorticity.SetDataType(DataType_Vorticity);
+	m_dataVorticity.SetDataLocation(DataLocation_Node);
+	m_dataVorticity.Allocate(
 		m_grid.GetRElements(),
 		m_box.GetATotalWidth(),
-		m_box.GetBTotalWidth(),
-		m_box.GetHaloElements());
+		m_box.GetBTotalWidth());
 
 	// Divergence data
-	m_dataDivergence.Initialize(
-		DataType_Divergence,
-		DataLocation_Node,
+	m_dataDivergence.SetDataType(DataType_Divergence);
+	m_dataDivergence.SetDataLocation(DataLocation_Node);
+	m_dataDivergence.Allocate(
 		m_grid.GetRElements(),
 		m_box.GetATotalWidth(),
-		m_box.GetBTotalWidth(),
-		m_box.GetHaloElements());
+		m_box.GetBTotalWidth());
 
 	// Temperature data
-	m_dataTemperature.Initialize(
-		DataType_Temperature,
-		DataLocation_Node,
+	m_dataTemperature.SetDataType(DataType_Temperature);
+	m_dataTemperature.SetDataLocation(DataLocation_Node);
+	m_dataTemperature.Allocate(
 		m_grid.GetRElements(),
 		m_box.GetATotalWidth(),
-		m_box.GetBTotalWidth(),
-		m_box.GetHaloElements());
+		m_box.GetBTotalWidth());
 
 	// Rayleigh friction strength
-	m_dataRayleighStrengthNode.Initialize(
-		DataType_None,
-		DataLocation_Node,
+	m_dataRayleighStrengthNode.SetDataType(DataType_None);
+	m_dataRayleighStrengthNode.SetDataLocation(DataLocation_Node);
+	m_dataRayleighStrengthNode.Allocate(
 		m_grid.GetRElements(),
 		m_box.GetATotalWidth(),
-		m_box.GetBTotalWidth(),
-		m_box.GetHaloElements());
+		m_box.GetBTotalWidth());
 
 	// Rayleigh friction strength
-	m_dataRayleighStrengthREdge.Initialize(
-		DataType_None,
-		DataLocation_REdge,
-		m_grid.GetRElements(),
+	m_dataRayleighStrengthREdge.SetDataType(DataType_None);
+	m_dataRayleighStrengthREdge.SetDataLocation(DataLocation_Node);
+	m_dataRayleighStrengthREdge.Allocate(
+		m_grid.GetRElements()+1,
 		m_box.GetATotalWidth(),
-		m_box.GetBTotalWidth(),
-		m_box.GetHaloElements());
+		m_box.GetBTotalWidth());
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -448,45 +434,44 @@ void GridPatch::DeinitializeData() {
 
 	m_fContainsData = false;
 
-	m_dataJacobian2D.Detach();
-	m_dataContraMetric2DA.Detach();
-	m_dataContraMetric2DB.Detach();
-	m_dataCovMetric2DA.Detach();
-	m_dataCovMetric2DB.Detach();
+	m_dataJacobian2D.Deallocate();
+	m_dataContraMetric2DA.Deallocate();
+	m_dataContraMetric2DB.Deallocate();
+	m_dataCovMetric2DA.Deallocate();
+	m_dataCovMetric2DB.Deallocate();
 
-	m_dataJacobian.Detach();
-	m_dataJacobianREdge.Detach();
-	m_dataContraMetricA.Detach();
-	m_dataContraMetricB.Detach();
-	m_dataContraMetricXi.Detach();
-	m_dataCovMetricA.Detach();
-	m_dataCovMetricB.Detach();
-	m_dataCovMetricXi.Detach();
-	m_dataContraMetricXiREdge.Detach();
-	m_dataDerivRNode.Detach();
-	m_dataElementArea.Detach();
-	m_dataElementAreaREdge.Detach();
-	m_dataTopography.Detach();
+	m_dataJacobian.Deallocate();
+	m_dataJacobianREdge.Deallocate();
+	m_dataContraMetricA.Deallocate();
+	m_dataContraMetricB.Deallocate();
+	m_dataContraMetricXi.Deallocate();
+	m_dataCovMetricA.Deallocate();
+	m_dataCovMetricB.Deallocate();
+	m_dataCovMetricXi.Deallocate();
+	m_dataContraMetricXiREdge.Deallocate();
+	m_dataDerivRNode.Deallocate();
+	m_dataElementArea.Deallocate();
+	m_dataElementAreaREdge.Deallocate();
+	m_dataTopography.Deallocate();
+	m_dataTopographyDeriv.Deallocate();
 
-	m_dataTopographyDeriv.Deinitialize();
+	m_dataLon.Deallocate();
+	m_dataLat.Deallocate();
+	m_dataZLevels.Deallocate();
+	m_dataZInterfaces.Deallocate();
 
-	m_dataLon.Detach();
-	m_dataLat.Detach();
-	m_dataZLevels.Detach();
-	m_dataZInterfaces.Detach();
+	m_datavecStateNode.clear();
+	m_datavecStateREdge.clear();
+	m_datavecTracers.clear();
 
-	m_datavecStateNode.Deinitialize();
-	m_datavecStateREdge.Deinitialize();
-	m_datavecTracers.Deinitialize();
+	m_dataPressure.Deallocate();
+	m_dataDxPressure.Deallocate();
 
-	m_dataPressure.Deinitialize();
-	m_dataDxPressure.Deinitialize();
-
-	m_dataVorticity.Deinitialize();
-	m_dataDivergence.Deinitialize();
-	m_dataTemperature.Deinitialize();
-	m_dataRayleighStrengthNode.Deinitialize();
-	m_dataRayleighStrengthREdge.Deinitialize();
+	m_dataVorticity.Deallocate();
+	m_dataDivergence.Deallocate();
+	m_dataTemperature.Deallocate();
+	m_dataRayleighStrengthNode.Deallocate();
+	m_dataRayleighStrengthREdge.Deallocate();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -680,7 +665,7 @@ void GridPatch::ComputeTemperature(
 			InterpolateREdgeToNode(RIx, iDataIndex);
 		}
 
-		const GridData4D & dataNode = m_datavecStateNode[iDataIndex];
+		const DataArray4D<double> & dataNode = m_datavecStateNode[iDataIndex];
 
 		for (k = 0; k < m_grid.GetRElements(); k++) {
 		for (i = m_box.GetAInteriorBegin(); i < m_box.GetAInteriorEnd(); i++) {
@@ -715,7 +700,7 @@ void GridPatch::ComputeTemperature(
 			InterpolateNodeToREdge(RIx, iDataIndex);
 		}
 
-		const GridData4D & dataNode = m_datavecStateREdge[iDataIndex];
+		const DataArray4D<double> & dataNode = m_datavecStateREdge[iDataIndex];
 
 		for (k = 0; k <= m_grid.GetRElements(); k++) {
 		for (i = m_box.GetAInteriorBegin(); i < m_box.GetAInteriorEnd(); i++) {
@@ -760,8 +745,8 @@ void GridPatch::Checksum(
 	}
 
 	// State variables
-	GridData4D const * pDataNode;
-	GridData4D const * pDataREdge;
+	DataArray4D<double> const * pDataNode;
+	DataArray4D<double> const * pDataREdge;
 
 	std::vector<int> nodevars;
 	std::vector<int> redgevars;
@@ -944,7 +929,7 @@ double GridPatch::ComputeTotalEnergy(
 	if ((iDataIndex < 0) || (iDataIndex >= m_datavecStateNode.size())) {
 		_EXCEPTION1("iDataIndex out of range: %i", iDataIndex);
 	}
-	const GridData4D & dataNode = m_datavecStateNode[iDataIndex];
+	const DataArray4D<double> & dataNode = m_datavecStateNode[iDataIndex];
 
 	// Shallow Water Energy
 	if (eEquationSetType == EquationSet::ShallowWaterEquations) {
@@ -1111,7 +1096,7 @@ double GridPatch::ComputeTotalPotentialEnstrophy(
 	if ((iDataIndex < 0) || (iDataIndex >= m_datavecStateNode.size())) {
 		_EXCEPTION1("iDataIndex out of range: %i", iDataIndex);
 	}
-	const GridData4D & dataNode = m_datavecStateNode[iDataIndex];
+	const DataArray4D<double> & dataNode = m_datavecStateNode[iDataIndex];
 
 	// Shallow Water PotentialEnstrophy
 	if (eEquationSetType == EquationSet::ShallowWaterEquations) {
@@ -1379,7 +1364,7 @@ void GridPatch::LinearCombineData(
 		}
 
 		// If tracers are not initialized, do nothing
-		if (!m_datavecTracers[ixDest].IsInitialized()) {
+		if (!m_datavecTracers[ixDest].IsAttached()) {
 			return;
 		}
 
@@ -1430,7 +1415,7 @@ void GridPatch::ZeroData(
 			_EXCEPTIONT("Invalid ixData index in LinearCombineData.");
 		}
 
-		if (!m_datavecTracers[ixData].IsInitialized()) {
+		if (!m_datavecTracers[ixData].IsAttached()) {
 			return;
 		}
 

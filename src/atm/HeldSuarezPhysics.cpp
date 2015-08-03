@@ -88,10 +88,10 @@ void HeldSuarezPhysics::Perform(
 		const DataArray2D<double> & dataLatitude = pPatch->GetLatitude();
 
 		// Grid data
-		GridData4D & dataNode =
+		DataArray4D<double> & dataNode =
 			pPatch->GetDataState(0, DataLocation_Node);
 
-		GridData4D & dataREdge =
+		DataArray4D<double> & dataREdge =
 			pPatch->GetDataState(0, DataLocation_REdge);
 
 		// Perform interpolations as required due to vertical staggering

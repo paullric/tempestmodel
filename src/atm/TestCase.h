@@ -20,7 +20,7 @@
 #include "PhysicalConstants.h"
 #include "EquationSet.h"
 
-#include "GridData4D.h"
+#include "DataArray4D.h"
 
 class Time;
 

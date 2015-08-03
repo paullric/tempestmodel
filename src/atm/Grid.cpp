@@ -795,35 +795,35 @@ void Grid::ConsolidateDataToRoot(
 		const GridPatch * pPatch = m_vecActiveGridPatches[n];
 
 		// Data
-		const GridData4D & dataStateNode =
+		const DataArray4D<double> & dataStateNode =
 			pPatch->GetDataState(0, DataLocation_Node);
-		const GridData4D & dataStateREdge =
+		const DataArray4D<double> & dataStateREdge =
 			pPatch->GetDataState(0, DataLocation_REdge);
 
-		const GridData4D & dataRefStateNode =
+		const DataArray4D<double> & dataRefStateNode =
 			pPatch->GetReferenceState(DataLocation_Node);
-		const GridData4D & dataRefStateREdge =
+		const DataArray4D<double> & dataRefStateREdge =
 			pPatch->GetReferenceState(DataLocation_REdge);
 
-		const GridData4D & dataTracers =
+		const DataArray4D<double> & dataTracers =
 			pPatch->GetDataTracers(0);
 
 		const DataArray3D<double> & dataJacobian   = pPatch->GetJacobian();
-		const DataArray2D<double>   & dataTopography = pPatch->GetTopography();
-		const DataArray2D<double>   & dataLongitude  = pPatch->GetLongitude();
-		const DataArray2D<double>   & dataLatitude   = pPatch->GetLatitude();
+		const DataArray2D<double> & dataTopography = pPatch->GetTopography();
+		const DataArray2D<double> & dataLongitude  = pPatch->GetLongitude();
+		const DataArray2D<double> & dataLatitude   = pPatch->GetLatitude();
 		const DataArray3D<double> & dataZLevels    = pPatch->GetZLevels();
 
-		const GridData3D & dataRayleighStrengthNode =
+		const DataArray3D<double> & dataRayleighStrengthNode =
 			pPatch->GetRayleighStrength(DataLocation_Node);
-		const GridData3D & dataRayleighStrengthREdge =
+		const DataArray3D<double> & dataRayleighStrengthREdge =
 			pPatch->GetRayleighStrength(DataLocation_REdge);
 
 		// Send state data on nodes to root process
 		if (status.Contains(DataType_State, DataLocation_Node)) {
 			MPI_Isend(
 				(void*)(dataStateNode[0][0][0]),
-				dataStateNode.GetTotalElements(),
+				dataStateNode.GetTotalSize(),
 				MPI_DOUBLE,
 				0,
 				ConsolidationStatus::GenerateTag(
@@ -838,7 +838,7 @@ void Grid::ConsolidateDataToRoot(
 		if (status.Contains(DataType_State, DataLocation_REdge)) {
 			MPI_Isend(
 				(void*)(dataStateREdge[0][0][0]),
-				dataStateREdge.GetTotalElements(),
+				dataStateREdge.GetTotalSize(),
 				MPI_DOUBLE,
 				0,
 				ConsolidationStatus::GenerateTag(
@@ -853,7 +853,7 @@ void Grid::ConsolidateDataToRoot(
 		if (status.Contains(DataType_RefState, DataLocation_Node)) {
 			MPI_Isend(
 				(void*)(dataRefStateNode[0][0][0]),
-				dataRefStateNode.GetTotalElements(),
+				dataRefStateNode.GetTotalSize(),
 				MPI_DOUBLE,
 				0,
 				ConsolidationStatus::GenerateTag(
@@ -868,7 +868,7 @@ void Grid::ConsolidateDataToRoot(
 		if (status.Contains(DataType_RefState, DataLocation_REdge)) {
 			MPI_Isend(
 				(void*)(dataRefStateREdge[0][0][0]),
-				dataRefStateREdge.GetTotalElements(),
+				dataRefStateREdge.GetTotalSize(),
 				MPI_DOUBLE,
 				0,
 				ConsolidationStatus::GenerateTag(
@@ -883,7 +883,7 @@ void Grid::ConsolidateDataToRoot(
 		if (status.Contains(DataType_Tracers)) {
 			MPI_Isend(
 				(void*)(dataTracers[0][0][0]),
-				dataTracers.GetTotalElements(),
+				dataTracers.GetTotalSize(),
 				MPI_DOUBLE,
 				0,
 				ConsolidationStatus::GenerateTag(
@@ -961,7 +961,7 @@ void Grid::ConsolidateDataToRoot(
 		if (status.Contains(DataType_RayleighStrength, DataLocation_Node)) {
 			MPI_Isend(
 				(void*)(dataRayleighStrengthNode[0][0]),
-				dataRayleighStrengthNode.GetTotalElements(),
+				dataRayleighStrengthNode.GetTotalSize(),
 				MPI_DOUBLE,
 				0,
 				ConsolidationStatus::GenerateTag(
@@ -976,7 +976,7 @@ void Grid::ConsolidateDataToRoot(
 		if (status.Contains(DataType_RayleighStrength, DataLocation_REdge)) {
 			MPI_Isend(
 				(void*)(dataRayleighStrengthREdge[0][0]),
-				dataRayleighStrengthREdge.GetTotalElements(),
+				dataRayleighStrengthREdge.GetTotalSize(),
 				MPI_DOUBLE,
 				0,
 				ConsolidationStatus::GenerateTag(

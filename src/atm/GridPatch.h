@@ -23,9 +23,6 @@
 #include "DataArray3D.h"
 #include "DataArray4D.h"
 
-#include "GridData3D.h"
-#include "GridData4D.h"
-
 #include "PatchBox.h"
 #include "Connectivity.h"
 #include "ChecksumType.h"
@@ -181,8 +178,8 @@ public:
 	///		contravariant vector fields.
 	///	</summary>
 	virtual void ComputeCurlAndDiv(
-		const GridData3D & dataUa,
-		const GridData3D & dataUb
+		const DataArray3D<double> & dataUa,
+		const DataArray3D<double> & dataUb
 	) const {
 		_EXCEPTIONT("Unimplemented");
 	}
@@ -640,7 +637,7 @@ public:
 	///	<summary>
 	///		Get the derivatives of the topography.
 	///	</summary>
-	GridData3D & GetTopographyDeriv() {
+	DataArray3D<double> & GetTopographyDeriv() {
 		if (!m_fContainsData) {
 			_EXCEPTIONT("Stub patch does not store data.");
 		}
@@ -651,7 +648,7 @@ public:
 	///	<summary>
 	///		Get the derivatives of the topography.
 	///	</summary>
-	const GridData3D & GetTopographyDeriv() const {
+	const DataArray3D<double> & GetTopographyDeriv() const {
 		if (!m_fContainsData) {
 			_EXCEPTIONT("Stub patch does not store data.");
 		}
@@ -717,7 +714,7 @@ public:
 	///	<summary>
 	///		Get the reference state.
 	///	</summary>
-	GridData4D & GetReferenceState(
+	DataArray4D<double> & GetReferenceState(
 		DataLocation loc = DataLocation_Node
 	) {
 		if (!m_fContainsData) {
@@ -735,7 +732,7 @@ public:
 	///	<summary>
 	///		Get the reference state.
 	///	</summary>
-	const GridData4D & GetReferenceState(
+	const DataArray4D<double> & GetReferenceState(
 		DataLocation loc = DataLocation_Node
 	) const {
 		if (!m_fContainsData) {
@@ -753,7 +750,7 @@ public:
 	///	<summary>
 	///		Get the state data matrix with the specified index.
 	///	</summary>
-	GridData4D & GetDataState(
+	DataArray4D<double> & GetDataState(
 		int ix,
 		DataLocation loc = DataLocation_Node
 	) {
@@ -780,7 +777,7 @@ public:
 	///	<summary>
 	///		Get the state data matrix with the specified index.
 	///	</summary>
-	const GridData4D & GetDataState(
+	const DataArray4D<double> & GetDataState(
 		int ix,
 		DataLocation loc = DataLocation_Node
 	) const {
@@ -807,7 +804,7 @@ public:
 	///	<summary>
 	///		Get the tracer data matrix with the specified index.
 	///	</summary>
-	GridData4D & GetDataTracers(int ix) {
+	DataArray4D<double> & GetDataTracers(int ix) {
 		if (!m_fContainsData) {
 			_EXCEPTIONT("Stub patch does not store data.");
 		}
@@ -820,7 +817,7 @@ public:
 	///	<summary>
 	///		Get the tracer data matrix with the specified index.
 	///	</summary>
-	const GridData4D & GetDataTracers(int ix) const {
+	const DataArray4D<double> & GetDataTracers(int ix) const {
 		if (!m_fContainsData) {
 			_EXCEPTIONT("Stub patch does not store data.");
 		}
@@ -833,77 +830,77 @@ public:
 	///	<summary>
 	///		Get the pressure data.
 	///	</summary>
-	GridData3D & GetDataPressure() {
+	DataArray3D<double> & GetDataPressure() {
 		return m_dataPressure;
 	}
 
 	///	<summary>
 	///		Get the pressure data.
 	///	</summary>
-	const GridData3D & GetDataPressure() const {
+	const DataArray3D<double> & GetDataPressure() const {
 		return m_dataPressure;
 	}
 
 	///	<summary>
 	///		Get the pressure derivative data.
 	///	</summary>
-	GridData3D & GetDataDxPressure() {
+	DataArray3D<double> & GetDataDxPressure() {
 		return m_dataDxPressure;
 	}
 
 	///	<summary>
 	///		Get the pressure derivative data.
 	///	</summary>
-	const GridData3D & GetDataDxPressure() const {
+	const DataArray3D<double> & GetDataDxPressure() const {
 		return m_dataDxPressure;
 	}
 
 	///	<summary>
 	///		Get the vorticity data.
 	///	</summary>
-	GridData3D & GetDataVorticity() {
+	DataArray3D<double> & GetDataVorticity() {
 		return m_dataVorticity;
 	}
 
 	///	<summary>
 	///		Get the vorticity data.
 	///	</summary>
-	const GridData3D & GetDataVorticity() const {
+	const DataArray3D<double> & GetDataVorticity() const {
 		return m_dataVorticity;
 	}
 
 	///	<summary>
 	///		Get the divergence data.
 	///	</summary>
-	GridData3D & GetDataDivergence() {
+	DataArray3D<double> & GetDataDivergence() {
 		return m_dataDivergence;
 	}
 
 	///	<summary>
 	///		Get the divergence data.
 	///	</summary>
-	const GridData3D & GetDataDivergence() const {
+	const DataArray3D<double> & GetDataDivergence() const {
 		return m_dataDivergence;
 	}
 
 	///	<summary>
 	///		Get the temperature data.
 	///	</summary>
-	GridData3D & GetDataTemperature() {
+	DataArray3D<double> & GetDataTemperature() {
 		return m_dataTemperature;
 	}
 
 	///	<summary>
 	///		Get the temperature data.
 	///	</summary>
-	const GridData3D & GetDataTemperature() const {
+	const DataArray3D<double> & GetDataTemperature() const {
 		return m_dataTemperature;
 	}
 
 	///	<summary>
 	///		Get the Rayleigh friction strength.
 	///	</summary>
-	GridData3D & GetRayleighStrength(
+	DataArray3D<double> & GetRayleighStrength(
 		DataLocation loc = DataLocation_Node
 	) {
 		if (loc == DataLocation_Node) {
@@ -918,7 +915,7 @@ public:
 	///	<summary>
 	///		Get the Rayleigh friction strength.
 	///	</summary>
-	const GridData3D & GetRayleighStrength(
+	const DataArray3D<double> & GetRayleighStrength(
 		DataLocation loc = DataLocation_Node
 	) const {
 		if (loc == DataLocation_Node) {
@@ -929,6 +926,12 @@ public:
 			_EXCEPTIONT("Invalid location");
 		}
 	}
+
+protected:
+	///	<summary>
+	///		A vector storing DataArray4D<double>.
+	///	</summary>
+	typedef std::vector< DataArray4D<double> > DataArray4DVector;
 
 protected:
 	///	<summary>
@@ -1081,7 +1084,7 @@ protected:
 	///	<summary>
 	///		Derivatives of topography at each node.
 	///	</summary>
-	GridData3D m_dataTopographyDeriv;
+	DataArray3D<double> m_dataTopographyDeriv;
 
 	///	<summary>
 	///		Longitude at each node.
@@ -1111,62 +1114,62 @@ protected:
 	///	<summary>
 	///		Grid data for the reference state on model levels.
 	///	</summary>
-	GridData4D m_dataRefStateNode;
+	DataArray4D<double> m_dataRefStateNode;
 
 	///	<summary>
 	///		Grid data for state variables on model levels.
 	///	</summary>
-	GridData4DVector m_datavecStateNode;
+	DataArray4DVector m_datavecStateNode;
 
 	///	<summary>
 	///		Grid data on model interfaces for the reference state.
 	///	</summary>
-	GridData4D m_dataRefStateREdge;
+	DataArray4D<double> m_dataRefStateREdge;
 
 	///	<summary>
 	///		Grid data on model interfaces for state variables.
 	///	</summary>
-	GridData4DVector m_datavecStateREdge;
+	DataArray4DVector m_datavecStateREdge;
 
 	///	<summary>
 	///		Grid data for tracer variables.
 	///	</summary>
-	GridData4DVector m_datavecTracers;
+	DataArray4DVector m_datavecTracers;
 
 	///	<summary>
 	///		Computed pointwise pressures.
 	///	</summary>
-	GridData3D m_dataPressure;
+	DataArray3D<double> m_dataPressure;
 
 	///	<summary>
 	///		Computed pointwise vertical pressure derivatives.
 	///	</summary>
-	GridData3D m_dataDxPressure;
+	DataArray3D<double> m_dataDxPressure;
 
 	///	<summary>
 	///		Computed vorticity.
 	///	</summary>
-	GridData3D m_dataVorticity;
+	DataArray3D<double> m_dataVorticity;
 
 	///	<summary>
 	///		Computed divergence.
 	///	</summary>
-	GridData3D m_dataDivergence;
+	DataArray3D<double> m_dataDivergence;
 
 	///	<summary>
 	///		Computed temperature.
 	///	</summary>
-	GridData3D m_dataTemperature;
+	DataArray3D<double> m_dataTemperature;
 
 	///	<summary>
 	///		Rayleigh friction strength on nodes.
 	///	</summary>
-	GridData3D m_dataRayleighStrengthNode;
+	DataArray3D<double> m_dataRayleighStrengthNode;
 
 	///	<summary>
 	///		Rayleigh friction strength on interfaces.
 	///	</summary>
-	GridData3D m_dataRayleighStrengthREdge;
+	DataArray3D<double> m_dataRayleighStrengthREdge;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
