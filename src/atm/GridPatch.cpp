@@ -137,7 +137,12 @@ void GridPatch::InitializeDataRemote(
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void GridPatch::InitializeDataLocal() {
+void GridPatch::InitializeDataLocal(
+	bool fAllocateGeometric,
+	bool fAllocateActiveState,
+	bool fAllocateBufferState,
+	bool fAllocateAuxiliary
+) {
 	if (m_fContainsData) {
 		_EXCEPTIONT(
 			"Attempting to initialize a previously initialized GridPatch.");
@@ -149,176 +154,176 @@ void GridPatch::InitializeDataLocal() {
 	// Set the processor
 	MPI_Comm_rank(MPI_COMM_WORLD, &m_iProcessor);
 
-	// Jacobian at each node (2D)
-	m_dataJacobian2D.Allocate(
-		m_box.GetATotalWidth(),
-		m_box.GetBTotalWidth());
-
-	// Contravariant metric (2D) components at each node
-	m_dataContraMetric2DA.Allocate(
-		m_box.GetATotalWidth(),
-		m_box.GetBTotalWidth(),
-		2);
-
-	m_dataContraMetric2DB.Allocate(
-		m_box.GetATotalWidth(),
-		m_box.GetBTotalWidth(),
-		2);
-
-	// Covariant metric (2D) components at each node
-	m_dataCovMetric2DA.Allocate(
-		m_box.GetATotalWidth(),
-		m_box.GetBTotalWidth(),
-		2);
-
-	m_dataCovMetric2DB.Allocate(
-		m_box.GetATotalWidth(),
-		m_box.GetBTotalWidth(),
-		2);
-
-	// Jacobian at each node
-	m_dataJacobian.Allocate(
-		m_grid.GetRElements(),
-		m_box.GetATotalWidth(),
-		m_box.GetBTotalWidth());
-
-	// Jacobian at each interface
-	m_dataJacobianREdge.Allocate(
-		m_grid.GetRElements()+1,
-		m_box.GetATotalWidth(),
-		m_box.GetBTotalWidth());
-
-	// Contravariant metric components at each node
-	m_dataContraMetricA.Allocate(
-		m_grid.GetRElements(),
-		m_box.GetATotalWidth(),
-		m_box.GetBTotalWidth(),
-		3);
-
-	m_dataContraMetricB.Allocate(
-		m_grid.GetRElements(),
-		m_box.GetATotalWidth(),
-		m_box.GetBTotalWidth(),
-		3);
-
-	m_dataContraMetricXi.Allocate(
-		m_grid.GetRElements(),
-		m_box.GetATotalWidth(),
-		m_box.GetBTotalWidth(),
-		3);
-
-	// Covariant metric components at each node
-	m_dataCovMetricA.Allocate(
-		m_grid.GetRElements(),
-		m_box.GetATotalWidth(),
-		m_box.GetBTotalWidth(),
-		3);
-
-	m_dataCovMetricB.Allocate(
-		m_grid.GetRElements(),
-		m_box.GetATotalWidth(),
-		m_box.GetBTotalWidth(),
-		3);
-
-	m_dataCovMetricXi.Allocate(
-		m_grid.GetRElements(),
-		m_box.GetATotalWidth(),
-		m_box.GetBTotalWidth(),
-		3);
-
-	// Xi contravariant metric on interfaces
-	m_dataContraMetricAREdge.Allocate(
-		m_grid.GetRElements()+1,
-		m_box.GetATotalWidth(),
-		m_box.GetBTotalWidth(),
-		3);
-
-	m_dataContraMetricBREdge.Allocate(
-		m_grid.GetRElements()+1,
-		m_box.GetATotalWidth(),
-		m_box.GetBTotalWidth(),
-		3);
-
-	m_dataContraMetricXiREdge.Allocate(
-		m_grid.GetRElements()+1,
-		m_box.GetATotalWidth(),
-		m_box.GetBTotalWidth(),
-		3);
-
-	// Vertical coordinate transform (derivatives of the radius)
-	m_dataDerivRNode.Allocate(
-		m_grid.GetRElements(),
-		m_box.GetATotalWidth(),
-		m_box.GetBTotalWidth(),
-		3);
-
-	m_dataDerivRREdge.Allocate(
-		m_grid.GetRElements()+1,
-		m_box.GetATotalWidth(),
-		m_box.GetBTotalWidth(),
-		3);
-
-	// Element area at each node
-	m_dataElementArea.Allocate(
-		m_grid.GetRElements(),
-		m_box.GetATotalWidth(),
-		m_box.GetBTotalWidth());
-
-	// Element area at each interface
-	m_dataElementAreaREdge.Allocate(
-		m_grid.GetRElements()+1,
-		m_box.GetATotalWidth(),
-		m_box.GetBTotalWidth());
-
-	// Topography height at each node
-	m_dataTopography.Allocate(
-		m_box.GetATotalWidth(),
-		m_box.GetBTotalWidth());
-
-	// Topography derivatives at each node
-	m_dataTopographyDeriv.SetDataType(DataType_TopographyDeriv);
-	m_dataTopographyDeriv.Allocate(
-		2,
-		m_box.GetATotalWidth(),
-		m_box.GetBTotalWidth());
-
-	// Longitude at each node
-	m_dataLon.Allocate(
-		m_box.GetATotalWidth(),
-		m_box.GetBTotalWidth());
-
-	// Latitude at each node
-	m_dataLat.Allocate(
-		m_box.GetATotalWidth(),
-		m_box.GetBTotalWidth());
-
-	// Coriolis parameter at each node
-	m_dataCoriolisF.Allocate(
-		m_box.GetATotalWidth(),
-		m_box.GetBTotalWidth());
-
-	// Radial coordinate at each level
-	m_dataZLevels.Allocate(
-		m_grid.GetRElements(),
-		m_box.GetATotalWidth(),
-		m_box.GetBTotalWidth());
-
-	// Radial coordinate at each interface
-	m_dataZInterfaces.Allocate(
-		m_grid.GetRElements()+1,
-		m_box.GetATotalWidth(),
-		m_box.GetBTotalWidth());
-
 	// Get the model
 	const Model & model = m_grid.GetModel();
 
 	// Get the equation set
 	const EquationSet & eqn = model.GetEquationSet();
 
+	// Jacobian at each node (2D)
+	m_dataJacobian2D.SetSize(
+		m_box.GetATotalWidth(),
+		m_box.GetBTotalWidth());
+
+	// Contravariant metric (2D) components at each node
+	m_dataContraMetric2DA.SetSize(
+		m_box.GetATotalWidth(),
+		m_box.GetBTotalWidth(),
+		2);
+
+	m_dataContraMetric2DB.SetSize(
+		m_box.GetATotalWidth(),
+		m_box.GetBTotalWidth(),
+		2);
+
+	// Covariant metric (2D) components at each node
+	m_dataCovMetric2DA.SetSize(
+		m_box.GetATotalWidth(),
+		m_box.GetBTotalWidth(),
+		2);
+
+	m_dataCovMetric2DB.SetSize(
+		m_box.GetATotalWidth(),
+		m_box.GetBTotalWidth(),
+		2);
+
+	// Jacobian at each node
+	m_dataJacobian.SetSize(
+		m_grid.GetRElements(),
+		m_box.GetATotalWidth(),
+		m_box.GetBTotalWidth());
+
+	// Jacobian at each interface
+	m_dataJacobianREdge.SetSize(
+		m_grid.GetRElements()+1,
+		m_box.GetATotalWidth(),
+		m_box.GetBTotalWidth());
+
+	// Contravariant metric components at each node
+	m_dataContraMetricA.SetSize(
+		m_grid.GetRElements(),
+		m_box.GetATotalWidth(),
+		m_box.GetBTotalWidth(),
+		3);
+
+	m_dataContraMetricB.SetSize(
+		m_grid.GetRElements(),
+		m_box.GetATotalWidth(),
+		m_box.GetBTotalWidth(),
+		3);
+
+	m_dataContraMetricXi.SetSize(
+		m_grid.GetRElements(),
+		m_box.GetATotalWidth(),
+		m_box.GetBTotalWidth(),
+		3);
+
+	// Covariant metric components at each node
+	m_dataCovMetricA.SetSize(
+		m_grid.GetRElements(),
+		m_box.GetATotalWidth(),
+		m_box.GetBTotalWidth(),
+		3);
+
+	m_dataCovMetricB.SetSize(
+		m_grid.GetRElements(),
+		m_box.GetATotalWidth(),
+		m_box.GetBTotalWidth(),
+		3);
+
+	m_dataCovMetricXi.SetSize(
+		m_grid.GetRElements(),
+		m_box.GetATotalWidth(),
+		m_box.GetBTotalWidth(),
+		3);
+
+	// Xi contravariant metric on interfaces
+	m_dataContraMetricAREdge.SetSize(
+		m_grid.GetRElements()+1,
+		m_box.GetATotalWidth(),
+		m_box.GetBTotalWidth(),
+		3);
+
+	m_dataContraMetricBREdge.SetSize(
+		m_grid.GetRElements()+1,
+		m_box.GetATotalWidth(),
+		m_box.GetBTotalWidth(),
+		3);
+
+	m_dataContraMetricXiREdge.SetSize(
+		m_grid.GetRElements()+1,
+		m_box.GetATotalWidth(),
+		m_box.GetBTotalWidth(),
+		3);
+
+	// Vertical coordinate transform (derivatives of the radius)
+	m_dataDerivRNode.SetSize(
+		m_grid.GetRElements(),
+		m_box.GetATotalWidth(),
+		m_box.GetBTotalWidth(),
+		3);
+
+	m_dataDerivRREdge.SetSize(
+		m_grid.GetRElements()+1,
+		m_box.GetATotalWidth(),
+		m_box.GetBTotalWidth(),
+		3);
+
+	// Element area at each node
+	m_dataElementArea.SetSize(
+		m_grid.GetRElements(),
+		m_box.GetATotalWidth(),
+		m_box.GetBTotalWidth());
+
+	// Element area at each interface
+	m_dataElementAreaREdge.SetSize(
+		m_grid.GetRElements()+1,
+		m_box.GetATotalWidth(),
+		m_box.GetBTotalWidth());
+
+	// Topography height at each node
+	m_dataTopography.SetSize(
+		m_box.GetATotalWidth(),
+		m_box.GetBTotalWidth());
+
+	// Topography derivatives at each node
+	m_dataTopographyDeriv.SetDataType(DataType_TopographyDeriv);
+	m_dataTopographyDeriv.SetSize(
+		2,
+		m_box.GetATotalWidth(),
+		m_box.GetBTotalWidth());
+
+	// Longitude at each node
+	m_dataLon.SetSize(
+		m_box.GetATotalWidth(),
+		m_box.GetBTotalWidth());
+
+	// Latitude at each node
+	m_dataLat.SetSize(
+		m_box.GetATotalWidth(),
+		m_box.GetBTotalWidth());
+
+	// Coriolis parameter at each node
+	m_dataCoriolisF.SetSize(
+		m_box.GetATotalWidth(),
+		m_box.GetBTotalWidth());
+
+	// Radial coordinate at each level
+	m_dataZLevels.SetSize(
+		m_grid.GetRElements(),
+		m_box.GetATotalWidth(),
+		m_box.GetBTotalWidth());
+
+	// Radial coordinate at each interface
+	m_dataZInterfaces.SetSize(
+		m_grid.GetRElements()+1,
+		m_box.GetATotalWidth(),
+		m_box.GetBTotalWidth());
+
 	// Initialize reference state
 	m_dataRefStateNode.SetDataType(DataType_State);
 	m_dataRefStateNode.SetDataLocation(DataLocation_Node);
-	m_dataRefStateNode.Allocate(
+	m_dataRefStateNode.SetSize(
 		eqn.GetComponents(),
 		m_grid.GetRElements(),
 		m_box.GetATotalWidth(),
@@ -326,92 +331,16 @@ void GridPatch::InitializeDataLocal() {
 
 	m_dataRefStateREdge.SetDataType(DataType_State);
 	m_dataRefStateREdge.SetDataLocation(DataLocation_REdge);
-	m_dataRefStateREdge.Allocate(
+	m_dataRefStateREdge.SetSize(
 		eqn.GetComponents(),
 		m_grid.GetRElements()+1,
-		m_box.GetATotalWidth(),
-		m_box.GetBTotalWidth());
-
-	// Initialize component data
-	m_datavecStateNode .resize(model.GetComponentDataInstances());
-	m_datavecStateREdge.resize(model.GetComponentDataInstances());
-
-	for (int m = 0; m < model.GetComponentDataInstances(); m++) {
-		m_datavecStateNode[m].SetDataType(DataType_State);
-		m_datavecStateNode[m].SetDataLocation(DataLocation_Node);
-		m_datavecStateNode[m].Allocate(
-			eqn.GetComponents(),
-			m_grid.GetRElements(),
-			m_box.GetATotalWidth(),
-			m_box.GetBTotalWidth());
-
-		m_datavecStateREdge[m].SetDataType(DataType_State);
-		m_datavecStateREdge[m].SetDataLocation(DataLocation_REdge);
-		m_datavecStateREdge[m].Allocate(
-			eqn.GetComponents(),
-			m_grid.GetRElements()+1,
-			m_box.GetATotalWidth(),
-			m_box.GetBTotalWidth());
-	}
-
-	// Initialize tracer data
-	m_datavecTracers.resize(model.GetTracerDataInstances());
-
-	if (eqn.GetTracers() != 0) {
-		for (int m = 0; m < model.GetTracerDataInstances(); m++) {
-			m_datavecTracers[m].SetDataType(DataType_Tracers);
-			m_datavecTracers[m].SetDataLocation(DataLocation_Node);
-			m_datavecTracers[m].Allocate(
-				eqn.GetTracers(),
-				m_grid.GetRElements(),
-				m_box.GetATotalWidth(),
-				m_box.GetBTotalWidth());
-		}
-	}
-
-	// Pressure data
-	m_dataPressure.SetDataType(DataType_Pressure);
-	m_dataPressure.SetDataLocation(DataLocation_Node);
-	m_dataPressure.Allocate(
-		m_grid.GetRElements(),
-		m_box.GetATotalWidth(),
-		m_box.GetBTotalWidth());
-
-	m_dataPressure.SetDataType(DataType_Pressure);
-	m_dataPressure.SetDataLocation(DataLocation_Node);
-	m_dataDxPressure.Allocate(
-		m_grid.GetRElements(),
-		m_box.GetATotalWidth(),
-		m_box.GetBTotalWidth());
-
-	// Vorticity data
-	m_dataVorticity.SetDataType(DataType_Vorticity);
-	m_dataVorticity.SetDataLocation(DataLocation_Node);
-	m_dataVorticity.Allocate(
-		m_grid.GetRElements(),
-		m_box.GetATotalWidth(),
-		m_box.GetBTotalWidth());
-
-	// Divergence data
-	m_dataDivergence.SetDataType(DataType_Divergence);
-	m_dataDivergence.SetDataLocation(DataLocation_Node);
-	m_dataDivergence.Allocate(
-		m_grid.GetRElements(),
-		m_box.GetATotalWidth(),
-		m_box.GetBTotalWidth());
-
-	// Temperature data
-	m_dataTemperature.SetDataType(DataType_Temperature);
-	m_dataTemperature.SetDataLocation(DataLocation_Node);
-	m_dataTemperature.Allocate(
-		m_grid.GetRElements(),
 		m_box.GetATotalWidth(),
 		m_box.GetBTotalWidth());
 
 	// Rayleigh friction strength
 	m_dataRayleighStrengthNode.SetDataType(DataType_None);
 	m_dataRayleighStrengthNode.SetDataLocation(DataLocation_Node);
-	m_dataRayleighStrengthNode.Allocate(
+	m_dataRayleighStrengthNode.SetSize(
 		m_grid.GetRElements(),
 		m_box.GetATotalWidth(),
 		m_box.GetBTotalWidth());
@@ -419,10 +348,165 @@ void GridPatch::InitializeDataLocal() {
 	// Rayleigh friction strength
 	m_dataRayleighStrengthREdge.SetDataType(DataType_None);
 	m_dataRayleighStrengthREdge.SetDataLocation(DataLocation_Node);
-	m_dataRayleighStrengthREdge.Allocate(
+	m_dataRayleighStrengthREdge.SetSize(
 		m_grid.GetRElements()+1,
 		m_box.GetATotalWidth(),
 		m_box.GetBTotalWidth());
+
+	// Put all read-only data objects into DataContainer
+	m_dcGeometric.PushDataChunk(m_dataJacobian2D);
+	m_dcGeometric.PushDataChunk(m_dataContraMetric2DA);
+	m_dcGeometric.PushDataChunk(m_dataContraMetric2DB);
+	m_dcGeometric.PushDataChunk(m_dataCovMetric2DA);
+	m_dcGeometric.PushDataChunk(m_dataCovMetric2DB);
+	m_dcGeometric.PushDataChunk(m_dataJacobian);
+	m_dcGeometric.PushDataChunk(m_dataJacobianREdge);
+	m_dcGeometric.PushDataChunk(m_dataContraMetricA);
+	m_dcGeometric.PushDataChunk(m_dataContraMetricB);
+	m_dcGeometric.PushDataChunk(m_dataContraMetricXi);
+	m_dcGeometric.PushDataChunk(m_dataCovMetricA);
+	m_dcGeometric.PushDataChunk(m_dataCovMetricB);
+	m_dcGeometric.PushDataChunk(m_dataCovMetricXi);
+	m_dcGeometric.PushDataChunk(m_dataContraMetricAREdge);
+	m_dcGeometric.PushDataChunk(m_dataContraMetricBREdge);
+	m_dcGeometric.PushDataChunk(m_dataContraMetricXiREdge);
+	m_dcGeometric.PushDataChunk(m_dataDerivRNode);
+	m_dcGeometric.PushDataChunk(m_dataDerivRREdge);
+	m_dcGeometric.PushDataChunk(m_dataElementArea);
+	m_dcGeometric.PushDataChunk(m_dataElementAreaREdge);
+	m_dcGeometric.PushDataChunk(m_dataTopography);
+	m_dcGeometric.PushDataChunk(m_dataTopographyDeriv);
+	m_dcGeometric.PushDataChunk(m_dataLon);
+	m_dcGeometric.PushDataChunk(m_dataLat);
+	m_dcGeometric.PushDataChunk(m_dataCoriolisF);
+	m_dcGeometric.PushDataChunk(m_dataZLevels);
+	m_dcGeometric.PushDataChunk(m_dataZInterfaces);
+	m_dcGeometric.PushDataChunk(m_dataRefStateNode);
+	m_dcGeometric.PushDataChunk(m_dataRefStateREdge);
+	m_dcGeometric.PushDataChunk(m_dataRayleighStrengthNode);
+	m_dcGeometric.PushDataChunk(m_dataRayleighStrengthREdge);
+
+	if (fAllocateGeometric) {
+		m_dcGeometric.Allocate();
+	}
+
+	// Initialize component data
+	m_datavecStateNode .resize(model.GetComponentDataInstances());
+	m_datavecStateREdge.resize(model.GetComponentDataInstances());
+
+	if (model.GetComponentDataInstances() < 1) {
+		_EXCEPTIONT("At least one ComponentDataInstance required");
+	}
+
+	for (int m = 0; m < model.GetComponentDataInstances(); m++) {
+		m_datavecStateNode[m].SetDataType(DataType_State);
+		m_datavecStateNode[m].SetDataLocation(DataLocation_Node);
+		m_datavecStateNode[m].SetSize(
+			eqn.GetComponents(),
+			m_grid.GetRElements(),
+			m_box.GetATotalWidth(),
+			m_box.GetBTotalWidth());
+
+		m_datavecStateREdge[m].SetDataType(DataType_State);
+		m_datavecStateREdge[m].SetDataLocation(DataLocation_REdge);
+		m_datavecStateREdge[m].SetSize(
+			eqn.GetComponents(),
+			m_grid.GetRElements()+1,
+			m_box.GetATotalWidth(),
+			m_box.GetBTotalWidth());
+	}
+
+	m_dcActiveState.PushDataChunk(m_datavecStateNode[0]);
+	m_dcActiveState.PushDataChunk(m_datavecStateREdge[0]);
+
+	for (int m = 1; m < model.GetComponentDataInstances(); m++) {
+		m_dcBufferState.PushDataChunk(m_datavecStateNode[m]);
+		m_dcBufferState.PushDataChunk(m_datavecStateREdge[m]);
+	}
+
+	// Initialize tracer data
+	m_datavecTracers.resize(model.GetTracerDataInstances());
+
+	if (model.GetTracerDataInstances() < 1) {
+		_EXCEPTIONT("At least one TracerDataInstance required");
+	}
+
+	if (eqn.GetTracers() != 0) {
+		for (int m = 0; m < model.GetTracerDataInstances(); m++) {
+			m_datavecTracers[m].SetDataType(DataType_Tracers);
+			m_datavecTracers[m].SetDataLocation(DataLocation_Node);
+			m_datavecTracers[m].SetSize(
+				eqn.GetTracers(),
+				m_grid.GetRElements(),
+				m_box.GetATotalWidth(),
+				m_box.GetBTotalWidth());
+		}
+	
+		// Store active state data
+		m_dcActiveState.PushDataChunk(m_datavecTracers[0]);
+
+		for (int m = 1; m < model.GetTracerDataInstances(); m++) {
+			m_dcBufferState.PushDataChunk(m_datavecTracers[m]);
+		}
+	}
+
+	// Allocate active and buffer state data
+	if (fAllocateActiveState) {
+		m_dcActiveState.Allocate();
+	}
+	if (fAllocateBufferState) {
+		m_dcBufferState.Allocate();
+	}
+
+	// Pressure data
+	m_dataPressure.SetDataType(DataType_Pressure);
+	m_dataPressure.SetDataLocation(DataLocation_Node);
+	m_dataPressure.SetSize(
+		m_grid.GetRElements(),
+		m_box.GetATotalWidth(),
+		m_box.GetBTotalWidth());
+
+	m_dataDxPressure.SetDataType(DataType_Pressure);
+	m_dataDxPressure.SetDataLocation(DataLocation_Node);
+	m_dataDxPressure.SetSize(
+		m_grid.GetRElements(),
+		m_box.GetATotalWidth(),
+		m_box.GetBTotalWidth());
+
+	// Vorticity data
+	m_dataVorticity.SetDataType(DataType_Vorticity);
+	m_dataVorticity.SetDataLocation(DataLocation_Node);
+	m_dataVorticity.SetSize(
+		m_grid.GetRElements(),
+		m_box.GetATotalWidth(),
+		m_box.GetBTotalWidth());
+
+	// Divergence data
+	m_dataDivergence.SetDataType(DataType_Divergence);
+	m_dataDivergence.SetDataLocation(DataLocation_Node);
+	m_dataDivergence.SetSize(
+		m_grid.GetRElements(),
+		m_box.GetATotalWidth(),
+		m_box.GetBTotalWidth());
+
+	// Temperature data
+	m_dataTemperature.SetDataType(DataType_Temperature);
+	m_dataTemperature.SetDataLocation(DataLocation_Node);
+	m_dataTemperature.SetSize(
+		m_grid.GetRElements(),
+		m_box.GetATotalWidth(),
+		m_box.GetBTotalWidth());
+
+	// Put auxiliary date into DataContainer
+	m_dcAuxiliary.PushDataChunk(m_dataPressure);
+	m_dcAuxiliary.PushDataChunk(m_dataDxPressure);
+	m_dcAuxiliary.PushDataChunk(m_dataVorticity);
+	m_dcAuxiliary.PushDataChunk(m_dataDivergence);
+	m_dcAuxiliary.PushDataChunk(m_dataTemperature);
+
+	if (fAllocateAuxiliary) {
+		m_dcAuxiliary.Allocate();
+	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -434,6 +518,8 @@ void GridPatch::DeinitializeData() {
 
 	m_fContainsData = false;
 
+	_EXCEPTIONT("Not implemented");
+/*
 	m_dataJacobian2D.Deallocate();
 	m_dataContraMetric2DA.Deallocate();
 	m_dataContraMetric2DB.Deallocate();
@@ -472,6 +558,7 @@ void GridPatch::DeinitializeData() {
 	m_dataTemperature.Deallocate();
 	m_dataRayleighStrengthNode.Deallocate();
 	m_dataRayleighStrengthREdge.Deallocate();
+*/
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1125,7 +1212,7 @@ double GridPatch::ComputeTotalPotentialEnstrophy(
 
 	} else {
 
-#pragma message "Total potential enstrophy"
+#pragma message "Calculate total potential enstrophy here"
 		// Unimplemented
 		dLocalPotentialEnstrophy = 0.0;
 	}

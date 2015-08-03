@@ -25,23 +25,21 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 DataContainer::DataContainer() :
+	m_fOwnsData(true),
 	m_pAllocatedMemory(NULL)
 { }
 
 ///////////////////////////////////////////////////////////////////////////////
 
 DataContainer::~DataContainer() {
-	Deallocate();
+	if ((m_fOwnsData) && (m_pAllocatedMemory != NULL)) {
+		free(m_pAllocatedMemory);
+	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void DataContainer::Allocate() {
-
-	// Check that memory has not been allocated
-	if (m_pAllocatedMemory != NULL) {
-		_EXCEPTIONT("Attempting to allocate already allocated DataContainer");
-	}
+size_t DataContainer::GetTotalByteSize() {
 	
 	// Get the accumulated size of all DataChunks
 	size_t sAccumulated = 0;
@@ -50,7 +48,20 @@ void DataContainer::Allocate() {
 		sAccumulated += m_vecDataChunks[i]->GetByteSize();
 	}
 
-	std::cout << sAccumulated << std::endl;
+	return sAccumulated;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void DataContainer::Allocate() {
+
+	// Check that memory has not been allocated
+	if (m_pAllocatedMemory != NULL) {
+		_EXCEPTIONT("Attempting Allocate() on attached DataContainer");
+	}
+
+	// Get the accumulated size of all DataChunks
+	size_t sAccumulated = GetTotalByteSize();
 
 	// Allocate memory as one contiguous chunk
 	m_pAllocatedMemory =
@@ -77,13 +88,45 @@ void DataContainer::Allocate() {
 ///////////////////////////////////////////////////////////////////////////////
 
 void DataContainer::Deallocate() {
-/*
+	Detach();
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void DataContainer::AttachTo(
+	unsigned char * pAllocatedMemory
+) {
+	if (m_pAllocatedMemory != NULL) {
+		_EXCEPTIONT("Attempting AttachTo() on attached DataContainer");
+	}
+
+	m_fOwnsData = false;
+	m_pAllocatedMemory = pAllocatedMemory;
+
+	// Assign memory to DataChunks
+	size_t sAccumulated = 0;
+
+	for (size_t i = 0; i < m_vecDataChunks.size(); i++) {
+		m_vecDataChunks[i]->AttachToData(
+			reinterpret_cast<void *>(m_pAllocatedMemory + sAccumulated));
+
+		sAccumulated += m_vecDataChunks[i]->GetByteSize();
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void DataContainer::Detach() {
+
 	for (size_t i = 0; i < m_vecDataChunks.size(); i++) {
 		m_vecDataChunks[i]->Detach();
 	}
-*/
-	free(m_pAllocatedMemory);
 
+	if ((m_fOwnsData) && (m_pAllocatedMemory != NULL)) {
+		free(m_pAllocatedMemory);
+	}
+
+	m_fOwnsData = true;
 	m_pAllocatedMemory = NULL;
 }
 

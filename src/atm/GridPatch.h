@@ -103,7 +103,12 @@ public:
 	///	<summary>
 	///		Initialize patch as local (data on this processor).
 	///	</summary>
-	virtual void InitializeDataLocal();
+	virtual void InitializeDataLocal(
+		bool fAllocateGeometric = true,
+		bool fAllocateActiveState = true,
+		bool fAllocateBufferState = true,
+		bool fAllocateAuxiliary = true
+	);
 
 	///	<summary>
 	///		Delete data and reset patch to a stub.
@@ -380,6 +385,36 @@ public:
 		return m_connect;
 	}
 
+public:
+	///	<summary>
+	///		Get the DataContainer for storing geometric data.
+	///	</summary>
+	DataContainer & GetDataContainerGeometric() {
+		return m_dcGeometric;
+	}
+
+	///	<summary>
+	///		Get the DataContainer for storing active state data.
+	///	</summary>
+	DataContainer & GetDataContainerActiveState() {
+		return m_dcActiveState;
+	}
+
+	///	<summary>
+	///		Get the DataContainer for storing buffer state data.
+	///	</summary>
+	DataContainer & GetDataContainerBufferState() {
+		return m_dcBufferState;
+	}
+
+	///	<summary>
+	///		Get the DataContainer for storing auxiliary data.
+	///	</summary>
+	DataContainer & GetDataContainerAuxiliary() {
+		return m_dcAuxiliary;
+	}
+
+public:
 	///	<summary>
 	///		Returns true if this GridPatch contains data, ie. is not a stub.
 	///	</summary>
@@ -945,11 +980,6 @@ protected:
 	int m_ixPatch;
 
 	///	<summary>
-	///		DataContainer for storing GridPatch data.
-	///	</summary>
-	DataContainer m_dc;
-
-	///	<summary>
 	///		Processor which stores this patch.
 	///	</summary>
 	int m_iProcessor;
@@ -968,6 +998,26 @@ protected:
 	///		Connectivity of this patch to other patches on the grid.
 	///	</summary>
 	Connectivity m_connect;
+
+	///	<summary>
+	///		DataContainer for storing geometric data.
+	///	</summary>
+	DataContainer m_dcGeometric;
+
+	///	<summary>
+	///		DataContainer for storing active state data.
+	///	</summary>
+	DataContainer m_dcActiveState;
+
+	///	<summary>
+	///		DataContainer for storing buffer state data.
+	///	</summary>
+	DataContainer m_dcBufferState;
+
+	///	<summary>
+	///		DataContainer for storing auxiliary data.
+	///	</summary>
+	DataContainer m_dcAuxiliary;
 
 	///	<summary>
 	///		Flag indicating that this patch contains data.
@@ -1112,19 +1162,29 @@ protected:
 	DataArray3D<double> m_dataZInterfaces;
 
 	///	<summary>
+	///		Rayleigh friction strength on nodes.
+	///	</summary>
+	DataArray3D<double> m_dataRayleighStrengthNode;
+
+	///	<summary>
+	///		Rayleigh friction strength on interfaces.
+	///	</summary>
+	DataArray3D<double> m_dataRayleighStrengthREdge;
+
+	///	<summary>
 	///		Grid data for the reference state on model levels.
 	///	</summary>
 	DataArray4D<double> m_dataRefStateNode;
 
 	///	<summary>
-	///		Grid data for state variables on model levels.
-	///	</summary>
-	DataArray4DVector m_datavecStateNode;
-
-	///	<summary>
 	///		Grid data on model interfaces for the reference state.
 	///	</summary>
 	DataArray4D<double> m_dataRefStateREdge;
+
+	///	<summary>
+	///		Grid data for state variables on model levels.
+	///	</summary>
+	DataArray4DVector m_datavecStateNode;
 
 	///	<summary>
 	///		Grid data on model interfaces for state variables.
@@ -1160,16 +1220,6 @@ protected:
 	///		Computed temperature.
 	///	</summary>
 	DataArray3D<double> m_dataTemperature;
-
-	///	<summary>
-	///		Rayleigh friction strength on nodes.
-	///	</summary>
-	DataArray3D<double> m_dataRayleighStrengthNode;
-
-	///	<summary>
-	///		Rayleigh friction strength on interfaces.
-	///	</summary>
-	DataArray3D<double> m_dataRayleighStrengthREdge;
 };
 
 ///////////////////////////////////////////////////////////////////////////////

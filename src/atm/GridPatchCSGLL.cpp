@@ -151,21 +151,36 @@ GridPatchCSGLL::GridPatchCSGLL(
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void GridPatchCSGLL::InitializeDataLocal() {
+void GridPatchCSGLL::InitializeDataLocal(
+	bool fAllocateGeometric,
+	bool fAllocateActiveState,
+	bool fAllocateBufferState,
+	bool fAllocateAuxiliary
+) {
 
 	// Allocate data
-	GridPatch::InitializeDataLocal();
+	GridPatch::InitializeDataLocal(
+		fAllocateGeometric,
+		fAllocateActiveState,
+		fAllocateBufferState,
+		fAllocateAuxiliary
+	);
 
 	// Initialize the longitude and latitude at each node
-	for (int i = 0; i < m_box.GetATotalWidth(); i++) {
-	for (int j = 0; j < m_box.GetBTotalWidth(); j++) {
-		CubedSphereTrans::RLLFromABP(
-			m_box.GetANode(i),
-			m_box.GetBNode(j),
-			m_box.GetPanel(),
-			m_dataLon[i][j],
-			m_dataLat[i][j]);
-	}
+	if (fAllocateGeometric) {
+		for (int i = 0; i < m_box.GetATotalWidth(); i++) {
+		for (int j = 0; j < m_box.GetBTotalWidth(); j++) {
+			CubedSphereTrans::RLLFromABP(
+				m_box.GetANode(i),
+				m_box.GetBNode(j),
+				m_box.GetPanel(),
+				m_dataLon[i][j],
+				m_dataLat[i][j]);
+		}
+		}
+
+	} else {
+		_EXCEPTIONT("Not implemented");
 	}
 }
 

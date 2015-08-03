@@ -42,11 +42,16 @@ public:
 	///	<summary>
 	///		Add a new data object to the DataContainer of specified size.
 	///	</summary>
-	size_t PushDataChunk(DataChunk * pChunk) {
-		m_vecDataChunks.push_back(pChunk);
+	size_t PushDataChunk(DataChunk & aChunk) {
+		m_vecDataChunks.push_back(&aChunk);
 
 		return (m_vecDataChunks.size() - 1);
 	}
+
+	///	<summary>
+	///		Get the total size of the DataContainer (in bytes).
+	///	</summary>
+	size_t GetTotalByteSize();
 
 	///	<summary>
 	///		Allocate an array for all DataChunks.
@@ -58,7 +63,22 @@ public:
 	///	</summary>
 	void Deallocate();
 
+	///	<summary>
+	///		Attach to the specified pointer.
+	///	</summary>
+	void AttachTo(unsigned char * pAllocatedMemory);
+
+	///	<summary>
+	///		Detach from the specified pointer.
+	///	</summary>
+	void Detach();
+
 private:
+	///	<summary>
+	///		Flag indicating that this DataContainer owns is memory space.
+	///	</summary>
+	bool m_fOwnsData;
+
 	///	<summary>
 	///		Pointer to allocated memory chunk.
 	///	</summary>

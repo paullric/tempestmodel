@@ -69,10 +69,20 @@ GridPatchCartesianGLL::GridPatchCartesianGLL(
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void GridPatchCartesianGLL::InitializeDataLocal() {
+void GridPatchCartesianGLL::InitializeDataLocal(
+	bool fAllocateGeometric,
+	bool fAllocateActiveState,
+	bool fAllocateBufferState,
+	bool fAllocateAuxiliary
+) {
 
 	// Allocate data
-	GridPatch::InitializeDataLocal();
+	GridPatch::InitializeDataLocal(
+		fAllocateGeometric,
+		fAllocateActiveState,
+		fAllocateBufferState,
+		fAllocateAuxiliary
+	);
 
 	// Physical constants
 	const PhysicalConstants & phys = m_grid.GetModel().GetPhysicalConstants();

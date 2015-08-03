@@ -50,7 +50,12 @@ public:
 	///	<summary>
 	///		Initialize the patch data.
 	///	</summary>
-	virtual void InitializeDataLocal();
+	virtual void InitializeDataLocal(
+		bool fAllocateGeometric = true,
+		bool fAllocateActiveState = true,
+		bool fAllocateBufferState = true,
+		bool fAllocateAuxiliary = true
+	);
 
 private:
 	///	<summary>
