@@ -44,7 +44,7 @@ public:
 	///	<summary>
 	///		Attach this DataChunk to an array of pre-allocated data.
 	///	</summary>
-	virtual void AttachTo(void *) = 0;
+	virtual void AttachToData(void *) = 0;
 
 	///	<summary>
 	///		Detach data from this DataChunk.

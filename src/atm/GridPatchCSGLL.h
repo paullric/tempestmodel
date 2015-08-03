@@ -133,6 +133,12 @@ public:
 		bool fConvertToPrimitive = true
 	);
 
+private:
+	///	<summary>
+	///		Buffer space for computing contravariant velocities in
+	///		ComputeCurlAndDiv().
+	///	</summary>
+	DataArray3D<double> m_dBufferConU;
 };
 
 ///////////////////////////////////////////////////////////////////////////////

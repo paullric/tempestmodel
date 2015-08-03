@@ -1817,8 +1817,8 @@ void HorizontalDynamicsFEM::ApplyVectorHyperdiffusion(
 			dataInitial.GetDataLocation(),
 			false);
 
-		dataUa.AttachTo(dataInitial[UIx][0][0]);
-		dataUb.AttachTo(dataInitial[VIx][0][0]);
+		dataUa.AttachTo(dataInitial[UIx]);
+		dataUb.AttachTo(dataInitial[VIx]);
 
 		// Compute curl and divergence of U on the grid
 		pPatch->ComputeCurlAndDiv(dataUa, dataUb);

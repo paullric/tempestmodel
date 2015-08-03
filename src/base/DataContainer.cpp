@@ -67,7 +67,7 @@ void DataContainer::Allocate() {
 	sAccumulated = 0;
 
 	for (size_t i = 0; i < m_vecDataChunks.size(); i++) {
-		m_vecDataChunks[i]->AttachTo(
+		m_vecDataChunks[i]->AttachToData(
 			reinterpret_cast<void *>(m_pAllocatedMemory + sAccumulated));
 
 		sAccumulated += m_vecDataChunks[i]->GetByteSize();

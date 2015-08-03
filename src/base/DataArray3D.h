@@ -38,6 +38,7 @@ public:
 		DataLocation eDataLocation = DataLocation_Default
 	) :
 		m_fOwnsData(true),
+		m_fOwnsPointerTree(true),
 		m_eDataType(eDataType),
 		m_eDataLocation(eDataLocation),
 		m_data(NULL),
@@ -60,6 +61,7 @@ public:
 		bool fAllocate = true
 	) :
 		m_fOwnsData(true),
+		m_fOwnsPointerTree(true),
 		m_eDataType(eDataType),
 		m_eDataLocation(eDataLocation),
 		m_data(NULL),
@@ -79,6 +81,7 @@ public:
 	///	</summary>
 	DataArray3D(const DataArray3D<T> & da) :
 		m_fOwnsData(true),
+		m_fOwnsPointerTree(true),
 		m_eDataType(DataType_Default),
 		m_eDataLocation(DataLocation_Default),
 		m_data(NULL)
@@ -106,6 +109,9 @@ private:
 		if (m_data != NULL) {
 			_EXCEPTIONT("Attempting to rebuild existing pointer tree");
 		}
+		if (!m_fOwnsPointerTree) {
+			_EXCEPTIONT("Logic error");
+		}
 
 		m_data = new T**[m_sSize[0]];
 		for (size_t i = 0; i < m_sSize[0]; i++) {
@@ -121,6 +127,11 @@ private:
 	///		Delete the pointer tree.
 	///	</summary>
 	void DeletePointerTree() {
+		if (!m_fOwnsPointerTree) {
+			m_data = NULL;
+			m_fOwnsPointerTree = true;
+			return;
+		}
 		if (m_data == NULL) {
 			return;
 		}
@@ -137,6 +148,9 @@ private:
 	///		Attach pointer tree to 1D data.
 	///	</summary>
 	void AttachPointerTree() {
+		if (!m_fOwnsPointerTree) {
+			_EXCEPTIONT("Attempting to modify attached pointer tree");
+		}
 		for (size_t i = 0; i < m_sSize[0]; i++) {
 			for (size_t j = 0; j < m_sSize[1]; j++) {
 				m_data[i][j] = m_data1D
@@ -161,7 +175,7 @@ public:
 		size_t sSize1 = 0,
 		size_t sSize2 = 0
 	) {
-		if (!m_fOwnsData) {
+		if ((!m_fOwnsData) || (!m_fOwnsPointerTree)) {
 			_EXCEPTIONT("Attempting to Allocate() on attached DataArray3D");
 		}
 
@@ -236,9 +250,12 @@ public:
 	///	<summary>
 	///		Attach this DataChunk to an array of pre-allocated data.
 	///	</summary>
-	virtual void AttachTo(void * ptr) {
+	virtual void AttachToData(void * ptr) {
 		if (IsAttached()) {
-			_EXCEPTIONT("Attempting to attach already attached DataArray3D");
+			_EXCEPTIONT("Attempting AttachToData() on attached DataArray3D");
+		}
+		if (!m_fOwnsPointerTree) {
+			_EXCEPTIONT("Attempting AttachToData() on attached DataArray3D");
 		}
 
 		m_data1D = reinterpret_cast<T *>(ptr);
@@ -252,9 +269,30 @@ public:
 	}
 
 	///	<summary>
+	///		Attach this DataArray3D to an array of pre-allocated data.
+	///	</summary>
+	void AttachTo(T *** ptr) {
+		if (IsAttached()) {
+			_EXCEPTIONT("Attempting AttachTo() on attached DataArray3D");
+		}
+		if (!m_fOwnsPointerTree) {
+			_EXCEPTIONT("Attempting AttachTo() on attached DataArray3D");
+		}
+
+		m_data = ptr;
+		m_data1D = ptr[0][0];
+		m_fOwnsData = false;
+		m_fOwnsPointerTree = false;
+	}
+
+	///	<summary>
 	///		Detach data from this DataChunk.
 	///	</summary>
 	virtual void Detach() {
+		if (!m_fOwnsPointerTree) {
+			m_fOwnsPointerTree = true;
+			m_data = NULL;
+		}
 		if ((m_fOwnsData) && (m_data1D != NULL)) {
 			delete[] m_data1D;
 		}
@@ -267,7 +305,7 @@ public:
 	///	</summary>
 	void Deallocate() {
 		if (!m_fOwnsData) {
-			_EXCEPTIONT("Attempting to Deallocate an attached DataArray3D");
+			_EXCEPTIONT("Attempting Deallocate() on attached DataArray3D");
 		}
 
 		Detach();
@@ -497,6 +535,11 @@ private:
 	///		A flag indicating this array owns its data.
 	///	</summary>
 	bool m_fOwnsData;
+
+	///	<summary>
+	///		A flag indicating this array owns its pointer tree.
+	///	</summary>
+	bool m_fOwnsPointerTree;
 
 	///	<summary>
 	///		The size of each dimension of this DataArray3D.

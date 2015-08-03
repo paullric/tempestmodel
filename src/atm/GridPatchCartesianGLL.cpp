@@ -1172,8 +1172,8 @@ void GridPatchCartesianGLL::ComputeVorticityDivergence(
 		dataState.GetDataLocation(),
 		false);
 
-	dataUa.AttachTo(dataState[0][0][0]);
-	dataUb.AttachTo(dataState[1][0][0]);
+	dataUa.AttachTo(dataState[0]);
+	dataUb.AttachTo(dataState[1]);
 
 	// Compute the radial component of the curl of the velocity field
 	ComputeCurlAndDiv(dataUa, dataUb);

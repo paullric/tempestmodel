@@ -141,6 +141,12 @@ GridPatchCSGLL::GridPatchCSGLL(
 		m_ixNeighborPanel[(int)(Direction_BottomRight)],
 		ixDest, jxDest,
 		fSwitchAB, fSwitchPar, fSwitchPerp);
+
+	// Allocate buffer space for ComputeCurlAndDiv()
+	m_dBufferConU.Allocate(
+		2,
+		m_nHorizontalOrder,
+		m_nHorizontalOrder);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -988,11 +994,11 @@ void GridPatchCSGLL::ComputeCurlAndDiv(
 	// Number of finite elements in each direction
 	int nAFiniteElements = m_box.GetAInteriorWidth() / m_nHorizontalOrder;
 	int nBFiniteElements = m_box.GetBInteriorWidth() / m_nHorizontalOrder;
-
+/*
 	// Allocate temporary data for contravariant velocities
 	DataArray2D<double> dConUa(m_nHorizontalOrder, m_nHorizontalOrder);
 	DataArray2D<double> dConUb(m_nHorizontalOrder, m_nHorizontalOrder);
-
+*/
 	// Inverse grid spacings
 	const double dInvElementDeltaA = 1.0 / GetElementDeltaA();
 	const double dInvElementDeltaB = 1.0 / GetElementDeltaB();
@@ -1013,11 +1019,11 @@ void GridPatchCSGLL::ComputeCurlAndDiv(
 			int iA = iElementA + i;
 			int iB = iElementB + j;
 
-			dConUa[i][j] =
+			m_dBufferConU[0][i][j] =
 				+ m_dataContraMetric2DA[iA][iB][0] * dataUa[k][iA][iB]
 				+ m_dataContraMetric2DA[iA][iB][1] * dataUb[k][iA][iB];
 
-			dConUb[i][j] =
+			m_dBufferConU[1][i][j] =
 				+ m_dataContraMetric2DB[iA][iB][0] * dataUa[k][iA][iB]
 				+ m_dataContraMetric2DB[iA][iB][1] * dataUb[k][iA][iB];
 		}
@@ -1051,12 +1057,12 @@ void GridPatchCSGLL::ComputeCurlAndDiv(
 
 				dDaJUa +=
 					m_dataJacobian2D[iElementA+s][iB]
-					* dConUa[s][j]
+					* m_dBufferConU[0][s][j]
 					* dDxBasis1D[s][i];
 
 				dDbJUb +=
 					m_dataJacobian2D[iA][iElementB+s]
-					* dConUb[i][s]
+					* m_dBufferConU[1][i][s]
 					* dDxBasis1D[s][j];
 			}
 
@@ -1178,17 +1184,19 @@ void GridPatchCSGLL::ComputeVorticityDivergence(
 		dataState.GetSize(2),
 		dataState.GetSize(3),
 		dataState.GetDataType(),
-		dataState.GetDataLocation());
+		dataState.GetDataLocation(),
+		false);
 
 	DataArray3D<double> dataUb(
 		dataState.GetSize(1),
 		dataState.GetSize(2),
 		dataState.GetSize(3),
 		dataState.GetDataType(),
-		dataState.GetDataLocation());
+		dataState.GetDataLocation(),
+		false);
 
-	dataUa.AttachTo(dataState[0][0][0]);
-	dataUb.AttachTo(dataState[1][0][0]);
+	dataUa.AttachTo(dataState[0]);
+	dataUb.AttachTo(dataState[1]);
 
 	// Compute the radial component of the curl of the velocity field
 	ComputeCurlAndDiv(dataUa, dataUb);

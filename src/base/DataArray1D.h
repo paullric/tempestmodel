@@ -146,7 +146,7 @@ public:
 	///	<summary>
 	///		Attach this DataChunk to an array of pre-allocated data.
 	///	</summary>
-	virtual void AttachTo(void * ptr) {
+	virtual void AttachToData(void * ptr) {
 		if (IsAttached()) {
 			_EXCEPTIONT("Attempting to attach already attached DataArray1D");
 		}
