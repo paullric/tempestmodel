@@ -23,8 +23,8 @@ void PatchBox::InitializeCoordinates(
 	GridSpacing & gridspacingB
 ) {
 	// Coordinates in the alpha direction
-	m_dANodes.Initialize(GetATotalWidth());
-	m_dAEdges.Initialize(GetATotalWidth()+1);
+	m_dANodes.Allocate(GetATotalWidth());
+	m_dAEdges.Allocate(GetATotalWidth()+1);
 
 	for (int i = m_ixABegin; i < m_ixAEnd; i++) {
 		m_dANodes[i - m_ixABegin] = gridspacingA.GetNode(i);
@@ -34,8 +34,8 @@ void PatchBox::InitializeCoordinates(
 	}
 
 	// Coordinates in the beta direction
-	m_dBNodes.Initialize(GetBTotalWidth());
-	m_dBEdges.Initialize(GetBTotalWidth()+1);
+	m_dBNodes.Allocate(GetBTotalWidth());
+	m_dBEdges.Allocate(GetBTotalWidth()+1);
 
 	for (int j = m_ixBBegin; j < m_ixBEnd; j++) {
 		m_dBNodes[j - m_ixBBegin] = gridspacingB.GetNode(j);

@@ -17,7 +17,7 @@
 #ifndef _FLUXCORRECTIONFUNCTION_H_
 #define _FLUXCORRECTIONFUNCTION_H_
 
-#include "DataVector.h"
+#include "DataArray1D.h"
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -43,8 +43,8 @@ public:
 	static void GetDerivatives(
 		int iType,
 		int nOrder,
-		const DataVector<double> & dNodes,
-		DataVector<double> & dDeriv
+		const DataArray1D<double> & dNodes,
+		DataArray1D<double> & dDeriv
 	);
 };
 

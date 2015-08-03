@@ -17,14 +17,19 @@
 #ifndef _GRIDPATCH_H_
 #define _GRIDPATCH_H_
 
-#include "DataVector.h"
-#include "DataMatrix.h"
-#include "DataMatrix3D.h"
+#include "DataContainer.h"
+#include "DataArray1D.h"
+#include "DataArray2D.h"
+#include "DataArray3D.h"
+#include "DataArray4D.h"
+
 #include "GridData3D.h"
 #include "GridData4D.h"
+
 #include "PatchBox.h"
 #include "Connectivity.h"
 #include "ChecksumType.h"
+#include "DataContainer.h"
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -205,7 +210,7 @@ public:
 	///	</summary>
 	void Checksum(
 		DataType eDataType,
-		DataVector<double> & dChecksums,
+		DataArray1D<double> & dChecksums,
 		int iDataIndex,
 		ChecksumType eChecksumType
 	) const;
@@ -275,7 +280,7 @@ public:
 	///		Compute a linear combination of data and store at specified index.
 	///	</summary>
 	void LinearCombineData(
-		const DataVector<double> & dCoeff,
+		const DataArray1D<double> & dCoeff,
 		int ixDest,
 		DataType eDataType
 	);
@@ -317,13 +322,13 @@ public:
 	///		Linearly interpolate data horizontally to the specified points.
 	///	</summary>
 	virtual void InterpolateData(
-		const DataVector<double> & dAlpha,
-		const DataVector<double> & dBeta,
-		const DataVector<int> & iPanel,
+		const DataArray1D<double> & dAlpha,
+		const DataArray1D<double> & dBeta,
+		const DataArray1D<int> & iPanel,
 		DataType eDataType,
 		DataLocation eDataLocation,
 		bool fInterpAllVariables,
-		DataMatrix3D<double> & dInterpData,
+		DataArray3D<double> & dInterpData,
 		bool fIncludeReferenceState = true,
 		bool fConvertToPrimitive = false
 	);
@@ -388,7 +393,7 @@ public:
 	///	<summary>
 	///		Get the 2D Jacobian matrix.
 	///	</summary>
-	const DataMatrix<double> & GetJacobian2D() const {
+	const DataArray2D<double> & GetJacobian2D() const {
 		if (!m_fContainsData) {
 			_EXCEPTIONT("Stub patch does not store data.");
 		}
@@ -399,7 +404,7 @@ public:
 	///	<summary>
 	///		Get the components of the contravariant metric (alpha)
 	///	</summary>
-	const DataMatrix3D<double> & GetContraMetric2DA() const {
+	const DataArray3D<double> & GetContraMetric2DA() const {
 		if (!m_fContainsData) {
 			_EXCEPTIONT("Stub patch does not store data.");
 		}
@@ -410,7 +415,7 @@ public:
 	///	<summary>
 	///		Get the components of the contravariant metric (beta)
 	///	</summary>
-	const DataMatrix3D<double> & GetContraMetric2DB() const {
+	const DataArray3D<double> & GetContraMetric2DB() const {
 		if (!m_fContainsData) {
 			_EXCEPTIONT("Stub patch does not store data.");
 		}
@@ -421,7 +426,7 @@ public:
 	///	<summary>
 	///		Get the components of the covariant metric (alpha)
 	///	</summary>
-	const DataMatrix3D<double> & GetCovMetric2DA() const {
+	const DataArray3D<double> & GetCovMetric2DA() const {
 		if (!m_fContainsData) {
 			_EXCEPTIONT("Stub patch does not store data.");
 		}
@@ -432,7 +437,7 @@ public:
 	///	<summary>
 	///		Get the components of the covariant metric (beta)
 	///	</summary>
-	const DataMatrix3D<double> & GetCovMetric2DB() const {
+	const DataArray3D<double> & GetCovMetric2DB() const {
 		if (!m_fContainsData) {
 			_EXCEPTIONT("Stub patch does not store data.");
 		}
@@ -443,7 +448,7 @@ public:
 	///	<summary>
 	///		Get the nodal Jacobian matrix.
 	///	</summary>
-	const DataMatrix3D<double> & GetJacobian() const {
+	const DataArray3D<double> & GetJacobian() const {
 		if (!m_fContainsData) {
 			_EXCEPTIONT("Stub patch does not store data.");
 		}
@@ -454,7 +459,7 @@ public:
 	///	<summary>
 	///		Get the interface Jacobian matrix.
 	///	</summary>
-	const DataMatrix3D<double> & GetJacobianREdge() const {
+	const DataArray3D<double> & GetJacobianREdge() const {
 		if (!m_fContainsData) {
 			_EXCEPTIONT("Stub patch does not store data.");
 		}
@@ -465,7 +470,7 @@ public:
 	///	<summary>
 	///		Get the components of the contravariant metric (alpha)
 	///	</summary>
-	const DataMatrix4D<double> & GetContraMetricA() const {
+	const DataArray4D<double> & GetContraMetricA() const {
 		if (!m_fContainsData) {
 			_EXCEPTIONT("Stub patch does not store data.");
 		}
@@ -476,7 +481,7 @@ public:
 	///	<summary>
 	///		Get the components of the contravariant metric (beta)
 	///	</summary>
-	const DataMatrix4D<double> & GetContraMetricB() const {
+	const DataArray4D<double> & GetContraMetricB() const {
 		if (!m_fContainsData) {
 			_EXCEPTIONT("Stub patch does not store data.");
 		}
@@ -487,7 +492,7 @@ public:
 	///	<summary>
 	///		Get the components of the contravariant metric (xi)
 	///	</summary>
-	const DataMatrix4D<double> & GetContraMetricXi() const {
+	const DataArray4D<double> & GetContraMetricXi() const {
 		if (!m_fContainsData) {
 			_EXCEPTIONT("Stub patch does not store data.");
 		}
@@ -499,7 +504,7 @@ public:
 	///		Get the components of the contravariant metric (alpha)
 	///		on interfaces.
 	///	</summary>
-	const DataMatrix4D<double> & GetContraMetricAREdge() const {
+	const DataArray4D<double> & GetContraMetricAREdge() const {
 		if (!m_fContainsData) {
 			_EXCEPTIONT("Stub patch does not store data.");
 		}
@@ -511,7 +516,7 @@ public:
 	///		Get the components of the contravariant metric (beta)
 	///		on interfaces.
 	///	</summary>
-	const DataMatrix4D<double> & GetContraMetricBREdge() const {
+	const DataArray4D<double> & GetContraMetricBREdge() const {
 		if (!m_fContainsData) {
 			_EXCEPTIONT("Stub patch does not store data.");
 		}
@@ -523,7 +528,7 @@ public:
 	///		Get the components of the contravariant metric (xi)
 	///		on interfaces.
 	///	</summary>
-	const DataMatrix4D<double> & GetContraMetricXiREdge() const {
+	const DataArray4D<double> & GetContraMetricXiREdge() const {
 		if (!m_fContainsData) {
 			_EXCEPTIONT("Stub patch does not store data.");
 		}
@@ -534,7 +539,7 @@ public:
 	///	<summary>
 	///		Get the components of the covariant metric (alpha)
 	///	</summary>
-	const DataMatrix4D<double> & GetCovMetricA() const {
+	const DataArray4D<double> & GetCovMetricA() const {
 		if (!m_fContainsData) {
 			_EXCEPTIONT("Stub patch does not store data.");
 		}
@@ -545,7 +550,7 @@ public:
 	///	<summary>
 	///		Get the  components of the covariant metric (beta)
 	///	</summary>
-	const DataMatrix4D<double> & GetCovMetricB() const {
+	const DataArray4D<double> & GetCovMetricB() const {
 		if (!m_fContainsData) {
 			_EXCEPTIONT("Stub patch does not store data.");
 		}
@@ -556,7 +561,7 @@ public:
 	///	<summary>
 	///		Get the  components of the covariant metric (xi)
 	///	</summary>
-	const DataMatrix4D<double> & GetCovMetricXi() const {
+	const DataArray4D<double> & GetCovMetricXi() const {
 		if (!m_fContainsData) {
 			_EXCEPTIONT("Stub patch does not store data.");
 		}
@@ -568,7 +573,7 @@ public:
 	///		Get the vertical coordinate transform (derivatives of the
 	///		radius) at nodes.
 	///	</summary>
-	const DataMatrix4D<double> & GetDerivRNode() const {
+	const DataArray4D<double> & GetDerivRNode() const {
 		if (!m_fContainsData) {
 			_EXCEPTIONT("Stub patch does not store data.");
 		}
@@ -580,7 +585,7 @@ public:
 	///		Get the vertical coordinate transform (derivatives of the
 	///		radius) at edges.
 	///	</summary>
-	const DataMatrix4D<double> & GetDerivRREdge() const {
+	const DataArray4D<double> & GetDerivRREdge() const {
 		if (!m_fContainsData) {
 			_EXCEPTIONT("Stub patch does not store data.");
 		}
@@ -591,7 +596,7 @@ public:
 	///	<summary>
 	///		Get the nodal element area matrix.
 	///	</summary>
-	const DataMatrix3D<double> & GetElementArea() const {
+	const DataArray3D<double> & GetElementArea() const {
 		if (!m_fContainsData) {
 			_EXCEPTIONT("Stub patch does not store data.");
 		}
@@ -602,7 +607,7 @@ public:
 	///	<summary>
 	///		Get the interface element area matrix.
 	///	</summary>
-	const DataMatrix3D<double> & GetElementAreaREdge() const {
+	const DataArray3D<double> & GetElementAreaREdge() const {
 		if (!m_fContainsData) {
 			_EXCEPTIONT("Stub patch does not store data.");
 		}
@@ -613,7 +618,7 @@ public:
 	///	<summary>
 	///		Get the nodal topography.
 	///	</summary>
-	DataMatrix<double> & GetTopography() {
+	DataArray2D<double> & GetTopography() {
 		if (!m_fContainsData) {
 			_EXCEPTIONT("Stub patch does not store data.");
 		}
@@ -624,7 +629,7 @@ public:
 	///	<summary>
 	///		Get the nodal topography.
 	///	</summary>
-	const DataMatrix<double> & GetTopography() const {
+	const DataArray2D<double> & GetTopography() const {
 		if (!m_fContainsData) {
 			_EXCEPTIONT("Stub patch does not store data.");
 		}
@@ -657,7 +662,7 @@ public:
 	///	<summary>
 	///		Get the nodal longitude matrix.
 	///	</summary>
-	const DataMatrix<double> & GetLongitude() const {
+	const DataArray2D<double> & GetLongitude() const {
 		if (!m_fContainsData) {
 			_EXCEPTIONT("Stub patch does not store data.");
 		}
@@ -668,7 +673,7 @@ public:
 	///	<summary>
 	///		Get the nodal latitude matrix.
 	///	</summary>
-	const DataMatrix<double> & GetLatitude() const {
+	const DataArray2D<double> & GetLatitude() const {
 		if (!m_fContainsData) {
 			_EXCEPTIONT("Stub patch does not store data.");
 		}
@@ -679,7 +684,7 @@ public:
 	///	<summary>
 	///		Get the nodal Coriolis parameter.
 	///	</summary>
-	const DataMatrix<double> & GetCoriolisF() const {
+	const DataArray2D<double> & GetCoriolisF() const {
 		if (!m_fContainsData) {
 			_EXCEPTIONT("Stub patch does not store data.");
 		}
@@ -690,7 +695,7 @@ public:
 	///	<summary>
 	///		Get the radial coordinate matrix on model levels.
 	///	</summary>
-	const DataMatrix3D<double> & GetZLevels() const {
+	const DataArray3D<double> & GetZLevels() const {
 		if (!m_fContainsData) {
 			_EXCEPTIONT("Stub patch does not store data.");
 		}
@@ -701,7 +706,7 @@ public:
 	///	<summary>
 	///		Get the radial coordinate matrix on model interfaces.
 	///	</summary>
-	const DataMatrix3D<double> & GetZInterfaces() const {
+	const DataArray3D<double> & GetZInterfaces() const {
 		if (!m_fContainsData) {
 			_EXCEPTIONT("Stub patch does not store data.");
 		}
@@ -937,6 +942,11 @@ protected:
 	int m_ixPatch;
 
 	///	<summary>
+	///		DataContainer for storing GridPatch data.
+	///	</summary>
+	DataContainer m_dc;
+
+	///	<summary>
 	///		Processor which stores this patch.
 	///	</summary>
 	int m_iProcessor;
@@ -964,109 +974,109 @@ protected:
 	///	<summary>
 	///		2D Jacobian at each node.
 	///	</summary>
-	DataMatrix<double> m_dataJacobian2D;
+	DataArray2D<double> m_dataJacobian2D;
 
 	///	<summary>
 	///		2D Contravariant metric (alpha) components.
 	///	</summary>
-	DataMatrix3D<double> m_dataContraMetric2DA;
+	DataArray3D<double> m_dataContraMetric2DA;
 
 	///	<summary>
 	///		2D Contravariant metric (beta) components.
 	///	</summary>
-	DataMatrix3D<double> m_dataContraMetric2DB;
+	DataArray3D<double> m_dataContraMetric2DB;
 
 	///	<summary>
 	///		2D Covariant metric (alpha) components.
 	///	</summary>
-	DataMatrix3D<double> m_dataCovMetric2DA;
+	DataArray3D<double> m_dataCovMetric2DA;
 
 	///	<summary>
 	///		2D Covariant metric (beta) components.
 	///	</summary>
-	DataMatrix3D<double> m_dataCovMetric2DB;
+	DataArray3D<double> m_dataCovMetric2DB;
 
 	///	<summary>
 	///		Jacobian at each node.
 	///	</summary>
-	DataMatrix3D<double> m_dataJacobian;
+	DataArray3D<double> m_dataJacobian;
 
 	///	<summary>
 	///		Jacobian at each edge.
 	///	</summary>
-	DataMatrix3D<double> m_dataJacobianREdge;
+	DataArray3D<double> m_dataJacobianREdge;
 
 	///	<summary>
 	///		Contravariant metric (alpha) components.
 	///	</summary>
-	DataMatrix4D<double> m_dataContraMetricA;
+	DataArray4D<double> m_dataContraMetricA;
 
 	///	<summary>
 	///		Contravariant metric (beta) components.
 	///	</summary>
-	DataMatrix4D<double> m_dataContraMetricB;
+	DataArray4D<double> m_dataContraMetricB;
 
 	///	<summary>
 	///		Contravariant metric (xi) components.
 	///	</summary>
-	DataMatrix4D<double> m_dataContraMetricXi;
+	DataArray4D<double> m_dataContraMetricXi;
 
 	///	<summary>
 	///		Covariant metric (alpha) components.
 	///	</summary>
-	DataMatrix4D<double> m_dataCovMetricA;
+	DataArray4D<double> m_dataCovMetricA;
 
 	///	<summary>
 	///		Covariant metric (beta) components.
 	///	</summary>
-	DataMatrix4D<double> m_dataCovMetricB;
+	DataArray4D<double> m_dataCovMetricB;
 
 	///	<summary>
 	///		Covariant metric (xi) components.
 	///	</summary>
-	DataMatrix4D<double> m_dataCovMetricXi;
+	DataArray4D<double> m_dataCovMetricXi;
 
 	///	<summary>
 	///		Contravariant metric (alpha) components on interfaces.
 	///	</summary>
-	DataMatrix4D<double> m_dataContraMetricAREdge;
+	DataArray4D<double> m_dataContraMetricAREdge;
 
 	///	<summary>
 	///		Contravariant metric (beta) components on interfaces.
 	///	</summary>
-	DataMatrix4D<double> m_dataContraMetricBREdge;
+	DataArray4D<double> m_dataContraMetricBREdge;
 
 	///	<summary>
 	///		Contravariant metric (xi) components on interfaces.
 	///	</summary>
-	DataMatrix4D<double> m_dataContraMetricXiREdge;
+	DataArray4D<double> m_dataContraMetricXiREdge;
 
  	///	<summary>
 	///		Vertical coordinate transform (derivatives of the radius)
 	///		at each node.
 	///	</summary>
-	DataMatrix4D<double> m_dataDerivRNode;
+	DataArray4D<double> m_dataDerivRNode;
 
  	///	<summary>
 	///		Vertical coordinate transform (derivatives of the radius)
 	///		at each interface.
 	///	</summary>
-	DataMatrix4D<double> m_dataDerivRREdge;
+	DataArray4D<double> m_dataDerivRREdge;
 
 	///	<summary>
 	///		Element area at each node.
 	///	</summary>
-	DataMatrix3D<double> m_dataElementArea;
+	DataArray3D<double> m_dataElementArea;
 
 	///	<summary>
 	///		Element area at each interface.
 	///	</summary>
-	DataMatrix3D<double> m_dataElementAreaREdge;
+	DataArray3D<double> m_dataElementAreaREdge;
 
 	///	<summary>
 	///		Topography height at each node.
 	///	</summary>
-	DataMatrix<double> m_dataTopography;
+	DataArray2D<double> m_dataTopography;
 
 	///	<summary>
 	///		Derivatives of topography at each node.
@@ -1076,27 +1086,27 @@ protected:
 	///	<summary>
 	///		Longitude at each node.
 	///	</summary>
-	DataMatrix<double> m_dataLon;
+	DataArray2D<double> m_dataLon;
 
 	///	<summary>
 	///		Latitude at each node.
 	///	</summary>
-	DataMatrix<double> m_dataLat;
+	DataArray2D<double> m_dataLat;
 
 	///	<summary>
 	///		Coriolis parameter at each node.
 	///	</summary>
-	DataMatrix<double> m_dataCoriolisF;
+	DataArray2D<double> m_dataCoriolisF;
 
 	///	<summary>
 	///		Altitude at each level.
 	///	</summary>
-	DataMatrix3D<double> m_dataZLevels;
+	DataArray3D<double> m_dataZLevels;
 
 	///	<summary>
 	///		Altitude at each interface.
 	///	</summary>
-	DataMatrix3D<double> m_dataZInterfaces;
+	DataArray3D<double> m_dataZInterfaces;
 
 	///	<summary>
 	///		Grid data for the reference state on model levels.

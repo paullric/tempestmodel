@@ -22,8 +22,8 @@
 #include "Defines.h"
 #include "VerticalDynamics.h"
 #include "JacobianFreeNewtonKrylov.h"
-#include "DataVector.h"
-#include "DataMatrix.h"
+#include "DataArray1D.h"
+#include "DataArray2D.h"
 #include "GridData3D.h"
 #include "GridData4D.h"
 
@@ -269,7 +269,7 @@ protected:
 	///	<summary>
 	///		Variables to upwind.
 	///	</summary>
-	DataVector<bool> m_fUpwind;
+	DataArray1D<bool> m_fUpwind;
 
 	///	<summary>
 	///		Order of hyperdiffusion to apply (must be even).
@@ -310,253 +310,253 @@ protected:
 	///	<summary>
 	///		State variable column.
 	///	</summary>
-	DataVector<double> m_dColumnState;
+	DataArray1D<double> m_dColumnState;
 
 	///	<summary>
 	///		Reference state column on nodes.
 	///	</summary>
-	DataMatrix<double> m_dStateRefNode;
+	DataArray2D<double> m_dStateRefNode;
 
 	///	<summary>
 	///		Reference state column on interfaces.
 	///	</summary>
-	DataMatrix<double> m_dStateRefREdge;
+	DataArray2D<double> m_dStateRefREdge;
 
 	///	<summary>
 	///		State vector on model levels, used by StepImplicit.
 	///	</summary>
-	DataMatrix<double> m_dStateNode;
+	DataArray2D<double> m_dStateNode;
 
 	///	<summary>
 	///		State vector on model interfaces, used by StepImplicit.
 	///	</summary>
-	DataMatrix<double> m_dStateREdge;
+	DataArray2D<double> m_dStateREdge;
 
 	///	<summary>
 	///		Auxiliary state data.
 	///	</summary>
-	DataVector<double> m_dStateAux;
+	DataArray1D<double> m_dStateAux;
 
 	///	<summary>
 	///		Derivative of auxiliary state data.
 	///	</summary>
-	DataVector<double> m_dStateAuxDiff;
+	DataArray1D<double> m_dStateAuxDiff;
 
 	///	<summary>
 	///		Velocity across xi surfaces (xi_dot) at nodes.
 	///	</summary>
-	DataVector<double> m_dXiDotNode;
+	DataArray1D<double> m_dXiDotNode;
 
 	///	<summary>
 	///		Velocity across xi surfaces (xi_dot) at interfaces.
 	///	</summary>
-	DataVector<double> m_dXiDotREdge;
+	DataArray1D<double> m_dXiDotREdge;
 
 	///	<summary>
 	///		Auxiliary storage for derivative of alpha velocity.
 	///	</summary>
-	DataVector<double> m_dDiffUa;
+	DataArray1D<double> m_dDiffUa;
 
 	///	<summary>
 	///		Auxiliary storage for derivative of beta velocity.
 	///	</summary>
-	DataVector<double> m_dDiffUb;
+	DataArray1D<double> m_dDiffUb;
 
 	///	<summary>
 	///		Auxiliary storage for derivative of pressure on nodes.
 	///	</summary>
-	DataVector<double> m_dDiffPNode;
+	DataArray1D<double> m_dDiffPNode;
 
 	///	<summary>
 	///		Auxiliary storage for derivative of pressure on interfaces.
 	///	</summary>
-	DataVector<double> m_dDiffPREdge;
+	DataArray1D<double> m_dDiffPREdge;
 
 	///	<summary>
 	///		Auxiliary storage for higher derivatives of the state
 	///	</summary>
-	DataMatrix<double> m_dDiffDiffState;
+	DataArray2D<double> m_dDiffDiffState;
 
 	///	<summary>
 	///		Auxiliary storage for derivative of theta on nodes.
 	///	</summary>
-	DataVector<double> m_dDiffThetaNode;
+	DataArray1D<double> m_dDiffThetaNode;
 
 	///	<summary>
 	///		Auxiliary storage for derivative of theta on interfaces.
 	///	</summary>
-	DataVector<double> m_dDiffThetaREdge;
+	DataArray1D<double> m_dDiffThetaREdge;
 
 	///	<summary>
 	///		Horizontal Kinetic energy on model levels.
 	///	</summary>
-	DataVector<double> m_dHorizKineticEnergyNode;
+	DataArray1D<double> m_dHorizKineticEnergyNode;
 
 	///	<summary>
 	///		Kinetic energy on model levels.
 	///	</summary>
-	DataVector<double> m_dKineticEnergyNode;
+	DataArray1D<double> m_dKineticEnergyNode;
 
 	///	<summary>
 	///		Derivatives of kinetic energy on model levels.
 	///	</summary>
-	DataVector<double> m_dDiffKineticEnergyNode;
+	DataArray1D<double> m_dDiffKineticEnergyNode;
 
 	///	<summary>
 	///		Derivatives of kinetic energy on model levels.
 	///	</summary>
-	DataVector<double> m_dDiffKineticEnergyREdge;
+	DataArray1D<double> m_dDiffKineticEnergyREdge;
 
 	///	<summary>
 	///		Mass flux on model levels.
 	///	</summary>
-	DataVector<double> m_dMassFluxNode;
+	DataArray1D<double> m_dMassFluxNode;
 
 	///	<summary>
 	///		Mass flux on model interfaces.
 	///	</summary>
-	DataVector<double> m_dMassFluxREdge;
+	DataArray1D<double> m_dMassFluxREdge;
 
 	///	<summary>
 	///		Derivatives of mass flux on model levels.
 	///	</summary>
-	DataVector<double> m_dDiffMassFluxNode;
+	DataArray1D<double> m_dDiffMassFluxNode;
 
 	///	<summary>
 	///		Derivatives of mass flux on model interfaces.
 	///	</summary>
-	DataVector<double> m_dDiffMassFluxREdge;
+	DataArray1D<double> m_dDiffMassFluxREdge;
 
 	///	<summary>
 	///		Pressure flux on model levels.
 	///	</summary>
-	DataVector<double> m_dPressureFluxNode;
+	DataArray1D<double> m_dPressureFluxNode;
 
 	///	<summary>
 	///		Pressure flux on model interfaces.
 	///	</summary>
-	DataVector<double> m_dPressureFluxREdge;
+	DataArray1D<double> m_dPressureFluxREdge;
 
 	///	<summary>
 	///		Derivatives of pressure flux on model levels.
 	///	</summary>
-	DataVector<double> m_dDiffPressureFluxNode;
+	DataArray1D<double> m_dDiffPressureFluxNode;
 
 	///	<summary>
 	///		Derivatives of pressure flux on model interfaces.
 	///	</summary>
-	DataVector<double> m_dDiffPressureFluxREdge;
+	DataArray1D<double> m_dDiffPressureFluxREdge;
 
 	///	<summary>
 	///		Exner pressure perturbation at model levels.
 	///	</summary>
-	DataVector<double> m_dExnerNode;
+	DataArray1D<double> m_dExnerNode;
 
 	///	<summary>
 	///		Reference Exner pressure at model levels.
 	///	</summary>
-	DataVector<double> m_dExnerRefNode;
+	DataArray1D<double> m_dExnerRefNode;
 
 	///	<summary>
 	///		Exner pressure perturbation at model interfaces.
 	///	</summary>
-	DataVector<double> m_dExnerREdge;
+	DataArray1D<double> m_dExnerREdge;
 
 	///	<summary>
 	///		Reference Exner pressure at model interfaces.
 	///	</summary>
-	DataVector<double> m_dExnerRefREdge;
+	DataArray1D<double> m_dExnerRefREdge;
 
 	///	<summary>
 	///		Derivative of Exner pressure perturbation at model levels.
 	///	</summary>
-	DataVector<double> m_dDiffExnerPertNode;
+	DataArray1D<double> m_dDiffExnerPertNode;
 
 	///	<summary>
 	///		Derivative of reference Exner pressure at model levels.
 	///	</summary>
-	DataVector<double> m_dDiffExnerRefNode;
+	DataArray1D<double> m_dDiffExnerRefNode;
 
 	///	<summary>
 	///		Derivative of Exner pressure perturbation at model interfaces.
 	///	</summary>
-	DataVector<double> m_dDiffExnerPertREdge;
+	DataArray1D<double> m_dDiffExnerPertREdge;
 
 	///	<summary>
 	///		Derivative of reference Exner pressure at model interfaces.
 	///	</summary>
-	DataVector<double> m_dDiffExnerRefREdge;
+	DataArray1D<double> m_dDiffExnerRefREdge;
 
 	///	<summary>
 	///		Tracer density on model levels.
 	///	</summary>
-	DataVector<double> m_dTracerDensityNode;
+	DataArray1D<double> m_dTracerDensityNode;
 
 	///	<summary>
 	///		Tracer density on model interfaces.
 	///	</summary>
-	DataVector<double> m_dTracerDensityREdge;
+	DataArray1D<double> m_dTracerDensityREdge;
 
 	///	<summary>
 	///		Initial density on model levels.
 	///	</summary>
-	DataVector<double> m_dInitialDensityNode;
+	DataArray1D<double> m_dInitialDensityNode;
 
 	///	<summary>
 	///		Initial density on model interfaces.
 	///	</summary>
-	DataVector<double> m_dInitialDensityREdge;
+	DataArray1D<double> m_dInitialDensityREdge;
 
 	///	<summary>
 	///		Updated density on model levels.
 	///	</summary>
-	DataVector<double> m_dUpdateDensityNode;
+	DataArray1D<double> m_dUpdateDensityNode;
 
 	///	<summary>
 	///		Updated density on model interfaces.
 	///	</summary>
-	DataVector<double> m_dUpdateDensityREdge;
+	DataArray1D<double> m_dUpdateDensityREdge;
 
 	///	<summary>
 	///		Solution vector from the implicit solve.
 	///	</summary>
-	DataVector<double> m_dSoln;
+	DataArray1D<double> m_dSoln;
 
 	///	<summary>
 	///		Second differentiation coefficients from nodes to nodes.
 	///	</summary>
-	DataMatrix<double> m_dDiffDiffNodeToNode;
+	DataArray2D<double> m_dDiffDiffNodeToNode;
 
 	///	<summary>
 	///		Hyperviscosity coefficients from nodes to nodes.
 	///	</summary>
-	DataMatrix<double> m_dHypervisNodeToNode;
+	DataArray2D<double> m_dHypervisNodeToNode;
 
 	///	<summary>
 	///		Second differentiation coefficients from edges to edges.
 	///	</summary>
-	DataMatrix<double> m_dDiffDiffREdgeToREdge;
+	DataArray2D<double> m_dDiffDiffREdgeToREdge;
 
 	///	<summary>
 	///		Hyperviscosity coefficients from edges to edges.
 	///	</summary>
-	DataMatrix<double> m_dHypervisREdgeToREdge;
+	DataArray2D<double> m_dHypervisREdgeToREdge;
 
 private:
 	///	<summary>
 	///		Flux vector for tracer advection.
 	///	</summary>
-	DataVector<double> m_vecTracersF;
+	DataArray1D<double> m_vecTracersF;
 
 	///	<summary>
 	///		LU decomposition of Jacobian matrix used for tracer advection.
 	///	</summary>
-	DataMatrix<double> m_matTracersLUDF;
+	DataArray2D<double> m_matTracersLUDF;
 
 	///	<summary>
 	///		Pivot matrix used for updating tracers.
 	///	</summary>
-	DataVector<int> m_vecTracersIPiv;
+	DataArray1D<int> m_vecTracersIPiv;
 
 #ifdef USE_JFNK_PETSC
 private:
@@ -586,12 +586,12 @@ private:
 	///	<summary>
 	///		Jacobian matrix used in direct solve.
 	///	</summary>
-	DataMatrix<double> m_matJacobianF;
+	DataArray2D<double> m_matJacobianF;
 
 	///	<summary>
 	///		Pivot matrix used in direct solve.
 	///	</summary>
-	DataVector<int> m_vecIPiv;
+	DataArray1D<int> m_vecIPiv;
 #endif
 #ifdef USE_JACOBIAN_DIAGONAL
 private:

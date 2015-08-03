@@ -76,11 +76,11 @@ public:
 	///		reference grid (RLL on the sphere)
 	///	</summary>
 	virtual void ConvertReferenceToPatchCoord(
-		const DataVector<double> & dXReference,
-		const DataVector<double> & dYReference,
-		DataVector<double> & dAlpha,
-		DataVector<double> & dBeta,
-		DataVector<int> & iPanel
+		const DataArray1D<double> & dXReference,
+		const DataArray1D<double> & dYReference,
+		DataArray1D<double> & dAlpha,
+		DataArray1D<double> & dBeta,
+		DataArray1D<int> & iPanel
 	) const;
 
 	///	<summary>
@@ -88,10 +88,10 @@ public:
 	///	</summary>
 	virtual void GetPatchFromCoordinateIndex(
 		int iRefinementLevel,
-		const DataVector<int> & vecIxA,
-		const DataVector<int> & vecIxB,
-		const DataVector<int> & vecPanel,
-		DataVector<int> & vecPatchIndex,
+		const DataArray1D<int> & vecIxA,
+		const DataArray1D<int> & vecIxB,
+		const DataArray1D<int> & vecPanel,
+		DataArray1D<int> & vecPatchIndex,
 		int nVectorLength = (-1)
 	);
 

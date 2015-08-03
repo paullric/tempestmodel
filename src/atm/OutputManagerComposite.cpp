@@ -80,7 +80,7 @@ bool OutputManagerComposite::OpenFile(
 	if (nRank == 0) {
 
 		// Allocate receive buffer
-		m_vecRecvBuffer.Initialize(m_grid.GetMaxDegreesOfFreedom());
+		m_vecRecvBuffer.Allocate(m_grid.GetMaxDegreesOfFreedom());
 
 		// Check for existing NetCDF file
 		if (m_pActiveNcOutput != NULL) {
@@ -203,7 +203,7 @@ void OutputManagerComposite::CloseFile() {
 		m_vecRefStateVarREdge.clear();
 		m_vecTracersVar.clear();
 
-		m_vecRecvBuffer.Deinitialize();
+		m_vecRecvBuffer.Deallocate();
 	}
 }
 
@@ -500,7 +500,7 @@ Time OutputManagerComposite::Input(
 		int nPatchNodeCount = pPatch->GetTotalNodeCount2D();
 
 		// Input topography here
-		DataMatrix<double> & dataTopography =
+		DataArray2D<double> & dataTopography =
 			pPatch->GetTopography();
 
 		NcVar * varTopography = pNcFile->get_var("ZS");

@@ -49,13 +49,13 @@ void GridData4D::Initialize(
 	m_nHaloElements = nHaloElements;
 
 	if (m_eDataLocation == DataLocation_Node) {
-		m_data.Initialize(nComponents, nRElements, nAElements, nBElements);
+		m_data.Allocate(nComponents, nRElements, nAElements, nBElements);
 	} else if (m_eDataLocation == DataLocation_AEdge) {
-		m_data.Initialize(nComponents, nRElements, nAElements+1, nBElements);
+		m_data.Allocate(nComponents, nRElements, nAElements+1, nBElements);
 	} else if (m_eDataLocation == DataLocation_BEdge) {
-		m_data.Initialize(nComponents, nRElements, nAElements, nBElements+1);
+		m_data.Allocate(nComponents, nRElements, nAElements, nBElements+1);
 	} else if (m_eDataLocation == DataLocation_REdge) {
-		m_data.Initialize(nComponents, nRElements+1, nAElements, nBElements);
+		m_data.Allocate(nComponents, nRElements+1, nAElements, nBElements);
 	} else {
 		_EXCEPTIONT("Invalid DataLocation");
 	}

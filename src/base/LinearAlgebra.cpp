@@ -23,9 +23,9 @@
 //////////////////////////////////////////////////////////////////////////////
 
 void LAPACK::DGEMM(
-	DataMatrix<double> & dC,
-	DataMatrix<double> & dA,
-	DataMatrix<double> & dB,
+	DataArray2D<double> & dC,
+	DataArray2D<double> & dA,
+	DataArray2D<double> & dB,
 	double dAlpha,
 	double dBeta
 ) {
@@ -71,9 +71,9 @@ void LAPACK::DGEMM(
 //////////////////////////////////////////////////////////////////////////////
 
 int LAPACK::DGESV(
-	DataMatrix<double> & dA,
-	DataVector<double> & dBX,
-	DataVector<int> & iPIV
+	DataArray2D<double> & dA,
+	DataArray1D<double> & dBX,
+	DataArray1D<int> & iPIV
 ) {
 	// Check dimensions
 	if ((dA.GetRows() != dA.GetColumns()) ||
@@ -111,9 +111,9 @@ int LAPACK::DGESV(
 //////////////////////////////////////////////////////////////////////////////
 
 int LAPACK::DGESV(
-	DataMatrix<double> & dA,
-	DataMatrix<double> & dBX,
-	DataVector<int> & iPIV
+	DataArray2D<double> & dA,
+	DataArray2D<double> & dBX,
+	DataArray1D<int> & iPIV
 ) {
 	// Check dimensions
 	if ((dA.GetRows() != dA.GetColumns()) ||
@@ -153,9 +153,9 @@ int LAPACK::DGESV(
 ///////////////////////////////////////////////////////////////////////////////
 
 int LAPACK::DGBSV(
-	DataMatrix<double> & dA,
-	DataVector<double> & dBX,
-	DataVector<int> & iPIV,
+	DataArray2D<double> & dA,
+	DataArray1D<double> & dBX,
+	DataArray1D<int> & iPIV,
 	int nKL,
 	int nKU
 ) {
@@ -203,8 +203,8 @@ int LAPACK::DTPSV(
 	char chTrans,
 	char chDiagonal,
 	int nN,
-	DataVector<double> & dA,
-	DataVector<double> & dX
+	DataArray1D<double> & dA,
+	DataArray1D<double> & dX
 ) {
 	int iIncX = 1;
 
@@ -224,8 +224,8 @@ int LAPACK::DTPSV(
 ///////////////////////////////////////////////////////////////////////////////
 
 int LAPACK::DGETRF(
-	DataMatrix<double> & dA,
-	DataVector<int> & iPIV
+	DataArray2D<double> & dA,
+	DataArray1D<int> & iPIV
 ) {
 	int m = dA.GetRows();
 	int n = dA.GetColumns();
@@ -250,8 +250,8 @@ int LAPACK::DGETRF(
 ///////////////////////////////////////////////////////////////////////////////
 
 int LAPACK::DGBTRF(
-	DataMatrix<double> & dA,
-	DataVector<int> & iPIV,
+	DataArray2D<double> & dA,
+	DataArray1D<int> & iPIV,
 	int iKL,
 	int iKU
 ) {
@@ -279,9 +279,9 @@ int LAPACK::DGBTRF(
 
 int LAPACK::DGETRS(
 	char chTrans,
-	DataMatrix<double> & dA,
-	DataVector<double> & dB,
-	DataVector<int> & iPIV
+	DataArray2D<double> & dA,
+	DataArray1D<double> & dB,
+	DataArray1D<int> & iPIV
 ) {
 	int m = dA.GetRows();
 	int n = dA.GetColumns();
@@ -309,9 +309,9 @@ int LAPACK::DGETRS(
 
 int LAPACK::DGBTRS(
 	char chTrans,
-	DataMatrix<double> & dA,
-	DataVector<double> & dB,
-	DataVector<int> & iPIV,
+	DataArray2D<double> & dA,
+	DataArray1D<double> & dB,
+	DataArray1D<int> & iPIV,
 	int iKL,
 	int iKU
 ) {
@@ -340,9 +340,9 @@ int LAPACK::DGBTRS(
 ///////////////////////////////////////////////////////////////////////////////
 
 int LAPACK::DGETRI(
-	DataMatrix<double> & dA,
-	DataVector<int> & iPIV,
-	DataVector<double> & dWork
+	DataArray2D<double> & dA,
+	DataArray1D<int> & iPIV,
+	DataArray1D<double> & dWork
 ) {
 	if (dA.GetRows() != dA.GetColumns()) {
 		_EXCEPTIONT("Matrix A must be square.");
@@ -378,7 +378,7 @@ int LAPACK::DGETRI(
 int LAPACK::DTRTRI(
 	char chUpperLower,
 	char chDiagonal,
-	DataMatrix<double> & dA
+	DataArray2D<double> & dA
 ) {
 	if (dA.GetRows() != dA.GetColumns()) {
 		_EXCEPTIONT("Matrix A must be square.");
@@ -404,9 +404,9 @@ int LAPACK::DTRTRI(
 ///////////////////////////////////////////////////////////////////////////////
 
 int LAPACK::DGEQRF(
-	DataMatrix<double> & dA,
-	DataVector<double> & dTau,
-	DataVector<double> & dWork
+	DataArray2D<double> & dA,
+	DataArray1D<double> & dTau,
+	DataArray1D<double> & dWork
 ) {
 	int nRows = dA.GetColumns();
 	int nCols = dA.GetRows();
@@ -433,9 +433,9 @@ int LAPACK::DGEQRF(
 ///////////////////////////////////////////////////////////////////////////////
 
 int LAPACK::DORGQR(
-	DataMatrix<double> & dA,
-	DataVector<double> & dTau,
-	DataVector<double> & dWork
+	DataArray2D<double> & dA,
+	DataArray1D<double> & dTau,
+	DataArray1D<double> & dWork
 ) {
 	int nRows = dA.GetColumns();
 	int nCols = dA.GetRows();
@@ -467,13 +467,9 @@ int LAPACK::DORGQR(
 ///////////////////////////////////////////////////////////////////////////////
 
 void LAPACK::GeneralizedInverse(
-	DataMatrix<double> & dA,
-	DataMatrix<double> & dOut
+	DataArray2D<double> & dA,
+	DataArray2D<double> & dOut
 ) {
-	unsigned int i;
-	unsigned int j;
-	unsigned int k;
-
 	int nInfo;
 
 	// Check that A is row-dominant
@@ -484,18 +480,13 @@ void LAPACK::GeneralizedInverse(
 	}
 
 	// Initialize matrices
-	DataVector<double> dTau;
-	dTau.Initialize(dA.GetRows());
+	DataArray1D<double> dTau(dA.GetRows());
 
-	DataVector<double> dWork;
-	dWork.Initialize(2 * dA.GetColumns());
+	DataArray1D<double> dWork(2 * dA.GetColumns());
 
-	DataVector<int> iPIV;
-	iPIV.Initialize(dA.GetRows());
+	DataArray1D<int> iPIV(dA.GetRows());
 
-	DataMatrix<double> dR;
-	dR.Initialize(dA.GetRows(), dA.GetRows());
-	dR.Zero();
+	DataArray2D<double> dR(dA.GetRows(), dA.GetRows());
 
 	// QR decomposition
 	nInfo = DGEQRF(dA, dTau, dWork);
@@ -504,8 +495,8 @@ void LAPACK::GeneralizedInverse(
 	}
 
 	// Copy matrix R
-	for (i = 0; i < dA.GetRows(); i++) {
-	for (j = i; j < dA.GetRows(); j++) {
+	for (size_t i = 0; i < dA.GetRows(); i++) {
+	for (size_t j = i; j < dA.GetRows(); j++) {
 		dR[j][i] = dA[j][i];
 	}
 	}
@@ -526,13 +517,12 @@ void LAPACK::GeneralizedInverse(
 	}
 
 	// Initialize the output matrix
-	dOut.Initialize(dA.GetColumns(), dA.GetRows());
-	dOut.Zero();
+	dOut.Allocate(dA.GetColumns(), dA.GetRows());
 
 	// Multiply
-	for (i = 0; i < dA.GetColumns(); i++) {
-	for (j = 0; j < dA.GetRows(); j++) {
-	for (k = 0; k < dA.GetRows(); k++) {
+	for (size_t i = 0; i < dA.GetColumns(); i++) {
+	for (size_t j = 0; j < dA.GetRows(); j++) {
+	for (size_t k = 0; k < dA.GetRows(); k++) {
 		dOut[i][j] += dR[k][j] * dA[k][i];
 	}
 	}

@@ -6,7 +6,7 @@
 ///
 ///	<summary>
 ///		This file provides wrappers for performing linear algebra operations
-///		on DataMatrix and DataVector objects.
+///		on DataArray2D and DataArray1D objects.
 ///	</summary>
 ///	<remarks>
 ///		Copyright 2000-2010 Paul Ullrich
@@ -25,8 +25,8 @@
 
 #include "Exception.h"
 
-#include "DataVector.h"
-#include "DataMatrix.h"
+#include "DataArray1D.h"
+#include "DataArray2D.h"
 #include "MathHelper.h"
 
 #include <cstdlib>
@@ -120,8 +120,8 @@ public:
 	///		Swap two vectors.
 	///	</summary>
 	inline static void DSWAP(
-		DataVector<double> & dX,
-		DataVector<double> & dY,
+		DataArray1D<double> & dX,
+		DataArray1D<double> & dY,
 		int nIncX = 1,
 		int nIncY = 1
 	) {
@@ -144,7 +144,7 @@ public:
 	///		Scale a vector by a constant.
 	///	</summary>
 	inline static void DSCAL(
-		DataVector<double> & dX,
+		DataArray1D<double> & dX,
 		double dAlpha,
 		int nInc = 1
 	) {
@@ -162,8 +162,8 @@ public:
 	///		Copy a vector X on top of a vector Y.
 	///	</summary>
 	inline static void DCOPY(
-		DataVector<double> & dX,
-		DataVector<double> & dY,
+		DataArray1D<double> & dX,
+		DataArray1D<double> & dY,
 		int nIncX = 1,
 		int nIncY = 1
 	) {
@@ -171,7 +171,7 @@ public:
 		int nRowsY = dY.GetRows();
 
 		if (nRowsX != nRowsY) {
-			dY.Initialize(nRowsX);
+			dY.Allocate(nRowsX);
 		}
 
 #if defined USEACML || defined USEESSL
@@ -186,7 +186,7 @@ public:
 	///		Copy a vector into an array of doubles.
 	///	</summary>
 	inline static void DCOPY_A(
-		DataVector<double> & dX,
+		DataArray1D<double> & dX,
 		double * dY,
 		int nIncX = 1,
 		int nIncY = 1
@@ -207,8 +207,8 @@ public:
 	///	</summary>
 	inline static void DAXPY(
 		double dAlpha,
-		DataVector<double> & dX,
-		DataVector<double> & dY,
+		DataArray1D<double> & dX,
+		DataArray1D<double> & dY,
 		int nIncX = 1,
 		int nIncY = 1
 	) {
@@ -229,7 +229,7 @@ public:
 	inline static void DAXPY_A(
 		double dAlpha,
 		double * dX,
-		DataVector<double> & dY,
+		DataArray1D<double> & dY,
 		int nIncX = 1,
 		int nIncY = 1
 	) {
@@ -247,8 +247,8 @@ public:
 	///		Dot product of two vectors.
 	///	</summary>
 	inline static double DDOT(
-		DataVector<double> & dX,
-		DataVector<double> & dY,
+		DataArray1D<double> & dX,
+		DataArray1D<double> & dY,
 		int nIncX = 1,
 		int nIncY = 1
 	) {
@@ -271,7 +271,7 @@ public:
 	///		Dot product of two vectors.
 	///	</summary>
 	inline static double DDOT_A(
-		DataVector<double> & dX,
+		DataArray1D<double> & dX,
 		double * dY
 	) {
 		int nRowsX = dX.GetRows();
@@ -290,7 +290,7 @@ public:
 	///		Compute the norm of a vector.
 	///	</summary>
 	inline static double DNORM2(
-		DataVector<double> & dX
+		DataArray1D<double> & dX
 	) {
 		int nRows = static_cast<int>(dX.GetRows());
 		int nIncX = 1;
@@ -307,9 +307,9 @@ public:
 	///		Perform a multiply-add on a matrix.
 	///	</summary>
 	static void DGEMM(
-		DataMatrix<double> & dC,
-		DataMatrix<double> & dA,
-		DataMatrix<double> & dB,
+		DataArray2D<double> & dC,
+		DataArray2D<double> & dA,
+		DataArray2D<double> & dB,
 		double dAlpha,
 		double dBeta
 	);
@@ -323,9 +323,9 @@ public:
 	///		Solve a linear system of the form A * X = B.
 	///	</summary>
 	static int DGESV(
-		DataMatrix<double> & dA,
-		DataVector<double> & dBX,
-		DataVector<int> & iPIV
+		DataArray2D<double> & dA,
+		DataArray1D<double> & dBX,
+		DataArray1D<int> & iPIV
 	);
 
 	///	<summary>
@@ -333,18 +333,18 @@ public:
 	///		vectors.
 	///	</summary>
 	static int DGESV(
-		DataMatrix<double> & dA,
-		DataMatrix<double> & dBX,
-		DataVector<int> & iPIV
+		DataArray2D<double> & dA,
+		DataArray2D<double> & dBX,
+		DataArray1D<int> & iPIV
 	);
 
 	///	<summary>
 	///		Solve a linear system of the form A * X = B.
 	///	</summary>
 	static int DGBSV(
-		DataMatrix<double> & dA,
-		DataVector<double> & dBX,
-		DataVector<int> & iPIV,
+		DataArray2D<double> & dA,
+		DataArray1D<double> & dBX,
+		DataArray1D<int> & iPIV,
 		int nKL,
 		int nKU
 	);
@@ -367,24 +367,24 @@ public:
 		char chTrans,
 		char chDiagonal,
 		int nN,
-		DataVector<double> & dA,
-		DataVector<double> & dX
+		DataArray1D<double> & dA,
+		DataArray1D<double> & dX
 	);
 
 	///	<summary>
 	///		Calculate the LU decomposition of a given general matrix.
 	///	</summary>
 	static int DGETRF(
-		DataMatrix<double> & dA,
-		DataVector<int> & iPIV
+		DataArray2D<double> & dA,
+		DataArray1D<int> & iPIV
 	);
 
 	///	<summary>
 	///		Calculate the LU decomposition of a given banded matrix.
 	///	</summary>
 	static int DGBTRF(
-		DataMatrix<double> & dA,
-		DataVector<int> & iPIV,
+		DataArray2D<double> & dA,
+		DataArray1D<int> & iPIV,
 		int iKL,
 		int iKU
 	);
@@ -394,9 +394,9 @@ public:
 	///	</summary>
 	static int DGETRS(
 		char chTrans,
-		DataMatrix<double> & dA,
-		DataVector<double> & dB,
-		DataVector<int> & iPIV
+		DataArray2D<double> & dA,
+		DataArray1D<double> & dB,
+		DataArray1D<int> & iPIV
 	);
 
 	///	<summary>
@@ -404,9 +404,9 @@ public:
 	///	</summary>
 	static int DGBTRS(
 		char chTrans,
-		DataMatrix<double> & dA,
-		DataVector<double> & dB,
-		DataVector<int> & iPIV,
+		DataArray2D<double> & dA,
+		DataArray1D<double> & dB,
+		DataArray1D<int> & iPIV,
 		int iKL,
 		int iKU
 	);
@@ -415,9 +415,9 @@ public:
 	///		Calculate the inverse of a given general matrix.
 	///	</summary>
 	static int DGETRI(
-		DataMatrix<double> & dA,
-		DataVector<int> & iPIV,
-		DataVector<double> & dWork
+		DataArray2D<double> & dA,
+		DataArray1D<int> & iPIV,
+		DataArray1D<double> & dWork
 	);
 
 	///	<summary>
@@ -432,25 +432,25 @@ public:
 	static int DTRTRI(
 		char chUpperLower,
 		char chDiagonal,
-		DataMatrix<double> & dA
+		DataArray2D<double> & dA
 	);
 
 	///	<summary>
 	///		Perform a QR decomposition on the given matrix.
 	///	</summary>
 	static int DGEQRF(
-		DataMatrix<double> & dA,
-		DataVector<double> & dTau,
-		DataVector<double> & dWork
+		DataArray2D<double> & dA,
+		DataArray1D<double> & dTau,
+		DataArray1D<double> & dWork
 	);
 
 	///	<summary>
 	///		Reconstruct the matrix Q from a QR decomposition.
 	///	</summary>
 	static int DORGQR(
-		DataMatrix<double> & dA,
-		DataVector<double> & dTau,
-		DataVector<double> & dWork
+		DataArray2D<double> & dA,
+		DataArray1D<double> & dTau,
+		DataArray1D<double> & dWork
 	);
 
 	///	<summary>
@@ -461,8 +461,8 @@ public:
 	///		dOut - Generalized inverse of A in Fortran order.
 	///	</parameters>
 	static void GeneralizedInverse(
-		DataMatrix<double> & dA,
-		DataMatrix<double> & dOut
+		DataArray2D<double> & dA,
+		DataArray2D<double> & dOut
 	);
 };
 

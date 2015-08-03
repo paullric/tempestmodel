@@ -32,9 +32,9 @@
 void LinearColumnInterpFEM::Initialize(
 	InterpSource eInterpSource,
 	int nVerticalOrder,
-	const DataVector<double> & dREtaNode,
-	const DataVector<double> & dREtaREdge,
-	const DataVector<double> & dREtaOut,
+	const DataArray1D<double> & dREtaNode,
+	const DataArray1D<double> & dREtaREdge,
+	const DataArray1D<double> & dREtaOut,
 	bool fZeroBoundaries
 ) {
 	const double ParamEpsilon = 1.0e-12;
@@ -208,9 +208,9 @@ void LinearColumnInterpFEM::Initialize(
 void LinearColumnDiffFEM::InitializeInterfaceMethod(
 	InterpSource eInterpSource,
 	int nVerticalOrder,
-	const DataVector<double> & dREtaNode,
-	const DataVector<double> & dREtaREdge,
-	const DataVector<double> & dREtaOut,
+	const DataArray1D<double> & dREtaNode,
+	const DataArray1D<double> & dREtaREdge,
+	const DataArray1D<double> & dREtaOut,
 	bool fZeroBoundaries
 ) {
 	const double ParamEpsilon = 1.0e-12;
@@ -272,8 +272,7 @@ void LinearColumnDiffFEM::InitializeInterfaceMethod(
 		if (fOnREdge) {
 
 			// Temporary coefficients
-			DataVector<double> dTempCoeff;
-			dTempCoeff.Initialize(nVerticalOrder + 1);
+			DataArray1D<double> dTempCoeff(nVerticalOrder + 1);
 			
 			// Calculate one-sided errors and derivative weights
 			double dDeltaREtaL =
@@ -345,9 +344,9 @@ void LinearColumnDiffFEM::InitializeInterfaceMethod(
 void LinearColumnDiffFEM::InitializeFluxCorrectionMethod(
 	InterpSource eInterpSource,
 	int nVerticalOrder,
-	const DataVector<double> & dREtaNode,
-	const DataVector<double> & dREtaREdge,
-	const DataVector<double> & dREtaOut,
+	const DataArray1D<double> & dREtaNode,
+	const DataArray1D<double> & dREtaREdge,
+	const DataArray1D<double> & dREtaOut,
 	bool fZeroBoundaries
 ) {
 	const int ParamFluxCorrectionType = 2;
@@ -434,33 +433,21 @@ void LinearColumnDiffFEM::InitializeFluxCorrectionMethod(
 		}
 
 		// Interpolation coefficients to finite element edges
-		DataVector<double> dTempCoeffLL;
-		dTempCoeffLL.Initialize(nVerticalOrder);
-
-		DataVector<double> dTempCoeffLR;
-		dTempCoeffLR.Initialize(nVerticalOrder);
-
-		DataVector<double> dTempCoeffRL;
-		dTempCoeffRL.Initialize(nVerticalOrder);
-
-		DataVector<double> dTempCoeffRR;
-		dTempCoeffRR.Initialize(nVerticalOrder);
+		DataArray1D<double> dTempCoeffLL(nVerticalOrder);
+		DataArray1D<double> dTempCoeffLR(nVerticalOrder);
+		DataArray1D<double> dTempCoeffRL(nVerticalOrder);
+		DataArray1D<double> dTempCoeffRR(nVerticalOrder);
 
 		// Derivatives of the flux correction function at this point
-		DataVector<double> dNodesR;
-		dNodesR.Initialize(1);
+		DataArray1D<double> dNodesR(1);
 		dNodesR[0] =
 			(dREtaOut[l] - dREtaREdge[a * nVerticalOrder]) / dDeltaREta;
 
-		DataVector<double> dNodesL;
-		dNodesL.Initialize(1);
+		DataArray1D<double> dNodesL(1);
 		dNodesL[0] = 1.0 - dNodesR[0];
 
-		DataVector<double> dDerivR;
-		dDerivR.Initialize(1);
-
-		DataVector<double> dDerivL;
-		dDerivL.Initialize(1);
+		DataArray1D<double> dDerivR(1);
+		DataArray1D<double> dDerivL(1);
 
 		FluxCorrectionFunction::GetDerivatives(
 			ParamFluxCorrectionType,
@@ -582,8 +569,8 @@ void LinearColumnDiffFEM::InitializeFluxCorrectionMethod(
 
 void LinearColumnDiffFEM::InitializeGLLNodes(
 	int nVerticalOrder,
-	const DataVector<double> & dREtaNode,
-	const DataVector<double> & dREtaOut
+	const DataArray1D<double> & dREtaNode,
+	const DataArray1D<double> & dREtaOut
 ) {
 
 	const double ParamEpsilon = 1.0e-12;
@@ -642,8 +629,7 @@ void LinearColumnDiffFEM::InitializeGLLNodes(
 		if (fOnREdge) {
 
 			// Temporary coefficients
-			DataVector<double> dTempCoeff;
-			dTempCoeff.Initialize(nVerticalOrder);
+			DataArray1D<double> dTempCoeff(nVerticalOrder);
 
 			// Calculate one-sided errors and derivative weights
 			double dDeltaREtaL =
@@ -697,8 +683,8 @@ void LinearColumnDiffFEM::InitializeGLLNodes(
 void LinearColumnDiffDiffFEM::Initialize(
 	InterpSource eInterpSource,
 	int nVerticalOrder,
-	const DataVector<double> & dREtaNode,
-	const DataVector<double> & dREtaREdge
+	const DataArray1D<double> & dREtaNode,
+	const DataArray1D<double> & dREtaREdge
 ) {
 	const int ParamFluxCorrectionType = 2;
 
@@ -731,15 +717,15 @@ void LinearColumnDiffDiffFEM::Initialize(
 	if (eInterpSource == InterpSource_Levels) {
 
 		// Construct differentiation operator
-		DataMatrix<double> dDiffNodeToNode(
+		DataArray2D<double> dDiffNodeToNode(
 			nVerticalOrder, nVerticalOrder);
 
 		// Compute weights of all nodes
-		DataVector<double> dW(nRElementsOut);
+		DataArray1D<double> dW(nRElementsOut);
 
 		for (int a = 0; a < nFiniteElements; a++) {
-			DataVector<double> dG;
-			DataVector<double> dWtemp;
+			DataArray1D<double> dG;
+			DataArray1D<double> dWtemp;
 			GaussQuadrature::GetPoints(
 				nVerticalOrder,
 				dREtaREdge[ a    * nVerticalOrder],
@@ -760,10 +746,10 @@ void LinearColumnDiffDiffFEM::Initialize(
 				dREtaREdge[(a+1) * nVerticalOrder]
 				- dREtaREdge[a * nVerticalOrder];
 
-			DataVector<double> dStandardNode(nVerticalOrder);
+			DataArray1D<double> dStandardNode(nVerticalOrder);
 			dStandardNode[0] = 1.0;
 
-			DataVector<double> dDiffCorrectionFn(1);
+			DataArray1D<double> dDiffCorrectionFn(1);
 			FluxCorrectionFunction::GetDerivatives(
 				ParamFluxCorrectionType,
 				nVerticalOrder+1,
@@ -773,7 +759,7 @@ void LinearColumnDiffDiffFEM::Initialize(
 			dDiffCorrectionFn[0] /= dElementDeltaXi;
 
 			// Build local first derivative operator
-			DataMatrix<double> dDiffNodeToNode(
+			DataArray2D<double> dDiffNodeToNode(
 				nVerticalOrder, nVerticalOrder);
 
 			for (int n = 0; n < nVerticalOrder; n++) {
@@ -800,9 +786,9 @@ void LinearColumnDiffDiffFEM::Initialize(
 			}
 
 			// Boundary term
-			DataVector<double> dBasisPoly(nVerticalOrder);
-			DataVector<double> dCoeffL(nVerticalOrder);
-			DataVector<double> dCoeffR(nVerticalOrder);
+			DataArray1D<double> dBasisPoly(nVerticalOrder);
+			DataArray1D<double> dCoeffL(nVerticalOrder);
+			DataArray1D<double> dCoeffR(nVerticalOrder);
 
 			for (int j = 0; j < nVerticalOrder; j++) {
 				dBasisPoly.Zero();
@@ -942,15 +928,15 @@ void LinearColumnDiffDiffFEM::Initialize(
 	} else if (eInterpSource == InterpSource_Interfaces) {
 
 		// Local differentiation coefficients
-		DataMatrix<double> dLocalDiffCoeff;
-		dLocalDiffCoeff.Initialize(nVerticalOrder+1, nVerticalOrder+1);
+		DataArray2D<double> dLocalDiffCoeff(
+			nVerticalOrder+1, nVerticalOrder+1);
 
 		// Loop through all output elements
 		for (int a = 0; a < nFiniteElements; a++) {
 
 			// Gauss-Lobatto quadrature nodes
-			DataVector<double> dG;
-			DataVector<double> dW;
+			DataArray1D<double> dG;
+			DataArray1D<double> dW;
 			GaussLobattoQuadrature::GetPoints(
 				nVerticalOrder+1,
 				dREtaREdge[a * nVerticalOrder],
@@ -1023,7 +1009,7 @@ void LinearColumnDiffDiffFEM::Initialize(
 
 void LinearColumnDiffDiffFEM::InitializeGLLNodes(
 	int nVerticalOrder,
-	const DataVector<double> & dREtaNode
+	const DataArray1D<double> & dREtaNode
 ) {
 
 	const double ParamEpsilon = 1.0e-12;
@@ -1045,15 +1031,14 @@ void LinearColumnDiffDiffFEM::InitializeGLLNodes(
 	LinearColumnOperator::Initialize(nRElementsIn, nRElementsOut);
 
 	// Local differentiation coefficients
-	DataMatrix<double> dLocalDiffCoeff;
-	dLocalDiffCoeff.Initialize(nVerticalOrder, nVerticalOrder);
+	DataArray2D<double> dLocalDiffCoeff(nVerticalOrder, nVerticalOrder);
 
 	// Loop through all output elements
 	for (int a = 0; a < nFiniteElements; a++) {
 
 		// Gauss-Lobatto quadrature nodes
-		DataVector<double> dG;
-		DataVector<double> dW;
+		DataArray1D<double> dG;
+		DataArray1D<double> dW;
 		GaussLobattoQuadrature::GetPoints(
 			nVerticalOrder,
 			dREtaNode[a * (nVerticalOrder-1)],

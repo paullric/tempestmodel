@@ -54,9 +54,9 @@ public:
 	void Initialize(
 		InterpSource eInterpSource,
 		int nVerticalOrder,
-		const DataVector<double> & dREtaNode,
-		const DataVector<double> & dREtaREdge,
-		const DataVector<double> & dREtaOut,
+		const DataArray1D<double> & dREtaNode,
+		const DataArray1D<double> & dREtaREdge,
+		const DataArray1D<double> & dREtaOut,
 		bool fZeroBoundaries = false
 	);
 };
@@ -92,9 +92,9 @@ public:
 	void InitializeInterfaceMethod(
 		InterpSource eInterpSource,
 		int nVerticalOrder,
-		const DataVector<double> & dREtaNode,
-		const DataVector<double> & dREtaREdge,
-		const DataVector<double> & dREtaOut,
+		const DataArray1D<double> & dREtaNode,
+		const DataArray1D<double> & dREtaREdge,
+		const DataArray1D<double> & dREtaOut,
 		bool fZeroBoundaries
 	);
 
@@ -105,9 +105,9 @@ public:
 	void InitializeFluxCorrectionMethod(
 		InterpSource eInterpSource,
 		int nVerticalOrder,
-		const DataVector<double> & dREtaNode,
-		const DataVector<double> & dREtaREdge,
-		const DataVector<double> & dREtaOut,
+		const DataArray1D<double> & dREtaNode,
+		const DataArray1D<double> & dREtaREdge,
+		const DataArray1D<double> & dREtaOut,
 		bool fZeroBoundaries
 	);
 
@@ -116,8 +116,8 @@ public:
 	///	</summary>
 	void InitializeGLLNodes(
 		int nVerticalOrder,
-		const DataVector<double> & dREtaNode,
-		const DataVector<double> & dREtaOut
+		const DataArray1D<double> & dREtaNode,
+		const DataArray1D<double> & dREtaOut
 	);
 };
 
@@ -151,8 +151,8 @@ public:
 	void Initialize(
 		InterpSource eInterpSource,
 		int nVerticalOrder,
-		const DataVector<double> & dREtaNode,
-		const DataVector<double> & dREtaREdge
+		const DataArray1D<double> & dREtaNode,
+		const DataArray1D<double> & dREtaREdge
 	);
 
 	///	<summary>
@@ -160,7 +160,7 @@ public:
 	///	</summary>
 	void InitializeGLLNodes(
 		int nVerticalOrder,
-		const DataVector<double> & dREtaNode
+		const DataArray1D<double> & dREtaNode
 	);
 };
 

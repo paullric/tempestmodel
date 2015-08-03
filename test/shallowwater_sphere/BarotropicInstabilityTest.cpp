@@ -209,8 +209,7 @@ public:
 		}
 
 		// Numerically integrate H using 4th order Gaussian quadrature
-		DataVector<double> dLatX;
-		dLatX.Initialize(nIntervals+1);
+		DataArray1D<double> dLatX(nIntervals+1);
 
 		for (int i = 0; i <= nIntervals; i++) {
 			dLatX[i] = - 0.5 * M_PI +

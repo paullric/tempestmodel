@@ -60,58 +60,60 @@ void HorizontalDynamicsFEM::Initialize() {
 	int nTracerCount = m_model.GetEquationSet().GetTracers();
 
 	// Initialize the alpha and beta mass fluxes
-	m_dAlphaMassFlux.Initialize(
+	m_dAlphaMassFlux.Allocate(
 		m_nHorizontalOrder,
 		m_nHorizontalOrder);
 
-	m_dBetaMassFlux.Initialize(
+	m_dBetaMassFlux.Allocate(
 		m_nHorizontalOrder,
 		m_nHorizontalOrder);
 
 	// Initialize the alpha and beta pressure fluxes
-	m_dAlphaPressureFlux.Initialize(
+	m_dAlphaPressureFlux.Allocate(
 		m_nHorizontalOrder,
 		m_nHorizontalOrder);
 
-	m_dBetaPressureFlux.Initialize(
+	m_dBetaPressureFlux.Allocate(
 		m_nHorizontalOrder,
 		m_nHorizontalOrder);
 
 	// Initialize tracer fluxes
-	m_dAlphaTracerFlux.Initialize(
-		nTracerCount,
-		m_nHorizontalOrder,
-		m_nHorizontalOrder);
+	if (nTracerCount > 0) {
+		m_dAlphaTracerFlux.Allocate(
+			nTracerCount,
+			m_nHorizontalOrder,
+			m_nHorizontalOrder);
 
-	m_dBetaTracerFlux.Initialize(
-		nTracerCount,
-		m_nHorizontalOrder,
-		m_nHorizontalOrder);
+		m_dBetaTracerFlux.Allocate(
+			nTracerCount,
+			m_nHorizontalOrder,
+			m_nHorizontalOrder);
+	}
 
 	// Auxiliary data
-	m_dAuxDataNode.Initialize(
+	m_dAuxDataNode.Allocate(
 		9,
 		nRElements,
 		m_nHorizontalOrder,
 		m_nHorizontalOrder);
 
-	m_dAuxDataREdge.Initialize(
+	m_dAuxDataREdge.Allocate(
 		9,
 		nRElements+1,
 		m_nHorizontalOrder,
 		m_nHorizontalOrder);
 
-	m_dDivergence.Initialize(
+	m_dDivergence.Allocate(
 		nRElements,
 		m_nHorizontalOrder,
 		m_nHorizontalOrder);
 
 	// Initialize buffers for derivatives of Jacobian
-	m_dJGradientA.Initialize(
+	m_dJGradientA.Allocate(
 		m_nHorizontalOrder,
 		m_nHorizontalOrder);
 
-	m_dJGradientB.Initialize(
+	m_dJGradientB.Allocate(
 		m_nHorizontalOrder,
 		m_nHorizontalOrder);
 
@@ -136,7 +138,7 @@ void HorizontalDynamicsFEM::FilterNegativeTracers(
 
 		const PatchBox & box = pPatch->GetPatchBox();
 
-		const DataMatrix3D<double> & dElementArea =
+		const DataArray3D<double> & dElementArea =
 			pPatch->GetElementArea();
 
 		GridData4D & dataUpdateTracer =
@@ -245,17 +247,17 @@ void HorizontalDynamicsFEM::StepShallowWater(
 
 		const PatchBox & box = pPatch->GetPatchBox();
 
-		const DataMatrix3D<double> & dElementArea =
+		const DataArray3D<double> & dElementArea =
 			pPatch->GetElementArea();
-		const DataMatrix<double> & dJacobian2D =
+		const DataArray2D<double> & dJacobian2D =
 			pPatch->GetJacobian2D();
-		const DataMatrix3D<double> & dContraMetric2DA =
+		const DataArray3D<double> & dContraMetric2DA =
 			pPatch->GetContraMetric2DA();
-		const DataMatrix3D<double> & dContraMetric2DB =
+		const DataArray3D<double> & dContraMetric2DB =
 			pPatch->GetContraMetric2DB();
-		const DataMatrix<double> & dCoriolisF =
+		const DataArray2D<double> & dCoriolisF =
 			pPatch->GetCoriolisF();
-		const DataMatrix<double> & dTopography =
+		const DataArray2D<double> & dTopography =
 			pPatch->GetTopography();
 
 		// Data
@@ -272,8 +274,8 @@ void HorizontalDynamicsFEM::StepShallowWater(
 		const double dInvElementDeltaA = 1.0 / dElementDeltaA;
 		const double dInvElementDeltaB = 1.0 / dElementDeltaB;
 
-		const DataMatrix<double> & dDxBasis1D = pGrid->GetDxBasis1D();
-		const DataMatrix<double> & dStiffness1D = pGrid->GetStiffness1D();
+		const DataArray2D<double> & dDxBasis1D = pGrid->GetDxBasis1D();
+		const DataArray2D<double> & dStiffness1D = pGrid->GetStiffness1D();
 
 		// Get number of finite elements in each coordinate direction
 		int nElementCountA = pPatch->GetElementCountA();
@@ -524,43 +526,43 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 
 		const PatchBox & box = pPatch->GetPatchBox();
 
-		const DataMatrix3D<double> & dElementArea =
+		const DataArray3D<double> & dElementArea =
 			pPatch->GetElementArea();
-		const DataMatrix<double> & dJacobian2D =
+		const DataArray2D<double> & dJacobian2D =
 			pPatch->GetJacobian2D();
-		const DataMatrix3D<double> & dJacobian =
+		const DataArray3D<double> & dJacobian =
 			pPatch->GetJacobian();
-		const DataMatrix3D<double> & dJacobianREdge =
+		const DataArray3D<double> & dJacobianREdge =
 			pPatch->GetJacobianREdge();
-		const DataMatrix4D<double> & dContraMetricA =
+		const DataArray4D<double> & dContraMetricA =
 			pPatch->GetContraMetricA();
-		const DataMatrix4D<double> & dContraMetricB =
+		const DataArray4D<double> & dContraMetricB =
 			pPatch->GetContraMetricB();
-		const DataMatrix4D<double> & dContraMetricXi =
+		const DataArray4D<double> & dContraMetricXi =
 			pPatch->GetContraMetricXi();
-		const DataMatrix4D<double> & dContraMetricAREdge =
+		const DataArray4D<double> & dContraMetricAREdge =
 			pPatch->GetContraMetricAREdge();
-		const DataMatrix4D<double> & dContraMetricBREdge =
+		const DataArray4D<double> & dContraMetricBREdge =
 			pPatch->GetContraMetricBREdge();
-		const DataMatrix4D<double> & dContraMetricXiREdge =
+		const DataArray4D<double> & dContraMetricXiREdge =
 			pPatch->GetContraMetricXiREdge();
 
-		const DataMatrix4D<double> & dDerivRNode =
+		const DataArray4D<double> & dDerivRNode =
 			pPatch->GetDerivRNode();
-		const DataMatrix4D<double> & dDerivRREdge =
+		const DataArray4D<double> & dDerivRREdge =
 			pPatch->GetDerivRREdge();
 
-		const DataMatrix<double> & dCoriolisF =
+		const DataArray2D<double> & dCoriolisF =
 			pPatch->GetCoriolisF();
-		const DataMatrix<double> & dTopography =
+		const DataArray2D<double> & dTopography =
 			pPatch->GetTopography();
 
 		const double dZtop = pGrid->GetZtop();
 		
 		// Get the coordinates to check force balance externally
-		const DataMatrix<double>   & dLongitude  = pPatch->GetLongitude();
-		const DataMatrix<double>   & dLatitude   = pPatch->GetLatitude();
-		const DataMatrix3D<double> & dZLevels    = pPatch->GetZLevels();
+		const DataArray2D<double>   & dLongitude  = pPatch->GetLongitude();
+		const DataArray2D<double>   & dLatitude   = pPatch->GetLatitude();
+		const DataArray3D<double> & dZLevels    = pPatch->GetZLevels();
 
 		// Data
 		GridData4D & dataInitialNode =
@@ -613,8 +615,8 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 		const double dInvElementDeltaA = 1.0 / dElementDeltaA;
 		const double dInvElementDeltaB = 1.0 / dElementDeltaB;
 
-		const DataMatrix<double> & dDxBasis1D = pGrid->GetDxBasis1D();
-		const DataMatrix<double> & dStiffness1D = pGrid->GetStiffness1D();
+		const DataArray2D<double> & dDxBasis1D = pGrid->GetDxBasis1D();
+		const DataArray2D<double> & dStiffness1D = pGrid->GetStiffness1D();
 
 		// Get number of finite elements in each coordinate direction
 		int nElementCountA = pPatch->GetElementCountA();
@@ -1572,13 +1574,13 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusion(
 
 		const PatchBox & box = pPatch->GetPatchBox();
 
-		const DataMatrix3D<double> & dJacobianNode =
+		const DataArray3D<double> & dJacobianNode =
 			pPatch->GetJacobian();
-		const DataMatrix3D<double> & dJacobianREdge =
+		const DataArray3D<double> & dJacobianREdge =
 			pPatch->GetJacobianREdge();
-		const DataMatrix3D<double> & dContraMetricA =
+		const DataArray3D<double> & dContraMetricA =
 			pPatch->GetContraMetric2DA();
-		const DataMatrix3D<double> & dContraMetricB =
+		const DataArray3D<double> & dContraMetricB =
 			pPatch->GetContraMetric2DB();
 
 		// Grid data
@@ -1608,8 +1610,8 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusion(
 		const double dInvElementDeltaA = 1.0 / dElementDeltaA;
 		const double dInvElementDeltaB = 1.0 / dElementDeltaB;
 
-		const DataMatrix<double> & dDxBasis1D = pGrid->GetDxBasis1D();
-		const DataMatrix<double> & dStiffness1D = pGrid->GetStiffness1D();
+		const DataArray2D<double> & dDxBasis1D = pGrid->GetDxBasis1D();
+		const DataArray2D<double> & dStiffness1D = pGrid->GetStiffness1D();
 
 		// Number of finite elements
 		int nElementCountA = pPatch->GetElementCountA();
@@ -1775,11 +1777,11 @@ void HorizontalDynamicsFEM::ApplyVectorHyperdiffusion(
 
 		const PatchBox & box = pPatch->GetPatchBox();
 
-		const DataMatrix<double> & dJacobian2D =
+		const DataArray2D<double> & dJacobian2D =
 			pPatch->GetJacobian2D();
-		const DataMatrix3D<double> & dContraMetric2DA =
+		const DataArray3D<double> & dContraMetric2DA =
 			pPatch->GetContraMetric2DA();
-		const DataMatrix3D<double> & dContraMetric2DB =
+		const DataArray3D<double> & dContraMetric2DB =
 			pPatch->GetContraMetric2DB();
 
 		GridData4D & dataInitial =
@@ -1795,8 +1797,8 @@ void HorizontalDynamicsFEM::ApplyVectorHyperdiffusion(
 		const double dInvElementDeltaA = 1.0 / dElementDeltaA;
 		const double dInvElementDeltaB = 1.0 / dElementDeltaB;
 
-		const DataMatrix<double> & dDxBasis1D = pGrid->GetDxBasis1D();
-		const DataMatrix<double> & dStiffness1D = pGrid->GetStiffness1D();
+		const DataArray2D<double> & dDxBasis1D = pGrid->GetDxBasis1D();
+		const DataArray2D<double> & dStiffness1D = pGrid->GetStiffness1D();
 
 		// Compute curl and divergence of U on the grid
 		GridData3D dataUa;

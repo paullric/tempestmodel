@@ -17,7 +17,7 @@
 #ifndef _GRIDSPACING_H_
 #define _GRIDSPACING_H_
 
-#include "DataVector.h"
+#include "DataArray1D.h"
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -192,12 +192,12 @@ protected:
 	///	<summary>
 	///		Gauss-Lobatto points on the reference element.
 	///	</summary>
-	DataVector<double> m_dG;
+	DataArray1D<double> m_dG;
 
 	///	<summary>
 	///		Gauss-Lobatto weights on the reference element.
 	///	</summary>
-	DataVector<double> m_dW;
+	DataArray1D<double> m_dW;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -259,12 +259,12 @@ protected:
 	///	<summary>
 	///		Gauss-Lobatto points on the reference element.
 	///	</summary>
-	DataVector<double> m_dG;
+	DataArray1D<double> m_dG;
 
 	///	<summary>
 	///		Gauss-Lobatto weights on the reference element.
 	///	</summary>
-	DataVector<double> m_dW;
+	DataArray1D<double> m_dW;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -326,22 +326,22 @@ protected:
 	///	<summary>
 	///		Gauss points on the reference element.
 	///	</summary>
-	DataVector<double> m_dG;
+	DataArray1D<double> m_dG;
 
 	///	<summary>
 	///		Gauss-Lobatto points on the reference element.
 	///	</summary>
-	DataVector<double> m_dGL;
+	DataArray1D<double> m_dGL;
 
 	///	<summary>
 	///		Gauss weights on the reference element.
 	///	</summary>
-	DataVector<double> m_dW;
+	DataArray1D<double> m_dW;
 
 	///	<summary>
 	///		Gauss-Lobatto weights on the reference element.
 	///	</summary>
-	DataVector<double> m_dWL;
+	DataArray1D<double> m_dWL;
 
 };
 

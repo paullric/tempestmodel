@@ -20,6 +20,8 @@
 
 #include <cstdlib>
 
+#include <iostream>
+
 ///////////////////////////////////////////////////////////////////////////////
 
 DataContainer::DataContainer() :
@@ -45,8 +47,10 @@ void DataContainer::Allocate() {
 	size_t sAccumulated = 0;
 
 	for (size_t i = 0; i < m_vecDataChunks.size(); i++) {
-		sAccumulated += m_vecDataChunks[i]->GetSize();
+		sAccumulated += m_vecDataChunks[i]->GetByteSize();
 	}
+
+	std::cout << sAccumulated << std::endl;
 
 	// Allocate memory as one contiguous chunk
 	m_pAllocatedMemory =
@@ -56,6 +60,9 @@ void DataContainer::Allocate() {
 		_EXCEPTIONT("Out of memory");
 	}
 
+	// Initialize allocated memory to zero
+	memset(m_pAllocatedMemory, 0, sAccumulated);
+
 	// Assign memory to DataChunks
 	sAccumulated = 0;
 
@@ -63,18 +70,18 @@ void DataContainer::Allocate() {
 		m_vecDataChunks[i]->AttachTo(
 			reinterpret_cast<void *>(m_pAllocatedMemory + sAccumulated));
 
-		sAccumulated += m_vecDataChunks[i]->GetSize();
+		sAccumulated += m_vecDataChunks[i]->GetByteSize();
 	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 
 void DataContainer::Deallocate() {
-
+/*
 	for (size_t i = 0; i < m_vecDataChunks.size(); i++) {
 		m_vecDataChunks[i]->Detach();
 	}
-
+*/
 	free(m_pAllocatedMemory);
 
 	m_pAllocatedMemory = NULL;

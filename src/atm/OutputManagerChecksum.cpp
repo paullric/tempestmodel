@@ -51,7 +51,7 @@ void OutputManagerChecksum::Output(
 	const EquationSet & eqn = m_grid.GetModel().GetEquationSet();
 
 	// Compute checksums
-	DataVector<double> dChecksum;
+	DataArray1D<double> dChecksum;
 
 	m_grid.Checksum(DataType_State, dChecksum);
 	if (nRank == 0) {

@@ -190,22 +190,22 @@ void VerticalDynamicsFEM::Initialize() {
 #endif
 
 	// Allocate column for JFNK
-	m_dColumnState.Initialize(m_nColumnStateSize);
+	m_dColumnState.Allocate(m_nColumnStateSize);
 
 	// Allocation reference column
-	m_dStateRefNode.Initialize(5, nRElements);
-	m_dStateRefREdge.Initialize(5, nRElements+1);
+	m_dStateRefNode.Allocate(5, nRElements);
+	m_dStateRefREdge.Allocate(5, nRElements+1);
 
 	// Solution vector from JFNK
-	m_dSoln.Initialize(m_nColumnStateSize);
+	m_dSoln.Allocate(m_nColumnStateSize);
 
 	// State vector at levels
-	m_dStateNode.Initialize(
+	m_dStateNode.Allocate(
 		m_model.GetEquationSet().GetComponents(),
 		nRElements);
 
 	// State vector at interfaces
-	m_dStateREdge.Initialize(
+	m_dStateREdge.Allocate(
 		m_model.GetEquationSet().GetComponents(),
 		nRElements+1);
 /*
@@ -216,69 +216,69 @@ void VerticalDynamicsFEM::Initialize() {
 	}
 */
 	// Auxiliary variables
-	m_dStateAux.Initialize(nRElements+1);
-	m_dStateAuxDiff.Initialize(nRElements+1);
+	m_dStateAux.Allocate(nRElements+1);
+	m_dStateAuxDiff.Allocate(nRElements+1);
 
-	m_dXiDotNode.Initialize(nRElements);
-	m_dXiDotREdge.Initialize(nRElements+1);
+	m_dXiDotNode.Allocate(nRElements);
+	m_dXiDotREdge.Allocate(nRElements+1);
 
-	m_dDiffUa.Initialize(nRElements+1);
-	m_dDiffUb.Initialize(nRElements+1);
+	m_dDiffUa.Allocate(nRElements+1);
+	m_dDiffUb.Allocate(nRElements+1);
 
-	m_dDiffPNode.Initialize(nRElements);
-	m_dDiffPREdge.Initialize(nRElements+1);
-	m_dDiffDiffState.Initialize(
+	m_dDiffPNode.Allocate(nRElements);
+	m_dDiffPREdge.Allocate(nRElements+1);
+	m_dDiffDiffState.Allocate(
 		m_model.GetEquationSet().GetComponents(),
 		nRElements+1);
 
-	m_dDiffThetaNode.Initialize(nRElements);
-	m_dDiffThetaREdge.Initialize(nRElements+1);
+	m_dDiffThetaNode.Allocate(nRElements);
+	m_dDiffThetaREdge.Allocate(nRElements+1);
 
-	m_dHorizKineticEnergyNode.Initialize(nRElements);
-	m_dKineticEnergyNode.Initialize(nRElements);
-	m_dDiffKineticEnergyNode.Initialize(nRElements);
-	m_dDiffKineticEnergyREdge.Initialize(nRElements+1);
+	m_dHorizKineticEnergyNode.Allocate(nRElements);
+	m_dKineticEnergyNode.Allocate(nRElements);
+	m_dDiffKineticEnergyNode.Allocate(nRElements);
+	m_dDiffKineticEnergyREdge.Allocate(nRElements+1);
 
-	m_dMassFluxNode.Initialize(nRElements);
-	m_dDiffMassFluxNode.Initialize(nRElements);
-	m_dMassFluxREdge.Initialize(nRElements+1);
-	m_dDiffMassFluxREdge.Initialize(nRElements+1);
+	m_dMassFluxNode.Allocate(nRElements);
+	m_dDiffMassFluxNode.Allocate(nRElements);
+	m_dMassFluxREdge.Allocate(nRElements+1);
+	m_dDiffMassFluxREdge.Allocate(nRElements+1);
 
-	m_dPressureFluxNode.Initialize(nRElements);
-	m_dDiffPressureFluxNode.Initialize(nRElements);
-	m_dPressureFluxREdge.Initialize(nRElements+1);
-	m_dDiffPressureFluxREdge.Initialize(nRElements+1);
+	m_dPressureFluxNode.Allocate(nRElements);
+	m_dDiffPressureFluxNode.Allocate(nRElements);
+	m_dPressureFluxREdge.Allocate(nRElements+1);
+	m_dDiffPressureFluxREdge.Allocate(nRElements+1);
 
-	m_dExnerNode.Initialize(nRElements);
-	m_dExnerREdge.Initialize(nRElements+1);
+	m_dExnerNode.Allocate(nRElements);
+	m_dExnerREdge.Allocate(nRElements+1);
 
-	m_dTracerDensityNode.Initialize(nRElements);
-	m_dTracerDensityREdge.Initialize(nRElements+1);
+	m_dTracerDensityNode.Allocate(nRElements);
+	m_dTracerDensityREdge.Allocate(nRElements+1);
 
-	m_dInitialDensityNode.Initialize(nRElements);
-	m_dInitialDensityREdge.Initialize(nRElements+1);
+	m_dInitialDensityNode.Allocate(nRElements);
+	m_dInitialDensityREdge.Allocate(nRElements+1);
 
-	m_dUpdateDensityNode.Initialize(nRElements);
-	m_dUpdateDensityREdge.Initialize(nRElements+1);
+	m_dUpdateDensityNode.Allocate(nRElements);
+	m_dUpdateDensityREdge.Allocate(nRElements+1);
 
-	m_vecTracersF.Initialize(nRElements);
-	m_matTracersLUDF.Initialize(nRElements, nRElements);
-	m_vecTracersIPiv.Initialize(nRElements);
+	m_vecTracersF.Allocate(nRElements);
+	m_matTracersLUDF.Allocate(nRElements, nRElements);
+	m_vecTracersIPiv.Allocate(nRElements);
 /*
-	m_dExnerNode.Initialize(nRElements);
-	m_dExnerRefNode.Initialize(nRElements);
+	m_dExnerNode.Allocate(nRElements);
+	m_dExnerRefNode.Allocate(nRElements);
 
-	m_dDiffExnerNode.Initialize(nRElements);
-	m_dDiffExnerRefNode.Initialize(nRElements);
+	m_dDiffExnerNode.Allocate(nRElements);
+	m_dDiffExnerRefNode.Allocate(nRElements);
 
-	m_dExnerREdge.Initialize(nRElements+1);
-	m_dExnerRefREdge.Initialize(nRElements+1);
+	m_dExnerREdge.Allocate(nRElements+1);
+	m_dExnerRefREdge.Allocate(nRElements+1);
 
-	m_dDiffExnerREdge.Initialize(nRElements+1);
-	m_dDiffExnerRefREdge.Initialize(nRElements+1);
+	m_dDiffExnerREdge.Allocate(nRElements+1);
+	m_dDiffExnerRefREdge.Allocate(nRElements+1);
 */
 	// Variables to upwind
-	m_fUpwind.Initialize(m_model.GetEquationSet().GetComponents());
+	m_fUpwind.Allocate(m_model.GetEquationSet().GetComponents());
 #ifdef UPWIND_HORIZONTAL_VELOCITIES
 	m_fUpwind[UIx] = true;
 	m_fUpwind[VIx] = true;
@@ -483,9 +483,9 @@ void VerticalDynamicsFEM::StepExplicit(
 /*
 				// Check boundary condition
 				{
-					const DataMatrix4D<double> & dContraMetricXi =
+					const DataArray4D<double> & dContraMetricXi =
 						pPatch->GetContraMetricXi();
-					const DataMatrix4D<double> & dDerivRNode =
+					const DataArray4D<double> & dDerivRNode =
 						pPatch->GetDerivRNode();
 
 					double dConUx =
@@ -517,17 +517,10 @@ void VerticalDynamicsFEM::BootstrapJacobian() {
 
 	int nDim = m_dColumnState.GetRows();
 
-	DataMatrix<double> dJacobian;
-	dJacobian.Initialize(nDim, nDim);
-
-	DataVector<double> dJC;
-	dJC.Initialize(nDim);
-
-	DataVector<double> dG;
-	dG.Initialize(nDim);
-
-	DataVector<double> dJCref;
-	dJCref.Initialize(nDim);
+	DataArray2D<double> dJacobian(nDim, nDim);
+	DataArray1D<double> dJC(nDim);
+	DataArray1D<double> dG(nDim);
+	DataArray1D<double> dJCref(nDim);
 
 	Evaluate(m_dColumnState, dJCref);
 
@@ -619,9 +612,9 @@ void VerticalDynamicsFEM::StepImplicit(
 		const PatchBox & box = pPatch->GetPatchBox();
 
 		// Contravariant metric components
-		const DataMatrix4D<double> & dContraMetricA =
+		const DataArray4D<double> & dContraMetricA =
 			pPatch->GetContraMetricA();
-		const DataMatrix4D<double> & dContraMetricB =
+		const DataArray4D<double> & dContraMetricB =
 			pPatch->GetContraMetricB();
 
 		// State Data
@@ -714,7 +707,7 @@ void VerticalDynamicsFEM::StepImplicit(
 /*
 			{
 				// Evaluate
-				DataVector<double> dEval;
+				DataArray1D<double> dEval;
 				dEval.Initialize(m_dColumnState.GetRows());
 				VecGetArray(m_vecX, &dX);
 				Evaluate(dX, dEval);
@@ -761,8 +754,8 @@ void VerticalDynamicsFEM::StepImplicit(
 */
 			// DEBUG (check for NANs in output)
 			if (!(m_dSoln[0] == m_dSoln[0])) {
-                DataVector<double> dEval;
-                dEval.Initialize(m_dColumnState.GetRows());
+                DataArray1D<double> dEval;
+                dEval.Allocate(m_dColumnState.GetRows());
                 Evaluate(m_dSoln, dEval);
 
                 for (int p = 0; p < dEval.GetRows(); p++) {
@@ -786,13 +779,13 @@ void VerticalDynamicsFEM::StepImplicit(
 			// Build the F vector
 			BuildF(m_dColumnState, m_dSoln);
 
-			DataVector<double> dJC;
+			DataArray1D<double> dJC;
 			dJC.Initialize(m_dColumnState.GetRows());
 
-			DataVector<double> dG;
+			DataArray1D<double> dG;
 			dG.Initialize(m_dColumnState.GetRows());
 
-			DataVector<double> dJCref;
+			DataArray1D<double> dJCref;
 			dJCref.Initialize(m_dColumnState.GetRows());
 
 			Evaluate(m_dColumnState, dJCref);
@@ -857,7 +850,7 @@ void VerticalDynamicsFEM::StepImplicit(
 
 			// DEBUG (check for NANs in output)
 			if (!(m_dSoln[0] == m_dSoln[0])) {
-				DataVector<double> dEval;
+				DataArray1D<double> dEval;
 				dEval.Initialize(m_dColumnState.GetRows());
 				Evaluate(m_dSoln, dEval);
 
@@ -1233,15 +1226,15 @@ void VerticalDynamicsFEM::PrepareColumn(
 	const GridGLL * pGrid = dynamic_cast<const GridGLL *>(m_model.GetGrid());
 
 	// Metric terms
-	const DataMatrix3D<double> & dJacobian =
+	const DataArray3D<double> & dJacobian =
 		m_pPatch->GetJacobian();
-	const DataMatrix4D<double> & dDerivRNode =
+	const DataArray4D<double> & dDerivRNode =
 		m_pPatch->GetDerivRNode();
-	const DataMatrix4D<double> & dDerivRREdge =
+	const DataArray4D<double> & dDerivRREdge =
 		m_pPatch->GetDerivRREdge();
-	const DataMatrix4D<double> & dContraMetricXi =
+	const DataArray4D<double> & dContraMetricXi =
 		m_pPatch->GetContraMetricXi();
-	const DataMatrix4D<double> & dContraMetricXiREdge =
+	const DataArray4D<double> & dContraMetricXiREdge =
 		m_pPatch->GetContraMetricXiREdge();
 
 	// Physical constants
@@ -1572,27 +1565,27 @@ void VerticalDynamicsFEM::BuildF(
 	const int nRElements = pGrid->GetRElements();
 
 	// Metric terms
-	const DataMatrix3D<double> & dJacobian =
+	const DataArray3D<double> & dJacobian =
 		m_pPatch->GetJacobian();
-	const DataMatrix3D<double> & dJacobianREdge =
+	const DataArray3D<double> & dJacobianREdge =
 		m_pPatch->GetJacobianREdge();
-	const DataMatrix4D<double> & dDerivRNode =
+	const DataArray4D<double> & dDerivRNode =
 		m_pPatch->GetDerivRNode();
-	const DataMatrix4D<double> & dDerivRREdge =
+	const DataArray4D<double> & dDerivRREdge =
 		m_pPatch->GetDerivRREdge();
-	const DataMatrix4D<double> & dContraMetricA =
+	const DataArray4D<double> & dContraMetricA =
 		m_pPatch->GetContraMetricA();
-	const DataMatrix4D<double> & dContraMetricB =
+	const DataArray4D<double> & dContraMetricB =
 		m_pPatch->GetContraMetricB();
-	const DataMatrix4D<double> & dContraMetricXi =
+	const DataArray4D<double> & dContraMetricXi =
 		m_pPatch->GetContraMetricXi();
-	const DataMatrix4D<double> & dContraMetricAREdge =
+	const DataArray4D<double> & dContraMetricAREdge =
 		m_pPatch->GetContraMetricAREdge();
-	const DataMatrix4D<double> & dContraMetricBREdge =
+	const DataArray4D<double> & dContraMetricBREdge =
 		m_pPatch->GetContraMetricBREdge();
-	const DataMatrix4D<double> & dContraMetricXiREdge =
+	const DataArray4D<double> & dContraMetricXiREdge =
 		m_pPatch->GetContraMetricXiREdge();
-	const DataMatrix3D<double> & dElementArea =
+	const DataArray3D<double> & dElementArea =
 		m_pPatch->GetElementArea();
 
 	// Under this configuration, set fluxes at boundaries to zero
@@ -2070,57 +2063,57 @@ void VerticalDynamicsFEM::BuildJacobianF(
 	const LinearColumnDiffFEM & opDiffREdgeToREdge =
 		pGrid->GetOpDiffREdgeToREdge();
 
-	const DataMatrix<double> & dInterpNodeToREdge =
+	const DataArray2D<double> & dInterpNodeToREdge =
 		opInterpNodeToREdge.GetCoeffs();
-	const DataMatrix<double> & dInterpREdgeToNode =
+	const DataArray2D<double> & dInterpREdgeToNode =
 		opInterpREdgeToNode.GetCoeffs();
-	const DataMatrix<double> & dDiffNodeToNode =
+	const DataArray2D<double> & dDiffNodeToNode =
 		opDiffNodeToNode.GetCoeffs();
-	const DataMatrix<double> & dDiffNodeToREdge =
+	const DataArray2D<double> & dDiffNodeToREdge =
 		opDiffNodeToREdge.GetCoeffs();
-	const DataMatrix<double> & dDiffREdgeToNode =
+	const DataArray2D<double> & dDiffREdgeToNode =
 		opDiffREdgeToNode.GetCoeffs();
-	const DataMatrix<double> & dDiffREdgeToREdge =
+	const DataArray2D<double> & dDiffREdgeToREdge =
 		opDiffREdgeToREdge.GetCoeffs();
 
-	const DataVector<int> & iInterpNodeToREdgeBegin =
+	const DataArray1D<int> & iInterpNodeToREdgeBegin =
 		opInterpNodeToREdge.GetIxBegin();
-	const DataVector<int> & iInterpREdgeToNodeBegin =
+	const DataArray1D<int> & iInterpREdgeToNodeBegin =
 		opInterpREdgeToNode.GetIxBegin();
-	const DataVector<int> & iDiffNodeToNodeBegin =
+	const DataArray1D<int> & iDiffNodeToNodeBegin =
 		opDiffNodeToNode.GetIxBegin();
-	const DataVector<int> & iDiffNodeToREdgeBegin =
+	const DataArray1D<int> & iDiffNodeToREdgeBegin =
 		opDiffNodeToREdge.GetIxBegin();
-	const DataVector<int> & iDiffREdgeToNodeBegin =
+	const DataArray1D<int> & iDiffREdgeToNodeBegin =
 		opDiffREdgeToNode.GetIxBegin();
-	const DataVector<int> & iDiffREdgeToREdgeBegin =
+	const DataArray1D<int> & iDiffREdgeToREdgeBegin =
 		opDiffREdgeToREdge.GetIxBegin();
 
-	const DataVector<int> & iInterpNodeToREdgeEnd =
+	const DataArray1D<int> & iInterpNodeToREdgeEnd =
 		opInterpNodeToREdge.GetIxEnd();
-	const DataVector<int> & iInterpREdgeToNodeEnd =
+	const DataArray1D<int> & iInterpREdgeToNodeEnd =
 		opInterpREdgeToNode.GetIxEnd();
-	const DataVector<int> & iDiffNodeToNodeEnd =
+	const DataArray1D<int> & iDiffNodeToNodeEnd =
 		opDiffNodeToNode.GetIxEnd();
-	const DataVector<int> & iDiffNodeToREdgeEnd =
+	const DataArray1D<int> & iDiffNodeToREdgeEnd =
 		opDiffNodeToREdge.GetIxEnd();
-	const DataVector<int> & iDiffREdgeToNodeEnd =
+	const DataArray1D<int> & iDiffREdgeToNodeEnd =
 		opDiffREdgeToNode.GetIxEnd();
-	const DataVector<int> & iDiffREdgeToREdgeEnd =
+	const DataArray1D<int> & iDiffREdgeToREdgeEnd =
 		opDiffREdgeToREdge.GetIxEnd();
 
 	// Metric components
-	const DataMatrix3D<double> & dJacobianNode =
+	const DataArray3D<double> & dJacobianNode =
 		m_pPatch->GetJacobian();
-	const DataMatrix3D<double> & dJacobianREdge =
+	const DataArray3D<double> & dJacobianREdge =
 		m_pPatch->GetJacobianREdge();
-	const DataMatrix4D<double> & dContraMetricXi =
+	const DataArray4D<double> & dContraMetricXi =
 		m_pPatch->GetContraMetricXi();
-	const DataMatrix4D<double> & dDerivRNode =
+	const DataArray4D<double> & dDerivRNode =
 		m_pPatch->GetDerivRNode();
-	const DataMatrix4D<double> & dContraMetricXiREdge =
+	const DataArray4D<double> & dContraMetricXiREdge =
 		m_pPatch->GetContraMetricXiREdge();
-	const DataMatrix4D<double> & dDerivRREdge =
+	const DataArray4D<double> & dDerivRREdge =
 		m_pPatch->GetDerivRREdge();
 
 	// Physical constants
@@ -2622,41 +2615,41 @@ void VerticalDynamicsFEM::UpdateColumnTracers(
 	const LinearColumnDiffFEM & opDiffREdgeToNode =
 		pGrid->GetOpDiffREdgeToNode();
 
-	const DataMatrix<double> & dInterpNodeToREdge =
+	const DataArray2D<double> & dInterpNodeToREdge =
 		opInterpNodeToREdge.GetCoeffs();
-	const DataMatrix<double> & dDiffNodeToNode =
+	const DataArray2D<double> & dDiffNodeToNode =
 		opDiffNodeToNode.GetCoeffs();
-	const DataMatrix<double> & dDiffREdgeToNode =
+	const DataArray2D<double> & dDiffREdgeToNode =
 		opDiffREdgeToNode.GetCoeffs();
 
-	const DataVector<int> & iInterpNodeToREdgeBegin =
+	const DataArray1D<int> & iInterpNodeToREdgeBegin =
 		opInterpNodeToREdge.GetIxBegin();
-	const DataVector<int> & iDiffNodeToNodeBegin =
+	const DataArray1D<int> & iDiffNodeToNodeBegin =
 		opDiffNodeToNode.GetIxBegin();
-	const DataVector<int> & iDiffREdgeToNodeBegin =
+	const DataArray1D<int> & iDiffREdgeToNodeBegin =
 		opDiffREdgeToNode.GetIxBegin();
 
-	const DataVector<int> & iInterpNodeToREdgeEnd =
+	const DataArray1D<int> & iInterpNodeToREdgeEnd =
 		opInterpNodeToREdge.GetIxEnd();
-	const DataVector<int> & iDiffNodeToNodeEnd =
+	const DataArray1D<int> & iDiffNodeToNodeEnd =
 		opDiffNodeToNode.GetIxEnd();
-	const DataVector<int> & iDiffREdgeToNodeEnd =
+	const DataArray1D<int> & iDiffREdgeToNodeEnd =
 		opDiffREdgeToNode.GetIxEnd();
 
 	// Metric quantities
-	const DataMatrix4D<double> & dContraMetricXi =
+	const DataArray4D<double> & dContraMetricXi =
 		m_pPatch->GetContraMetricXi();
-	const DataMatrix4D<double> & dContraMetricXiREdge =
+	const DataArray4D<double> & dContraMetricXiREdge =
 		m_pPatch->GetContraMetricXiREdge();
-	const DataMatrix3D<double> & dElementArea =
+	const DataArray3D<double> & dElementArea =
 		m_pPatch->GetElementArea();
-	const DataMatrix3D<double> & dJacobianNode =
+	const DataArray3D<double> & dJacobianNode =
 		m_pPatch->GetJacobian();
-	const DataMatrix3D<double> & dJacobianREdge =
+	const DataArray3D<double> & dJacobianREdge =
 		m_pPatch->GetJacobianREdge();
-	const DataMatrix4D<double> & dDerivRNode =
+	const DataArray4D<double> & dDerivRNode =
 		m_pPatch->GetDerivRNode();
-	const DataMatrix4D<double> & dDerivRREdge =
+	const DataArray4D<double> & dDerivRREdge =
 		m_pPatch->GetDerivRREdge();
 
 	// Under this configuration, set fluxes at boundaries to zero
@@ -3037,7 +3030,7 @@ void VerticalDynamicsFEM::FilterNegativeTracers(
 
 		const PatchBox & box = pPatch->GetPatchBox();
 
-		const DataMatrix3D<double> & dElementArea =
+		const DataArray3D<double> & dElementArea =
 			pPatch->GetElementArea();
 
 		GridData4D & dataUpdateTracer =

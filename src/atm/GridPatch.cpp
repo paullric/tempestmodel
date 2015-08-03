@@ -150,128 +150,128 @@ void GridPatch::InitializeDataLocal() {
 	MPI_Comm_rank(MPI_COMM_WORLD, &m_iProcessor);
 
 	// Jacobian at each node (2D)
-	m_dataJacobian2D.Initialize(
+	m_dataJacobian2D.Allocate(
 		m_box.GetATotalWidth(),
 		m_box.GetBTotalWidth());
 
 	// Contravariant metric (2D) components at each node
-	m_dataContraMetric2DA.Initialize(
+	m_dataContraMetric2DA.Allocate(
 		m_box.GetATotalWidth(),
 		m_box.GetBTotalWidth(),
 		2);
 
-	m_dataContraMetric2DB.Initialize(
+	m_dataContraMetric2DB.Allocate(
 		m_box.GetATotalWidth(),
 		m_box.GetBTotalWidth(),
 		2);
 
 	// Covariant metric (2D) components at each node
-	m_dataCovMetric2DA.Initialize(
+	m_dataCovMetric2DA.Allocate(
 		m_box.GetATotalWidth(),
 		m_box.GetBTotalWidth(),
 		2);
 
-	m_dataCovMetric2DB.Initialize(
+	m_dataCovMetric2DB.Allocate(
 		m_box.GetATotalWidth(),
 		m_box.GetBTotalWidth(),
 		2);
 
 	// Jacobian at each node
-	m_dataJacobian.Initialize(
+	m_dataJacobian.Allocate(
 		m_grid.GetRElements(),
 		m_box.GetATotalWidth(),
 		m_box.GetBTotalWidth());
 
 	// Jacobian at each interface
-	m_dataJacobianREdge.Initialize(
+	m_dataJacobianREdge.Allocate(
 		m_grid.GetRElements()+1,
 		m_box.GetATotalWidth(),
 		m_box.GetBTotalWidth());
 
 	// Contravariant metric components at each node
-	m_dataContraMetricA.Initialize(
+	m_dataContraMetricA.Allocate(
 		m_grid.GetRElements(),
 		m_box.GetATotalWidth(),
 		m_box.GetBTotalWidth(),
 		3);
 
-	m_dataContraMetricB.Initialize(
+	m_dataContraMetricB.Allocate(
 		m_grid.GetRElements(),
 		m_box.GetATotalWidth(),
 		m_box.GetBTotalWidth(),
 		3);
 
-	m_dataContraMetricXi.Initialize(
+	m_dataContraMetricXi.Allocate(
 		m_grid.GetRElements(),
 		m_box.GetATotalWidth(),
 		m_box.GetBTotalWidth(),
 		3);
 
 	// Covariant metric components at each node
-	m_dataCovMetricA.Initialize(
+	m_dataCovMetricA.Allocate(
 		m_grid.GetRElements(),
 		m_box.GetATotalWidth(),
 		m_box.GetBTotalWidth(),
 		3);
 
-	m_dataCovMetricB.Initialize(
+	m_dataCovMetricB.Allocate(
 		m_grid.GetRElements(),
 		m_box.GetATotalWidth(),
 		m_box.GetBTotalWidth(),
 		3);
 
-	m_dataCovMetricXi.Initialize(
+	m_dataCovMetricXi.Allocate(
 		m_grid.GetRElements(),
 		m_box.GetATotalWidth(),
 		m_box.GetBTotalWidth(),
 		3);
 
 	// Xi contravariant metric on interfaces
-	m_dataContraMetricAREdge.Initialize(
+	m_dataContraMetricAREdge.Allocate(
 		m_grid.GetRElements()+1,
 		m_box.GetATotalWidth(),
 		m_box.GetBTotalWidth(),
 		3);
 
-	m_dataContraMetricBREdge.Initialize(
+	m_dataContraMetricBREdge.Allocate(
 		m_grid.GetRElements()+1,
 		m_box.GetATotalWidth(),
 		m_box.GetBTotalWidth(),
 		3);
 
-	m_dataContraMetricXiREdge.Initialize(
+	m_dataContraMetricXiREdge.Allocate(
 		m_grid.GetRElements()+1,
 		m_box.GetATotalWidth(),
 		m_box.GetBTotalWidth(),
 		3);
 
 	// Vertical coordinate transform (derivatives of the radius)
-	m_dataDerivRNode.Initialize(
+	m_dataDerivRNode.Allocate(
 		m_grid.GetRElements(),
 		m_box.GetATotalWidth(),
 		m_box.GetBTotalWidth(),
 		3);
 
-	m_dataDerivRREdge.Initialize(
+	m_dataDerivRREdge.Allocate(
 		m_grid.GetRElements()+1,
 		m_box.GetATotalWidth(),
 		m_box.GetBTotalWidth(),
 		3);
 
 	// Element area at each node
-	m_dataElementArea.Initialize(
+	m_dataElementArea.Allocate(
 		m_grid.GetRElements(),
 		m_box.GetATotalWidth(),
 		m_box.GetBTotalWidth());
 
 	// Element area at each interface
-	m_dataElementAreaREdge.Initialize(
+	m_dataElementAreaREdge.Allocate(
 		m_grid.GetRElements()+1,
 		m_box.GetATotalWidth(),
 		m_box.GetBTotalWidth());
 
 	// Topography height at each node
-	m_dataTopography.Initialize(
+	m_dataTopography.Allocate(
 		m_box.GetATotalWidth(),
 		m_box.GetBTotalWidth());
 
@@ -285,28 +285,28 @@ void GridPatch::InitializeDataLocal() {
 		m_box.GetHaloElements());
 
 	// Longitude at each node
-	m_dataLon.Initialize(
+	m_dataLon.Allocate(
 		m_box.GetATotalWidth(),
 		m_box.GetBTotalWidth());
 
 	// Latitude at each node
-	m_dataLat.Initialize(
+	m_dataLat.Allocate(
 		m_box.GetATotalWidth(),
 		m_box.GetBTotalWidth());
 
 	// Coriolis parameter at each node
-	m_dataCoriolisF.Initialize(
+	m_dataCoriolisF.Allocate(
 		m_box.GetATotalWidth(),
 		m_box.GetBTotalWidth());
 
 	// Radial coordinate at each level
-	m_dataZLevels.Initialize(
+	m_dataZLevels.Allocate(
 		m_grid.GetRElements(),
 		m_box.GetATotalWidth(),
 		m_box.GetBTotalWidth());
 
 	// Radial coordinate at each interface
-	m_dataZInterfaces.Initialize(
+	m_dataZInterfaces.Allocate(
 		m_grid.GetRElements()+1,
 		m_box.GetATotalWidth(),
 		m_box.GetBTotalWidth());
@@ -363,15 +363,17 @@ void GridPatch::InitializeDataLocal() {
 	// Initialize tracer data
 	m_datavecTracers.resize(model.GetTracerDataInstances());
 
-	for (int m = 0; m < model.GetTracerDataInstances(); m++) {
-		m_datavecTracers[m].Initialize(
-			DataType_Tracers,
-			DataLocation_Node,
-			eqn.GetTracers(),
-			m_grid.GetRElements(),
-			m_box.GetATotalWidth(),
-			m_box.GetBTotalWidth(),
-			m_box.GetHaloElements());
+	if (eqn.GetTracers() != 0) {
+		for (int m = 0; m < model.GetTracerDataInstances(); m++) {
+			m_datavecTracers[m].Initialize(
+				DataType_Tracers,
+				DataLocation_Node,
+				eqn.GetTracers(),
+				m_grid.GetRElements(),
+				m_box.GetATotalWidth(),
+				m_box.GetBTotalWidth(),
+				m_box.GetHaloElements());
+		}
 	}
 
 	// Pressure data
@@ -382,23 +384,7 @@ void GridPatch::InitializeDataLocal() {
 		m_box.GetATotalWidth(),
 		m_box.GetBTotalWidth(),
 		m_box.GetHaloElements());
-/*
-	m_dataDaPressure.Initialize(
-		DataType_Pressure,
-		DataLocation_Node,
-		m_grid.GetRElements(),
-		m_box.GetATotalWidth(),
-		m_box.GetBTotalWidth(),
-		m_box.GetHaloElements());
 
-	m_dataDbPressure.Initialize(
-		DataType_Pressure,
-		DataLocation_Node,
-		m_grid.GetRElements(),
-		m_box.GetATotalWidth(),
-		m_box.GetBTotalWidth(),
-		m_box.GetHaloElements());
-*/
 	m_dataDxPressure.Initialize(
 		DataType_Pressure,
 		DataLocation_Node,
@@ -451,7 +437,6 @@ void GridPatch::InitializeDataLocal() {
 		m_box.GetATotalWidth(),
 		m_box.GetBTotalWidth(),
 		m_box.GetHaloElements());
-
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -463,30 +448,33 @@ void GridPatch::DeinitializeData() {
 
 	m_fContainsData = false;
 
-	m_dataJacobian2D.Deinitialize();
-	m_dataContraMetric2DA.Deinitialize();
-	m_dataContraMetric2DB.Deinitialize();
-	m_dataCovMetric2DA.Deinitialize();
-	m_dataCovMetric2DB.Deinitialize();
+	m_dataJacobian2D.Detach();
+	m_dataContraMetric2DA.Detach();
+	m_dataContraMetric2DB.Detach();
+	m_dataCovMetric2DA.Detach();
+	m_dataCovMetric2DB.Detach();
 
-	m_dataJacobian.Deinitialize();
-	m_dataJacobianREdge.Deinitialize();
-	m_dataContraMetricA.Deinitialize();
-	m_dataContraMetricB.Deinitialize();
-	m_dataContraMetricXi.Deinitialize();
-	m_dataCovMetricA.Deinitialize();
-	m_dataCovMetricB.Deinitialize();
-	m_dataCovMetricXi.Deinitialize();
-	m_dataContraMetricXiREdge.Deinitialize();
-	m_dataDerivRNode.Deinitialize();
-	m_dataElementArea.Deinitialize();
-	m_dataElementAreaREdge.Deinitialize();
-	m_dataTopography.Deinitialize();
+	m_dataJacobian.Detach();
+	m_dataJacobianREdge.Detach();
+	m_dataContraMetricA.Detach();
+	m_dataContraMetricB.Detach();
+	m_dataContraMetricXi.Detach();
+	m_dataCovMetricA.Detach();
+	m_dataCovMetricB.Detach();
+	m_dataCovMetricXi.Detach();
+	m_dataContraMetricXiREdge.Detach();
+	m_dataDerivRNode.Detach();
+	m_dataElementArea.Detach();
+	m_dataElementAreaREdge.Detach();
+	m_dataTopography.Detach();
+
 	m_dataTopographyDeriv.Deinitialize();
-	m_dataLon.Deinitialize();
-	m_dataLat.Deinitialize();
-	m_dataZLevels.Deinitialize();
-	m_dataZInterfaces.Deinitialize();
+
+	m_dataLon.Detach();
+	m_dataLat.Detach();
+	m_dataZLevels.Detach();
+	m_dataZInterfaces.Detach();
+
 	m_datavecStateNode.Deinitialize();
 	m_datavecStateREdge.Deinitialize();
 	m_datavecTracers.Deinitialize();
@@ -757,7 +745,7 @@ void GridPatch::ComputeTemperature(
 
 void GridPatch::Checksum(
 	DataType eDataType,
-	DataVector<double> & dChecksums,
+	DataArray1D<double> & dChecksums,
 	int iDataIndex,
 	ChecksumType eChecksumType
 ) const {
@@ -817,7 +805,6 @@ void GridPatch::Checksum(
 		_EXCEPTIONT("Invalid DataType.");
 	}
 
-
 	// ChecksumType_Sum
 	if (eChecksumType == ChecksumType_Sum) {
 		for (c = 0; c < nodevars.size(); c++) {
@@ -831,6 +818,7 @@ void GridPatch::Checksum(
 		}
 		}
 		}
+
 		for (c = 0; c < redgevars.size(); c++) {
 		for (k = 0; k <= m_grid.GetRElements(); k++) {
 		for (i = m_box.GetAInteriorBegin(); i < m_box.GetAInteriorEnd(); i++) {
@@ -856,6 +844,7 @@ void GridPatch::Checksum(
 		}
 		}
 		}
+
 		for (c = 0; c < redgevars.size(); c++) {
 		for (k = 0; k <= m_grid.GetRElements(); k++) {
 		for (i = m_box.GetAInteriorBegin(); i < m_box.GetAInteriorEnd(); i++) {
@@ -881,6 +870,7 @@ void GridPatch::Checksum(
 		}
 		}
 		}
+
 		for (c = 0; c < redgevars.size(); c++) {
 		for (k = 0; k <= m_grid.GetRElements(); k++) {
 		for (i = m_box.GetAInteriorBegin(); i < m_box.GetAInteriorEnd(); i++) {
@@ -907,6 +897,7 @@ void GridPatch::Checksum(
 		}
 		}
 		}
+
 		for (c = 0; c < redgevars.size(); c++) {
 		for (k = 0; k <= m_grid.GetRElements(); k++) {
 		for (i = m_box.GetAInteriorBegin(); i < m_box.GetAInteriorEnd(); i++) {
@@ -1335,7 +1326,7 @@ void GridPatch::CopyData(
 ///////////////////////////////////////////////////////////////////////////////
 
 void GridPatch::LinearCombineData(
-	const DataVector<double> & dCoeff,
+	const DataArray1D<double> & dCoeff,
 	int ixDest,
 	DataType eDataType
 ) {
@@ -1484,13 +1475,13 @@ void GridPatch::AddReferenceState(
 ///////////////////////////////////////////////////////////////////////////////
 
 void GridPatch::InterpolateData(
-	const DataVector<double> & dAlpha,
-	const DataVector<double> & dBeta,
-	const DataVector<int> & iPanel,
+	const DataArray1D<double> & dAlpha,
+	const DataArray1D<double> & dBeta,
+	const DataArray1D<int> & iPanel,
 	DataType eDataType,
 	DataLocation eDataLocation,
 	bool fInterpAllVariables,
-	DataMatrix3D<double> & dInterpData,
+	DataArray3D<double> & dInterpData,
 	bool fIncludeReferenceState,
 	bool fConvertToPrimitive
 ) {

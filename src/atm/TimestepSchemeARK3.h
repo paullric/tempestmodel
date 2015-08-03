@@ -19,7 +19,7 @@
 
 #include "TimestepScheme.h"
 #include "Exception.h"
-#include "DataVector.h"
+#include "DataArray1D.h"
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -95,47 +95,47 @@ private:
 	///	<summary>
 	///		K1 vector combination (Implicit)
 	///	</summary>
-	DataVector<double> m_dK1Combo;
+	DataArray1D<double> m_dK1Combo;
 
 	///	<summary>
 	///		Kh1 vector combination (Explicit)
 	///	</summary>
-	DataVector<double> m_dKh1Combo;
+	DataArray1D<double> m_dKh1Combo;
 
 	///	<summary>
 	///		Explicit evaluation at the 2nd substage
 	///	</summary>
-	DataVector<double> m_du2fCombo;
+	DataArray1D<double> m_du2fCombo;
 
 	///	<summary>
 	///		K2 vector combination (Implicit)
 	///	</summary>
-	DataVector<double> m_dK2Combo;
+	DataArray1D<double> m_dK2Combo;
 
 	///	<summary>
 	///		Kh2 vector combination (Explicit)
 	///	</summary>
-	DataVector<double> m_dKh2Combo;
+	DataArray1D<double> m_dKh2Combo;
 
 	///	<summary>
 	///		Explicit evaluation at the 3rd substage
 	///	</summary>
-	DataVector<double> m_du3fCombo;
+	DataArray1D<double> m_du3fCombo;
 
 	///	<summary>
 	///		K3 vector combination (Implicit)
 	///	</summary>
-	DataVector<double> m_dK3Combo;
+	DataArray1D<double> m_dK3Combo;
 
 	///	<summary>
 	///		Kh3 vector combination (Explicit)
 	///	</summary>
-	DataVector<double> m_dKh3Combo;
+	DataArray1D<double> m_dKh3Combo;
 
 	///	<summary>
 	///		Explicit evaluation at the 4th substage
 	///	</summary>
-	DataVector<double> m_du4fCombo;
+	DataArray1D<double> m_du4fCombo;
 };
 
 ///////////////////////////////////////////////////////////////////////////////

@@ -19,6 +19,8 @@
 #include "HorizontalDynamics.h"
 #include "VerticalDynamics.h"
 
+#pragma message "File tagged for cleanup"
+
 ///////////////////////////////////////////////////////////////////////////////
 // THESE COEFFICIENTS ARE COMPUTED FROM THE ORIGINAL TABLEAUX
 // IMPLEMENTS RK.4.A.1 from Liu et al. 2006 Pg 87
@@ -51,23 +53,23 @@ TimestepSchemeARK4::TimestepSchemeARK4(
 ) :
 	TimestepScheme(model)
 {
-    m_dKh1Combo.Initialize(5);
-    m_dKh2Combo.Initialize(7);
-    m_dKh3Combo.Initialize(9);
-	m_dKh4Combo.Initialize(11);
-	m_dKh5Combo.Initialize(13);
-	m_dK0Combo.Initialize(4);
-    m_dK1Combo.Initialize(6);
-    m_dK2Combo.Initialize(8);
-    m_dK3Combo.Initialize(10);
-	m_dK4Combo.Initialize(12);
-	m_dK5Combo.Initialize(14);
-	m_du1fCombo.Initialize(4);
-    m_du2fCombo.Initialize(6);
-    m_du3fCombo.Initialize(8);
-    m_du4fCombo.Initialize(10);
-	m_du5fCombo.Initialize(12);
-	m_du6fCombo.Initialize(14);
+    m_dKh1Combo.Allocate(5);
+    m_dKh2Combo.Allocate(7);
+    m_dKh3Combo.Allocate(9);
+	m_dKh4Combo.Allocate(11);
+	m_dKh5Combo.Allocate(13);
+	m_dK0Combo.Allocate(4);
+    m_dK1Combo.Allocate(6);
+    m_dK2Combo.Allocate(8);
+    m_dK3Combo.Allocate(10);
+	m_dK4Combo.Allocate(12);
+	m_dK5Combo.Allocate(14);
+	m_du1fCombo.Allocate(4);
+    m_du2fCombo.Allocate(6);
+    m_du3fCombo.Allocate(8);
+    m_du4fCombo.Allocate(10);
+	m_du5fCombo.Allocate(12);
+	m_du6fCombo.Allocate(14);
 }
 
 ///////////////////////////////////////////////////////////////////////////////

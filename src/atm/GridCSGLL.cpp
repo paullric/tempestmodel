@@ -101,8 +101,7 @@ void GridCSGLL::AddDefaultPatches() {
 	}
 
 	int nElementsPerDirection = GetABaseResolution() / nProcsPerDirection;
-	DataVector<int> iBoxBegin;
-	iBoxBegin.Initialize(nProcsPerDirection + 1);
+	DataArray1D<int> iBoxBegin(nProcsPerDirection + 1);
 
 	iBoxBegin[0] = 0;
 	for (int n = 1; n < nProcsPerDirection; n++) {
@@ -114,6 +113,7 @@ void GridCSGLL::AddDefaultPatches() {
 	for (int n = 0; n < 6; n++) {
 	for (int i = 0; i < nProcsPerDirection; i++) {
 	for (int j = 0; j < nProcsPerDirection; j++) {
+
 		double dDeltaA = 0.5 * M_PI / GetABaseResolution();
 
 		GridSpacingGaussLobattoRepeated
@@ -175,11 +175,11 @@ void GridCSGLL::GetReferenceGridBounds(
 ///////////////////////////////////////////////////////////////////////////////
 
 void GridCSGLL::ConvertReferenceToPatchCoord(
-	const DataVector<double> & dXReference,
-	const DataVector<double> & dYReference,
-	DataVector<double> & dAlpha,
-	DataVector<double> & dBeta,
-	DataVector<int> & iPatch
+	const DataArray1D<double> & dXReference,
+	const DataArray1D<double> & dYReference,
+	DataArray1D<double> & dAlpha,
+	DataArray1D<double> & dBeta,
+	DataArray1D<int> & iPatch
 ) const {
 	if ((dXReference.GetRows() != dYReference.GetRows()) ||
 		(dXReference.GetRows() != dAlpha.GetRows()) ||
@@ -234,10 +234,10 @@ void GridCSGLL::ConvertReferenceToPatchCoord(
 
 void GridCSGLL::GetPatchFromCoordinateIndex(
 	int iRefinementLevel,
-	const DataVector<int> & vecIxA,
-	const DataVector<int> & vecIxB,
-	const DataVector<int> & vecPanel,
-	DataVector<int> & vecPatchIndex,
+	const DataArray1D<int> & vecIxA,
+	const DataArray1D<int> & vecIxB,
+	const DataArray1D<int> & vecPanel,
+	DataArray1D<int> & vecPatchIndex,
 	int nVectorLength
 ) {
 	// Set vector length

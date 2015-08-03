@@ -85,7 +85,7 @@ void HeldSuarezPhysics::Perform(
 		const PatchBox & box = pPatch->GetPatchBox();
 
 		// Get latitude
-		const DataMatrix<double> & dataLatitude = pPatch->GetLatitude();
+		const DataArray2D<double> & dataLatitude = pPatch->GetLatitude();
 
 		// Grid data
 		GridData4D & dataNode =

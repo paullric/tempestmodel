@@ -12,10 +12,10 @@ include $(TEMPESTBASEDIR)/mk/Make.defs
 
 # Files in this directory
 FILES= Preferences.cpp \
-	MatlabOutput.cpp \
-	MatlabInput.cpp \
+	DataContainer.cpp \
 	FunctionTimer.cpp \
 	MathHelper.cpp \
+	Exception.cpp \
 	Announce.cpp \
 	LinearAlgebra.cpp \
 	LegendrePolynomial.cpp \

@@ -19,7 +19,7 @@
 
 #include "TimestepScheme.h"
 #include "Exception.h"
-#include "DataVector.h"
+#include "DataArray1D.h"
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -104,52 +104,52 @@ private:
 	///	<summary>
 	///		Carryover combination.
 	///	</summary>
-	DataVector<double> m_dCarryoverCombination;
+	DataArray1D<double> m_dCarryoverCombination;
 
 	///	<summary>
 	///		Off-centering combination.
 	///	</summary>
-	DataVector<double> m_dOffCenteringCombination;
+	DataArray1D<double> m_dOffCenteringCombination;
 
 	///	<summary>
 	///		Final carryover combination.
 	///	</summary>
-	DataVector<double> m_dCarryoverFinal;
+	DataArray1D<double> m_dCarryoverFinal;
 
 	///	<summary>
 	///		Linear combination coefficients used by RK4.
 	///	</summary>
-	DataVector<double> m_dRK4Combination;
+	DataArray1D<double> m_dRK4Combination;
 
 	///	<summary>
 	///		Linear combination coefficients used by SSPRK3 (combination A).
 	///	</summary>
-	DataVector<double> m_dSSPRK3CombinationA;
+	DataArray1D<double> m_dSSPRK3CombinationA;
 
 	///	<summary>
 	///		Linear combination coefficients used by SSPRK3 (combination B).
 	///	</summary>
-	DataVector<double> m_dSSPRK3CombinationB;
+	DataArray1D<double> m_dSSPRK3CombinationB;
 
 	///	<summary>
 	///		Linear combination coefficients used by KGU35.
 	///	</summary>
-	DataVector<double> m_dKinnmarkGrayUllrichCombination;
+	DataArray1D<double> m_dKinnmarkGrayUllrichCombination;
 
 	///	<summary>
 	///		Linear combination coefficients used by SSPRK53 (combination A).
 	///	</summary>
-	DataVector<double> m_dSSPRK53CombinationA;
+	DataArray1D<double> m_dSSPRK53CombinationA;
 
 	///	<summary>
 	///		Linear combination coefficients used by SSPRK53 (combination B).
 	///	</summary>
-	DataVector<double> m_dSSPRK53CombinationB;
+	DataArray1D<double> m_dSSPRK53CombinationB;
 
 	///	<summary>
 	///		Linear combination coefficients used by SSPRK53 (combination C).
 	///	</summary>
-	DataVector<double> m_dSSPRK53CombinationC;
+	DataArray1D<double> m_dSSPRK53CombinationC;
 
 };
 

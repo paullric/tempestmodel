@@ -22,11 +22,11 @@
 #include "Exception.h"
 #include "DataChunk.h"
 #include "DataType.h"
+#include "DataLocation.h"
 
-#include <sstream>
-#include <iostream>
 #include <cstdlib>
-#include <cstring>
+
+#include <iostream>
 
 template <typename T>
 class DataArray1D : public DataChunk {
@@ -39,40 +39,103 @@ public:
 		DataType eDataType = DataType_Default,
 		DataLocation eDataLocation = DataLocation_Default
 	) :
-		m_sRows(0),
+		m_fOwnsData(true),
+		m_sSize(0),
 		m_eDataType(eDataType),
 		m_eDataLocation(eDataLocation),
 		m_data(NULL)
 	{ }
 
 	///	<summary>
-	///		Constructor with rows.
+	///		Constructor allowing specification of size.
 	///	</summary>
 	DataArray1D(
-		size_t sRows,
+		size_t sSize,
 		DataType eDataType = DataType_Default,
-		DataLocation eDataLocation = DataLocation_Default
+		DataLocation eDataLocation = DataLocation_Default,
+		bool fAllocate = true
 	) :
-		m_sRows(sRows),
+		m_fOwnsData(true),
+		m_sSize(sSize),
 		m_eDataType(eDataType),
 		m_eDataLocation(eDataLocation),
 		m_data(NULL)
-	{ }
+	{
+		if (fAllocate) {
+			Allocate();
+		}
+	}
+
+	///	<summary>
+	///		Copy constructor.
+	///	</summary>
+	DataArray1D(const DataArray1D<T> & da) :
+		m_fOwnsData(true),
+		m_sSize(0),
+		m_eDataType(DataType_Default),
+		m_eDataLocation(DataLocation_Default),
+		m_data(NULL)
+	{
+		Assign(da);
+	}
 
 	///	<summary>
 	///		Destructor.
 	///	</summary>
 	virtual ~DataArray1D() {
+		Detach();
+	}
+
+	///	<summary>
+	///		Get the size of the data, in bytes.
+	///	</summary>
+	virtual size_t GetByteSize() const {
+		return (m_sSize * sizeof(T));
+	}
+
+	///	<summary>
+	///		Allocate data in this DataArray1D.
+	///	</summary>
+	void Allocate(
+		size_t sSize = 0
+	) {
+		if (!m_fOwnsData) {
+			_EXCEPTIONT("Attempting to Allocate() on attached DataArray1D");
+		}
+
+		if (sSize == 0) {
+			sSize = m_sSize;
+		}
+		if (sSize == 0) {
+			_EXCEPTIONT("Attempting to Allocate() zero-size DataArray1D");
+		}
+		if ((m_data == NULL) || (m_sSize != sSize)) {
+			Detach();
+
+			m_sSize = sSize;
+
+			m_data = reinterpret_cast<T *>(malloc(GetByteSize()));
+		}
+
+		Zero();
+
+		m_fOwnsData = true;
+	}
+
+	///	<summary>
+	///		Set the number of rows in this DataArray1D.
+	///	</summary>
+	inline void SetSize(
+		size_t sSize
+	) {
+		if (IsAttached()) {
+			_EXCEPTIONT("Attempting to SetSize() on attached DataArray1D");
+		}
+
+		m_sSize = sSize;
 	}
 
 public:
-	///	<summary>
-	///		Get the size of this DataChunk, in bytes.
-	///	</summary>
-	virtual size_t GetSize() const {
-		return (m_sRows * sizeof(T));
-	}
-
 	///	<summary>
 	///		Determine if this DataChunk is attached to a data array.
 	///	</summary>
@@ -84,33 +147,49 @@ public:
 	///		Attach this DataChunk to an array of pre-allocated data.
 	///	</summary>
 	virtual void AttachTo(void * ptr) {
+		if (IsAttached()) {
+			_EXCEPTIONT("Attempting to attach already attached DataArray1D");
+		}
+
 		m_data = reinterpret_cast<T *>(ptr);
+		m_fOwnsData = false;
 	}
 
 	///	<summary>
 	///		Detach data from this DataChunk.
 	///	</summary>
 	virtual void Detach() {
+		if ((m_fOwnsData) && (m_data != NULL)) {
+			delete[] m_data;
+		}
+		m_fOwnsData = true;
 		m_data = NULL;
+	}
+
+	///	<summary>
+	///		Deallocate data from this DataChunk.
+	///	</summary>
+	void Deallocate() {
+		if (!m_fOwnsData) {
+			_EXCEPTIONT("Attempting to Deallocate an attached DataArray1D");
+		}
+
+		Detach();
 	}
 
 public:
 	///	<summary>
-	///		Get the number of elements in this DataArray1D.
+	///		Get the size of the data.
 	///	</summary>
-	inline size_t GetRows() const {
-		return m_sRows;
+	size_t GetTotalSize() const {
+		return (m_sSize);
 	}
 
 	///	<summary>
-	///		Set the number of elements in this DataArray1D.
+	///		Get the number of elements in this DataArray1D.
 	///	</summary>
-	inline void SetRows(size_t sRows) const {
-		if (IsAttached()) {
-			_EXCEPTIONT("Attempting to SetRows on attached DataArray1D");
-		}
-
-		m_sRows = sRows;
+	inline size_t GetRows() const {
+		return m_sSize;
 	}
 
 public:
@@ -134,10 +213,37 @@ public:
 	///	</summary>
 	void Assign(const DataArray1D<T> & da) {
 
-		// Check initialization status
+		// Verify source array existence
 		if (!da.IsAttached()) {
-			_EXCEPTIONT("Attempting to assign unattached DataArray1D");
+			if (!IsAttached()) {
+				m_sSize = da.m_sSize;
+
+				m_eDataType = da.m_eDataType;
+				m_eDataLocation = da.m_eDataLocation;
+				return;
+			}
+
+			_EXCEPTIONT("Attempting to assign unattached DataArray1D\n"
+				"to attached DataArray1D (undefined behavior)");
 		}
+
+		// Allocate if necessary
+		if (!IsAttached()) {
+			Allocate(da.m_sSize);
+			m_eDataType = da.m_eDataType;
+			m_eDataLocation = da.m_eDataLocation;
+		}
+		if (IsAttached() && m_fOwnsData) {
+			if (m_sSize != da.m_sSize) {
+				Deallocate();
+				Allocate(da.m_sSize);
+			}
+
+			m_eDataType = da.m_eDataType;
+			m_eDataLocation = da.m_eDataLocation;
+		}
+
+		// Verify array consistency
 		if (da.GetRows() != GetRows()) {
 			_EXCEPTIONT("Size mismatch in assignment of DataArray1D");
 		}
@@ -149,7 +255,7 @@ public:
 		}
 
 		// Copy data
-		memcpy(m_data, da.m_data, m_sRows * sizeof(T));
+		memcpy(m_data, da.m_data, GetByteSize());
 	}
 
 	///	<summary>
@@ -172,7 +278,7 @@ public:
 		}
 
 		// Set content to zero
-		memset(m_data, 0, m_sRows * sizeof(T));
+		memset(m_data, 0, m_sSize * sizeof(T));
 	}
 
 	///	<summary>
@@ -182,11 +288,11 @@ public:
 
 		// Check that this DataArray1D is attached to a data object
 		if (!IsAttached()) {
-			_EXCEPTIONT("Attempted operation on uninitialized DataArray1D");
+			_EXCEPTIONT("Attempted operation on unattached DataArray1D");
 		}
 
 		// Scale data values
-		for (size_t i = 0; i < m_sRows; i++) {
+		for (size_t i = 0; i < m_sSize; i++) {
 			m_data[i] *= x;
 		}
 	}
@@ -195,24 +301,23 @@ public:
 	///		Add a factor of the given DataArray1D to this DataArray1D.
 	///	</summary>
 	void AddProduct(
-		const DataArray1D<T> & darr,
+		const DataArray1D<T> & da,
 		const T & x
 	) {
-
 		// Check that this DataArray1D is attached to a data object
 		if (!IsAttached()) {
-			_EXCEPTIONT("Attempted operation on uninitialized DataArray1D");
+			_EXCEPTIONT("Attempted operation on unattached DataArray1D");
 		}
-		if (!darr.IsAttached()) {
-			_EXCEPTIONT("Attempted operation on uninitialized DataArray1D");
+		if (!da.IsAttached()) {
+			_EXCEPTIONT("Attempted operation on unattached DataArray1D");
 		}
-		if (GetRows() != darr.GetRows()) {
-			_EXCEPTIONT("Mismatch in DataArray1D size");
+		if (da.GetRows() != GetRows()) {
+			_EXCEPTIONT("Size mismatch in DataArray1D");
 		}
 
 		// Scale data values
-		for (size_t i = 0; i < m_sRows; i++) {
-			m_data[i] += x * darr.m_data[i];
+		for (size_t i = 0; i < m_sSize; i++) {
+			m_data[i] += x * da.m_data[i];
 		}
 	}
 
@@ -220,22 +325,27 @@ public:
 	///	<summary>
 	///		Cast to an array.
 	///	</summary>
-	inline operator (T *)() {
+	inline T* GetData() const {
 		return m_data;
 	}
 
 	///	<summary>
 	///		Cast to an array.
 	///	</summary>
-	inline operator const (T *)() const {
+	inline operator T*() const {
 		return m_data;
 	}
 
 private:
 	///	<summary>
+	///		A flag indicating this array owns its data.
+	///	</summary>
+	bool m_fOwnsData;
+
+	///	<summary>
 	///		The number of rows in this DataArray1D.
 	///	</summary>
-	size_t m_sRows;
+	size_t m_sSize;
 
 	///	<summary>
 	///		The type of data stored in this DataArray1D.

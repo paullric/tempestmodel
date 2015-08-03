@@ -60,29 +60,29 @@ void JacobianFreeNewtonKrylov::InitializeJFNK(
 	m_dEpsilon = dEpsilon;
 
 	// Initialize buffer arrays
-	m_dG.Initialize(m_nEquationCount);
+	m_dG.Allocate(m_nEquationCount);
 
-	m_dFX.Initialize(m_nEquationCount);
+	m_dFX.Allocate(m_nEquationCount);
 
-	m_dV.Initialize(m_nIterPerRestart+1, m_nEquationCount);
+	m_dV.Allocate(m_nIterPerRestart+1, m_nEquationCount);
 
-	m_dH.Initialize(m_nIterPerRestart * (m_nIterPerRestart + 1) / 2);
+	m_dH.Allocate(m_nIterPerRestart * (m_nIterPerRestart + 1) / 2);
 
-	m_dCS.Initialize(m_nIterPerRestart);
+	m_dCS.Allocate(m_nIterPerRestart);
 
-	m_dSN.Initialize(m_nIterPerRestart);
+	m_dSN.Allocate(m_nIterPerRestart);
 
-	m_dS.Initialize(m_nIterPerRestart);
+	m_dS.Allocate(m_nIterPerRestart);
 
-	m_dT.Initialize(m_nIterPerRestart);
+	m_dT.Allocate(m_nIterPerRestart);
 
-	m_dY.Initialize(m_nEquationCount);
+	m_dY.Allocate(m_nEquationCount);
 
-	m_dW.Initialize(m_nEquationCount);
+	m_dW.Allocate(m_nEquationCount);
 
-	m_dPertX.Initialize(m_nEquationCount);
+	m_dPertX.Allocate(m_nEquationCount);
 
-	m_dR.Initialize(m_nEquationCount);
+	m_dR.Allocate(m_nEquationCount);
 
 	m_fInitialized = true;
 }

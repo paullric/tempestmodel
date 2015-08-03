@@ -77,11 +77,11 @@ void GridGLL::Initialize() {
 	}
 
 	// Quadrature points for Gauss and Gauss-Lobatto quadrature
-	DataVector<double> dG;
-	DataVector<double> dW;
+	DataArray1D<double> dG;
+	DataArray1D<double> dW;
 
-	DataVector<double> dGL;
-	DataVector<double> dWL;
+	DataArray1D<double> dGL;
+	DataArray1D<double> dWL;
 
 	///////////////////////////////////////////////////////////////////////////
 	// Get quadrature points for Gauss-Lobatto quadrature (horizontal)
@@ -89,11 +89,10 @@ void GridGLL::Initialize() {
 
 	// Derivatives of the 1D basis functions at each point on the reference
 	// element [0, 1]
-	m_dDxBasis1D.Initialize(m_nHorizontalOrder, m_nHorizontalOrder);
-	m_dStiffness1D.Initialize(m_nHorizontalOrder, m_nHorizontalOrder);
+	m_dDxBasis1D.Allocate(m_nHorizontalOrder, m_nHorizontalOrder);
+	m_dStiffness1D.Allocate(m_nHorizontalOrder, m_nHorizontalOrder);
 
-	DataVector<double> dCoeffs;
-	dCoeffs.Initialize(m_nHorizontalOrder);
+	DataArray1D<double> dCoeffs(m_nHorizontalOrder);
 
 	for (int i = 0; i < m_nHorizontalOrder; i++) {
 		PolynomialInterp::DiffLagrangianPolynomialCoeffs(
@@ -135,7 +134,7 @@ void GridGLL::Initialize() {
 	m_dGLLWeights1D = dWL;
 
 	// Get the derivatives of the flux correction function
-	m_dFluxDeriv1D.Initialize(m_nHorizontalOrder);
+	m_dFluxDeriv1D.Allocate(m_nHorizontalOrder);
 	FluxCorrectionFunction::GetDerivatives(
 		2, m_nHorizontalOrder, dGL, m_dFluxDeriv1D);
 
@@ -225,7 +224,7 @@ void GridGLL::Initialize() {
 	}
 /*
 	FILE * fp1 = fopen("op1.txt", "w");
-	const DataMatrix<double> & dCoeff1 = m_opDiffNodeToNode.GetCoeffs();
+	const DataArray2D<double> & dCoeff1 = m_opDiffNodeToNode.GetCoeffs();
 	for (int n = 0; n < dCoeff1.GetRows(); n++) {
 		for (int m = 0; m < dCoeff1.GetColumns(); m++) {
 			fprintf(fp1, "%1.16e\t", dCoeff1[n][m]);
@@ -242,8 +241,8 @@ void GridGLL::Initialize() {
 	_EXCEPTION();
 */
 /*
-	const DataVector<int> & ixBegin1 = m_opDiffNodeToNode.GetIxBegin();
-	const DataVector<int> & ixEnd1 = m_opDiffNodeToNode.GetIxEnd();
+	const DataArray1D<int> & ixBegin1 = m_opDiffNodeToNode.GetIxBegin();
+	const DataArray1D<int> & ixEnd1 = m_opDiffNodeToNode.GetIxEnd();
 	for (int n = 0; n < dCoeff1.GetRows(); n++) {
 		fprintf(fp1, "%i\t%i\n", ixBegin1[n], ixEnd1[n]);
 	}
@@ -253,15 +252,15 @@ void GridGLL::Initialize() {
 */
 /*
 	FILE * fp2 = fopen("op2.txt", "w");
-	const DataMatrix<double> & dCoeff2 = m_opInterpREdgeToNode.GetCoeffs();
+	const DataArray2D<double> & dCoeff2 = m_opInterpREdgeToNode.GetCoeffs();
 	for (int n = 0; n < dCoeff2.GetRows(); n++) {
 		for (int m = 0; m < dCoeff2.GetColumns(); m++) {
 			fprintf(fp2, "%1.5e\t", dCoeff2[n][m]);
 		}
 		fprintf(fp2, "\n");
 	}
-	const DataVector<int> & ixBegin2 = m_opInterpREdgeToNode.GetIxBegin();
-	const DataVector<int> & ixEnd2 = m_opInterpREdgeToNode.GetIxEnd();
+	const DataArray1D<int> & ixBegin2 = m_opInterpREdgeToNode.GetIxBegin();
+	const DataArray1D<int> & ixEnd2 = m_opInterpREdgeToNode.GetIxEnd();
 	for (int n = 0; n < dCoeff2.GetRows(); n++) {
 		fprintf(fp2, "%i\t%i\n", ixBegin2[n], ixEnd2[n]);
 	}

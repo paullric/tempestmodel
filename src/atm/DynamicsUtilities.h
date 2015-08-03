@@ -17,9 +17,9 @@
 #ifndef _DYNAMICSUTILITIES_H_
 #define _DYNAMICSUTILITIES_H_
 
-#include "DataVector.h"
-#include "DataMatrix.h"
-#include "DataMatrix4D.h"
+#include "DataArray1D.h"
+#include "DataArray2D.h"
+#include "DataArray4D.h"
 
 ///////////////////////////////////////////////////////////////////////////////
 

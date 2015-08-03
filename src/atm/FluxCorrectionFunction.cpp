@@ -16,8 +16,8 @@
 
 #include "FluxCorrectionFunction.h"
 
-#include "DataVector.h"
-#include "DataMatrix.h"
+#include "DataArray1D.h"
+#include "DataArray2D.h"
 #include "LinearAlgebra.h"
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -25,8 +25,8 @@
 void FluxCorrectionFunction::GetDerivatives(
 	int iType,
 	int nOrder,
-	const DataVector<double> & dNodes,
-	DataVector<double> & dDeriv
+	const DataArray1D<double> & dNodes,
+	DataArray1D<double> & dDeriv
 ) {
 	// Verify parameters
 	if (iType < 1) {
@@ -37,11 +37,9 @@ void FluxCorrectionFunction::GetDerivatives(
 	}
 
 	// Compute edge reconstruction function (DG type)
-	DataVector<double> dB;
-	dB.Initialize(nOrder+1);
+	DataArray1D<double> dB(nOrder+1);
 
-	DataMatrix<double> dVan;
-	dVan.Initialize(nOrder+1, nOrder+1);
+	DataArray2D<double> dVan(nOrder+1, nOrder+1);
 
 	// Left value of reconstruction function is 1
 	double dSign = 1.0;
@@ -52,8 +50,7 @@ void FluxCorrectionFunction::GetDerivatives(
 	dB[0] = 1.0;
 
 	// Right-value has a zero of multiplicity = type
-	DataVector<double> dCoeff;
-	dCoeff.Initialize(nOrder+1);
+	DataArray1D<double> dCoeff(nOrder+1);
 	for (int i = 0; i <= nOrder; i++) {
 		dCoeff[i] = 1.0;
 	}
@@ -81,8 +78,7 @@ void FluxCorrectionFunction::GetDerivatives(
 	}
 
 	// Solve Vandermonde system for polynomial coefficients
-	DataVector<int> iPIV;
-	iPIV.Initialize(nOrder+1);
+	DataArray1D<int> iPIV(nOrder+1);
 	LAPACK::DGESV(dVan, dB, iPIV);
 
 	// Compute derivative of reconstruction polynomial on [-1,1], with P(1)=1
@@ -99,7 +95,7 @@ void FluxCorrectionFunction::GetDerivatives(
 
 	// Compute derivatives of reconstruction polynomial on nodes for the
 	// reference element [0,1]
-	dDeriv.Initialize(dNodes.GetRows());
+	dDeriv.Allocate(dNodes.GetRows());
 	for (int n = 0; n < dNodes.GetRows(); n++) {
 		double dX = 1.0;
 		for (int i = 0; i < nOrder; i++) {

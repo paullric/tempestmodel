@@ -20,7 +20,7 @@
 #include "Direction.h"
 #include "GridSpacing.h"
 
-#include "DataVector.h"
+#include "DataArray1D.h"
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -66,10 +66,10 @@ public:
 		int ixAGlobalInteriorEnd,
 		int ixBGlobalInteriorBegin,
 		int ixBGlobalInteriorEnd,
-		const DataVector<double> & dANodes,
-		const DataVector<double> & dBNodes,
-		const DataVector<double> & dAEdges,
-		const DataVector<double> & dBEdges
+		const DataArray1D<double> & dANodes,
+		const DataArray1D<double> & dBNodes,
+		const DataArray1D<double> & dAEdges,
+		const DataArray1D<double> & dBEdges
 	) :
 		m_ixPanel(ixPanel),
 		m_iRefinementLevel(iRefinementLevel),
@@ -256,14 +256,14 @@ public:
 	///	<summary>
 	///		Get the array of alpha nodes.
 	///	</summary>
-	inline const DataVector<double> & GetANodes() const {
+	inline const DataArray1D<double> & GetANodes() const {
 		return m_dANodes;
 	}
 
 	///	<summary>
 	///		Get the array of alpha edges.
 	///	</summary>
-	inline const DataVector<double> & GetAEdges() const {
+	inline const DataArray1D<double> & GetAEdges() const {
 		return m_dAEdges;
 	}
 
@@ -284,14 +284,14 @@ public:
 	///	<summary>
 	///		Get the array of beta nodes.
 	///	</summary>
-	inline const DataVector<double> & GetBNodes() const {
+	inline const DataArray1D<double> & GetBNodes() const {
 		return m_dBNodes;
 	}
 
 	///	<summary>
 	///		Get the array of beta edges.
 	///	</summary>
-	inline const DataVector<double> & GetBEdges() const {
+	inline const DataArray1D<double> & GetBEdges() const {
 		return m_dBEdges;
 	}
 
@@ -323,22 +323,22 @@ private:
 	///	<summary>
 	///		Array of nodal values in the alpha direction.
 	///	</summary>
-	DataVector<double> m_dANodes;
+	DataArray1D<double> m_dANodes;
 
 	///	<summary>
 	///		Array of edge values in the alpha direction.
 	///	</summary>
-	DataVector<double> m_dAEdges;
+	DataArray1D<double> m_dAEdges;
 
 	///	<summary>
 	///		Array of nodal values in the beta direction.
 	///	</summary>
-	DataVector<double> m_dBNodes;
+	DataArray1D<double> m_dBNodes;
 
 	///	<summary>
 	///		Array of edge values in the beta direction.
 	///	</summary>
-	DataVector<double> m_dBEdges;
+	DataArray1D<double> m_dBEdges;
 };
 
 ///////////////////////////////////////////////////////////////////////////////

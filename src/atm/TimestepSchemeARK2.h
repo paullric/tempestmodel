@@ -19,7 +19,7 @@
 
 #include "TimestepScheme.h"
 #include "Exception.h"
-#include "DataVector.h"
+#include "DataArray1D.h"
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -105,17 +105,17 @@ private:
 	///	<summary>
 	///		K1 vector combination (Implicit)
 	///	</summary>
-	DataVector<double> m_dK1Combo;
+	DataArray1D<double> m_dK1Combo;
 
 	///	<summary>
 	///		Kh1 vector combination (Explicit)
 	///	</summary>
-	DataVector<double> m_dKh1Combo;
+	DataArray1D<double> m_dKh1Combo;
 
 	///	<summary>
 	///		Explicit evaluation at the 2nd substage
 	///	</summary>
-	DataVector<double> m_du2fCombo;
+	DataArray1D<double> m_du2fCombo;
 };
 
 ///////////////////////////////////////////////////////////////////////////////

@@ -17,7 +17,7 @@
 #ifndef _GRIDDATA4D_H_
 #define _GRIDDATA4D_H_
 
-#include "DataMatrix4D.h"
+#include "DataArray4D.h"
 #include "DataType.h"
 #include "DataLocation.h"
 #include "GridData3D.h"
@@ -79,7 +79,7 @@ public:
 		m_fInitialized = false;
 		m_eDataType = DataType_Default;
 		m_eDataLocation = DataLocation_Default;
-		m_data.Deinitialize();
+		m_data.Deallocate();
 	}
 
 public:
@@ -139,7 +139,7 @@ public:
 	///		Bracket accessor.
 	///	</summary>
 	inline double*** operator[](int n) const {
-		return m_data[n];
+		return (m_data.GetData())[n];
 	}
 
 	///	<summary>
@@ -156,7 +156,7 @@ public:
 			GetAElements(),
 			GetBElements(),
 			m_nHaloElements,
-			m_data[n]);
+			(m_data.GetData())[n]);
 	}
 
 	///	<summary>
@@ -176,7 +176,7 @@ public:
 	///	<summary>
 	///		Get a constant reference to the data matrix.
 	///	</summary>
-	inline const DataMatrix4D<double> & GetDataMatrix() const {
+	inline const DataArray4D<double> & GetDataArray2D() const {
 		return m_data;
 	}
 
@@ -259,7 +259,7 @@ protected:
 	///	<summary>
 	///		The data for this system.
 	///	</summary>
-	DataMatrix4D<double> m_data;
+	DataArray4D<double> m_data;
 };
 
 ///////////////////////////////////////////////////////////////////////////////

@@ -195,7 +195,7 @@ public:
 	///	</summary>
 	void Checksum(
 		DataType eDataType,
-		DataVector<double> & dChecksums,
+		DataArray1D<double> & dChecksums,
 		int iDataIndex = 0,
 		ChecksumType eChecksumType = ChecksumType_Sum
 	) const;
@@ -294,7 +294,7 @@ public:
 	///	</summary>
 	void ConsolidateDataAtRoot(
 		ConsolidationStatus & status,
-		DataVector<double> & dataRecvBuffer,
+		DataArray1D<double> & dataRecvBuffer,
 		int & nRecvCount,
 		int & ixRecvPatch,
 		DataType & eRecvDataType,
@@ -360,13 +360,13 @@ public:
 	///		DataLocation_REdge = Interpolate all variables on redges
 	///	</param>
 	void ReduceInterpolate(
-		const DataVector<double> & dAlpha,
-		const DataVector<double> & dBeta,
-		const DataVector<int> & iPatch,
+		const DataArray1D<double> & dAlpha,
+		const DataArray1D<double> & dBeta,
+		const DataArray1D<int> & iPatch,
 		DataType eDataType,
 		DataLocation eDataLocation,
 		bool fInterpAllVariables,
-		DataMatrix3D<double> & dInterpData,
+		DataArray3D<double> & dInterpData,
 		bool fIncludeReferenceState = true,
 		bool fConvertToPrimitive = true
 	) const;
@@ -376,11 +376,11 @@ public:
 	///		reference grid (RLL on the sphere, Cartesian on the plane).
 	///	</summary>
 	virtual void ConvertReferenceToPatchCoord(
-		const DataVector<double> & dXReference,
-		const DataVector<double> & dYReference,
-		DataVector<double> & dAlpha,
-		DataVector<double> & dBeta,
-		DataVector<int> & iPatch
+		const DataArray1D<double> & dXReference,
+		const DataArray1D<double> & dYReference,
+		DataArray1D<double> & dAlpha,
+		DataArray1D<double> & dBeta,
+		DataArray1D<int> & iPatch
 	) const;
 
 	///	<summary>
@@ -388,10 +388,10 @@ public:
 	///	</summary>
 	virtual void GetPatchFromCoordinateIndex(
 		int iRefinementLevel,
-		const DataVector<int> & vecIxA,
-		const DataVector<int> & vecIxB,
-		const DataVector<int> & vecPanel,
-		DataVector<int> & vecPatchIndex,
+		const DataArray1D<int> & vecIxA,
+		const DataArray1D<int> & vecIxB,
+		const DataArray1D<int> & vecPanel,
+		DataArray1D<int> & vecPatchIndex,
 		int nVectorLength = (-1)
 	) {
 		_EXCEPTIONT("Not implemented.");
@@ -476,7 +476,7 @@ public:
 	///		Compute a linear combination of data and store at specified index.
 	///	</summary>
 	void LinearCombineData(
-		const DataVector<double> & dCoeff,
+		const DataArray1D<double> & dCoeff,
 		int ixDest,
 		DataType eDataType
 	);
@@ -590,7 +590,7 @@ public:
 	///	<summary>
 	///		Get the vector of radial element levels.
 	///	</summary>
-	const DataVector<double> & GetREtaLevels() const {
+	const DataArray1D<double> & GetREtaLevels() const {
 		return m_dREtaLevels;
 	}
 
@@ -604,21 +604,21 @@ public:
 	///	<summary>
 	///		Get the vector of radial element interfaces.
 	///	</summary>
-	const DataVector<double> & GetREtaInterfaces() const {
+	const DataArray1D<double> & GetREtaInterfaces() const {
 		return m_dREtaInterfaces;
 	}
 
 	///	<summary>
 	///		Get the vector of normalized areas for radial element levels.
 	///	</summary>
-	const DataVector<double> & GetREtaLevelsNormArea() const {
+	const DataArray1D<double> & GetREtaLevelsNormArea() const {
 		return m_dREtaLevelsNormArea;
 	}
 
 	///	<summary>
 	///		Get the vector of normalized areas for radial element interfaces.
 	///	</summary>
-	const DataVector<double> & GetREtaInterfacesNormArea() const {
+	const DataArray1D<double> & GetREtaInterfacesNormArea() const {
 		return m_dREtaInterfacesNormArea;
 	}
 
@@ -632,7 +632,7 @@ public:
 	///	<summary>
 	///		Get the vector of radial element levels.
 	///	</summary>
-	const DataVector<double> & GetREtaStretchLevels() const {
+	const DataArray1D<double> & GetREtaStretchLevels() const {
 		return m_dREtaStretchLevels;
 	}
 
@@ -646,7 +646,7 @@ public:
 	///	<summary>
 	///		Get the vector of radial element interfaces.
 	///	</summary>
-	const DataVector<double> & GetREtaStretchInterfaces() const {
+	const DataArray1D<double> & GetREtaStretchInterfaces() const {
 		return m_dREtaStretchInterfaces;
 	}
 
@@ -826,32 +826,32 @@ protected:
 	///	<summary>
 	///		REta coordinates of levels along radial axis.
 	///	</summary>
-	DataVector<double> m_dREtaLevels;
+	DataArray1D<double> m_dREtaLevels;
 
 	///	<summary>
 	///		REta coordinates of interfaces along radial axis.
 	///	</summary>
-	DataVector<double> m_dREtaInterfaces;
+	DataArray1D<double> m_dREtaInterfaces;
 
 	///	<summary>
 	///		Normalized area of REta elements along radial axis.
 	///	</summary>
-	DataVector<double> m_dREtaLevelsNormArea;
+	DataArray1D<double> m_dREtaLevelsNormArea;
 
 	///	<summary>
 	///		Normalized area of REta interfaces along radial axis.
 	///	</summary>
-	DataVector<double> m_dREtaInterfacesNormArea;
+	DataArray1D<double> m_dREtaInterfacesNormArea;
 
 	///	<summary>
 	///		Stretched REta coordinates of levels along radial axis.
 	///	</summary>
-	DataVector<double> m_dREtaStretchLevels;
+	DataArray1D<double> m_dREtaStretchLevels;
 
 	///	<summary>
 	///		Stretched REta coordinates of interfaces along radial axis.
 	///	</summary>
-	DataVector<double> m_dREtaStretchInterfaces;
+	DataArray1D<double> m_dREtaStretchInterfaces;
 
 	///	<summary>
 	///		Type of vertical stretching being applied.
@@ -861,7 +861,7 @@ protected:
 	///	<summary>
 	///		Location of each equation set variable.
 	///	</summary>
-	DataVector<DataLocation> m_vecVarLocation;
+	DataArray1D<DataLocation> m_vecVarLocation;
 
 	///	<summary>
 	///		Map from equation set variable index to location-dependent

@@ -19,7 +19,7 @@
 
 #include "OutputManager.h"
 
-#include "DataMatrix3D.h"
+#include "DataArray3D.h"
 
 class Time;
 
@@ -144,27 +144,27 @@ protected:
 	///	<summary>
 	///		Vector of longitudes.
 	///	</summary>
-	DataVector<double> m_dXCoord;
+	DataArray1D<double> m_dXCoord;
 
 	///	<summary>
 	///		Vector of latitudes.
 	///	</summary>
-	DataVector<double> m_dYCoord;
+	DataArray1D<double> m_dYCoord;
 
 	///	<summary>
 	///		Vector of alpha reference points.
 	///	</summary>
-	DataVector<double> m_dAlpha;
+	DataArray1D<double> m_dAlpha;
 
 	///	<summary>
 	///		Vector of reference points.
 	///	</summary>
-	DataVector<double> m_dBeta;
+	DataArray1D<double> m_dBeta;
 
 	///	<summary>
 	///		Vector of patch indices.
 	///	</summary>
-	DataVector<int> m_iPatch;
+	DataArray1D<int> m_iPatch;
 
 	///	<summary>
 	///		Active output file.
@@ -195,23 +195,23 @@ private:
 	///	<summary>
 	///		Interpolated topography on the reference grid.
 	///	</summary>
-	DataMatrix3D<double> m_dataTopography;
+	DataArray3D<double> m_dataTopography;
 
 private:
 	///	<summary>
 	///		Interpolated state data on nodes on the reference grid.
 	///	</summary>
-	DataMatrix3D<double> m_dataStateNode;
+	DataArray3D<double> m_dataStateNode;
 
 	///	<summary>
 	///		Interpolated state data on redges on the reference grid.
 	///	</summary>
-	DataMatrix3D<double> m_dataStateREdge;
+	DataArray3D<double> m_dataStateREdge;
 
 	///	<summary>
 	///		Interpolated tracers data on the reference grid.
 	///	</summary>
-	DataMatrix3D<double> m_dataTracers;
+	DataArray3D<double> m_dataTracers;
 
 private:
 	///	<summary>
@@ -227,7 +227,7 @@ private:
 	///	<summary>
 	///		Computed vorticity on the reference grid.
 	///	</summary>
-	DataMatrix3D<double> m_dataVorticity;
+	DataArray3D<double> m_dataVorticity;
 
 	///	<summary>
 	///		Flag indicating whether divergence should be computed and output.
@@ -242,7 +242,7 @@ private:
 	///	<summary>
 	///		Computed divergence on the reference grid.
 	///	</summary>
-	DataMatrix3D<double> m_dataDivergence;
+	DataArray3D<double> m_dataDivergence;
 
 	///	<summary>
 	///		Flag indicating whether temperature should be computed and output.
@@ -257,7 +257,7 @@ private:
 	///	<summary>
 	///		Computed temperature on the reference grid.
 	///	</summary>
-	DataMatrix3D<double> m_dataTemperature;
+	DataArray3D<double> m_dataTemperature;
 
 };
 

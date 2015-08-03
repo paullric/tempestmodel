@@ -147,7 +147,7 @@ private:
 	///	<summary>
 	///		Vector used at root node for storage of received data.
 	///	</summary>
-	DataVector<double> m_vecRecvBuffer;
+	DataArray1D<double> m_vecRecvBuffer;
 };
 
 ///////////////////////////////////////////////////////////////////////////////

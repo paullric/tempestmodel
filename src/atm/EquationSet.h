@@ -18,7 +18,7 @@
 #define _EQUATIONSET_H_
 
 #include "Exception.h"
-#include "DataVector.h"
+#include "DataArray1D.h"
 
 #include <vector>
 #include <string>
@@ -154,8 +154,8 @@ public:
 	///	</summary>
 	void ConvertComponents(
 		const PhysicalConstants & phys,
-		DataVector<double> & dState,
-		DataVector<double> & dTracer
+		DataArray1D<double> & dState,
+		DataArray1D<double> & dTracer
 	) const;
 
 private:

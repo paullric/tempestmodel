@@ -121,13 +121,13 @@ void Grid::InitializeVerticalCoordinate(
 
 	// Initialize location and index for each variable
 	bool fInitializeStaggering = false;
-	if (m_vecVarLocation.IsInitialized()) {
+	if (m_vecVarLocation.GetData() != NULL) {
 		if (m_vecVarLocation.GetRows() != nComponents) {
 			_EXCEPTIONT("Mismatch in staggered variable locations and "
 				"number of free equations");
 		}
 	} else {
-		m_vecVarLocation.Initialize(nComponents);
+		m_vecVarLocation.Allocate(nComponents);
 		fInitializeStaggering = true;
 	}
 
@@ -135,11 +135,11 @@ void Grid::InitializeVerticalCoordinate(
 	if (m_model.GetEquationSet().GetDimensionality() == 2) {
 
 		// Resize arrays of REta coordinates
-		m_dREtaLevels.Initialize(1);
-		m_dREtaInterfaces.Initialize(2);
+		m_dREtaLevels.Allocate(1);
+		m_dREtaInterfaces.Allocate(2);
 
-		m_dREtaLevelsNormArea.Initialize(1);
-		m_dREtaInterfacesNormArea.Initialize(2);
+		m_dREtaLevelsNormArea.Allocate(1);
+		m_dREtaInterfacesNormArea.Allocate(2);
 
 		// Uniform grid spacing
 		m_dREtaLevels[0] = 0.5;
@@ -172,11 +172,11 @@ void Grid::InitializeVerticalCoordinate(
 		double dZeroCoord = gridspacing.GetZeroCoord();
 
 		// Resize arrays of REta coordinates
-		m_dREtaLevels.Initialize(m_nRElements);
-		m_dREtaInterfaces.Initialize(m_nRElements+1);
+		m_dREtaLevels.Allocate(m_nRElements);
+		m_dREtaInterfaces.Allocate(m_nRElements+1);
 
-		m_dREtaLevelsNormArea.Initialize(m_nRElements);
-		m_dREtaInterfacesNormArea.Initialize(m_nRElements+1);
+		m_dREtaLevelsNormArea.Allocate(m_nRElements);
+		m_dREtaInterfacesNormArea.Allocate(m_nRElements+1);
 
 		// Get node/interface location from GridSpacing
 		for (int k = 0; k < m_nRElements; k++) {
@@ -261,8 +261,8 @@ void Grid::InitializeVerticalCoordinate(
 	} else {
 		double dDxREtaStretch;
 
-		m_dREtaStretchLevels.Initialize(m_dREtaLevels.GetRows());
-		m_dREtaStretchInterfaces.Initialize(m_dREtaInterfaces.GetRows());
+		m_dREtaStretchLevels.Allocate(m_dREtaLevels.GetRows());
+		m_dREtaStretchInterfaces.Allocate(m_dREtaInterfaces.GetRows());
 
 		for (int k = 0; k < m_dREtaLevels.GetRows(); k++) {
 			(*m_pVerticalStretchF)(
@@ -362,7 +362,7 @@ void Grid::ApplyBoundaryConditions(
 
 void Grid::Checksum(
 	DataType eDataType,
-	DataVector<double> & dChecksums,
+	DataArray1D<double> & dChecksums,
 	int iDataIndex,
 	ChecksumType eChecksumType
 ) const {
@@ -372,15 +372,17 @@ void Grid::Checksum(
 	MPI_Comm_rank(MPI_COMM_WORLD, &nRank);
 
 	// Initialize the local checksum array from DataType
-	DataVector<double> dChecksumsLocal;
+	DataArray1D<double> dChecksumsLocal;
 	if (eDataType == DataType_State) {
-		dChecksumsLocal.Initialize(m_model.GetEquationSet().GetComponents());
+		dChecksumsLocal.Allocate(m_model.GetEquationSet().GetComponents());
 
 	} else if (eDataType == DataType_Tracers) { 
-		dChecksumsLocal.Initialize(m_model.GetEquationSet().GetTracers());
-		if (m_model.GetEquationSet().GetTracers() == 0) {
+		int nTracers = m_model.GetEquationSet().GetTracers();
+		if (nTracers == 0) {
 			return;
 		}
+
+		dChecksumsLocal.Allocate(nTracers);
 
 	} else {
 		_EXCEPTIONT("Invalid DataType");
@@ -394,7 +396,7 @@ void Grid::Checksum(
 
 	// Initialize global checksums array at root
 	if (nRank == 0) {
-		dChecksums.Initialize(dChecksumsLocal.GetRows());
+		dChecksums.Allocate(dChecksumsLocal.GetRows());
 	}
 
 	// Compute sum over all processors and send to root node
@@ -711,7 +713,7 @@ int Grid::GetMaxDegreesOfFreedom() const {
 
 void Grid::ConsolidateDataAtRoot(
 	ConsolidationStatus & status,
-	DataVector<double> & dataRecvBuffer,
+	DataArray1D<double> & dataRecvBuffer,
 	int & nRecvCount,
 	int & ixRecvPatch,
 	DataType & eRecvDataType,
@@ -806,11 +808,11 @@ void Grid::ConsolidateDataToRoot(
 		const GridData4D & dataTracers =
 			pPatch->GetDataTracers(0);
 
-		const DataMatrix3D<double> & dataJacobian   = pPatch->GetJacobian();
-		const DataMatrix<double>   & dataTopography = pPatch->GetTopography();
-		const DataMatrix<double>   & dataLongitude  = pPatch->GetLongitude();
-		const DataMatrix<double>   & dataLatitude   = pPatch->GetLatitude();
-		const DataMatrix3D<double> & dataZLevels    = pPatch->GetZLevels();
+		const DataArray3D<double> & dataJacobian   = pPatch->GetJacobian();
+		const DataArray2D<double>   & dataTopography = pPatch->GetTopography();
+		const DataArray2D<double>   & dataLongitude  = pPatch->GetLongitude();
+		const DataArray2D<double>   & dataLatitude   = pPatch->GetLatitude();
+		const DataArray3D<double> & dataZLevels    = pPatch->GetZLevels();
 
 		const GridData3D & dataRayleighStrengthNode =
 			pPatch->GetRayleighStrength(DataLocation_Node);
@@ -894,7 +896,7 @@ void Grid::ConsolidateDataToRoot(
 		if (status.Contains(DataType_Jacobian)) {
 			MPI_Isend(
 				(void*)(dataJacobian[0][0]),
-				dataJacobian.GetTotalElements(),
+				dataJacobian.GetTotalSize(),
 				MPI_DOUBLE,
 				0,
 				ConsolidationStatus::GenerateTag(
@@ -907,7 +909,7 @@ void Grid::ConsolidateDataToRoot(
 		if (status.Contains(DataType_Topography)) {
 			MPI_Isend(
 				(void*)(dataTopography[0]),
-				dataTopography.GetTotalElements(),
+				dataTopography.GetTotalSize(),
 				MPI_DOUBLE,
 				0,
 				ConsolidationStatus::GenerateTag(
@@ -920,7 +922,7 @@ void Grid::ConsolidateDataToRoot(
 		if (status.Contains(DataType_Longitude)) {
 			MPI_Isend(
 				(void*)(dataLongitude[0]),
-				dataLongitude.GetTotalElements(),
+				dataLongitude.GetTotalSize(),
 				MPI_DOUBLE,
 				0,
 				ConsolidationStatus::GenerateTag(
@@ -933,7 +935,7 @@ void Grid::ConsolidateDataToRoot(
 		if (status.Contains(DataType_Latitude)) {
 			MPI_Isend(
 				(void*)(dataLatitude[0]),
-				dataLatitude.GetTotalElements(),
+				dataLatitude.GetTotalSize(),
 				MPI_DOUBLE,
 				0,
 				ConsolidationStatus::GenerateTag(
@@ -946,7 +948,7 @@ void Grid::ConsolidateDataToRoot(
 		if (status.Contains(DataType_Z)) {
 			MPI_Isend(
 				(void*)(dataZLevels[0][0]),
-				dataZLevels.GetTotalElements(),
+				dataZLevels.GetTotalSize(),
 				MPI_DOUBLE,
 				0,
 				ConsolidationStatus::GenerateTag(
@@ -1037,13 +1039,13 @@ void Grid::InterpolateREdgeToNode(
 ///////////////////////////////////////////////////////////////////////////////
 
 void Grid::ReduceInterpolate(
-	const DataVector<double> & dAlpha,
-	const DataVector<double> & dBeta,
-	const DataVector<int> & iPatch,
+	const DataArray1D<double> & dAlpha,
+	const DataArray1D<double> & dBeta,
+	const DataArray1D<int> & iPatch,
 	DataType eDataType,
 	DataLocation eDataLocation,
 	bool fInterpAllVariables,
-	DataMatrix3D<double> & dInterpData,
+	DataArray3D<double> & dInterpData,
 	bool fIncludeReferenceState,
 	bool fConvertToPrimitive
 ) const {
@@ -1167,11 +1169,11 @@ void Grid::ReduceInterpolate(
 ///////////////////////////////////////////////////////////////////////////////
 
 void Grid::ConvertReferenceToPatchCoord(
-	const DataVector<double> & dXReference,
-	const DataVector<double> & dYReference,
-	DataVector<double> & dAlpha,
-	DataVector<double> & dBeta,
-	DataVector<int> & iPatch
+	const DataArray1D<double> & dXReference,
+	const DataArray1D<double> & dYReference,
+	DataArray1D<double> & dAlpha,
+	DataArray1D<double> & dBeta,
+	DataArray1D<int> & iPatch
 ) const {
 	_EXCEPTIONT("Unimplemented.");
 }
@@ -1456,7 +1458,7 @@ void Grid::FromFile(
 	NcDim * dimREtaLevels = varREtaLevels->get_dim(0);
 	int nREtaLevels = static_cast<int>(dimREtaLevels->size());
 
-	m_dREtaStretchLevels.Initialize(nREtaLevels);
+	m_dREtaStretchLevels.Allocate(nREtaLevels);
 	varREtaLevels->get(m_dREtaStretchLevels, nREtaLevels);
 
 	// Load in location of REta interfaces
@@ -1465,7 +1467,7 @@ void Grid::FromFile(
 	NcDim * dimREtaInterfaces = varREtaInterfaces->get_dim(0);
 	int nREtaInterfaces = static_cast<int>(dimREtaInterfaces->size());
 
-	m_dREtaStretchInterfaces.Initialize(nREtaInterfaces);
+	m_dREtaStretchInterfaces.Allocate(nREtaInterfaces);
 	varREtaInterfaces->get(m_dREtaStretchInterfaces, nREtaInterfaces);
 /*
 	// Load in location of variables
@@ -1483,10 +1485,10 @@ void Grid::FromFile(
 	int iAEdgeIndex = 0;
 	int iBEdgeIndex = 0;
 
-	DataVector<double> dANodes;
-	DataVector<double> dBNodes;
-	DataVector<double> dAEdges;
-	DataVector<double> dBEdges;
+	DataArray1D<double> dANodes;
+	DataArray1D<double> dBNodes;
+	DataArray1D<double> dAEdges;
+	DataArray1D<double> dBEdges;
 
 	// Load in all PatchBoxes
 	NcVar * varPatchInfo = ncfile.get_var("patch_info");
@@ -1525,10 +1527,10 @@ void Grid::FromFile(
 		int nANodes = iPatchInfo[4] - iPatchInfo[3] + 2 * iPatchInfo[2];
 		int nBNodes = iPatchInfo[6] - iPatchInfo[5] + 2 * iPatchInfo[2];
 
-		dANodes.Initialize(nANodes);
-		dBNodes.Initialize(nBNodes);
-		dAEdges.Initialize(nANodes+1);
-		dBEdges.Initialize(nBNodes+1);
+		dANodes.Allocate(nANodes);
+		dBNodes.Allocate(nBNodes);
+		dAEdges.Allocate(nANodes+1);
+		dBEdges.Allocate(nBNodes+1);
 
 		varANodeCoord->set_cur(iANodeIndex);
 		varBNodeCoord->set_cur(iBNodeIndex);
@@ -1591,17 +1593,17 @@ void Grid::DistributePatches() {
 void Grid::InitializeConnectivity() {
 
 	// Vector of nodal points around element
-	DataVector<int> vecIxA;
-	DataVector<int> vecIxB;
-	DataVector<int> vecPanel;
-	DataVector<int> vecPatch;
+	DataArray1D<int> vecIxA;
+	DataArray1D<int> vecIxB;
+	DataArray1D<int> vecPanel;
+	DataArray1D<int> vecPatch;
 
 	// Determine longest perimeter
 	int nLongestActivePerimeter = GetLongestActivePatchPerimeter() + 4;
-	vecIxA.Initialize(nLongestActivePerimeter);
-	vecIxB.Initialize(nLongestActivePerimeter);
-	vecPanel.Initialize(nLongestActivePerimeter);
-	vecPatch.Initialize(nLongestActivePerimeter);
+	vecIxA.Allocate(nLongestActivePerimeter);
+	vecIxB.Allocate(nLongestActivePerimeter);
+	vecPanel.Allocate(nLongestActivePerimeter);
+	vecPatch.Allocate(nLongestActivePerimeter);
 
 	// Loop over all active patches
 	for (int n = 0; n < m_vecActiveGridPatches.size(); n++) {
@@ -1926,7 +1928,7 @@ void Grid::CopyData(
 ///////////////////////////////////////////////////////////////////////////////
 
 void Grid::LinearCombineData(
-	const DataVector<double> & dCoeff,
+	const DataArray1D<double> & dCoeff,
 	int ixDest,
 	DataType eDataType
 ) {

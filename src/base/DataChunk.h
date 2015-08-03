@@ -28,12 +28,13 @@ public:
 	///	<summary>
 	///		Virtual destructor.
 	///	</summary>
-	virtual ~DataChunk() = 0;
+	virtual ~DataChunk()
+	{ }
 
 	///	<summary>
 	///		Get the size of this DataChunk, in bytes.
 	///	</summary>
-	virtual size_t GetSize() const = 0;
+	virtual size_t GetByteSize() const = 0;
 
 	///	<summary>
 	///		Determine if this DataChunk is attached to a data array.

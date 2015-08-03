@@ -18,8 +18,8 @@
 #define _OUTPUTMANAGER_H_
 
 #include "TimeObj.h"
-#include "DataVector.h"
-#include "DataMatrix4D.h"
+#include "DataArray1D.h"
+#include "DataArray4D.h"
 
 #include "netcdfcpp.h"
 

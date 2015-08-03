@@ -124,7 +124,7 @@ void GridPatchCartesianGLL::EvaluateTopography(
 	GridCartesianGLL & gridCartesianGLL =
 		dynamic_cast<GridCartesianGLL &>(m_grid);
 
-	const DataMatrix<double> & dDxBasis1D =
+	const DataArray2D<double> & dDxBasis1D =
 		gridCartesianGLL.GetDxBasis1D();
 
 	// Compute derivatives of topography
@@ -171,15 +171,15 @@ void GridPatchCartesianGLL::EvaluateGeometricTerms() {
 	const PhysicalConstants & phys = m_grid.GetModel().GetPhysicalConstants();
 
 	// Obtain Gauss Lobatto quadrature nodes and weights
-	DataVector<double> dGL;
-	DataVector<double> dWL;
+	DataArray1D<double> dGL;
+	DataArray1D<double> dWL;
 
 	GaussLobattoQuadrature::GetPoints(m_nHorizontalOrder, 0.0, 1.0, dGL, dWL);
 
 	// Obtain normalized areas in the vertical
-	const DataVector<double> & dWNode =
+	const DataArray1D<double> & dWNode =
 		m_grid.GetREtaLevelsNormArea();
-	const DataVector<double> & dWREdge =
+	const DataArray1D<double> & dWREdge =
 		m_grid.GetREtaInterfacesNormArea();
 
 	// Verify that normalized areas are correct
@@ -207,7 +207,7 @@ void GridPatchCartesianGLL::EvaluateGeometricTerms() {
 	GridCartesianGLL & gridCartesianGLL =
 		dynamic_cast<GridCartesianGLL &>(m_grid);
 
-	const DataMatrix<double> & dDxBasis1D = gridCartesianGLL.GetDxBasis1D();
+	const DataArray2D<double> & dDxBasis1D = gridCartesianGLL.GetDxBasis1D();
 	
 	double dy0 = 0.5 * fabs(m_dGDim[3] - m_dGDim[2]);
 	double dfp = 2.0 * phys.GetOmega() * sin(m_dRefLat);
@@ -535,15 +535,14 @@ void GridPatchCartesianGLL::EvaluateTestCase(
 	int nComponents = eqns.GetComponents();
 	int nTracers = eqns.GetTracers();
 
-	DataVector<double> dPointwiseState;
-	dPointwiseState.Initialize(nComponents);
+	DataArray1D<double> dPointwiseState(nComponents);
+	DataArray1D<double> dPointwiseRefState(nComponents);
 
-	DataVector<double> dPointwiseRefState;
-	dPointwiseRefState.Initialize(nComponents);
-
-	DataVector<double> dPointwiseTracers;
+	DataArray1D<double> dPointwiseTracers;
 	if (m_datavecTracers.size() > 0) {
-		dPointwiseTracers.Initialize(nTracers);
+		if (nTracers > 0) {
+			dPointwiseTracers.Allocate(nTracers);
+		}
 	}
 
 	// Evaluate the state on model levels
@@ -577,7 +576,7 @@ void GridPatchCartesianGLL::EvaluateTestCase(
 				m_dataLat[i][j],
 				dPointwiseRefState);
 
-			DataVector<double> dPointwiseRefTracers;
+			DataArray1D<double> dPointwiseRefTracers;
 			eqns.ConvertComponents(
 				phys, dPointwiseRefState, dPointwiseRefTracers);
 
@@ -623,7 +622,7 @@ void GridPatchCartesianGLL::EvaluateTestCase(
 				m_dataLat[i][j],
 				dPointwiseRefState);
 
-			DataVector<double> dPointwiseRefTracers;
+			DataArray1D<double> dPointwiseRefTracers;
 			eqns.ConvertComponents(
 				phys, dPointwiseRefState, dPointwiseRefTracers);
 
@@ -1027,15 +1026,15 @@ void GridPatchCartesianGLL::ComputeCurlAndDiv(
 		dynamic_cast<const GridCartesianGLL &>(m_grid);
 
 	// Compute derivatives of the field
-	const DataMatrix<double> & dDxBasis1D = gridCSGLL.GetDxBasis1D();
+	const DataArray2D<double> & dDxBasis1D = gridCSGLL.GetDxBasis1D();
 
 	// Number of finite elements in each direction
 	int nAFiniteElements = m_box.GetAInteriorWidth() / m_nHorizontalOrder;
 	int nBFiniteElements = m_box.GetBInteriorWidth() / m_nHorizontalOrder;
 
 	// Contravariant velocity within an element
-	DataMatrix<double> dConUa(m_nHorizontalOrder, m_nHorizontalOrder);
-	DataMatrix<double> dConUb(m_nHorizontalOrder, m_nHorizontalOrder);
+	DataArray2D<double> dConUa(m_nHorizontalOrder, m_nHorizontalOrder);
+	DataArray2D<double> dConUb(m_nHorizontalOrder, m_nHorizontalOrder);
 
 	// Loop over all elements in the box
 	for (int k = 0; k < gridCSGLL.GetRElements(); k++) {
@@ -1169,13 +1168,13 @@ void GridPatchCartesianGLL::ComputeVorticityDivergence(
 ///////////////////////////////////////////////////////////////////////////////
 
 void GridPatchCartesianGLL::InterpolateData(
-	const DataVector<double> & dAlpha,
-	const DataVector<double> & dBeta,
-	const DataVector<int> & iPatch,
+	const DataArray1D<double> & dAlpha,
+	const DataArray1D<double> & dBeta,
+	const DataArray1D<int> & iPatch,
 	DataType eDataType,
 	DataLocation eDataLocation,
 	bool fInterpAllVariables,
-	DataMatrix3D<double> & dInterpData,
+	DataArray3D<double> & dInterpData,
 	bool fIncludeReferenceState,
 	bool fConvertToPrimitive
 ) {
@@ -1184,20 +1183,11 @@ void GridPatchCartesianGLL::InterpolateData(
 	}
 
 	// Vector for storage interpolated points
-	DataVector<double> dAInterpCoeffs;
-	dAInterpCoeffs.Initialize(m_nHorizontalOrder);
-
-	DataVector<double> dBInterpCoeffs;
-	dBInterpCoeffs.Initialize(m_nHorizontalOrder);
-
-	DataVector<double> dADiffCoeffs;
-	dADiffCoeffs.Initialize(m_nHorizontalOrder);
-
-	DataVector<double> dBDiffCoeffs;
-	dBDiffCoeffs.Initialize(m_nHorizontalOrder);
-
-	DataVector<double> dAInterpPt;
-	dAInterpPt.Initialize(m_nHorizontalOrder);
+	DataArray1D<double> dAInterpCoeffs(m_nHorizontalOrder);
+	DataArray1D<double> dBInterpCoeffs(m_nHorizontalOrder);
+	DataArray1D<double> dADiffCoeffs(m_nHorizontalOrder);
+	DataArray1D<double> dBDiffCoeffs(m_nHorizontalOrder);
+	DataArray1D<double> dAInterpPt(m_nHorizontalOrder);
 
 	// Element-wise grid spacing
 	double dDeltaA = GetElementDeltaA();

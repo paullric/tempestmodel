@@ -17,8 +17,8 @@
 #ifndef _LINEARCOLUMNOPERATOR_H_
 #define _LINEARCOLUMNOPERATOR_H_
 
-#include "DataVector.h"
-#include "DataMatrix.h"
+#include "DataArray1D.h"
+#include "DataArray2D.h"
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -61,8 +61,8 @@ public:
 	///		Output debug output to file.
 	///	</summary>
 	void DebugOutput(
-		const DataVector<double> * pREtaNode = NULL,
-		const DataVector<double> * pREtaREdge = NULL
+		const DataArray1D<double> * pREtaNode = NULL,
+		const DataArray1D<double> * pREtaREdge = NULL
 	);
 
 public:
@@ -135,42 +135,42 @@ public:
 	///	<summary>
 	///		Get the matrix of linear operator coefficients.
 	///	</summary>
-	DataMatrix<double> & GetCoeffs() {
+	DataArray2D<double> & GetCoeffs() {
 		return m_dCoeff;
 	}
 
 	///	<summary>
 	///		Get the matrix of linear operator coefficients.
 	///	</summary>
-	const DataMatrix<double> & GetCoeffs() const {
+	const DataArray2D<double> & GetCoeffs() const {
 		return m_dCoeff;
 	}
 
 	///	<summary>
 	///		Get the vector of begin indices.
 	///	</summary>
-	DataVector<int> & GetIxBegin() {
+	DataArray1D<int> & GetIxBegin() {
 		return m_iBegin;
 	}
 
 	///	<summary>
 	///		Get the vector of begin indices.
 	///	</summary>
-	const DataVector<int> & GetIxBegin() const {
+	const DataArray1D<int> & GetIxBegin() const {
 		return m_iBegin;
 	}
 
 	///	<summary>
 	///		Get the vector of end indices.
 	///	</summary>
-	DataVector<int> & GetIxEnd() {
+	DataArray1D<int> & GetIxEnd() {
 		return m_iEnd;
 	}
 
 	///	<summary>
 	///		Get the vector of end indices.
 	///	</summary>
-	const DataVector<int> & GetIxEnd() const {
+	const DataArray1D<int> & GetIxEnd() const {
 		return m_iEnd;
 	}
 
@@ -183,17 +183,17 @@ protected:
 	///	<summary>
 	///		Matrix of linear operator coefficients
 	///	</summary>
-	DataMatrix<double> m_dCoeff;
+	DataArray2D<double> m_dCoeff;
 
 	///	<summary>
 	///		Vector of begin indices.
 	///	</summary>
-	DataVector<int> m_iBegin;
+	DataArray1D<int> m_iBegin;
 
 	///	<summary>
 	///		Vector of end indices.
 	///	</summary>
-	DataVector<int> m_iEnd;
+	DataArray1D<int> m_iEnd;
 
 };
 

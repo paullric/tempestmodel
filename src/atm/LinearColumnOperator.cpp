@@ -39,9 +39,9 @@ void LinearColumnOperator::Initialize(
 	int nRElementsOut
 ) {
 	m_fInitialized = true;
-	m_dCoeff.Initialize(nRElementsOut, nRElementsIn);
-	m_iBegin.Initialize(nRElementsOut);
-	m_iEnd  .Initialize(nRElementsOut);
+	m_dCoeff.Allocate(nRElementsOut, nRElementsIn);
+	m_iBegin.Allocate(nRElementsOut);
+	m_iEnd  .Allocate(nRElementsOut);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -62,9 +62,9 @@ void LinearColumnOperator::ComposeWith(
 	int nRElementsOut = m_iBegin.GetRows();
 	int nRElementsIn  = op.m_dCoeff.GetColumns();
 
-	DataMatrix<double> dNewCoeff(nRElementsOut, nRElementsIn);
-	DataVector<int> iNewBegin(nRElementsOut);
-	DataVector<int> iNewEnd(nRElementsOut);
+	DataArray2D<double> dNewCoeff(nRElementsOut, nRElementsIn);
+	DataArray1D<int> iNewBegin(nRElementsOut);
+	DataArray1D<int> iNewEnd(nRElementsOut);
 
 	// Perform matrix product
 	for (int i = 0; i < nRElementsOut; i++) {
@@ -98,8 +98,8 @@ void LinearColumnOperator::ComposeWith(
 ///////////////////////////////////////////////////////////////////////////////
 
 void LinearColumnOperator::DebugOutput(
-	const DataVector<double> * pREtaNode,
-	const DataVector<double> * pREtaREdge
+	const DataArray1D<double> * pREtaNode,
+	const DataArray1D<double> * pREtaREdge
 ) {
 	FILE * fp = fopen("op.txt", "w");
 	for (int i = 0; i < m_dCoeff.GetRows(); i++) {

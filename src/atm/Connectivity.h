@@ -19,7 +19,7 @@
 
 #include "Direction.h"
 
-#include "DataVector.h"
+#include "DataArray1D.h"
 #include "GridData4D.h"
 
 #include "mpi.h"
@@ -234,10 +234,10 @@ public:
 	MPI_Request m_reqRecv;
 
 	///	<summary>
-	///		DataVector used for exchange of data and fluxes.
+	///		DataArray1D used for exchange of data and fluxes.
 	///	</summary>
-	DataVector<double> m_vecSendBuffer;
-	DataVector<double> m_vecRecvBuffer;
+	DataArray1D<double> m_vecSendBuffer;
+	DataArray1D<double> m_vecRecvBuffer;
 };
 
 ///////////////////////////////////////////////////////////////////////////////

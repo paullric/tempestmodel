@@ -71,14 +71,14 @@ OutputManagerReference::OutputManagerReference(
 	grid.GetReferenceGridBounds(dX0, dX1, dY0, dY1);
 
 	// Initialize the coordinate arrays
-	m_dXCoord.Initialize(m_nXReference);
+	m_dXCoord.Allocate(m_nXReference);
 	double dDeltaX = (dX1 - dX0) / static_cast<double>(m_nXReference);
 	for (int i = 0; i < m_nXReference; i++) {
 		m_dXCoord[i] =
 			dDeltaX * (static_cast<double>(i) + 0.5) + dX0;
 	}
 
-	m_dYCoord.Initialize(m_nYReference);
+	m_dYCoord.Allocate(m_nYReference);
 	double dDeltaY = (dY1 - dY0) / static_cast<double>(m_nYReference);
 	for (int j = 0; j < m_nYReference; j++) {
 		m_dYCoord[j] =
@@ -100,7 +100,7 @@ void OutputManagerReference::OutputVorticity(
 	m_fOutputVorticity = fOutputVorticity;
 
 	if (!fOutputVorticity) {
-		m_dataVorticity.Deinitialize();
+		m_dataVorticity.Deallocate();
 	}
 }
 
@@ -112,7 +112,7 @@ void OutputManagerReference::OutputDivergence(
 	m_fOutputDivergence = fOutputDivergence;
 
 	if (!fOutputDivergence) {
-		m_dataDivergence.Deinitialize();
+		m_dataDivergence.Deallocate();
 	}
 
 }
@@ -125,7 +125,7 @@ void OutputManagerReference::OutputTemperature(
 	m_fOutputTemperature = fOutputTemperature;
 
 	if (!fOutputTemperature) {
-		m_dataTemperature.Deinitialize();
+		m_dataTemperature.Deallocate();
 	}
 }
 
@@ -141,11 +141,8 @@ bool OutputManagerReference::CalculatePatchCoordinates() {
 	Announce("..Recalculating patch coordinates");
 
 	// Construct array of reference coordinates
-	DataVector<double> dXReference;
-	dXReference.Initialize(m_nXReference * m_nYReference);
-
-	DataVector<double> dYReference;
-	dYReference.Initialize(m_nXReference * m_nYReference);
+	DataArray1D<double> dXReference(m_nXReference * m_nYReference);
+	DataArray1D<double> dYReference(m_nXReference * m_nYReference);
 
 	int ix = 0;
 	for (int j = 0; j < m_nYReference; j++) {
@@ -157,9 +154,9 @@ bool OutputManagerReference::CalculatePatchCoordinates() {
 	}
 
 	// Resize arrays
-	m_dAlpha.Initialize(dXReference.GetRows());
-	m_dBeta .Initialize(dXReference.GetRows());
-	m_iPatch.Initialize(dXReference.GetRows());
+	m_dAlpha.Allocate(dXReference.GetRows());
+	m_dBeta .Allocate(dXReference.GetRows());
+	m_iPatch.Allocate(dXReference.GetRows());
 
 	// Convert this reference point to a patch coordinate
 	m_grid.ConvertReferenceToPatchCoord(
@@ -170,46 +167,44 @@ bool OutputManagerReference::CalculatePatchCoordinates() {
 		m_iPatch);
 
 	// Allocate data arrays
-	m_dataTopography.Initialize(
-		1,
-		1,
-		m_nXReference * m_nYReference);
+	m_dataTopography.Allocate(
+		1, 1, m_nXReference * m_nYReference);
 
-	m_dataStateNode.Initialize(
+	m_dataStateNode.Allocate(
 		m_grid.GetModel().GetEquationSet().GetComponents(),
 		m_grid.GetRElements(),
 		m_nXReference * m_nYReference);
 
 	if (!m_fOutputAllVarsOnNodes) {
-		m_dataStateREdge.Initialize(
+		m_dataStateREdge.Allocate(
 			m_grid.GetModel().GetEquationSet().GetComponents(),
 			m_grid.GetRElements() + 1,
 			m_nXReference * m_nYReference);
 	}
 
 	if (m_grid.GetModel().GetEquationSet().GetTracers() != 0) {
-		m_dataTracers.Initialize(
+		m_dataTracers.Allocate(
 			m_grid.GetModel().GetEquationSet().GetTracers(),
 			m_grid.GetRElements(),
 			m_nXReference * m_nYReference);
 	}
 
 	if (m_fOutputVorticity) {
-		m_dataVorticity.Initialize(
+		m_dataVorticity.Allocate(
 			1,
 			m_grid.GetRElements(),
 			m_nXReference * m_nYReference);
 	}
 
 	if (m_fOutputDivergence) {
-		m_dataDivergence.Initialize(
+		m_dataDivergence.Allocate(
 			1,
 			m_grid.GetRElements(),
 			m_nXReference * m_nYReference);
 	}
 
 	if (m_fOutputTemperature) {
-		m_dataTemperature.Initialize(
+		m_dataTemperature.Allocate(
 			1,
 			m_grid.GetRElements(),
 			m_nXReference * m_nYReference);
@@ -257,14 +252,24 @@ bool OutputManagerReference::OpenFile(
 		// Open new NetCDF file
 		m_pActiveNcOutput = new NcFile(strNcFileName.c_str(), NcFile::Replace);
 		if (m_pActiveNcOutput == NULL) {
-			_EXCEPTIONT("Error opening NetCDF file");
+			_EXCEPTION1("Error opening NetCDF file \"%s\"",
+				strNcFileName.c_str());
+		}
+		if (!m_pActiveNcOutput->is_valid()) {
+			_EXCEPTION1("Error opening NetCDF file \"%s\"",
+				strNcFileName.c_str());
 		}
 
 		// Create nodal time dimension
-		NcDim * dimTime =
-			m_pActiveNcOutput->add_dim("time");
+		NcDim * dimTime = m_pActiveNcOutput->add_dim("time");
+		if (dimTime == NULL) {
+			_EXCEPTIONT("Error creating \"time\" dimension");
+		}
 
 		m_varTime = m_pActiveNcOutput->add_var("time", ncDouble, dimTime);
+		if (m_varTime == NULL) {
+			_EXCEPTIONT("Error creating \"time\" variable");
+		}
 
 		std::string strUnits =
 			"days since " + model.GetStartTime().ToDateString();

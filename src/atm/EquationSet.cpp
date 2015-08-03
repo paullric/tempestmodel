@@ -87,8 +87,8 @@ EquationSet::EquationSet(
 
 void EquationSet::ConvertComponents(
 	const PhysicalConstants & phys,
-	DataVector<double> & dState,
-	DataVector<double> & dTracer
+	DataArray1D<double> & dState,
+	DataArray1D<double> & dTracer
 ) const {
 
 	// Indices of EquationSet variables

@@ -164,10 +164,10 @@ public:
 
 int main(int argc, char** argv) {
 
+try {
 	// Initialize Tempest
 	TempestInitialize(&argc, &argv);
 
-try {
 	// Background velocity
 	double dU0;
 
@@ -216,12 +216,12 @@ try {
 	model.ComputeErrorNorms();
 	AnnounceBanner();
 
+	// Deinitialize
+	TempestDeinitialize();
+
 } catch(Exception & e) {
 	std::cout << e.ToString() << std::endl;
 }
-
-	// Deinitialize
-	TempestDeinitialize();
 }
 
 ///////////////////////////////////////////////////////////////////////////////

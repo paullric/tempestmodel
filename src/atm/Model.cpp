@@ -355,14 +355,14 @@ void Model::Go() {
 /*
 		// L2 errors of the height field
 		{
-			DataVector<double> dSums;
-			DataVector<double> dNorms;
+			DataArray1D<double> dSums;
+			DataArray1D<double> dNorms;
 
 			m_pGrid->EvaluateTestCase_StateOnly(*m_pTestCase, m_time, 2);
 
 			m_pGrid->CopyData(2, 3, DataType_State);
 
-			DataVector<double> dDifference;
+			DataArray1D<double> dDifference;
 			dDifference.Initialize(3);
 			dDifference[0] = -1.0;
 			dDifference[1] =  0.0;
@@ -441,22 +441,19 @@ void Model::ComputeErrorNorms() {
 	m_pGrid->AddReferenceState(2);
 
 	// Remove current state
-	DataVector<double> dDifference;
-	dDifference.Initialize(2);
+	DataArray1D<double> dDifference;
+	dDifference.Allocate(2);
 	dDifference[0] = -1.0;
 	dDifference[1] = +1.0;
 
 	m_pGrid->LinearCombineData(dDifference, 1, DataType_State);
 
 	// Compute error norms
-	DataMatrix<double> dErrorSums;
-	dErrorSums.Initialize(m_eqn.GetComponents(), 3);
+	DataArray2D<double> dErrorSums(m_eqn.GetComponents(), 3);
+	DataArray2D<double> dErrorNorms(m_eqn.GetComponents(), 3);
 
-	DataMatrix<double> dErrorNorms;
-	dErrorNorms.Initialize(m_eqn.GetComponents(), 3);
-
-	DataVector<double> dSums;
-	DataVector<double> dNorms;
+	DataArray1D<double> dSums;
+	DataArray1D<double> dNorms;
 
 	// L1 errors
 	m_pGrid->Checksum(DataType_State, dSums, 2, ChecksumType_L1);

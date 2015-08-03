@@ -19,8 +19,8 @@
 
 ///////////////////////////////////////////////////////////////////////////////
 
-#include "DataVector.h"
-#include "DataMatrix.h"
+#include "DataArray1D.h"
+#include "DataArray2D.h"
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -99,7 +99,7 @@ public:
 	///		updated state.
 	///	</returns>
 	inline double PerformJFNK_NewtonStep_Safe(
-		DataVector<double> & dX,
+		DataArray1D<double> & dX,
 		int nMaxIter,
 		double dTolerance
 	) {
@@ -134,7 +134,7 @@ public:
 	///		updated state.
 	///	</returns>
 	inline double PerformBICGSTAB_NewtonStep_Safe(
-		DataVector<double> & dX,
+		DataArray1D<double> & dX,
 		int nMaxIter,
 		double dTolerance
 	) {
@@ -181,18 +181,18 @@ private:
 	///	<summary>
 	///		GMRES workspace variables.
 	///	</summary>
-	DataVector<double> m_dG;
-	DataVector<double> m_dFX;
-	DataMatrix<double> m_dV;
-	DataVector<double> m_dH;
-	DataVector<double> m_dCS;
-	DataVector<double> m_dSN;
-	DataVector<double> m_dS;
-	DataVector<double> m_dT;
-	DataVector<double> m_dY;
-	DataVector<double> m_dW;
-	DataVector<double> m_dPertX;
-	DataVector<double> m_dR;
+	DataArray1D<double> m_dG;
+	DataArray1D<double> m_dFX;
+	DataArray2D<double> m_dV;
+	DataArray1D<double> m_dH;
+	DataArray1D<double> m_dCS;
+	DataArray1D<double> m_dSN;
+	DataArray1D<double> m_dS;
+	DataArray1D<double> m_dT;
+	DataArray1D<double> m_dY;
+	DataArray1D<double> m_dW;
+	DataArray1D<double> m_dPertX;
+	DataArray1D<double> m_dR;
 };
 
 ///////////////////////////////////////////////////////////////////////////////

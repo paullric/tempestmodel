@@ -22,10 +22,6 @@
 
 ///////////////////////////////////////////////////////////////////////////////
 
-#include <cstdarg>
-
-///////////////////////////////////////////////////////////////////////////////
-
 #define _EXCEPTION() \
 throw Exception(__FILE__, __LINE__)
 
@@ -60,7 +56,7 @@ throw Exception(__FILE__, __LINE__, text, var1, var2, var3, var4, var5, var6, va
 
 #include <string>
 #include <cstdio>
-#include <stdarg.h>
+#include <cstdarg>
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -84,11 +80,7 @@ class Exception {
 		Exception(
 			const char * szFile,
 			unsigned int uiLine
-		) :
-			m_strText("General exception"),
-			m_strFile(szFile),
-			m_uiLine(uiLine)
-		{ }
+		);
 	
 		///	<summary>
 		///		Constructor with text and variables.
@@ -98,51 +90,13 @@ class Exception {
 			unsigned int uiLine,
 			const char * szText,
 			...
-		) :
-			m_strFile(szFile),
-			m_uiLine(uiLine)
-		{
-			char szBuffer[ExceptionBufferSize];
-
-			va_list arguments;
-
-			// Initialize the argument list
-			va_start(arguments, szText);
-
-			// Write to string
-			vsprintf(szBuffer, szText, arguments);
-
-			m_strText = szBuffer;
-
-			// Cleans up the argument list
-			va_end(arguments);
-		}
+		);
 	
 	public:
 		///	<summary>
 		///		Get a string representation of this exception.
 		///	</summary>
-		std::string ToString() const {
-			std::string strReturn;
-
-			char szBuffer[128];
-
-			// Preamble
-			sprintf(szBuffer, "EXCEPTION (");
-			strReturn.append(szBuffer);
-
-			// File name
-			strReturn.append(m_strFile);
-
-			// Line number
-			sprintf(szBuffer, ", Line %u) ", m_uiLine);
-			strReturn.append(szBuffer);
-
-			// Text
-			strReturn.append(m_strText);
-
-			return strReturn;
-		}
+		std::string ToString() const;
 
 	private:
 		///	<summary>

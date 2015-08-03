@@ -18,9 +18,9 @@
 #define _HORIZONTALDYNAMICSDG_H_
 
 #include "HorizontalDynamicsFEM.h"
-#include "DataVector.h"
-#include "DataMatrix.h"
-#include "DataMatrix3D.h"
+#include "DataArray1D.h"
+#include "DataArray2D.h"
+#include "DataArray3D.h"
 
 ///////////////////////////////////////////////////////////////////////////////
 

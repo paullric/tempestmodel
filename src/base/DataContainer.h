@@ -45,7 +45,7 @@ public:
 	size_t PushDataChunk(DataChunk * pChunk) {
 		m_vecDataChunks.push_back(pChunk);
 
-		return (m_vecDataChunks.size()-1);
+		return (m_vecDataChunks.size() - 1);
 	}
 
 	///	<summary>

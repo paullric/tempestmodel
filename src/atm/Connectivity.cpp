@@ -37,9 +37,9 @@ void Neighbor::InitializeBuffers(
 	m_nComponents = nComponents;
 
 	// Resize buffers
-	m_vecSendBuffer.Initialize(
+	m_vecSendBuffer.Allocate(
 		m_nBoundarySize * m_nMaxRElements * m_nHaloElements * m_nComponents);
-	m_vecRecvBuffer.Initialize(
+	m_vecRecvBuffer.Allocate(
 		m_nBoundarySize * m_nMaxRElements * m_nHaloElements * m_nComponents);
 }
 

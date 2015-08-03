@@ -78,7 +78,7 @@ void HorizontalDynamicsDG::StepShallowWater(
 	const int HIx = pGrid->GetVarIndex(2);
 
 	// GLL Weights, used by DG dynamics
-	const DataVector<double> & dGLLWeights1D = pGrid->GetGLLWeights1D();
+	const DataArray1D<double> & dGLLWeights1D = pGrid->GetGLLWeights1D();
 
 	// Perform local update
 	for (int n = 0; n < pGrid->GetActivePatchCount(); n++) {
@@ -87,19 +87,19 @@ void HorizontalDynamicsDG::StepShallowWater(
 
 		const PatchBox & box = pPatch->GetPatchBox();
 
-		const DataMatrix3D<double> & dJacobian =
+		const DataArray3D<double> & dJacobian =
 			pPatch->GetJacobian();
-		const DataMatrix4D<double> & dContraMetricA =
+		const DataArray4D<double> & dContraMetricA =
 			pPatch->GetContraMetricA();
-		const DataMatrix4D<double> & dContraMetricB =
+		const DataArray4D<double> & dContraMetricB =
 			pPatch->GetContraMetricB();
-		const DataMatrix3D<double> & dChristoffelA =
+		const DataArray3D<double> & dChristoffelA =
 			pPatch->GetChristoffelA();
-		const DataMatrix3D<double> & dChristoffelB =
+		const DataArray3D<double> & dChristoffelB =
 			pPatch->GetChristoffelB();
-		const DataMatrix<double> & dCoriolisF =
+		const DataArray2D<double> & dCoriolisF =
 			pPatch->GetCoriolisF();
-		const DataMatrix<double> & dTopography =
+		const DataArray2D<double> & dTopography =
 			pPatch->GetTopography();
 
 		// Connectivity for patch
@@ -116,8 +116,8 @@ void HorizontalDynamicsDG::StepShallowWater(
 		const double dElementDeltaA = pPatch->GetElementDeltaA();
 		const double dElementDeltaB = pPatch->GetElementDeltaB();
 
-		const DataMatrix<double> & dDxBasis1D = pGrid->GetDxBasis1D();
-		const DataMatrix<double> & dStiffness1D = pGrid->GetStiffness1D();
+		const DataArray2D<double> & dDxBasis1D = pGrid->GetDxBasis1D();
+		const DataArray2D<double> & dStiffness1D = pGrid->GetStiffness1D();
 
 		// Get number of finite elements in each coordinate direction
 		int nElementCountA = pPatch->GetElementCountA();
@@ -334,17 +334,17 @@ void HorizontalDynamicsDG::ElementFluxesShallowWater(
 
 		const PatchBox & box = pPatch->GetPatchBox();
 
-		const DataMatrix3D<double> & dJacobian =
+		const DataArray3D<double> & dJacobian =
 			pPatch->GetJacobian();
-		const DataMatrix4D<double> & dContraMetricA =
+		const DataArray4D<double> & dContraMetricA =
 			pPatch->GetContraMetricA();
-		const DataMatrix4D<double> & dContraMetricB =
+		const DataArray4D<double> & dContraMetricB =
 			pPatch->GetContraMetricB();
-		const DataMatrix<double> & dTopography =
+		const DataArray2D<double> & dTopography =
 			pPatch->GetTopography();
 
-		const DataVector<double> & dGLLWeights1D = pGrid->GetGLLWeights1D();
-		const DataVector<double> & dFluxDeriv1D = pGrid->GetFluxDeriv1D();
+		const DataArray1D<double> & dGLLWeights1D = pGrid->GetGLLWeights1D();
+		const DataArray1D<double> & dFluxDeriv1D = pGrid->GetFluxDeriv1D();
 
 		// Data
 		GridData4D & dataInitialNode =
@@ -650,25 +650,25 @@ void HorizontalDynamicsDG::StepNonhydrostaticPrimitive(
 
 		const PatchBox & box = pPatch->GetPatchBox();
 
-		const DataMatrix<double> & dJacobian2D =
+		const DataArray2D<double> & dJacobian2D =
 			pPatch->GetJacobian2D();
-		const DataMatrix3D<double> & dJacobian =
+		const DataArray3D<double> & dJacobian =
 			pPatch->GetJacobian();
-		const DataMatrix4D<double> & dContraMetricA =
+		const DataArray4D<double> & dContraMetricA =
 			pPatch->GetContraMetricA();
-		const DataMatrix4D<double> & dContraMetricB =
+		const DataArray4D<double> & dContraMetricB =
 			pPatch->GetContraMetricB();
-		const DataMatrix4D<double> & dContraMetricXi =
+		const DataArray4D<double> & dContraMetricXi =
 			pPatch->GetContraMetricXi();
-		const DataMatrix3D<double> & dChristoffelA =
+		const DataArray3D<double> & dChristoffelA =
 			pPatch->GetChristoffelA();
-		const DataMatrix3D<double> & dChristoffelB =
+		const DataArray3D<double> & dChristoffelB =
 			pPatch->GetChristoffelB();
-		const DataMatrix4D<double> & dChristoffelXi =
+		const DataArray4D<double> & dChristoffelXi =
 			pPatch->GetChristoffelXi();
-		const DataMatrix<double> & dCoriolisF =
+		const DataArray2D<double> & dCoriolisF =
 			pPatch->GetCoriolisF();
-		const DataMatrix<double> & dTopography =
+		const DataArray2D<double> & dTopography =
 			pPatch->GetTopography();
 
 		const double dZtop = pGrid->GetZtop();
@@ -713,8 +713,8 @@ void HorizontalDynamicsDG::StepNonhydrostaticPrimitive(
 		const double dElementDeltaA = pPatch->GetElementDeltaA();
 		const double dElementDeltaB = pPatch->GetElementDeltaB();
 
-		const DataMatrix<double> & dDxBasis1D = pGrid->GetDxBasis1D();
-		const DataMatrix<double> & dStiffness1D = pGrid->GetStiffness1D();
+		const DataArray2D<double> & dDxBasis1D = pGrid->GetDxBasis1D();
+		const DataArray2D<double> & dStiffness1D = pGrid->GetStiffness1D();
 
 		// Time over grid spacing ratio
 		double dCourantA = dDeltaT / dElementDeltaA;
@@ -1150,7 +1150,7 @@ void HorizontalDynamicsDG::ApplyScalarHyperdiffusionToBoundary(
 	int nComponents = m_model.GetEquationSet().GetComponents();
 
 	// Derivatives of the flux reconstruction function
-	const DataVector<double> & dFluxDeriv1D = pGrid->GetFluxDeriv1D();
+	const DataArray1D<double> & dFluxDeriv1D = pGrid->GetFluxDeriv1D();
 
 	// Loop over all patches
 	for (int n = 0; n < pGrid->GetActivePatchCount(); n++) {
@@ -1159,9 +1159,9 @@ void HorizontalDynamicsDG::ApplyScalarHyperdiffusionToBoundary(
 
 		const PatchBox & box = pPatch->GetPatchBox();
 
-		const DataMatrix4D<double> & dContraMetricA =
+		const DataArray4D<double> & dContraMetricA =
 			pPatch->GetContraMetricA();
-		const DataMatrix4D<double> & dContraMetricB =
+		const DataArray4D<double> & dContraMetricB =
 			pPatch->GetContraMetricB();
 
 		// Connectivity for patch
@@ -1182,9 +1182,9 @@ void HorizontalDynamicsDG::ApplyScalarHyperdiffusionToBoundary(
 		const double dElementDeltaA = pPatch->GetElementDeltaA();
 		const double dElementDeltaB = pPatch->GetElementDeltaB();
 
-		const DataMatrix<double> & dDxBasis1D = pGrid->GetDxBasis1D();
-		const DataMatrix<double> & dStiffness1D = pGrid->GetStiffness1D();
-		const DataVector<double> & dGLLWeights1D = pGrid->GetGLLWeights1D();
+		const DataArray2D<double> & dDxBasis1D = pGrid->GetDxBasis1D();
+		const DataArray2D<double> & dStiffness1D = pGrid->GetStiffness1D();
+		const DataArray1D<double> & dGLLWeights1D = pGrid->GetGLLWeights1D();
 
 		// Flux reconstruction update coefficient
 		double dUpdateDerivA =
@@ -1403,11 +1403,11 @@ void HorizontalDynamicsDG::ApplyVectorHyperdiffusionToBoundary(
 
 		const PatchBox & box = pPatch->GetPatchBox();
 
-		const DataMatrix<double> & dJacobian =
+		const DataArray2D<double> & dJacobian =
 			pPatch->GetJacobian2D();
-		const DataMatrix4D<double> & dContraMetricA =
+		const DataArray4D<double> & dContraMetricA =
 			pPatch->GetContraMetricA();
-		const DataMatrix4D<double> & dContraMetricB =
+		const DataArray4D<double> & dContraMetricB =
 			pPatch->GetContraMetricB();
 
 		// Connectivity for patch
@@ -1428,9 +1428,9 @@ void HorizontalDynamicsDG::ApplyVectorHyperdiffusionToBoundary(
 		const double dElementDeltaA = pPatch->GetElementDeltaA();
 		const double dElementDeltaB = pPatch->GetElementDeltaB();
 
-		const DataMatrix<double> & dDxBasis1D = pGrid->GetDxBasis1D();
-		const DataMatrix<double> & dStiffness1D = pGrid->GetStiffness1D();
-		const DataVector<double> & dGLLWeights1D = pGrid->GetGLLWeights1D();
+		const DataArray2D<double> & dDxBasis1D = pGrid->GetDxBasis1D();
+		const DataArray2D<double> & dStiffness1D = pGrid->GetStiffness1D();
+		const DataArray1D<double> & dGLLWeights1D = pGrid->GetGLLWeights1D();
 
 		// Get number of finite elements in each coordinate direction
 		int nElementCountA = pPatch->GetElementCountA();

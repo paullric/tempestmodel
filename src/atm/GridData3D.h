@@ -17,7 +17,7 @@
 #ifndef _GRIDDATA3D_H_
 #define _GRIDDATA3D_H_
 
-#include "DataMatrix3D.h"
+#include "DataArray3D.h"
 #include "DataType.h"
 #include "DataLocation.h"
 
@@ -82,7 +82,7 @@ public:
 		m_fInitialized = false;
 		m_eDataType = DataType_Default;
 		m_eDataLocation = DataLocation_Default;
-		m_data.Deinitialize();
+		m_data.Detach();
 	}
 
 private:
@@ -150,7 +150,7 @@ public:
 	///		Bracket accessor.
 	///	</summary>
 	inline double** operator[](int n) const {
-		return m_data[n];
+		return (m_data.GetData())[n];
 	}
 
 	///	<summary>
@@ -177,7 +177,7 @@ public:
 	///	<summary>
 	///		Get a constant reference to the data matrix.
 	///	</summary>
-	inline const DataMatrix3D<double> & GetDataMatrix() const {
+	inline const DataArray3D<double> & GetDataArray2D() const {
 		return m_data;
 	}
 
@@ -252,7 +252,7 @@ protected:
 	///	<summary>
 	///		The data for this system.
 	///	</summary>
-	DataMatrix3D<double> m_data;
+	DataArray3D<double> m_data;
 };
 
 ///////////////////////////////////////////////////////////////////////////////

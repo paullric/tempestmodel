@@ -37,35 +37,35 @@ TimestepSchemeStrang::TimestepSchemeStrang(
 	}
 
 	// Carryover combination
-	m_dCarryoverCombination.Initialize(2);
+	m_dCarryoverCombination.Allocate(2);
 	m_dCarryoverCombination[0] = 1.0;
 	m_dCarryoverCombination[1] = 1.0;
 
 	// Off-centering combination
-	m_dOffCenteringCombination.Initialize(2);
+	m_dOffCenteringCombination.Allocate(2);
 	m_dOffCenteringCombination[0] = (2.0 - m_dOffCentering) / 2.0;
 	m_dOffCenteringCombination[1] = m_dOffCentering / 2.0;
 
 	// Final carryover combination
-	m_dCarryoverFinal.Initialize(2);
+	m_dCarryoverFinal.Allocate(2);
 	m_dCarryoverFinal[0] = +1.0;
 	m_dCarryoverFinal[1] = -1.0;
 
 	// RK4 combination
-	m_dRK4Combination.Initialize(5);
+	m_dRK4Combination.Allocate(5);
 	m_dRK4Combination[0] = - 1.0 / 3.0;
 	m_dRK4Combination[1] = + 1.0 / 3.0;
 	m_dRK4Combination[2] = + 2.0 / 3.0;
 	m_dRK4Combination[3] = + 1.0 / 3.0;
 
 	// SSPRK3 combination A
-	m_dSSPRK3CombinationA.Initialize(3);
+	m_dSSPRK3CombinationA.Allocate(3);
 	m_dSSPRK3CombinationA[0] = 3.0 / 4.0;
 	m_dSSPRK3CombinationA[1] = 1.0 / 4.0;
 	m_dSSPRK3CombinationA[2] = 0.0;
 
 	// SSPRK3 combination B
-	m_dSSPRK3CombinationB.Initialize(5);
+	m_dSSPRK3CombinationB.Allocate(5);
 	m_dSSPRK3CombinationB[0] = 1.0 / 3.0;
 	m_dSSPRK3CombinationB[1] = 0.0;
 	m_dSSPRK3CombinationB[2] = 2.0 / 3.0;
@@ -73,7 +73,7 @@ TimestepSchemeStrang::TimestepSchemeStrang(
 	m_dSSPRK3CombinationB[4] = 0.0;
 
 	// KGU 3-5 combination
-	m_dKinnmarkGrayUllrichCombination.Initialize(5);
+	m_dKinnmarkGrayUllrichCombination.Allocate(5);
 	m_dKinnmarkGrayUllrichCombination[0] = - 1.0 / 4.0;
 	m_dKinnmarkGrayUllrichCombination[1] =   5.0 / 4.0;
 	m_dKinnmarkGrayUllrichCombination[2] =   0.0;
@@ -81,21 +81,21 @@ TimestepSchemeStrang::TimestepSchemeStrang(
 	m_dKinnmarkGrayUllrichCombination[4] =   0.0;
 
 	// SSPRK53 combination A
-	m_dSSPRK53CombinationA.Initialize(4);
+	m_dSSPRK53CombinationA.Allocate(4);
 	m_dSSPRK53CombinationA[0] = 0.355909775063327;
 	m_dSSPRK53CombinationA[1] = 0.0;
 	m_dSSPRK53CombinationA[2] = 0.644090224936674;
 	m_dSSPRK53CombinationA[3] = 0.0;
 
 	// SSPRK53 combination B
-	m_dSSPRK53CombinationB.Initialize(4);
+	m_dSSPRK53CombinationB.Allocate(4);
 	m_dSSPRK53CombinationB[0] = 0.367933791638137;
 	m_dSSPRK53CombinationB[1] = 0.0;
 	m_dSSPRK53CombinationB[2] = 0.0;
 	m_dSSPRK53CombinationB[3] = 0.632066208361863;
 
 	// SSPRK53 combination C
-	m_dSSPRK53CombinationC.Initialize(5);
+	m_dSSPRK53CombinationC.Allocate(5);
 	m_dSSPRK53CombinationC[0] = 0.762406163401431;
 	m_dSSPRK53CombinationC[1] = 0.0;
 	m_dSSPRK53CombinationC[2] = 0.237593836598569;
@@ -173,6 +173,7 @@ void TimestepSchemeStrang::Step(
 	const Time & time,
 	double dDeltaT
 ) {
+
 	// Get a copy of the grid
 	Grid * pGrid = m_model.GetGrid();
 
@@ -379,7 +380,7 @@ void TimestepSchemeStrang::Step(
 /*
 	if (0) {
 	//if (fLastStep) {
-		DataVector<double> dDifference;
+		DataArray1D<double> dDifference;
 		dDifference.Initialize(2);
 		dDifference[0] = -1.0;
 		dDifference[1] = 1.0;

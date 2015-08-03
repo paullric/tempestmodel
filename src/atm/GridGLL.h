@@ -20,8 +20,8 @@
 #include "Grid.h"
 #include "LinearColumnOperatorFEM.h"
 
-#include "DataVector.h"
-#include "DataMatrix.h"
+#include "DataArray1D.h"
+#include "DataArray2D.h"
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -235,7 +235,7 @@ public:
 	///		Get the derivatives of the basis functions at nodal points on the
 	///		1D reference element.
 	///	</summary>
-	const DataMatrix<double> & GetDxBasis1D() const {
+	const DataArray2D<double> & GetDxBasis1D() const {
 		return m_dDxBasis1D;
 	}
 
@@ -243,7 +243,7 @@ public:
 	///		Get the derivatives of the flux reconstruction function, which
 	///		is used for DiscontinuousGalerkin dynamics.
 	///	</summary>
-	const DataVector<double> & GetFluxDeriv1D() const {
+	const DataArray1D<double> & GetFluxDeriv1D() const {
 		return m_dFluxDeriv1D;
 	}
 
@@ -251,14 +251,14 @@ public:
 	///		Get the stiffness matrix coefficients at nodal points on the
 	///		1D reference element.
 	///	</summary>
-	const DataMatrix<double> & GetStiffness1D() const {
+	const DataArray2D<double> & GetStiffness1D() const {
 		return m_dStiffness1D;
 	}
 
 	///	<summary>
 	///		Get the GLL weights at nodal points on the 1D reference element.
 	///	</summary>
-	const DataVector<double> & GetGLLWeights1D() const {
+	const DataArray1D<double> & GetGLLWeights1D() const {
 		return m_dGLLWeights1D;
 	}
 
@@ -324,42 +324,42 @@ public:
 	///	<summary>
 	///		Get the interpolation coefficients from levels to interfaces.
 	///	</summary>
-	const DataMatrix<double> & GetInterpNodeToREdge() const {
+	const DataArray2D<double> & GetInterpNodeToREdge() const {
 		return m_dInterpNodeToREdge;
 	}
 
 	///	<summary>
 	///		Get the interpolation coefficients from interfaces to levels.
 	///	</summary>
-	const DataMatrix<double> & GetInterpREdgeToNode() const {
+	const DataArray2D<double> & GetInterpREdgeToNode() const {
 		return m_dInterpREdgeToNode;
 	}
 
 	///	<summary>
 	///		Get the differentiation coefficients from interfaces to nodes.
 	///	</summary>
-	const DataMatrix<double> & GetDiffREdgeToNode() const {
+	const DataArray2D<double> & GetDiffREdgeToNode() const {
 		return m_dDiffREdgeToNode;
 	}
 
 	///	<summary>
 	///		Get the differentiation coefficients from interfaces to interfaces.
 	///	</summary>
-	const DataMatrix<double> & GetDiffREdgeToREdge() const {
+	const DataArray2D<double> & GetDiffREdgeToREdge() const {
 		return m_dDiffREdgeToREdge;
 	}
 
 	///	<summary>
 	///		Get the differentiation coefficients from nodes to interfaces.
 	///	</summary>
-	const DataMatrix<double> & GetDiffNodeToREdge() const {
+	const DataArray2D<double> & GetDiffNodeToREdge() const {
 		return m_dDiffNodeToREdge;
 	}
 
 	///	<summary>
 	///		Get the differentiation coefficients from nodes to nodes.
 	///	</summary>
-	const DataMatrix<double> & GetDiffNodeToNode() const {
+	const DataArray2D<double> & GetDiffNodeToNode() const {
 		return m_dDiffNodeToNode;
 	}
 
@@ -367,7 +367,7 @@ public:
 	///		Get amalgamated differentiation coefficients from nodes to
 	///		interfaces.
 	///	</summary>
-	const DataMatrix<double> & GetDiffNodeToREdgeAmal() const {
+	const DataArray2D<double> & GetDiffNodeToREdgeAmal() const {
 		return m_dDiffNodeToREdgeAmal;
 	}
 
@@ -375,7 +375,7 @@ public:
 	///		Get amalgamated differentiation coefficients from nodes to
 	///		interfaces at left edge.
 	///	</summary>
-	const DataMatrix<double> & GetDiffNodeToREdgeLeft() const {
+	const DataArray2D<double> & GetDiffNodeToREdgeLeft() const {
 		return m_dDiffNodeToREdgeLeft;
 	}
 
@@ -383,7 +383,7 @@ public:
 	///		Get amalgamated differentiation coefficients from nodes to
 	///		interfaces at right edge.
 	///	</summary>
-	const DataMatrix<double> & GetDiffNodeToREdgeRight() const {
+	const DataArray2D<double> & GetDiffNodeToREdgeRight() const {
 		return m_dDiffNodeToREdgeRight;
 	}
 
@@ -397,14 +397,14 @@ public:
 	///	<summary>
 	///		Get the derivatives of reconstruction polynomial on nodes.
 	///	</summary>
-	const DataVector<double> & GetDiffReconsPolyNode() const {
+	const DataArray1D<double> & GetDiffReconsPolyNode() const {
 		return m_dDiffReconsPolyNode;
 	}
 
 	///	<summary>
 	///		Get the derivatives of reconstruction polynomial on interfaces.
 	///	</summary>
-	const DataVector<double> & GetDiffReconsPolyREdge() const {
+	const DataArray1D<double> & GetDiffReconsPolyREdge() const {
 		return m_dDiffReconsPolyREdge;
 	}
 
@@ -413,7 +413,7 @@ private:
 	///		Variable evaluated on finite element interfaces (left,
 	///		right and average components)
 	///	</summary>
-	mutable DataMatrix<double> m_dStateFEEdge;
+	mutable DataArray2D<double> m_dStateFEEdge;
 */
 protected:
 	///	<summary>
@@ -430,35 +430,35 @@ protected:
 	///		Derivatives of the basis functions at nodal points on the
 	///		horizontal reference element.
 	///	</summary>
-	DataMatrix<double> m_dDxBasis1D;
+	DataArray2D<double> m_dDxBasis1D;
 
 	///	<summary>
 	///		Stiffness matrix coefficients at nodal points on the
 	///		horizontal reference element.
 	///	</summary>
-	DataMatrix<double> m_dStiffness1D;
+	DataArray2D<double> m_dStiffness1D;
 
 	///	<summary>
 	///		Pointwise GLL weights at nodal points on the 1D
 	///		reference element.
 	///	</summary>
-	DataVector<double> m_dGLLWeights1D;
+	DataArray1D<double> m_dGLLWeights1D;
 
 	///	<summary>
 	///		Derivatives of the flux reconstruction function (used by
 	///		discontinuous Galerkin dynamics).
 	///	</summary>
-	DataVector<double> m_dFluxDeriv1D;
+	DataArray1D<double> m_dFluxDeriv1D;
 /*
 	///	<summary>
 	///		Interpolation coefficients from levels to interfaces.
 	///	</summary>
-	DataMatrix<double> m_dInterpNodeToREdge;
+	DataArray2D<double> m_dInterpNodeToREdge;
 
 	///	<summary>
 	///		Interpolation coefficients from interfaces to levels.
 	///	</summary>
-	DataMatrix<double> m_dInterpREdgeToNode;
+	DataArray2D<double> m_dInterpREdgeToNode;
 */
 	///	<summary>
 	///		Interpolation operator from levels to interfaces.
@@ -509,41 +509,41 @@ protected:
 	///	<summary>
 	///		Differentiation coefficients from interfaces to nodes.
 	///	</summary>
-	DataMatrix<double> m_dDiffREdgeToNode;
+	DataArray2D<double> m_dDiffREdgeToNode;
 
 	///	<summary>
 	///		Differentiation coefficients from interfaces to interfaces.
 	///	</summary>
-	DataMatrix<double> m_dDiffREdgeToREdge;
+	DataArray2D<double> m_dDiffREdgeToREdge;
 
 	///	<summary>
 	///		Differentiation coefficients from nodes to interfaces.
 	///	</summary>
-	DataMatrix<double> m_dDiffNodeToREdge;
+	DataArray2D<double> m_dDiffNodeToREdge;
 
 	///	<summary>
 	///		Differentiation coefficients from nodes to nodes.
 	///	</summary>
-	DataMatrix<double> m_dDiffNodeToNode;
+	DataArray2D<double> m_dDiffNodeToNode;
 
 	///	<summary>
 	///		Amalgamated differentiation coefficients from nodes to interfaces;
 	///		includes both interior derivative terms and derivatives from
 	///		reconstruction polynomial.
 	///	</summary>
-	DataMatrix<double> m_dDiffNodeToREdgeAmal;
+	DataArray2D<double> m_dDiffNodeToREdgeAmal;
 
 	///	<summary>
 	///		Amalgamated differentiation coefficients from nodes to interfaces
 	///		at left edge with extrapolated boundary conditions.
 	///	</summary>
-	DataMatrix<double> m_dDiffNodeToREdgeLeft;
+	DataArray2D<double> m_dDiffNodeToREdgeLeft;
 
 	///	<summary>
 	///		Amalgamated differentiation coefficients from nodes to interfaces
 	///		at right edge with extrapolated boundary conditions.
 	///	</summary>
-	DataMatrix<double> m_dDiffNodeToREdgeRight;
+	DataArray2D<double> m_dDiffNodeToREdgeRight;
 
 	///	<summary>
 	///		Type of reconstruction polynomial to use.
@@ -553,12 +553,12 @@ protected:
 	///	<summary>
 	///		Derivatives of reconstruction polynomial on nodes.
 	///	</summary>
-	DataVector<double> m_dDiffReconsPolyNode;
+	DataArray1D<double> m_dDiffReconsPolyNode;
 
 	///	<summary>
 	///		Derivatives of reconstruction polynomial on interfaces.
 	///	</summary>
-	DataVector<double> m_dDiffReconsPolyREdge;
+	DataArray1D<double> m_dDiffReconsPolyREdge;
 */
 };
 

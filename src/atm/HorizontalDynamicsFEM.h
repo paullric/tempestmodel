@@ -18,10 +18,10 @@
 #define _HORIZONTALDYNAMICSFEM_H_
 
 #include "HorizontalDynamics.h"
-#include "DataVector.h"
-#include "DataMatrix.h"
-#include "DataMatrix3D.h"
-#include "DataMatrix4D.h"
+#include "DataArray1D.h"
+#include "DataArray2D.h"
+#include "DataArray3D.h"
+#include "DataArray4D.h"
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -157,58 +157,58 @@ protected:
 	///	<summary>
 	///		Nodal alpha mass fluxes.
 	///	</summary>
-	DataMatrix<double> m_dAlphaMassFlux;
+	DataArray2D<double> m_dAlphaMassFlux;
 
 	///	<summary>
 	///		Nodal beta mass fluxes.
 	///	</summary>
-	DataMatrix<double> m_dBetaMassFlux;
+	DataArray2D<double> m_dBetaMassFlux;
 
 	///	<summary>
 	///		Nodal alpha pressure fluxes.
 	///	</summary>
-	DataMatrix<double> m_dAlphaPressureFlux;
+	DataArray2D<double> m_dAlphaPressureFlux;
 
 	///	<summary>
 	///		Nodal beta pressure fluxes.
 	///	</summary>
-	DataMatrix<double> m_dBetaPressureFlux;
+	DataArray2D<double> m_dBetaPressureFlux;
 
 	///	<summary>
 	///		Nodal alpha tracer fluxes.
 	///	</summary>
-	DataMatrix3D<double> m_dAlphaTracerFlux;
+	DataArray3D<double> m_dAlphaTracerFlux;
 
 	///	<summary>
 	///		Nodal beta tracer fluxes.
 	///	</summary>
-	DataMatrix3D<double> m_dBetaTracerFlux;
+	DataArray3D<double> m_dBetaTracerFlux;
 
 	///	<summary>
 	///		Auxiliary data within an element (on nodes).
 	///	</summary>
-	DataMatrix4D<double> m_dAuxDataNode;
+	DataArray4D<double> m_dAuxDataNode;
 
 	///	<summary>
 	///		Auxiliary data within an element (on edges).
 	///	</summary>
-	DataMatrix4D<double> m_dAuxDataREdge;
+	DataArray4D<double> m_dAuxDataREdge;
 
 	///	<summary>
 	///		Divergence within an element (on nodes).
 	///	</summary>
-	DataMatrix3D<double> m_dDivergence;
+	DataArray3D<double> m_dDivergence;
 
 protected:
 	///	<summary>
 	///		Nodal pointwise gradient of Jacobian in alpha direction (buffer).
 	///	</summary>
-	DataMatrix<double> m_dJGradientA;
+	DataArray2D<double> m_dJGradientA;
 
 	///	<summary>
 	///		Nodal pointwise gradient of Jacobian in beta direction (buffer).
 	///	</summary>
-	DataMatrix<double> m_dJGradientB;
+	DataArray2D<double> m_dJGradientB;
 
 protected:
 	///	<summary>

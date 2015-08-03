@@ -20,6 +20,8 @@
 #include "HorizontalDynamics.h"
 #include "VerticalDynamics.h"
 
+#pragma message "File tagged for cleanup"
+
 ///////////////////////////////////////////////////////////////////////////////
 // THESE COEFFICIENTS ARE COMPUTED FROM THE ORIGINAL TABLEAUX
 // IMPLEMENTS ARK(2,2,2) FROM ASCHER ET AL. 1997 PG. 9
@@ -49,9 +51,9 @@ TimestepSchemeARK2::TimestepSchemeARK2(
 ) :
 	TimestepScheme(model)
 {
-	m_dKh1Combo.Initialize(5);
-	m_dK1Combo.Initialize(5);
-	m_du2fCombo.Initialize(5);
+	m_dKh1Combo.Allocate(5);
+	m_dK1Combo.Allocate(5);
+	m_du2fCombo.Allocate(5);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
