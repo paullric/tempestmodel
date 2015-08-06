@@ -45,6 +45,13 @@
 !           Based on a code by Joseph Klemp
 !           (National Center for Atmospheric Research)
 !
+!  Reference:
+!
+!    Klemp, J. B., W. C. Skamarock, W. C., and S.-H. Park, 2015:
+!    Idealized Global Nonhydrostatic Atmospheric Test Cases on a Reduced
+!    Radius Sphere. Journal of Advances in Modeling Earth Systems. 
+!    doi:10.1002/2015MS000435
+!
 !=======================================================================
 
 SUBROUTINE KESSLER(t, qv, qc, qr, rho, pk, dt, z, nz, rainnc) &
