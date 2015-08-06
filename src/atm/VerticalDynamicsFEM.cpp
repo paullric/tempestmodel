@@ -150,10 +150,10 @@ void VerticalDynamicsFEM::Initialize() {
 #endif
 #ifdef USE_DIRECTSOLVE_APPROXJ
 	// Initialize Jacobian matrix
-	m_matJacobianF.Initialize(m_nColumnStateSize, m_nColumnStateSize);
+	m_matJacobianF.Allocate(m_nColumnStateSize, m_nColumnStateSize);
 
 	// Initialize pivot vector
-	m_vecIPiv.Initialize(m_nColumnStateSize);
+	m_vecIPiv.Allocate(m_nColumnStateSize);
 #endif
 #ifdef USE_DIRECTSOLVE
 	// Initialize Jacobian matrix

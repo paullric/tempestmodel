@@ -25,8 +25,7 @@
 #include "DataLocation.h"
 
 #include <cstdlib>
-
-#include <iostream>
+#include <cstring>
 
 template <typename T>
 class DataArray1D : public DataChunk {
