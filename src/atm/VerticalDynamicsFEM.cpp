@@ -157,10 +157,10 @@ void VerticalDynamicsFEM::Initialize() {
 #endif
 #ifdef USE_DIRECTSOLVE
 	// Initialize Jacobian matrix
-	m_matJacobianF.Initialize(m_nColumnStateSize, m_nColumnStateSize);
+	m_matJacobianF.Allocate(m_nColumnStateSize, m_nColumnStateSize);
 
 	// Initialize pivot vector
-	m_vecIPiv.Initialize(m_nColumnStateSize);
+	m_vecIPiv.Allocate(m_nColumnStateSize);
 #endif
 #if defined(USE_DIRECTSOLVE_APPROXJ) || defined(USE_DIRECTSOLVE)
 #ifdef USE_JACOBIAN_DIAGONAL
@@ -780,13 +780,13 @@ void VerticalDynamicsFEM::StepImplicit(
 			BuildF(m_dColumnState, m_dSoln);
 
 			DataArray1D<double> dJC;
-			dJC.Initialize(m_dColumnState.GetRows());
+			dJC.Allocate(m_dColumnState.GetRows());
 
 			DataArray1D<double> dG;
-			dG.Initialize(m_dColumnState.GetRows());
+			dG.Allocate(m_dColumnState.GetRows());
 
 			DataArray1D<double> dJCref;
-			dJCref.Initialize(m_dColumnState.GetRows());
+			dJCref.Allocate(m_dColumnState.GetRows());
 
 			Evaluate(m_dColumnState, dJCref);
 
@@ -851,7 +851,7 @@ void VerticalDynamicsFEM::StepImplicit(
 			// DEBUG (check for NANs in output)
 			if (!(m_dSoln[0] == m_dSoln[0])) {
 				DataArray1D<double> dEval;
-				dEval.Initialize(m_dColumnState.GetRows());
+				dEval.Allocate(m_dColumnState.GetRows());
 				Evaluate(m_dSoln, dEval);
 
 				for (int p = 0; p < dEval.GetRows(); p++) {
