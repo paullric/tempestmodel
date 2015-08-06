@@ -47,13 +47,13 @@ WorkflowProcess(
 
 		int ndim=pGrid->GetRElements();
 	
-		qv.Initialize(ndim);
-		qc.Initialize(ndim);
-		qr.Initialize(ndim);
-		t.Initialize(ndim);
-		rho.Initialize(ndim);
-		zc.Initialize(ndim);
-		pk.Initialize(ndim);
+		qv.Allocate(ndim);
+		qc.Allocate(ndim);
+		qr.Allocate(ndim);
+		t.Allocate(ndim);
+		rho.Allocate(ndim);
+		zc.Allocate(ndim);
+		pk.Allocate(ndim);
 	
 }
 
@@ -90,19 +90,19 @@ WorkflowProcess(
 		const PatchBox & box = pPatch->GetPatchBox();
 		
 		// Get latitude
-		const DataMatrix<double> & dataLatitude = pPatch->GetLatitude();
+		const DataArray2D<double> & dataLatitude = pPatch->GetLatitude();
 		
 		// Grid data
-		GridData4D & dataNode =
+		DataArray4D<double> & dataNode =
 		pPatch->GetDataState(0, DataLocation_Node);
 		
-		GridData4D & dataREdge =
+		DataArray4D<double> & dataREdge =
 		pPatch->GetDataState(0, DataLocation_REdge);
 		
-		GridData4D & dataTracer =
+		DataArray4D<double> & dataTracer =
 		pPatch->GetDataTracers(0);
 		
-	   const DataMatrix3D<double> & dataZLevels	= pPatch->GetZLevels();
+	   const DataArray3D<double> & dataZLevels	= pPatch->GetZLevels();
 		
 			// Loop over all horizontal nodes in GridPatch
 			for (int i = box.GetAInteriorBegin(); i < box.GetAInteriorEnd(); i++) {

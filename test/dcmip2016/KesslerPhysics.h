@@ -18,10 +18,10 @@
 #include <cstring>
 
 #include "Defines.h"
-#include "DataVector.h"
-#include "DataMatrix.h"
-#include "GridData3D.h"
-#include "GridData4D.h"
+#include "DataArray1D.h"
+#include "DataArray2D.h"
+#include "DataArray3D.h"
+#include "DataArray4D.h"
 
 
 #include "WorkflowProcess.h"
@@ -76,13 +76,13 @@ public:
     );
     
 protected:
-    DataVector<double> qv;
-    DataVector<double> qc;
-    DataVector<double> qr;
-    DataVector<double> rho;
-    DataVector<double> zc;
-    DataVector<double> pk;
-    DataVector<double> t;
+    DataArray1D<double> qv;
+    DataArray1D<double> qc;
+    DataArray1D<double> qr;
+    DataArray1D<double> rho;
+    DataArray1D<double> zc;
+    DataArray1D<double> pk;
+    DataArray1D<double> t;
     
     int nz;
 
