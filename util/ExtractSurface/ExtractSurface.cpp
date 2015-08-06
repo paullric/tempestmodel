@@ -14,9 +14,9 @@
 ///		or implied warranty.
 ///	</remarks>
 
-#include "DataVector.h"
-#include "DataMatrix.h"
-#include "DataMatrix3D.h"
+#include "DataArray1D.h"
+#include "DataArray2D.h"
+#include "DataArray3D.h"
 #include "CommandLine.h"
 #include "Announce.h"
 
@@ -249,10 +249,10 @@ void ParseVariableList(
 
 void InterpolationWeightsLinear(
 	double dP,
-	const DataVector<double> & dataP,
+	const DataArray1D<double> & dataP,
 	int & kBegin,
 	int & kEnd,
-	DataVector<double> & dW
+	DataArray1D<double> & dW
 ) {
 	const int nLev = dataP.GetRows();
 
@@ -421,8 +421,7 @@ try {
 	NcVar * varTime = ncdf_in.get_var("time");
 	int nTime = varTime->get_dim(0)->size();
 
-	DataVector<double> dTime;
-	dTime.Initialize(nTime);
+	DataArray1D<double> dTime(nTime);
 	varTime->set_cur((long)0);
 	varTime->get(&(dTime[0]), nTime);
 
@@ -431,8 +430,7 @@ try {
 	NcVar * varLat = ncdf_in.get_var("lat");
 	int nLat = varLat->get_dim(0)->size();
 
-	DataVector<double> dLat;
-	dLat.Initialize(nLat);
+	DataArray1D<double> dLat(nLat);
 	varLat->set_cur((long)0);
 	varLat->get(&(dLat[0]), nLat);
 
@@ -441,8 +439,7 @@ try {
 	NcVar * varLon = ncdf_in.get_var("lon");
 	int nLon = varLon->get_dim(0)->size();
 
-	DataVector<double> dLon;
-	dLon.Initialize(nLon);
+	DataArray1D<double> dLon(nLon);
 	varLon->set_cur((long)0);
 	varLon->get(&(dLon[0]), nLon);
 
@@ -451,8 +448,7 @@ try {
 	NcVar * varLev = ncdf_in.get_var("lev");
 	int nLev = varLev->get_dim(0)->size();
 
-	DataVector<double> dLev;
-	dLev.Initialize(nLev);
+	DataArray1D<double> dLev(nLev);
 	varLev->set_cur((long)0);
 	varLev->get(&(dLev[0]), nLev);
 
@@ -460,8 +456,7 @@ try {
 	Announce("Topography");
 	NcVar * varZs = ncdf_in.get_var("Zs");
 
-	DataMatrix<double> dZs;
-	dZs.Initialize(nLat, nLon);
+	DataArray2D<double> dZs(nLat, nLon);
 	varZs->set_cur((long)0, (long)0);
 	varZs->get(&(dZs[0][0]), nLat, nLon);
 
@@ -574,24 +569,19 @@ try {
 	double dZtop = attZtop->as_double(0);
 
 	// Input data
-	DataMatrix3D<double> dataIn;
-	dataIn.Initialize(nLev, nLat, nLon);
+	DataArray3D<double> dataIn(nLev, nLat, nLon);
 
 	// Output data
-	DataMatrix<double> dataOut;
-	dataOut.Initialize(nLat, nLon);
+	DataArray2D<double> dataOut(nLat, nLon);
 
 	// Pressure in column
-	DataVector<double> dataColumnP;
-	dataColumnP.Initialize(nLev);
+	DataArray1D<double> dataColumnP(nLev);
 
 	// Height in column
-	DataVector<double> dataColumnZ;
-	dataColumnZ.Initialize(nLev);
+	DataArray1D<double> dataColumnZ(nLev);
 
 	// Column weights
-	DataVector<double> dW;
-	dW.Initialize(nLev);
+	DataArray1D<double> dW(nLev);
 
 	// Loop through all times, pressure levels and variables
 	AnnounceStartBlock("Interpolating");
@@ -659,16 +649,14 @@ try {
 		AnnounceStartBlock(szAnnounce);
 
 		// Rho
-		DataMatrix3D<double> dataRho;
-		dataRho.Initialize(nLev, nLat, nLon);
+		DataArray3D<double> dataRho(nLev, nLat, nLon);
 
 		NcVar * varRho = ncdf_in.get_var("Rho");
 		varRho->set_cur(t, 0, 0, 0);
 		varRho->get(&(dataRho[0][0][0]), 1, nLev, nLat, nLon);
 
 		// Pressure
-		DataMatrix3D<double> dataP;
-		dataP.Initialize(nLev, nLat, nLon);
+		DataArray3D<double> dataP(nLev, nLat, nLon);
 
 		bool fHasPressure = false;
 		for (int v = 0; v < ncdf_in.num_vars(); v++) {
@@ -701,8 +689,7 @@ try {
 		}
 */
 		// Height everywhere
-		DataMatrix3D<double> dataZ;
-		dataZ.Initialize(nLev, nLat, nLon);
+		DataArray3D<double> dataZ(nLev, nLat, nLon);
 
 		// Populate height array
 		if ((nHeightLevels > 0) || (fGeopotentialHeight)) {
@@ -916,24 +903,21 @@ try {
 			Announce("Total Energy");
 
 			// Zonal velocity
-			DataMatrix3D<double> dataU;
-			dataU.Initialize(nLev, nLat, nLon);
+			DataArray3D<double> dataU(nLev, nLat, nLon);
 
 			NcVar * varU = ncdf_in.get_var("U");
 			varU->set_cur(t, 0, 0, 0);
 			varU->get(&(dataU[0][0][0]), 1, nLev, nLat, nLon);
 
 			// Meridional velocity
-			DataMatrix3D<double> dataV;
-			dataV.Initialize(nLev, nLat, nLon);
+			DataArray3D<double> dataV(nLev, nLat, nLon);
 
 			NcVar * varV = ncdf_in.get_var("V");
 			varV->set_cur(t, 0, 0, 0);
 			varV->get(&(dataV[0][0][0]), 1, nLev, nLat, nLon);
 
 			// Vertical velocity
-			DataMatrix3D<double> dataW;
-			dataW.Initialize(nLev, nLat, nLon);
+			DataArray3D<double> dataW(nLev, nLat, nLon);
 
 			NcVar * varW = ncdf_in.get_var("W");
 			varW->set_cur(t, 0, 0, 0);
