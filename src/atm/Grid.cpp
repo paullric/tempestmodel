@@ -56,6 +56,45 @@ Grid::Grid(
 {
 	// Assign a default vertical stretching function
 	m_pVerticalStretchF = new VerticalStretchUniform;
+
+	// Number of components
+	int nComponents = model.GetEquationSet().GetComponents();
+
+	// Set the size of all DataArray objects
+	m_eBoundaryCondition.SetSize(4);
+	m_dREtaLevels.SetSize(nRElements);
+	m_dREtaInterfaces.SetSize(nRElements+1);
+	m_dREtaLevelsNormArea.SetSize(nRElements);
+	m_dREtaInterfacesNormArea.SetSize(nRElements+1);
+	m_dREtaStretchLevels.SetSize(nRElements);
+	m_dREtaStretchInterfaces.SetSize(nRElements+1);
+	m_vecVarLocation.SetSize(nComponents);
+	m_vecVarIndex.SetSize(nComponents);
+	m_vecVarsAtLocation.SetSize((size_t)DataLocation_Count);
+
+	// Allocate all DataArrays
+	m_dcGridData.PushDataChunk(&m_eBoundaryCondition);
+	m_dcGridData.PushInteger(&m_iGridStamp);
+	m_dcGridData.PushInteger(&m_nABaseResolution);
+	m_dcGridData.PushInteger(&m_nBBaseResolution);
+	m_dcGridData.PushInteger(&m_nRefinementRatio);
+	m_dcGridData.PushDouble(&m_dReferenceLength);
+	m_dcGridData.PushInteger(&m_nRElements);
+	m_dcGridData.PushDouble(&m_dZtop);
+	m_dcGridData.PushDataChunk(&m_dREtaLevels);
+	m_dcGridData.PushDataChunk(&m_dREtaInterfaces);
+	m_dcGridData.PushDataChunk(&m_dREtaLevelsNormArea);
+	m_dcGridData.PushDataChunk(&m_dREtaInterfacesNormArea);
+	m_dcGridData.PushDataChunk(&m_dREtaStretchLevels);
+	m_dcGridData.PushDataChunk(&m_dREtaStretchInterfaces);
+	m_dcGridData.PushDataChunk(&m_vecVarLocation);
+	m_dcGridData.PushDataChunk(&m_vecVarIndex);
+	m_dcGridData.PushDataChunk(&m_vecVarsAtLocation);
+	m_dcGridData.PushInteger(&m_nDegreesOfFreedomPerColumn);
+	m_dcGridData.PushBool(&m_fHasReferenceState);
+	m_dcGridData.PushBool(&m_fHasRayleighFriction);
+
+	m_dcGridData.Allocate();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -119,6 +158,27 @@ void Grid::InitializeVerticalCoordinate(
 	// Number of components in the EquationSet
 	int nComponents = m_model.GetEquationSet().GetComponents();
 
+	// Check array allocation
+	if (!m_vecVarLocation.IsAttached()) {
+		_EXCEPTIONT("vecVarLocation not initializead");
+	}
+	if (!m_vecVarIndex.IsAttached()) {
+		_EXCEPTIONT("vecVarIndex not initialized");
+	}
+	if (!m_dREtaLevels.IsAttached()) {
+		_EXCEPTIONT("dREtaLevels not initialized");
+	}
+	if (!m_dREtaInterfaces.IsAttached()) {
+		_EXCEPTIONT("dREtaInterfaces not initialized");
+	}
+	if (!m_dREtaStretchLevels.IsAttached()) {
+		_EXCEPTIONT("dREtaStretchLevels not initialized");
+	}
+	if (!m_dREtaStretchInterfaces.IsAttached()) {
+		_EXCEPTIONT("dREtaStretchInterfaces not initialized");
+	}
+
+/*
 	// Initialize location and index for each variable
 	bool fInitializeStaggering = false;
 	if (m_vecVarLocation.GetData() != NULL) {
@@ -127,20 +187,22 @@ void Grid::InitializeVerticalCoordinate(
 				"number of free equations");
 		}
 	} else {
-		m_vecVarLocation.Allocate(nComponents);
+		//m_vecVarLocation.Allocate(nComponents);
 		fInitializeStaggering = true;
 	}
+*/
+	//bool fInitializeStaggering = true;
 
 	// If dimensionality is 2, then initialize a dummy REta
 	if (m_model.GetEquationSet().GetDimensionality() == 2) {
-
+/*
 		// Resize arrays of REta coordinates
 		m_dREtaLevels.Allocate(1);
 		m_dREtaInterfaces.Allocate(2);
 
 		m_dREtaLevelsNormArea.Allocate(1);
 		m_dREtaInterfacesNormArea.Allocate(2);
-
+*/
 		// Uniform grid spacing
 		m_dREtaLevels[0] = 0.5;
 		m_dREtaInterfaces[0] = 0.0;
@@ -151,11 +213,9 @@ void Grid::InitializeVerticalCoordinate(
 		m_dREtaInterfacesNormArea[1] = 0.5;
 
 		// Everything on model levels
-		if (fInitializeStaggering) {
-			m_vecVarLocation[0] = DataLocation_Node;
-			m_vecVarLocation[1] = DataLocation_Node;
-			m_vecVarLocation[2] = DataLocation_Node;
-		}
+		m_vecVarLocation[0] = DataLocation_Node;
+		m_vecVarLocation[1] = DataLocation_Node;
+		m_vecVarLocation[2] = DataLocation_Node;
 
 		// Initialize number of degres of freedom per column
 		m_nDegreesOfFreedomPerColumn = nComponents;
@@ -170,14 +230,14 @@ void Grid::InitializeVerticalCoordinate(
 
 		// Zero point of GridSpacing object
 		double dZeroCoord = gridspacing.GetZeroCoord();
-
+/*
 		// Resize arrays of REta coordinates
 		m_dREtaLevels.Allocate(m_nRElements);
 		m_dREtaInterfaces.Allocate(m_nRElements+1);
 
 		m_dREtaLevelsNormArea.Allocate(m_nRElements);
 		m_dREtaInterfacesNormArea.Allocate(m_nRElements+1);
-
+*/
 		// Get node/interface location from GridSpacing
 		for (int k = 0; k < m_nRElements; k++) {
 			m_dREtaLevels[k] = gridspacing.GetNode(k);
@@ -198,43 +258,41 @@ void Grid::InitializeVerticalCoordinate(
 		}
 
 		// Location of variables
-		if (fInitializeStaggering) {
-			switch (m_eVerticalStaggering) {
-				case VerticalStaggering_Levels:
-					m_vecVarLocation[0] = DataLocation_Node;
-					m_vecVarLocation[1] = DataLocation_Node;
-					m_vecVarLocation[2] = DataLocation_Node;
-					m_vecVarLocation[3] = DataLocation_Node;
-					m_vecVarLocation[4] = DataLocation_Node;
-					break;
+		switch (m_eVerticalStaggering) {
+			case VerticalStaggering_Levels:
+				m_vecVarLocation[0] = DataLocation_Node;
+				m_vecVarLocation[1] = DataLocation_Node;
+				m_vecVarLocation[2] = DataLocation_Node;
+				m_vecVarLocation[3] = DataLocation_Node;
+				m_vecVarLocation[4] = DataLocation_Node;
+				break;
 
-				case VerticalStaggering_Interfaces:
-					m_vecVarLocation[0] = DataLocation_Node;
-					m_vecVarLocation[1] = DataLocation_Node;
-					m_vecVarLocation[2] = DataLocation_Node;
-					m_vecVarLocation[3] = DataLocation_Node;
-					m_vecVarLocation[4] = DataLocation_Node;
-					break;
+			case VerticalStaggering_Interfaces:
+				m_vecVarLocation[0] = DataLocation_Node;
+				m_vecVarLocation[1] = DataLocation_Node;
+				m_vecVarLocation[2] = DataLocation_Node;
+				m_vecVarLocation[3] = DataLocation_Node;
+				m_vecVarLocation[4] = DataLocation_Node;
+				break;
 
-				case VerticalStaggering_Lorenz:
-					m_vecVarLocation[0] = DataLocation_Node;
-					m_vecVarLocation[1] = DataLocation_Node;
-					m_vecVarLocation[2] = DataLocation_Node;
-					m_vecVarLocation[3] = DataLocation_REdge;
-					m_vecVarLocation[4] = DataLocation_Node;
-					break;
+			case VerticalStaggering_Lorenz:
+				m_vecVarLocation[0] = DataLocation_Node;
+				m_vecVarLocation[1] = DataLocation_Node;
+				m_vecVarLocation[2] = DataLocation_Node;
+				m_vecVarLocation[3] = DataLocation_REdge;
+				m_vecVarLocation[4] = DataLocation_Node;
+				break;
 
-				case VerticalStaggering_CharneyPhillips:
-					m_vecVarLocation[0] = DataLocation_Node;
-					m_vecVarLocation[1] = DataLocation_Node;
-					m_vecVarLocation[2] = DataLocation_REdge;
-					m_vecVarLocation[3] = DataLocation_REdge;
-					m_vecVarLocation[4] = DataLocation_Node;
-					break;
+			case VerticalStaggering_CharneyPhillips:
+				m_vecVarLocation[0] = DataLocation_Node;
+				m_vecVarLocation[1] = DataLocation_Node;
+				m_vecVarLocation[2] = DataLocation_REdge;
+				m_vecVarLocation[3] = DataLocation_REdge;
+				m_vecVarLocation[4] = DataLocation_Node;
+				break;
 
-				default:
-					_EXCEPTIONT("Invalid VerticalStaggering specified");
-			}
+			default:
+				_EXCEPTIONT("Invalid VerticalStaggering specified");
 		}
 
 		// Initialize number of degres of freedom per column
@@ -260,10 +318,10 @@ void Grid::InitializeVerticalCoordinate(
 
 	} else {
 		double dDxREtaStretch;
-
+/*
 		m_dREtaStretchLevels.Allocate(m_dREtaLevels.GetRows());
 		m_dREtaStretchInterfaces.Allocate(m_dREtaInterfaces.GetRows());
-
+*/
 		for (int k = 0; k < m_dREtaLevels.GetRows(); k++) {
 			(*m_pVerticalStretchF)(
 				m_dREtaLevels[k],
@@ -280,21 +338,21 @@ void Grid::InitializeVerticalCoordinate(
 	}
 
 	// Convert node locations to indices in local arrays
-	m_vecVarsAtLocation.resize((int)DataLocation_Count);
-	for (int l = 0; l < (int)DataLocation_Count; l++) {
+	//m_vecVarsAtLocation.Allocate((size_t)DataLocation_Count);
+	for (size_t l = 0; l < (size_t)DataLocation_Count; l++) {
 		m_vecVarsAtLocation[l] = 0;
 	}
 
-	m_vecVarIndex.resize(m_model.GetEquationSet().GetComponents());
-	for (int c = 0; c < m_model.GetEquationSet().GetComponents(); c++) {
+	//m_vecVarIndex.Allocate(m_model.GetEquationSet().GetComponents());
+	for (size_t c = 0; c < m_model.GetEquationSet().GetComponents(); c++) {
 		if (m_vecVarLocation[c] == DataLocation_Node) {
-			m_vecVarIndex[c] = m_vecVarsAtLocation[(int)DataLocation_Node]++;
+			m_vecVarIndex[c] = m_vecVarsAtLocation[(size_t)DataLocation_Node]++;
 		} else if (m_vecVarLocation[c] == DataLocation_AEdge) {
-			m_vecVarIndex[c] = m_vecVarsAtLocation[(int)DataLocation_AEdge]++;
+			m_vecVarIndex[c] = m_vecVarsAtLocation[(size_t)DataLocation_AEdge]++;
 		} else if (m_vecVarLocation[c] == DataLocation_BEdge) {
-			m_vecVarIndex[c] = m_vecVarsAtLocation[(int)DataLocation_BEdge]++;
+			m_vecVarIndex[c] = m_vecVarsAtLocation[(size_t)DataLocation_BEdge]++;
 		} else if (m_vecVarLocation[c] == DataLocation_REdge) {
-			m_vecVarIndex[c] = m_vecVarsAtLocation[(int)DataLocation_REdge]++;
+			m_vecVarIndex[c] = m_vecVarsAtLocation[(size_t)DataLocation_REdge]++;
 		} else {
 			_EXCEPTIONT("Invalid variable location");
 		}
@@ -1458,7 +1516,7 @@ void Grid::FromFile(
 	NcDim * dimREtaLevels = varREtaLevels->get_dim(0);
 	int nREtaLevels = static_cast<int>(dimREtaLevels->size());
 
-	m_dREtaStretchLevels.Allocate(nREtaLevels);
+	//m_dREtaStretchLevels.Allocate(nREtaLevels);
 	varREtaLevels->get(m_dREtaStretchLevels, nREtaLevels);
 
 	// Load in location of REta interfaces
@@ -1467,7 +1525,7 @@ void Grid::FromFile(
 	NcDim * dimREtaInterfaces = varREtaInterfaces->get_dim(0);
 	int nREtaInterfaces = static_cast<int>(dimREtaInterfaces->size());
 
-	m_dREtaStretchInterfaces.Allocate(nREtaInterfaces);
+	//m_dREtaStretchInterfaces.Allocate(nREtaInterfaces);
 	varREtaInterfaces->get(m_dREtaStretchInterfaces, nREtaInterfaces);
 /*
 	// Load in location of variables

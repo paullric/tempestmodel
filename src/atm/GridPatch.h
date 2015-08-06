@@ -51,6 +51,12 @@ public:
 	///	</summary>
 	typedef std::vector<int> PanelIndexVector;
 
+protected:
+	///	<summary>
+	///		A vector storing DataArray4D<double>.
+	///	</summary>
+	typedef std::vector< DataArray4D<double> > DataArray4DVector;
+
 public:
 	///	<summary>
 	///		The PatchIndex indicating an invalid patch.
@@ -964,12 +970,6 @@ public:
 
 protected:
 	///	<summary>
-	///		A vector storing DataArray4D<double>.
-	///	</summary>
-	typedef std::vector< DataArray4D<double> > DataArray4DVector;
-
-protected:
-	///	<summary>
 	///		Reference to parent grid.
 	///	</summary>
 	Grid & m_grid;
@@ -999,6 +999,7 @@ protected:
 	///	</summary>
 	Connectivity m_connect;
 
+protected:
 	///	<summary>
 	///		DataContainer for storing geometric data.
 	///	</summary>

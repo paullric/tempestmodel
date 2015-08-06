@@ -354,37 +354,37 @@ void GridPatch::InitializeDataLocal(
 		m_box.GetBTotalWidth());
 
 	// Put all read-only data objects into DataContainer
-	m_dcGeometric.PushDataChunk(m_dataJacobian2D);
-	m_dcGeometric.PushDataChunk(m_dataContraMetric2DA);
-	m_dcGeometric.PushDataChunk(m_dataContraMetric2DB);
-	m_dcGeometric.PushDataChunk(m_dataCovMetric2DA);
-	m_dcGeometric.PushDataChunk(m_dataCovMetric2DB);
-	m_dcGeometric.PushDataChunk(m_dataJacobian);
-	m_dcGeometric.PushDataChunk(m_dataJacobianREdge);
-	m_dcGeometric.PushDataChunk(m_dataContraMetricA);
-	m_dcGeometric.PushDataChunk(m_dataContraMetricB);
-	m_dcGeometric.PushDataChunk(m_dataContraMetricXi);
-	m_dcGeometric.PushDataChunk(m_dataCovMetricA);
-	m_dcGeometric.PushDataChunk(m_dataCovMetricB);
-	m_dcGeometric.PushDataChunk(m_dataCovMetricXi);
-	m_dcGeometric.PushDataChunk(m_dataContraMetricAREdge);
-	m_dcGeometric.PushDataChunk(m_dataContraMetricBREdge);
-	m_dcGeometric.PushDataChunk(m_dataContraMetricXiREdge);
-	m_dcGeometric.PushDataChunk(m_dataDerivRNode);
-	m_dcGeometric.PushDataChunk(m_dataDerivRREdge);
-	m_dcGeometric.PushDataChunk(m_dataElementArea);
-	m_dcGeometric.PushDataChunk(m_dataElementAreaREdge);
-	m_dcGeometric.PushDataChunk(m_dataTopography);
-	m_dcGeometric.PushDataChunk(m_dataTopographyDeriv);
-	m_dcGeometric.PushDataChunk(m_dataLon);
-	m_dcGeometric.PushDataChunk(m_dataLat);
-	m_dcGeometric.PushDataChunk(m_dataCoriolisF);
-	m_dcGeometric.PushDataChunk(m_dataZLevels);
-	m_dcGeometric.PushDataChunk(m_dataZInterfaces);
-	m_dcGeometric.PushDataChunk(m_dataRefStateNode);
-	m_dcGeometric.PushDataChunk(m_dataRefStateREdge);
-	m_dcGeometric.PushDataChunk(m_dataRayleighStrengthNode);
-	m_dcGeometric.PushDataChunk(m_dataRayleighStrengthREdge);
+	m_dcGeometric.PushDataChunk(&m_dataJacobian2D);
+	m_dcGeometric.PushDataChunk(&m_dataContraMetric2DA);
+	m_dcGeometric.PushDataChunk(&m_dataContraMetric2DB);
+	m_dcGeometric.PushDataChunk(&m_dataCovMetric2DA);
+	m_dcGeometric.PushDataChunk(&m_dataCovMetric2DB);
+	m_dcGeometric.PushDataChunk(&m_dataJacobian);
+	m_dcGeometric.PushDataChunk(&m_dataJacobianREdge);
+	m_dcGeometric.PushDataChunk(&m_dataContraMetricA);
+	m_dcGeometric.PushDataChunk(&m_dataContraMetricB);
+	m_dcGeometric.PushDataChunk(&m_dataContraMetricXi);
+	m_dcGeometric.PushDataChunk(&m_dataCovMetricA);
+	m_dcGeometric.PushDataChunk(&m_dataCovMetricB);
+	m_dcGeometric.PushDataChunk(&m_dataCovMetricXi);
+	m_dcGeometric.PushDataChunk(&m_dataContraMetricAREdge);
+	m_dcGeometric.PushDataChunk(&m_dataContraMetricBREdge);
+	m_dcGeometric.PushDataChunk(&m_dataContraMetricXiREdge);
+	m_dcGeometric.PushDataChunk(&m_dataDerivRNode);
+	m_dcGeometric.PushDataChunk(&m_dataDerivRREdge);
+	m_dcGeometric.PushDataChunk(&m_dataElementArea);
+	m_dcGeometric.PushDataChunk(&m_dataElementAreaREdge);
+	m_dcGeometric.PushDataChunk(&m_dataTopography);
+	m_dcGeometric.PushDataChunk(&m_dataTopographyDeriv);
+	m_dcGeometric.PushDataChunk(&m_dataLon);
+	m_dcGeometric.PushDataChunk(&m_dataLat);
+	m_dcGeometric.PushDataChunk(&m_dataCoriolisF);
+	m_dcGeometric.PushDataChunk(&m_dataZLevels);
+	m_dcGeometric.PushDataChunk(&m_dataZInterfaces);
+	m_dcGeometric.PushDataChunk(&m_dataRefStateNode);
+	m_dcGeometric.PushDataChunk(&m_dataRefStateREdge);
+	m_dcGeometric.PushDataChunk(&m_dataRayleighStrengthNode);
+	m_dcGeometric.PushDataChunk(&m_dataRayleighStrengthREdge);
 
 	if (fAllocateGeometric) {
 		m_dcGeometric.Allocate();
@@ -416,12 +416,12 @@ void GridPatch::InitializeDataLocal(
 			m_box.GetBTotalWidth());
 	}
 
-	m_dcActiveState.PushDataChunk(m_datavecStateNode[0]);
-	m_dcActiveState.PushDataChunk(m_datavecStateREdge[0]);
+	m_dcActiveState.PushDataChunk(&m_datavecStateNode[0]);
+	m_dcActiveState.PushDataChunk(&m_datavecStateREdge[0]);
 
 	for (int m = 1; m < model.GetComponentDataInstances(); m++) {
-		m_dcBufferState.PushDataChunk(m_datavecStateNode[m]);
-		m_dcBufferState.PushDataChunk(m_datavecStateREdge[m]);
+		m_dcBufferState.PushDataChunk(&m_datavecStateNode[m]);
+		m_dcBufferState.PushDataChunk(&m_datavecStateREdge[m]);
 	}
 
 	// Initialize tracer data
@@ -443,10 +443,10 @@ void GridPatch::InitializeDataLocal(
 		}
 	
 		// Store active state data
-		m_dcActiveState.PushDataChunk(m_datavecTracers[0]);
+		m_dcActiveState.PushDataChunk(&m_datavecTracers[0]);
 
 		for (int m = 1; m < model.GetTracerDataInstances(); m++) {
-			m_dcBufferState.PushDataChunk(m_datavecTracers[m]);
+			m_dcBufferState.PushDataChunk(&m_datavecTracers[m]);
 		}
 	}
 
@@ -498,11 +498,11 @@ void GridPatch::InitializeDataLocal(
 		m_box.GetBTotalWidth());
 
 	// Put auxiliary date into DataContainer
-	m_dcAuxiliary.PushDataChunk(m_dataPressure);
-	m_dcAuxiliary.PushDataChunk(m_dataDxPressure);
-	m_dcAuxiliary.PushDataChunk(m_dataVorticity);
-	m_dcAuxiliary.PushDataChunk(m_dataDivergence);
-	m_dcAuxiliary.PushDataChunk(m_dataTemperature);
+	m_dcAuxiliary.PushDataChunk(&m_dataPressure);
+	m_dcAuxiliary.PushDataChunk(&m_dataDxPressure);
+	m_dcAuxiliary.PushDataChunk(&m_dataVorticity);
+	m_dcAuxiliary.PushDataChunk(&m_dataDivergence);
+	m_dcAuxiliary.PushDataChunk(&m_dataTemperature);
 
 	if (fAllocateAuxiliary) {
 		m_dcAuxiliary.Allocate();

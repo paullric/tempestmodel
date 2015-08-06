@@ -552,6 +552,70 @@ public:
 				static_cast<unsigned int>(iRefineLevel)));
 	}
 
+
+public:
+	///	<summary>
+	///		Get the specified cumulative patch 2D node index.
+	///	</summary>
+	int GetCumulativePatch2DNodeIndex(int ix) const {
+		if ((ix < 0) || (ix >= m_vecCumulativePatch2DNodeIndex.size())) {
+			_EXCEPTIONT("Invalid patch index");
+		}
+		return m_vecCumulativePatch2DNodeIndex[ix];
+	}
+
+	///	<summary>
+	///		Get the specified cumulative patch 3D node index.
+	///	</summary>
+	int GetCumulativePatch3DNodeIndex(int ix) const {
+		if ((ix < 0) || (ix >= m_vecCumulativePatch2DNodeIndex.size())) {
+			_EXCEPTIONT("Invalid patch index");
+		}
+		return (m_vecCumulativePatch2DNodeIndex[ix]
+			* m_nDegreesOfFreedomPerColumn);
+	}
+
+	///	<summary>
+	///		Get the patch with the specified index.
+	///	</summary>
+	GridPatch * GetPatch(int ix) {
+		if ((ix < 0) || (ix >= m_vecGridPatches.size())) {
+			_EXCEPTIONT("Invalid patch index");
+		}
+		return m_vecGridPatches[ix];
+	}
+
+	///	<summary>
+	///		Get the patch with the specified index.
+	///	</summary>
+	const GridPatch * GetPatch(int ix) const {
+		if ((ix < 0) || (ix >= m_vecGridPatches.size())) {
+			_EXCEPTIONT("Invalid patch index");
+		}
+		return m_vecGridPatches[ix];
+	}
+
+	///	<summary>
+	///		Get the active patch with the specified index.
+	///	</summary>
+	GridPatch * GetActivePatch(int ix) {
+		if ((ix < 0) || (ix >= m_vecActiveGridPatches.size())) {
+			_EXCEPTIONT("Invalid active patch index");
+		}
+		return m_vecActiveGridPatches[ix];
+	}
+
+	///	<summary>
+	///		Get the active patch with the specified index.
+	///	</summary>
+	const GridPatch * GetActivePatch(int ix) const {
+		if ((ix < 0) || (ix >= m_vecActiveGridPatches.size())) {
+			_EXCEPTIONT("Invalid active patch index");
+		}
+		return m_vecActiveGridPatches[ix];
+	}
+
+public:
 	///	<summary>
 	///		Get the reference length scale.
 	///	</summary>
@@ -699,68 +763,6 @@ public:
 		return m_fHasRayleighFriction;
 	}
 
-public:
-	///	<summary>
-	///		Get the specified cumulative patch 2D node index.
-	///	</summary>
-	int GetCumulativePatch2DNodeIndex(int ix) const {
-		if ((ix < 0) || (ix >= m_vecCumulativePatch2DNodeIndex.size())) {
-			_EXCEPTIONT("Invalid patch index");
-		}
-		return m_vecCumulativePatch2DNodeIndex[ix];
-	}
-
-	///	<summary>
-	///		Get the specified cumulative patch 3D node index.
-	///	</summary>
-	int GetCumulativePatch3DNodeIndex(int ix) const {
-		if ((ix < 0) || (ix >= m_vecCumulativePatch2DNodeIndex.size())) {
-			_EXCEPTIONT("Invalid patch index");
-		}
-		return (m_vecCumulativePatch2DNodeIndex[ix]
-			* m_nDegreesOfFreedomPerColumn);
-	}
-
-	///	<summary>
-	///		Get the patch with the specified index.
-	///	</summary>
-	GridPatch * GetPatch(int ix) {
-		if ((ix < 0) || (ix >= m_vecGridPatches.size())) {
-			_EXCEPTIONT("Invalid patch index");
-		}
-		return m_vecGridPatches[ix];
-	}
-
-	///	<summary>
-	///		Get the patch with the specified index.
-	///	</summary>
-	const GridPatch * GetPatch(int ix) const {
-		if ((ix < 0) || (ix >= m_vecGridPatches.size())) {
-			_EXCEPTIONT("Invalid patch index");
-		}
-		return m_vecGridPatches[ix];
-	}
-
-	///	<summary>
-	///		Get the active patch with the specified index.
-	///	</summary>
-	GridPatch * GetActivePatch(int ix) {
-		if ((ix < 0) || (ix >= m_vecActiveGridPatches.size())) {
-			_EXCEPTIONT("Invalid active patch index");
-		}
-		return m_vecActiveGridPatches[ix];
-	}
-
-	///	<summary>
-	///		Get the active patch with the specified index.
-	///	</summary>
-	const GridPatch * GetActivePatch(int ix) const {
-		if ((ix < 0) || (ix >= m_vecActiveGridPatches.size())) {
-			_EXCEPTIONT("Invalid active patch index");
-		}
-		return m_vecActiveGridPatches[ix];
-	}
-
 protected:
 	///	<summary>
 	///		Initialization flag.
@@ -773,14 +775,48 @@ protected:
 	Model & m_model;
 
 	///	<summary>
-	///		Boundary condition in each coordinate direction.
-	///	</summary>
-	BoundaryCondition m_eBoundaryCondition[4];
-
-	///	<summary>
 	///		Block exchange operations between processors.
 	///	</summary>
 	bool m_fBlockParallelExchange;
+
+	///	<summary>
+	///		Pointer to the vertical stretching function.
+	///	</summary>
+	VerticalStretchFunction * m_pVerticalStretchF;
+
+protected:
+	///	<summary>
+	///		Vector of cumulative indices associated with 2D nodal values on
+	///		each patch.
+	///	</summary>
+	std::vector<int> m_vecCumulativePatch2DNodeIndex;
+
+	///	<summary>
+	///		Vector of grid patches.
+	///	</summary>
+	GridPatchVector m_vecGridPatches;
+
+	///	<summary>
+	///		Vector of grid patches which are active locally.
+	///	</summary>
+	GridPatchVector m_vecActiveGridPatches;
+
+	///	<summary>
+	///		Type of vertical stretching being applied.
+	///	</summary>
+	VerticalStaggering m_eVerticalStaggering;
+
+protected:
+	///	<summary>
+	///		DataContainer for Grid data.
+	///	</summary>
+	DataContainer m_dcGridData;
+
+protected:
+	///	<summary>
+	///		Boundary condition in each coordinate direction.
+	///	</summary>
+	DataArray1D<BoundaryCondition> m_eBoundaryCondition;
 
 	///	<summary>
 	///		Grid stamp.  This value is incremented whenever the grid changes.
@@ -788,12 +824,12 @@ protected:
 	int m_iGridStamp;
 
 	///	<summary>
-	///		Base resolution of the method in the alpha direction.
+	///		Base resolution in the alpha direction.
 	///	</summary>
 	int m_nABaseResolution;
 
 	///	<summary>
-	///		Base resolution of the method in the beta direction.
+	///		Base resolution in the beta direction.
 	///	</summary>
 	int m_nBBaseResolution;
 
@@ -808,11 +844,6 @@ protected:
 	double m_dReferenceLength;
 
 protected:
-	///	<summary>
-	///		Pointer to the vertical stretching function.
-	///	</summary>
-	VerticalStretchFunction * m_pVerticalStretchF;
-
 	///	<summary>
 	///		Number of radial elements.
 	///	</summary>
@@ -854,11 +885,6 @@ protected:
 	DataArray1D<double> m_dREtaStretchInterfaces;
 
 	///	<summary>
-	///		Type of vertical stretching being applied.
-	///	</summary>
-	VerticalStaggering m_eVerticalStaggering;
-
-	///	<summary>
 	///		Location of each equation set variable.
 	///	</summary>
 	DataArray1D<DataLocation> m_vecVarLocation;
@@ -867,12 +893,12 @@ protected:
 	///		Map from equation set variable index to location-dependent
 	///		structure.
 	///	</summary>
-	std::vector<int> m_vecVarIndex;
+	DataArray1D<int> m_vecVarIndex;
 
 	///	<summary>
 	///		Number of state variables at each location.
 	///	</summary>
-	std::vector<int> m_vecVarsAtLocation;
+	DataArray1D<int> m_vecVarsAtLocation;
 
 	///	<summary>
 	///		Number of degrees of freedom per column.
@@ -888,23 +914,6 @@ protected:
 	///		Flag indicating whether or not Rayleigh friction is used.
 	///	</summary>
 	bool m_fHasRayleighFriction;
-
-private:
-	///	<summary>
-	///		Vector of cumulative indices associated with 2D nodal values on
-	///		each patch.
-	///	</summary>
-	std::vector<int> m_vecCumulativePatch2DNodeIndex;
-
-	///	<summary>
-	///		Vector of grid patches which are active locally.
-	///	</summary>
-	GridPatchVector m_vecActiveGridPatches;
-
-	///	<summary>
-	///		Vector of grid patches.
-	///	</summary>
-	GridPatchVector m_vecGridPatches;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
