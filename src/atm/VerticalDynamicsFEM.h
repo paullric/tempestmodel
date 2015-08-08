@@ -544,6 +544,72 @@ protected:
 
 private:
 	///	<summary>
+	///		Jacobian in the column on Nodes.
+	///	</summary>
+	DataArray1D<double> m_dColumnJacobianNode;
+
+	///	<summary>
+	///		Jacobian in the column on REdges.
+	///	</summary>
+	DataArray1D<double> m_dColumnJacobianREdge;
+
+	///	<summary>
+	///		Element area on Nodes.
+	///	</summary>
+	DataArray1D<double> m_dColumnElementArea;
+
+	///	<summary>
+	///		Inverse Jacobian in the column on Nodes.
+	///	</summary>
+	DataArray1D<double> m_dColumnInvJacobianNode;
+
+	///	<summary>
+	///		Inverse Jacobian in the column on REdges.
+	///	</summary>
+	DataArray1D<double> m_dColumnInvJacobianREdge;
+
+	///	<summary>
+	///		Vertical derivative transform in the column on Nodes.
+	///	</summary>
+	DataArray2D<double> m_dColumnDerivRNode;
+
+	///	<summary>
+	///		Vertical derivative transform in the column on REdges.
+	///	</summary>
+	DataArray2D<double> m_dColumnDerivRREdge;
+
+	///	<summary>
+	///		Contravariant metric (alpha component) in the column on Nodes.
+	///	</summary>
+	DataArray2D<double> m_dColumnContraMetricA;
+
+	///	<summary>
+	///		Contravariant metric (beta component) in the column on Nodes.
+	///	</summary>
+	DataArray2D<double> m_dColumnContraMetricB;
+
+	///	<summary>
+	///		Contravariant metric (xi component) in the column on Nodes.
+	///	</summary>
+	DataArray2D<double> m_dColumnContraMetricXi;
+
+	///	<summary>
+	///		Contravariant metric (alpha component) in the column on REdges.
+	///	</summary>
+	DataArray2D<double> m_dColumnContraMetricAREdge;
+
+	///	<summary>
+	///		Contravariant metric (beta component) in the column on REdges.
+	///	</summary>
+	DataArray2D<double> m_dColumnContraMetricBREdge;
+
+	///	<summary>
+	///		Contravariant metric (xi component) in the column on REdges.
+	///	</summary>
+	DataArray2D<double> m_dColumnContraMetricXiREdge;
+
+private:
+	///	<summary>
 	///		Flux vector for tracer advection.
 	///	</summary>
 	DataArray1D<double> m_vecTracersF;

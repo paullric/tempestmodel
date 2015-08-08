@@ -186,7 +186,8 @@ double JacobianFreeNewtonKrylov::PerformJFNK_NewtonStep(
 		return (0.0);
 	}
 
-	double dBNorm = dRNorm;
+	double dInvBNorm = 1.0 / dRNorm;
+	double dInvEpsilon = 1.0 / m_dEpsilon;
 
 	// Iterate
 	for (int iIter = 0; iIter < nMaxIter; iIter++) {
@@ -202,7 +203,7 @@ double JacobianFreeNewtonKrylov::PerformJFNK_NewtonStep(
 		m_dS.Zero();
 		m_dS[0] = dRNorm;
 
-		dError = m_dS[0] / dBNorm;
+		dError = m_dS[0] * dInvBNorm;
 		if (dError <= dTolerance) {
 			break;
 		}
@@ -219,7 +220,7 @@ double JacobianFreeNewtonKrylov::PerformJFNK_NewtonStep(
 			m_dW.Zero();
 			Evaluate(m_dPertX, m_dW);
 			for (int j = 0; j < nN; j++) {
-				m_dW[j] = (m_dW[j] - m_dFX[j]) / m_dEpsilon;
+				m_dW[j] = (m_dW[j] - m_dFX[j]) * dInvEpsilon; 
 			}
 
 			// Apply Gram-Schmidt
@@ -260,7 +261,7 @@ double JacobianFreeNewtonKrylov::PerformJFNK_NewtonStep(
 			m_dH[u0i+i] = m_dCS[i] * m_dH[u0i+i] + m_dSN[i] * dHx;
 
 			// error  = abs(s(i+1)) / bnrm2;
-			dError = fabs(m_dS[i+1]) / dBNorm;
+			dError = fabs(m_dS[i+1]) * dInvBNorm;
 
 			// Update approximation and exit
 			if (dError <= dTolerance) {
@@ -307,13 +308,13 @@ double JacobianFreeNewtonKrylov::PerformJFNK_NewtonStep(
 		// Calculate the residual (R = B-A*G)
 		Evaluate(m_dPertX, m_dR);
 		for (int j = 0; j < nN; j++) {
-			m_dR[j] = m_dFX[j] - (m_dR[j] - m_dFX[j]) / m_dEpsilon;
+			m_dR[j] = m_dFX[j] - (m_dR[j] - m_dFX[j]) * dInvEpsilon;
 		}
 
 		dRNorm = LAPACK::DNORM2(m_dR);
 
 		// error = s(i+1) / bnrm2;
-		dError = dRNorm / dBNorm;
+		dError = dRNorm * dInvBNorm;
 
 		// Check error
 		if (dError <= dTolerance) {
