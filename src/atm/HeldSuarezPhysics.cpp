@@ -136,68 +136,138 @@ void HeldSuarezPhysics::Perform(
 
 			}
 
-			// Loop over all edges in patch
-			for (int k = 0; k <= pGrid->GetRElements(); k++) {
+			// Theta on model levels
+			if (pGrid->GetVarLocation(TIx) == DataLocation_Node) {
+				for (int k = 0; k < pGrid->GetRElements(); k++) {
 
-				// Calculate pressure
-				double dPressure =
-					phys.PressureFromRhoTheta(
-						dataREdge[RIx][k][i][j] * dataREdge[TIx][k][i][j]);
+					// Calculate pressure
+					double dPressure =
+						phys.PressureFromRhoTheta(
+							dataNode[RIx][k][i][j]
+							* dataNode[TIx][k][i][j]);
 
-				double dSigma = dPressure / dSurfacePressure;
+					double dSigma = dPressure / dSurfacePressure;
 
-				double dBoundaryScale =
-					(dSigma - ParamBoundarySigma) / (1.0 - ParamBoundarySigma);
+					double dBoundaryScale =
+						(dSigma - ParamBoundarySigma)
+						/ (1.0 - ParamBoundarySigma);
 
-				if (dBoundaryScale < 0.0) {
-					dBoundaryScale = 0.0;
-				}
+					if (dBoundaryScale < 0.0) {
+						dBoundaryScale = 0.0;
+					}
 
-				// Velocity diffusion
-				dataREdge[WIx][k][i][j] /=
-					(1.0 + ParamKFriction * dBoundaryScale * dDeltaT);
+					// Pointwise temperature
+					double dT = dPressure
+						/ (dataNode[RIx][k][i][j] * phys.GetR());
 
-				// Pointwise temperature
-				double dT = dPressure / (dataREdge[RIx][k][i][j] * phys.GetR());
+					// Get latitude
+					double dLat = dataLatitude[i][j];
 
-				// Get latitude
-				double dLat = dataLatitude[i][j];
+					// Temperature diffusion rate
+					double dSinLat = sin(dLat);
+					double dCosLat = cos(dLat);
+					double dCos4Lat = dCosLat * dCosLat * dCosLat * dCosLat;
+					double dKT = ParamKA
+						+ (ParamKS - ParamKA) * dBoundaryScale * dCos4Lat;
 
-				// Temperature diffusion rate
-				double dSinLat = sin(dLat);
-				double dCosLat = cos(dLat);
-				double dCos4Lat = dCosLat * dCosLat * dCosLat * dCosLat;
-				double dKT = ParamKA
-					+ (ParamKS - ParamKA) * dBoundaryScale * dCos4Lat;
+					// Equilibrium temperature
+					double dTeq =
+						ParamMaximumT
+						- ParamDeltaTy * dSinLat * dSinLat
+						- ParamDeltaThetaZ * log(dPressure / phys.GetP0())
+							* dCosLat * dCosLat;
 
-				// Equilibrium temperature
-				double dTeq =
-					ParamMaximumT
-					- ParamDeltaTy * dSinLat * dSinLat
-					- ParamDeltaThetaZ * log(dPressure / phys.GetP0())
-						* dCosLat * dCosLat;
+					dTeq *= pow(dPressure / phys.GetP0(), phys.GetKappa());
 
-				dTeq *= pow(dPressure / phys.GetP0(), phys.GetKappa());
-
-				if (dTeq < ParamMinimumT) {
-					dTeq = ParamMinimumT;
-				}
+					if (dTeq < ParamMinimumT) {
+						dTeq = ParamMinimumT;
+					}
 /*
-				// Apply temperature diffusion via backward Euler
-				double dTnew =
-					(dT + dDeltaT * dKT * dTeq) / (1.0 + dDeltaT * dKT);
+					// Apply temperature diffusion via backward Euler
+					double dTnew =
+						(dT + dDeltaT * dKT * dTeq) / (1.0 + dDeltaT * dKT);
 
-				dataREdge[TIx][k][i][j] =
-					dTnew * pow(phys.GetP0() / dPressure, phys.GetKappa());
+					dataNode[TIx][k][i][j] =
+						dTnew * pow(phys.GetP0() / dPressure, phys.GetKappa());
 */
-				double dDH = - dKT / phys.GetGamma()
-					* (1.0 + (phys.GetGamma() - 1.0) * dTeq / dT);
+					double dDH = - dKT / phys.GetGamma()
+						* (1.0 + (phys.GetGamma() - 1.0) * dTeq / dT);
 
-				double dH = - dKT / phys.GetGamma() * (1.0 - dTeq / dT);
+					double dH = - dKT / phys.GetGamma() * (1.0 - dTeq / dT);
 
-				dataREdge[TIx][k][i][j] *=
-					1.0 + dDeltaT / (1.0 - dDeltaT * dDH) * dH;
+					dataNode[TIx][k][i][j] *=
+						1.0 + dDeltaT / (1.0 - dDeltaT * dDH) * dH;
+				}
 			}
+
+			// Theta on model interfaces
+			if (pGrid->GetVarLocation(TIx) == DataLocation_REdge) {
+				for (int k = 0; k <= pGrid->GetRElements(); k++) {
+
+					// Calculate pressure
+					double dPressure =
+						phys.PressureFromRhoTheta(
+							dataREdge[RIx][k][i][j]
+							* dataREdge[TIx][k][i][j]);
+
+					double dSigma = dPressure / dSurfacePressure;
+
+					double dBoundaryScale =
+						(dSigma - ParamBoundarySigma)
+						/ (1.0 - ParamBoundarySigma);
+
+					if (dBoundaryScale < 0.0) {
+						dBoundaryScale = 0.0;
+					}
+
+					// Pointwise temperature
+					double dT = dPressure
+						/ (dataREdge[RIx][k][i][j] * phys.GetR());
+
+					// Get latitude
+					double dLat = dataLatitude[i][j];
+
+					// Temperature diffusion rate
+					double dSinLat = sin(dLat);
+					double dCosLat = cos(dLat);
+					double dCos4Lat = dCosLat * dCosLat * dCosLat * dCosLat;
+					double dKT = ParamKA
+						+ (ParamKS - ParamKA) * dBoundaryScale * dCos4Lat;
+
+					// Equilibrium temperature
+					double dTeq =
+						ParamMaximumT
+						- ParamDeltaTy * dSinLat * dSinLat
+						- ParamDeltaThetaZ * log(dPressure / phys.GetP0())
+							* dCosLat * dCosLat;
+
+					dTeq *= pow(dPressure / phys.GetP0(), phys.GetKappa());
+
+					if (dTeq < ParamMinimumT) {
+						dTeq = ParamMinimumT;
+					}
+/*
+					// Apply temperature diffusion via backward Euler
+					double dTnew =
+						(dT + dDeltaT * dKT * dTeq) / (1.0 + dDeltaT * dKT);
+
+					dataREdge[TIx][k][i][j] =
+						dTnew * pow(phys.GetP0() / dPressure, phys.GetKappa());
+*/
+					double dDH = - dKT / phys.GetGamma()
+						* (1.0 + (phys.GetGamma() - 1.0) * dTeq / dT);
+
+					double dH = - dKT / phys.GetGamma() * (1.0 - dTeq / dT);
+
+					dataREdge[TIx][k][i][j] *=
+						1.0 + dDeltaT / (1.0 - dDeltaT * dDH) * dH;
+				}
+			}
+/*
+			// Vertical Velocity diffusion
+			dataREdge[WIx][k][i][j] /=
+				(1.0 + ParamKFriction * dBoundaryScale * dDeltaT);
+*/
 		}
 		}
 	}
