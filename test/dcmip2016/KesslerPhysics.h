@@ -83,8 +83,6 @@ protected:
     DataArray1D<double> zc;
     DataArray1D<double> pk;
     DataArray1D<double> t;
-    
-    int nz;
 
 };
 

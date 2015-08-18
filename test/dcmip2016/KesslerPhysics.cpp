@@ -23,7 +23,8 @@ extern "C" {
 		double * rho,
 		double * pk,
 		double * z,
-		int * nz);
+		int * nz,
+		double * rainnc);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -42,11 +43,24 @@ WorkflowProcess(
 	void KesslerPhysics::Initialize(
 		const Time & timeStart
 ) {
+		// Indices of EquationSet variables
+		const int UIx = 0;
+		const int VIx = 1;
+		const int TIx = 2;
+		const int WIx = 3;
+		const int RIx = 4;
+
+
 		// Get a copy of the GLL grid
 		Grid * pGrid = m_model.GetGrid();
 
+		// Check position of variables
+		if (pGrid->GetVarLocation(TIx) == DataLocation_REdge) {
+			_EXCEPTIONT("Not implemented for --vstagger CPH, use --vstagger LOR");
+		}
+
 		int ndim=pGrid->GetRElements();
-	
+
 		qv.Allocate(ndim);
 		qc.Allocate(ndim);
 		qr.Allocate(ndim);
@@ -64,24 +78,28 @@ WorkflowProcess(
 		const Time & time
 ) {
 		// Indices of EquationSet variables
-
 		const int UIx = 0;
 		const int VIx = 1;
 		const int TIx = 2;
 		const int WIx = 3;
 		const int RIx = 4;
-	
-		
+
 		// Get DeltaT
 		double dDeltaT = m_timeFrequency.GetSeconds();
 		
 		// Get a copy of the GLL grid
 		Grid * pGrid = m_model.GetGrid();
-		
 
-	
+		// Check position of variables
+		if (pGrid->GetVarLocation(TIx) == DataLocation_REdge) {
+			_EXCEPTIONT("Not implemented for --vstagger CPH, use --vstagger LOR");
+		}
+
 		// Physical constants
 		const PhysicalConstants & phys = m_model.GetPhysicalConstants();
+	
+		// Number of radial elements
+		int nz = pGrid->GetRElements();
 
 		// Perform local update
 		for (int n = 0; n < pGrid->GetActivePatchCount(); n++) {
@@ -96,9 +114,6 @@ WorkflowProcess(
 		DataArray4D<double> & dataNode =
 		pPatch->GetDataState(0, DataLocation_Node);
 		
-		DataArray4D<double> & dataREdge =
-		pPatch->GetDataState(0, DataLocation_REdge);
-		
 		DataArray4D<double> & dataTracer =
 		pPatch->GetDataTracers(0);
 		
@@ -112,10 +127,10 @@ WorkflowProcess(
 				for (int k = 0; k < pGrid->GetRElements(); k++) {
 		  
 					// Calculate pressure
-					double dPressure = phys.PressureFromRhoTheta(dataREdge[RIx][k][i][j] *dataREdge[TIx][k][i][j]);
+					double dPressure = phys.PressureFromRhoTheta(dataNode[RIx][k][i][j] *dataNode[TIx][k][i][j]);
 		 
 					// Pointwise temperature
-					double dT = dPressure / (dataREdge[RIx][k][i][j] * phys.GetR());
+					double dT = dPressure / (dataNode[RIx][k][i][j] * phys.GetR());
 		
 					qv[k]=dataTracer[0][k][i][j]/dataNode[RIx][k][i][j];
 
@@ -131,12 +146,9 @@ WorkflowProcess(
 	
 					pk[k]=dataNode[TIx][k][i][j]/dT;
 				}
-	
-				nz= pGrid->GetRElements();
-
 		
-		
-				kessler(t,qv,qc,qr,rho,pk,zc,&nz);
+				double rainnc = 0.0;
+				kessler(t,qv,qc,qr,rho,pk,zc,&nz,&rainnc);
 				for (int k = 0; k < pGrid->GetRElements(); k++) {
 					dataNode[TIx][k][i][j]=t[k];
 					dataNode[RIx][k][i][j]=rho[k];
