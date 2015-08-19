@@ -22,6 +22,7 @@ extern "C" {
 		double * qr,
 		double * rho,
 		double * pk,
+		double * dt,
 		double * z,
 		int * nz,
 		double * rainnc);
@@ -148,7 +149,18 @@ WorkflowProcess(
 				}
 		
 				double rainnc = 0.0;
-				kessler(t,qv,qc,qr,rho,pk,zc,&nz,&rainnc);
+				kessler(
+					&(t[0]),
+					&(qv[0]),
+					&(qc[0]),
+					&(qr[0]),
+					&(rho[0]),
+					&(pk[0]),
+					&(dDeltaT),
+					&(zc[0]),
+					&nz,
+					&rainnc);
+
 				for (int k = 0; k < pGrid->GetRElements(); k++) {
 					dataNode[TIx][k][i][j]=t[k];
 					dataNode[RIx][k][i][j]=rho[k];
