@@ -125,7 +125,8 @@ public:
 	virtual void EvaluatePhysicalConstants(
 		PhysicalConstants & phys
 	) const {
-		// Do nothing to the PhysicalConstants for global simulations
+		// No Coriolis
+		phys.SetOmega(0.0);
 	}
 
 	///	<summary>

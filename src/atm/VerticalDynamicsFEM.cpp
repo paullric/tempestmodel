@@ -28,7 +28,7 @@
 
 ///////////////////////////////////////////////////////////////////////////////
 
-//#define UPWIND_HORIZONTAL_VELOCITIES
+#define UPWIND_HORIZONTAL_VELOCITIES
 #define UPWIND_THERMO
 //#define UPWIND_VERTICAL_VELOCITY
 #define UPWIND_RHO
@@ -284,7 +284,6 @@ void VerticalDynamicsFEM::Initialize() {
 #ifdef UPWIND_HORIZONTAL_VELOCITIES
 		m_fUpwind[UIx] = true;
 		m_fUpwind[VIx] = true;
-		_EXCEPTIONT("Upwind Horizontal Velocities not implemented");
 #endif
 #ifdef UPWIND_THERMO
 		m_fUpwind[PIx] = true;
@@ -377,7 +376,7 @@ void VerticalDynamicsFEM::StepExplicit(
 
 		const PatchBox & box = pPatch->GetPatchBox();
 
-		// Data
+		// State Data
 		const DataArray4D<double> & dataRefNode =
 			pPatch->GetReferenceState(DataLocation_Node);
 
@@ -401,6 +400,13 @@ void VerticalDynamicsFEM::StepExplicit(
 
 		DataArray4D<double> & dataUpdateTracer =
 			pPatch->GetDataTracers(iDataUpdate);
+
+		// Metric quantities
+		const DataArray4D<double> & dDerivRNode =
+			pPatch->GetDerivRNode();
+
+		const DataArray4D<double> & dContraMetricXi =
+			pPatch->GetContraMetricXi();
 
 		// Loop over all nodes
 		for (int i = box.GetAInteriorBegin(); i < box.GetAInteriorEnd(); i++) {
@@ -451,12 +457,12 @@ void VerticalDynamicsFEM::StepExplicit(
 */
 				// Apply update to P
 				if (pGrid->GetVarLocation(PIx) == DataLocation_REdge) {
-					for (int k = 0; k <= pGrid->GetRElements(); k++) {
+					for (int k = 0; k <= nRElements; k++) {
 						dataUpdateREdge[PIx][k][iA][iB] -=
 							dDeltaT * m_dSoln[VecFIx(FPIx, k)];
 					}
 				} else {
-					for (int k = 0; k < pGrid->GetRElements(); k++) {
+					for (int k = 0; k < nRElements; k++) {
 						dataUpdateNode[PIx][k][iA][iB] -=
 							dDeltaT * m_dSoln[VecFIx(FPIx, k)];
 					}
@@ -464,13 +470,13 @@ void VerticalDynamicsFEM::StepExplicit(
 
 				// Apply update to W
 				if (pGrid->GetVarLocation(WIx) == DataLocation_REdge) {
-					for (int k = 0; k <= pGrid->GetRElements(); k++) {
+					for (int k = 0; k <= nRElements; k++) {
 						dataUpdateREdge[WIx][k][iA][iB] -=
 							dDeltaT * m_dSoln[VecFIx(FWIx, k)];
 					}
 
 				} else {
-					for (int k = 0; k < pGrid->GetRElements(); k++) {
+					for (int k = 0; k < nRElements; k++) {
 						dataUpdateNode[WIx][k][iA][iB] -=
 							dDeltaT * m_dSoln[VecFIx(FWIx, k)];
 					}
@@ -478,12 +484,12 @@ void VerticalDynamicsFEM::StepExplicit(
 
 				// Apply update to Rho
 				if (pGrid->GetVarLocation(RIx) == DataLocation_REdge) {
-					for (int k = 0; k <= pGrid->GetRElements(); k++) {
+					for (int k = 0; k <= nRElements; k++) {
 						dataUpdateREdge[RIx][k][iA][iB] -=
 							dDeltaT * m_dSoln[VecFIx(FRIx, k)];
 					}
 				} else {
-					for (int k = 0; k < pGrid->GetRElements(); k++) {
+					for (int k = 0; k < nRElements; k++) {
 						dataUpdateNode[RIx][k][iA][iB] -=
 							dDeltaT * m_dSoln[VecFIx(FRIx, k)];
 					}
@@ -521,6 +527,77 @@ void VerticalDynamicsFEM::StepExplicit(
 					}
 				}
 */
+			}
+
+			// Apply hyperviscosity to U and V
+			if (m_fUpwind[UIx] && (m_nHypervisOrder > 0)) {
+
+				// Calculate u^xi on model levels (if not done above)
+				if (!m_fFullyExplicit) {
+					for (int k = 0; k < nRElements; k++) {
+						double dCovUa = dataInitialNode[UIx][k][i][j];
+						double dCovUb = dataInitialNode[VIx][k][i][j];
+
+						double dCovUx =
+							  dataInitialNode[WIx][k][i][j]
+							* dDerivRNode[k][i][j][2];
+
+						m_dXiDotNode[k] =
+							  dContraMetricXi[k][i][j][0] * dCovUa
+							+ dContraMetricXi[k][i][j][1] * dCovUb
+							+ dContraMetricXi[k][i][j][2] * dCovUx;
+
+						m_dStateNode[UIx][k] = dCovUa;
+						m_dStateNode[VIx][k] = dCovUb;
+					}
+				}
+
+				// Second derivatives of horizontal velocity on model levels
+				pGrid->DiffDiffNodeToNode(
+					m_dStateNode[UIx],
+					m_dDiffDiffState[UIx]);
+
+				pGrid->DiffDiffNodeToNode(
+					m_dStateNode[VIx],
+					m_dDiffDiffState[VIx]);
+
+				// Compute higher derivatives of theta used for hyperdiffusion
+				for (int h = 2; h < m_nHypervisOrder; h += 2) {
+					memcpy(
+						m_dStateAux,
+						m_dDiffDiffState[UIx],
+						nRElements * sizeof(double));
+
+					pGrid->DiffDiffNodeToNode(
+						m_dStateAux,
+						m_dDiffDiffState[UIx]
+					);
+
+					memcpy(
+						m_dStateAux,
+						m_dDiffDiffState[VIx],
+						nRElements * sizeof(double));
+
+					pGrid->DiffDiffNodeToNode(
+						m_dStateAux,
+						m_dDiffDiffState[VIx]
+					);
+				}
+
+				// Apply hyperviscosity
+				for (int k = 0; k < nRElements; k++) {
+					dataUpdateNode[UIx][k][i][j] +=
+						dDeltaT
+						* m_dHypervisCoeff
+						* fabs(m_dXiDotNode[k])
+						* m_dDiffDiffState[UIx][k];
+
+					dataUpdateNode[VIx][k][i][j] +=
+						dDeltaT
+						* m_dHypervisCoeff
+						* fabs(m_dXiDotNode[k])
+						* m_dDiffDiffState[VIx][k];
+				}
 			}
 		}
 		}
@@ -1474,28 +1551,6 @@ void VerticalDynamicsFEM::PrepareColumn(
 				m_dStateNode[PIx],
 				m_dDiffThetaNode);
 
-#ifdef UPWIND_THERMO
-			if (m_nHypervisOrder > 0) {
-				// Second derivatives of theta on model levels
-				pGrid->DiffDiffNodeToNode(
-					m_dStateNode[PIx],
-					m_dDiffDiffState[PIx]);
-
-				// Compute higher derivatives of theta used for hyperdiffusion
-				for (int h = 2; h < m_nHypervisOrder; h += 2) {
-					memcpy(
-						m_dStateAux,
-						m_dDiffDiffState[PIx],
-						nRElements * sizeof(double));
-
-					pGrid->DiffDiffNodeToNode(
-						m_dStateAux,
-						m_dDiffDiffState[PIx]
-					);
-				}
-			}
-#endif
-
 		// Theta on model interfaces
 		} else {
 			// Theta is needed on model levels
@@ -1507,9 +1562,6 @@ void VerticalDynamicsFEM::PrepareColumn(
 			pGrid->DifferentiateREdgeToREdge(
 				m_dStateREdge[PIx],
 				m_dDiffThetaREdge);
-
-#ifdef UPWIND_THERMO
-#endif
 		}
 
 		// Calculate Exner pressure at nodes
@@ -2438,37 +2490,6 @@ void VerticalDynamicsFEM::BuildJacobianF(
 				 * m_dDiffPREdge[k];
 		}
 	}
-/*
-#ifdef UPWIND_THETA
-	if (pGrid->GetVarLocation(PIx) == DataLocation_REdge) {
-		for (int k = 0; k <= nRElements; k++) {
-
-			// dT_k/dW_k
-			double dSignW = -1.0;
-
-			if (m_dXiDotREdge[k] < 0.0) {
-				dSignW = -1.0;
-			} else if (m_dXiDotREdge[k] > 0.0) {
-				dSignW = 1.0;
-			}
-
-			dDG[MatFIx(FWIx, k, FPIx, k)] -=
-				m_dHypervisCoeff
-				* dOrthonomREdge[k][m_iA][m_iB][2]
-				* dSignW
-				* m_dDiffDiffTheta[k];
-
-			// dT_k/dT_m
-			for (int m = 0; m <= nRElements; m++) {
-				dDG[MatFIx(FPIx, m, FPIx, k)] -=
-					m_dHypervisCoeff
-					* fabs(m_dXiDotREdge[k])
-					* m_dHypervisREdgeToREdge[m][k];
-			}
-		}
-	}
-#endif
-*/
 #endif
 
 	// Vertical velocity on interfaces (CPH or LOR staggering)
@@ -2517,24 +2538,6 @@ void VerticalDynamicsFEM::BuildJacobianF(
 						* m_dXiDotNode[l];
 				}
 			}
-
-/*
-#ifdef UPWIND_RHO
-			// Diffusion of Rho (dRho_k/dW)
-			if (pGrid->GetVarLocation(RIx) == DataLocation_Node) {
-				int lBeginNext = lBegin + m_nVerticalOrder;
-
-				double dSignWL = (m_dXiDotREdge[lBegin] > 0.0)?(1.0):(-1.0);
-				double dSignWR = (m_dXiDotREdge[lBeginNext] > 0.0)?(1.0):(-1.0);
-
-				dDG[MaxFIx(FWIx, lBegin, FRIx, k)] +=
-					dDiffReconsPolyNode[l]
-
-			} else {
-				_EXCEPTIONT("Upwind Rho on interfaces: Unimplemented");
-			}
-#endif
-*/
 		}
 
 	// Vertical velocity on nodes (LEV or INT staggering)

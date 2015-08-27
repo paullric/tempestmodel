@@ -75,8 +75,8 @@ ifeq ($(system),Linux)
 
   # Check for BLAS
   ifdef USEBLAS
-    CFLAGS+= -DUSEMKL
-    LDFILES+= -lpthread -llapack -lblas
+    CFLAGS+= -DUSEMKL -pthread
+    LDFILES+= -llapack -lblas
   endif
 endif
 

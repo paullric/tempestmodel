@@ -240,13 +240,13 @@ try {
 			dZtop,
 			dEarthScaling));
 	AnnounceEndBlock("Done");
-/*
+
 	// Add Kessler physics
 	model.AttachWorkflowProcess(
 		new KesslerPhysics(
 			model,
 			model.GetDeltaT()));
-*/
+
 	// Begin execution
 	AnnounceBanner("SIMULATION");
 	model.Go();
