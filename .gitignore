@@ -124,3 +124,5 @@ test/nonhydro_sphere/Soln.txt
 test/dcmip2016/MesoscaleStormTest
 
 test/nonhydro_xz/Baroclinic3DCartesianRidgeTest
+
+test/hpc/DataContainerTest

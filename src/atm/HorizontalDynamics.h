@@ -50,7 +50,9 @@ public:
 	///	<summary>
 	///		Get the number of halo elements needed by the model.
 	///	</summary>
-	virtual int GetHaloElements() const = 0;
+	virtual int GetHaloElements() const {
+		return 1;
+	}
 
 public:
 	///	<summary>

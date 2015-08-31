@@ -86,16 +86,20 @@ void GridPatchCartesianGLL::InitializeDataLocal(
 
 	// Physical constants
 	const PhysicalConstants & phys = m_grid.GetModel().GetPhysicalConstants();
-	
-	// Initialize the longitude and latitude at each node
-	for (int i = 0; i < m_box.GetATotalWidth(); i++) {
-	for (int j = 0; j < m_box.GetBTotalWidth(); j++) {
-		// Longitude and latitude directly from box
-		m_dataLon[i][j] = m_box.GetANode(i);
-		m_dataLat[i][j] = m_box.GetBNode(j);
 
-		//m_dataCoriolisF[i][j] = 0.0;
-	}
+	// Initialize the longitude and latitude at each node
+	if (fAllocateGeometric) {
+		for (int i = 0; i < m_box.GetATotalWidth(); i++) {
+		for (int j = 0; j < m_box.GetBTotalWidth(); j++) {
+			// Longitude and latitude directly from box
+			m_dataLon[i][j] = m_box.GetANode(i);
+			m_dataLat[i][j] = m_box.GetBNode(j);
+
+			//m_dataCoriolisF[i][j] = 0.0;
+		}
+		}
+	} else {
+		std::cout << "WARNING: Lon/Lat not initialized" << std::endl;
 	}
 
 	// Set the scale height for the decay of topography features

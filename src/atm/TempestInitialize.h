@@ -22,6 +22,7 @@
 #include "TimestepSchemeStrang.h"
 #include "TimestepSchemeARK2.h"
 #include "TimestepSchemeARK3.h"
+#include "HorizontalDynamicsStub.h"
 #include "HorizontalDynamicsFEM.h"
 #include "HorizontalDynamicsDG.h"
 #include "VerticalDynamicsStub.h"
