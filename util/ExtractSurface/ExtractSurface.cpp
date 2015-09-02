@@ -311,8 +311,9 @@ void InterpolationWeightsLinear(
 
 int main(int argc, char ** argv) {
 
-	// Initialize MPI
 	MPI_Init(&argc, &argv);
+
+	NcError error(NcError::silent_nonfatal);
 
 try {
 
@@ -419,6 +420,10 @@ try {
 	// Load time array
 	Announce("Time");
 	NcVar * varTime = ncdf_in.get_var("time");
+	if (varTime == NULL) {
+		_EXCEPTION1("File \"%s\" does not contain variable \"time\"",
+			strInputFile.c_str());
+	}
 	int nTime = varTime->get_dim(0)->size();
 
 	DataArray1D<double> dTime(nTime);
@@ -428,6 +433,10 @@ try {
 	// Load latitude array
 	Announce("Latitude");
 	NcVar * varLat = ncdf_in.get_var("lat");
+	if (varLat == NULL) {
+		_EXCEPTION1("File \"%s\" does not contain variable \"lat\"",
+			strInputFile.c_str());
+	}
 	int nLat = varLat->get_dim(0)->size();
 
 	DataArray1D<double> dLat(nLat);
@@ -437,6 +446,10 @@ try {
 	// Load longitude array
 	Announce("Longitude");
 	NcVar * varLon = ncdf_in.get_var("lon");
+	if (varLon == NULL) {
+		_EXCEPTION1("File \"%s\" does not contain variable \"lon\"",
+			strInputFile.c_str());
+	}
 	int nLon = varLon->get_dim(0)->size();
 
 	DataArray1D<double> dLon(nLon);
@@ -446,15 +459,40 @@ try {
 	// Load level array
 	Announce("Level");
 	NcVar * varLev = ncdf_in.get_var("lev");
+	if (varLev == NULL) {
+		_EXCEPTION1("File \"%s\" does not contain variable \"lev\"",
+			strInputFile.c_str());
+	}
 	int nLev = varLev->get_dim(0)->size();
 
 	DataArray1D<double> dLev(nLev);
 	varLev->set_cur((long)0);
 	varLev->get(&(dLev[0]), nLev);
 
+	// Load level interface array
+	Announce("Interface");
+	NcVar * varILev = ncdf_in.get_var("ilev");
+	int nILev = 0;
+	DataArray1D<double> dILev;
+	if (varILev == NULL) {
+		Announce("Warning: Variable \"ilev\" not found");
+	} else {
+		nILev = varILev->get_dim(0)->size();
+		if (nILev != nLev + 1) {
+			_EXCEPTIONT("Variable \"ilev\" must have size lev+1");
+		}
+		dILev.Allocate(nILev);
+		varILev->set_cur((long)0);
+		varILev->get(&(dILev[0]), nILev);
+	}
+
 	// Load topography
 	Announce("Topography");
 	NcVar * varZs = ncdf_in.get_var("Zs");
+	if (varZs == NULL) {
+		_EXCEPTION1("File \"%s\" does not contain variable \"Zs\"",
+			strInputFile.c_str());
+	}
 
 	DataArray2D<double> dZs(nLat, nLon);
 	varZs->set_cur((long)0, (long)0);
@@ -570,6 +608,7 @@ try {
 
 	// Input data
 	DataArray3D<double> dataIn(nLev, nLat, nLon);
+	DataArray3D<double> dataInt(nILev, nLat, nLon);
 
 	// Output data
 	DataArray2D<double> dataOut(nLat, nLon);
@@ -579,9 +618,11 @@ try {
 
 	// Height in column
 	DataArray1D<double> dataColumnZ(nLev);
+	DataArray1D<double> dataColumnIZ(nILev);
 
 	// Column weights
 	DataArray1D<double> dW(nLev);
+	DataArray1D<double> dIW(nILev);
 
 	// Loop through all times, pressure levels and variables
 	AnnounceStartBlock("Interpolating");
@@ -652,26 +693,22 @@ try {
 		DataArray3D<double> dataRho(nLev, nLat, nLon);
 
 		NcVar * varRho = ncdf_in.get_var("Rho");
+		if (varRho == NULL) {
+			_EXCEPTIONT("Unable to load variable \"Rho\" from file");
+		}
 		varRho->set_cur(t, 0, 0, 0);
 		varRho->get(&(dataRho[0][0][0]), 1, nLev, nLat, nLon);
 
 		// Pressure
 		DataArray3D<double> dataP(nLev, nLat, nLon);
 
-		bool fHasPressure = false;
-		for (int v = 0; v < ncdf_in.num_vars(); v++) {
-			if (strcmp(ncdf_in.get_var(v)->name(), "P") == 0) {
-				fHasPressure = true;
-			}
-		}
-		if (fHasPressure) {
+		if (nPressureLevels != 0) {
 			NcVar * varP = ncdf_in.get_var("P");
+			if (varP == NULL) {
+				_EXCEPTIONT("Unable to load variable \"P\" from file");
+			}
 			varP->set_cur(t, 0, 0, 0);
 			varP->get(&(dataP[0][0][0]), 1, nLev, nLat, nLon);
-		} else {
-			if (nPressureLevels != 0) {
-				_EXCEPTIONT("File does not contain \"P\" variable");
-			}
 		}
 /*
 		// Populate pressure array
@@ -690,6 +727,10 @@ try {
 */
 		// Height everywhere
 		DataArray3D<double> dataZ(nLev, nLat, nLon);
+		DataArray3D<double> dataIZ;
+		if (nILev != 0) {
+			dataIZ.Allocate(nILev, nLat, nLon);
+		}
 
 		// Populate height array
 		if ((nHeightLevels > 0) || (fGeopotentialHeight)) {
@@ -700,39 +741,68 @@ try {
 			}
 			}
 			}
+
+			for (int k = 0; k < nILev; k++) {
+			for (int i = 0; i < nLat; i++) {
+			for (int j = 0; j < nLon; j++) {
+				dataIZ[k][i][j] = dZs[i][j] + dILev[k] * (dZtop - dZs[i][j]);
+			}
+			}
+			}
 		}
 
 		// Loop through all pressure levels and variables
 		for (int v = 0; v < vecNcVar.size(); v++) {
 
-			Announce(vecVariableStrings[v].c_str());
+			bool fOnInterfaces = false;
 
 			// Load in the data array
 			vecNcVar[v]->set_cur(t, 0, 0, 0);
-			vecNcVar[v]->get(&(dataIn[0][0][0]), 1, nLev, nLat, nLon);
+
+			if (vecNcVar[v]->get_dim(1)->size() == nLev) {
+				vecNcVar[v]->get(&(dataIn[0][0][0]), 1, nLev, nLat, nLon);
+
+				Announce("%s (n)", vecVariableStrings[v].c_str());
+
+			} else if (vecNcVar[v]->get_dim(1)->size() == nILev) {
+				vecNcVar[v]->get(&(dataInt[0][0][0]), 1, nILev, nLat, nLon);
+				fOnInterfaces = true;
+
+				Announce("%s (i)", vecVariableStrings[v].c_str());
+			} else {
+				_EXCEPTION1("Variable \"%s\" has invalid level dimension",
+					vecVariableStrings[v].c_str());
+			}
 
 			// At the physical surface
 			if (fExtractSurface) {
 
-				int kBegin = 0;
-				int kEnd = 3;
-
-				PolynomialInterp::LagrangianPolynomialCoeffs(
-					3, dLev, dW, 0.0);
-
-				//dW[0] =   dLev[1] / (dLev[1] - dLev[0]);
-				//dW[1] = - dLev[0] / (dLev[1] - dLev[0]);
-
-				// Loop thorugh all latlon indices
-				for (int i = 0; i < nLat; i++) {
-				for (int j = 0; j < nLon; j++) {
-
-					// Interpolate in the vertical
-					dataOut[i][j] = 0.0;
-					for (int k = kBegin; k < kEnd; k++) {
-						dataOut[i][j] += dW[k] * dataIn[k][i][j];
+				if (fOnInterfaces) {
+					for (int i = 0; i < nLat; i++) {
+					for (int j = 0; j < nLon; j++) {
+						dataOut[i][j] = dataInt[0][i][j];
 					}
-				}
+					}
+
+				} else {
+
+					int kBegin = 0;
+					int kEnd = 3;
+
+					PolynomialInterp::LagrangianPolynomialCoeffs(
+						3, dLev, dW, 0.0);
+
+					// Loop thorugh all latlon indices
+					for (int i = 0; i < nLat; i++) {
+					for (int j = 0; j < nLon; j++) {
+
+						// Interpolate in the vertical
+						dataOut[i][j] = 0.0;
+						for (int k = kBegin; k < kEnd; k++) {
+							dataOut[i][j] += dW[k] * dataIn[k][i][j];
+						}
+					}
+					}
 				}
 
 				// Write variable
@@ -786,27 +856,45 @@ try {
 				for (int i = 0; i < nLat; i++) {
 				for (int j = 0; j < nLon; j++) {
 
-					// Store column height
-					for (int k = 0; k < nLev; k++) {
-						dataColumnZ[k] = dataZ[k][i][j];
-					}
-
 					// Find weights
 					int kBegin = 0;
 					int kEnd = 0;
 
-					// On a pressure surface
-					InterpolationWeightsLinear(
-						vecHeightLevels[z],
-						dataColumnZ,
-						kBegin,
-						kEnd,
-						dW);
+					// Interpolate from levels to z surfaces
+					if (!fOnInterfaces) {
+						for (int k = 0; k < nLev; k++) {
+							dataColumnZ[k] = dataZ[k][i][j];
+						}
 
-					// Interpolate in the vertical
-					dataOut[i][j] = 0.0;
-					for (int k = kBegin; k < kEnd; k++) {
-						dataOut[i][j] += dW[k] * dataIn[k][i][j];
+						InterpolationWeightsLinear(
+							vecHeightLevels[z],
+							dataColumnZ,
+							kBegin,
+							kEnd,
+							dW);
+
+						dataOut[i][j] = 0.0;
+						for (int k = kBegin; k < kEnd; k++) {
+							dataOut[i][j] += dW[k] * dataIn[k][i][j];
+						}
+
+					// Interpolate from interfaces to z surfaces
+					} else {
+						for (int k = 0; k < nILev; k++) {
+							dataColumnIZ[k] = dataIZ[k][i][j];
+						}
+
+						InterpolationWeightsLinear(
+							vecHeightLevels[z],
+							dataColumnIZ,
+							kBegin,
+							kEnd,
+							dIW);
+
+						dataOut[i][j] = 0.0;
+						for (int k = kBegin; k < kEnd; k++) {
+							dataOut[i][j] += dIW[k] * dataInt[k][i][j];
+						}
 					}
 				}
 				}
@@ -967,7 +1055,6 @@ try {
 
 	// Finalize MPI
 	MPI_Finalize();
-
 }
 
 ///////////////////////////////////////////////////////////////////////////////
