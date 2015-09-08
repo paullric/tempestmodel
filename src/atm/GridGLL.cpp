@@ -152,6 +152,12 @@ void GridGLL::Initialize() {
 			m_nVerticalOrder,
 			m_dREtaLevels);
 
+		// Initialize integral operator
+		m_opIntNodeToNode.InitializeNodeToNodeInterfaceMethod(
+			m_nVerticalOrder,
+			m_dREtaLevels,
+			m_dREtaInterfaces);
+
 	} else {
 		// Interpolation operators
 		m_opInterpNodeToREdge.Initialize(
@@ -218,6 +224,12 @@ void GridGLL::Initialize() {
 
 		m_opDiffDiffREdgeToREdge.Initialize(
 			LinearColumnDiffDiffFEM::InterpSource_Interfaces,
+			m_nVerticalOrder,
+			m_dREtaLevels,
+			m_dREtaInterfaces);
+
+		// Initialize integral operator
+		m_opIntNodeToNode.InitializeNodeToNodeInterfaceMethod(
 			m_nVerticalOrder,
 			m_dREtaLevels,
 			m_dREtaInterfaces);

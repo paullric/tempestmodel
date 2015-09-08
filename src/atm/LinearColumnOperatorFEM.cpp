@@ -20,6 +20,7 @@
 
 #include "PolynomialInterp.h"
 
+#include "LinearAlgebra.h"
 #include "GaussQuadrature.h"
 #include "GaussLobattoQuadrature.h"
 
@@ -1118,6 +1119,79 @@ void LinearColumnDiffDiffFEM::InitializeGLLNodes(
 /*
 	// DEBUGGING
 	DebugOutput(&dREtaNode, &dREtaNode);
+*/
+}
+
+///////////////////////////////////////////////////////////////////////////////
+/// LinearColumnIntFEM
+///////////////////////////////////////////////////////////////////////////////
+
+void LinearColumnIntFEM::InitializeNodeToNodeInterfaceMethod(
+	int nVerticalOrder,
+	const DataArray1D<double> & dREtaNode,
+	const DataArray1D<double> & dREtaREdge
+) {
+	const double ParamEpsilon = 1.0e-12;
+
+	const int nRElementsIn  = dREtaNode.GetRows();
+	const int nRElementsOut = dREtaNode.GetRows();
+	const int nRElementsREdge = dREtaREdge.GetRows();
+
+	const int nFiniteElements = nRElementsIn / nVerticalOrder;
+
+	// Verify input parameters
+	if (nRElementsIn == 0) {
+		_EXCEPTIONT("At least one row required for dREtaNode");
+	}
+	if (nRElementsIn % nVerticalOrder != 0) {
+		_EXCEPTIONT("Column RElements / VerticalOrder mismatch");
+	}
+
+	// Create a new derivative operator
+	LinearColumnDiffFEM opDiff;
+	opDiff.InitializeInterfaceMethod(
+		LinearColumnDiffFEM::InterpSource_Interfaces,
+		nVerticalOrder,
+		dREtaNode,
+		dREtaREdge,
+		dREtaNode,
+		false);
+
+	// Initialize LinearColumnOperator for differentiation from interfaces
+	LinearColumnOperator opIntFromInterToLev(nRElementsREdge, nRElementsIn);
+
+	// Calculate psuedoinverse to obtain integrator
+	const DataArray2D<double> & dDiffCoeffIn = opDiff.GetCoeffs();
+
+	DataArray2D<double> dDiffCoeff(nRElementsREdge, nRElementsIn);
+	for (int i = 1; i < dDiffCoeff.GetRows(); i++) {
+	for (int j = 0; j < dDiffCoeff.GetColumns(); j++) {
+		dDiffCoeff[i][j] = dDiffCoeffIn[j][i];
+	}
+	}
+
+	LAPACK::GeneralizedInverseSVD(
+		dDiffCoeff,
+		opIntFromInterToLev.GetCoeffs());
+
+	//m_dCoeff = opIntFromInterToLev.GetCoeffs();
+
+	// Interpolate from interfaces to levels
+	LinearColumnInterpFEM opInterp;
+	opInterp.Initialize(
+		LinearColumnInterpFEM::InterpSource_Interfaces,
+		nVerticalOrder,
+		dREtaNode,
+		dREtaREdge,
+		dREtaNode,
+		false);
+
+	m_dCoeff = opInterp.GetCoeffs();
+
+	ComposeWith(opIntFromInterToLev);
+/*
+	// DEBUGGING
+	DebugOutput(&dREtaNode, &dREtaREdge);
 */
 }
 

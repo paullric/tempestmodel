@@ -59,8 +59,15 @@ void LinearColumnOperator::ComposeWith(
 	int nRElementsInter = m_dCoeff.GetColumns();
 
 	// Construct composed operator
-	int nRElementsOut = m_iBegin.GetRows();
+	int nRElementsOut = m_dCoeff.GetRows();
 	int nRElementsIn  = op.m_dCoeff.GetColumns();
+
+	if (nRElementsOut == 0) {
+		_EXCEPTIONT("Invalid number of rows in source operator");
+	}
+	if (nRElementsIn == 0) {
+		_EXCEPTIONT("Invalid number of columns in target operator");
+	}
 
 	DataArray2D<double> dNewCoeff(nRElementsOut, nRElementsIn);
 	DataArray1D<int> iNewBegin(nRElementsOut);

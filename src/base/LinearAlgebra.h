@@ -97,6 +97,9 @@ int dtrtri_(char *uplo, char *diag, int *n, double *a, int *lda, int *info);
 ///	QR decomposition
 int dgeqrf_(int *m, int *n, double *a, int *lda, double *tau, double *work, int *lwork, int *info);
 
+/// Singular value decomposition
+int dgesvd_(char *jobu, char *jobvt, int *m, int *n, double *a, int *lda, double *s, double *u, int *ldu, double *vt, int *ldvt, double *work, int *lwork, int *info);
+
 ///	Reconstruction of matrix Q in QR decomposition
 int dorgqr_(int *m, int *n, int *k, double * a, int *lda, double *tau, double *work, int *lwork, int *info);
 
@@ -464,6 +467,20 @@ public:
 		DataArray2D<double> & dA,
 		DataArray2D<double> & dOut
 	);
+
+	///	<summary>
+	///		Calculate the generalized inverse of a given matrix A
+	///		using singular value decomposition (SVD).
+	///	</summary>
+	///	<parameters>
+	///		dA   - Input matrix A in Fortran order.
+	///		dOut - Generalized inverse of A in Fortran order.
+	///	</parameters>
+	static void GeneralizedInverseSVD(
+		DataArray2D<double> & dA,
+		DataArray2D<double> & dOut
+	);
+
 };
 
 ///////////////////////////////////////////////////////////////////////////////

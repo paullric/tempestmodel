@@ -166,4 +166,38 @@ public:
 
 ///////////////////////////////////////////////////////////////////////////////
 
+///	<summary>
+///		Linear integration operator working on a column.
+///	</summary>
+class LinearColumnIntFEM : public LinearColumnOperator {
+
+public:
+	///	<summary>
+	///		Source of interpolation.
+	///	</summary>
+	enum InterpSource {
+		InterpSource_Levels,
+		InterpSource_Interfaces
+	};
+
+public:
+	///	<summary>
+	///		Default constructor.
+	///	</summary>
+	LinearColumnIntFEM() :
+		LinearColumnOperator()
+	{ }
+
+	///	<summary>
+	///		Initialize the operator
+	///	</summary>
+	void InitializeNodeToNodeInterfaceMethod(
+		int nVerticalOrder,
+		const DataArray1D<double> & dREtaNode,
+		const DataArray1D<double> & dREtaREdge
+	);
+};
+
+///////////////////////////////////////////////////////////////////////////////
+
 #endif

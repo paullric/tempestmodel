@@ -72,10 +72,34 @@ EquationSet::EquationSet(
 #endif
 
 		m_strComponentShortNames.push_back("W");
-		m_strComponentShortNames.push_back("Rho");
-
 		m_strComponentFullNames.push_back("Vertical velocity");
+
+		m_strComponentShortNames.push_back("Rho");
 		m_strComponentFullNames.push_back("Density");
+
+	// Primitive nonhydrostatic equations (pressure surfaces)
+	} else if (eEquationSetType == PrimitiveNonhydrostaticEquationsMassCoord) {
+		m_nDimensionality = 3;
+
+		m_nComponents = 6;
+
+		m_strComponentShortNames.push_back("U");
+		m_strComponentShortNames.push_back("V");
+
+		m_strComponentFullNames.push_back("Alpha velocity");
+		m_strComponentFullNames.push_back("Beta velocity");
+
+		m_strComponentShortNames.push_back("Theta");
+		m_strComponentFullNames.push_back("Potential Temperature");
+
+		m_strComponentShortNames.push_back("W");
+		m_strComponentFullNames.push_back("Vertical velocity");
+
+		m_strComponentShortNames.push_back("Pressure");
+		m_strComponentFullNames.push_back("Pressure");
+
+		m_strComponentShortNames.push_back("Column Mass");
+		m_strComponentFullNames.push_back("Column Mass");
 
 	// Invalid equation set
 	} else {

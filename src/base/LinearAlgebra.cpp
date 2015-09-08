@@ -19,6 +19,7 @@
 #include "Exception.h"
 
 #include <iostream>
+#include <cmath>
 
 //////////////////////////////////////////////////////////////////////////////
 
@@ -526,6 +527,103 @@ void LAPACK::GeneralizedInverse(
 		dOut[i][j] += dR[k][j] * dA[k][i];
 	}
 	}
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void LAPACK::GeneralizedInverseSVD(
+	DataArray2D<double> & dA,
+	DataArray2D<double> & dOut
+) {
+	dOut.Allocate(dA.GetRows(), dA.GetColumns());
+
+	// Compute SVD
+	DataArray2D<double> dU(dA.GetColumns(), dA.GetColumns());
+	DataArray2D<double> dVT(dA.GetRows(), dA.GetRows());
+
+	int dimbig;
+	int dimsmall;
+
+	if (dA.GetRows() > dA.GetColumns()) {
+		dimbig = dA.GetRows();
+		dimsmall = dA.GetColumns();
+	} else {
+		dimbig = dA.GetColumns();
+		dimsmall = dA.GetRows();
+	}
+
+	int lwork = 5 * dimbig;
+
+	DataArray1D<double> dS(dimsmall);
+
+	DataArray1D<double> dWork(lwork);
+
+	char jobu = 'S';
+	char jobvt = 'S';
+
+	int m = dA.GetColumns();
+	int n = dA.GetRows();
+
+	int nInfo = 0;
+
+#if defined USEVECLIB || defined USEMKL
+	dgesvd_(&jobu, &jobvt, &m, &n, &(dA[0][0]), &m, &(dS[0]), &(dU[0][0]), &m, &(dVT[0][0]), &n, &(dWork[0]), &lwork, &nInfo);
+#else
+	_EXCEPTIONT("Unimplemented");
+#endif
+
+	if (nInfo > 0) {
+		_EXCEPTIONT("Convergence failure in LAPACK_DGESVD");
+	}
+	if (nInfo < 0) {
+		_EXCEPTION1("Illegal value in LAPACK_DGESVD: %i", nInfo);
+	}
+
+	// Invert the singular values
+	for (int i = 0; i < dimsmall; i++) {
+		if (fabs(dS[i]) < 1.0e-14) {
+			dS[i] = 0.0;
+		} else {
+			dS[i] = 1.0 / dS[i];
+		}
+	}
+
+	// Calculate pseudo-inverse
+	if (dA.GetColumns() > dA.GetRows()) {
+
+		// Apply inverted singular values to U
+		for (int i = 0; i < dA.GetColumns(); i++) {
+		for (int j = 0; j < dA.GetRows(); j++) {
+			dU[i][j] *= dS[j];
+		}
+		}
+
+		// Calculate matrix product
+		for (int i = 0; i < dA.GetRows(); i++) {
+		for (int j = 0; j < dA.GetColumns(); j++) {
+		for (int k = 0; k < dA.GetRows(); k++) {
+			dOut[i][j] += dVT[i][k] * dU[j][k];
+		}
+		}
+		}
+
+	} else {
+		// Apply inverted singular values to VT
+		for (int i = 0; i < dA.GetRows(); i++) {
+		for (int j = 0; j < dA.GetColumns(); j++) {
+			dVT[i][j] *= dS[j];
+		}
+		}
+
+		// Calculate matrix product
+		for (int i = 0; i < dA.GetRows(); i++) {
+		for (int j = 0; j < dA.GetColumns(); j++) {
+		for (int k = 0; k < dA.GetColumns(); k++) {
+			dOut[i][j] += dVT[i][k] * dU[k][j];
+		}
+		}
+		}
 	}
 }
 

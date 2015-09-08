@@ -505,6 +505,11 @@ protected:
 	///	</summary>
 	LinearColumnDiffDiffFEM m_opDiffDiffREdgeToREdge;
 
+	///	<summary>
+	///		Integral operator from levels to levels.
+	///	</summary>
+	LinearColumnIntFEM m_opIntNodeToNode;
+
 /*
 	///	<summary>
 	///		Differentiation coefficients from interfaces to nodes.

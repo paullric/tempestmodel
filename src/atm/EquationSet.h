@@ -55,6 +55,11 @@ public:
 	///	</summary>
 	static const Type PrimitiveNonhydrostaticEquations = 2;
 
+	///	<summary>
+	///		Primitive nonhydrostatic equations (mass coordinate)
+	///	</summary>
+	static const Type PrimitiveNonhydrostaticEquationsMassCoord = 3;
+
 public:
 	///	<summary>
 	///		Constructor.
