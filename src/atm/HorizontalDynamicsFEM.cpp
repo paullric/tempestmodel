@@ -2016,9 +2016,6 @@ void HorizontalDynamicsFEM::ApplyRayleighFriction(
 			}
 		}
 		}
-
-		// Apply boundary conditions
-		//pPatch->ApplyBoundaryConditions(iDataUpdate);
 	}
 }
 
@@ -2086,9 +2083,6 @@ void HorizontalDynamicsFEM::StepAfterSubCycle(
 		ApplyRayleighFriction(iDataUpdate, dDeltaT);
 	}
 #endif
-
-	// Apply boundary conditions
-	//pGrid->ApplyBoundaryConditions(iDataUpdate);
 }
 
 ///////////////////////////////////////////////////////////////////////////////

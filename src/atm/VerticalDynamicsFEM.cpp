@@ -28,10 +28,10 @@
 
 ///////////////////////////////////////////////////////////////////////////////
 
-#define UPWIND_HORIZONTAL_VELOCITIES
-#define UPWIND_THERMO
+//#define UPWIND_HORIZONTAL_VELOCITIES
+//#define UPWIND_THERMO
 //#define UPWIND_VERTICAL_VELOCITY
-#define UPWIND_RHO
+//#define UPWIND_RHO
 
 //#define DETECT_CFL_VIOLATION
 //#define CAP_VERTICAL_VELOCITY
@@ -2094,7 +2094,6 @@ void VerticalDynamicsFEM::BuildF(
 	for (int i = 0; i < m_nColumnStateSize; i++) {
 		dF[i] += (dX[i] - m_dColumnState[i]) * dInvDeltaT;
 	}
-
 /*
 	// Apply boundary conditions to W
 	if (pGrid->GetVarLocation(WIx) == DataLocation_REdge) {
@@ -2112,23 +2111,26 @@ void VerticalDynamicsFEM::BuildF(
 			+ dContraMetricXiREdge[k][m_iA][m_iB][2]
 				* dDerivRREdge[k][m_iA][m_iB][2] * m_dStateREdge[WIx][k];
 
-	} else if (
+	} else
+*/
+/*
+	if (
 		pGrid->GetVerticalStaggering() ==
 			Grid::VerticalStaggering_Interfaces
 	) {
 		dF[VecFIx(FWIx, 0)] =
-			  dContraMetricXi[0][m_iA][m_iB][0] * m_dStateNode[UIx][0]
-			+ dContraMetricXi[0][m_iA][m_iB][1] * m_dStateNode[VIx][0]
-			+ dContraMetricXi[0][m_iA][m_iB][2]
-				* dDerivRNode[0][m_iA][m_iB][2] * m_dStateNode[WIx][0];
+			  m_dColumnContraMetricXi[0][0] * m_dStateNode[UIx][0]
+			+ m_dColumnContraMetricXi[0][1] * m_dStateNode[VIx][0]
+			+ m_dColumnContraMetricXi[0][2]
+				* m_dColumnDerivRNode[0][2] * m_dStateNode[WIx][0];
 
 		int k = nRElements-1;
 
 		dF[VecFIx(FWIx, k)] =
-			  dContraMetricXi[k][m_iA][m_iB][0] * m_dStateNode[UIx][k]
-			+ dContraMetricXi[k][m_iA][m_iB][1] * m_dStateNode[VIx][k]
-			+ dContraMetricXi[k][m_iA][m_iB][2]
-				* dDerivRNode[k][m_iA][m_iB][2] * m_dStateNode[WIx][k];
+			  m_dColumnContraMetricXi[k][0] * m_dStateNode[UIx][k]
+			+ m_dColumnContraMetricXi[k][1] * m_dStateNode[VIx][k]
+			+ m_dColumnContraMetricXi[k][2]
+				* m_dColumnDerivRNode[k][2] * m_dStateNode[WIx][k];
 
 	} else {
 		_EXCEPTIONT("UNIMPLEMENTED");
