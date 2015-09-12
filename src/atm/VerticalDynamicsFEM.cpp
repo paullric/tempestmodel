@@ -1466,6 +1466,18 @@ void VerticalDynamicsFEM::PrepareColumn(
 		pGrid->DifferentiateNodeToNode(
 			m_dExnerNode,
 			m_dDiffPNode);
+
+		// Theta derivatives on model levels
+		if (pGrid->GetVarLocation(PIx) == DataLocation_Node) {
+			pGrid->DifferentiateNodeToNode(
+				m_dStateNode[PIx],
+				m_dDiffThetaNode);
+		} else {
+			pGrid->DifferentiateREdgeToREdge(
+				m_dStateREdge[PIx],
+				m_dDiffThetaREdge);
+		}
+
 #endif
 
 	// Vertical velocity on model interfaces
