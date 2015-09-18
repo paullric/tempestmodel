@@ -37,6 +37,7 @@
 HorizontalDynamicsFEM::HorizontalDynamicsFEM(
 	Model & model,
 	int nHorizontalOrder,
+	int nHyperviscosityOrder,
 	double dNuScalar,
 	double dNuDiv,
 	double dNuVort,
@@ -44,6 +45,7 @@ HorizontalDynamicsFEM::HorizontalDynamicsFEM(
 ) :
 	HorizontalDynamics(model),
 	m_nHorizontalOrder(nHorizontalOrder),
+	m_nHyperviscosityOrder(nHyperviscosityOrder),
 	m_dNuScalar(dNuScalar),
 	m_dNuDiv(dNuDiv),
 	m_dNuVort(dNuVort),
@@ -1622,7 +1624,9 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusion(
 
 		if (fScaleNuLocally) {
 			double dReferenceLength = pGrid->GetReferenceLength();
-			dLocalNu *= pow(dElementDeltaA / dReferenceLength, 3.2);
+			if (dReferenceLength != 0.0) {
+				dLocalNu *= pow(dElementDeltaA / dReferenceLength, 3.2);
+			}
 		}
 
 		// State variables and tracers
@@ -1833,10 +1837,12 @@ void HorizontalDynamicsFEM::ApplyVectorHyperdiffusion(
 
 		if (fScaleNuLocally) {
 			double dReferenceLength = pGrid->GetReferenceLength();
-			dLocalNuDiv =
-				dLocalNuDiv  * pow(dElementDeltaA / dReferenceLength, 3.2);
-			dLocalNuVort =
-				dLocalNuVort * pow(dElementDeltaA / dReferenceLength, 3.2);
+			if (dReferenceLength != 0.0) {
+				dLocalNuDiv =
+					dLocalNuDiv  * pow(dElementDeltaA / dReferenceLength, 3.2);
+				dLocalNuVort =
+					dLocalNuVort * pow(dElementDeltaA / dReferenceLength, 3.2);
+			}
 		}
 
 		// Number of finite elements
@@ -2045,9 +2051,31 @@ void HorizontalDynamicsFEM::StepAfterSubCycle(
 	if ((m_dNuScalar == 0.0) && (m_dNuDiv == 0.0) && (m_dNuVort == 0.0)) {
 
 	// Apply hyperdiffusion
-	} else {
+	} else if (m_nHyperviscosityOrder == 0) {
 
-		// Apply scalar and vector hyperdiffusion (first application)
+	// Apply viscosity 
+	} else if (m_nHyperviscosityOrder == 2) {
+
+		// Apply scalar and vector viscosity
+		pGrid->CopyData(iDataInitial, iDataUpdate, DataType_State);
+		pGrid->CopyData(iDataInitial, iDataUpdate, DataType_Tracers);
+
+		ApplyScalarHyperdiffusion(
+			iDataInitial, iDataUpdate, dDeltaT, m_dNuScalar, false);
+		ApplyVectorHyperdiffusion(
+			iDataInitial, iDataUpdate, -dDeltaT, m_dNuDiv, m_dNuVort, false);
+
+		// Apply positive definite filter to tracers
+		FilterNegativeTracers(iDataUpdate);
+
+		// Apply Direct Stiffness Summation
+		pGrid->ApplyDSS(iDataUpdate, DataType_State);
+		pGrid->ApplyDSS(iDataUpdate, DataType_Tracers);
+
+	// Apply hyperviscosity
+	} else if (m_nHyperviscosityOrder == 4) {
+
+		// Apply scalar and vector hyperviscosity (first application)
 		pGrid->ZeroData(iDataWorking, DataType_State);
 		pGrid->ZeroData(iDataWorking, DataType_Tracers);
 
@@ -2060,7 +2088,7 @@ void HorizontalDynamicsFEM::StepAfterSubCycle(
 		pGrid->ApplyDSS(iDataWorking, DataType_State);
 		pGrid->ApplyDSS(iDataWorking, DataType_Tracers);
 
-		// Apply scalar and vector hyperdiffusion (second application)
+		// Apply scalar and vector hyperviscosity (second application)
 		pGrid->CopyData(iDataInitial, iDataUpdate, DataType_State);
 		pGrid->CopyData(iDataInitial, iDataUpdate, DataType_Tracers);
 
@@ -2075,6 +2103,10 @@ void HorizontalDynamicsFEM::StepAfterSubCycle(
 		// Apply Direct Stiffness Summation
 		pGrid->ApplyDSS(iDataUpdate, DataType_State);
 		pGrid->ApplyDSS(iDataUpdate, DataType_Tracers);
+
+	// Invalid viscosity order
+	} else {
+		_EXCEPTIONT("Invalid viscosity order");
 	}
 
 #ifdef APPLY_RAYLEIGH_WITH_HYPERVIS

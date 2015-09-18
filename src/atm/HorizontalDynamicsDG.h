@@ -41,6 +41,7 @@ public:
 	HorizontalDynamicsDG(
 		Model & model,
 		int nHorizontalOrder,
+		int nHyperviscosityOrder,
 		double dNuScalar,
 		double dNuDiv,
 		double dNuVort,

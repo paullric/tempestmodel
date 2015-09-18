@@ -42,6 +42,7 @@ public:
 	HorizontalDynamicsFEM(
 		Model & model,
 		int nHorizontalOrder,
+		int nHypervisOrder,
 		double dNuScalar,
 		double dNuDiv,
 		double dNuVort,
@@ -209,6 +210,11 @@ protected:
 	DataArray2D<double> m_dJGradientB;
 
 protected:
+	///	<summary>
+	///		Viscosity / hyperviscosity order.
+	///	</summary>
+	int m_nHyperviscosityOrder;
+
 	///	<summary>
 	///		Scalar hyperviscosity coefficient (at 1 degree resolution).
 	///	</summary>

@@ -42,6 +42,7 @@ static const double ParamHypervisScaling = 3.2;
 HorizontalDynamicsDG::HorizontalDynamicsDG(
 	Model & model,
 	int nHorizontalOrder,
+	int nHyperviscosityOrder,
 	double dNuScalar,
 	double dNuDiv,
 	double dNuVort,
@@ -50,6 +51,7 @@ HorizontalDynamicsDG::HorizontalDynamicsDG(
 	HorizontalDynamicsFEM(
 		model,
 		nHorizontalOrder,
+		nHyperviscosityOrder,
 		dNuScalar,
 		dNuDiv,
 		dNuVort,

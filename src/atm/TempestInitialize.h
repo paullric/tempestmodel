@@ -63,6 +63,7 @@ struct _TempestCommandLineVariables {
 	bool fNoReferenceState;
 	bool fNoTracers;
 	bool fNoHyperviscosity;
+	int nHyperviscosityOrder;
 	double dNuScalar;
 	double dNuDiv;
 	double dNuVort;
@@ -98,6 +99,7 @@ struct _TempestCommandLineVariables {
 	CommandLineBool(_tempestvars.fNoReferenceState, "norefstate"); \
 	CommandLineBool(_tempestvars.fNoTracers, "notracers"); \
 	CommandLineBool(_tempestvars.fNoHyperviscosity, "nohypervis"); \
+	CommandLineInt(_tempestvars.nHyperviscosityOrder, "hypervisorder", 4); \
 	CommandLineDouble(_tempestvars.dNuScalar, "nu", 1.0e15); \
 	CommandLineDouble(_tempestvars.dNuDiv, "nud", 1.0e15); \
 	CommandLineDouble(_tempestvars.dNuVort, "nuv", 1.0e15); \
@@ -215,6 +217,7 @@ void _TempestSetupMethodOfLines(
 			new HorizontalDynamicsFEM(
 				model,
 				vars.nHorizontalOrder,
+				vars.nHyperviscosityOrder,
 				vars.dNuScalar,
 				vars.dNuDiv,
 				vars.dNuVort,
@@ -225,6 +228,7 @@ void _TempestSetupMethodOfLines(
 			new HorizontalDynamicsDG(
 				model,
 				vars.nHorizontalOrder,
+				vars.nHyperviscosityOrder,
 				vars.dNuScalar,
 				vars.dNuDiv,
 				vars.dNuVort,
