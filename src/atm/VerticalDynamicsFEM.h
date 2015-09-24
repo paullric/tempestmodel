@@ -373,9 +373,14 @@ protected:
 	DataArray1D<double> m_dDiffPREdge;
 
 	///	<summary>
-	///		Auxiliary storage for higher derivatives of the state
+	///		Auxiliary storage for second derivatives of the state
 	///	</summary>
 	DataArray2D<double> m_dDiffDiffState;
+
+	///	<summary>
+	///		Auxiliary storage for higher derivatives of the state
+	///	</summary>
+	DataArray2D<double> m_dHyperDiffState;
 
 	///	<summary>
 	///		Auxiliary storage for derivative of theta on nodes.
@@ -521,26 +526,6 @@ protected:
 	///		Solution vector from the implicit solve.
 	///	</summary>
 	DataArray1D<double> m_dSoln;
-
-	///	<summary>
-	///		Second differentiation coefficients from nodes to nodes.
-	///	</summary>
-	DataArray2D<double> m_dDiffDiffNodeToNode;
-
-	///	<summary>
-	///		Hyperviscosity coefficients from nodes to nodes.
-	///	</summary>
-	DataArray2D<double> m_dHypervisNodeToNode;
-
-	///	<summary>
-	///		Second differentiation coefficients from edges to edges.
-	///	</summary>
-	DataArray2D<double> m_dDiffDiffREdgeToREdge;
-
-	///	<summary>
-	///		Hyperviscosity coefficients from edges to edges.
-	///	</summary>
-	DataArray2D<double> m_dHypervisREdgeToREdge;
 
 private:
 	///	<summary>

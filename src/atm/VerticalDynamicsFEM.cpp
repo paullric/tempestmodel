@@ -28,10 +28,11 @@
 
 ///////////////////////////////////////////////////////////////////////////////
 
-//#define UPWIND_HORIZONTAL_VELOCITIES
-//#define UPWIND_THERMO
-//#define UPWIND_VERTICAL_VELOCITY
-//#define UPWIND_RHO
+//#define UNIFORM_DIFFUSION
+#define UPWIND_HORIZONTAL_VELOCITIES
+#define UPWIND_THERMO
+#define UPWIND_VERTICAL_VELOCITY
+#define UPWIND_RHO
 
 //#define DETECT_CFL_VIOLATION
 //#define CAP_VERTICAL_VELOCITY
@@ -227,7 +228,14 @@ void VerticalDynamicsFEM::Initialize() {
 
 	m_dDiffPNode.Allocate(nRElements);
 	m_dDiffPREdge.Allocate(nRElements+1);
+
+#ifdef UNIFORM_DIFFUSION
 	m_dDiffDiffState.Allocate(
+		m_model.GetEquationSet().GetComponents(),
+		nRElements+1);
+#endif
+
+	m_dHyperDiffState.Allocate(
 		m_model.GetEquationSet().GetComponents(),
 		nRElements+1);
 
@@ -555,32 +563,51 @@ void VerticalDynamicsFEM::StepExplicit(
 				// Second derivatives of horizontal velocity on model levels
 				pGrid->DiffDiffNodeToNode(
 					m_dStateNode[UIx],
-					m_dDiffDiffState[UIx]);
+					m_dHyperDiffState[UIx]);
 
 				pGrid->DiffDiffNodeToNode(
 					m_dStateNode[VIx],
-					m_dDiffDiffState[VIx]);
+					m_dHyperDiffState[VIx]);
+
+#ifdef UNIFORM_DIFFUSION
+				// Apply uniform diffusion in the vertical
+				double dZtop = pGrid->GetZtop();
+
+				double dUniformDiffusionCoeff = 75.0 / (dZtop * dZtop);
+
+				for (int k = 0; k < nRElements; k++) {
+					dataUpdateNode[UIx][k][i][j] +=
+						dDeltaT
+						* dUniformDiffusionCoeff
+						* m_dHyperDiffState[UIx][k];
+
+					dataUpdateNode[VIx][k][i][j] +=
+						dDeltaT
+						* dUniformDiffusionCoeff
+						* m_dHyperDiffState[VIx][k];
+				}
+#endif
 
 				// Compute higher derivatives of theta used for hyperdiffusion
 				for (int h = 2; h < m_nHypervisOrder; h += 2) {
 					memcpy(
 						m_dStateAux,
-						m_dDiffDiffState[UIx],
+						m_dHyperDiffState[UIx],
 						nRElements * sizeof(double));
 
 					pGrid->DiffDiffNodeToNode(
 						m_dStateAux,
-						m_dDiffDiffState[UIx]
+						m_dHyperDiffState[UIx]
 					);
 
 					memcpy(
 						m_dStateAux,
-						m_dDiffDiffState[VIx],
+						m_dHyperDiffState[VIx],
 						nRElements * sizeof(double));
 
 					pGrid->DiffDiffNodeToNode(
 						m_dStateAux,
-						m_dDiffDiffState[VIx]
+						m_dHyperDiffState[VIx]
 					);
 				}
 
@@ -590,13 +617,13 @@ void VerticalDynamicsFEM::StepExplicit(
 						dDeltaT
 						* m_dHypervisCoeff
 						* fabs(m_dXiDotNode[k])
-						* m_dDiffDiffState[UIx][k];
+						* m_dHyperDiffState[UIx][k];
 
 					dataUpdateNode[VIx][k][i][j] +=
 						dDeltaT
 						* m_dHypervisCoeff
 						* fabs(m_dXiDotNode[k])
-						* m_dDiffDiffState[VIx][k];
+						* m_dHyperDiffState[VIx][k];
 				}
 			}
 		}
@@ -1639,39 +1666,53 @@ void VerticalDynamicsFEM::PrepareColumn(
 				continue;
 			}
 
-			// Hyperviscosity derivatives on interfaces
+			// High-order derivatives on interfaces
 			if (pGrid->GetVarLocation(c) == DataLocation_REdge) {
 				pGrid->DiffDiffREdgeToREdge(
 					m_dStateREdge[c],
-					m_dDiffDiffState[c]);
+					m_dHyperDiffState[c]);
+
+#ifdef UNIFORM_DIFFUSION
+				// Uniform diffusion needs second derivatives of the state
+				for (int k = 0; k <= nRElements; k++) {
+					m_dDiffDiffState[c][k] = m_dHyperDiffState[c][k];
+				}
+#endif
 
 				for (int h = 2; h < m_nHypervisOrder; h += 2) {
 					memcpy(
 						m_dStateAux,
-						m_dDiffDiffState[c],
+						m_dHyperDiffState[c],
 						(nRElements+1) * sizeof(double));
 
 					pGrid->DiffDiffREdgeToREdge(
 						m_dStateAux,
-						m_dDiffDiffState[c]
+						m_dHyperDiffState[c]
 					);
 				}
 
-			// Hyperviscosity derivatives on levels
+			// High-order derivatives on levels
 			} else {
 				pGrid->DiffDiffNodeToNode(
 					m_dStateNode[c],
-					m_dDiffDiffState[c]);
+					m_dHyperDiffState[c]);
+
+#ifdef UNIFORM_DIFFUSION
+				// Uniform diffusion needs second derivatives of the state
+				for (int k = 0; k < nRElements; k++) {
+					m_dDiffDiffState[c][k] = m_dHyperDiffState[c][k];
+				}
+#endif
 
 				for (int h = 2; h < m_nHypervisOrder; h += 2) {
 					memcpy(
 						m_dStateAux,
-						m_dDiffDiffState[c],
+						m_dHyperDiffState[c],
 						nRElements * sizeof(double));
 
 					pGrid->DiffDiffNodeToNode(
 						m_dStateAux,
-						m_dDiffDiffState[c]
+						m_dHyperDiffState[c]
 					);
 				}
 			}
@@ -2052,12 +2093,37 @@ void VerticalDynamicsFEM::BuildF(
 			dF[VecFIx(FWIx, k)] +=
 				phys.GetG();
 		}
-
-		//_EXCEPTION();
 	}
 
-	
-	// Apply hyperviscosity
+#ifdef UNIFORM_DIFFUSION
+	// Apply uniform diffusion to theta and vertical velocity
+	double dZtop = pGrid->GetZtop();
+
+	double dUniformDiffusionCoeff = 75.0 / (dZtop * dZtop);
+
+	// NOTE: Do not apply diffusion to density
+	for (int c = 2; c < 4; c++) {
+
+		// Uniform diffusion on interfaces
+		if (pGrid->GetVarLocation(c) == DataLocation_REdge) {
+			for (int k = 0; k <= nRElements; k++) {
+				dF[VecFIx(FIxFromCIx(c), k)] -=
+					dUniformDiffusionCoeff
+					* m_dDiffDiffState[c][k];
+			}
+
+		// Uniform diffusion on levels
+		} else {
+			for (int k = 0; k < nRElements; k++) {
+				dF[VecFIx(FIxFromCIx(c), k)] -=
+					dUniformDiffusionCoeff
+					* m_dDiffDiffState[c][k];
+			}
+		}
+	}
+#endif
+
+	// Apply flow-dependent hyperviscosity
 	if (m_nHypervisOrder > 0) {
 		for (int c = 2; c < 5; c++) {
 
@@ -2066,21 +2132,24 @@ void VerticalDynamicsFEM::BuildF(
 				continue;
 			}
 
-			// Hyperviscosity derivatives on interfaces
+			// Flow-dependent hyperviscosity on interfaces
 			if (pGrid->GetVarLocation(c) == DataLocation_REdge) {
+
 				for (int k = 0; k <= nRElements; k++) {
 					dF[VecFIx(FIxFromCIx(c), k)] -=
 						m_dHypervisCoeff
 						* fabs(m_dXiDotREdge[k])
-						* m_dDiffDiffState[c][k];
+						* m_dHyperDiffState[c][k];
 				}
 
+			// Flow-dependent hyperviscosity on levels
 			} else {
+
 				for (int k = 0; k < nRElements; k++) {
 					dF[VecFIx(FIxFromCIx(c), k)] -=
 						m_dHypervisCoeff
 						* fabs(m_dXiDotNode[k])
-						* m_dDiffDiffState[c][k];
+						* m_dHyperDiffState[c][k];
 				}
 			}
 		}
