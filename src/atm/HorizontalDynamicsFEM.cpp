@@ -2047,6 +2047,39 @@ void HorizontalDynamicsFEM::StepAfterSubCycle(
 	// Get the GLL grid
 	GridGLL * pGrid = dynamic_cast<GridGLL*>(m_model.GetGrid());
 
+	// Copy initial data to updated data
+	pGrid->CopyData(iDataInitial, iDataUpdate, DataType_State);
+	pGrid->CopyData(iDataInitial, iDataUpdate, DataType_Tracers);
+
+#ifdef UNIFORM_DIFFUSION
+	// Apply scalar and vector viscosity
+	const double dUniformDiffusionCoeff = 75.0;
+
+	ApplyScalarHyperdiffusion(
+		iDataInitial,
+		iDataUpdate,
+		dDeltaT,
+		dUniformDiffusionCoeff,
+		false);
+
+	ApplyVectorHyperdiffusion(
+		iDataInitial,
+		iDataUpdate,
+		-dDeltaT,
+		dUniformDiffusionCoeff,
+		dUniformDiffusionCoeff,
+		false);
+
+	// Apply positive definite filter to tracers
+	FilterNegativeTracers(iDataUpdate);
+
+	// Apply Direct Stiffness Summation
+	if ((m_dNuScalar == 0.0) && (m_dNuDiv == 0.0) && (m_dNuVort == 0.0)) {
+		pGrid->ApplyDSS(iDataUpdate, DataType_State);
+		pGrid->ApplyDSS(iDataUpdate, DataType_Tracers);
+	}
+#endif
+
 	// No hyperdiffusion
 	if ((m_dNuScalar == 0.0) && (m_dNuDiv == 0.0) && (m_dNuVort == 0.0)) {
 
@@ -2057,9 +2090,6 @@ void HorizontalDynamicsFEM::StepAfterSubCycle(
 	} else if (m_nHyperviscosityOrder == 2) {
 
 		// Apply scalar and vector viscosity
-		pGrid->CopyData(iDataInitial, iDataUpdate, DataType_State);
-		pGrid->CopyData(iDataInitial, iDataUpdate, DataType_Tracers);
-
 		ApplyScalarHyperdiffusion(
 			iDataInitial, iDataUpdate, dDeltaT, m_dNuScalar, false);
 		ApplyVectorHyperdiffusion(
@@ -2089,9 +2119,6 @@ void HorizontalDynamicsFEM::StepAfterSubCycle(
 		pGrid->ApplyDSS(iDataWorking, DataType_Tracers);
 
 		// Apply scalar and vector hyperviscosity (second application)
-		pGrid->CopyData(iDataInitial, iDataUpdate, DataType_State);
-		pGrid->CopyData(iDataInitial, iDataUpdate, DataType_Tracers);
-
 		ApplyScalarHyperdiffusion(
 			iDataWorking, iDataUpdate, -dDeltaT, m_dNuScalar, true);
 		ApplyVectorHyperdiffusion(

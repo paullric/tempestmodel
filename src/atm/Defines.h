@@ -54,6 +54,11 @@
 ///	</summary>
 #define POSITIVE_DEFINITE_FILTER_TRACERS
 
+///	<summary>
+///		Apply constant coefficient del^2 diffusion.
+///	</summary>
+//#define UNIFORM_DIFFUSION
+
 ///////////////////////////////////////////////////////////////////////////////
 
 #endif

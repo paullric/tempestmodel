@@ -28,7 +28,6 @@
 
 ///////////////////////////////////////////////////////////////////////////////
 
-//#define UNIFORM_DIFFUSION
 #define UPWIND_HORIZONTAL_VELOCITIES
 #define UPWIND_THERMO
 #define UPWIND_VERTICAL_VELOCITY
