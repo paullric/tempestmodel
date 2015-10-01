@@ -17,17 +17,14 @@
 #ifndef _PATCHBOX_H_
 #define _PATCHBOX_H_
 
-#include "Direction.h"
-#include "GridSpacing.h"
-
-#include "DataArray1D.h"
+#include "DataChunk.h"
 
 ///////////////////////////////////////////////////////////////////////////////
 
 ///	<summary>
-///		Computational and physical coordinates of a 2D patch.
+///		Computational coordinates of a 2D patch.
 ///	</summary>
-class PatchBox {
+class PatchBox : public DataChunk {
 public:
 	///	<summary>
 	///		Constructor.
@@ -39,10 +36,9 @@ public:
 		int ixAGlobalInteriorBegin,
 		int ixAGlobalInteriorEnd,
 		int ixBGlobalInteriorBegin,
-		int ixBGlobalInteriorEnd,
-		GridSpacing & gridspacingA,
-		GridSpacing & gridspacingB
+		int ixBGlobalInteriorEnd
 	) :
+		m_fAttached(false),
 		m_ixPanel(ixPanel),
 		m_iRefinementLevel(iRefinementLevel),
 		m_nHaloElements(nHaloElements),
@@ -50,50 +46,7 @@ public:
 		m_ixAEnd(ixAGlobalInteriorEnd + nHaloElements),
 		m_ixBBegin(ixBGlobalInteriorBegin - nHaloElements),
 		m_ixBEnd(ixBGlobalInteriorEnd + nHaloElements)
-	{
-		// Initialize the coordinate arrays
-		InitializeCoordinates(gridspacingA, gridspacingB);
-	}
-
-	///	<summary>
-	///		Constructor with coordinate arrays.
-	///	</summary>
-	PatchBox(
-		int ixPanel,
-		int iRefinementLevel,
-		int nHaloElements,
-		int ixAGlobalInteriorBegin,
-		int ixAGlobalInteriorEnd,
-		int ixBGlobalInteriorBegin,
-		int ixBGlobalInteriorEnd,
-		const DataArray1D<double> & dANodes,
-		const DataArray1D<double> & dBNodes,
-		const DataArray1D<double> & dAEdges,
-		const DataArray1D<double> & dBEdges
-	) :
-		m_ixPanel(ixPanel),
-		m_iRefinementLevel(iRefinementLevel),
-		m_nHaloElements(nHaloElements),
-		m_ixABegin(ixAGlobalInteriorBegin - nHaloElements),
-		m_ixAEnd(ixAGlobalInteriorEnd + nHaloElements),
-		m_ixBBegin(ixBGlobalInteriorBegin - nHaloElements),
-		m_ixBEnd(ixBGlobalInteriorEnd + nHaloElements),
-		m_dANodes(dANodes),
-		m_dBNodes(dBNodes),
-		m_dAEdges(dAEdges),
-		m_dBEdges(dBEdges)
-	{
-		// Check coordinate arrays?
-	}
-
-public:
-	///	<summary>
-	///		Initialize the coordinate arrays.
-	///	</summary>
-	void InitializeCoordinates(
-		GridSpacing & gridspacingA,
-		GridSpacing & gridspacingB
-	);
+	{ }
 
 public:
 	///	<summary>
@@ -102,19 +55,48 @@ public:
 	inline bool ContainsGlobalPoint(
 		int ixPanel,
 		int ixGlobalA,
-		int ixGlboalB
+		int ixGlobalB
 	) const {
 		if (ixPanel != m_ixPanel) {
 			return false;
 		}
 		if ((ixGlobalA >= GetAGlobalInteriorBegin()) &&
 			(ixGlobalA <  GetAGlobalInteriorEnd()) &&
-			(ixGlboalB >= GetBGlobalInteriorBegin()) &&
-			(ixGlboalB <  GetBGlobalInteriorEnd())
+			(ixGlobalB >= GetBGlobalInteriorBegin()) &&
+			(ixGlobalB <  GetBGlobalInteriorEnd())
 		) {
 			return true;
 		}
 		return false;
+	}
+
+public:
+	///	<summary>
+	///		Get the size of this DataChunk, in bytes.
+	///	</summary>
+	virtual size_t GetByteSize() const {
+		return (7 * sizeof(int));
+	}
+
+	///	<summary>
+	///		Determine if this DataChunk is attached to a data array.
+	///	</summary>
+	virtual bool IsAttached() const {
+		return m_fAttached;
+	}
+
+	///	<summary>
+	///		Attach this DataChunk to an array of pre-allocated data.
+	///	</summary>
+	virtual void AttachToData(void * pData) {
+		memcpy((void*) this, pData, 7 * sizeof(int));
+	}
+
+	///	<summary>
+	///		Detach data from this DataChunk.
+	///	</summary>
+	virtual void Detach() {
+		m_fAttached = false;
 	}
 
 public:
@@ -137,6 +119,34 @@ public:
 	///	</summary>
 	inline int GetHaloElements() const {
 		return m_nHaloElements;
+	}
+
+	///	<summary>
+	///		Get the global begin index of the alpha coordinate on this patch.
+	///	</summary>
+	inline int GetAGlobalBegin() const {
+		return (m_ixABegin);
+	}
+
+	///	<summary>
+	///		Get the global end index of the alpha coordinate on this patch.
+	///	</summary>
+	inline int GetAGlobalEnd() const {
+		return (m_ixAEnd);
+	}
+
+	///	<summary>
+	///		Get the global begin index of the beta coordinate on this patch.
+	///	</summary>
+	inline int GetBGlobalBegin() const {
+		return (m_ixBBegin);
+	}
+
+	///	<summary>
+	///		Get the global end index of the beta coordinate on this patch.
+	///	</summary>
+	inline int GetBGlobalEnd() const {
+		return (m_ixBEnd);
 	}
 
 	///	<summary>
@@ -238,64 +248,12 @@ public:
 		return (m_ixBEnd - m_ixBBegin - 2 * m_nHaloElements);
 	}
 
-public:
-	///	<summary>
-	///		Get the alpha node with specified local index.
-	///	</summary>
-	inline double GetANode(int ix) const {
-		return m_dANodes[ix];
-	}
-
-	///	<summary>
-	///		Get the alpha edge with specified local alpha edge index.
-	///	</summary>
-	inline double GetAEdge(int ix) const {
-		return m_dAEdges[ix];
-	}
-
-	///	<summary>
-	///		Get the array of alpha nodes.
-	///	</summary>
-	inline const DataArray1D<double> & GetANodes() const {
-		return m_dANodes;
-	}
-
-	///	<summary>
-	///		Get the array of alpha edges.
-	///	</summary>
-	inline const DataArray1D<double> & GetAEdges() const {
-		return m_dAEdges;
-	}
-
-	///	<summary>
-	///		Get the beta node with specified local index.
-	///	</summary>
-	inline double GetBNode(int ix) const {
-		return m_dBNodes[ix];
-	}
-
-	///	<summary>
-	///		Get the beta edge with specified local beta edge index.
-	///	</summary>
-	inline double GetBEdge(int ix) const {
-		return m_dBEdges[ix];
-	}
-
-	///	<summary>
-	///		Get the array of beta nodes.
-	///	</summary>
-	inline const DataArray1D<double> & GetBNodes() const {
-		return m_dBNodes;
-	}
-
-	///	<summary>
-	///		Get the array of beta edges.
-	///	</summary>
-	inline const DataArray1D<double> & GetBEdges() const {
-		return m_dBEdges;
-	}
-
 private:
+	///	<summary>
+	///		Flag indicating this PatchBox is attached to data.
+	///	</summary>
+	bool m_fAttached;
+
 	///	<summary>
 	///		Panel on which this box appears.
 	///	</summary>
@@ -319,26 +277,6 @@ private:
 
 	int m_ixBBegin;
 	int m_ixBEnd;
-
-	///	<summary>
-	///		Array of nodal values in the alpha direction.
-	///	</summary>
-	DataArray1D<double> m_dANodes;
-
-	///	<summary>
-	///		Array of edge values in the alpha direction.
-	///	</summary>
-	DataArray1D<double> m_dAEdges;
-
-	///	<summary>
-	///		Array of nodal values in the beta direction.
-	///	</summary>
-	DataArray1D<double> m_dBNodes;
-
-	///	<summary>
-	///		Array of edge values in the beta direction.
-	///	</summary>
-	DataArray1D<double> m_dBEdges;
 };
 
 ///////////////////////////////////////////////////////////////////////////////

@@ -60,7 +60,12 @@ public:
 		bool fAllocateAuxiliary = true
 	);
 
-private:
+protected:
+	///	<summary>
+	///		Initialize coordinate data on patch.
+	///	</summary>
+	virtual void InitializeCoordinateData();
+
 	///	<summary>
 	///		Initialize topographical data from a TestCase.
 	///	</summary>
@@ -72,8 +77,7 @@ private:
 	///		Initialize geometric source term coefficients and topographical
 	///		data from a TestCase.
 	///	</summary>
-	virtual void EvaluateGeometricTerms(
-	);
+	virtual void EvaluateGeometricTerms();
 
 public:
 	///	<summary>

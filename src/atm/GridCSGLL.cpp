@@ -114,19 +114,12 @@ void GridCSGLL::AddDefaultPatches() {
 	for (int i = 0; i < nProcsPerDirection; i++) {
 	for (int j = 0; j < nProcsPerDirection; j++) {
 
-		double dDeltaA = 0.5 * M_PI / GetABaseResolution();
-
-		GridSpacingGaussLobattoRepeated
-			glspacing(dDeltaA, -0.25 * M_PI, m_nHorizontalOrder);
-
 		PatchBox boxMaster(
 			n, 0, m_model.GetHaloElements(),
 			m_nHorizontalOrder * iBoxBegin[i],
 			m_nHorizontalOrder * iBoxBegin[i+1],
 			m_nHorizontalOrder * iBoxBegin[j],
-			m_nHorizontalOrder * iBoxBegin[j+1],
-			glspacing,
-			glspacing);
+			m_nHorizontalOrder * iBoxBegin[j+1]);
 
 		int ixPatch = n * nProcsPerPanel + i * nProcsPerDirection + j;
 
@@ -206,15 +199,49 @@ void GridCSGLL::ConvertReferenceToPatchCoord(
 
 		for (; n < GetPatchCount(); n++) {
 			const GridPatch * pPatch = GetPatch(n);
+
 			const PatchBox & box = pPatch->GetPatchBox();
 
 			if (iPanel != box.GetPanel()) {
 				continue;
 			}
-			if ((dAlpha[i] >= box.GetAEdge(box.GetAInteriorBegin())) &&
-				(dAlpha[i] <= box.GetAEdge(box.GetAInteriorEnd())) &&
-				(dBeta[i] >= box.GetBEdge(box.GetBInteriorBegin())) &&
-				(dBeta[i] <= box.GetBEdge(box.GetBInteriorEnd()))
+
+			double dElementDeltaA =
+				0.5 * M_PI / static_cast<double>(GetABaseResolution());
+			double dElementDeltaB =
+				0.5 * M_PI / static_cast<double>(GetBBaseResolution());
+
+			int iAElementInteriorBegin =
+				box.GetAGlobalInteriorBegin() / m_nHorizontalOrder;
+			int iAElementInteriorEnd =
+				box.GetAGlobalInteriorEnd() / m_nHorizontalOrder;
+
+			int iBElementInteriorBegin =
+				box.GetBGlobalInteriorBegin() / m_nHorizontalOrder;
+			int iBElementInteriorEnd =
+				box.GetBGlobalInteriorEnd() / m_nHorizontalOrder;
+
+			if ((box.GetAGlobalInteriorBegin() % m_nHorizontalOrder != 0) ||
+			    (box.GetAGlobalInteriorEnd()   % m_nHorizontalOrder != 0) ||
+			    (box.GetBGlobalInteriorBegin() % m_nHorizontalOrder != 0) ||
+			    (box.GetBGlobalInteriorEnd()   % m_nHorizontalOrder != 0)
+			) {
+				_EXCEPTIONT("Elements must be aligned with HorizontalOrder");
+			}
+
+			double dAInteriorBegin =
+				-0.25 * M_PI + iAElementInteriorBegin * dElementDeltaA;
+			double dAInteriorEnd =
+				-0.25 * M_PI + iAElementInteriorEnd * dElementDeltaA;
+			double dBInteriorBegin =
+				-0.25 * M_PI + iBElementInteriorBegin * dElementDeltaB;
+			double dBInteriorEnd =
+				-0.25 * M_PI + iBElementInteriorEnd * dElementDeltaB;
+
+			if ((dAlpha[i] >= dAInteriorBegin) &&
+				(dAlpha[i] <= dAInteriorEnd) &&
+				(dBeta[i] >= dBInteriorBegin) &&
+				(dBeta[i] <= dBInteriorEnd)
 			) {
 				iPatch[i] = pPatch->GetPatchIndex();
 				break;

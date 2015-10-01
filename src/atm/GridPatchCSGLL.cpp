@@ -157,7 +157,6 @@ void GridPatchCSGLL::InitializeDataLocal(
 	bool fAllocateBufferState,
 	bool fAllocateAuxiliary
 ) {
-
 	// Allocate data
 	GridPatch::InitializeDataLocal(
 		fAllocateGeometric,
@@ -166,22 +165,49 @@ void GridPatchCSGLL::InitializeDataLocal(
 		fAllocateAuxiliary
 	);
 
-	// Initialize the longitude and latitude at each node
+	// Initialize coordinate data
 	if (fAllocateGeometric) {
-		for (int i = 0; i < m_box.GetATotalWidth(); i++) {
-		for (int j = 0; j < m_box.GetBTotalWidth(); j++) {
-			CubedSphereTrans::RLLFromABP(
-				m_box.GetANode(i),
-				m_box.GetBNode(j),
-				m_box.GetPanel(),
-				m_dataLon[i][j],
-				m_dataLat[i][j]);
-		}
-		}
-
+		InitializeCoordinateData();
 	} else {
-		_EXCEPTIONT("Not implemented");
+		Announce("WARNING: Geometric data not initialized");
 	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void GridPatchCSGLL::InitializeCoordinateData() {
+
+	double dDeltaA = 0.5 * M_PI / m_grid.GetABaseResolution();
+
+	GridSpacingGaussLobattoRepeated
+		glspacing(dDeltaA, -0.25 * M_PI, m_nHorizontalOrder);
+
+	for (int i = m_box.GetAGlobalBegin(); i < m_box.GetAGlobalEnd(); i++) {
+		m_dANode[i - m_box.GetAGlobalBegin()] = glspacing.GetNode(i);
+	}
+	for (int i = m_box.GetAGlobalBegin(); i <= m_box.GetAGlobalEnd(); i++) {
+		m_dAEdge[i - m_box.GetAGlobalBegin()] = glspacing.GetEdge(i);
+	}
+
+	for (int j = m_box.GetBGlobalBegin(); j < m_box.GetBGlobalEnd(); j++) {
+		m_dBNode[j - m_box.GetBGlobalBegin()] = glspacing.GetNode(j);
+	}
+	for (int j = m_box.GetBGlobalBegin(); j <= m_box.GetBGlobalEnd(); j++) {
+		m_dBEdge[j - m_box.GetBGlobalBegin()] = glspacing.GetEdge(j);
+	}
+
+	for (int i = 0; i < m_box.GetATotalWidth(); i++) {
+	for (int j = 0; j < m_box.GetBTotalWidth(); j++) {
+		CubedSphereTrans::RLLFromABP(
+			m_dANode[i],
+			m_dBNode[j],
+			m_box.GetPanel(),
+			m_dataLon[i][j],
+			m_dataLat[i][j]);
+	}
+	}
+
+	GridPatchGLL::InitializeCoordinateData();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -199,10 +225,11 @@ void GridPatchCSGLL::EvaluateTopography(
 		double dLat;
 
 		CubedSphereTrans::RLLFromABP(
-			m_box.GetANode(i),
-			m_box.GetBNode(j),
+			m_dANode[i],
+			m_dBNode[j],
 			m_box.GetPanel(),
-			dLon, dLat);
+			dLon,
+			dLat);
 
 		m_dataTopography[i][j] = test.EvaluateTopography(phys, dLon, dLat);
 	}
@@ -326,23 +353,11 @@ void GridPatchCSGLL::EvaluateGeometricTerms() {
 		int iB = iElementB + j;
 
 		// Gnomonic coordinates
-		double dX = tan(m_box.GetANode(iA));
-		double dY = tan(m_box.GetBNode(iB));
+		double dX = tan(m_dANode[iA]);
+		double dY = tan(m_dBNode[iB]);
 		double dDelta2 = (1.0 + dX * dX + dY * dY);
 		double dDelta = sqrt(dDelta2);
-/*
-		// Topography height and its derivatives
-		double dZs = m_dataTopography[iA][iB];
 
-		double dDaZs = 0.0;
-		double dDbZs = 0.0;
-		for (int s = 0; s < m_nHorizontalOrder; s++) {
-			dDaZs += dDxBasis1D[s][i] * m_dataTopography[iElementA+s][iB];
-			dDbZs += dDxBasis1D[s][j] * m_dataTopography[iA][iElementB+s];
-		}
-		dDaZs /= GetElementDeltaA();
-		dDbZs /= GetElementDeltaB();
-*/
 		// Topography height and its derivatives
 		double dZs = m_dataTopography[iA][iB];
 		double dDaZs = m_dataTopographyDeriv[0][iA][iB];
@@ -771,8 +786,8 @@ void GridPatchCSGLL::EvaluateTestCase(
 		dUlat *= phys.GetEarthRadius();
 
 		CubedSphereTrans::CoVecTransABPFromRLL(
-			tan(m_box.GetANode(i)),
-			tan(m_box.GetBNode(j)),
+			tan(m_dANode[i]),
+			tan(m_dBNode[j]),
 			m_box.GetPanel(),
 			dUlon, dUlat,
 			m_datavecStateNode[iDataIndex][0][k][i][j],
@@ -803,8 +818,8 @@ void GridPatchCSGLL::EvaluateTestCase(
 			dUlat *= phys.GetEarthRadius();
 
 			CubedSphereTrans::CoVecTransABPFromRLL(
-				tan(m_box.GetANode(i)),
-				tan(m_box.GetBNode(j)),
+				tan(m_dANode[i]),
+				tan(m_dBNode[j]),
 				m_box.GetPanel(),
 				dUlon, dUlat,
 				m_dataRefStateNode[0][k][i][j],
@@ -852,8 +867,8 @@ void GridPatchCSGLL::EvaluateTestCase(
 		dUlat *= phys.GetEarthRadius();
 
 		CubedSphereTrans::CoVecTransABPFromRLL(
-			tan(m_box.GetANode(i)),
-			tan(m_box.GetBNode(j)),
+			tan(m_dANode[i]),
+			tan(m_dBNode[j]),
 			m_box.GetPanel(),
 			dUlon, dUlat,
 			m_datavecStateREdge[iDataIndex][0][k][i][j],
@@ -883,8 +898,8 @@ void GridPatchCSGLL::EvaluateTestCase(
 			dUlat *= phys.GetEarthRadius();
 
 			CubedSphereTrans::CoVecTransABPFromRLL(
-				tan(m_box.GetANode(i)),
-				tan(m_box.GetBNode(j)),
+				tan(m_dANode[i]),
+				tan(m_dBNode[j]),
 				m_box.GetPanel(),
 				dUlon, dUlat,
 				m_dataRefStateREdge[0][k][i][j],
@@ -968,8 +983,8 @@ void GridPatchCSGLL::EvaluateTestCase_StateOnly(
 		dUlat /= phys.GetEarthRadius();
 
 		CubedSphereTrans::CoVecTransABPFromRLL(
-			tan(m_box.GetANode(i)),
-			tan(m_box.GetBNode(j)),
+			tan(m_dANode[i]),
+			tan(m_dBNode[j]),
 			m_box.GetPanel(),
 			dUlon, dUlat,
 			m_datavecStateNode[iDataIndex][0][k][i][j],
@@ -1256,21 +1271,21 @@ void GridPatchCSGLL::InterpolateData(
 
 		// Verify point lies within domain of patch
 		const double Eps = 1.0e-10;
-		if ((dAlpha[i] < m_box.GetAEdge(m_box.GetAInteriorBegin()) - Eps) ||
-			(dAlpha[i] > m_box.GetAEdge(m_box.GetAInteriorEnd()) + Eps) ||
-			(dBeta[i] < m_box.GetBEdge(m_box.GetBInteriorBegin()) - Eps) ||
-			(dBeta[i] > m_box.GetBEdge(m_box.GetBInteriorEnd()) + Eps)
+		if ((dAlpha[i] < m_dAEdge[m_box.GetAInteriorBegin()] - Eps) ||
+			(dAlpha[i] > m_dAEdge[m_box.GetAInteriorEnd()] + Eps) ||
+			(dBeta[i] < m_dBEdge[m_box.GetBInteriorBegin()] - Eps) ||
+			(dBeta[i] > m_dBEdge[m_box.GetBInteriorEnd()] + Eps)
 		) {
 			_EXCEPTIONT("Point out of range");
 		}
 
 		// Determine finite element index
 		int iA =
-			(dAlpha[i] - m_box.GetAEdge(m_box.GetAInteriorBegin()))
+			(dAlpha[i] - m_dAEdge[m_box.GetAInteriorBegin()])
 				/ GetElementDeltaA();
 
 		int iB =
-			(dBeta[i] - m_box.GetBEdge(m_box.GetBInteriorBegin()))
+			(dBeta[i] - m_dBEdge[m_box.GetBInteriorBegin()])
 				/ GetElementDeltaB();
 
 		// Bound the index within the element
@@ -1293,13 +1308,13 @@ void GridPatchCSGLL::InterpolateData(
 		// Compute interpolation coefficients
 		PolynomialInterp::LagrangianPolynomialCoeffs(
 			m_nHorizontalOrder,
-			&(m_box.GetAEdges()[iA]),
+			&(m_dAEdge[iA]),
 			dAInterpCoeffs,
 			dAlpha[i]);
 
 		PolynomialInterp::LagrangianPolynomialCoeffs(
 			m_nHorizontalOrder,
-			&(m_box.GetBEdges()[iB]),
+			&(m_dBEdge[iB]),
 			dBInterpCoeffs,
 			dBeta[i]);
 
@@ -1481,8 +1496,8 @@ void GridPatchCSGLL::TransformHaloVelocities(
 				m_box.GetPanel(),
 				(*pDataVelocity)[0][k][i][j],
 				(*pDataVelocity)[1][k][i][j],
-				tan(m_box.GetANode(i)),
-				tan(m_box.GetBNode(j)));
+				tan(m_dANode[i]),
+				tan(m_dBNode[j]));
 		}
 		}
 	}
@@ -1503,8 +1518,8 @@ void GridPatchCSGLL::TransformHaloVelocities(
 				m_box.GetPanel(),
 				(*pDataVelocity)[0][k][i][j],
 				(*pDataVelocity)[1][k][i][j],
-				tan(m_box.GetANode(i)),
-				tan(m_box.GetBNode(j)));
+				tan(m_dANode[i]),
+				tan(m_dBNode[j]));
 		}
 		}
 	}
@@ -1525,8 +1540,8 @@ void GridPatchCSGLL::TransformHaloVelocities(
 				m_box.GetPanel(),
 				(*pDataVelocity)[0][k][i][j],
 				(*pDataVelocity)[1][k][i][j],
-				tan(m_box.GetANode(i)),
-				tan(m_box.GetBNode(j)));
+				tan(m_dANode[i]),
+				tan(m_dBNode[j]));
 		}
 		}
 	}
@@ -1547,8 +1562,8 @@ void GridPatchCSGLL::TransformHaloVelocities(
 				m_box.GetPanel(),
 				(*pDataVelocity)[0][k][i][j],
 				(*pDataVelocity)[1][k][i][j],
-				tan(m_box.GetANode(i)),
-				tan(m_box.GetBNode(j)));
+				tan(m_dANode[i]),
+				tan(m_dBNode[j]));
 		}
 		}
 	}
@@ -1584,8 +1599,8 @@ void GridPatchCSGLL::TransformTopographyDeriv() {
 				m_box.GetPanel(),
 				m_dataTopographyDeriv[0][i][j],
 				m_dataTopographyDeriv[1][i][j],
-				tan(m_box.GetANode(i)),
-				tan(m_box.GetBNode(j)));
+				tan(m_dANode[i]),
+				tan(m_dBNode[j]));
 		}
 	}
 
@@ -1604,8 +1619,8 @@ void GridPatchCSGLL::TransformTopographyDeriv() {
 				m_box.GetPanel(),
 				m_dataTopographyDeriv[0][i][j],
 				m_dataTopographyDeriv[1][i][j],
-				tan(m_box.GetANode(i)),
-				tan(m_box.GetBNode(j)));
+				tan(m_dANode[i]),
+				tan(m_dBNode[j]));
 		}
 	}
 
@@ -1624,8 +1639,8 @@ void GridPatchCSGLL::TransformTopographyDeriv() {
 				m_box.GetPanel(),
 				m_dataTopographyDeriv[0][i][j],
 				m_dataTopographyDeriv[1][i][j],
-				tan(m_box.GetANode(i)),
-				tan(m_box.GetBNode(j)));
+				tan(m_dANode[i]),
+				tan(m_dBNode[j]));
 		}
 	}
 
@@ -1644,8 +1659,8 @@ void GridPatchCSGLL::TransformTopographyDeriv() {
 				m_box.GetPanel(),
 				m_dataTopographyDeriv[0][i][j],
 				m_dataTopographyDeriv[1][i][j],
-				tan(m_box.GetANode(i)),
-				tan(m_box.GetBNode(j)));
+				tan(m_dANode[i]),
+				tan(m_dBNode[j]));
 		}
 	}
 }

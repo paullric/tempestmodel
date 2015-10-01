@@ -16,6 +16,7 @@
 
 #include "GridGLL.h"
 #include "Model.h"
+#include "GridSpacing.h"
 #include "HorizontalDynamicsDG.h"
 
 #include "Direction.h"
@@ -475,41 +476,9 @@ void GridGLL::EvaluateTestCase(
 ) {
 	// Call the standard implementation of EvaluateTestCase
 	Grid::EvaluateTestCase(test, time, iDataIndex);
-/*
-	const GridPatch * pPatch3 = GetPatch(3);
-	const GridPatch * pPatch4 = GetPatch(4);
 
-	const DataArray3D<double> & dataTopographyDeriv3 = pPatch3->GetTopographyDeriv();
-	const DataArray3D<double> & dataTopographyDeriv4 = pPatch4->GetTopographyDeriv();
-
-	printf("\n\n");
-	printf("3i %1.15e %1.15e\n",
-		dataTopographyDeriv3[0][43][64],
-		dataTopographyDeriv3[1][43][64]);
-	printf("4i %1.15e %1.15e\n",
-		dataTopographyDeriv4[0][1][65-43],
-		dataTopographyDeriv4[1][1][65-43]);
-*/
 	// Use DSS to average topographic derivatives
 	ApplyDSS(0, DataType_TopographyDeriv);
-/*
-	printf("3o %1.15e %1.15e\n",
-		dataTopographyDeriv3[0][43][64],
-		dataTopographyDeriv3[1][43][64]);
-	printf("4o %1.15e %1.15e\n",
-		dataTopographyDeriv4[0][1][65-43],
-		dataTopographyDeriv4[1][1][65-43]);
-
-	printf("3x %1.15e %1.15e\n",
-		tan(pPatch3->GetPatchBox().GetANode(43)),
-		tan(pPatch3->GetPatchBox().GetBNode(64)));
-	printf("4x %1.15e %1.15e\n",
-		tan(pPatch4->GetPatchBox().GetANode(1)),
-		tan(pPatch4->GetPatchBox().GetBNode(65-43)));
-
-	printf("\n\n");
-	_EXCEPTION();
-*/
 }
 
 ///////////////////////////////////////////////////////////////////////////////

@@ -33,6 +33,7 @@ class Time;
 class Model;
 class TestCase;
 class ConsolidationStatus;
+class GridSpacing;
 class VerticalStretchFunction;
 
 class NcFile;

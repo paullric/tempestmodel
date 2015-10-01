@@ -57,7 +57,12 @@ public:
 		bool fAllocateAuxiliary = true
 	);
 
-private:
+protected:
+	///	<summary>
+	///		Initialize coordinate data on patch.
+	///	</summary>
+	virtual void InitializeCoordinateData();
+
 	///	<summary>
 	///		Initialize topographical data from a TestCase.
 	///	</summary>

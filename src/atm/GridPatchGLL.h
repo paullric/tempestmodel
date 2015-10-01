@@ -40,6 +40,12 @@ public:
 		int nVerticalOrder = 1
 	);
 
+protected:
+	///	<summary>
+	///		Initialize coordinate data on patch.
+	///	</summary>
+	virtual void InitializeCoordinateData();
+
 public:
 	///	<summary>
 	///		Interpolate data vertically from nodes to interfaces.

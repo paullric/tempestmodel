@@ -122,6 +122,11 @@ public:
 	virtual void DeinitializeData();
 
 	///	<summary>
+	///		Initialize coordinate data on patch.
+	///	</summary>
+	virtual void InitializeCoordinateData() = 0;
+
+	///	<summary>
 	///		Initialize geometric terms.
 	///	</summary>
 	virtual void EvaluateGeometricTerms() = 0;
@@ -426,6 +431,63 @@ public:
 	///	</summary>
 	bool ContainsData() const {
 		return m_fContainsData;
+	}
+
+public:
+	///	<summary>
+	///		Get the alpha node with specified local index.
+	///	</summary>
+	inline double GetANode(int ix) const {
+		return m_dANode[ix];
+	}
+
+	///	<summary>
+	///		Get the alpha edge with specified local alpha edge index.
+	///	</summary>
+	inline double GetAEdge(int ix) const {
+		return m_dAEdge[ix];
+	}
+
+	///	<summary>
+	///		Get the array of alpha nodes.
+	///	</summary>
+	inline const DataArray1D<double> & GetANodes() const {
+		return m_dANode;
+	}
+
+	///	<summary>
+	///		Get the array of alpha edges.
+	///	</summary>
+	inline const DataArray1D<double> & GetAEdges() const {
+		return m_dAEdge;
+	}
+
+	///	<summary>
+	///		Get the beta node with specified local index.
+	///	</summary>
+	inline double GetBNode(int ix) const {
+		return m_dBNode[ix];
+	}
+
+	///	<summary>
+	///		Get the beta edge with specified local beta edge index.
+	///	</summary>
+	inline double GetBEdge(int ix) const {
+		return m_dBEdge[ix];
+	}
+
+	///	<summary>
+	///		Get the array of beta nodes.
+	///	</summary>
+	inline const DataArray1D<double> & GetBNodes() const {
+		return m_dBNode;
+	}
+
+	///	<summary>
+	///		Get the array of beta edges.
+	///	</summary>
+	inline const DataArray1D<double> & GetBEdges() const {
+		return m_dBEdge;
 	}
 
 	///	<summary>
@@ -1025,6 +1087,28 @@ protected:
 	///	</summary>
 	bool m_fContainsData;
 
+protected:
+	///	<summary>
+	///		Array of nodal values in the alpha direction.
+	///	</summary>
+	DataArray1D<double> m_dANode;
+
+	///	<summary>
+	///		Array of edge values in the alpha direction.
+	///	</summary>
+	DataArray1D<double> m_dAEdge;
+
+	///	<summary>
+	///		Array of nodal values in the beta direction.
+	///	</summary>
+	DataArray1D<double> m_dBNode;
+
+	///	<summary>
+	///		Array of edge values in the beta direction.
+	///	</summary>
+	DataArray1D<double> m_dBEdge;
+
+protected:
 	///	<summary>
 	///		2D Jacobian at each node.
 	///	</summary>

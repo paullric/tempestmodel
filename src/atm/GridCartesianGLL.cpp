@@ -127,17 +127,6 @@ void GridCartesianGLL::AddDefaultPatches() {
 	}
 	iBoxBegin[nProcsPerDirection] = GetABaseResolution();
 
-	// Patch grid spacing
-	double dDeltaA = (m_dGDim[1] - m_dGDim[0])
-		/ static_cast<double>(GetABaseResolution());
-	double dDeltaB = (m_dGDim[3] - m_dGDim[2])
-		/ static_cast<double>(GetBBaseResolution());
-
-	GridSpacingGaussLobattoRepeated
-		glspacingAlpha(dDeltaA, m_dGDim[0], m_nHorizontalOrder);
-	GridSpacingGaussLobattoRepeated
-		glspacingBeta(dDeltaB, m_dGDim[2], m_nHorizontalOrder);
-
 	// Single panel 0 implementation (Cartesian Grid)
 	// Rectangular alpha-wise patches that span all of the beta direction
 	// (as many as there are processors available)
@@ -150,9 +139,7 @@ void GridCartesianGLL::AddDefaultPatches() {
 			m_nHorizontalOrder * iBoxBegin[i],
 			m_nHorizontalOrder * iBoxBegin[i+1],
 			0,
-			m_nHorizontalOrder * GetBBaseResolution(),
-			glspacingAlpha,
-			glspacingBeta);
+			m_nHorizontalOrder * GetBBaseResolution());
 
 		Grid::AddPatch(
 			new GridPatchCartesianGLL(
@@ -214,10 +201,42 @@ void GridCartesianGLL::ConvertReferenceToPatchCoord(
 			const GridPatch * pPatch = GetPatch(n);
 			const PatchBox & box = pPatch->GetPatchBox();
 
-			if ((dAlpha[i] >= box.GetAEdge(box.GetAInteriorBegin())) &&
-				(dAlpha[i] <= box.GetAEdge(box.GetAInteriorEnd())) &&
-				(dBeta[i] >= box.GetBEdge(box.GetBInteriorBegin())) &&
-				(dBeta[i] <= box.GetBEdge(box.GetBInteriorEnd()))
+			double dElementDeltaA = (m_dGDim[1] - m_dGDim[0])
+				/ static_cast<double>(GetABaseResolution());
+			double dElementDeltaB = (m_dGDim[3] - m_dGDim[2])
+				/ static_cast<double>(GetBBaseResolution());
+
+			int iAElementInteriorBegin =
+				box.GetAGlobalInteriorBegin() / m_nHorizontalOrder;
+			int iAElementInteriorEnd =
+				box.GetAGlobalInteriorEnd() / m_nHorizontalOrder;
+
+			int iBElementInteriorBegin =
+				box.GetBGlobalInteriorBegin() / m_nHorizontalOrder;
+			int iBElementInteriorEnd =
+				box.GetBGlobalInteriorEnd() / m_nHorizontalOrder;
+
+			if ((box.GetAGlobalInteriorBegin() % m_nHorizontalOrder != 0) ||
+			    (box.GetAGlobalInteriorEnd()   % m_nHorizontalOrder != 0) ||
+			    (box.GetBGlobalInteriorBegin() % m_nHorizontalOrder != 0) ||
+			    (box.GetBGlobalInteriorEnd()   % m_nHorizontalOrder != 0)
+			) {
+				_EXCEPTIONT("Elements must be aligned with HorizontalOrder");
+			}
+
+			double dAInteriorBegin =
+				m_dGDim[0] + iAElementInteriorBegin * dElementDeltaA;
+			double dAInteriorEnd =
+				m_dGDim[0] + iAElementInteriorEnd * dElementDeltaA;
+			double dBInteriorBegin =
+				m_dGDim[2] + iBElementInteriorBegin * dElementDeltaB;
+			double dBInteriorEnd =
+				m_dGDim[2] + iBElementInteriorEnd * dElementDeltaB;
+
+			if ((dAlpha[i] >= dAInteriorBegin) &&
+				(dAlpha[i] <= dAInteriorEnd) &&
+				(dBeta[i] >= dBInteriorBegin) &&
+				(dBeta[i] <= dBInteriorEnd)
 			) {
 				iPatch[i] = pPatch->GetPatchIndex();
 				break;

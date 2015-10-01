@@ -75,7 +75,6 @@ void GridPatchCartesianGLL::InitializeDataLocal(
 	bool fAllocateBufferState,
 	bool fAllocateAuxiliary
 ) {
-
 	// Allocate data
 	GridPatch::InitializeDataLocal(
 		fAllocateGeometric,
@@ -87,19 +86,11 @@ void GridPatchCartesianGLL::InitializeDataLocal(
 	// Physical constants
 	const PhysicalConstants & phys = m_grid.GetModel().GetPhysicalConstants();
 
-	// Initialize the longitude and latitude at each node
+	// Initialize coordinate data
 	if (fAllocateGeometric) {
-		for (int i = 0; i < m_box.GetATotalWidth(); i++) {
-		for (int j = 0; j < m_box.GetBTotalWidth(); j++) {
-			// Longitude and latitude directly from box
-			m_dataLon[i][j] = m_box.GetANode(i);
-			m_dataLat[i][j] = m_box.GetBNode(j);
-
-			//m_dataCoriolisF[i][j] = 0.0;
-		}
-		}
+		InitializeCoordinateData();
 	} else {
-		std::cout << "WARNING: Lon/Lat not initialized" << std::endl;
+		Announce("WARNING: Geometric data not initialized");
 	}
 
 	// Set the scale height for the decay of topography features
@@ -108,8 +99,44 @@ void GridPatchCartesianGLL::InitializeDataLocal(
 	if (m_dSL >= m_grid.GetZtop()) {
  		_EXCEPTIONT("Coordinate scale height exceeds model top.");
 	}
+}
 
-	//std::cout << m_box.GetATotalWidth() << " " << m_box.GetBTotalWidth() << "\n";
+///////////////////////////////////////////////////////////////////////////////
+
+void GridPatchCartesianGLL::InitializeCoordinateData() {
+
+	double dElementDeltaA = (m_dGDim[1] - m_dGDim[0])
+		/ static_cast<double>(m_grid.GetABaseResolution());
+	double dElementDeltaB = (m_dGDim[3] - m_dGDim[2])
+		/ static_cast<double>(m_grid.GetBBaseResolution());
+
+	GridSpacingGaussLobattoRepeated
+		glspacingA(dElementDeltaA, m_dGDim[0], m_nHorizontalOrder);
+	GridSpacingGaussLobattoRepeated
+		glspacingB(dElementDeltaB, m_dGDim[2], m_nHorizontalOrder);
+
+	for (int i = m_box.GetAGlobalBegin(); i < m_box.GetAGlobalEnd(); i++) {
+		m_dANode[i - m_box.GetAGlobalBegin()] = glspacingA.GetNode(i);
+	}
+	for (int i = m_box.GetAGlobalBegin(); i <= m_box.GetAGlobalEnd(); i++) {
+		m_dAEdge[i - m_box.GetAGlobalBegin()] = glspacingA.GetEdge(i);
+	}
+
+	for (int j = m_box.GetBGlobalBegin(); j < m_box.GetBGlobalEnd(); j++) {
+		m_dBNode[j - m_box.GetBGlobalBegin()] = glspacingB.GetNode(j);
+	}
+	for (int j = m_box.GetBGlobalBegin(); j <= m_box.GetBGlobalEnd(); j++) {
+		m_dBEdge[j - m_box.GetBGlobalBegin()] = glspacingB.GetEdge(j);
+	}
+
+	for (int i = 0; i < m_box.GetATotalWidth(); i++) {
+	for (int j = 0; j < m_box.GetBTotalWidth(); j++) {
+		m_dataLon[i][j] = m_dANode[i];
+		m_dataLat[i][j] = m_dBNode[j];
+	}
+	}
+
+	GridPatchGLL::InitializeCoordinateData();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -123,8 +150,8 @@ void GridPatchCartesianGLL::EvaluateTopography(
 	for (int i = 0; i < m_box.GetATotalWidth(); i++) {
 	for (int j = 0; j < m_box.GetBTotalWidth(); j++) {
 
-		double dX = m_box.GetANode(i);
-		double dY = m_box.GetBNode(j);
+		double dX = m_dANode[i];
+		double dY = m_dBNode[j];
 
 		m_dataTopography[i][j] = test.EvaluateTopography(phys, dX, dY);
 
@@ -1234,20 +1261,20 @@ void GridPatchCartesianGLL::InterpolateData(
 
 		// Verify point lies within domain of patch
 		const double Eps = 1.0e-10;
-		if ((dAlpha[i] < m_box.GetAEdge(m_box.GetAInteriorBegin()) - Eps) ||
-			(dAlpha[i] > m_box.GetAEdge(m_box.GetAInteriorEnd()) + Eps) ||
-			(dBeta[i] < m_box.GetBEdge(m_box.GetBInteriorBegin()) - Eps) ||
-			(dBeta[i] > m_box.GetBEdge(m_box.GetBInteriorEnd()) + Eps)
+		if ((dAlpha[i] < m_dAEdge[m_box.GetAInteriorBegin()] - Eps) ||
+			(dAlpha[i] > m_dAEdge[m_box.GetAInteriorEnd()] + Eps) ||
+			(dBeta[i] < m_dBEdge[m_box.GetBInteriorBegin()] - Eps) ||
+			(dBeta[i] > m_dBEdge[m_box.GetBInteriorEnd()] + Eps)
 		) {
 			_EXCEPTIONT("Point out of range");
 		}
 
 		// Determine finite element index
 		int iA =
-			(dAlpha[i] - m_box.GetAEdge(m_box.GetAInteriorBegin())) / dDeltaA;
+			(dAlpha[i] - m_dAEdge[m_box.GetAInteriorBegin()]) / dDeltaA;
 
 		int iB =
-			(dBeta[i] - m_box.GetBEdge(m_box.GetBInteriorBegin())) / dDeltaB;
+			(dBeta[i] - m_dBEdge[m_box.GetBInteriorBegin()]) / dDeltaB;
 
 		// Bound the index within the element
 		if (iA < 0) {
@@ -1269,13 +1296,13 @@ void GridPatchCartesianGLL::InterpolateData(
 		// Compute interpolation coefficients
 		PolynomialInterp::LagrangianPolynomialCoeffs(
 			m_nHorizontalOrder,
-			&(m_box.GetAEdges()[iA]),
+			&(m_dAEdge[iA]),
 			dAInterpCoeffs,
 			dAlpha[i]);
 
 		PolynomialInterp::LagrangianPolynomialCoeffs(
 			m_nHorizontalOrder,
-			&(m_box.GetBEdges()[iB]),
+			&(m_dBEdge[iB]),
 			dBInterpCoeffs,
 			dBeta[i]);
 

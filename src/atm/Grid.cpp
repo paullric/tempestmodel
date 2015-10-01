@@ -18,6 +18,7 @@
 #include "Model.h"
 #include "TestCase.h"
 #include "ConsolidationStatus.h"
+#include "GridSpacing.h"
 #include "VerticalStretch.h"
 
 #include "Exception.h"
@@ -72,7 +73,7 @@ Grid::Grid(
 	m_vecVarIndex.SetSize(nComponents);
 	m_vecVarsAtLocation.SetSize((size_t)DataLocation_Count);
 
-	// Allocate all DataArrays
+	// Initialize the DataContainer
 	m_dcGridData.PushDataChunk(&m_eBoundaryCondition);
 	m_dcGridData.PushInteger(&m_iGridStamp);
 	m_dcGridData.PushInteger(&m_nABaseResolution);
@@ -1301,10 +1302,10 @@ void Grid::ToFile(
 	for (int n = 0; n < GetPatchCount(); n++) {
 		const PatchBox & box = GetPatch(n)->GetPatchBox();
 
-		nANodeCount += box.GetANodes().GetRows();
-		nBNodeCount += box.GetBNodes().GetRows();
-		nAEdgeCount += box.GetAEdges().GetRows();
-		nBEdgeCount += box.GetBEdges().GetRows();
+		nANodeCount += box.GetATotalWidth();
+		nBNodeCount += box.GetBTotalWidth();
+		nAEdgeCount += box.GetATotalWidth() + 1;
+		nBEdgeCount += box.GetBTotalWidth() + 1;
 	}
 
 	NcDim * dimANodeCount =
@@ -1411,21 +1412,22 @@ void Grid::ToFile(
 
 		varPatchInfo->set_cur(n, 0);
 		varPatchInfo->put(iPatchInfo, 1, 7);
-
+/*
 		varANodeCoord->set_cur(iANodeIndex);
 		varBNodeCoord->set_cur(iBNodeIndex);
 		varAEdgeCoord->set_cur(iAEdgeIndex);
 		varBEdgeCoord->set_cur(iBEdgeIndex);
 
-		varANodeCoord->put(box.GetANodes(), box.GetANodes().GetRows());
-		varAEdgeCoord->put(box.GetAEdges(), box.GetAEdges().GetRows());
-		varBNodeCoord->put(box.GetBNodes(), box.GetBNodes().GetRows());
-		varBEdgeCoord->put(box.GetBEdges(), box.GetBEdges().GetRows());
+		varANodeCoord->put(pPatch->GetANodes(), pPatch->GetANodes().GetRows());
+		varAEdgeCoord->put(pPatch->GetAEdges(), pPatch->GetAEdges().GetRows());
+		varBNodeCoord->put(pPatch->GetBNodes(), pPatch->GetBNodes().GetRows());
+		varBEdgeCoord->put(pPatch->GetBEdges(), pPatch->GetBEdges().GetRows());
 
-		iANodeIndex += box.GetANodes().GetRows();
-		iAEdgeIndex += box.GetAEdges().GetRows();
-		iBNodeIndex += box.GetBNodes().GetRows();
-		iBEdgeIndex += box.GetBEdges().GetRows();
+		iANodeIndex += pPatch->GetANodes().GetRows();
+		iAEdgeIndex += pPatch->GetAEdges().GetRows();
+		iBNodeIndex += pPatch->GetBNodes().GetRows();
+		iBEdgeIndex += pPatch->GetBEdges().GetRows();
+*/
 	}
 }
 
@@ -1607,18 +1609,14 @@ void Grid::FromFile(
 			iPatchInfo[3],
 			iPatchInfo[4],
 			iPatchInfo[5],
-			iPatchInfo[6],
-			dANodes,
-			dBNodes,
-			dAEdges,
-			dBEdges);
+			iPatchInfo[6]);
 
 		AddPatch(ix, box);
 
-		iANodeIndex += box.GetANodes().GetRows();
-		iBNodeIndex += box.GetBNodes().GetRows();
-		iAEdgeIndex += box.GetAEdges().GetRows();
-		iBEdgeIndex += box.GetBEdges().GetRows();
+		iANodeIndex += nANodes;
+		iBNodeIndex += nBNodes;
+		iAEdgeIndex += nANodes+1;
+		iBEdgeIndex += nBNodes+1;
 	}
 }
 

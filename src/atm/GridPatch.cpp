@@ -160,6 +160,18 @@ void GridPatch::InitializeDataLocal(
 	// Get the equation set
 	const EquationSet & eqn = model.GetEquationSet();
 
+	// Nodal coordinates in alpha direction
+	m_dANode.SetSize(m_box.GetATotalWidth());
+
+	// Edge coordinates in alpha direction
+	m_dAEdge.SetSize(m_box.GetATotalWidth()+1);
+
+	// Nodal coordinates in beta direction
+	m_dBNode.SetSize(m_box.GetBTotalWidth());
+
+	// Edge coordinates in beta direction
+	m_dBEdge.SetSize(m_box.GetBTotalWidth()+1);
+
 	// Jacobian at each node (2D)
 	m_dataJacobian2D.SetSize(
 		m_box.GetATotalWidth(),
@@ -354,6 +366,10 @@ void GridPatch::InitializeDataLocal(
 		m_box.GetBTotalWidth());
 
 	// Put all read-only data objects into DataContainer
+	m_dcGeometric.PushDataChunk(&m_dANode);
+	m_dcGeometric.PushDataChunk(&m_dAEdge);
+	m_dcGeometric.PushDataChunk(&m_dBNode);
+	m_dcGeometric.PushDataChunk(&m_dBEdge);
 	m_dcGeometric.PushDataChunk(&m_dataJacobian2D);
 	m_dcGeometric.PushDataChunk(&m_dataContraMetric2DA);
 	m_dcGeometric.PushDataChunk(&m_dataContraMetric2DB);

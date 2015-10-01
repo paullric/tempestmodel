@@ -55,15 +55,19 @@ GridPatchGLL::GridPatchGLL(
 	if ((box.GetBInteriorWidth() % m_nHorizontalOrder) != 0) {
 		_EXCEPTIONT("Logic error: Invalid PatchBox beta spacing");
 	}
+}
 
-	// Element grid spacing
+///////////////////////////////////////////////////////////////////////////////
+
+void GridPatchGLL::InitializeCoordinateData() {
+
 	m_dElementDeltaA =
-		  box.GetAEdge(box.GetHaloElements() + m_nHorizontalOrder)
-		- box.GetAEdge(box.GetHaloElements());
+		  m_dAEdge[m_box.GetHaloElements() + m_nHorizontalOrder]
+		- m_dAEdge[m_box.GetHaloElements()];
 
 	m_dElementDeltaB =
-		  box.GetBEdge(box.GetHaloElements() + m_nHorizontalOrder)
-		- box.GetBEdge(box.GetHaloElements());
+		  m_dBEdge[m_box.GetHaloElements() + m_nHorizontalOrder]
+		- m_dBEdge[m_box.GetHaloElements()];
 }
 
 ///////////////////////////////////////////////////////////////////////////////

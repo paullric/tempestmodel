@@ -13,7 +13,6 @@ include $(TEMPESTBASEDIR)/mk/Make.defs
 # Local files
 FILES= CubedSphereTrans.cpp \
        GridSpacing.cpp \
-       PatchBox.cpp \
        ConsolidationStatus.cpp \
        Connectivity.cpp \
        Model.cpp \
