@@ -74,6 +74,7 @@ public:
 	///	</summary>
 	Grid(
 		Model & model,
+		int nMaxPatchCount,
 		int nABaseResolution,
 		int nBBaseResolution,
 		int nRefinementRatio,
@@ -415,11 +416,18 @@ public:
 
 public:
 	///	<summary>
-	///		Add the default set of patches.
+	///		Build the default patch layout.
 	///	</summary>
-	virtual void AddDefaultPatches() {
+	virtual void ApplyDefaultPatchLayout(
+		int nPatchCount
+	) {
 		_EXCEPTIONT("Not implemented");
 	}
+
+	///	<summary>
+	///		Initialize Patches from PatchBoxes.
+	///	</summary>
+	void InitializePatchesFromPatchBoxes();
 
 	///	<summary>
 	///		Add a patch to the grid with the specified index and PatchBox.
@@ -814,6 +822,16 @@ protected:
 	DataContainer m_dcGridData;
 
 protected:
+	///	<summary>
+	///		Number of initialized PatchBoxes.
+	///	</summary>
+	int m_nInitializedPatchBoxes;
+
+	///	<summary>
+	///		Array of PatchBoxes.
+	///	</summary>
+	DataArray1D<PatchBox> m_aPatchBoxes;
+
 	///	<summary>
 	///		Boundary condition in each coordinate direction.
 	///	</summary>

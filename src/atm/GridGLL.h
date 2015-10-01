@@ -37,6 +37,7 @@ public:
 	///	</summary>
 	GridGLL(
 		Model & model,
+		int nMaxPatchCount,
 		int nBaseResolutionA,
 		int nBaseResolutionB,
 		int nRefinementRatio,

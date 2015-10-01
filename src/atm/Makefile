@@ -35,7 +35,6 @@ FILES= CubedSphereTrans.cpp \
        PhysicalConstants.cpp \
        Grid.cpp \
        GridPatch.cpp \
-       GridLonLat.cpp \
        GridGLL.cpp \
        GridCSGLL.cpp \
        GridCartesianGLL.cpp \

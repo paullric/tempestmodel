@@ -33,6 +33,7 @@ public:
 	///	</summary>
 	GridCartesianGLL(
 		Model & model,
+		int nMaxPatchCount,
 		int nBaseResolutionA,
 		int nBaseResolutionB,
 		int nRefinementRatio,
@@ -63,9 +64,19 @@ public:
 	);
 	
 	///	<summary>
-	///		Add the default set of patches.
+	///		Build the default patch layout.
 	///	</summary>
-	virtual void AddDefaultPatches();
+	virtual void ApplyDefaultPatchLayout(
+		int nPatchCount
+	);
+
+	///	<summary>
+	///		Add a patch to the grid with the specified index and PatchBox.
+	///	</summary>
+	virtual GridPatch * AddPatch(
+		int ixPatch,
+		const PatchBox & box
+	);
 
 	///	<summary>
 	///		Convert an array of coordinate variables to coordinates on the

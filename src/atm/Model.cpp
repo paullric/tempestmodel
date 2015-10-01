@@ -106,7 +106,12 @@ void Model::SetGrid(Grid * pGrid) {
 
 	// Set up patches
 	if (m_param.m_strRestartFile == "") {
-		m_pGrid->AddDefaultPatches();
+		int nCommSize;
+		MPI_Comm_size(MPI_COMM_WORLD, &nCommSize);
+
+		m_pGrid->ApplyDefaultPatchLayout(nCommSize);
+		m_pGrid->InitializePatchesFromPatchBoxes();
+
 	} else {
 		m_pGrid->FromFile(m_param.m_strRestartFile);
 	}

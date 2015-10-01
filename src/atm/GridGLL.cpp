@@ -28,6 +28,7 @@
 
 GridGLL::GridGLL(
 	Model & model,
+	int nMaxPatchCount,
 	int nBaseResolutionA,
 	int nBaseResolutionB,
 	int nRefinementRatio,
@@ -39,6 +40,7 @@ GridGLL::GridGLL(
 	// Call up the stack
 	Grid::Grid(
 		model,
+		nMaxPatchCount,
 		nBaseResolutionA,
 		nBaseResolutionB,
 		nRefinementRatio,

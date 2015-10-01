@@ -33,6 +33,7 @@
 
 GridCSGLL::GridCSGLL(
 	Model & model,
+	int nMaxPatchCount,
 	int nBaseResolution,
 	int nRefinementRatio,
 	int nHorizontalOrder,
@@ -43,6 +44,7 @@ GridCSGLL::GridCSGLL(
 	// Call up the stack
 	GridGLL::GridGLL(
 		model,
+		nMaxPatchCount,
 		nBaseResolution,
 		nBaseResolution,
 		nRefinementRatio,
@@ -71,27 +73,25 @@ void GridCSGLL::Initialize() {
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void GridCSGLL::AddDefaultPatches() {
+void GridCSGLL::ApplyDefaultPatchLayout(
+	int nPatchCount
+) {
 
 	// Verify no Patches have been previously added
-	if (GetPatchCount() != 0) {
-		_EXCEPTIONT("AddDefaultPatches() must be called on an empty Grid");
+	if (m_nInitializedPatchBoxes != 0) {
+		_EXCEPTIONT("ApplyDefaultPatchLayout() must be called on an empty Grid");
 	}
 
-	// Determine number of usable processors
-	int nCommSize;
-	MPI_Comm_size(MPI_COMM_WORLD, &nCommSize);
-
-	int nProcsPerDirection = Max((int)ISqrt(nCommSize / 6), 1);
+	int nProcsPerDirection = Max((int)ISqrt(nPatchCount / 6), 1);
 
 	int nProcsPerPanel = nProcsPerDirection * nProcsPerDirection;
 
 	int nDistributedPatches = 6 * nProcsPerPanel;
 
-	if (nDistributedPatches < nCommSize) {
+	if (nDistributedPatches < nPatchCount) {
 		Announce("WARNING: Patch / thread mismatch: "
 			"%i threads will be unutilized",
-			nCommSize - nDistributedPatches);
+			nPatchCount - nDistributedPatches);
 	}
 
 	// Determine arrangement of elements on processors
@@ -110,29 +110,25 @@ void GridCSGLL::AddDefaultPatches() {
 	iBoxBegin[nProcsPerDirection] = GetABaseResolution();
 
 	// Create master patch for each panel
+	int ixPatch = 0;
+
 	for (int n = 0; n < 6; n++) {
 	for (int i = 0; i < nProcsPerDirection; i++) {
 	for (int j = 0; j < nProcsPerDirection; j++) {
 
-		PatchBox boxMaster(
+		m_aPatchBoxes[ixPatch] = PatchBox(
 			n, 0, m_model.GetHaloElements(),
 			m_nHorizontalOrder * iBoxBegin[i],
 			m_nHorizontalOrder * iBoxBegin[i+1],
 			m_nHorizontalOrder * iBoxBegin[j],
 			m_nHorizontalOrder * iBoxBegin[j+1]);
 
-		int ixPatch = n * nProcsPerPanel + i * nProcsPerDirection + j;
+		ixPatch++;
+	}
+	}
+	}
 
-		Grid::AddPatch(
-			new GridPatchCSGLL(
-				(*this),
-				ixPatch,
-				boxMaster,
-				m_nHorizontalOrder,
-				m_nVerticalOrder));
-	}
-	}
-	}
+	m_nInitializedPatchBoxes = ixPatch;
 }
 
 ///////////////////////////////////////////////////////////////////////////////

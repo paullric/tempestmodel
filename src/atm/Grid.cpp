@@ -33,6 +33,7 @@
 
 Grid::Grid(
 	Model & model,
+	int nMaxPatchCount,
 	int nABaseResolution,
 	int nBBaseResolution,
 	int nRefinementRatio,
@@ -40,17 +41,18 @@ Grid::Grid(
 	VerticalStaggering eVerticalStaggering
 ) :
 	m_fInitialized(false),
-	m_iGridStamp(0),
 	m_model(model),
 	m_fBlockParallelExchange(false),
+	m_pVerticalStretchF(NULL),
+	m_eVerticalStaggering(eVerticalStaggering),
+	m_nInitializedPatchBoxes(0),
+	m_iGridStamp(0),
 	m_nABaseResolution(nABaseResolution),
 	m_nBBaseResolution(nBBaseResolution),
 	m_nRefinementRatio(nRefinementRatio),
 	m_dReferenceLength(1.0),
-	m_pVerticalStretchF(NULL),
 	m_nRElements(nRElements),
 	m_dZtop(1.0),
-	m_eVerticalStaggering(eVerticalStaggering),
 	m_nDegreesOfFreedomPerColumn(0),
 	m_fHasReferenceState(false),
 	m_fHasRayleighFriction(false)
@@ -62,6 +64,7 @@ Grid::Grid(
 	int nComponents = model.GetEquationSet().GetComponents();
 
 	// Set the size of all DataArray objects
+	m_aPatchBoxes.SetSize(nMaxPatchCount);
 	m_eBoundaryCondition.SetSize(4);
 	m_dREtaLevels.SetSize(nRElements);
 	m_dREtaInterfaces.SetSize(nRElements+1);
@@ -74,6 +77,8 @@ Grid::Grid(
 	m_vecVarsAtLocation.SetSize((size_t)DataLocation_Count);
 
 	// Initialize the DataContainer
+	m_dcGridData.PushInteger(&m_nInitializedPatchBoxes);
+	m_dcGridData.PushDataChunk(&m_aPatchBoxes);
 	m_dcGridData.PushDataChunk(&m_eBoundaryCondition);
 	m_dcGridData.PushInteger(&m_iGridStamp);
 	m_dcGridData.PushInteger(&m_nABaseResolution);
@@ -1235,6 +1240,14 @@ void Grid::ConvertReferenceToPatchCoord(
 	DataArray1D<int> & iPatch
 ) const {
 	_EXCEPTIONT("Unimplemented.");
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void Grid::InitializePatchesFromPatchBoxes() {
+	for (int n = 0; n < m_nInitializedPatchBoxes; n++) {
+		AddPatch(n, m_aPatchBoxes[n]);
+	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////

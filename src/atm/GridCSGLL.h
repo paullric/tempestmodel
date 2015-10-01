@@ -33,6 +33,7 @@ public:
 	///	</summary>
 	GridCSGLL(
 		Model & model,
+		int nMaxPatchCount,
 		int nBaseResolution,
 		int nRefinementRatio,
 		int nHorizontalOrder,
@@ -49,19 +50,11 @@ public:
 
 public:
 	///	<summary>
-	///		Get the bounds on the reference grid.
+	///		Build the default patch layout.
 	///	</summary>
-	virtual void GetReferenceGridBounds(
-		double & dX0,
-		double & dX1,
-		double & dY0,
-		double & dY1
+	virtual void ApplyDefaultPatchLayout(
+		int nPatchCount
 	);
-
-	///	<summary>
-	///		Add the default set of patches.
-	///	</summary>
-	virtual void AddDefaultPatches();
 
 	///	<summary>
 	///		Add a patch to the grid with the specified index and PatchBox.
@@ -69,6 +62,16 @@ public:
 	virtual GridPatch * AddPatch(
 		int ixPatch,
 		const PatchBox & box
+	);
+
+	///	<summary>
+	///		Get the bounds on the reference grid.
+	///	</summary>
+	virtual void GetReferenceGridBounds(
+		double & dX0,
+		double & dX1,
+		double & dY0,
+		double & dY1
 	);
 
 	///	<summary>

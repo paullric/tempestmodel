@@ -366,9 +366,14 @@ void _TempestSetupCubedSphereModel(
 	// Construct the Grid
 	AnnounceStartBlock("Constructing grid");
 	
+	// Maximum number of patches currently equals communicator size
+	int nCommSize;
+	MPI_Comm_size(MPI_COMM_WORLD, &nCommSize);
+
 	Grid * pGrid =
 		new GridCSGLL(
 			model,
+			nCommSize,
 			vars.nResolutionX,
 			4,
 			vars.nHorizontalOrder,
@@ -438,9 +443,14 @@ void _TempestSetupCartesianModel(
 	// Set the model grid
 	AnnounceStartBlock("Constructing grid");
 
+	// Maximum number of patches currently equals communicator size
+	int nCommSize;
+	MPI_Comm_size(MPI_COMM_WORLD, &nCommSize);
+
 	Grid * pGrid = 
 		new GridCartesianGLL(
 			model,
+			nCommSize,
 			vars.nResolutionX,
 			vars.nResolutionY,
 			4,

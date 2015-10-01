@@ -34,6 +34,7 @@
 
 GridCartesianGLL::GridCartesianGLL(
 	Model & model,
+	int nMaxPatchCount,
 	int nBaseResolutionA,
 	int nBaseResolutionB,
 	int nRefinementRatio,
@@ -48,6 +49,7 @@ GridCartesianGLL::GridCartesianGLL(
 	// Call up the stack
 	GridGLL::GridGLL(
 		model,
+		nMaxPatchCount,
 		nBaseResolutionA,
 		nBaseResolutionB,
 		nRefinementRatio,
@@ -97,18 +99,17 @@ void GridCartesianGLL::Initialize() {
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void GridCartesianGLL::AddDefaultPatches() {
+void GridCartesianGLL::ApplyDefaultPatchLayout(
+	int nPatchCount
+) {
 
 	// Verify no Patches have been previously added
-	if (GetPatchCount() != 0) {
-		_EXCEPTIONT("AddDefaultPatches() must be called on an empty Grid");
+	if (m_nInitializedPatchBoxes != 0) {
+		_EXCEPTIONT("ApplyDefaultPatchLayout() must be called on an empty Grid");
 	}
 
 	// Determine number of usable processors
-	int nCommSize;
-	MPI_Comm_size(MPI_COMM_WORLD, &nCommSize);
-
-	int nProcsPerDirection = nCommSize;
+	int nProcsPerDirection = nPatchCount;
 
 	int nDistributedPatches = nProcsPerDirection;
 
@@ -130,28 +131,37 @@ void GridCartesianGLL::AddDefaultPatches() {
 	// Single panel 0 implementation (Cartesian Grid)
 	// Rectangular alpha-wise patches that span all of the beta direction
 	// (as many as there are processors available)
-	int n = 0;
 	for (int i = 0; i < nProcsPerDirection; i++) {
 
 		// Patch strips that span beta
-		PatchBox boxMaster(
-			n, 0, m_model.GetHaloElements(),
+		m_aPatchBoxes[i] = PatchBox(
+			0, 0, m_model.GetHaloElements(),
 			m_nHorizontalOrder * iBoxBegin[i],
 			m_nHorizontalOrder * iBoxBegin[i+1],
 			0,
 			m_nHorizontalOrder * GetBBaseResolution());
+	}
 
+	m_nInitializedPatchBoxes = nProcsPerDirection;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+GridPatch * GridCartesianGLL::AddPatch(
+	int ixPatch,
+	const PatchBox & box
+) {
+	return
 		Grid::AddPatch(
 			new GridPatchCartesianGLL(
 				(*this),
-				i,
-				boxMaster,
+				ixPatch,
+				box,
 				m_nHorizontalOrder,
 				m_nVerticalOrder,
 				m_dGDim,
 				m_dRefLat,
 				m_dTopoHeight));
-	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////

@@ -17,14 +17,12 @@
 #ifndef _PATCHBOX_H_
 #define _PATCHBOX_H_
 
-#include "DataChunk.h"
-
 ///////////////////////////////////////////////////////////////////////////////
 
 ///	<summary>
 ///		Computational coordinates of a 2D patch.
 ///	</summary>
-class PatchBox : public DataChunk {
+class PatchBox {
 public:
 	///	<summary>
 	///		Constructor.
@@ -38,7 +36,6 @@ public:
 		int ixBGlobalInteriorBegin,
 		int ixBGlobalInteriorEnd
 	) :
-		m_fAttached(false),
 		m_ixPanel(ixPanel),
 		m_iRefinementLevel(iRefinementLevel),
 		m_nHaloElements(nHaloElements),
@@ -68,35 +65,6 @@ public:
 			return true;
 		}
 		return false;
-	}
-
-public:
-	///	<summary>
-	///		Get the size of this DataChunk, in bytes.
-	///	</summary>
-	virtual size_t GetByteSize() const {
-		return (7 * sizeof(int));
-	}
-
-	///	<summary>
-	///		Determine if this DataChunk is attached to a data array.
-	///	</summary>
-	virtual bool IsAttached() const {
-		return m_fAttached;
-	}
-
-	///	<summary>
-	///		Attach this DataChunk to an array of pre-allocated data.
-	///	</summary>
-	virtual void AttachToData(void * pData) {
-		memcpy((void*) this, pData, 7 * sizeof(int));
-	}
-
-	///	<summary>
-	///		Detach data from this DataChunk.
-	///	</summary>
-	virtual void Detach() {
-		m_fAttached = false;
 	}
 
 public:
@@ -249,11 +217,6 @@ public:
 	}
 
 private:
-	///	<summary>
-	///		Flag indicating this PatchBox is attached to data.
-	///	</summary>
-	bool m_fAttached;
-
 	///	<summary>
 	///		Panel on which this box appears.
 	///	</summary>
