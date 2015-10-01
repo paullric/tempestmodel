@@ -296,7 +296,7 @@ void VerticalDynamicsFEM::Initialize() {
 		m_fUpwind[PIx] = true;
 #endif
 #ifdef UPWIND_VERTICAL_VELOCITY
-		m_fUpwind[VIx] = true;
+		m_fUpwind[WIx] = true;
 #endif
 #ifdef UPWIND_RHO
 		m_fUpwind[RIx] = true;
