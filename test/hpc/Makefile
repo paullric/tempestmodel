@@ -11,7 +11,7 @@ include $(TEMPESTBASEDIR)/mk/Make.defs
 ##
 ## Build instructions
 ##
-all: atm DataContainerTest
+all: atm DataContainerTest TaskTest
 atm:
 	cd $(TEMPESTBASEDIR)/src/base; make
 	cd $(TEMPESTBASEDIR)/src/atm; make
@@ -22,11 +22,14 @@ atm:
 DataContainerTest : $(BUILDDIR)/DataContainerTest.o $(FILES:%.cpp=$(BUILDDIR)/%.o) $(TEMPESTLIBS)
 	$(CC) $(LDFLAGS) -o $@ $(BUILDDIR)/DataContainerTest.o $(FILES:%.cpp=$(BUILDDIR)/%.o) $(LDFILES)
 
+TaskTest : $(BUILDDIR)/TaskTest.o $(FILES:%.cpp=$(BUILDDIR)/%.o) $(TEMPESTLIBS)
+	$(CC) $(LDFLAGS) -o $@ $(BUILDDIR)/TaskTest.o $(FILES:%.cpp=$(BUILDDIR)/%.o) $(LDFILES)
+
 ##
 ## Clean
 ##
 clean:
-	rm -f DataContainerTest
+	rm -f DataContainerTest TaskTest
 	rm -rf $(DEPDIR)
 	rm -rf $(BUILDDIR)
 

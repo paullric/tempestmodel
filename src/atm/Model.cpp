@@ -237,7 +237,7 @@ void Model::EvaluateStateFromRestartFile() {
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-/*
+
 void Model::SubStep(
 	bool fFirstStep,
 	bool fLastStep,
@@ -265,7 +265,7 @@ void Model::SubStep(
 		dDeltaT,
 		iSubStep);
 }
-*/
+
 ///////////////////////////////////////////////////////////////////////////////
 
 void Model::Go() {

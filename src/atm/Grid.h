@@ -625,6 +625,16 @@ public:
 
 public:
 	///	<summary>
+	///		Get the PatchBox with the specified index.
+	///	</summary>
+	const PatchBox & GetPatchBox(int ix) const {
+		if ((ix < 0) || (ix > m_aPatchBoxes.GetRows())) {
+			_EXCEPTIONT("Invalid PatchBox index");
+		}
+		return m_aPatchBoxes[ix];
+	}
+
+	///	<summary>
 	///		Get the reference length scale.
 	///	</summary>
 	double GetReferenceLength() const {

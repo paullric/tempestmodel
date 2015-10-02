@@ -183,6 +183,16 @@ public:
 
 public:
 	///	<summary>
+	///		Perform one substep.
+	///	</summary>
+	void SubStep(
+		bool fFirstStep,
+		bool fLastStep,
+		int iSubStep
+	);
+
+public:
+	///	<summary>
 	///		Begin the model.
 	///	</summary>
 	virtual void Go();
