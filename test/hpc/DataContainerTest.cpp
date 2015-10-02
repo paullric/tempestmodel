@@ -35,6 +35,7 @@ try {
 	const int nHorizontalOrder = 4;
 	const int nVerticalOrder = 4;
 	const int nLevels = 40;
+	const int nMaxPatchCount = 1;
 
 	double dGDim[6];
 	dGDim[0] = 0.0;
@@ -70,6 +71,7 @@ try {
 	GridCartesianGLL * pGrid = 
 		new GridCartesianGLL(
 			model,
+			nMaxPatchCount,
 			nResolutionX,
 			nResolutionY,
 			4,
@@ -78,7 +80,6 @@ try {
 			nLevels,
 			dGDim,
 			dRefLat,
-			dTopoHeight,
 			eVerticalStaggering);
 
 	//////////////////////////////////////////////////////////////////
@@ -90,17 +91,10 @@ try {
 	double dDeltaB = (dGDim[3] - dGDim[2])
 		/ static_cast<double>(nResolutionY);
 
-	GridSpacingGaussLobattoRepeated
-		glspacingAlpha(dDeltaA, dGDim[0], nHorizontalOrder);
-	GridSpacingGaussLobattoRepeated
-		glspacingBeta(dDeltaB, dGDim[2], nHorizontalOrder);
-
 	PatchBox box(
 		0, 0, model.GetHaloElements(),
 		0, nHorizontalOrder * nResolutionX,
-		0, nHorizontalOrder * nResolutionY,
-		glspacingAlpha,
-		glspacingBeta);
+		0, nHorizontalOrder * nResolutionY);
 
 	// Create a GridPatch
 	GridPatch * pPatchFirst =
@@ -109,10 +103,7 @@ try {
 			0,
 			box,
 			nHorizontalOrder,
-			nVerticalOrder,
-			dGDim,
-			dRefLat,
-			dTopoHeight);
+			nVerticalOrder);
 
 	// Create a second GridPatch with the same box
 	GridPatch * pPatchSecond =
@@ -121,10 +112,7 @@ try {
 			0,
 			box,
 			nHorizontalOrder,
-			nVerticalOrder,
-			dGDim,
-			dRefLat,
-			dTopoHeight);
+			nVerticalOrder);
 
 	// Build the DataContainer object for the GridPatch objects
 	pPatchFirst->InitializeDataLocal(false, false, false, false);
