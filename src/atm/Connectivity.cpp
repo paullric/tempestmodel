@@ -76,22 +76,17 @@ bool Neighbor::CheckReceive() {
 // ExteriorNeighbor
 ///////////////////////////////////////////////////////////////////////////////
 
-void ExteriorNeighbor::PrepareExchange() {
-
+void ExteriorNeighbor::PrepareExchange(
+	const Grid & grid
+) {
 	// Call up the stack
-	Neighbor::PrepareExchange();
+	Neighbor::PrepareExchange(grid);
 
 	// Information for receive
-	const GridPatch & patch = m_pConnect->GetGridPatch();
-
-	const Grid & grid = patch.GetGrid();
-
-	int ixPatch = patch.GetPatchIndex();
-
 	int iProcessor = grid.GetPatch(m_ixNeighbor)->GetProcessor();
 
 	// Tag of the received message
-	int nTag = (m_ixNeighbor << 16) + (ixPatch << 4) + (int)(m_dir);
+	int nTag = (m_ixNeighbor << 16) + (m_ixPatch << 4) + (int)(m_dir);
 
 	// Prepare an asynchronous receive
 	MPI_Irecv(
@@ -107,6 +102,7 @@ void ExteriorNeighbor::PrepareExchange() {
 ///////////////////////////////////////////////////////////////////////////////
 
 void ExteriorNeighbor::Pack(
+	const Grid & grid,
 	const DataArray3D<double> & data
 ) {
 	const size_t sRElements = data.GetSize(0);
@@ -124,9 +120,6 @@ void ExteriorNeighbor::Pack(
 	) {
 		_EXCEPTIONT("GridData / ExteriorNeighbor inconsistency.");
 	}
-
-	// Model grid
-	const Grid & grid = m_pConnect->GetGridPatch().GetGrid();
 
 	// Index for halo elements along boundary
 	int ixBoundaryBegin;
@@ -433,11 +426,9 @@ void ExteriorNeighbor::Pack(
 ///////////////////////////////////////////////////////////////////////////////
 
 void ExteriorNeighbor::Pack(
+	const Grid & grid,
 	const DataArray4D<double> & data
 ) {
-	// Model grid
-	const Grid & grid = m_pConnect->GetGridPatch().GetGrid();
-
 	// Number of components in data
 	size_t sComponents = data.GetSize(0);
 
@@ -459,7 +450,7 @@ void ExteriorNeighbor::Pack(
 				continue;
 			}
 			data3D.AttachTo(data[c]);
-			Pack(data3D);
+			Pack(grid, data3D);
 			data3D.Detach();
 		}
 
@@ -467,7 +458,7 @@ void ExteriorNeighbor::Pack(
 	} else {
 		for (int c = 0; c < sComponents; c++) {
 			data3D.AttachTo(data[c]);
-			Pack(data3D);
+			Pack(grid, data3D);
 			data3D.Detach();
 		}
 	}
@@ -475,15 +466,11 @@ void ExteriorNeighbor::Pack(
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void ExteriorNeighbor::Send() {
+void ExteriorNeighbor::Send(
+	const Grid & grid
+) {
 
 	// Send the data
-	const GridPatch & patch = m_pConnect->GetGridPatch();
-
-	const Grid & grid = patch.GetGrid();
-
-	int ixPatch = patch.GetPatchIndex();
-
 	int iProcessor = grid.GetPatch(m_ixNeighbor)->GetProcessor();
 
 	// Tag
@@ -491,7 +478,7 @@ void ExteriorNeighbor::Send() {
 		_EXCEPTIONT("Maximum neighbor index exceeded.");
 	}
 
-	int nTag = (ixPatch << 16) + (m_ixNeighbor << 4) + (int)(m_dirOpposite);
+	int nTag = (m_ixPatch << 16) + (m_ixNeighbor << 4) + (int)(m_dirOpposite);
 
 #pragma message "Move MPI_TAG processing to Connectivity"
 
@@ -517,6 +504,7 @@ void ExteriorNeighbor::Send() {
 ///////////////////////////////////////////////////////////////////////////////
 
 void ExteriorNeighbor::Unpack(
+	const Grid & grid,
 	DataArray3D<double> & data
 ) {
 /*
@@ -532,9 +520,6 @@ void ExteriorNeighbor::Unpack(
 	const size_t sRElements = data.GetSize(0);
 	const size_t sAElements = data.GetSize(1);
 	const size_t sBElements = data.GetSize(2);
-
-	// Model grid
-	const Grid & grid = m_pConnect->GetGridPatch().GetGrid();
 
 	// Index for halo elements along boundary
 	int ixBoundaryBegin;
@@ -739,11 +724,9 @@ void ExteriorNeighbor::Unpack(
 ///////////////////////////////////////////////////////////////////////////////
 
 void ExteriorNeighbor::Unpack(
+	const Grid & grid,
 	DataArray4D<double> & data
 ) {
-	// Model grid
-	const Grid & grid = m_pConnect->GetGridPatch().GetGrid();
-
 	// Number of components in data
 	size_t sComponents = data.GetSize(0);
 
@@ -764,7 +747,7 @@ void ExteriorNeighbor::Unpack(
 				continue;
 			}
 			data3D.AttachTo(data[c]);;
-			Unpack(data3D);
+			Unpack(grid, data3D);
 			data3D.Detach();
 		}
 
@@ -772,7 +755,7 @@ void ExteriorNeighbor::Unpack(
 	} else {
 		for (int c = 0; c < sComponents; c++) {
 			data3D.AttachTo(data[c]);
-			Unpack(data3D);
+			Unpack(grid, data3D);
 			data3D.Detach();
 		}
 	}
@@ -881,7 +864,7 @@ void Connectivity::PrepareExchange() {
 
 	// Prepare for asynchronous receives from each neighbor
 	for (int m = 0; m < m_vecExteriorNeighbors.size(); m++) {
-		m_vecExteriorNeighbors[m]->PrepareExchange();
+		m_vecExteriorNeighbors[m]->PrepareExchange(m_patch.GetGrid());
 	}
 }
 
@@ -892,7 +875,7 @@ void Connectivity::Pack(
 ) {
 	// Pack data to exterior neighbors
 	for (int m = 0; m < m_vecExteriorNeighbors.size(); m++) {
-		m_vecExteriorNeighbors[m]->Pack(data);
+		m_vecExteriorNeighbors[m]->Pack(m_patch.GetGrid(), data);
 	}
 }
 
@@ -903,7 +886,7 @@ void Connectivity::Pack(
 ) {
 	// Pack data to exterior neighbors
 	for (int m = 0; m < m_vecExteriorNeighbors.size(); m++) {
-		m_vecExteriorNeighbors[m]->Pack(data);
+		m_vecExteriorNeighbors[m]->Pack(m_patch.GetGrid(), data);
 	}
 }
 
@@ -913,7 +896,7 @@ void Connectivity::Send() {
 
 	// Send data to exterior neighbors
 	for (int m = 0; m < m_vecExteriorNeighbors.size(); m++) {
-		m_vecExteriorNeighbors[m]->Send();
+		m_vecExteriorNeighbors[m]->Send(m_patch.GetGrid());
 	}
 }
 
@@ -924,7 +907,7 @@ void Connectivity::SendBuffers() {
 	// Send data to exterior neighbors
 	for (int m = 0; m < m_vecExteriorNeighbors.size(); m++) {
 		m_vecExteriorNeighbors[m]->ResetSendBufferSize();
-		m_vecExteriorNeighbors[m]->Send();
+		m_vecExteriorNeighbors[m]->Send(m_patch.GetGrid());
 	}
 }
 

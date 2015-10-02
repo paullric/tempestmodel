@@ -28,8 +28,9 @@
 
 ///////////////////////////////////////////////////////////////////////////////
 
-class Connectivity;
+class Grid;
 class GridPatch;
+class Connectivity;
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -43,13 +44,13 @@ public:
 	///		Constructor.
 	///	</summary>
 	Neighbor(
-		const Connectivity * pConnect,
+		int ixPatch,
 		int ixNeighbor,
 		bool fReverseDirection,
 		bool fFlippedCoordinate,
 		size_t sBoundarySize
 	) : 
-		m_pConnect(pConnect),
+		m_ixPatch(ixPatch),
 		m_ixNeighbor(ixNeighbor),
 		m_fReverseDirection(fReverseDirection),
 		m_fFlippedCoordinate(fFlippedCoordinate),
@@ -98,7 +99,9 @@ public:
 	///	<summary>
 	///		Prepare an asynchronous receive.
 	///	</summary>
-	virtual void PrepareExchange() {
+	virtual void PrepareExchange(
+		const Grid & grid
+	) {
 
 		// Reset the send buffer index
 		m_ixSendBuffer = 0;
@@ -114,6 +117,7 @@ public:
 	///		Pack data into the send buffer.
 	///	</summary>
 	virtual void Pack(
+		const Grid & grid,
 		const DataArray3D<double> & data
 	) = 0;
 
@@ -121,6 +125,7 @@ public:
 	///		Pack data into the send buffer.
 	///	</summary>
 	virtual void Pack(
+		const Grid & grid,
 		const DataArray4D<double> & data
 	) = 0;
 
@@ -138,12 +143,13 @@ public:
 	///	<summary>
 	///		Send data to other processors.
 	///	</summary>
-	virtual void Send() = 0;
+	virtual void Send(const Grid & grid) = 0;
 
 	///	<summary>
 	///		Receive data from other processors.
 	///	</summary>
 	virtual void Unpack(
+		const Grid & grid,
 		DataArray3D<double> & data
 	) = 0;
 
@@ -151,6 +157,7 @@ public:
 	///		Receive data from other processors.
 	///	</summary>
 	virtual void Unpack(
+		const Grid & grid,
 		DataArray4D<double> & data
 	) = 0;
 
@@ -169,12 +176,12 @@ public:
 
 public:
 	///	<summary>
-	///		Parent Connectivity object.
+	///		Index of the source patch.
 	///	</summary>
-	const Connectivity * m_pConnect;
+	int m_ixPatch;
 
 	///	<summary>
-	///		Index of the neighboring patch.
+	///		Index of the target patch.
 	///	</summary>
 	int m_ixNeighbor;
 
@@ -249,9 +256,9 @@ public:
 	///		Constructor.
 	///	</summary>
 	ExteriorNeighbor(
-		const Connectivity * pConnect,
 		Direction dir,
 		Direction dirOpposite,
+		int ixPatch,
 		int ixNeighbor,
 		bool fReverseDirection,
 		bool fFlippedCoordinate,
@@ -262,7 +269,7 @@ public:
 		m_dir(dir),
 		m_dirOpposite(dirOpposite),
 		Neighbor(
-			pConnect,
+			ixPatch,
 			ixNeighbor,
 			fReverseDirection,
 			fFlippedCoordinate,
@@ -311,12 +318,15 @@ public:
 	///	<summary>
 	///		Prepare an asynchronous receive.
 	///	</summary>
-	virtual void PrepareExchange();
+	virtual void PrepareExchange(
+		const Grid & grid
+	);
 
 	///	<summary>
 	///		Pack data into the send buffer.
 	///	</summary>
 	virtual void Pack(
+		const Grid & grid,
 		const DataArray3D<double> & data
 	);
 
@@ -324,18 +334,22 @@ public:
 	///		Pack data into the send buffer.
 	///	</summary>
 	virtual void Pack(
+		const Grid & grid,
 		const DataArray4D<double> & data
 	);
 
 	///	<summary>
 	///		Send data to other processors.
 	///	</summary>
-	virtual void Send();
+	virtual void Send(
+		const Grid & grid
+	);
 
 	///	<summary>
 	///		Unpack data from the receive buffer.
 	///	</summary>
 	void Unpack(
+		const Grid & grid,
 		DataArray3D<double> & data
 	);
 
@@ -343,6 +357,7 @@ public:
 	///		Unpack data from the receive buffer.
 	///	</summary>
 	void Unpack(
+		const Grid & grid,
 		DataArray4D<double> & data
 	);
 
@@ -396,6 +411,7 @@ public:
 	///		Pack data into the send buffer.
 	///	</summary>
 	virtual void Pack(
+		const Grid & grid,
 		const DataArray3D<double> & data
 	) {
 	}
@@ -404,6 +420,7 @@ public:
 	///		Pack data into the send buffer.
 	///	</summary>
 	virtual void Pack(
+		const Grid & grid,
 		const DataArray4D<double> & data
 	) {
 	}
@@ -411,13 +428,14 @@ public:
 	///	<summary>
 	///		Send data to other processors.
 	///	</summary>
-	virtual void Send() {
+	virtual void Send(const Grid & grid) {
 	}
 
 	///	<summary>
 	///		Unpack data from the receive buffer.
 	///	</summary>
 	void Unpack(
+		const Grid & grid,
 		DataArray3D<double> & data
 	) {
 	}
@@ -426,6 +444,7 @@ public:
 	///		Unpack data from the receive buffer.
 	///	</summary>
 	virtual void Unpack(
+		const Grid & grid,
 		const DataArray4D<double> & data
 	) {
 	}
