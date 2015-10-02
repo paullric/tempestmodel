@@ -137,6 +137,23 @@ protected:
 
 public:
 	///	<summary>
+	///		Number of sub-steps after sub-cycling.
+	///	</summary>
+	virtual int GetSubStepAfterSubCycleCount();
+
+	///	<summary>
+	///		Filters, fixers and diffusion.
+	///	</summar>
+	virtual int SubStepAfterSubCycle(
+		int iDataInitial,
+		int iDataUpdate,
+		int iDataWorking,
+		const Time & time,
+		double dDeltaT,
+		int iSubStep
+	);
+
+	///	<summary>
 	///		Apply hyperdiffusion.
 	///	</summar>
 	virtual void StepAfterSubCycle(

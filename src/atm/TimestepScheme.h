@@ -17,6 +17,8 @@
 #ifndef _TIMESTEPSCHEME_H_
 #define _TIMESTEPSCHEME_H_
 
+#include "Exception.h"
+
 ///////////////////////////////////////////////////////////////////////////////
 
 class Model;
@@ -57,6 +59,13 @@ public:
 	///	</summary>
 	virtual int GetTracerDataInstances() const = 0;
 
+	///	<summary>
+	///		Get the number of substeps.
+	///	</summary>
+	virtual int GetSubStepCount() const {
+		return 0;
+	}
+
 public:
 	///	<summary>
 	///		Mixed method part.
@@ -84,6 +93,19 @@ public:
 	virtual void Initialize() { }
 
 public:
+	///	<summary>
+	///		Perform one time substep.
+	///	</summary>
+	virtual int SubStep(
+		bool fFirstStep,
+		bool fLastStep,
+		const Time & time,
+		double dDeltaT,
+		int iSubStep
+	) {
+		_EXCEPTIONT("Not implemented");
+	}
+
 	///	<summary>
 	///		Perform one time step.
 	///	</summary>

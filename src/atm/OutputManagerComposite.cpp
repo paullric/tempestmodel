@@ -65,6 +65,7 @@ OutputManagerComposite::~OutputManagerComposite() {
 bool OutputManagerComposite::OpenFile(
 	const std::string & strFileName
 ) {
+/*
 	// Determine processor rank
 	int nRank;
 	MPI_Comm_rank(MPI_COMM_WORLD, &nRank);
@@ -187,13 +188,14 @@ bool OutputManagerComposite::OpenFile(
 
 	// Wait for all processes to complete
 	MPI_Barrier(MPI_COMM_WORLD);
-
+*/
 	return true;
 }	
 
 ///////////////////////////////////////////////////////////////////////////////
 
 void OutputManagerComposite::CloseFile() {
+/*
 	if (m_pActiveNcOutput != NULL) {
 		delete(m_pActiveNcOutput);
 		m_pActiveNcOutput = NULL;
@@ -205,6 +207,7 @@ void OutputManagerComposite::CloseFile() {
 
 		m_vecRecvBuffer.Deallocate();
 	}
+*/
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -221,7 +224,7 @@ void OutputManagerComposite::Output(
 	if (m_ixOutputTime != 0) {
 		_EXCEPTIONT("Only one Composite output allowed per file");
 	}
-
+/*
 	// Determine processor rank
 	int nRank;
 	MPI_Comm_rank(MPI_COMM_WORLD, &nRank);
@@ -450,6 +453,7 @@ void OutputManagerComposite::Output(
 
 	// Barrier
 	MPI_Barrier(MPI_COMM_WORLD);
+*/
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -457,6 +461,7 @@ void OutputManagerComposite::Output(
 Time OutputManagerComposite::Input(
 	const std::string & strFileName
 ) {
+/*
 	// Set the flag indicating that output came from a restart file
 	m_fFromRestartFile = true;
 
@@ -628,6 +633,8 @@ Time OutputManagerComposite::Input(
 	}
 
 	return timeCurrent;
+*/
+	_EXCEPTION();
 }
 
 ///////////////////////////////////////////////////////////////////////////////

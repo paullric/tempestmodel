@@ -17,6 +17,8 @@
 #ifndef _HORIZONTALDYNAMICS_H_
 #define _HORIZONTALDYNAMICS_H_
 
+#include "Exception.h"
+
 ///////////////////////////////////////////////////////////////////////////////
 
 class Time;
@@ -81,6 +83,27 @@ public:
 		const Time & time,
 		double dDeltaT
 	) {
+	}
+
+	///	<summary>
+	///		Number of sub-steps after sub-cycling.
+	///	</summary>
+	virtual int GetSubStepAfterSubCycleCount() {
+		return 0;
+	}
+
+	///	<summary>
+	///		Filters, fixers and diffusion.
+	///	</summar>
+	virtual int SubStepAfterSubCycle(
+		int iDataInitial,
+		int iDataUpdate,
+		int iDataWorking,
+		const Time & time,
+		double dDeltaT,
+		int iSubStep
+	) {
+		_EXCEPTIONT("Not implemented");
 	}
 
 	///	<summary>

@@ -51,22 +51,20 @@ public:
 	///	<summary>
 	///		Type of vertical staggering to be used.
 	///	</summary>
-	enum VerticalStaggering {
-		VerticalStaggering_Levels,
-		VerticalStaggering_Interfaces,
-		VerticalStaggering_CharneyPhillips,
-		VerticalStaggering_Lorenz
-	};
+	typedef int VerticalStaggering;
+	static const int VerticalStaggering_Levels = 0;
+	static const int VerticalStaggering_Interfaces = 1;
+	static const int VerticalStaggering_CharneyPhillips = 2;
+	static const int VerticalStaggering_Lorenz = 3;
 
 public:
 	///	<summary>
 	///		Boundary condition type applied in each direction.
 	///	</summary>
-	enum BoundaryCondition {
-		BoundaryCondition_Default = 0,
-		BoundaryCondition_Periodic = BoundaryCondition_Default,
-		BoundaryCondition_NoFlux = 1
-	};
+	typedef int BoundaryCondition;
+	static const int BoundaryCondition_Default = 0;
+	static const int BoundaryCondition_Periodic = 0;
+	static const int BoundaryCondition_NoFlux = 1;
 
 public:
 	///	<summary>
@@ -563,6 +561,7 @@ public:
 
 
 public:
+/*
 	///	<summary>
 	///		Get the specified cumulative patch 2D node index.
 	///	</summary>
@@ -583,7 +582,7 @@ public:
 		return (m_vecCumulativePatch2DNodeIndex[ix]
 			* m_nDegreesOfFreedomPerColumn);
 	}
-
+*/
 	///	<summary>
 	///		Get the patch with the specified index.
 	///	</summary>
@@ -794,12 +793,13 @@ protected:
 	VerticalStretchFunction * m_pVerticalStretchF;
 
 protected:
+/*
 	///	<summary>
 	///		Vector of cumulative indices associated with 2D nodal values on
 	///		each patch.
 	///	</summary>
 	std::vector<int> m_vecCumulativePatch2DNodeIndex;
-
+*/
 	///	<summary>
 	///		Vector of grid patches.
 	///	</summary>
@@ -809,11 +809,6 @@ protected:
 	///		Vector of grid patches which are active locally.
 	///	</summary>
 	GridPatchVector m_vecActiveGridPatches;
-
-	///	<summary>
-	///		Type of vertical stretching being applied.
-	///	</summary>
-	VerticalStaggering m_eVerticalStaggering;
 
 protected:
 	///	<summary>
@@ -831,6 +826,11 @@ protected:
 	///		Array of PatchBoxes.
 	///	</summary>
 	DataArray1D<PatchBox> m_aPatchBoxes;
+
+	///	<summary>
+	///		Type of vertical stretching being applied.
+	///	</summary>
+	VerticalStaggering m_eVerticalStaggering;
 
 	///	<summary>
 	///		Boundary condition in each coordinate direction.

@@ -320,102 +320,6 @@ public:
 		return m_opDiffDiffREdgeToREdge;
 	}
 
-/*
-public:
-	///	<summary>
-	///		Get the interpolation coefficients from levels to interfaces.
-	///	</summary>
-	const DataArray2D<double> & GetInterpNodeToREdge() const {
-		return m_dInterpNodeToREdge;
-	}
-
-	///	<summary>
-	///		Get the interpolation coefficients from interfaces to levels.
-	///	</summary>
-	const DataArray2D<double> & GetInterpREdgeToNode() const {
-		return m_dInterpREdgeToNode;
-	}
-
-	///	<summary>
-	///		Get the differentiation coefficients from interfaces to nodes.
-	///	</summary>
-	const DataArray2D<double> & GetDiffREdgeToNode() const {
-		return m_dDiffREdgeToNode;
-	}
-
-	///	<summary>
-	///		Get the differentiation coefficients from interfaces to interfaces.
-	///	</summary>
-	const DataArray2D<double> & GetDiffREdgeToREdge() const {
-		return m_dDiffREdgeToREdge;
-	}
-
-	///	<summary>
-	///		Get the differentiation coefficients from nodes to interfaces.
-	///	</summary>
-	const DataArray2D<double> & GetDiffNodeToREdge() const {
-		return m_dDiffNodeToREdge;
-	}
-
-	///	<summary>
-	///		Get the differentiation coefficients from nodes to nodes.
-	///	</summary>
-	const DataArray2D<double> & GetDiffNodeToNode() const {
-		return m_dDiffNodeToNode;
-	}
-
-	///	<summary>
-	///		Get amalgamated differentiation coefficients from nodes to
-	///		interfaces.
-	///	</summary>
-	const DataArray2D<double> & GetDiffNodeToREdgeAmal() const {
-		return m_dDiffNodeToREdgeAmal;
-	}
-
-	///	<summary>
-	///		Get amalgamated differentiation coefficients from nodes to
-	///		interfaces at left edge.
-	///	</summary>
-	const DataArray2D<double> & GetDiffNodeToREdgeLeft() const {
-		return m_dDiffNodeToREdgeLeft;
-	}
-
-	///	<summary>
-	///		Get amalgamated differentiation coefficients from nodes to
-	///		interfaces at right edge.
-	///	</summary>
-	const DataArray2D<double> & GetDiffNodeToREdgeRight() const {
-		return m_dDiffNodeToREdgeRight;
-	}
-
-	///	<summary>
-	///		Get the type of reconstruction polynomial.
-	///	</summary>
-	int GetReconstructionPolyType() const {
-		return m_nReconstructionPolyType;
-	}
-
-	///	<summary>
-	///		Get the derivatives of reconstruction polynomial on nodes.
-	///	</summary>
-	const DataArray1D<double> & GetDiffReconsPolyNode() const {
-		return m_dDiffReconsPolyNode;
-	}
-
-	///	<summary>
-	///		Get the derivatives of reconstruction polynomial on interfaces.
-	///	</summary>
-	const DataArray1D<double> & GetDiffReconsPolyREdge() const {
-		return m_dDiffReconsPolyREdge;
-	}
-
-private:
-	///	<summary>
-	///		Variable evaluated on finite element interfaces (left,
-	///		right and average components)
-	///	</summary>
-	mutable DataArray2D<double> m_dStateFEEdge;
-*/
 protected:
 	///	<summary>
 	///		Order of accuracy of the method (number of nodes per element).
@@ -450,17 +354,7 @@ protected:
 	///		discontinuous Galerkin dynamics).
 	///	</summary>
 	DataArray1D<double> m_dFluxDeriv1D;
-/*
-	///	<summary>
-	///		Interpolation coefficients from levels to interfaces.
-	///	</summary>
-	DataArray2D<double> m_dInterpNodeToREdge;
 
-	///	<summary>
-	///		Interpolation coefficients from interfaces to levels.
-	///	</summary>
-	DataArray2D<double> m_dInterpREdgeToNode;
-*/
 	///	<summary>
 	///		Interpolation operator from levels to interfaces.
 	///	</summary>
@@ -510,62 +404,6 @@ protected:
 	///		Integral operator from levels to levels.
 	///	</summary>
 	LinearColumnIntFEM m_opIntNodeToNode;
-
-/*
-	///	<summary>
-	///		Differentiation coefficients from interfaces to nodes.
-	///	</summary>
-	DataArray2D<double> m_dDiffREdgeToNode;
-
-	///	<summary>
-	///		Differentiation coefficients from interfaces to interfaces.
-	///	</summary>
-	DataArray2D<double> m_dDiffREdgeToREdge;
-
-	///	<summary>
-	///		Differentiation coefficients from nodes to interfaces.
-	///	</summary>
-	DataArray2D<double> m_dDiffNodeToREdge;
-
-	///	<summary>
-	///		Differentiation coefficients from nodes to nodes.
-	///	</summary>
-	DataArray2D<double> m_dDiffNodeToNode;
-
-	///	<summary>
-	///		Amalgamated differentiation coefficients from nodes to interfaces;
-	///		includes both interior derivative terms and derivatives from
-	///		reconstruction polynomial.
-	///	</summary>
-	DataArray2D<double> m_dDiffNodeToREdgeAmal;
-
-	///	<summary>
-	///		Amalgamated differentiation coefficients from nodes to interfaces
-	///		at left edge with extrapolated boundary conditions.
-	///	</summary>
-	DataArray2D<double> m_dDiffNodeToREdgeLeft;
-
-	///	<summary>
-	///		Amalgamated differentiation coefficients from nodes to interfaces
-	///		at right edge with extrapolated boundary conditions.
-	///	</summary>
-	DataArray2D<double> m_dDiffNodeToREdgeRight;
-
-	///	<summary>
-	///		Type of reconstruction polynomial to use.
-	///	</summary>
-	int m_nReconstructionPolyType;
-
-	///	<summary>
-	///		Derivatives of reconstruction polynomial on nodes.
-	///	</summary>
-	DataArray1D<double> m_dDiffReconsPolyNode;
-
-	///	<summary>
-	///		Derivatives of reconstruction polynomial on interfaces.
-	///	</summary>
-	DataArray1D<double> m_dDiffReconsPolyREdge;
-*/
 };
 
 ///////////////////////////////////////////////////////////////////////////////

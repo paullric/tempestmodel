@@ -79,6 +79,7 @@ Grid::Grid(
 	// Initialize the DataContainer
 	m_dcGridData.PushInteger(&m_nInitializedPatchBoxes);
 	m_dcGridData.PushDataChunk(&m_aPatchBoxes);
+	m_dcGridData.PushInteger(&m_eVerticalStaggering);
 	m_dcGridData.PushDataChunk(&m_eBoundaryCondition);
 	m_dcGridData.PushInteger(&m_iGridStamp);
 	m_dcGridData.PushInteger(&m_nABaseResolution);
@@ -1262,7 +1263,7 @@ GridPatch * Grid::AddPatch(
 
 	// Set the patch index
 	pPatch->m_ixPatch = ixNextPatch;
-
+/*
 	// Update the cumulative 2D index
 	if (ixNextPatch == 0) {
 		m_vecCumulativePatch2DNodeIndex.push_back(0);
@@ -1271,7 +1272,7 @@ GridPatch * Grid::AddPatch(
 	m_vecCumulativePatch2DNodeIndex.push_back(
 		m_vecCumulativePatch2DNodeIndex[ixNextPatch]
 		+ pPatch->GetTotalNodeCount2D());
-
+*/
 	return pPatch;
 }
 
@@ -1280,7 +1281,7 @@ GridPatch * Grid::AddPatch(
 void Grid::ToFile(
 	NcFile & ncfile
 ) {
-
+/*
 	// Output physical constants
 	const PhysicalConstants & phys = m_model.GetPhysicalConstants();
 
@@ -1392,17 +1393,7 @@ void Grid::ToFile(
 
 	varREtaInterfaces->put(
 		&(m_dREtaStretchInterfaces[0]), m_dREtaStretchInterfaces.GetRows());
-/*
-	// Output location of each variable
-	NcDim * dimVarLocation =
-		ncfile.add_dim("component", m_vecVarLocation.size());
 
-	NcVar * varVarLocation =
-		ncfile.add_var("var_location", ncInt, dimVarLocation);
-
-	varVarLocation->put(
-		(int*)(&(m_vecVarLocation[0])), m_vecVarLocation.size());
-*/
 	// Output PatchBox for each patch
 	NcDim * dimPatchInfoCount =
 		ncfile.add_dim("patch_info_count", 7);
@@ -1425,7 +1416,7 @@ void Grid::ToFile(
 
 		varPatchInfo->set_cur(n, 0);
 		varPatchInfo->put(iPatchInfo, 1, 7);
-/*
+
 		varANodeCoord->set_cur(iANodeIndex);
 		varBNodeCoord->set_cur(iBNodeIndex);
 		varAEdgeCoord->set_cur(iAEdgeIndex);
@@ -1440,8 +1431,9 @@ void Grid::ToFile(
 		iAEdgeIndex += pPatch->GetAEdges().GetRows();
 		iBNodeIndex += pPatch->GetBNodes().GetRows();
 		iBEdgeIndex += pPatch->GetBEdges().GetRows();
-*/
+
 	}
+*/
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1449,6 +1441,7 @@ void Grid::ToFile(
 void Grid::FromFile(
 	const std::string & strGridFile
 ) {
+/*
 	// Check for existing patches
 	if (GetPatchCount() != 0) {
 		_EXCEPTIONT("Trying to load over non-empty grid");
@@ -1542,16 +1535,7 @@ void Grid::FromFile(
 
 	//m_dREtaStretchInterfaces.Allocate(nREtaInterfaces);
 	varREtaInterfaces->get(m_dREtaStretchInterfaces, nREtaInterfaces);
-/*
-	// Load in location of variables
-	NcVar * varVarLocation = ncfile.get_var("var_location");
 
-	NcDim * dimVarLocation = varVarLocation->get_dim(0);
-	int nComponents = static_cast<int>(dimVarLocation->size());
-
-	m_vecVarLocation.resize(nComponents);
-	varVarLocation->get((int*)(&(m_vecVarLocation[0])), nComponents);
-*/
 	// Coordinate arrays
 	int iANodeIndex = 0;
 	int iBNodeIndex = 0;
@@ -1631,6 +1615,7 @@ void Grid::FromFile(
 		iAEdgeIndex += nANodes+1;
 		iBEdgeIndex += nBNodes+1;
 	}
+*/
 }
 
 ///////////////////////////////////////////////////////////////////////////////

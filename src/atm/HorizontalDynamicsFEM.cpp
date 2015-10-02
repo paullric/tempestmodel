@@ -2027,6 +2027,104 @@ void HorizontalDynamicsFEM::ApplyRayleighFriction(
 
 ///////////////////////////////////////////////////////////////////////////////
 
+int HorizontalDynamicsFEM::GetSubStepAfterSubCycleCount() {
+	int iSubStepCount = m_nHyperviscosityOrder / 2;
+
+#ifdef UNIFORM_DIFFUSION
+	iSubStepCount++;
+#endif
+
+	return iSubStepCount;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+int HorizontalDynamicsFEM::SubStepAfterSubCycle(
+	int iDataInitial,
+	int iDataUpdate,
+	int iDataWorking,
+	const Time & time,
+	double dDeltaT,
+	int iSubStep
+) {
+
+	// Get the GLL grid
+	GridGLL * pGrid = dynamic_cast<GridGLL*>(m_model.GetGrid());
+
+#ifdef UNIFORM_DIFFUSION
+	const int iFirstHypervisSubStep = 1;
+
+	// Apply scalar and vector viscosity
+	if (iSubStep == 0) {
+		const double dUniformDiffusionCoeff = 75.0;
+
+		ApplyScalarHyperdiffusion(
+			iDataInitial,
+			iDataUpdate,
+			dDeltaT,
+			dUniformDiffusionCoeff,
+			false);
+
+		ApplyVectorHyperdiffusion(
+			iDataInitial,
+			iDataUpdate,
+			-dDeltaT,
+			dUniformDiffusionCoeff,
+			dUniformDiffusionCoeff,
+			false);
+
+		// Apply positive definite filter to tracers
+		FilterNegativeTracers(iDataUpdate);
+
+		return iDataUpdate;
+	}
+
+#else
+	const int iFirstHypervisSubStep = 0;
+#endif
+
+	// First calculation of Laplacian
+	if (iSubStep == iFirstHypervisSubStep) {
+
+		// Apply scalar and vector hyperviscosity (first application)
+		pGrid->ZeroData(iDataWorking, DataType_State);
+		pGrid->ZeroData(iDataWorking, DataType_Tracers);
+
+		ApplyScalarHyperdiffusion(
+			iDataInitial, iDataWorking, 1.0, 1.0, false);
+		ApplyVectorHyperdiffusion(
+			iDataInitial, iDataWorking, 1.0, 1.0, 1.0, false);
+
+		return iDataWorking;
+
+	// Second calculation of Laplacian
+	} else if (iSubStep == iFirstHypervisSubStep+1) {
+
+		// Copy initial data to updated data
+		pGrid->CopyData(iDataInitial, iDataUpdate, DataType_State);
+		pGrid->CopyData(iDataInitial, iDataUpdate, DataType_Tracers);
+
+		// Apply scalar and vector hyperviscosity (second application)
+		ApplyScalarHyperdiffusion(
+			iDataWorking, iDataUpdate, -dDeltaT, m_dNuScalar, true);
+		ApplyVectorHyperdiffusion(
+			iDataWorking, iDataUpdate, -dDeltaT, m_dNuDiv, m_dNuVort, true);
+
+		// Apply positive definite filter to tracers
+		FilterNegativeTracers(iDataUpdate);
+
+#ifdef APPLY_RAYLEIGH_WITH_HYPERVIS
+		// Apply Rayleigh damping
+		if (pGrid->HasRayleighFriction()) {
+			ApplyRayleighFriction(iDataUpdate, dDeltaT);
+		}
+#endif
+		return iDataUpdate;
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
 void HorizontalDynamicsFEM::StepAfterSubCycle(
 	int iDataInitial,
 	int iDataUpdate,

@@ -237,6 +237,36 @@ void Model::EvaluateStateFromRestartFile() {
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+/*
+void Model::SubStep(
+	bool fFirstStep,
+	bool fLastStep,
+	int iSubStep
+) {
+	// Next time step
+	double dDeltaT;
+
+	Time timeNext = m_time;
+	timeNext += m_param.m_timeDeltaT;
+
+	if (timeNext >= m_param.m_timeEnd) {
+		dDeltaT = m_param.m_timeEnd - m_time;
+		fLastStep = true;
+
+	} else {
+		dDeltaT = timeNext - m_time;
+	}
+
+	// Substep
+	m_pTimestepScheme->SubStep(
+		fFirstStep,
+		fLastStep,
+		m_time,
+		dDeltaT,
+		iSubStep);
+}
+*/
+///////////////////////////////////////////////////////////////////////////////
 
 void Model::Go() {
 

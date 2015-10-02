@@ -71,6 +71,11 @@ public:
 	}
 
 	///	<summary>
+	///		Get the number of substeps.
+	///	</summary>
+	virtual int GetSubStepCount() const;
+
+	///	<summary>
 	///		Get the maximum stable Courant number for the explicit part of the
 	///		Timesteps scheme.
 	///	</summary>
@@ -80,6 +85,17 @@ public:
 	) const;
 
 protected:
+	///	<summary>
+	///		Perform one time substep.
+	///	</summary>
+	virtual int SubStep(
+		bool fFirstStep,
+		bool fLastStep,
+		const Time & time,
+		double dDeltaT,
+		int iSubStep
+	);
+
 	///	<summary>
 	///		Perform one time step.
 	///	</summary>
@@ -100,6 +116,11 @@ private:
 	///		Explicit time discretization to use.
 	///	</summary>
 	ExplicitDiscretization m_eExplicitDiscretization;
+
+	///	<summary>
+	///		Number of sub-steps in explicit discretization.
+	///	</summary>
+	int m_nExplicitSubSteps;
 
 	///	<summary>
 	///		Carryover combination.
