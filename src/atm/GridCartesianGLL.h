@@ -42,7 +42,6 @@ public:
 		int nRElements,
 		double dGDim[],
 		double dRefLat,
-		double dTopoHeight,
 		VerticalStaggering eVerticalStaggering =
 			VerticalStaggering_CharneyPhillips
 	);
@@ -131,8 +130,44 @@ public:
 		int iDataUpdate,
 		DataType eDataType = DataType_State
 	);
+
+public:
+	///	<summary>
+	///		Get the reference latitude for f-plane or b-plane models
+	///	</summary>
+	double GetReferenceLatitude() const {
+		return m_dRefLat;
+	}
+
+	///	<summary>
+	///		Get the minimum X dimension
+	///	</summary>
+	double GetMinimumX() const {
+		return m_dGDim[0];
+	}
+
+	///	<summary>
+	///		Get the maximum X dimension
+	///	</summary>
+	double GetMaximumX() const {
+		return m_dGDim[1];
+	}
+
+	///	<summary>
+	///		Get the minimum Y dimension
+	///	</summary>
+	double GetMinimumY() const {
+		return m_dGDim[2];
+	}
+
+	///	<summary>
+	///		Get the maximum Y dimension
+	///	</summary>
+	double GetMaximumY() const {
+		return m_dGDim[3];
+	}
 	
-private:
+public:
 	///	<summary>
 	///		Dimension of the grid - private to cartesian grids.
 	///	</summary>
@@ -142,12 +177,6 @@ private:
 	///		Referece latitude (for beta plane cases)
 	///	</summary>
 	double m_dRefLat;
-
-	///	<summary>
-	///		Maximum height of a topography feature
-	///	</summary>
-	double m_dTopoHeight;
-
 };
 
 ///////////////////////////////////////////////////////////////////////////////

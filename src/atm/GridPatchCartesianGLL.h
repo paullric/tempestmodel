@@ -18,6 +18,7 @@
 #define _GRIDPATCHCARTESIANGLL_H_
 
 #include "Grid.h"
+#include "GridCartesianGLL.h"
 #include "GridPatchGLL.h"
 #include "DataArray3D.h"
 
@@ -43,10 +44,7 @@ public:
 		int ixPatch,
 		const PatchBox & box,
 		int nHorizontalOrder,
-		int nVerticalOrder,
-		double dGDim[],
-		double dRefLat,
-		double dTopoHeight
+		int nVerticalOrder
 	);
 
 public:
@@ -147,27 +145,32 @@ public:
 		bool fConvertToPrimitive = true
 	);
 
-private:
-	///	<summary>
-	///		Dimension of the grid - private to cartesian grids.
-	///	</summary>
-	double m_dGDim[6];
+public:
 
 	///	<summary>
-	///		Referece latitude (for beta plane cases)
+	///		Get the maximum of the topography field
 	///	</summary>
-	double m_dRefLat;
+	double GetMaximumTopo() {
+		return m_dTopoHeight;
+	}
 
+	///	<summary>
+	///		Get the reference latitude for f-plane or b-plane models
+	///	</summary>
+	double GetTopoScaleHeight() {
+		return m_dSL;
+	}
+
+public:
 	///	<summary>
 	///		Maximum height of a topography feature
 	///	</summary>
-	double m_dTopoHeight;
+    double m_dTopoHeight;
 
 	///	<summary>
 	///		Scale height for exponential decay of topography
 	///	</summary>
 	double m_dSL;
-
 };
 
 ///////////////////////////////////////////////////////////////////////////////

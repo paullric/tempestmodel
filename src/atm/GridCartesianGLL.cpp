@@ -43,7 +43,6 @@ GridCartesianGLL::GridCartesianGLL(
 	int nRElements,
 	double dGDim[],
 	double dRefLat,
-	double dTopoHeight,
 	VerticalStaggering eVerticalStaggering
 ) :
 	// Call up the stack
@@ -77,9 +76,6 @@ GridCartesianGLL::GridCartesianGLL(
 	// Bring in the reference latitude (if any) for large regions where the
 	// beta plane approximation is necessary in the equations
 	m_dRefLat = dRefLat;
-
-	// Set the max topography height from the test case definition
-	m_dTopoHeight = dTopoHeight;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -158,10 +154,7 @@ GridPatch * GridCartesianGLL::AddPatch(
 				ixPatch,
 				box,
 				m_nHorizontalOrder,
-				m_nVerticalOrder,
-				m_dGDim,
-				m_dRefLat,
-				m_dTopoHeight));
+				m_nVerticalOrder));
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -470,6 +463,11 @@ void GridCartesianGLL::ApplyDSS(
 			nComponents = 2;
 		} else {
 			_EXCEPTIONT("Invalid DataType");
+		}
+
+		// Apply BC only to state DSS
+		if (eDataType == DataType_State) {
+			pPatch->ApplyBoundaryConditions(iDataUpdate);
 		}
 
 		// Perform Direct Stiffness Summation (DSS)

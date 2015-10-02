@@ -459,7 +459,6 @@ void _TempestSetupCartesianModel(
 			vars.nLevels,
 			dGDim,
 			dRefLat,
-			dTopoHeight,
 			eVerticalStaggering);
 
 	// Set the vertical stretching function

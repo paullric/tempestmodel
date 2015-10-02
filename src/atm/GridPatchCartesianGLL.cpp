@@ -41,10 +41,7 @@ GridPatchCartesianGLL::GridPatchCartesianGLL(
 	int ixPatch,
 	const PatchBox & box,
 	int nHorizontalOrder,
-	int nVerticalOrder,
-	double dGDim[],
-	double dRefLat,
-	double dTopoHeight
+	int nVerticalOrder
 ) :
 	GridPatchGLL(
 		grid,
@@ -53,18 +50,7 @@ GridPatchCartesianGLL::GridPatchCartesianGLL(
 		nHorizontalOrder,
 		nVerticalOrder)
 {
-	// Bring in the reference latitude (if any) for large regions where the
-	// beta plane approximation is necessary in the equations
-	m_dRefLat = dRefLat;
 
-	// Bring in the grid dimensions as a member variable
-	// Bring through the grid dimensions
-	m_dGDim[0] = dGDim[0]; m_dGDim[1] = dGDim[1];
-	m_dGDim[2] = dGDim[2]; m_dGDim[3] = dGDim[3];
-	m_dGDim[4] = dGDim[4]; m_dGDim[5] = dGDim[5];
-
-	// Set the max topography height from the test case definition
-	m_dTopoHeight = dTopoHeight;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -92,28 +78,30 @@ void GridPatchCartesianGLL::InitializeDataLocal(
 	} else {
 		Announce("WARNING: Geometric data not initialized");
 	}
-
-	// Set the scale height for the decay of topography features
-	m_dSL = 10.0 * m_dTopoHeight;
-
-	if (m_dSL >= m_grid.GetZtop()) {
- 		_EXCEPTIONT("Coordinate scale height exceeds model top.");
-	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 
 void GridPatchCartesianGLL::InitializeCoordinateData() {
 
-	double dElementDeltaA = (m_dGDim[1] - m_dGDim[0])
+	// Get the Cartesian grid
+	GridCartesianGLL & gridCartesianGLL =
+		dynamic_cast<GridCartesianGLL &>(m_grid);
+
+	double dElementDeltaA = (gridCartesianGLL.GetMaximumX() -
+							 gridCartesianGLL.GetMinimumX())
 		/ static_cast<double>(m_grid.GetABaseResolution());
-	double dElementDeltaB = (m_dGDim[3] - m_dGDim[2])
+	double dElementDeltaB = (gridCartesianGLL.GetMaximumY() - 
+							 gridCartesianGLL.GetMinimumY())
 		/ static_cast<double>(m_grid.GetBBaseResolution());
 
+	
+	double X0 = gridCartesianGLL.GetMinimumX();
+	double Y0 = gridCartesianGLL.GetMinimumY();
 	GridSpacingGaussLobattoRepeated
-		glspacingA(dElementDeltaA, m_dGDim[0], m_nHorizontalOrder);
+		glspacingA(dElementDeltaA, X0, m_nHorizontalOrder);
 	GridSpacingGaussLobattoRepeated
-		glspacingB(dElementDeltaB, m_dGDim[2], m_nHorizontalOrder);
+		glspacingB(dElementDeltaB, Y0, m_nHorizontalOrder);
 
 	for (int i = m_box.GetAGlobalBegin(); i < m_box.GetAGlobalEnd(); i++) {
 		m_dANode[i - m_box.GetAGlobalBegin()] = glspacingA.GetNode(i);
@@ -145,6 +133,10 @@ void GridPatchCartesianGLL::EvaluateTopography(
 	const TestCase & test
 ) {
 	const PhysicalConstants & phys = m_grid.GetModel().GetPhysicalConstants();
+	
+	// Get the cartesian grid
+	GridCartesianGLL & gridCartesianGLL =
+		dynamic_cast<GridCartesianGLL &>(m_grid);
 
 	// Compute values of topography
 	for (int i = 0; i < m_box.GetATotalWidth(); i++) {
@@ -158,13 +150,23 @@ void GridPatchCartesianGLL::EvaluateTopography(
 		if (m_dataTopography[i][j] >= m_grid.GetZtop()) {
 			_EXCEPTIONT("TestCase topography exceeds model top.");
 		}
+		
+		// Search and set the highest point in the topography
+		if ((i > 0) && (j > 0) && 
+			(m_dataTopography[i][j] > m_dataTopography[i-1][j-1])) {
+			m_dTopoHeight = m_dataTopography[i][j];
+		}
 	}
+	}
+
+	// Set the scale height for the decay of topography features (SLEVE)
+	m_dSL = 10.0 * m_dTopoHeight;
+
+	if (m_dSL >= m_grid.GetZtop()) {
+ 		_EXCEPTIONT("Coordinate scale height exceeds model top.");
 	}
 
 	// Get derivatves from basis
-	GridCartesianGLL & gridCartesianGLL =
-		dynamic_cast<GridCartesianGLL &>(m_grid);
-
 	const DataArray2D<double> & dDxBasis1D =
 		gridCartesianGLL.GetDxBasis1D();
 
@@ -249,12 +251,14 @@ void GridPatchCartesianGLL::EvaluateGeometricTerms() {
 		dynamic_cast<GridCartesianGLL &>(m_grid);
 
 	const DataArray2D<double> & dDxBasis1D = gridCartesianGLL.GetDxBasis1D();
-	
-	double dy0 = 0.5 * fabs(m_dGDim[3] - m_dGDim[2]);
-	double dfp = 2.0 * phys.GetOmega() * sin(m_dRefLat);
-	double dbetap = 2.0 * phys.GetOmega() * cos(m_dRefLat) / 
-					phys.GetEarthRadius();
+
 	// Initialize the Coriolis force at each node
+	double dRefLat = gridCartesianGLL.GetReferenceLatitude();	
+	double dy0 = 0.5 * fabs(gridCartesianGLL.GetMaximumY() - 
+							gridCartesianGLL.GetMinimumY());
+	double dfp = 2.0 * phys.GetOmega() * sin(dRefLat);
+	double dbetap = 2.0 * phys.GetOmega() * cos(dRefLat) / 
+					phys.GetEarthRadius();
 	for (int i = 0; i < m_box.GetATotalWidth(); i++) {
 	for (int j = 0; j < m_box.GetBTotalWidth(); j++) {
 		// Coriolis force by beta approximation
@@ -699,19 +703,6 @@ void GridPatchCartesianGLL::ApplyBoundaryConditions(
 	} else if (m_grid.GetVerticalStaggering() ==
 		Grid::VerticalStaggering_Interfaces
 	) {
-		for (int i = m_box.GetAInteriorBegin(); i < m_box.GetAInteriorEnd(); i++) {
-		for (int j = m_box.GetBInteriorBegin(); j < m_box.GetBInteriorEnd(); j++) {
-
-			m_datavecStateNode[iDataIndex][WIx][0][i][j] =
-				- ( m_dataContraMetricXi[0][i][j][0]
-					* m_datavecStateNode[iDataIndex][UIx][0][i][j]
-				  + m_dataContraMetricXi[0][i][j][1]
-					* m_datavecStateNode[iDataIndex][VIx][0][i][j])
-				/ m_dataContraMetricXi[0][i][j][2]
-				/ m_dataDerivRNode[0][i][j][2];
-		}
-		}
-
 		// Impose boundary conditions along right edge
 		Grid::BoundaryCondition eBoundaryRight =
 			m_grid.GetBoundaryCondition(Direction_Right);
@@ -719,7 +710,7 @@ void GridPatchCartesianGLL::ApplyBoundaryConditions(
 			int i = m_box.GetAInteriorEnd();
 
 			for (int k = 0; k < m_grid.GetRElements(); k++) {
-			for (int j = m_box.GetBInteriorBegin(); j < m_box.GetBInteriorEnd(); j++) {
+			for (int j = 0; j < m_box.GetBTotalWidth(); j++) {
 				m_datavecStateNode[iDataIndex][UIx][k][i][j] =
 					- m_datavecStateNode[iDataIndex][UIx][k][i-1][j];
 
@@ -739,7 +730,7 @@ void GridPatchCartesianGLL::ApplyBoundaryConditions(
 			int j = m_box.GetBInteriorEnd();
 
 			for (int k = 0; k < m_grid.GetRElements(); k++) {
-			for (int i = m_box.GetAInteriorBegin(); i < m_box.GetAInteriorEnd(); i++) {
+			for (int i = 0; i < m_box.GetATotalWidth(); i++) {
 				m_datavecStateNode[iDataIndex][UIx][k][i][j] =
 					- m_datavecStateNode[iDataIndex][UIx][k][i][j-1];
 
@@ -760,7 +751,7 @@ void GridPatchCartesianGLL::ApplyBoundaryConditions(
 			int i = m_box.GetAInteriorBegin()-1;
 
 			for (int k = 0; k < m_grid.GetRElements(); k++) {
-			for (int j = m_box.GetBInteriorBegin(); j < m_box.GetBInteriorEnd(); j++) {
+			for (int j = 0; j < m_box.GetBTotalWidth(); j++) {
 				m_datavecStateNode[iDataIndex][UIx][k][i][j] =
 					- m_datavecStateNode[iDataIndex][UIx][k][i+1][j];
 
@@ -776,11 +767,11 @@ void GridPatchCartesianGLL::ApplyBoundaryConditions(
 		// Impose boundary conditions along bottom edge
 		Grid::BoundaryCondition eBoundaryBottom =
 			m_grid.GetBoundaryCondition(Direction_Bottom);
-		if (eBoundaryTop == Grid::BoundaryCondition_NoFlux) {
+		if (eBoundaryBottom == Grid::BoundaryCondition_NoFlux) {
 			int j = m_box.GetBInteriorBegin()-1;
 
 			for (int k = 0; k < m_grid.GetRElements(); k++) {
-			for (int i = m_box.GetAInteriorBegin(); i < m_box.GetAInteriorEnd(); i++) {
+			for (int i = 0; i < m_box.GetATotalWidth(); i++) {
 				m_datavecStateNode[iDataIndex][UIx][k][i][j] =
 					- m_datavecStateNode[iDataIndex][UIx][k][i][j+1];
 
@@ -795,22 +786,6 @@ void GridPatchCartesianGLL::ApplyBoundaryConditions(
 
 	// Impose boundary conditions (vertical velocity on interfaces)
 	} else {
-		for (int i = m_box.GetAInteriorBegin(); i < m_box.GetAInteriorEnd(); i++) {
-		for (int j = m_box.GetBInteriorBegin(); j < m_box.GetBInteriorEnd(); j++) {
-
-			m_datavecStateREdge[iDataIndex][WIx][0][i][j] =
-				- ( m_dataContraMetricXiREdge[0][i][j][0]
-					* m_datavecStateREdge[iDataIndex][UIx][0][i][j]
-				  + m_dataContraMetricXiREdge[0][i][j][1]
-					* m_datavecStateREdge[iDataIndex][VIx][0][i][j])
-				/ m_dataContraMetricXiREdge[0][i][j][2]
-				/ m_dataDerivRREdge[0][i][j][2];
-		}
-		}
-
-		// Interpolated W values needed for lateral boundary conditions
-		//m_grid.InterpolateREdgeToNode(WIx, iDataIndex);
-
 		// Impose boundary conditions along right edge
 		Grid::BoundaryCondition eBoundaryRight =
 			m_grid.GetBoundaryCondition(Direction_Right);
@@ -818,17 +793,25 @@ void GridPatchCartesianGLL::ApplyBoundaryConditions(
 			int i = m_box.GetAInteriorEnd();
 
 			for (int k = 0; k < m_grid.GetRElements(); k++) {
-			for (int j = m_box.GetBInteriorBegin(); j < m_box.GetBInteriorEnd(); j++) {
+			for (int j = 0; j < m_box.GetBTotalWidth(); j++) {
 				m_datavecStateNode[iDataIndex][UIx][k][i][j] =
 					- m_datavecStateNode[iDataIndex][UIx][k][i-1][j];
 
 				m_datavecStateNode[iDataIndex][VIx][k][i][j] =
 					- m_datavecStateNode[iDataIndex][VIx][k][i-1][j];
+
+				m_datavecStateNode[iDataIndex][WIx][k][i][j] =
+					- m_datavecStateNode[iDataIndex][WIx][k][i-1][j];
 			}
 			}
 
 			for (int k = 0; k <= m_grid.GetRElements(); k++) {
-			for (int j = m_box.GetBInteriorBegin(); j < m_box.GetBInteriorEnd(); j++) {
+			for (int j = 0; j < m_box.GetBTotalWidth(); j++) {
+				m_datavecStateREdge[iDataIndex][UIx][k][i][j] =
+					- m_datavecStateREdge[iDataIndex][UIx][k][i-1][j];
+
+				m_datavecStateREdge[iDataIndex][VIx][k][i][j] =
+					- m_datavecStateREdge[iDataIndex][VIx][k][i-1][j];
 
 				m_datavecStateREdge[iDataIndex][WIx][k][i][j] =
 					- m_datavecStateREdge[iDataIndex][WIx][k][i-1][j];
@@ -843,17 +826,26 @@ void GridPatchCartesianGLL::ApplyBoundaryConditions(
 			int j = m_box.GetBInteriorEnd();
 
 			for (int k = 0; k < m_grid.GetRElements(); k++) {
-			for (int i = m_box.GetAInteriorBegin(); i < m_box.GetAInteriorEnd(); i++) {
+			for (int i = 0; i < m_box.GetATotalWidth(); i++) {
 				m_datavecStateNode[iDataIndex][UIx][k][i][j] =
 					- m_datavecStateNode[iDataIndex][UIx][k][i][j-1];
 
 				m_datavecStateNode[iDataIndex][VIx][k][i][j] =
 					- m_datavecStateNode[iDataIndex][VIx][k][i][j-1];
+
+				m_datavecStateNode[iDataIndex][WIx][k][i][j] =
+					- m_datavecStateNode[iDataIndex][WIx][k][i][j-1];
 			}
 			}
 
 			for (int k = 0; k <= m_grid.GetRElements(); k++) {
-			for (int i = m_box.GetAInteriorBegin(); i < m_box.GetAInteriorEnd(); i++) {
+			for (int i = 0; i < m_box.GetATotalWidth(); i++) {
+				m_datavecStateREdge[iDataIndex][UIx][k][i][j] =
+					- m_datavecStateREdge[iDataIndex][UIx][k][i][j-1];
+
+				m_datavecStateREdge[iDataIndex][VIx][k][i][j] =
+					- m_datavecStateREdge[iDataIndex][VIx][k][i][j-1];
+
 				m_datavecStateREdge[iDataIndex][WIx][k][i][j] =
 					- m_datavecStateREdge[iDataIndex][WIx][k][i][j-1];
 
@@ -868,17 +860,25 @@ void GridPatchCartesianGLL::ApplyBoundaryConditions(
 			int i = m_box.GetAInteriorBegin()-1;
 
 			for (int k = 0; k < m_grid.GetRElements(); k++) {
-			for (int j = m_box.GetBInteriorBegin(); j < m_box.GetBInteriorEnd(); j++) {
+			for (int j = 0; j < m_box.GetBTotalWidth(); j++) {
 				m_datavecStateNode[iDataIndex][UIx][k][i][j] =
 					- m_datavecStateNode[iDataIndex][UIx][k][i+1][j];
 
 				m_datavecStateNode[iDataIndex][VIx][k][i][j] =
 					- m_datavecStateNode[iDataIndex][VIx][k][i+1][j];
+
+				m_datavecStateNode[iDataIndex][WIx][k][i][j] =
+					- m_datavecStateNode[iDataIndex][WIx][k][i+1][j];
 			}
 			}
 
 			for (int k = 0; k <= m_grid.GetRElements(); k++) {
-			for (int j = m_box.GetBInteriorBegin(); j < m_box.GetBInteriorEnd(); j++) {
+			for (int j = 0; j < m_box.GetBTotalWidth(); j++) {
+				m_datavecStateREdge[iDataIndex][UIx][k][i][j] =
+					- m_datavecStateREdge[iDataIndex][UIx][k][i+1][j];
+
+				m_datavecStateREdge[iDataIndex][VIx][k][i][j] =
+					- m_datavecStateREdge[iDataIndex][VIx][k][i+1][j];
 
 				m_datavecStateREdge[iDataIndex][WIx][k][i][j] =
 					- m_datavecStateREdge[iDataIndex][WIx][k][i+1][j];
@@ -889,171 +889,37 @@ void GridPatchCartesianGLL::ApplyBoundaryConditions(
 		// Impose boundary conditions along bottom edge
 		Grid::BoundaryCondition eBoundaryBottom =
 			m_grid.GetBoundaryCondition(Direction_Bottom);
-		if (eBoundaryTop == Grid::BoundaryCondition_NoFlux) {
+		if (eBoundaryBottom == Grid::BoundaryCondition_NoFlux) {
 			int j = m_box.GetBInteriorBegin()-1;
 
 			for (int k = 0; k < m_grid.GetRElements(); k++) {
-			for (int i = m_box.GetAInteriorBegin(); i < m_box.GetAInteriorEnd(); i++) {
+			for (int i = 0; i < m_box.GetATotalWidth(); i++) {
 				m_datavecStateNode[iDataIndex][UIx][k][i][j] =
 					- m_datavecStateNode[iDataIndex][UIx][k][i][j+1];
 
 				m_datavecStateNode[iDataIndex][VIx][k][i][j] =
 					- m_datavecStateNode[iDataIndex][VIx][k][i][j+1];
+
+				m_datavecStateNode[iDataIndex][WIx][k][i][j] =
+					- m_datavecStateNode[iDataIndex][WIx][k][i][j+1];
 			}
 			}
 
 			for (int k = 0; k <= m_grid.GetRElements(); k++) {
-			for (int i = m_box.GetAInteriorBegin(); i < m_box.GetAInteriorEnd(); i++) {
+			for (int i = 0; i < m_box.GetATotalWidth(); i++) {
+				m_datavecStateREdge[iDataIndex][UIx][k][i][j] =
+					- m_datavecStateREdge[iDataIndex][UIx][k][i][j+1];
+
+				m_datavecStateREdge[iDataIndex][VIx][k][i][j] =
+					- m_datavecStateREdge[iDataIndex][VIx][k][i][j+1];
 
 				m_datavecStateREdge[iDataIndex][WIx][k][i][j] =
 					- m_datavecStateREdge[iDataIndex][WIx][k][i][j+1];
 			}
 			}
 		}
-
-		// Interpolated W values needed for lateral boundary conditions
-		m_grid.InterpolateREdgeToNode(WIx, iDataIndex);
-	}
-/*
-	// Interpolated U and V values needed for staggered configurations
-	m_grid.InterpolateNodeToREdge(UIx, iDataIndex);
-	m_grid.InterpolateNodeToREdge(VIx, iDataIndex);
-
-	// Impose boundary conditions along right edge
-	Grid::BoundaryCondition eBoundaryRight =
-		m_grid.GetBoundaryCondition(Direction_Right);
-	if (eBoundaryRight == Grid::BoundaryCondition_NoFlux) {
-		int i = m_box.GetAInteriorEnd();
-
-		for (int k = 0; k < m_grid.GetRElements(); k++) {
-		for (int j = m_box.GetBInteriorBegin(); j < m_box.GetBInteriorEnd(); j++) {
-			m_datavecStateNode[iDataIndex][UIx][k][i][j] =
-				- m_datavecStateNode[iDataIndex][UIx][k][i-1][j];
-
-			m_datavecStateNode[iDataIndex][VIx][k][i][j] =
-				- m_datavecStateNode[iDataIndex][VIx][k][i-1][j];
-
-			m_datavecStateNode[iDataIndex][WIx][k][i][j] =
-				- m_datavecStateNode[iDataIndex][WIx][k][i-1][j];
-		}
-		}
-
-		for (int k = 0; k <= m_grid.GetRElements(); k++) {
-		for (int j = m_box.GetBInteriorBegin(); j < m_box.GetBInteriorEnd(); j++) {
-			m_datavecStateREdge[iDataIndex][UIx][k][i][j] =
-				- m_datavecStateREdge[iDataIndex][UIx][k][i-1][j];
-
-			m_datavecStateREdge[iDataIndex][VIx][k][i][j] =
-				- m_datavecStateREdge[iDataIndex][VIx][k][i-1][j];
-
-			m_datavecStateREdge[iDataIndex][WIx][k][i][j] =
-				- m_datavecStateREdge[iDataIndex][WIx][k][i-1][j];
-		}
-		}
-	}
-
-	// Impose boundary conditions along top edge
-	Grid::BoundaryCondition eBoundaryTop =
-		m_grid.GetBoundaryCondition(Direction_Top);
-	if (eBoundaryTop == Grid::BoundaryCondition_NoFlux) {
-		int j = m_box.GetBInteriorEnd();
-
-		for (int k = 0; k < m_grid.GetRElements(); k++) {
-		for (int i = m_box.GetAInteriorBegin(); i < m_box.GetAInteriorEnd(); i++) {
-			m_datavecStateNode[iDataIndex][UIx][k][i][j] =
-				- m_datavecStateNode[iDataIndex][UIx][k][i][j-1];
-
-			m_datavecStateNode[iDataIndex][VIx][k][i][j] =
-				- m_datavecStateNode[iDataIndex][VIx][k][i][j-1];
-
-			m_datavecStateNode[iDataIndex][WIx][k][i][j] =
-				- m_datavecStateNode[iDataIndex][WIx][k][i][j-1];
-
-		}
-		}
-
-		for (int k = 0; k <= m_grid.GetRElements(); k++) {
-		for (int i = m_box.GetAInteriorBegin(); i < m_box.GetAInteriorEnd(); i++) {
-			m_datavecStateREdge[iDataIndex][UIx][k][i][j] =
-				- m_datavecStateREdge[iDataIndex][UIx][k][i][j-1];
-
-			m_datavecStateREdge[iDataIndex][VIx][k][i][j] =
-				- m_datavecStateREdge[iDataIndex][VIx][k][i][j-1];
-
-			m_datavecStateREdge[iDataIndex][WIx][k][i][j] =
-				- m_datavecStateREdge[iDataIndex][WIx][k][i][j-1];
-
-		}
-		}
-	}
-
-	// Impose boundary conditions along left edge
-	Grid::BoundaryCondition eBoundaryLeft =
-		m_grid.GetBoundaryCondition(Direction_Left);
-	if (eBoundaryLeft == Grid::BoundaryCondition_NoFlux) {
-		int i = m_box.GetAInteriorBegin()-1;
-
-		for (int k = 0; k < m_grid.GetRElements(); k++) {
-		for (int j = m_box.GetBInteriorBegin(); j < m_box.GetBInteriorEnd(); j++) {
-			m_datavecStateNode[iDataIndex][UIx][k][i][j] =
-				- m_datavecStateNode[iDataIndex][UIx][k][i+1][j];
-
-			m_datavecStateNode[iDataIndex][VIx][k][i][j] =
-				- m_datavecStateNode[iDataIndex][VIx][k][i+1][j];
-
-			m_datavecStateNode[iDataIndex][WIx][k][i][j] =
-				- m_datavecStateNode[iDataIndex][WIx][k][i+1][j];
-		}
-		}
-
-		for (int k = 0; k <= m_grid.GetRElements(); k++) {
-		for (int j = m_box.GetBInteriorBegin(); j < m_box.GetBInteriorEnd(); j++) {
-			m_datavecStateREdge[iDataIndex][UIx][k][i][j] =
-				- m_datavecStateREdge[iDataIndex][UIx][k][i+1][j];
-
-			m_datavecStateREdge[iDataIndex][VIx][k][i][j] =
-				- m_datavecStateREdge[iDataIndex][VIx][k][i+1][j];
-
-			m_datavecStateREdge[iDataIndex][WIx][k][i][j] =
-				- m_datavecStateREdge[iDataIndex][WIx][k][i+1][j];
-		}
-		}
-	}
-
-	// Impose boundary conditions along bottom edge
-	Grid::BoundaryCondition eBoundaryBottom =
-		m_grid.GetBoundaryCondition(Direction_Bottom);
-	if (eBoundaryTop == Grid::BoundaryCondition_NoFlux) {
-		int j = m_box.GetBInteriorBegin()-1;
-
-		for (int k = 0; k < m_grid.GetRElements(); k++) {
-		for (int i = m_box.GetAInteriorBegin(); i < m_box.GetAInteriorEnd(); i++) {
-			m_datavecStateNode[iDataIndex][UIx][k][i][j] =
-				- m_datavecStateNode[iDataIndex][UIx][k][i][j+1];
-
-			m_datavecStateNode[iDataIndex][VIx][k][i][j] =
-				- m_datavecStateNode[iDataIndex][VIx][k][i][j+1];
-
-			m_datavecStateNode[iDataIndex][WIx][k][i][j] =
-				- m_datavecStateNode[iDataIndex][WIx][k][i][j+1];
-		}
-		}
-
-		for (int k = 0; k <= m_grid.GetRElements(); k++) {
-		for (int i = m_box.GetAInteriorBegin(); i < m_box.GetAInteriorEnd(); i++) {
-			m_datavecStateREdge[iDataIndex][UIx][k][i][j] =
-				- m_datavecStateREdge[iDataIndex][UIx][k][i][j+1];
-
-			m_datavecStateREdge[iDataIndex][VIx][k][i][j] =
-				- m_datavecStateREdge[iDataIndex][VIx][k][i][j+1];
-
-			m_datavecStateREdge[iDataIndex][WIx][k][i][j] =
-				- m_datavecStateREdge[iDataIndex][WIx][k][i][j+1];
-		}
-		}
-	}
-*/
 #pragma message "Interpolate boundary conditions for W back to interfaces somehow"
+	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////
