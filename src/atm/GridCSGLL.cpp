@@ -59,20 +59,6 @@ GridCSGLL::GridCSGLL(
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void GridCSGLL::Initialize() {
-
-	// Call up the stack
-	GridGLL::Initialize();
-
-	// Distribute patches to processors
-	Grid::DistributePatches();
-
-	// Set up connectivity
-	Grid::InitializeConnectivity();
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
 void GridCSGLL::ApplyDefaultPatchLayout(
 	int nPatchCount
 ) {

@@ -76,7 +76,7 @@ void GridPatchCartesianGLL::InitializeDataLocal(
 	if (fAllocateGeometric) {
 		InitializeCoordinateData();
 	} else {
-		Announce("WARNING: Geometric data not initialized");
+		//Announce("WARNING: Geometric data not initialized");
 	}
 }
 

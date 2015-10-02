@@ -93,7 +93,10 @@ void Model::SetParameters(const ModelParameters & param) {
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void Model::SetGrid(Grid * pGrid) {
+void Model::SetGrid(
+	Grid * pGrid,
+	bool fInitializeConnectivity
+) {
 	if (pGrid == NULL) {
 		_EXCEPTIONT("Invalid Grid (NULL)");
 	}
@@ -118,6 +121,11 @@ void Model::SetGrid(Grid * pGrid) {
 
 	// Initialize the grid
 	m_pGrid->Initialize();
+
+	if (fInitializeConnectivity) {
+		m_pGrid->DistributePatches();
+		m_pGrid->InitializeConnectivity();
+	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////

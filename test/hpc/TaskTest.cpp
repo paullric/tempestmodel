@@ -21,7 +21,12 @@
 
 ///////////////////////////////////////////////////////////////////////////////
 
+static const int ParamHorizontalOrder = 4;
+static const int ParamVerticalOrder = 4;
+
 static const int ParamTotalPatchCount = 1;
+
+static const int ParamTotalSteps = 1;
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -31,8 +36,6 @@ void InitializeModelAndGrid(
 	// Model parameters
 	const int nResolutionX = 10;
 	const int nResolutionY = 10;
-	const int nHorizontalOrder = 4;
-	const int nVerticalOrder = 4;
 	const int nLevels = 40;
 	const int nMaxPatchCount = ParamTotalPatchCount;
 
@@ -52,6 +55,8 @@ void InitializeModelAndGrid(
 	// Set the parameters
 	ModelParameters param;
 
+	param.m_timeDeltaT.FromFormattedString("1s");
+
 	pModel->SetParameters(param);
 
 	pModel->SetTimestepScheme(new TimestepSchemeStrang(*pModel));
@@ -70,14 +75,14 @@ void InitializeModelAndGrid(
 			nResolutionX,
 			nResolutionY,
 			4,
-			nHorizontalOrder,
-			nVerticalOrder,
+			ParamHorizontalOrder,
+			ParamVerticalOrder,
 			nLevels,
 			dGDim,
 			dRefLat,
 			eVerticalStaggering);
 
-	pModel->SetGrid(pGrid);
+	pModel->SetGrid(pGrid, false);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -98,8 +103,6 @@ void InitializeTask(
 
 	// Set the data for the GridPatch
 	GridPatch * pPatch = pGrid->GetPatch(ixPatch);
-
-	_EXCEPTION();
 
 	pPatch->InitializeDataLocal(false, false, false, false);
 
@@ -126,8 +129,6 @@ void ExecuteTask(
 	unsigned char * pBufferStateData,
 	unsigned char * pAuxiliaryData
 ) {
-	const int nHorizontalOrder = 4;
-	const int nVerticalOrder = 4;
 
 	// Setup the Model
 	Model model(EquationSet::PrimitiveNonhydrostaticEquations);
@@ -147,13 +148,32 @@ void ExecuteTask(
 	pPatch->GetDataContainerAuxiliary().AttachTo(pAuxiliaryData);
 
 	// Perform sub-step
-	model.SubStep((ixStep == 0), false, ixSubStep);
+	printf("CURR:  GridPatch %i performing step %i.%i\n",
+		ixPatch, ixStep, ixSubStep);
+/*
+	model.SubStep(
+		(ixStep == 0),
+		(ixStep == ParamTotalSteps-1),
+		ixSubStep);
+*/
+	// TODO: Pack data from Patch into exchange buffers and tag as complete
 
-	// Pack data from Patch into exchange buffers
-	// UNIMPLEMENTED
+	// TODO: Create a new ExecuteTask on Patch ixPatch, ixNextStep, ixNextSubStep
+	int nSubStepsPerStep = model.GetTimestepScheme()->GetSubStepCount();
 
-	// TODO: Create a new ExecuteTask with Patch ixPatch, Step ixStep,
-	// SubStep ixSubStep+1
+	int ixNextSubStep;
+	int ixNextStep;
+
+	if (ixSubStep == nSubStepsPerStep-1) {
+		ixNextSubStep = 0;
+		ixNextStep = ixStep + 1;
+	} else {
+		ixNextSubStep = ixSubStep + 1;
+		ixNextStep = ixStep;
+	}
+
+	printf("NEXT:  GridPatch %i to perform step %i.%i (new EDT)\n",
+		ixPatch, ixNextStep, ixNextSubStep);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -165,7 +185,7 @@ int main(int argc, char** argv) {
 
 try {
 
-	// TODO: These should be in DataBlocks
+	// TODO: Create DataBlocks for all GridPatch data
 	unsigned char * pGeometricData[ParamTotalPatchCount];
 	unsigned char * pActiveStateData[ParamTotalPatchCount];
 	unsigned char * pBufferStateData[ParamTotalPatchCount];
@@ -175,13 +195,16 @@ try {
 	// BEGIN INITIALIZATION BLOCK
 
 	std::cout << "BEGIN Initialization" << std::endl;
+
 	for (int ixPatch = 0; ixPatch < ParamTotalPatchCount; ixPatch++) {
-		InitializeTask(0,
+		InitializeTask(
+			ixPatch,
 			&(pGeometricData[ixPatch]),
 			&(pActiveStateData[ixPatch]),
 			&(pBufferStateData[ixPatch]),
 			&(pAuxiliaryData[ixPatch]));
 	}
+
 	std::cout << "DONE Initialization" << std::endl;
 
 	// END INITIALIZATION BLOCK
@@ -193,9 +216,10 @@ try {
 	std::cout << "BEGIN Execution" << std::endl;
 
 	for (int ixPatch = 0; ixPatch < ParamTotalPatchCount; ixPatch++) {
-	for (int ixStep = 0; ixStep < 1; ixStep++) {
+	for (int ixStep = 0; ixStep < ParamTotalSteps; ixStep++) {
 	for (int ixSubStep = 0; ixSubStep < 1; ixSubStep++) {
-		ExecuteTask(0,
+		ExecuteTask(
+			ixPatch,
 			ixStep,
 			ixSubStep,
 			pGeometricData[ixPatch],
@@ -205,6 +229,7 @@ try {
 	}
 	}
 	}
+
 	std::cout << "DONE Execution" << std::endl;
 
 	// END MAIN PROGRAM BLOCK

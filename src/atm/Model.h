@@ -103,7 +103,10 @@ public:
 	///		Set the Grid from a pointer.  Model assumes ownership of the
 	///		pointer once it is assigned.
 	///	</summary>
-	void SetGrid(Grid * pGrid);
+	void SetGrid(
+		Grid * pGrid,
+		bool fInitializeConnectivity = true
+	);
 
 	///	<summary>
 	///		Set the TimestepScheme from a pointer.  Model assumes ownership

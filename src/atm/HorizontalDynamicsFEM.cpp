@@ -2121,6 +2121,8 @@ int HorizontalDynamicsFEM::SubStepAfterSubCycle(
 #endif
 		return iDataUpdate;
 	}
+
+	_EXCEPTIONT("Invalid iSubStep");
 }
 
 ///////////////////////////////////////////////////////////////////////////////

@@ -46,11 +46,6 @@ public:
 			VerticalStaggering_CharneyPhillips
 	);
 
-	///	<summary>
-	///		Initialize grid patches.
-	///	</summary>
-	virtual void Initialize();
-	
 public:
 	///	<summary
 	///		Get the bounds on the reference grid.

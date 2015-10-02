@@ -80,21 +80,6 @@ GridCartesianGLL::GridCartesianGLL(
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void GridCartesianGLL::Initialize() {
-
-	// Call up the stack
-	GridGLL::Initialize();
-
-	// Distribute patches to processors
-	Grid::DistributePatches();
-
-	// Set up connectivity
-	Grid::InitializeConnectivity();
-
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
 void GridCartesianGLL::ApplyDefaultPatchLayout(
 	int nPatchCount
 ) {
