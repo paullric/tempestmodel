@@ -581,7 +581,7 @@ void GridPatch::DeinitializeData() {
 
 void GridPatch::ExteriorConnect(
 	Direction dirFirst,
-	const GridPatch * pPatchSecond
+	int ixNeighborPatch
 ) {
 	// First patch coordinate index
 	int ixFirst;
@@ -623,7 +623,7 @@ void GridPatch::ExteriorConnect(
 	// Exterior connect
 	ExteriorConnect(
 		dirFirst,
-		pPatchSecond,
+		ixNeighborPatch,
 		ixFirst,
 		ixSecond);
 }
@@ -632,12 +632,12 @@ void GridPatch::ExteriorConnect(
 
 void GridPatch::ExteriorConnect(
 	Direction dirFirst,
-	const GridPatch * pPatchSecond,
+	int ixNeighborPatch,
 	int ixFirst,
 	int ixSecond
 ) {
 	// Check for NULL patches (do nothing)
-	if (pPatchSecond == NULL) {
+	if (ixNeighborPatch == GridPatch::InvalidIndex) {
 		return;
 	}
 
@@ -664,7 +664,7 @@ void GridPatch::ExteriorConnect(
 
 	m_grid.GetOpposingDirection(
 		m_box.GetPanel(),
-		pPatchSecond->GetPatchBox().GetPanel(),
+		m_grid.GetPatchBox(ixNeighborPatch).GetPanel(),
 		dirFirst,
 		dirOpposing,
 		fReverseDirection,
@@ -721,7 +721,7 @@ void GridPatch::ExteriorConnect(
 			dirFirst,
 			dirOpposing,
 			GetPatchIndex(),
-			pPatchSecond->GetPatchIndex(),
+			ixNeighborPatch,
 			fReverseDirection,
 			fFlippedCoordinate,
 			nBoundarySize,

@@ -167,7 +167,7 @@ public:
 	///	</summary>
 	void ExteriorConnect(
 		Direction dirFirst,
-		const GridPatch * pPatchSecond
+		int ixNeighborPatch
 	);
 
 	///	<summary>
@@ -183,7 +183,7 @@ public:
 	///	</param>
 	void ExteriorConnect(
 		Direction dirFirst,
-		const GridPatch * pPatchSecond,
+		int ixNeighborPatch,
 		int ixFirst,
 		int ixSecond
 	);

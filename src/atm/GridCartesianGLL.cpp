@@ -186,8 +186,7 @@ void GridCartesianGLL::ConvertReferenceToPatchCoord(
 		int n = 0;
 
 		for (; n < GetPatchCount(); n++) {
-			const GridPatch * pPatch = GetPatch(n);
-			const PatchBox & box = pPatch->GetPatchBox();
+			const PatchBox & box = m_aPatchBoxes[n];
 
 			double dElementDeltaA = (m_dGDim[1] - m_dGDim[0])
 				/ static_cast<double>(GetABaseResolution());
@@ -226,7 +225,7 @@ void GridCartesianGLL::ConvertReferenceToPatchCoord(
 				(dBeta[i] >= dBInteriorBegin) &&
 				(dBeta[i] <= dBInteriorEnd)
 			) {
-				iPatch[i] = pPatch->GetPatchIndex();
+				iPatch[i] = n;
 				break;
 			}
 		}
@@ -328,12 +327,10 @@ void GridCartesianGLL::GetPatchFromCoordinateIndex(
 
 		// Check the last patch searched
 		if (iLastPatch != GridPatch::InvalidIndex) {
-			const GridPatch * pPatch = GetPatch(iLastPatch);
-
-			const PatchBox & box = pPatch->GetPatchBox();
+			const PatchBox & box = m_aPatchBoxes[iLastPatch];
 
 			if (box.ContainsGlobalPoint(iP, iA, iB)) {
-				vecPatchIndex[i] = pPatch->GetPatchIndex();
+				vecPatchIndex[i] = iLastPatch;
 				continue;
 			}
 		}
@@ -341,12 +338,10 @@ void GridCartesianGLL::GetPatchFromCoordinateIndex(
 		// Check all other patches
 		int n;
 		for (n = 0; n < GetPatchCount(); n++) {
-			const GridPatch * pPatch = GetPatch(n);
-
-			const PatchBox & box = pPatch->GetPatchBox();
+			const PatchBox & box = m_aPatchBoxes[n];
 
 			if (box.ContainsGlobalPoint(iP, iA, iB)) {
-				vecPatchIndex[i] = pPatch->GetPatchIndex();
+				vecPatchIndex[i] = n;
 				iLastPatch = n;
 				break;
 			}

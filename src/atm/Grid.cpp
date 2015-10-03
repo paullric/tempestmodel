@@ -1753,7 +1753,7 @@ void Grid::InitializeConnectivity() {
 		if (vecPatch[ix] != GridPatch::InvalidIndex) {
 			pPatch->ExteriorConnect(
 				Direction_BottomLeft,
-				m_vecGridPatches[vecPatch[ix]]);
+				vecPatch[ix]);
 		}
 
 		ix++;
@@ -1769,29 +1769,25 @@ void Grid::InitializeConnectivity() {
 				if ((i == box.GetAInteriorEnd()) ||
 					(vecPatch[ix] != iCurrentPatch)
 				) {
-					const GridPatch * pPatchBottom
-						= m_vecGridPatches[iCurrentPatch];
-
 					pPatch->ExteriorConnect(
 						Direction_Bottom,
-						pPatchBottom,
+						iCurrentPatch,
 						ixFirstBegin,
 						i);
 
 					if (i != box.GetAInteriorEnd()) {
 						pPatch->ExteriorConnect(
 							Direction_BottomLeft,
-							pPatchBottom,
+							iCurrentPatch,
 							i,
 							box.GetBInteriorBegin());
 
 						ixFirstBegin = i;
 						iCurrentPatch = vecPatch[ix];
-						pPatchBottom = m_vecGridPatches[iCurrentPatch];
 
 						pPatch->ExteriorConnect(
 							Direction_BottomRight,
-							pPatchBottom,
+							iCurrentPatch,
 							i - 1,
 							box.GetBInteriorBegin());
 					}
@@ -1806,7 +1802,7 @@ void Grid::InitializeConnectivity() {
 		if (vecPatch[ix] != GridPatch::InvalidIndex) {
 			pPatch->ExteriorConnect(
 				Direction_BottomRight,
-				m_vecGridPatches[vecPatch[ix]]);
+				vecPatch[ix]);
 		}
 
 		ix++;
@@ -1820,29 +1816,25 @@ void Grid::InitializeConnectivity() {
 				if ((j == box.GetBInteriorEnd()) ||
 					(vecPatch[ix] != iCurrentPatch)
 				) {
-					const GridPatch * pPatchRight
-						= m_vecGridPatches[iCurrentPatch];
-
 					pPatch->ExteriorConnect(
 						Direction_Right,
-						pPatchRight,
+						iCurrentPatch,
 						ixFirstBegin,
 						j);
 
 					if (j != box.GetBInteriorEnd()) {
 						pPatch->ExteriorConnect(
 							Direction_BottomRight,
-							pPatchRight,
+							iCurrentPatch,
 							box.GetAInteriorEnd()-1,
 							j);
 
 						ixFirstBegin = j;
 						iCurrentPatch = vecPatch[ix];
-						pPatchRight = m_vecGridPatches[iCurrentPatch];
 
 						pPatch->ExteriorConnect(
 							Direction_TopRight,
-							pPatchRight,
+							iCurrentPatch,
 							box.GetAInteriorEnd()-1,
 							j - 1);
 					}
@@ -1857,7 +1849,7 @@ void Grid::InitializeConnectivity() {
 		if (vecPatch[ix] != GridPatch::InvalidIndex) {
 			pPatch->ExteriorConnect(
 				Direction_TopRight,
-				m_vecGridPatches[vecPatch[ix]]);
+				vecPatch[ix]);
 		}
 
 		ix++;
@@ -1871,29 +1863,25 @@ void Grid::InitializeConnectivity() {
 				if ((i == box.GetAInteriorBegin()-1) ||
 					(vecPatch[ix] != iCurrentPatch)
 				) {
-					const GridPatch * pPatchTop =
-						m_vecGridPatches[iCurrentPatch];
-
 					pPatch->ExteriorConnect(
 						Direction_Top,
-						pPatchTop,
+						iCurrentPatch,
 						i + 1,
 						ixFirstEnd);
 
 					if (i != box.GetAInteriorBegin()-1) {
 						pPatch->ExteriorConnect(
 							Direction_TopRight,
-							pPatchTop,
+							iCurrentPatch,
 							i,
 							box.GetBInteriorEnd()-1);
 
 						ixFirstEnd = i + 1;
 						iCurrentPatch = vecPatch[ix];
-						pPatchTop = m_vecGridPatches[iCurrentPatch];
 
 						pPatch->ExteriorConnect(
 							Direction_TopLeft,
-							pPatchTop,
+							iCurrentPatch,
 							i + 1,
 							box.GetBInteriorEnd()-1);
 					}
@@ -1908,7 +1896,7 @@ void Grid::InitializeConnectivity() {
 		if (vecPatch[ix] != GridPatch::InvalidIndex) {
 			pPatch->ExteriorConnect(
 				Direction_TopLeft,
-				m_vecGridPatches[vecPatch[ix]]);
+				vecPatch[ix]);
 		}
 
 		ix++;
@@ -1922,29 +1910,25 @@ void Grid::InitializeConnectivity() {
 				if ((j == box.GetBInteriorBegin()-1) ||
 					(vecPatch[ix] != iCurrentPatch)
 				) {
-					const GridPatch * pPatchLeft =
-						m_vecGridPatches[iCurrentPatch];
-
 					pPatch->ExteriorConnect(
 						Direction_Left,
-						pPatchLeft,
+						iCurrentPatch,
 						j + 1,
 						ixFirstEnd);
 
 					if (j != box.GetBInteriorBegin()-1) {
 						pPatch->ExteriorConnect(
 							Direction_TopLeft,
-							pPatchLeft,
+							iCurrentPatch,
 							box.GetAInteriorBegin(),
 							j);
 
 						ixFirstEnd = j + 1;
 						iCurrentPatch = vecPatch[ix];
-						pPatchLeft = m_vecGridPatches[iCurrentPatch];
 
 						pPatch->ExteriorConnect(
 							Direction_BottomLeft,
-							pPatchLeft,
+							iCurrentPatch,
 							box.GetAInteriorBegin(),
 							j + 1);
 					}
