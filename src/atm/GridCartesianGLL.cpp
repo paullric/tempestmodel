@@ -57,9 +57,6 @@ GridCartesianGLL::GridCartesianGLL(
 		nRElements,
 		eVerticalStaggering)
 {
-	// Set the reference length scale to the longitude extent
-	m_dReferenceLength = std::abs(dGDim[1] - dGDim[0]);
-
 	// Boundary condition
 	m_eBoundaryCondition[0] = BoundaryCondition_Periodic;
 	m_eBoundaryCondition[1] = BoundaryCondition_Periodic;

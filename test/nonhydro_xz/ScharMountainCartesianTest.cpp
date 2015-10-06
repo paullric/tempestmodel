@@ -369,7 +369,17 @@ try {
 
 	Model model(EquationSet::PrimitiveNonhydrostaticEquations);
 
-	TempestSetupCartesianModel(model, test->m_dGDim, 0.0, test->m_dhC);
+	TempestSetupCartesianModel(model, test->m_dGDim, 0.0);
+
+	// Set the reference length to reduce diffusion relative to global scale
+	const double XL = std::abs(test->m_dGDim[1] - test->m_dGDim[0]);
+	const double oneDegScale = 110000.0;
+	if (XL < oneDegScale) {
+		model.GetGrid()->SetReferenceLength(XL);
+	}
+	else {
+		model.GetGrid()->SetReferenceLength(oneDegScale);
+	}
 
 	// Set the test case for the model
 	AnnounceStartBlock("Initializing test case");

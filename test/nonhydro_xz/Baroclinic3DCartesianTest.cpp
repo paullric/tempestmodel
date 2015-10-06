@@ -260,10 +260,10 @@ public:
 		const double dRd = phys.GetR();
 		const double dP0 = phys.GetP0();
 		const double dae = phys.GetEarthRadius();
-		//const double df0 = 2 * phys.GetOmega() * sin(m_dRefLat);
-		const double df0 = 0.0;
-		//const double dbeta0 = 2 * phys.GetOmega() * cos(m_dRefLat) / dae;
-		const double dbeta0 = 0.0;
+		const double df0 = 2 * phys.GetOmega() * sin(m_dRefLat);
+		//const double df0 = 0.0;
+		const double dbeta0 = 2 * phys.GetOmega() * cos(m_dRefLat) / dae;
+		//const double dbeta0 = 0.0;
 		const double dLy = m_dGDim[3] - m_dGDim[2];
 
 		// Horizontally averaged temperature
@@ -492,10 +492,17 @@ try {
 	Model model(EquationSet::PrimitiveNonhydrostaticEquations);
 	
 	// Setup the cartesian model with dimensions and reference latitude
-	TempestSetupCartesianModel(model, test->m_dGDim, test->m_dRefLat, 0.0);
+	TempestSetupCartesianModel(model, test->m_dGDim, test->m_dRefLat);
 
-	// Set the reference length to reduce diffusion (1100km)
-	model.GetGrid()->SetReferenceLength(1100000.0);
+	// Set the reference length to reduce diffusion relative to global scale
+	const double XL = std::abs(test->m_dGDim[1] - test->m_dGDim[0]);
+	const double oneDegScale = 110000.0;
+	if (XL < oneDegScale) {
+		model.GetGrid()->SetReferenceLength(XL);
+	}
+	else {
+		model.GetGrid()->SetReferenceLength(oneDegScale);
+	}
 
 	// Set the test case for the model
 	AnnounceStartBlock("Initializing test case");
