@@ -27,7 +27,10 @@
 #include <cmath>
 
 #include <netcdfcpp.h>
+
+#ifdef USE_MPI
 #include "mpi.h"
+#endif
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -431,7 +434,7 @@ void Grid::Checksum(
 	int iDataIndex,
 	ChecksumType eChecksumType
 ) const {
-
+#ifdef USE_MPI
 	// Identify root process
 	int nRank;
 	MPI_Comm_rank(MPI_COMM_WORLD, &nRank);
@@ -489,6 +492,7 @@ void Grid::Checksum(
 			}
 		}
 	}
+#endif
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -503,8 +507,11 @@ double Grid::ComputeTotalEnergy(
 			m_vecActiveGridPatches[n]->ComputeTotalEnergy(iDataIndex);
 	}
 
-	// Reduce to obtain global energy integral
+	// Global energy
 	double dGlobalEnergy = 0.0;
+
+#ifdef USE_MPI
+	// Reduce to obtain global energy integral
 	MPI_Reduce(
 		&dLocalEnergy,
 		&dGlobalEnergy,
@@ -513,6 +520,7 @@ double Grid::ComputeTotalEnergy(
 		MPI_SUM,
 		0,
 		MPI_COMM_WORLD);
+#endif
 
 	// Return global energy integral
 	return dGlobalEnergy;
@@ -526,7 +534,7 @@ double Grid::ComputeTotalPotentialEnstrophy(
 	// Compute vorticity and divergence on the Grid
 	ComputeVorticityDivergence(iDataIndex);
 
-	// Compute local enstrophy
+	// Compute local potential enstrophy
 	double dLocalPotentialEnstrophy = 0.0;
 	for (int n = 0; n < m_vecActiveGridPatches.size(); n++) {
 		dLocalPotentialEnstrophy +=
@@ -534,8 +542,11 @@ double Grid::ComputeTotalPotentialEnstrophy(
 				ComputeTotalPotentialEnstrophy(iDataIndex);
 	}
 
-	// Reduce to obtain global energy integral
+	// Global potential enstrophy
 	double dGlobalPotentialEnstrophy = 0.0;
+
+#ifdef USE_MPI
+	// Reduce to obtain global energy integral
 	MPI_Reduce(
 		&dLocalPotentialEnstrophy,
 		&dGlobalPotentialEnstrophy,
@@ -544,6 +555,7 @@ double Grid::ComputeTotalPotentialEnstrophy(
 		MPI_SUM,
 		0,
 		MPI_COMM_WORLD);
+#endif
 
 	// Return global energy integral
 	return dGlobalPotentialEnstrophy;
@@ -560,8 +572,10 @@ void Grid::Exchange(
 		return;
 	}
 
+#ifdef USE_MPI
 	// Verify all processors are prepared to exchange
 	MPI_Barrier(MPI_COMM_WORLD);
+#endif
 
 	// Set up asynchronous recvs
 	for (int n = 0; n < m_vecActiveGridPatches.size(); n++) {
@@ -594,8 +608,10 @@ void Grid::ExchangeBuffers() {
 		return;
 	}
 
+#ifdef USE_MPI
 	// Verify all processors are prepared to exchange
 	MPI_Barrier(MPI_COMM_WORLD);
+#endif
 
 	// Set up asynchronous recvs
 	for (int n = 0; n < m_vecActiveGridPatches.size(); n++) {
@@ -630,8 +646,10 @@ void Grid::ExchangeBuffersAndUnpack(
 		return;
 	}
 
+#ifdef USE_MPI
 	// Verify all processors are prepared to exchange
 	MPI_Barrier(MPI_COMM_WORLD);
+#endif
 
 	// Set up asynchronous recvs
 	for (int n = 0; n < m_vecActiveGridPatches.size(); n++) {
@@ -785,7 +803,7 @@ void Grid::ConsolidateDataAtRoot(
 	DataType & eRecvDataType,
 	DataLocation & eRecvDataLocation
 ) const {
-
+#ifdef USE_MPI
 	// Get process id
 	int nRank;
 	MPI_Comm_rank(MPI_COMM_WORLD, &nRank);
@@ -837,6 +855,7 @@ void Grid::ConsolidateDataAtRoot(
 		_EXCEPTION2("State dimension mismatch (%i %i)",
 			nExpectedRecvCount, nRecvCount);
 	}
+#endif
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -844,7 +863,7 @@ void Grid::ConsolidateDataAtRoot(
 void Grid::ConsolidateDataToRoot(
 	ConsolidationStatus & status
 ) const {
-	
+#ifdef USE_MPI
 	// Get process id
 	int nRank;
 	MPI_Comm_rank(MPI_COMM_WORLD, &nRank);
@@ -1052,8 +1071,8 @@ void Grid::ConsolidateDataToRoot(
 				MPI_COMM_WORLD,
 				status.GetNextSendRequest());
 		}
-
 	}
+#endif
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1202,6 +1221,7 @@ void Grid::ReduceInterpolate(
 			fConvertToPrimitive);
 	}
 
+#ifdef USE_MPI
 	// Perform an Reduce operation to combine all data
 	int nRank;
 	MPI_Comm_rank(MPI_COMM_WORLD, &nRank);
@@ -1230,6 +1250,7 @@ void Grid::ReduceInterpolate(
 			0,
 			MPI_COMM_WORLD);
 	}
+#endif
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1622,7 +1643,7 @@ void Grid::FromFile(
 ///////////////////////////////////////////////////////////////////////////////
 
 void Grid::DistributePatches() {
-
+#ifdef USE_MPI
 	// Number of processors
 	int nSize;
 	MPI_Comm_size(MPI_COMM_WORLD, &nSize);
@@ -1642,6 +1663,7 @@ void Grid::DistributePatches() {
 			m_vecGridPatches[n]->InitializeDataRemote(nPatchProcessor);
 		}
 	}
+#endif
 }
 
 ///////////////////////////////////////////////////////////////////////////////
