@@ -17,20 +17,191 @@
 #ifndef _CONNECTIVITY_H_
 #define _CONNECTIVITY_H_
 
+///////////////////////////////////////////////////////////////////////////////
+
+#define USE_MPI
+//#define USE_HPX
+//#define USE_OCR
+
+///////////////////////////////////////////////////////////////////////////////
+
 #include "Direction.h"
 
 #include "DataArray1D.h"
 #include "DataArray3D.h"
 #include "DataArray4D.h"
 
+#ifdef USE_MPI
 #include "mpi.h"
+#endif
+
+#include <map>
 #include <vector>
 
 ///////////////////////////////////////////////////////////////////////////////
 
 class Grid;
 class GridPatch;
+class Neighbor;
 class Connectivity;
+
+///////////////////////////////////////////////////////////////////////////////
+
+class ExchangeBufferKey {
+
+public:
+	///	<summary>
+	///		Default constructor.
+	///	</summary>
+	ExchangeBufferKey() :
+		ixSourcePatch(-1),
+		ixTargetPatch(-1),
+		dir(Direction_Middle)
+	{ }
+
+	///	<summary>
+	///		Constructor.
+	///	</summary>
+	ExchangeBufferKey(
+		int a_ixSourcePatch,
+		int a_ixTargetPatch,
+		Direction a_dir
+	) :
+		ixSourcePatch(a_ixSourcePatch),
+		ixTargetPatch(a_ixTargetPatch),
+		dir(a_dir)
+	{ }
+
+public:
+	///	<summary>
+	///		Comparator.
+	///	</summary>
+	bool operator<(const ExchangeBufferKey & key) const {
+		if (ixSourcePatch < key.ixSourcePatch) {
+			return true;
+		}
+		if (ixSourcePatch > key.ixSourcePatch) {
+			return false;
+		}
+		if (ixTargetPatch < key.ixTargetPatch) {
+			return true;
+		}
+		if (ixTargetPatch > key.ixTargetPatch) {
+			return false;
+		}
+		if (dir < key.dir) {
+			return true;
+		}
+		if (dir > key.dir) {
+			return false;
+		}
+		return false;
+	}
+
+public:
+	///	<summary>
+	///		Source GridPatch index.
+	///	</summary>
+	int ixSourcePatch;
+
+	///	<summary>
+	///		Target GridPatch index.
+	///	</summary>
+	int ixTargetPatch;
+
+	///	<summary>
+	///		Direction.
+	///	</summary>
+	Direction dir;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+
+class ExchangeBufferMeta {
+
+public:
+	///	<summary>
+	///		Initial coordinate index.
+	///	</summary>
+	int ixFirst;
+
+	///	<summary>
+	///		Final coordinate index.
+	///	</summary>
+	int ixSecond;
+
+	///	<summary>
+	///		Number of halo elements.
+	///	</summary>
+	size_t sHaloElements;
+
+	///	<summary>
+	///		Number of components.
+	///	</summary>
+	size_t sComponents;
+
+	///	<summary>
+	///		Number of radial elements.
+	///	</summary>
+	size_t sMaxRElements;
+
+	///	<summary>
+	///		Total data size.
+	///	</summary>
+	size_t sDataSize;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+
+class ExchangeBufferRegistry {
+
+public:
+	///	<summary>
+	///		Map from ExchangeBufferKey to unique identifier for ExchangeBuffer.
+	///	</summary>
+	typedef std::map<ExchangeBufferKey, size_t> MapExchangeBuffer;
+
+public:
+	///	<summary>
+	///		Constructor.
+	///	</summary>
+	ExchangeBufferRegistry() {
+	}
+
+public:
+	///	<summary>
+	///		Register a new ExchangeBuffer.
+	///	</summary>
+	void Register(
+		const ExchangeBufferKey & key,
+		const ExchangeBufferMeta & meta
+	) {
+		size_t sNextEntry = m_vecMeta.size();
+
+		m_mapKeyToIndex.insert(
+			MapExchangeBuffer::value_type(key, sNextEntry));
+
+		m_vecMeta.push_back(meta);
+	}
+
+public:
+	///	<summary>
+	///		Map of ExchangeBufferKeys to vector indices.
+	///	</summary>
+	MapExchangeBuffer m_mapKeyToIndex;
+
+	///	<summary>
+	///		Metadata for each exchange buffer.
+	///	</summary>
+	std::vector<ExchangeBufferMeta> m_vecMeta;
+
+#ifdef USE_MPI
+	///	<summary>
+	///		Data pointers for exchange buffer.
+	///	</summary>
+	std::vector<unsigned char *> m_vecData;
+#endif
+};
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -74,7 +245,7 @@ public:
 	///		Initialize the exchange buffers.
 	///	</summary>
 	void InitializeBuffers(
-		size_t sRElements,
+		size_t sMaxRElements,
 		size_t sHaloElements,
 		size_t sComponents
 	);
@@ -231,11 +402,13 @@ public:
 	///	</summary>
 	int m_ixRecvBuffer;
 
+#ifdef USE_MPI
 	///	<summary>
 	///		MPI_Request objects used for asynchronous exchange of data.
 	///	</summary>
 	MPI_Request m_reqSend;
 	MPI_Request m_reqRecv;
+#endif
 
 	///	<summary>
 	///		DataArray1D used for exchange of data and fluxes.
@@ -592,7 +765,8 @@ public:
 		int iA,
 		double dValue
 	) {
-		m_vecExteriorEdge[(int)(dir)][iA]->SetSendBuffer(iC, iK, iA, dValue);
+		_EXCEPTIONT("Disabled");
+		//m_vecExteriorEdge[(int)(dir)][iA]->SetSendBuffer(iC, iK, iA, dValue);
 	}
 
 	///	<summary>
@@ -607,7 +781,8 @@ public:
 		int iK,
 		int iA
 	) {
-		return m_vecExteriorEdge[(int)(dir)][iA]->GetRecvBuffer(iC, iK, iA);
+		_EXCEPTIONT("Disabled");
+		//return m_vecExteriorEdge[(int)(dir)][iA]->GetRecvBuffer(iC, iK, iA);
 	}
 
 	///	<summary>
@@ -618,7 +793,8 @@ public:
 		Direction dir,
 		int iA
 	) const {
-		return m_vecExteriorEdge[(int)(dir)][iA]->m_fFlippedCoordinate;
+		_EXCEPTIONT("Disabled");
+		//return m_vecExteriorEdge[(int)(dir)][iA]->m_fFlippedCoordinate;
 	}
 
 private:
@@ -641,11 +817,12 @@ private:
 	///		Array indicating the panel in the specified direction.
 	///	</summary>
 	std::vector<int> m_ixPanelDirection;
-
+/*
 	///	<summary>
 	///		Pointer to exterior neighbors along edges, by index.
 	///	</summary>
 	std::vector<ExteriorNeighbor *> m_vecExteriorEdge[8];
+*/
 };
 
 ///////////////////////////////////////////////////////////////////////////////

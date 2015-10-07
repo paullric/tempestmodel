@@ -636,6 +636,7 @@ void GridPatch::ExteriorConnect(
 	int ixFirst,
 	int ixSecond
 ) {
+	_EXCEPTION();
 	// Check for NULL patches (do nothing)
 	if (ixNeighborPatch == GridPatch::InvalidIndex) {
 		return;

@@ -124,6 +124,7 @@ void Model::SetGrid(
 
 	if (fInitializeConnectivity) {
 		m_pGrid->DistributePatches();
+		m_pGrid->InitializeExchangeBuffersFromLayout();
 		m_pGrid->InitializeConnectivity();
 	}
 }

@@ -53,6 +53,11 @@ GridCSGLL::GridCSGLL(
 		nRElements,
 		eVerticalStaggering)
 {
+	// At least 6 patches needed
+	if (nMaxPatchCount < 6) {
+		_EXCEPTIONT("nMinPatchCount must be >= 6");
+	}
+
 	// Set the reference length scale
 	m_dReferenceLength = 0.5 * M_PI / 30.0;
 }

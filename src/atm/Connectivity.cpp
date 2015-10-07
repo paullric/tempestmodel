@@ -26,13 +26,13 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 void Neighbor::InitializeBuffers(
-	size_t sRElements,
+	size_t sMaxRElements,
 	size_t sHaloElements,
 	size_t sComponents
 ) {
 
 	// Store buffer size
-	m_sMaxRElements = sRElements + 1;
+	m_sMaxRElements = sMaxRElements;
 	m_sHaloElements = sHaloElements;
 	m_sComponents = sComponents;
 
@@ -60,6 +60,7 @@ bool Neighbor::CheckReceive() {
 		return false;
 	}
 
+#ifdef USE_MPI
 	// Test receive request
 	int fRecvWaiting;
 	MPI_Status status;
@@ -67,6 +68,7 @@ bool Neighbor::CheckReceive() {
 	if (!fRecvWaiting) {
 		return false;
 	}
+#endif
 
 	// A message has been received
 	return true;
@@ -88,6 +90,7 @@ void ExteriorNeighbor::PrepareExchange(
 	// Tag of the received message
 	int nTag = (m_ixNeighbor << 16) + (m_ixPatch << 4) + (int)(m_dir);
 
+#ifdef USE_MPI
 	// Prepare an asynchronous receive
 	MPI_Irecv(
 		&(m_vecRecvBuffer[0]),
@@ -97,6 +100,7 @@ void ExteriorNeighbor::PrepareExchange(
 		nTag,
 		MPI_COMM_WORLD,
 		&m_reqRecv);
+#endif
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -470,6 +474,7 @@ void ExteriorNeighbor::Send(
 	const Grid & grid
 ) {
 
+#ifdef USE_MPI
 	// Send the data
 	int iProcessor = grid.GetPatch(m_ixNeighbor)->GetProcessor();
 
@@ -479,8 +484,6 @@ void ExteriorNeighbor::Send(
 	}
 
 	int nTag = (m_ixPatch << 16) + (m_ixNeighbor << 4) + (int)(m_dirOpposite);
-
-#pragma message "Move MPI_TAG processing to Connectivity"
 
 	MPI_Isend(
 		&(m_vecSendBuffer[0]),
@@ -499,6 +502,7 @@ void ExteriorNeighbor::Send(
 		nTag,
 		MPI_COMM_WORLD);
 */
+#endif
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -765,8 +769,10 @@ void ExteriorNeighbor::Unpack(
 
 void ExteriorNeighbor::WaitSend() {
 
+#ifdef USE_MPI
 	MPI_Status status;
 	MPI_Wait(&m_reqSend, &status);
+#endif
 
 }
 
@@ -775,9 +781,11 @@ void ExteriorNeighbor::WaitSend() {
 ///////////////////////////////////////////////////////////////////////////////
 
 Connectivity::~Connectivity() {
+/*
 	for (int n = 0; n < m_vecExteriorNeighbors.size(); n++) {
 		delete m_vecExteriorNeighbors[n];
 	}
+*/
 /*
 	for (int n = 0; n < m_vecNestedNeighbors; n++) {
 		delete m_vecNestedNeighbors[n];
@@ -788,7 +796,8 @@ Connectivity::~Connectivity() {
 ///////////////////////////////////////////////////////////////////////////////
 
 void Connectivity::BuildFluxConnectivity() {
-
+	_EXCEPTIONT("Disabled; should be called once all ExteriorNeighbors are set");
+/*
 	// PatchBox
 	const PatchBox & box = m_patch.GetPatchBox();
 
@@ -856,6 +865,7 @@ void Connectivity::BuildFluxConnectivity() {
 			_EXCEPTIONT("Invalid direction");
 		}
 	}
+*/
 }
 
 ///////////////////////////////////////////////////////////////////////////////

@@ -20,6 +20,7 @@
 #include "GridPatch.h"
 #include "ChecksumType.h"
 #include "MathHelper.h"
+#include "Connectivity.h"
 
 #include "mpi.h"
 
@@ -465,6 +466,31 @@ protected:
 	void DistributePatches();
 
 	///	<summary>
+	///		Register an ExchangeBuffer.
+	///	</summary>
+	void RegisterExchangeBuffer(
+		int ixSourcePatch,
+		int ixTargetPatch,
+		Direction dir
+	);
+
+	///	<summary>
+	///		Register an ExchangeBuffer.
+	///	</summary>
+	void RegisterExchangeBuffer(
+		int ixSourcePatch,
+		int ixTargetPatch,
+		Direction dir,
+		int ixFirst,
+		int ixSecond
+	);
+
+	///	<summary>
+	///		Build all exchange buffer information using the grid layout.
+	///	</summary>
+	void InitializeExchangeBuffersFromLayout();
+
+	///	<summary>
 	///		Initialize connectivity between patches.
 	///	</summary>
 	void InitializeConnectivity();
@@ -819,6 +845,16 @@ protected:
 	///		Vector of grid patches which are active locally.
 	///	</summary>
 	GridPatchVector m_vecActiveGridPatches;
+
+	///	<summary>
+	///		Vector of grid patch ids which are active locally.
+	///	</summary>
+	std::vector<int> m_vecActiveGridPatchIndices;
+
+	///	<summary>
+	///		Exchange buffer registry.
+	///	</summary>
+	ExchangeBufferRegistry m_aExchangeBufferRegistry;
 
 protected:
 	///	<summary>

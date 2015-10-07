@@ -370,6 +370,10 @@ void _TempestSetupCubedSphereModel(
 	int nCommSize;
 	MPI_Comm_size(MPI_COMM_WORLD, &nCommSize);
 
+	if (nCommSize < 6) {
+		nCommSize = 6;
+	}
+
 	Grid * pGrid =
 		new GridCSGLL(
 			model,
