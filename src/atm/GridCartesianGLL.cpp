@@ -125,18 +125,18 @@ void GridCartesianGLL::ApplyDefaultPatchLayout(
 
 ///////////////////////////////////////////////////////////////////////////////
 
-GridPatch * GridCartesianGLL::AddPatch(
-	int ixPatch,
-	const PatchBox & box
+GridPatch * GridCartesianGLL::NewPatch(
+	int ixPatch
 ) {
-	return
-		Grid::AddPatch(
-			new GridPatchCartesianGLL(
-				(*this),
-				ixPatch,
-				box,
-				m_nHorizontalOrder,
-				m_nVerticalOrder));
+	const PatchBox & box = GetPatchBox(ixPatch);
+
+	return (
+		new GridPatchCartesianGLL(
+			(*this),
+			ixPatch,
+			box,
+			m_nHorizontalOrder,
+			m_nVerticalOrder));
 }
 
 ///////////////////////////////////////////////////////////////////////////////

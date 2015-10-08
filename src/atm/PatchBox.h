@@ -173,6 +173,13 @@ public:
 		return (2 * GetAInteriorWidth() + 2 * GetBInteriorWidth());
 	}
 
+	///	<summary>
+	///		Get the total number of nodes in 2D on this GridPatch.
+	///	</summary>
+	inline int GetTotalNodeCount2D() const {
+		return (GetATotalWidth() * GetBTotalWidth());
+	}
+
 public:
 	///	<summary>
 	///		Get the local interior begin index in the alpha direction.

@@ -701,8 +701,8 @@ int Grid::GetMaxNodeCount2D() const {
 	int nMaxNodes2D = 0;
 
 	// Loop over all patches and obtain total node count
-	for (int n = 0; n < m_vecGridPatches.size(); n++) {
-		int nPatchNodes2D = m_vecGridPatches[n]->GetTotalNodeCount2D();
+	for (int n = 0; n < m_aPatchBoxes.GetRows(); n++) {
+		int nPatchNodes2D = m_aPatchBoxes[n].GetTotalNodeCount2D();
 
 		if (nPatchNodes2D > nMaxNodes2D) {
 			nMaxNodes2D = nPatchNodes2D;
@@ -720,8 +720,8 @@ int Grid::GetTotalNodeCount2D() const {
 	int nTotalNodes2D = 0;
 
 	// Loop over all patches and obtain total node count
-	for (int n = 0; n < m_vecGridPatches.size(); n++) {
-		nTotalNodes2D += m_vecGridPatches[n]->GetTotalNodeCount2D();
+	for (int n = 0; n < m_aPatchBoxes.GetRows(); n++) {
+		nTotalNodes2D += m_aPatchBoxes[n].GetTotalNodeCount2D();
 	}
 
 	return nTotalNodes2D;
@@ -1269,7 +1269,37 @@ void Grid::ConvertReferenceToPatchCoord(
 
 void Grid::InitializePatchesFromPatchBoxes() {
 	for (int n = 0; n < m_nInitializedPatchBoxes; n++) {
-		AddPatch(n, m_aPatchBoxes[n]);
+		AddPatch(NewPatch(n));
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+GridPatch * Grid::ActivateEmptyPatch(
+	int ixPatch
+) {
+	GridPatch * pPatch = NewPatch(ixPatch);
+
+	m_vecActiveGridPatches.push_back(pPatch);
+	m_vecActiveGridPatchIndices.push_back(ixPatch);
+
+	return pPatch;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void Grid::DeactivatePatch(
+	int ixPatch
+) {
+	for (int i = 0; i < m_vecActiveGridPatchIndices.size(); i++) {
+		if (m_vecActiveGridPatchIndices[i] == ixPatch) {
+			delete m_vecActiveGridPatches[i];
+
+			m_vecActiveGridPatchIndices.erase(
+				m_vecActiveGridPatchIndices.begin() + i);
+			m_vecActiveGridPatches.erase(
+				m_vecActiveGridPatches.begin() + i);
+		}
 	}
 }
 
@@ -1285,16 +1315,7 @@ GridPatch * Grid::AddPatch(
 
 	// Set the patch index
 	pPatch->m_ixPatch = ixNextPatch;
-/*
-	// Update the cumulative 2D index
-	if (ixNextPatch == 0) {
-		m_vecCumulativePatch2DNodeIndex.push_back(0);
-	}
 
-	m_vecCumulativePatch2DNodeIndex.push_back(
-		m_vecCumulativePatch2DNodeIndex[ixNextPatch]
-		+ pPatch->GetTotalNodeCount2D());
-*/
 	return pPatch;
 }
 
@@ -1336,7 +1357,7 @@ void Grid::ToFile(
 	int nBEdgeCount = 0;
 
 	for (int n = 0; n < GetPatchCount(); n++) {
-		const PatchBox & box = GetPatch(n)->GetPatchBox();
+		const PatchBox & box = GetPatchBox(n);
 
 		nANodeCount += box.GetATotalWidth();
 		nBNodeCount += box.GetBTotalWidth();
@@ -1426,7 +1447,7 @@ void Grid::ToFile(
 	for (int n = 0; n < GetPatchCount(); n++) {
 		int iPatchInfo[7];
 
-		const PatchBox & box = GetPatch(n)->GetPatchBox();
+		const PatchBox & box = GetPatchBox(n);
 
 		iPatchInfo[0] = box.GetPanel();
 		iPatchInfo[1] = box.GetRefinementLevel();
@@ -2165,9 +2186,14 @@ void Grid::InitializeConnectivity() {
 		const ExchangeBufferMeta & meta =
 			m_aExchangeBufferRegistry.m_vecMeta[iter->second];
 
-		GridPatch * pPatch = GetPatch(key.ixSourcePatch);
+		GridPatch * pPatch = NULL;
+		for (int n = 0; n < m_vecActiveGridPatches.size(); n++) {
+			if (m_vecActiveGridPatchIndices[n] == key.ixSourcePatch) {
+				pPatch = m_vecActiveGridPatches[n];
+			}
+		}
 
-		if (pPatch->ContainsData()) {
+		if (pPatch != NULL) {
 
 			const PatchBox & boxSource = GetPatchBox(key.ixSourcePatch);
 			const PatchBox & boxTarget = GetPatchBox(key.ixTargetPatch);

@@ -124,18 +124,18 @@ void GridCSGLL::ApplyDefaultPatchLayout(
 
 ///////////////////////////////////////////////////////////////////////////////
 
-GridPatch * GridCSGLL::AddPatch(
-	int ixPatch,
-	const PatchBox & box
+GridPatch * GridCSGLL::NewPatch(
+	int ixPatch
 ) {
-	return
-		Grid::AddPatch(
-			new GridPatchCSGLL(
-				(*this),
-				ixPatch,
-				box,
-				m_nHorizontalOrder,
-				m_nVerticalOrder));
+	const PatchBox & box = GetPatchBox(ixPatch);
+
+	return (
+		new GridPatchCSGLL(
+			(*this),
+			ixPatch,
+			box,
+			m_nHorizontalOrder,
+			m_nVerticalOrder));
 }
 
 ///////////////////////////////////////////////////////////////////////////////

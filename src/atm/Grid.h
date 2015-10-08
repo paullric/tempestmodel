@@ -244,7 +244,7 @@ public:
 	///		Get the total number of patches on the grid.
 	///	</summary>
 	int GetPatchCount() const {
-		return m_vecGridPatches.size();
+		return m_nInitializedPatchBoxes;
 	}
 
 	///	<summary>
@@ -431,6 +431,15 @@ public:
 	void InitializePatchesFromPatchBoxes();
 
 	///	<summary>
+	///		Return a pointer to a new GridPatch.
+	///	</summary>
+	virtual GridPatch * NewPatch(
+		int ixPatch
+	) {
+		_EXCEPTIONT("Not implemented");
+	}
+
+	///	<summary>
 	///		Add a patch to the grid with the specified index and PatchBox.
 	///	</summary>
 	virtual GridPatch * AddPatch(
@@ -441,12 +450,28 @@ public:
 	}
 
 	///	<summary>
+	///		Create a new empty GridPatch and activate it.
+	///	</summary>
+	GridPatch * ActivateEmptyPatch(
+		int ixPatch
+	);
+
+	///	<summary>
+	///		Deactivate the given patch.
+	///	</summary>
+	void DeactivatePatch(
+		int ixPatch
+	);
+
+protected:
+	///	<summary>
 	///		Add a patch to the grid.
 	///	</summary>
 	GridPatch * AddPatch(
 		GridPatch * pPatch
 	);
 
+protected:
 	///	<summary>
 	///		Write a grid to a NetCDF file.
 	///	</summary>

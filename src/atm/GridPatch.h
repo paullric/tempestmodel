@@ -81,11 +81,6 @@ public:
 
 public:
 	///	<summary>
-	///		Total number of nodes in 2D (ignoring vertical nodes or staggering)
-	///	</summary>
-	int GetTotalNodeCount2D() const;
-
-	///	<summary>
 	///		Total number of nodes in data.
 	///	</summary>
 	int GetTotalNodeCount(

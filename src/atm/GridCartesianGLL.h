@@ -65,11 +65,10 @@ public:
 	);
 
 	///	<summary>
-	///		Add a patch to the grid with the specified index and PatchBox.
+	///		Return a pointer to a new GridPatchCartesianGLL.
 	///	</summary>
-	virtual GridPatch * AddPatch(
-		int ixPatch,
-		const PatchBox & box
+	virtual GridPatch * NewPatch(
+		int ixPatch
 	);
 
 	///	<summary>

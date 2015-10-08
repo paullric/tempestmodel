@@ -40,12 +40,6 @@ GridPatch::GridPatch(
 
 ///////////////////////////////////////////////////////////////////////////////
 
-int GridPatch::GetTotalNodeCount2D() const {
-	return (m_box.GetATotalWidth() * m_box.GetBTotalWidth());
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
 int GridPatch::GetTotalNodeCount(
 	DataLocation loc
 ) const {
@@ -74,16 +68,16 @@ int GridPatch::GetTotalDegreesOfFreedom(
 		int nComponents = m_grid.GetModel().GetEquationSet().GetComponents();
 
 		if (eDataLocation == DataLocation_None) {
-			return (GetTotalNodeCount2D()
+			return (m_box.GetTotalNodeCount2D()
 				* m_grid.GetDegreesOfFreedomPerColumn());
 
 		} else if (eDataLocation == DataLocation_Node) {
-			return (GetTotalNodeCount2D()
+			return (m_box.GetTotalNodeCount2D()
 				* m_grid.GetRElements()
 				* nComponents);
 
 		} else if (eDataLocation == DataLocation_REdge) {
-			return (GetTotalNodeCount2D()
+			return (m_box.GetTotalNodeCount2D()
 				* (m_grid.GetRElements()+1)
 				* nComponents);
 
@@ -95,21 +89,21 @@ int GridPatch::GetTotalDegreesOfFreedom(
 	} else if (eDataType == DataType_Tracers) {
 		int nTracers = m_grid.GetModel().GetEquationSet().GetTracers();
 
-		return (GetTotalNodeCount2D()
+		return (m_box.GetTotalNodeCount2D()
 			* m_grid.GetRElements()
 			* nTracers);
 
 	// Topography only at surface
 	} else if (eDataType == DataType_Topography) {
-		return GetTotalNodeCount2D();
+		return m_box.GetTotalNodeCount2D();
 
 	// Rayleigh strength
 	} else if (eDataType == DataType_RayleighStrength) {
 		if (eDataLocation == DataLocation_Node) {
-			return GetTotalNodeCount2D() * m_grid.GetRElements();
+			return m_box.GetTotalNodeCount2D() * m_grid.GetRElements();
 
 		} else if (eDataLocation == DataLocation_REdge) {
-			return GetTotalNodeCount2D() * (m_grid.GetRElements() + 1);
+			return m_box.GetTotalNodeCount2D() * (m_grid.GetRElements() + 1);
 
 		} else {
 			_EXCEPTIONT("Invalid DataLocation");
