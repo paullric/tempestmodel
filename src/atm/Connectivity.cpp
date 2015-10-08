@@ -84,13 +84,13 @@ void ExteriorNeighbor::PrepareExchange(
 	// Call up the stack
 	Neighbor::PrepareExchange(grid);
 
+#ifdef USE_MPI
 	// Information for receive
-	int iProcessor = grid.GetPatch(m_ixNeighbor)->GetProcessor();
+	int iProcessor = grid.GetPatchProcessor(m_ixNeighbor);
 
 	// Tag of the received message
 	int nTag = (m_ixNeighbor << 16) + (m_ixPatch << 4) + (int)(m_dir);
 
-#ifdef USE_MPI
 	// Prepare an asynchronous receive
 	MPI_Irecv(
 		&(m_vecRecvBuffer[0]),
@@ -476,7 +476,7 @@ void ExteriorNeighbor::Send(
 
 #ifdef USE_MPI
 	// Send the data
-	int iProcessor = grid.GetPatch(m_ixNeighbor)->GetProcessor();
+	int iProcessor = grid.GetPatchProcessor(m_ixNeighbor);
 
 	// Tag
 	if (m_ixNeighbor >= (2 << 12)) {

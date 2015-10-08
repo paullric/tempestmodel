@@ -78,15 +78,8 @@ public:
 	///	</summary>
 	virtual ~GridPatch()
 	{ }
-
+/*
 public:
-	///	<summary>
-	///		Total number of nodes in data.
-	///	</summary>
-	int GetTotalNodeCount(
-		DataLocation loc = DataLocation_Node
-	) const;
-
 	///	<summary>
 	///		Total number of degrees of freedom in data.
 	///	</summary>
@@ -94,7 +87,7 @@ public:
 		DataType eDataType,
 		DataLocation eDataLocation = DataLocation_None
 	) const;
-
+*/
 public:
 	///	<summary>
 	///		Initialize patch as remote (data on an exterior processor).
@@ -155,33 +148,6 @@ public:
 		DataType eDataType = DataType_State
 	) {
 	}
-
-public:
-	///	<summary>
-	///		Connect one patch to a second along entire edge.
-	///	</summary>
-	void ExteriorConnect(
-		Direction dirFirst,
-		int ixNeighborPatch
-	);
-
-	///	<summary>
-	///		Add an exterior connection to another patch.
-	///	</summary>
-	///	<param name="ixFirst">
-	///		First index (begin node for Right, Top, Left, Bottom and alpha
-	///		coordinate for TopRight, TopLeft, BottomLeft, BottomRight)
-	///	</param>
-	///	<param name="ixSecond">
-	///		Second index (end node for Right, Top, Left, Bottom and beta
-	///		coordinate for TopRight, TopLeft, BottomLeft, BottomRight)
-	///	</param>
-	void ExteriorConnect(
-		Direction dirFirst,
-		int ixNeighborPatch,
-		int ixFirst,
-		int ixSecond
-	);
 
 public:
 	///	<summary>

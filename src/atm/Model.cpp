@@ -113,7 +113,6 @@ void Model::SetGrid(
 		MPI_Comm_size(MPI_COMM_WORLD, &nCommSize);
 
 		m_pGrid->ApplyDefaultPatchLayout(nCommSize);
-		m_pGrid->InitializePatchesFromPatchBoxes();
 
 	} else {
 		m_pGrid->FromFile(m_param.m_strRestartFile);

@@ -284,13 +284,13 @@ public:
 	int GetTotalNodeCount(
 		DataLocation loc = DataLocation_Node
 	) const;
-
+/*
 	///	<summary>
 	///		Get the maximum number of degrees of freedom required for a
 	///		consolidate operation, returned to the root node.
 	///	</summary>
 	int GetMaxDegreesOfFreedom() const;
-
+*/
 public:
 	///	<summary>
 	///		Receive a data object on the root process.
@@ -426,25 +426,10 @@ public:
 	}
 
 	///	<summary>
-	///		Initialize Patches from PatchBoxes.
-	///	</summary>
-	void InitializePatchesFromPatchBoxes();
-
-	///	<summary>
 	///		Return a pointer to a new GridPatch.
 	///	</summary>
 	virtual GridPatch * NewPatch(
 		int ixPatch
-	) {
-		_EXCEPTIONT("Not implemented");
-	}
-
-	///	<summary>
-	///		Add a patch to the grid with the specified index and PatchBox.
-	///	</summary>
-	virtual GridPatch * AddPatch(
-		int ixPatch,
-		const PatchBox & box
 	) {
 		_EXCEPTIONT("Not implemented");
 	}
@@ -637,26 +622,6 @@ public:
 	}
 */
 	///	<summary>
-	///		Get the patch with the specified index.
-	///	</summary>
-	GridPatch * GetPatch(int ix) {
-		if ((ix < 0) || (ix >= m_vecGridPatches.size())) {
-			_EXCEPTIONT("Invalid patch index");
-		}
-		return m_vecGridPatches[ix];
-	}
-
-	///	<summary>
-	///		Get the patch with the specified index.
-	///	</summary>
-	const GridPatch * GetPatch(int ix) const {
-		if ((ix < 0) || (ix >= m_vecGridPatches.size())) {
-			_EXCEPTIONT("Invalid patch index");
-		}
-		return m_vecGridPatches[ix];
-	}
-
-	///	<summary>
 	///		Get the active patch with the specified index.
 	///	</summary>
 	GridPatch * GetActivePatch(int ix) {
@@ -675,6 +640,18 @@ public:
 		}
 		return m_vecActiveGridPatches[ix];
 	}
+
+#ifdef USE_MPI
+	///	<summary>
+	///		Get the node that contains the specified GridPatch.
+	///	</summary>
+	const int GetPatchProcessor(int ixPatch) const {
+		if ((ixPatch < 0) || (ixPatch >= m_vecPatchProcessor.size())) {
+			_EXCEPTIONT("Invalid active patch index");
+		}
+		return m_vecPatchProcessor[ixPatch];
+	}
+#endif
 
 public:
 	///	<summary>
@@ -864,11 +841,6 @@ protected:
 	std::vector<int> m_vecCumulativePatch2DNodeIndex;
 */
 	///	<summary>
-	///		Vector of grid patches.
-	///	</summary>
-	GridPatchVector m_vecGridPatches;
-
-	///	<summary>
 	///		Vector of grid patches which are active locally.
 	///	</summary>
 	GridPatchVector m_vecActiveGridPatches;
@@ -877,6 +849,13 @@ protected:
 	///		Vector of grid patch ids which are active locally.
 	///	</summary>
 	std::vector<int> m_vecActiveGridPatchIndices;
+
+#ifdef USE_MPI
+	///	<summary>
+	///		Vector of processors that contain the specified GridPatch.
+	///	</summary>
+	std::vector<int> m_vecPatchProcessor;
+#endif
 
 	///	<summary>
 	///		Exchange buffer registry.

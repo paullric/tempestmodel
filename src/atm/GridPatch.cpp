@@ -39,23 +39,7 @@ GridPatch::GridPatch(
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-
-int GridPatch::GetTotalNodeCount(
-	DataLocation loc
-) const {
-	if (loc == DataLocation_Node) {
-		return (m_box.GetTotalNodes() * m_grid.GetRElements());
-
-	} else if (loc == DataLocation_REdge) {
-		return (m_box.GetTotalNodes() * (m_grid.GetRElements()+1));
-
-	} else {
-		_EXCEPTIONT("Invalid DataLocation");
-	}
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
+/*
 int GridPatch::GetTotalDegreesOfFreedom(
 	DataType eDataType,
 	DataLocation eDataLocation
@@ -114,7 +98,7 @@ int GridPatch::GetTotalDegreesOfFreedom(
 		_EXCEPTIONT("(UNIMPLEMENTED) Invalid DataType");
 	}
 }
-
+*/
 ///////////////////////////////////////////////////////////////////////////////
 
 void GridPatch::InitializeDataRemote(
@@ -569,166 +553,6 @@ void GridPatch::DeinitializeData() {
 	m_dataRayleighStrengthNode.Deallocate();
 	m_dataRayleighStrengthREdge.Deallocate();
 */
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
-void GridPatch::ExteriorConnect(
-	Direction dirFirst,
-	int ixNeighborPatch
-) {
-	// First patch coordinate index
-	int ixFirst;
-	int ixSecond;
-
-	if ((dirFirst == Direction_Right) ||
-		(dirFirst == Direction_Left)
-	) {
-		ixFirst  = m_box.GetBInteriorBegin();
-		ixSecond = m_box.GetBInteriorEnd();
-
-	} else if (
-		(dirFirst == Direction_Top) ||
-		(dirFirst == Direction_Bottom)
-	) {
-		ixFirst  = m_box.GetAInteriorBegin();
-		ixSecond = m_box.GetAInteriorEnd();
-
-	} else if (dirFirst == Direction_TopRight) {
-		ixFirst  = m_box.GetAInteriorEnd()-1;
-		ixSecond = m_box.GetBInteriorEnd()-1;
-
-	} else if (dirFirst == Direction_TopLeft) {
-		ixFirst  = m_box.GetAInteriorBegin();
-		ixSecond = m_box.GetBInteriorEnd()-1;
-
-	} else if (dirFirst == Direction_BottomLeft) {
-		ixFirst  = m_box.GetAInteriorBegin();
-		ixSecond = m_box.GetBInteriorBegin();
-
-	} else if (dirFirst == Direction_BottomRight) {
-		ixFirst  = m_box.GetAInteriorEnd()-1;
-		ixSecond = m_box.GetBInteriorBegin();
-
-	} else {
-		_EXCEPTIONT("Invalid direction");
-	}
-
-	// Exterior connect
-	ExteriorConnect(
-		dirFirst,
-		ixNeighborPatch,
-		ixFirst,
-		ixSecond);
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
-void GridPatch::ExteriorConnect(
-	Direction dirFirst,
-	int ixNeighborPatch,
-	int ixFirst,
-	int ixSecond
-) {
-	_EXCEPTION();
-	// Check for NULL patches (do nothing)
-	if (ixNeighborPatch == GridPatch::InvalidIndex) {
-		return;
-	}
-
-	// Get number of components
-	const Model & model = m_grid.GetModel();
-
-	const EquationSet & eqn = model.GetEquationSet();
-
-	int nStateTracerMaxVariables;
-	if (eqn.GetComponents() > eqn.GetTracers()) {
-		nStateTracerMaxVariables = eqn.GetComponents();
-	} else {
-		nStateTracerMaxVariables = eqn.GetTracers();
-	}
-
-	int nRElements = m_grid.GetRElements();
-
-	int nHaloElements = model.GetHaloElements();
-
-	// Get the opposing direction
-	Direction dirOpposing = Direction_Unreachable;
-	bool fReverseDirection = false;
-	bool fFlippedCoordinate = false;
-
-	m_grid.GetOpposingDirection(
-		m_box.GetPanel(),
-		m_grid.GetPatchBox(ixNeighborPatch).GetPanel(),
-		dirFirst,
-		dirOpposing,
-		fReverseDirection,
-		fFlippedCoordinate);
-
-	// Determine the size of the boundary (number of elements along exterior
-	// edge).  Used in computing the size of the send/recv buffers.
-	int nBoundarySize;
-	if ((dirFirst == Direction_Right) ||
-		(dirFirst == Direction_Top) ||
-		(dirFirst == Direction_Left) ||
-		(dirFirst == Direction_Bottom)
-	) {
-		nBoundarySize = ixSecond - ixFirst;
-	} else {
-		nBoundarySize = nHaloElements;
-	}
-
-	if ((dirFirst == Direction_TopRight) && (
-		(ixFirst < m_box.GetAInteriorBegin() + nBoundarySize - 1) ||
-		(ixSecond < m_box.GetBInteriorBegin() + nBoundarySize - 1)
-	)) {
-		_EXCEPTIONT("Insufficient interior elements to build "
-			"diagonal connection.");
-	}
-
-	if ((dirFirst == Direction_TopLeft) && (
-		(ixFirst > m_box.GetAInteriorEnd() - nBoundarySize) ||
-		(ixSecond < m_box.GetBInteriorBegin() + nBoundarySize - 1)
-	)) {
-		_EXCEPTIONT("Insufficient interior elements to build "
-			"diagonal connection.");
-	}
-
-	if ((dirFirst == Direction_BottomLeft) && (
-		(ixFirst > m_box.GetAInteriorEnd() - nBoundarySize) ||
-		(ixSecond > m_box.GetBInteriorEnd() - nBoundarySize)
-	)) {
-		_EXCEPTIONT("Insufficient interior elements to build "
-			"diagonal connection.");
-	}
-
-	if ((dirFirst == Direction_BottomRight) && (
-		(ixFirst < m_box.GetAInteriorBegin() + nBoundarySize - 1) ||
-		(ixSecond > m_box.GetBInteriorEnd() - nBoundarySize)
-	)) {
-		_EXCEPTIONT("Insufficient interior elements to build "
-			"diagonal connection.");
-	}
-
-	// Add an external neighbor to the patch
-	ExteriorNeighbor * pNeighbor =
-		new ExteriorNeighbor(
-			dirFirst,
-			dirOpposing,
-			GetPatchIndex(),
-			ixNeighborPatch,
-			fReverseDirection,
-			fFlippedCoordinate,
-			nBoundarySize,
-			ixFirst,
-			ixSecond);
-
-	pNeighbor->InitializeBuffers(
-		nRElements,
-		nHaloElements,
-		nStateTracerMaxVariables);
-
-	m_connect.AddExteriorNeighbor(pNeighbor);
 }
 
 ///////////////////////////////////////////////////////////////////////////////

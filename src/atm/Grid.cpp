@@ -114,8 +114,8 @@ Grid::~Grid() {
 		delete m_pVerticalStretchF;
 	}
 
-	for (int n = 0; n < m_vecGridPatches.size(); n++) {
-		delete m_vecGridPatches[n];
+	for (int n = 0; n < m_vecActiveGridPatches.size(); n++) {
+		delete m_vecActiveGridPatches[n];
 	}
 }
 
@@ -737,8 +737,17 @@ int Grid::GetMaxNodeCount(
 	int nMaxNodes = 0;
 
 	// Loop over all patches and obtain total node count
-	for (int n = 0; n < m_vecGridPatches.size(); n++) {
-		int nPatchNodes = m_vecGridPatches[n]->GetTotalNodeCount(loc);
+	for (int n = 0; n < m_aPatchBoxes.GetRows(); n++) {
+		const PatchBox & box = GetPatchBox(n);
+
+		int nPatchNodes;
+		if (loc == DataLocation_Node) {
+			nPatchNodes = box.GetTotalNodes() * GetRElements();
+		} else if (loc == DataLocation_REdge) {
+			nPatchNodes = box.GetTotalNodes() * (GetRElements() + 1);
+		} else {
+			_EXCEPTIONT("Invalid location");
+		}
 
 		if (nPatchNodes > nMaxNodes) {
 			nMaxNodes = nPatchNodes;
@@ -758,15 +767,26 @@ int Grid::GetTotalNodeCount(
 	int nTotalNodes = 0;
 
 	// Loop over all patches and obtain total node count
-	for (int n = 0; n < m_vecGridPatches.size(); n++) {
-		nTotalNodes += m_vecGridPatches[n]->GetTotalNodeCount(loc);
+	for (int n = 0; n < m_aPatchBoxes.GetRows(); n++) {
+		const PatchBox & box = GetPatchBox(n);
+
+		int nPatchNodes;
+		if (loc == DataLocation_Node) {
+			nPatchNodes = box.GetTotalNodes() * GetRElements();
+		} else if (loc == DataLocation_REdge) {
+			nPatchNodes = box.GetTotalNodes() * (GetRElements() + 1);
+		} else {
+			_EXCEPTIONT("Invalid location");
+		}
+
+		nTotalNodes += nPatchNodes;
 	}
 
 	return nTotalNodes;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-
+/*
 int Grid::GetMaxDegreesOfFreedom() const {
 
 	// Most nodes per patch
@@ -792,7 +812,7 @@ int Grid::GetMaxDegreesOfFreedom() const {
 
 	return nMaxDOFs;
 }
-
+*/
 ///////////////////////////////////////////////////////////////////////////////
 
 void Grid::ConsolidateDataAtRoot(
@@ -803,6 +823,8 @@ void Grid::ConsolidateDataAtRoot(
 	DataType & eRecvDataType,
 	DataLocation & eRecvDataLocation
 ) const {
+	_EXCEPTIONT("Not implemented");
+/*
 #ifdef USE_MPI
 	// Get process id
 	int nRank;
@@ -856,6 +878,7 @@ void Grid::ConsolidateDataAtRoot(
 			nExpectedRecvCount, nRecvCount);
 	}
 #endif
+*/
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -863,6 +886,8 @@ void Grid::ConsolidateDataAtRoot(
 void Grid::ConsolidateDataToRoot(
 	ConsolidationStatus & status
 ) const {
+	_EXCEPTIONT("Not implemented");
+/*
 #ifdef USE_MPI
 	// Get process id
 	int nRank;
@@ -1073,6 +1098,7 @@ void Grid::ConsolidateDataToRoot(
 		}
 	}
 #endif
+*/
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1267,14 +1293,6 @@ void Grid::ConvertReferenceToPatchCoord(
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void Grid::InitializePatchesFromPatchBoxes() {
-	for (int n = 0; n < m_nInitializedPatchBoxes; n++) {
-		AddPatch(NewPatch(n));
-	}
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
 GridPatch * Grid::ActivateEmptyPatch(
 	int ixPatch
 ) {
@@ -1301,22 +1319,6 @@ void Grid::DeactivatePatch(
 				m_vecActiveGridPatches.begin() + i);
 		}
 	}
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
-GridPatch * Grid::AddPatch(
-	GridPatch * pPatch
-) {
-	int ixNextPatch = m_vecGridPatches.size();
-
-	// Add the patch to the vector of patches
-	m_vecGridPatches.push_back(pPatch);
-
-	// Set the patch index
-	pPatch->m_ixPatch = ixNextPatch;
-
-	return pPatch;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1674,14 +1676,16 @@ void Grid::DistributePatches() {
 	MPI_Comm_rank(MPI_COMM_WORLD, &nRank);
 
 	// Loop over all patches and initialize data
-	for (int n = 0; n < m_vecGridPatches.size(); n++) {
-		int nPatchProcessor = n % nSize;
-		if (nPatchProcessor == nRank) {
-			m_vecGridPatches[n]->InitializeDataLocal();
-			m_vecActiveGridPatches.push_back(m_vecGridPatches[n]);
+	m_vecPatchProcessor.resize(m_aPatchBoxes.GetRows());
+	for (int n = 0; n < m_aPatchBoxes.GetRows(); n++) {
+		int iPatchProcessor = n % nSize;
+		m_vecPatchProcessor[n] = iPatchProcessor;
+
+		if (iPatchProcessor == nRank) {
+			GridPatch * pPatch = NewPatch(n);
+			pPatch->InitializeDataLocal();
+			m_vecActiveGridPatches.push_back(pPatch);
 			m_vecActiveGridPatchIndices.push_back(n);
-		} else {
-			m_vecGridPatches[n]->InitializeDataRemote(nPatchProcessor);
 		}
 	}
 #endif
