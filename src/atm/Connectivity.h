@@ -27,6 +27,7 @@
 
 #include "Direction.h"
 
+#include "DataContainer.h"
 #include "DataArray1D.h"
 #include "DataArray3D.h"
 #include "DataArray4D.h"
@@ -231,15 +232,7 @@ public:
 		const ExchangeBufferMeta & meta,
 		bool fReverseDirection,
 		bool fFlippedCoordinate
-	) : 
-		m_key(key),
-		m_meta(meta),
-		m_fReverseDirection(fReverseDirection),
-		m_fFlippedCoordinate(fFlippedCoordinate),
-		m_fComplete(false),
-		m_ixSendBuffer(0),
-		m_ixRecvBuffer(0)
-	{ }
+	);
 
 	///	<summary>
 	///		Virtual destructor.
@@ -257,6 +250,13 @@ public:
 	///		Get the size of the exchange buffers.
 	///	</summary>
 	size_t GetByteSize() const;
+
+	///	<summary>
+	///		Get the DataContainer used by this Neighbor.
+	///	</summary>
+	DataContainer & GetDataContainerBuffers() {
+		return m_dcBuffers;
+	}
 
 public:
 	///	<summary>
@@ -396,6 +396,11 @@ public:
 	MPI_Request m_reqSend;
 	MPI_Request m_reqRecv;
 #endif
+
+	///	<summary>
+	///		DataContainer storing exchange buffers.
+	///	</summary>
+	DataContainer m_dcBuffers;
 
 	///	<summary>
 	///		DataArray1D used for exchange of data and fluxes.

@@ -25,18 +25,40 @@
 // Neighbor
 ///////////////////////////////////////////////////////////////////////////////
 
-void Neighbor::AllocateBuffers() {
-	m_vecSendBuffer.Allocate(
+Neighbor::Neighbor(
+	const ExchangeBufferKey & key,
+	const ExchangeBufferMeta & meta,
+	bool fReverseDirection,
+	bool fFlippedCoordinate
+) : 
+	m_key(key),
+	m_meta(meta),
+	m_fReverseDirection(fReverseDirection),
+	m_fFlippedCoordinate(fFlippedCoordinate),
+	m_fComplete(false),
+	m_ixSendBuffer(0),
+	m_ixRecvBuffer(0)
+{
+	m_vecSendBuffer.SetSize(
 		  m_meta.sBoundarySize
 		* m_meta.sMaxRElements
 		* m_meta.sHaloElements
 		* m_meta.sComponents);
 
-	m_vecRecvBuffer.Allocate(
+	m_vecRecvBuffer.SetSize(
 		  m_meta.sBoundarySize
 		* m_meta.sMaxRElements
 		* m_meta.sHaloElements
 		* m_meta.sComponents);
+
+	m_dcBuffers.PushDataChunk(&m_vecSendBuffer);
+	m_dcBuffers.PushDataChunk(&m_vecRecvBuffer);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void Neighbor::AllocateBuffers() {
+	m_dcBuffers.Allocate();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
