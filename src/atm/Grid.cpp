@@ -1793,7 +1793,6 @@ void Grid::RegisterExchangeBuffer(
 	meta.sMaxRElements = GetRElements() + 1;
 
 	// Get the opposing direction
-	Direction dirOpposing = Direction_Unreachable;
 	bool fReverseDirection = false;
 	bool fFlippedCoordinate = false;
 
@@ -1801,50 +1800,49 @@ void Grid::RegisterExchangeBuffer(
 		boxSource.GetPanel(),
 		boxTarget.GetPanel(),
 		dir,
-		dirOpposing,
+		meta.dirOpposing,
 		fReverseDirection,
 		fFlippedCoordinate);
 
 	// Determine the size of the boundary (number of elements along exterior
 	// edge).  Used in computing the size of the send/recv buffers.
-	int nBoundarySize;
 	if ((dir == Direction_Right) ||
 		(dir == Direction_Top) ||
 		(dir == Direction_Left) ||
 		(dir == Direction_Bottom)
 	) {
-		nBoundarySize = ixSecond - ixFirst;
+		meta.sBoundarySize = ixSecond - ixFirst;
 	} else {
-		nBoundarySize = meta.sHaloElements;
+		meta.sBoundarySize = meta.sHaloElements;
 	}
 
 	if ((dir == Direction_TopRight) && (
-		(ixFirst < boxSource.GetAInteriorBegin() + nBoundarySize - 1) ||
-		(ixSecond < boxSource.GetBInteriorBegin() + nBoundarySize - 1)
+		(ixFirst < boxSource.GetAInteriorBegin() + meta.sBoundarySize - 1) ||
+		(ixSecond < boxSource.GetBInteriorBegin() + meta.sBoundarySize - 1)
 	)) {
 		_EXCEPTIONT("Insufficient interior elements to build "
 			"diagonal connection.");
 	}
 
 	if ((dir == Direction_TopLeft) && (
-		(ixFirst > boxSource.GetAInteriorEnd() - nBoundarySize) ||
-		(ixSecond < boxSource.GetBInteriorBegin() + nBoundarySize - 1)
+		(ixFirst > boxSource.GetAInteriorEnd() - meta.sBoundarySize) ||
+		(ixSecond < boxSource.GetBInteriorBegin() + meta.sBoundarySize - 1)
 	)) {
 		_EXCEPTIONT("Insufficient interior elements to build "
 			"diagonal connection.");
 	}
 
 	if ((dir == Direction_BottomLeft) && (
-		(ixFirst > boxSource.GetAInteriorEnd() - nBoundarySize) ||
-		(ixSecond > boxSource.GetBInteriorEnd() - nBoundarySize)
+		(ixFirst > boxSource.GetAInteriorEnd() - meta.sBoundarySize) ||
+		(ixSecond > boxSource.GetBInteriorEnd() - meta.sBoundarySize)
 	)) {
 		_EXCEPTIONT("Insufficient interior elements to build "
 			"diagonal connection.");
 	}
 
 	if ((dir == Direction_BottomRight) && (
-		(ixFirst < boxSource.GetAInteriorBegin() + nBoundarySize - 1) ||
-		(ixSecond > boxSource.GetBInteriorEnd() - nBoundarySize)
+		(ixFirst < boxSource.GetAInteriorBegin() + meta.sBoundarySize - 1) ||
+		(ixSecond > boxSource.GetBInteriorEnd() - meta.sBoundarySize)
 	)) {
 		_EXCEPTIONT("Insufficient interior elements to build "
 			"diagonal connection.");
@@ -1856,321 +1854,328 @@ void Grid::RegisterExchangeBuffer(
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void Grid::InitializeExchangeBuffersFromLayout() {
+void Grid::InitializeExchangeBuffersFromPatch(
+	int ixSourcePatch
+) {
+	const PatchBox & box = GetPatchBox(ixSourcePatch);
 
 	// Vector of nodal points around element
-	DataArray1D<int> vecIxA;
-	DataArray1D<int> vecIxB;
-	DataArray1D<int> vecPanel;
-	DataArray1D<int> vecPatch;
+	int nPerimeter = box.GetInteriorPerimeter() + 4;
 
-	// Determine longest perimeter
-	int nLongestActivePerimeter = GetLongestActivePatchPerimeter() + 4;
-	vecIxA.Allocate(nLongestActivePerimeter);
-	vecIxB.Allocate(nLongestActivePerimeter);
-	vecPanel.Allocate(nLongestActivePerimeter);
-	vecPatch.Allocate(nLongestActivePerimeter);
+	DataArray1D<int> vecIxA(nPerimeter);
+	DataArray1D<int> vecIxB(nPerimeter);
+	DataArray1D<int> vecPanel(nPerimeter);
+	DataArray1D<int> vecPatch(nPerimeter);
 
-	// Loop over all active patches
-	for (int n = 0; n < m_vecActiveGridPatchIndices.size(); n++) {
+	// Perimeter node index
+	int ix = 0;
 
-		int ixSourcePatch = m_vecActiveGridPatchIndices[n];
+	// Bottom-left corner
+	vecIxA[ix] = box.GetAGlobalInteriorBegin()-1;
+	vecIxB[ix] = box.GetBGlobalInteriorBegin()-1;
+	vecPanel[ix] = box.GetPanel();
+	ix++;
 
-		const PatchBox & box = GetPatchBox(ixSourcePatch);
-
-		int ix = 0;
-
-		// Bottom-left corner
-		vecIxA[ix] = box.GetAGlobalInteriorBegin()-1;
+	// Bottom edge
+	for (int i = box.GetAGlobalInteriorBegin();
+	         i < box.GetAGlobalInteriorEnd(); i++
+	) {
+		vecIxA[ix] = i;
 		vecIxB[ix] = box.GetBGlobalInteriorBegin()-1;
 		vecPanel[ix] = box.GetPanel();
 		ix++;
+	}
 
-		// Bottom edge
-		for (int i = box.GetAGlobalInteriorBegin();
-		         i < box.GetAGlobalInteriorEnd(); i++
-		) {
-			vecIxA[ix] = i;
-			vecIxB[ix] = box.GetBGlobalInteriorBegin()-1;
-			vecPanel[ix] = box.GetPanel();
-			ix++;
-		}
+	// Bottom-right corner
+	vecIxA[ix] = box.GetAGlobalInteriorEnd();
+	vecIxB[ix] = box.GetBGlobalInteriorBegin()-1;
+	vecPanel[ix] = box.GetPanel();
+	ix++;
 
-		// Bottom-right corner
+	// Right edge
+	for (int j = box.GetBGlobalInteriorBegin();
+	         j < box.GetBGlobalInteriorEnd(); j++
+	) {
 		vecIxA[ix] = box.GetAGlobalInteriorEnd();
-		vecIxB[ix] = box.GetBGlobalInteriorBegin()-1;
+		vecIxB[ix] = j;
 		vecPanel[ix] = box.GetPanel();
 		ix++;
+	}
 
-		// Right edge
-		for (int j = box.GetBGlobalInteriorBegin();
-		         j < box.GetBGlobalInteriorEnd(); j++
-		) {
-			vecIxA[ix] = box.GetAGlobalInteriorEnd();
-			vecIxB[ix] = j;
-			vecPanel[ix] = box.GetPanel();
-			ix++;
-		}
+	// Top-right corner
+	vecIxA[ix] = box.GetAGlobalInteriorEnd();
+	vecIxB[ix] = box.GetBGlobalInteriorEnd();
+	vecPanel[ix] = box.GetPanel();
+	ix++;
 
-		// Top-right corner
-		vecIxA[ix] = box.GetAGlobalInteriorEnd();
+	// Top edge
+	for (int i = box.GetAGlobalInteriorEnd()-1;
+	         i >= box.GetAGlobalInteriorBegin(); i--
+	) {
+		vecIxA[ix] = i;
 		vecIxB[ix] = box.GetBGlobalInteriorEnd();
 		vecPanel[ix] = box.GetPanel();
 		ix++;
+	}
 
-		// Top edge
-		for (int i = box.GetAGlobalInteriorEnd()-1;
-		         i >= box.GetAGlobalInteriorBegin(); i--
-		) {
-			vecIxA[ix] = i;
-			vecIxB[ix] = box.GetBGlobalInteriorEnd();
-			vecPanel[ix] = box.GetPanel();
-			ix++;
-		}
+	// Top-left corner
+	vecIxA[ix] = box.GetAGlobalInteriorBegin()-1;
+	vecIxB[ix] = box.GetBGlobalInteriorEnd();
+	vecPanel[ix] = box.GetPanel();
+	ix++;
 
-		// Top-left corner
+	// Left edge
+	for (int j = box.GetBGlobalInteriorEnd()-1;
+	         j >= box.GetBGlobalInteriorBegin(); j--
+	) {
 		vecIxA[ix] = box.GetAGlobalInteriorBegin()-1;
-		vecIxB[ix] = box.GetBGlobalInteriorEnd();
+		vecIxB[ix] = j;
 		vecPanel[ix] = box.GetPanel();
 		ix++;
+	}
 
-		// Left edge
-		for (int j = box.GetBGlobalInteriorEnd()-1;
-		         j >= box.GetBGlobalInteriorBegin(); j--
-		) {
-			vecIxA[ix] = box.GetAGlobalInteriorBegin()-1;
-			vecIxB[ix] = j;
-			vecPanel[ix] = box.GetPanel();
-			ix++;
-		}
+	// Get neighboring patches at each halo node
+	GetPatchFromCoordinateIndex(
+		box.GetRefinementLevel(),
+		vecIxA,
+		vecIxB,
+		vecPanel,
+		vecPatch,
+		ix);
 
-		// Get neighboring patches at each halo node
-		GetPatchFromCoordinateIndex(
-			box.GetRefinementLevel(),
-			vecIxA,
-			vecIxB,
-			vecPanel,
-			vecPatch,
-			ix);
+	// Verify index length
+	if (ix != box.GetInteriorPerimeter() + 4) {
+		_EXCEPTIONT("Index mismatch");
+	}
 
-		// Verify index length
-		if (ix != box.GetInteriorPerimeter() + 4) {
-			_EXCEPTIONT("Index mismatch");
-		}
+	// Reset index
+	ix = 0;
 
-		// Reset index
-		ix = 0;
+	// Add connectivity to bottom-left corner
+	if (vecPatch[ix] != GridPatch::InvalidIndex) {
+		RegisterExchangeBuffer(
+			ixSourcePatch,
+			vecPatch[ix],
+			Direction_BottomLeft);
+	}
 
-		// Add connectivity to bottom-left corner
-		if (vecPatch[ix] != GridPatch::InvalidIndex) {
-			RegisterExchangeBuffer(
-				ixSourcePatch,
-				vecPatch[ix],
-				Direction_BottomLeft);
-		}
+	ix++;
 
-		ix++;
+	// Add connectivity to bottom edge: Look for segments along each
+	// edge that connect to distinct patches and construct corresponding
+	// ExteriorNeighbors.
+	{
+		int ixFirstBegin = box.GetAInteriorBegin();
+		int iCurrentPatch = vecPatch[ix];
 
-		// Add connectivity to bottom edge: Look for segments along each
-		// edge that connect to distinct patches and construct corresponding
-		// ExteriorNeighbors.
-		{
-			int ixFirstBegin = box.GetAInteriorBegin();
-			int iCurrentPatch = vecPatch[ix];
+		for (int i = ixFirstBegin; i <= box.GetAInteriorEnd(); i++) {
+			if ((i == box.GetAInteriorEnd()) ||
+				(vecPatch[ix] != iCurrentPatch)
+			) {
+				RegisterExchangeBuffer(
+					ixSourcePatch,
+					iCurrentPatch,
+					Direction_Bottom,
+					ixFirstBegin,
+					i);
 
-			for (int i = ixFirstBegin; i <= box.GetAInteriorEnd(); i++) {
-				if ((i == box.GetAInteriorEnd()) ||
-					(vecPatch[ix] != iCurrentPatch)
-				) {
+				if (i != box.GetAInteriorEnd()) {
 					RegisterExchangeBuffer(
 						ixSourcePatch,
 						iCurrentPatch,
-						Direction_Bottom,
-						ixFirstBegin,
-						i);
+						Direction_BottomLeft,
+						i,
+						box.GetBInteriorBegin());
 
-					if (i != box.GetAInteriorEnd()) {
-						RegisterExchangeBuffer(
-							ixSourcePatch,
-							iCurrentPatch,
-							Direction_BottomLeft,
-							i,
-							box.GetBInteriorBegin());
+					ixFirstBegin = i;
+					iCurrentPatch = vecPatch[ix];
 
-						ixFirstBegin = i;
-						iCurrentPatch = vecPatch[ix];
-
-						RegisterExchangeBuffer(
-							ixSourcePatch,
-							iCurrentPatch,
-							Direction_BottomRight,
-							i - 1,
-							box.GetBInteriorBegin());
-					}
-				}
-				if (i != box.GetAInteriorEnd()) {
-					ix++;
+					RegisterExchangeBuffer(
+						ixSourcePatch,
+						iCurrentPatch,
+						Direction_BottomRight,
+						i - 1,
+						box.GetBInteriorBegin());
 				}
 			}
+			if (i != box.GetAInteriorEnd()) {
+				ix++;
+			}
 		}
+	}
 
-		// Add connectivity to bottom-right corner
-		if (vecPatch[ix] != GridPatch::InvalidIndex) {
-			RegisterExchangeBuffer(
-				ixSourcePatch,
-				vecPatch[ix],
-				Direction_BottomRight);
-		}
+	// Add connectivity to bottom-right corner
+	if (vecPatch[ix] != GridPatch::InvalidIndex) {
+		RegisterExchangeBuffer(
+			ixSourcePatch,
+			vecPatch[ix],
+			Direction_BottomRight);
+	}
 
-		ix++;
+	ix++;
 
-		// Add connectivity to right edge
-		{
-			int ixFirstBegin = box.GetBInteriorBegin();
-			int iCurrentPatch = vecPatch[ix];
+	// Add connectivity to right edge
+	{
+		int ixFirstBegin = box.GetBInteriorBegin();
+		int iCurrentPatch = vecPatch[ix];
 
-			for (int j = ixFirstBegin; j <= box.GetBInteriorEnd(); j++) {
-				if ((j == box.GetBInteriorEnd()) ||
-					(vecPatch[ix] != iCurrentPatch)
-				) {
+		for (int j = ixFirstBegin; j <= box.GetBInteriorEnd(); j++) {
+			if ((j == box.GetBInteriorEnd()) ||
+				(vecPatch[ix] != iCurrentPatch)
+			) {
+				RegisterExchangeBuffer(
+					ixSourcePatch,
+					iCurrentPatch,
+					Direction_Right,
+					ixFirstBegin,
+					j);
+
+				if (j != box.GetBInteriorEnd()) {
 					RegisterExchangeBuffer(
 						ixSourcePatch,
 						iCurrentPatch,
-						Direction_Right,
-						ixFirstBegin,
+						Direction_BottomRight,
+						box.GetAInteriorEnd()-1,
 						j);
 
-					if (j != box.GetBInteriorEnd()) {
-						RegisterExchangeBuffer(
-							ixSourcePatch,
-							iCurrentPatch,
-							Direction_BottomRight,
-							box.GetAInteriorEnd()-1,
-							j);
+					ixFirstBegin = j;
+					iCurrentPatch = vecPatch[ix];
 
-						ixFirstBegin = j;
-						iCurrentPatch = vecPatch[ix];
-
-						RegisterExchangeBuffer(
-							ixSourcePatch,
-							iCurrentPatch,
-							Direction_TopRight,
-							box.GetAInteriorEnd()-1,
-							j - 1);
-					}
-				}
-				if (j != box.GetBInteriorEnd()) {
-					ix++;
-				}
-			}
-		}
-
-		// Add connectivity to top-right corner
-		if (vecPatch[ix] != GridPatch::InvalidIndex) {
-			RegisterExchangeBuffer(
-				ixSourcePatch,
-				vecPatch[ix],
-				Direction_TopRight);
-		}
-
-		ix++;
-
-		// Add connectivity to top edge
-		{
-			int ixFirstEnd = box.GetAInteriorEnd();
-			int iCurrentPatch = vecPatch[ix];
-
-			for (int i = ixFirstEnd-1; i >= box.GetAInteriorBegin()-1; i--) {
-				if ((i == box.GetAInteriorBegin()-1) ||
-					(vecPatch[ix] != iCurrentPatch)
-				) {
 					RegisterExchangeBuffer(
 						ixSourcePatch,
 						iCurrentPatch,
-						Direction_Top,
-						i + 1,
-						ixFirstEnd);
-
-					if (i != box.GetAInteriorBegin()-1) {
-						RegisterExchangeBuffer(
-							ixSourcePatch,
-							iCurrentPatch,
-							Direction_TopRight,
-							i,
-							box.GetBInteriorEnd()-1);
-
-						ixFirstEnd = i + 1;
-						iCurrentPatch = vecPatch[ix];
-
-						RegisterExchangeBuffer(
-							ixSourcePatch,
-							iCurrentPatch,
-							Direction_TopLeft,
-							i + 1,
-							box.GetBInteriorEnd()-1);
-					}
+						Direction_TopRight,
+						box.GetAInteriorEnd()-1,
+						j - 1);
 				}
+			}
+			if (j != box.GetBInteriorEnd()) {
+				ix++;
+			}
+		}
+	}
+
+	// Add connectivity to top-right corner
+	if (vecPatch[ix] != GridPatch::InvalidIndex) {
+		RegisterExchangeBuffer(
+			ixSourcePatch,
+			vecPatch[ix],
+			Direction_TopRight);
+	}
+
+	ix++;
+
+	// Add connectivity to top edge
+	{
+		int ixFirstEnd = box.GetAInteriorEnd();
+		int iCurrentPatch = vecPatch[ix];
+
+		for (int i = ixFirstEnd-1; i >= box.GetAInteriorBegin()-1; i--) {
+			if ((i == box.GetAInteriorBegin()-1) ||
+				(vecPatch[ix] != iCurrentPatch)
+			) {
+				RegisterExchangeBuffer(
+					ixSourcePatch,
+					iCurrentPatch,
+					Direction_Top,
+					i + 1,
+					ixFirstEnd);
+
 				if (i != box.GetAInteriorBegin()-1) {
-					ix++;
-				}
-			}
-		}
-
-		// Add connectivity to top-left corner
-		if (vecPatch[ix] != GridPatch::InvalidIndex) {
-			RegisterExchangeBuffer(
-				ixSourcePatch,
-				vecPatch[ix],
-				Direction_TopLeft);
-		}
-
-		ix++;
-
-		// Add connectivity to top edge
-		{
-			int ixFirstEnd = box.GetBInteriorEnd();
-			int iCurrentPatch = vecPatch[ix];
-
-			for (int j = ixFirstEnd-1; j >= box.GetBInteriorBegin()-1; j--) {
-				if ((j == box.GetBInteriorBegin()-1) ||
-					(vecPatch[ix] != iCurrentPatch)
-				) {
 					RegisterExchangeBuffer(
 						ixSourcePatch,
 						iCurrentPatch,
-						Direction_Left,
-						j + 1,
-						ixFirstEnd);
+						Direction_TopRight,
+						i,
+						box.GetBInteriorEnd()-1);
 
-					if (j != box.GetBInteriorBegin()-1) {
-						RegisterExchangeBuffer(
-							ixSourcePatch,
-							iCurrentPatch,
-							Direction_TopLeft,
-							box.GetAInteriorBegin(),
-							j);
+					ixFirstEnd = i + 1;
+					iCurrentPatch = vecPatch[ix];
 
-						ixFirstEnd = j + 1;
-						iCurrentPatch = vecPatch[ix];
-
-						RegisterExchangeBuffer(
-							ixSourcePatch,
-							iCurrentPatch,
-							Direction_BottomLeft,
-							box.GetAInteriorBegin(),
-							j + 1);
-					}
-				}
-				if (j != box.GetBInteriorBegin()-1) {
-					ix++;
+					RegisterExchangeBuffer(
+						ixSourcePatch,
+						iCurrentPatch,
+						Direction_TopLeft,
+						i + 1,
+						box.GetBInteriorEnd()-1);
 				}
 			}
+			if (i != box.GetAInteriorBegin()-1) {
+				ix++;
+			}
 		}
+	}
 
-		// Verify index length
-		if (ix != box.GetInteriorPerimeter() + 4) {
-			_EXCEPTIONT("Index mismatch");
+	// Add connectivity to top-left corner
+	if (vecPatch[ix] != GridPatch::InvalidIndex) {
+		RegisterExchangeBuffer(
+			ixSourcePatch,
+			vecPatch[ix],
+			Direction_TopLeft);
+	}
+
+	ix++;
+
+	// Add connectivity to top edge
+	{
+		int ixFirstEnd = box.GetBInteriorEnd();
+		int iCurrentPatch = vecPatch[ix];
+
+		for (int j = ixFirstEnd-1; j >= box.GetBInteriorBegin()-1; j--) {
+			if ((j == box.GetBInteriorBegin()-1) ||
+				(vecPatch[ix] != iCurrentPatch)
+			) {
+				RegisterExchangeBuffer(
+					ixSourcePatch,
+					iCurrentPatch,
+					Direction_Left,
+					j + 1,
+					ixFirstEnd);
+
+				if (j != box.GetBInteriorBegin()-1) {
+					RegisterExchangeBuffer(
+						ixSourcePatch,
+						iCurrentPatch,
+						Direction_TopLeft,
+						box.GetAInteriorBegin(),
+						j);
+
+					ixFirstEnd = j + 1;
+					iCurrentPatch = vecPatch[ix];
+
+					RegisterExchangeBuffer(
+						ixSourcePatch,
+						iCurrentPatch,
+						Direction_BottomLeft,
+						box.GetAInteriorBegin(),
+						j + 1);
+				}
+			}
+			if (j != box.GetBInteriorBegin()-1) {
+				ix++;
+			}
 		}
+	}
+
+	// Verify index length
+	if (ix != box.GetInteriorPerimeter() + 4) {
+		_EXCEPTIONT("Index mismatch");
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void Grid::InitializeExchangeBuffersFromActivePatches() {
+	for (int n = 0; n < m_vecActiveGridPatchIndices.size(); n++) {
+		InitializeExchangeBuffersFromPatch(m_vecActiveGridPatchIndices[n]);
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void Grid::InitializeAllExchangeBuffers() {
+	for (int n = 0; n < m_nInitializedPatchBoxes; n++) {
+		InitializeExchangeBuffersFromPatch(n);
 	}
 }
 
@@ -2215,34 +2220,19 @@ void Grid::InitializeConnectivity() {
 				fReverseDirection,
 				fFlippedCoordinate);
 
-			int nBoundarySize;
-			if ((key.dir == Direction_Right) ||
-				(key.dir == Direction_Top) ||
-				(key.dir == Direction_Left) ||
-				(key.dir == Direction_Bottom)
-			) {
-				nBoundarySize = meta.ixSecond - meta.ixFirst;
-			} else {
-				nBoundarySize = meta.sHaloElements;
+			if (dirOpposing != meta.dirOpposing) {
+				_EXCEPTIONT("Logic error");
 			}
 
 			// Build the new ExteriorNeighbor
 			ExteriorNeighbor * pNeighbor =
 				new ExteriorNeighbor(
-					key.dir,
-					dirOpposing,
-					key.ixSourcePatch,
-					key.ixTargetPatch,
+					key,
+					meta,
 					fReverseDirection,
-					fFlippedCoordinate,
-					nBoundarySize,
-					meta.ixFirst,
-					meta.ixSecond);
+					fFlippedCoordinate);
 
-			pNeighbor->InitializeBuffers(
-				meta.sMaxRElements,
-				meta.sHaloElements,
-				meta.sComponents);
+			pNeighbor->AllocateBuffers();
 
 			pPatch->m_connect.AddExteriorNeighbor(pNeighbor);
 		}

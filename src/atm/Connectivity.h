@@ -121,14 +121,21 @@ class ExchangeBufferMeta {
 
 public:
 	///	<summary>
-	///		Initial coordinate index.
+	///		First local index (begin node for Right, Top, Left, Bottom and
+	///		alpha coordinate for TopRight, TopLeft, BottomLeft, BottomRight)
 	///	</summary>
 	int ixFirst;
 
 	///	<summary>
-	///		Final coordinate index.
+	///		Second local index (end node for Right, Top, Left, Bottom and
+	///		beta coordinate for TopRight, TopLeft, BottomLeft, BottomRight)
 	///	</summary>
 	int ixSecond;
+
+	///	<summary>
+	///		Opposing direction.
+	///	</summary>
+	Direction dirOpposing;
 
 	///	<summary>
 	///		Number of halo elements.
@@ -144,6 +151,11 @@ public:
 	///		Number of radial elements.
 	///	</summary>
 	size_t sMaxRElements;
+
+	///	<summary>
+	///		Boundary size (lateral length)
+	///	</summary>
+	size_t sBoundarySize;
 
 	///	<summary>
 	///		Total data size.
@@ -215,20 +227,15 @@ public:
 	///		Constructor.
 	///	</summary>
 	Neighbor(
-		int ixPatch,
-		int ixNeighbor,
+		const ExchangeBufferKey & key,
+		const ExchangeBufferMeta & meta,
 		bool fReverseDirection,
-		bool fFlippedCoordinate,
-		size_t sBoundarySize
+		bool fFlippedCoordinate
 	) : 
-		m_ixPatch(ixPatch),
-		m_ixNeighbor(ixNeighbor),
+		m_key(key),
+		m_meta(meta),
 		m_fReverseDirection(fReverseDirection),
 		m_fFlippedCoordinate(fFlippedCoordinate),
-		m_sBoundarySize(sBoundarySize),
-		m_sMaxRElements(0),
-		m_sHaloElements(0),
-		m_sComponents(0),
 		m_fComplete(false),
 		m_ixSendBuffer(0),
 		m_ixRecvBuffer(0)
@@ -244,11 +251,12 @@ public:
 	///	<summary>
 	///		Initialize the exchange buffers.
 	///	</summary>
-	void InitializeBuffers(
-		size_t sMaxRElements,
-		size_t sHaloElements,
-		size_t sComponents
-	);
+	void AllocateBuffers();
+
+	///	<summary>
+	///		Get the size of the exchange buffers.
+	///	</summary>
+	size_t GetByteSize() const;
 
 public:
 	///	<summary>
@@ -273,7 +281,6 @@ public:
 	virtual void PrepareExchange(
 		const Grid & grid
 	) {
-
 		// Reset the send buffer index
 		m_ixSendBuffer = 0;
 
@@ -305,10 +312,10 @@ public:
 	///	</summary>
 	void ResetSendBufferSize() {
 		m_ixSendBuffer =
-			  m_sBoundarySize
-			* m_sMaxRElements
-			* m_sHaloElements
-			* m_sComponents;
+			  m_meta.sBoundarySize
+			* m_meta.sMaxRElements
+			* m_meta.sHaloElements
+			* m_meta.sComponents;
 	}
 
 	///	<summary>
@@ -347,14 +354,14 @@ public:
 
 public:
 	///	<summary>
-	///		Index of the source patch.
+	///		Exchange buffer key data.
 	///	</summary>
-	int m_ixPatch;
+	ExchangeBufferKey m_key;
 
 	///	<summary>
-	///		Index of the target patch.
+	///		Exchange buffer meta data.
 	///	</summary>
-	int m_ixNeighbor;
+	ExchangeBufferMeta m_meta;
 
 	///	<summary>
 	///		Indicator of whether or not directions are flipped across the edge.
@@ -366,26 +373,6 @@ public:
 	///		indices flips across the edge.
 	///	</summary>
 	bool m_fFlippedCoordinate;
-
-	///	<summary>
-	///		Number of independent grid cells along boundary.
-	///	</summary>
-	size_t m_sBoundarySize;
-
-	///	<summary>
-	///		Number of radial elements.
-	///	</summary>
-	size_t m_sMaxRElements;
-
-	///	<summary>
-	///		Number of halo elements.
-	///	</summary>
-	size_t m_sHaloElements;
-
-	///	<summary>
-	///		Number of variables.
-	///	</summary>
-	size_t m_sComponents;
 
 	///	<summary>
 	///		Flag indicating if this neighbor has been received and processed.
@@ -429,26 +416,16 @@ public:
 	///		Constructor.
 	///	</summary>
 	ExteriorNeighbor(
-		Direction dir,
-		Direction dirOpposite,
-		int ixPatch,
-		int ixNeighbor,
+		const ExchangeBufferKey & key,
+		const ExchangeBufferMeta & meta,
 		bool fReverseDirection,
-		bool fFlippedCoordinate,
-		size_t sBoundarySize,
-		int ixFirst,
-		int ixSecond
+		bool fFlippedCoordinate
 	) :
-		m_dir(dir),
-		m_dirOpposite(dirOpposite),
 		Neighbor(
-			ixPatch,
-			ixNeighbor,
+			key,
+			meta,
 			fReverseDirection,
-			fFlippedCoordinate,
-			sBoundarySize),
-		m_ixFirst(ixFirst),
-		m_ixSecond(ixSecond)
+			fFlippedCoordinate)
 	{ }
 
 public:
@@ -461,12 +438,12 @@ public:
 		int iA,
 		double dValue
 	) {
-		int ix = (iC * (m_sMaxRElements-1) + iK) * m_sBoundarySize;
+		int ix = (iC * (m_meta.sMaxRElements-1) + iK) * m_meta.sBoundarySize;
 
 		if (m_fReverseDirection) {
-			ix += m_ixSecond - iA - 1;
+			ix += m_meta.ixSecond - iA - 1;
 		} else {
-			ix += iA - m_ixFirst;
+			ix += iA - m_meta.ixFirst;
 		}
 
 		m_vecSendBuffer[ix] = dValue;
@@ -481,8 +458,8 @@ public:
 		int iA
 	) const {
 		int ix =
-			(iC * (m_sMaxRElements-1) + iK) * m_sBoundarySize
-				+ (iA - m_ixFirst);
+			(iC * (m_meta.sMaxRElements-1) + iK) * m_meta.sBoundarySize
+				+ (iA - m_meta.ixFirst);
 
 		return m_vecRecvBuffer[ix];
 	}
@@ -538,29 +515,6 @@ public:
 	///		Wait for the send request to complete.
 	///	</summary>
 	virtual void WaitSend();
-
-public:
-	///	<summary>
-	///		Direction on this block towards neighbor block.
-	///	</summary>
-	Direction m_dir;
-
-	///	<summary>
-	///		Directon on neighbor block towards this block.
-	///	</summary>
-	Direction m_dirOpposite;
-
-	///	<summary>
-	///		First local index (begin node for Right, Top, Left, Bottom and
-	///		alpha coordinate for TopRight, TopLeft, BottomLeft, BottomRight)
-	///	</summary>
-	int m_ixFirst;
-
-	///	<summary>
-	///		Second local index (end node for Right, Top, Left, Bottom and
-	///		beta coordinate for TopRight, TopLeft, BottomLeft, BottomRight)
-	///	</summary>
-	int m_ixSecond;
 };
 
 ///////////////////////////////////////////////////////////////////////////////

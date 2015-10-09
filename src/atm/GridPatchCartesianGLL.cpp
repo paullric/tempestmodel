@@ -48,7 +48,9 @@ GridPatchCartesianGLL::GridPatchCartesianGLL(
 		ixPatch,
 		box,
 		nHorizontalOrder,
-		nVerticalOrder)
+		nVerticalOrder),
+	m_dTopoHeight(0.0),
+	m_dSL(0.0)
 {
 
 }
@@ -150,10 +152,15 @@ void GridPatchCartesianGLL::EvaluateTopography(
 		if (m_dataTopography[i][j] >= m_grid.GetZtop()) {
 			_EXCEPTIONT("TestCase topography exceeds model top.");
 		}
-		
-		// Search and set the highest point in the topography
-		if ((i > 0) && (j > 0) && 
-			(m_dataTopography[i][j] > m_dataTopography[i-1][j-1])) {
+	}
+	}
+
+	// Initialize maximum topographic height
+	m_dTopoHeight = 0.0;
+
+	for (int i = m_box.GetAInteriorBegin(); i < m_box.GetAInteriorEnd(); i++) {
+	for (int j = m_box.GetBInteriorBegin(); j < m_box.GetBInteriorEnd(); j++) {
+		if (m_dataTopography[i][j] > m_dTopoHeight) {
 			m_dTopoHeight = m_dataTopography[i][j];
 		}
 	}

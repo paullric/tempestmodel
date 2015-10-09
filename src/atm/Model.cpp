@@ -123,7 +123,7 @@ void Model::SetGrid(
 
 	if (fInitializeConnectivity) {
 		m_pGrid->DistributePatches();
-		m_pGrid->InitializeExchangeBuffersFromLayout();
+		m_pGrid->InitializeExchangeBuffersFromActivePatches();
 		m_pGrid->InitializeConnectivity();
 	}
 }

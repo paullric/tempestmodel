@@ -498,9 +498,21 @@ protected:
 	);
 
 	///	<summary>
+	///		Build exchange buffer information for the specified GridPatch.
+	///	</summary>
+	void InitializeExchangeBuffersFromPatch(
+		int ixSourcePatch
+	);
+
+	///	<summary>
+	///		Build active exchange buffer information using the grid layout.
+	///	</summary>
+	void InitializeExchangeBuffersFromActivePatches();
+
+	///	<summary>
 	///		Build all exchange buffer information using the grid layout.
 	///	</summary>
-	void InitializeExchangeBuffersFromLayout();
+	void InitializeAllExchangeBuffers();
 
 	///	<summary>
 	///		Initialize connectivity between patches.
