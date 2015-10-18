@@ -271,6 +271,11 @@ public:
 		unsigned char * pSendBuffer
 	);
 
+	///	<summary>
+	///		Unassign pointers to specified recv/send buffers.
+	///	</summary>
+	void Unassign(int ix);
+
 protected:
 	///	<summary>
 	///		A flag indicating this ExchangeBufferRegistry owns its own data.

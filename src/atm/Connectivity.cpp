@@ -128,6 +128,22 @@ void ExchangeBufferRegistry::Assign(
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+
+void ExchangeBufferRegistry::Unassign(
+	int ix
+) { 
+	if (m_fOwnsData) {
+		_EXCEPTIONT("ExchangeBufferRegistry owns its data");
+	}
+	if ((ix < 0) || (ix > m_vecRegistry.size())) {
+		_EXCEPTIONT("ExchangeBuffer index out of range");
+	}
+
+	m_vecRecvBuffers[ix] = NULL;
+	m_vecSendBuffers[ix] = NULL;
+}
+
+///////////////////////////////////////////////////////////////////////////////
 // Neighbor
 ///////////////////////////////////////////////////////////////////////////////
 

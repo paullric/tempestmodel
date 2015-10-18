@@ -514,6 +514,7 @@ protected:
 		int ixSourcePatch
 	);
 
+public:
 	///	<summary>
 	///		Build active exchange buffer information using the grid layout.
 	///	</summary>
