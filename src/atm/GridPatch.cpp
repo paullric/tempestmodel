@@ -1145,28 +1145,28 @@ void GridPatch::Receive(
 	} else if (eDataType == DataType_Vorticity) {
 		Neighbor * pNeighbor;
 		while ((pNeighbor = m_connect.WaitReceive()) != NULL) {
-			pNeighbor->Unpack(m_grid, m_dataVorticity);
+			pNeighbor->Unpack(m_dataVorticity);
 		}
 
 	// Divergence data
 	} else if (eDataType == DataType_Divergence) {
 		Neighbor * pNeighbor;
 		while ((pNeighbor = m_connect.WaitReceive()) != NULL) {
-			pNeighbor->Unpack(m_grid, m_dataDivergence);
+			pNeighbor->Unpack(m_dataDivergence);
 		}
 
 	// Temperature data
 	} else if (eDataType == DataType_Temperature) {
 		Neighbor * pNeighbor;
 		while ((pNeighbor = m_connect.WaitReceive()) != NULL) {
-			pNeighbor->Unpack(m_grid, m_dataTemperature);
+			pNeighbor->Unpack(m_dataTemperature);
 		}
 
 	// Topographic derivatives
 	} else if (eDataType == DataType_TopographyDeriv) {
 		Neighbor * pNeighbor;
 		while ((pNeighbor = m_connect.WaitReceive()) != NULL) {
-			pNeighbor->Unpack(m_grid, m_dataTopographyDeriv);
+			pNeighbor->Unpack(m_dataTopographyDeriv);
 		}
 
 	// Invalid data

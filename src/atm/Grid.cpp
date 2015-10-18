@@ -60,6 +60,7 @@ Grid::Grid(
 	m_fHasReferenceState(false),
 	m_fHasRayleighFriction(false)
 {
+
 	// Assign a default vertical stretching function
 	m_pVerticalStretchF = new VerticalStretchUniform;
 
@@ -670,27 +671,6 @@ void Grid::ExchangeBuffersAndUnpack(
 	for (int n = 0; n < m_vecActiveGridPatches.size(); n++) {
 		m_vecActiveGridPatches[n]->CompleteExchange();
 	}
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
-int Grid::GetLongestActivePatchPerimeter() const {
-
-	// Longest perimeter
-	int nLongestPerimeter = 0;
-
-	// Loop over all active patches
-	for (int n = 0; n < m_vecActiveGridPatches.size(); n++) {
-		int ixPatch = m_vecActiveGridPatchIndices[n];
-
-		int nPerimeter = GetPatchBox(ixPatch).GetInteriorPerimeter();
-
-		if (nPerimeter > nLongestPerimeter) {
-			nLongestPerimeter = nPerimeter;
-		}
-	}
-
-	return nLongestPerimeter;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1769,12 +1749,14 @@ void Grid::RegisterExchangeBuffer(
 	const PatchBox & boxTarget = GetPatchBox(ixTargetPatch);
 
 	// Build key
-	ExchangeBufferKey key(ixSourcePatch, ixTargetPatch, dir);
+	ExchangeBufferInfo info;
+	info.ixSourcePatch = ixSourcePatch;
+	info.ixTargetPatch = ixTargetPatch;
+	info.dir = dir;
 
-	// Build metadata
-	ExchangeBufferMeta meta;
-	meta.ixFirst = ixFirst;
-	meta.ixSecond = ixSecond;
+	// Build exhange buffer metadata
+	info.ixFirst = ixFirst;
+	info.ixSecond = ixSecond;
 
 	// Get number of components
 	const Model & model = GetModel();
@@ -1788,21 +1770,18 @@ void Grid::RegisterExchangeBuffer(
 		sStateTracerMaxVariables = eqn.GetTracers();
 	}
 
-	meta.sHaloElements = model.GetHaloElements();
-	meta.sComponents = sStateTracerMaxVariables;
-	meta.sMaxRElements = GetRElements() + 1;
+	info.sHaloElements = model.GetHaloElements();
+	info.sComponents = sStateTracerMaxVariables;
+	info.sMaxRElements = GetRElements() + 1;
 
 	// Get the opposing direction
-	bool fReverseDirection = false;
-	bool fFlippedCoordinate = false;
-
 	GetOpposingDirection(
 		boxSource.GetPanel(),
 		boxTarget.GetPanel(),
 		dir,
-		meta.dirOpposing,
-		fReverseDirection,
-		fFlippedCoordinate);
+		info.dirOpposing,
+		info.fReverseDirection,
+		info.fFlippedCoordinate);
 
 	// Determine the size of the boundary (number of elements along exterior
 	// edge).  Used in computing the size of the send/recv buffers.
@@ -1811,45 +1790,47 @@ void Grid::RegisterExchangeBuffer(
 		(dir == Direction_Left) ||
 		(dir == Direction_Bottom)
 	) {
-		meta.sBoundarySize = ixSecond - ixFirst;
+		info.sBoundarySize = ixSecond - ixFirst;
 	} else {
-		meta.sBoundarySize = meta.sHaloElements;
+		info.sBoundarySize = info.sHaloElements;
 	}
 
+	info.CalculateByteSize();
+
 	if ((dir == Direction_TopRight) && (
-		(ixFirst < boxSource.GetAInteriorBegin() + meta.sBoundarySize - 1) ||
-		(ixSecond < boxSource.GetBInteriorBegin() + meta.sBoundarySize - 1)
+		(ixFirst < boxSource.GetAInteriorBegin() + info.sBoundarySize - 1) ||
+		(ixSecond < boxSource.GetBInteriorBegin() + info.sBoundarySize - 1)
 	)) {
 		_EXCEPTIONT("Insufficient interior elements to build "
 			"diagonal connection.");
 	}
 
 	if ((dir == Direction_TopLeft) && (
-		(ixFirst > boxSource.GetAInteriorEnd() - meta.sBoundarySize) ||
-		(ixSecond < boxSource.GetBInteriorBegin() + meta.sBoundarySize - 1)
+		(ixFirst > boxSource.GetAInteriorEnd() - info.sBoundarySize) ||
+		(ixSecond < boxSource.GetBInteriorBegin() + info.sBoundarySize - 1)
 	)) {
 		_EXCEPTIONT("Insufficient interior elements to build "
 			"diagonal connection.");
 	}
 
 	if ((dir == Direction_BottomLeft) && (
-		(ixFirst > boxSource.GetAInteriorEnd() - meta.sBoundarySize) ||
-		(ixSecond > boxSource.GetBInteriorEnd() - meta.sBoundarySize)
+		(ixFirst > boxSource.GetAInteriorEnd() - info.sBoundarySize) ||
+		(ixSecond > boxSource.GetBInteriorEnd() - info.sBoundarySize)
 	)) {
 		_EXCEPTIONT("Insufficient interior elements to build "
 			"diagonal connection.");
 	}
 
 	if ((dir == Direction_BottomRight) && (
-		(ixFirst < boxSource.GetAInteriorBegin() + meta.sBoundarySize - 1) ||
-		(ixSecond > boxSource.GetBInteriorEnd() - meta.sBoundarySize)
+		(ixFirst < boxSource.GetAInteriorBegin() + info.sBoundarySize - 1) ||
+		(ixSecond > boxSource.GetBInteriorEnd() - info.sBoundarySize)
 	)) {
 		_EXCEPTIONT("Insufficient interior elements to build "
 			"diagonal connection.");
 	}
 
 	// Add the exchange buffer information to the registry
-	m_aExchangeBufferRegistry.Register(key, meta);
+	m_aExchangeBufferRegistry.Register(info);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -2181,58 +2162,49 @@ void Grid::InitializeAllExchangeBuffers() {
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void Grid::InitializeConnectivity() {
+void Grid::InitializeConnectivity(
+	bool fAllocate
+) {
 
-	const ExchangeBufferRegistry::MapExchangeBuffer & mapRegistry =
-		m_aExchangeBufferRegistry.m_mapKeyToIndex;
+	// Clear all existing neighbors fro all active patches
+	for (int n = 0; n < m_vecActiveGridPatches.size(); n++) {
+		m_vecActiveGridPatches[n]->m_connect.ClearNeighbors();
+	}
 
-	ExchangeBufferRegistry::MapExchangeBuffer::const_iterator iter
-		= mapRegistry.begin();
+	// Loop through all exchange buffers
+	const ExchangeBufferRegistry::ExchangeBufferInfoVector & vecRegistry =
+		m_aExchangeBufferRegistry.GetRegistry();
 
-	for (; iter != mapRegistry.end(); iter++) {
+	for (int m = 0; m < vecRegistry.size(); m++) {
 
-		const ExchangeBufferKey & key = iter->first;
-		const ExchangeBufferMeta & meta =
-			m_aExchangeBufferRegistry.m_vecMeta[iter->second];
+		const ExchangeBufferInfo & info = vecRegistry[m];
 
+		// If the GridPatch associated with this exchange buffer is active,
+		// add neighbors
 		GridPatch * pPatch = NULL;
 		for (int n = 0; n < m_vecActiveGridPatches.size(); n++) {
-			if (m_vecActiveGridPatchIndices[n] == key.ixSourcePatch) {
+			if (m_vecActiveGridPatchIndices[n] == info.ixSourcePatch) {
 				pPatch = m_vecActiveGridPatches[n];
+				break;
 			}
 		}
 
 		if (pPatch != NULL) {
 
-			const PatchBox & boxSource = GetPatchBox(key.ixSourcePatch);
-			const PatchBox & boxTarget = GetPatchBox(key.ixTargetPatch);
-
-			// Get the opposing direction
-			Direction dirOpposing = Direction_Unreachable;
-			bool fReverseDirection = false;
-			bool fFlippedCoordinate = false;
-
-			GetOpposingDirection(
-				boxSource.GetPanel(),
-				boxTarget.GetPanel(),
-				key.dir,
-				dirOpposing,
-				fReverseDirection,
-				fFlippedCoordinate);
-
-			if (dirOpposing != meta.dirOpposing) {
-				_EXCEPTIONT("Logic error");
-			}
+			const PatchBox & boxSource = GetPatchBox(info.ixSourcePatch);
+			const PatchBox & boxTarget = GetPatchBox(info.ixTargetPatch);
 
 			// Build the new ExteriorNeighbor
 			ExteriorNeighbor * pNeighbor =
-				new ExteriorNeighbor(
-					key,
-					meta,
-					fReverseDirection,
-					fFlippedCoordinate);
+				new ExteriorNeighbor(info);
 
-			pNeighbor->AllocateBuffers();
+			if (fAllocate) {
+				m_aExchangeBufferRegistry.Allocate(m);
+			}
+
+			pNeighbor->AttachBuffers(
+				m_aExchangeBufferRegistry.GetRecvBufferPtr(m),
+				m_aExchangeBufferRegistry.GetSendBufferPtr(m));
 
 			pPatch->m_connect.AddExteriorNeighbor(pNeighbor);
 		}

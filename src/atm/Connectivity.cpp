@@ -22,54 +22,158 @@
 #include "EquationSet.h"
 
 ///////////////////////////////////////////////////////////////////////////////
+// ExchangeBufferRegistry
+///////////////////////////////////////////////////////////////////////////////
+
+ExchangeBufferRegistry::ExchangeBufferRegistry() :
+	m_fOwnsData(true)
+{ }
+
+///////////////////////////////////////////////////////////////////////////////
+
+ExchangeBufferRegistry::~ExchangeBufferRegistry() {
+	if (m_fOwnsData) {
+		for (int i = 0; i < m_vecRecvBuffers.size(); i++) {
+			if (m_vecRecvBuffers[i] != NULL) {
+				delete m_vecRecvBuffers[i];
+			}
+		}
+		for (int i = 0; i < m_vecSendBuffers.size(); i++) {
+			if (m_vecSendBuffers[i] != NULL) {
+				delete m_vecSendBuffers[i];
+			}
+		}
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void ExchangeBufferRegistry::SetNoDataOwnership() {
+	for (int i = 0; i < m_vecRecvBuffers.size(); i++) {
+		if (m_vecRecvBuffers[i] != NULL) {
+			_EXCEPTIONT("ExchangeBufferRegistry::RecvBuffers is active");
+		}
+		if (m_vecSendBuffers[i] != NULL) {
+			_EXCEPTIONT("ExchangeBufferRegistry::SendBuffers is active");
+		}
+	}
+
+	m_fOwnsData = false;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void ExchangeBufferRegistry::Register(
+	const ExchangeBufferInfo & info
+) {
+	m_vecRegistry.push_back(info);
+	m_vecRecvBuffers.resize(m_vecRegistry.size(), NULL);
+	m_vecSendBuffers.resize(m_vecRegistry.size(), NULL);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void ExchangeBufferRegistry::GetExchangeBuffersBySourcePatchIx(
+	int ixSourcePatch,
+	std::vector<int> & vecExchangeBufferIndices
+) const {
+	vecExchangeBufferIndices.clear();
+	for (int m = 0; m < m_vecRegistry.size(); m++) {
+		if (m_vecRegistry[m].ixSourcePatch == ixSourcePatch) {
+			vecExchangeBufferIndices.push_back(m);
+		}
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void ExchangeBufferRegistry::Allocate(int ix) {
+	if (!m_fOwnsData) {
+		_EXCEPTIONT("ExchangeBufferRegistry does not own its data");
+	}
+
+	const ExchangeBufferInfo & info = GetExchangeBufferInfo(ix);
+
+	if (m_vecRecvBuffers[ix] != NULL) {
+		_EXCEPTIONT("Recv buffer already allocated");
+	}
+	if (m_vecSendBuffers[ix] != NULL) {
+		_EXCEPTIONT("Send buffer already allocated");
+	}
+
+	if (info.sByteSize == 0) {
+		_EXCEPTIONT("Invalid ByteSize on ExchangeBuffer");
+	}
+
+	m_vecRecvBuffers[ix] = new unsigned char[info.sByteSize];
+	m_vecSendBuffers[ix] = new unsigned char[info.sByteSize];
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void ExchangeBufferRegistry::Assign(
+	int ix,
+	unsigned char * pRecvBuffer,
+	unsigned char * pSendBuffer
+) {
+	if (m_fOwnsData) {
+		_EXCEPTIONT("ExchangeBufferRegistry owns its data");
+	}
+	if ((ix < 0) || (ix > m_vecRegistry.size())) {
+		_EXCEPTIONT("ExchangeBuffer index out of range");
+	}
+
+	m_vecRecvBuffers[ix] = pRecvBuffer;
+	m_vecSendBuffers[ix] = pSendBuffer;
+}
+
+///////////////////////////////////////////////////////////////////////////////
 // Neighbor
 ///////////////////////////////////////////////////////////////////////////////
 
 Neighbor::Neighbor(
-	const ExchangeBufferKey & key,
-	const ExchangeBufferMeta & meta,
-	bool fReverseDirection,
-	bool fFlippedCoordinate
+	const ExchangeBufferInfo & info
 ) : 
-	m_key(key),
-	m_meta(meta),
-	m_fReverseDirection(fReverseDirection),
-	m_fFlippedCoordinate(fFlippedCoordinate),
+	m_info(info),
 	m_fComplete(false),
 	m_ixSendBuffer(0),
 	m_ixRecvBuffer(0)
 {
-	m_vecSendBuffer.SetSize(
-		  m_meta.sBoundarySize
-		* m_meta.sMaxRElements
-		* m_meta.sHaloElements
-		* m_meta.sComponents);
-
 	m_vecRecvBuffer.SetSize(
-		  m_meta.sBoundarySize
-		* m_meta.sMaxRElements
-		* m_meta.sHaloElements
-		* m_meta.sComponents);
+		  m_info.sBoundarySize
+		* m_info.sMaxRElements
+		* m_info.sHaloElements
+		* m_info.sComponents);
 
-	m_dcBuffers.PushDataChunk(&m_vecSendBuffer);
-	m_dcBuffers.PushDataChunk(&m_vecRecvBuffer);
+	m_vecSendBuffer.SetSize(
+		  m_info.sBoundarySize
+		* m_info.sMaxRElements
+		* m_info.sHaloElements
+		* m_info.sComponents);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 
 void Neighbor::AllocateBuffers() {
-	m_dcBuffers.Allocate();
+	m_vecRecvBuffer.Allocate();
+	m_vecSendBuffer.Allocate();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 
-size_t Neighbor::GetByteSize() const {
-	return (
-		m_meta.sBoundarySize
-		* m_meta.sMaxRElements
-		* m_meta.sHaloElements
-		* m_meta.sComponents
-		* sizeof(double));
+void Neighbor::AttachBuffers(
+	unsigned char * pRecvBuffer,
+	unsigned char * pSendBuffer
+) {
+	if (pRecvBuffer == NULL) {
+		_EXCEPTIONT("Invalid RecvBuffer pointer");
+	}
+	if (pSendBuffer == NULL) {
+		_EXCEPTIONT("Invalid SendBuffer pointer");
+	}
+
+	m_vecRecvBuffer.AttachToData(pRecvBuffer);
+	m_vecSendBuffer.AttachToData(pSendBuffer);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -107,10 +211,10 @@ void ExteriorNeighbor::PrepareExchange(
 
 #ifdef USE_MPI
 	// Information for receive
-	int iProcessor = grid.GetPatchProcessor(m_key.ixTargetPatch);
+	int iProcessor = grid.GetPatchProcessor(m_info.ixTargetPatch);
 
 	// Tag of the received message
-	int nTag = (m_key.ixTargetPatch << 16) + (m_key.ixSourcePatch << 4) + (int)(m_key.dir);
+	int nTag = (m_info.ixTargetPatch << 16) + (m_info.ixSourcePatch << 4) + (int)(m_info.dir);
 
 	// Prepare an asynchronous receive
 	MPI_Irecv(
@@ -127,7 +231,6 @@ void ExteriorNeighbor::PrepareExchange(
 ///////////////////////////////////////////////////////////////////////////////
 
 void ExteriorNeighbor::Pack(
-	const Grid & grid,
 	const DataArray3D<double> & data
 ) {
 	const size_t sRElements = data.GetSize(0);
@@ -135,13 +238,13 @@ void ExteriorNeighbor::Pack(
 	const size_t sBElements = data.GetSize(2);
 
 	// Check matrix bounds
-	if (((m_key.dir == Direction_Right) || (m_key.dir == Direction_Left)) &&
-		(m_meta.ixSecond > sBElements)
+	if (((m_info.dir == Direction_Right) || (m_info.dir == Direction_Left)) &&
+		(m_info.ixSecond > sBElements)
 	) {
 		_EXCEPTIONT("GridData / ExteriorNeighbor inconsistency.");
 	}
-	if (((m_key.dir == Direction_Top) || (m_key.dir == Direction_Bottom)) &&
-		(m_meta.ixSecond > sAElements)
+	if (((m_info.dir == Direction_Top) || (m_info.dir == Direction_Bottom)) &&
+		(m_info.ixSecond > sAElements)
 	) {
 		_EXCEPTIONT("GridData / ExteriorNeighbor inconsistency.");
 	}
@@ -159,21 +262,21 @@ void ExteriorNeighbor::Pack(
 	int nVarRElements;
 
 	// Pack data to send right
-	if (m_key.dir == Direction_Right) {
-		ixBoundaryBegin = sAElements - 2 * m_meta.sHaloElements;
-		ixBoundaryEnd   = sAElements - m_meta.sHaloElements;
+	if (m_info.dir == Direction_Right) {
+		ixBoundaryBegin = sAElements - 2 * m_info.sHaloElements;
+		ixBoundaryEnd   = sAElements - m_info.sHaloElements;
 
 		// Check that sufficient data remains in send buffer
 		int nTotalValues =
 			  sRElements
 			* (ixBoundaryEnd - ixBoundaryBegin)
-			* (m_meta.ixSecond - m_meta.ixFirst);
+			* (m_info.ixSecond - m_info.ixFirst);
 
 		// Pack the SendBuffer
-		if (m_fReverseDirection) {
+		if (m_info.fReverseDirection) {
 			for (int k = 0; k < sRElements; k++) {
 			for (int i = ixBoundaryBegin; i < ixBoundaryEnd; i++) {
-			for (int j = m_meta.ixSecond-1; j >= m_meta.ixFirst; j--) {
+			for (int j = m_info.ixSecond-1; j >= m_info.ixFirst; j--) {
 				m_vecSendBuffer[m_ixSendBuffer++] = data[k][i][j];
 			}
 			}
@@ -182,7 +285,7 @@ void ExteriorNeighbor::Pack(
 		} else {
 			for (int k = 0; k < sRElements; k++) {
 			for (int i = ixBoundaryBegin; i < ixBoundaryEnd; i++) {
-			for (int j = m_meta.ixFirst; j < m_meta.ixSecond; j++) {
+			for (int j = m_info.ixFirst; j < m_info.ixSecond; j++) {
 				m_vecSendBuffer[m_ixSendBuffer++] = data[k][i][j];	
 			}
 			}
@@ -190,25 +293,25 @@ void ExteriorNeighbor::Pack(
 		}
 	
 	// Pack data to send topward
-	} else if (m_key.dir == Direction_Top) {
-		ixBoundaryBegin = sBElements - 2 * m_meta.sHaloElements;
-		ixBoundaryEnd   = sBElements - m_meta.sHaloElements;
+	} else if (m_info.dir == Direction_Top) {
+		ixBoundaryBegin = sBElements - 2 * m_info.sHaloElements;
+		ixBoundaryEnd   = sBElements - m_info.sHaloElements;
 
 		// Check that sufficient data remains in send buffer
 		int nTotalValues =
 			  sRElements
 			* (ixBoundaryEnd - ixBoundaryBegin)
-			* (m_meta.ixSecond - m_meta.ixFirst);
+			* (m_info.ixSecond - m_info.ixFirst);
 
 		if (m_ixSendBuffer + nTotalValues > m_vecSendBuffer.GetRows()) {
 			_EXCEPTIONT("Insufficient space in SendBuffer for operation.");
 		}
 
 		// Pack the SendBuffer
-		if (m_fReverseDirection) {
+		if (m_info.fReverseDirection) {
 			for (int k = 0; k < sRElements; k++) {
 			for (int j = ixBoundaryBegin; j < ixBoundaryEnd; j++) {
-			for (int i = m_meta.ixSecond-1; i >= m_meta.ixFirst; i--) {
+			for (int i = m_info.ixSecond-1; i >= m_info.ixFirst; i--) {
 				m_vecSendBuffer[m_ixSendBuffer++] = data[k][i][j];
 			}
 			}
@@ -217,7 +320,7 @@ void ExteriorNeighbor::Pack(
 		} else {
 			for (int k = 0; k < sRElements; k++) {
 			for (int j = ixBoundaryBegin; j < ixBoundaryEnd; j++) {
-			for (int i = m_meta.ixFirst; i < m_meta.ixSecond; i++) {
+			for (int i = m_info.ixFirst; i < m_info.ixSecond; i++) {
 				m_vecSendBuffer[m_ixSendBuffer++] = data[k][i][j];
 			}
 			}
@@ -225,25 +328,25 @@ void ExteriorNeighbor::Pack(
 		}
 
 	// Pack data to send left
-	} else if (m_key.dir == Direction_Left) {
-		ixBoundaryBegin = m_meta.sHaloElements;
-		ixBoundaryEnd   = 2 * m_meta.sHaloElements;
+	} else if (m_info.dir == Direction_Left) {
+		ixBoundaryBegin = m_info.sHaloElements;
+		ixBoundaryEnd   = 2 * m_info.sHaloElements;
 
 		// Check that sufficient data remains in send buffer
 		int nTotalValues =
 			  sRElements
 			* (ixBoundaryEnd - ixBoundaryBegin)
-			* (m_meta.ixSecond - m_meta.ixFirst);
+			* (m_info.ixSecond - m_info.ixFirst);
 
 		if (m_ixSendBuffer + nTotalValues > m_vecSendBuffer.GetRows()) {
 			_EXCEPTIONT("Insufficient space in SendBuffer for operation.");
 		}
 
 		// Pack the SendBuffer
-		if (m_fReverseDirection) {
+		if (m_info.fReverseDirection) {
 			for (int k = 0; k < sRElements; k++) {
 			for (int i = ixBoundaryEnd-1; i >= ixBoundaryBegin; i--) {
-			for (int j = m_meta.ixSecond-1; j >= m_meta.ixFirst; j--) {
+			for (int j = m_info.ixSecond-1; j >= m_info.ixFirst; j--) {
 				m_vecSendBuffer[m_ixSendBuffer++] = data[k][i][j];
 			}
 			}
@@ -252,7 +355,7 @@ void ExteriorNeighbor::Pack(
 		} else {
 			for (int k = 0; k < sRElements; k++) {
 			for (int i = ixBoundaryEnd-1; i >= ixBoundaryBegin; i--) {
-			for (int j = m_meta.ixFirst; j < m_meta.ixSecond; j++) {
+			for (int j = m_info.ixFirst; j < m_info.ixSecond; j++) {
 				m_vecSendBuffer[m_ixSendBuffer++] = data[k][i][j];
 			}
 			}
@@ -260,25 +363,25 @@ void ExteriorNeighbor::Pack(
 		}
 
 	// Pack data to send bottomward
-	} else if (m_key.dir == Direction_Bottom) {
-		ixBoundaryBegin = m_meta.sHaloElements;
-		ixBoundaryEnd   = 2 * m_meta.sHaloElements;
+	} else if (m_info.dir == Direction_Bottom) {
+		ixBoundaryBegin = m_info.sHaloElements;
+		ixBoundaryEnd   = 2 * m_info.sHaloElements;
 
 		// Check that sufficient data remains in send buffer
 		int nTotalValues =
 			  sRElements
 			* (ixBoundaryEnd - ixBoundaryBegin)
-			* (m_meta.ixSecond - m_meta.ixFirst);
+			* (m_info.ixSecond - m_info.ixFirst);
 
 		if (m_ixSendBuffer + nTotalValues > m_vecSendBuffer.GetRows()) {
 			_EXCEPTIONT("Insufficient space in SendBuffer for operation.");
 		}
 
 		// Pack the SendBuffer
-		if (m_fReverseDirection) {
+		if (m_info.fReverseDirection) {
 			for (int k = 0; k < sRElements; k++) {
 			for (int j = ixBoundaryEnd-1; j >= ixBoundaryBegin; j--) {
-			for (int i = m_meta.ixSecond-1; i >= m_meta.ixFirst; i--) {
+			for (int i = m_info.ixSecond-1; i >= m_info.ixFirst; i--) {
 				m_vecSendBuffer[m_ixSendBuffer++] = data[k][i][j];
 			}
 			}
@@ -287,7 +390,7 @@ void ExteriorNeighbor::Pack(
 		} else {
 			for (int k = 0; k < sRElements; k++) {
 			for (int j = ixBoundaryEnd-1; j >= ixBoundaryBegin; j--) {
-			for (int i = m_meta.ixFirst; i < m_meta.ixSecond; i++) {
+			for (int i = m_info.ixFirst; i < m_info.ixSecond; i++) {
 				m_vecSendBuffer[m_ixSendBuffer++] = data[k][i][j];
 			}
 			}
@@ -295,11 +398,11 @@ void ExteriorNeighbor::Pack(
 		}
 
 	// Pack data to send toprightward 
-	} else if (m_key.dir == Direction_TopRight) {
-		ixABoundaryBegin = m_meta.ixFirst - m_meta.sHaloElements + 1;
-		ixABoundaryEnd   = m_meta.ixFirst + 1;
-		ixBBoundaryBegin = m_meta.ixSecond - m_meta.sHaloElements + 1;
-		ixBBoundaryEnd   = m_meta.ixSecond + 1;
+	} else if (m_info.dir == Direction_TopRight) {
+		ixABoundaryBegin = m_info.ixFirst - m_info.sHaloElements + 1;
+		ixABoundaryEnd   = m_info.ixFirst + 1;
+		ixBBoundaryBegin = m_info.ixSecond - m_info.sHaloElements + 1;
+		ixBBoundaryEnd   = m_info.ixSecond + 1;
  
 		// Check that sufficient data remains in send buffer
 		int nTotalValues =
@@ -312,7 +415,7 @@ void ExteriorNeighbor::Pack(
 		}
 
 		// Pack the SendBuffer
-		if (m_fReverseDirection) {
+		if (m_info.fReverseDirection) {
 			for (int k = 0; k < sRElements; k++) {
 			for (int i = ixABoundaryBegin; i < ixABoundaryEnd; i++) {
 			for (int j = ixBBoundaryBegin; j < ixBBoundaryEnd; j++) {
@@ -332,11 +435,11 @@ void ExteriorNeighbor::Pack(
 		}
 
 	// Pack data to send topleftward 
-	} else if (m_key.dir == Direction_TopLeft) {
-		ixABoundaryBegin = m_meta.ixFirst;
-		ixABoundaryEnd   = m_meta.ixFirst + m_meta.sHaloElements;
-		ixBBoundaryBegin = m_meta.ixSecond - m_meta.sHaloElements + 1;
-		ixBBoundaryEnd   = m_meta.ixSecond + 1;
+	} else if (m_info.dir == Direction_TopLeft) {
+		ixABoundaryBegin = m_info.ixFirst;
+		ixABoundaryEnd   = m_info.ixFirst + m_info.sHaloElements;
+		ixBBoundaryBegin = m_info.ixSecond - m_info.sHaloElements + 1;
+		ixBBoundaryEnd   = m_info.ixSecond + 1;
  
 		// Check that sufficient data remains in send buffer
 		int nTotalValues =
@@ -349,7 +452,7 @@ void ExteriorNeighbor::Pack(
 		}
 
 		// Pack the SendBuffer
-		if (m_fReverseDirection) {
+		if (m_info.fReverseDirection) {
 			for (int k = 0; k < sRElements; k++) {
 			for (int i = ixABoundaryEnd-1; i >= ixABoundaryBegin; i--) {
 			for (int j = ixBBoundaryBegin; j < ixBBoundaryEnd; j++) {
@@ -369,11 +472,11 @@ void ExteriorNeighbor::Pack(
 		}
 
 	// Pack data to send bottomleftward 
-	} else if (m_key.dir == Direction_BottomLeft) {
-		ixABoundaryBegin = m_meta.ixFirst;
-		ixABoundaryEnd   = m_meta.ixFirst + m_meta.sHaloElements;
-		ixBBoundaryBegin = m_meta.ixSecond;
-		ixBBoundaryEnd   = m_meta.ixSecond + m_meta.sHaloElements;
+	} else if (m_info.dir == Direction_BottomLeft) {
+		ixABoundaryBegin = m_info.ixFirst;
+		ixABoundaryEnd   = m_info.ixFirst + m_info.sHaloElements;
+		ixBBoundaryBegin = m_info.ixSecond;
+		ixBBoundaryEnd   = m_info.ixSecond + m_info.sHaloElements;
  
 		// Check that sufficient data remains in send buffer
 		int nTotalValues =
@@ -386,7 +489,7 @@ void ExteriorNeighbor::Pack(
 		}
 
 		// Pack the SendBuffer
-		if (m_fReverseDirection) {
+		if (m_info.fReverseDirection) {
 			for (int k = 0; k < sRElements; k++) {
 			for (int i = ixABoundaryEnd-1; i >= ixABoundaryBegin; i--) {
 			for (int j = ixBBoundaryEnd-1; j >= ixBBoundaryBegin; j--) {
@@ -406,11 +509,11 @@ void ExteriorNeighbor::Pack(
 		}
 
 	// Pack data to send bottomrightward 
-	} else if (m_key.dir == Direction_BottomRight) {
-		ixABoundaryBegin = m_meta.ixFirst - m_meta.sHaloElements + 1;
-		ixABoundaryEnd   = m_meta.ixFirst + 1;
-		ixBBoundaryBegin = m_meta.ixSecond;
-		ixBBoundaryEnd   = m_meta.ixSecond + m_meta.sHaloElements;
+	} else if (m_info.dir == Direction_BottomRight) {
+		ixABoundaryBegin = m_info.ixFirst - m_info.sHaloElements + 1;
+		ixABoundaryEnd   = m_info.ixFirst + 1;
+		ixBBoundaryBegin = m_info.ixSecond;
+		ixBBoundaryEnd   = m_info.ixSecond + m_info.sHaloElements;
  
 		// Check that sufficient data remains in send buffer
 		int nTotalValues =
@@ -423,7 +526,7 @@ void ExteriorNeighbor::Pack(
 		}
 
 		// Pack the SendBuffer
-		if (m_fReverseDirection) {
+		if (m_info.fReverseDirection) {
 			for (int k = 0; k < sRElements; k++) {
 			for (int i = ixABoundaryBegin; i < ixABoundaryEnd; i++) {
 			for (int j = ixBBoundaryEnd-1; j >= ixBBoundaryBegin; j--) {
@@ -475,7 +578,7 @@ void ExteriorNeighbor::Pack(
 				continue;
 			}
 			data3D.AttachTo(data[c]);
-			Pack(grid, data3D);
+			Pack(data3D);
 			data3D.Detach();
 		}
 
@@ -483,7 +586,7 @@ void ExteriorNeighbor::Pack(
 	} else {
 		for (int c = 0; c < sComponents; c++) {
 			data3D.AttachTo(data[c]);
-			Pack(grid, data3D);
+			Pack(data3D);
 			data3D.Detach();
 		}
 	}
@@ -497,14 +600,14 @@ void ExteriorNeighbor::Send(
 
 #ifdef USE_MPI
 	// Send the data
-	int iProcessor = grid.GetPatchProcessor(m_key.ixTargetPatch);
+	int iProcessor = grid.GetPatchProcessor(m_info.ixTargetPatch);
 
 	// Tag
-	if (m_key.ixTargetPatch >= (2 << 12)) {
+	if (m_info.ixTargetPatch >= (2 << 12)) {
 		_EXCEPTIONT("Maximum neighbor index exceeded.");
 	}
 
-	int nTag = (m_key.ixSourcePatch << 16) + (m_key.ixTargetPatch << 4) + (int)(m_meta.dirOpposing);
+	int nTag = (m_info.ixSourcePatch << 16) + (m_info.ixTargetPatch << 4) + (int)(m_info.dirOpposing);
 
 	MPI_Isend(
 		&(m_vecSendBuffer[0]),
@@ -529,7 +632,6 @@ void ExteriorNeighbor::Send(
 ///////////////////////////////////////////////////////////////////////////////
 
 void ExteriorNeighbor::Unpack(
-	const Grid & grid,
 	DataArray3D<double> & data
 ) {
 /*
@@ -557,15 +659,15 @@ void ExteriorNeighbor::Unpack(
 	int ixBBoundaryEnd;
 
 	// Unpack data from right
-	if (m_key.dir == Direction_Right) {
-		ixBoundaryBegin = sAElements - m_meta.sHaloElements;
+	if (m_info.dir == Direction_Right) {
+		ixBoundaryBegin = sAElements - m_info.sHaloElements;
 		ixBoundaryEnd   = sAElements;
 
 		// Check that sufficient data remains in send buffer
 		int nTotalValues =
 			  sRElements
 			* (ixBoundaryEnd - ixBoundaryBegin)
-			* (m_meta.ixSecond - m_meta.ixFirst);
+			* (m_info.ixSecond - m_info.ixFirst);
 
 		if (m_ixRecvBuffer + nTotalValues > m_vecRecvBuffer.GetRows()) {
 			_EXCEPTIONT("Insufficient space in RecvBuffer for operation.");
@@ -574,22 +676,22 @@ void ExteriorNeighbor::Unpack(
 		// Unpack data
 		for (int k = 0; k < sRElements; k++) {
 		for (int i = ixBoundaryEnd-1; i >= ixBoundaryBegin; i--) {
-		for (int j = m_meta.ixFirst; j < m_meta.ixSecond; j++) {
+		for (int j = m_info.ixFirst; j < m_info.ixSecond; j++) {
 			data[k][i][j] = m_vecRecvBuffer[m_ixRecvBuffer++];
 		}
 		}
 		}
 
 	// Unpack data from top
-	} else if (m_key.dir == Direction_Top) {
-		ixBoundaryBegin = sBElements - m_meta.sHaloElements;
+	} else if (m_info.dir == Direction_Top) {
+		ixBoundaryBegin = sBElements - m_info.sHaloElements;
 		ixBoundaryEnd   = sBElements;
 
 		// Check that sufficient data remains in send buffer
 		int nTotalValues =
 			  sRElements
 			* (ixBoundaryEnd - ixBoundaryBegin)
-			* (m_meta.ixSecond - m_meta.ixFirst);
+			* (m_info.ixSecond - m_info.ixFirst);
 
 		if (m_ixRecvBuffer + nTotalValues > m_vecRecvBuffer.GetRows()) {
 			_EXCEPTIONT("Insufficient space in RecvBuffer for operation.");
@@ -598,22 +700,22 @@ void ExteriorNeighbor::Unpack(
 		// Unpack data
 		for (int k = 0; k < sRElements; k++) {
 		for (int j = ixBoundaryEnd-1; j >= ixBoundaryBegin; j--) {
-		for (int i = m_meta.ixFirst; i < m_meta.ixSecond; i++) {
+		for (int i = m_info.ixFirst; i < m_info.ixSecond; i++) {
 			data[k][i][j] = m_vecRecvBuffer[m_ixRecvBuffer++];
 		}
 		}
 		}
 
 	// Unpack data from left
-	} else if (m_key.dir == Direction_Left) {
+	} else if (m_info.dir == Direction_Left) {
 		ixBoundaryBegin = 0;
-		ixBoundaryEnd   = m_meta.sHaloElements;
+		ixBoundaryEnd   = m_info.sHaloElements;
 
 		// Check that sufficient data remains in send buffer
 		int nTotalValues =
 			  sRElements
 			* (ixBoundaryEnd - ixBoundaryBegin)
-			* (m_meta.ixSecond - m_meta.ixFirst);
+			* (m_info.ixSecond - m_info.ixFirst);
 
 		if (m_ixRecvBuffer + nTotalValues > m_vecRecvBuffer.GetRows()) {
 			_EXCEPTIONT("Insufficient space in RecvBuffer for operation.");
@@ -622,22 +724,22 @@ void ExteriorNeighbor::Unpack(
 		// Unpack data
 		for (int k = 0; k < sRElements; k++) {
 		for (int i = ixBoundaryBegin; i < ixBoundaryEnd; i++) {
-		for (int j = m_meta.ixFirst; j < m_meta.ixSecond; j++) {
+		for (int j = m_info.ixFirst; j < m_info.ixSecond; j++) {
 			data[k][i][j] = m_vecRecvBuffer[m_ixRecvBuffer++];
 		}
 		}
 		}
 
 	// Unpack data from bottom
-	} else if (m_key.dir == Direction_Bottom) {
+	} else if (m_info.dir == Direction_Bottom) {
 		ixBoundaryBegin = 0;
-		ixBoundaryEnd   = m_meta.sHaloElements;
+		ixBoundaryEnd   = m_info.sHaloElements;
 
 		// Check that sufficient data remains in send buffer
 		int nTotalValues =
 			  sRElements
 			* (ixBoundaryEnd - ixBoundaryBegin)
-			* (m_meta.ixSecond - m_meta.ixFirst);
+			* (m_info.ixSecond - m_info.ixFirst);
 
 		if (m_ixRecvBuffer + nTotalValues > m_vecRecvBuffer.GetRows()) {
 			_EXCEPTIONT("Insufficient space in RecvBuffer for operation.");
@@ -646,18 +748,18 @@ void ExteriorNeighbor::Unpack(
 		// Unpack data
 		for (int k = 0; k < sRElements; k++) {
 		for (int j = ixBoundaryBegin; j < ixBoundaryEnd; j++) {
-		for (int i = m_meta.ixFirst; i < m_meta.ixSecond; i++) {
+		for (int i = m_info.ixFirst; i < m_info.ixSecond; i++) {
 			data[k][i][j] = m_vecRecvBuffer[m_ixRecvBuffer++];
 		}
 		}
 		}
 
 	// Unpack data from top-right
-	} else if (m_key.dir == Direction_TopRight) {
-		ixABoundaryBegin = m_meta.ixFirst + 1;
-		ixABoundaryEnd   = m_meta.ixFirst + m_meta.sHaloElements + 1;
-		ixBBoundaryBegin = m_meta.ixSecond + 1;
-		ixBBoundaryEnd   = m_meta.ixSecond + m_meta.sHaloElements + 1;
+	} else if (m_info.dir == Direction_TopRight) {
+		ixABoundaryBegin = m_info.ixFirst + 1;
+		ixABoundaryEnd   = m_info.ixFirst + m_info.sHaloElements + 1;
+		ixBBoundaryBegin = m_info.ixSecond + 1;
+		ixBBoundaryEnd   = m_info.ixSecond + m_info.sHaloElements + 1;
 
 		// Check that sufficient data remains in send buffer
 		int nTotalValues =
@@ -675,11 +777,11 @@ void ExteriorNeighbor::Unpack(
 		}
 
 	// Unpack data from top-left
-	} else if (m_key.dir == Direction_TopLeft) {
-		ixABoundaryBegin = m_meta.ixFirst - m_meta.sHaloElements;
-		ixABoundaryEnd   = m_meta.ixFirst;
-		ixBBoundaryBegin = m_meta.ixSecond + 1;
-		ixBBoundaryEnd   = m_meta.ixSecond + m_meta.sHaloElements + 1;
+	} else if (m_info.dir == Direction_TopLeft) {
+		ixABoundaryBegin = m_info.ixFirst - m_info.sHaloElements;
+		ixABoundaryEnd   = m_info.ixFirst;
+		ixBBoundaryBegin = m_info.ixSecond + 1;
+		ixBBoundaryEnd   = m_info.ixSecond + m_info.sHaloElements + 1;
 
 		// Check that sufficient data remains in send buffer
 		int nTotalValues =
@@ -697,11 +799,11 @@ void ExteriorNeighbor::Unpack(
 		}
 
 	// Unpack data from bottom-left
-	} else if (m_key.dir == Direction_BottomLeft) {
-		ixABoundaryBegin = m_meta.ixFirst - m_meta.sHaloElements;
-		ixABoundaryEnd   = m_meta.ixFirst;
-		ixBBoundaryBegin = m_meta.ixSecond - m_meta.sHaloElements;
-		ixBBoundaryEnd   = m_meta.ixSecond;
+	} else if (m_info.dir == Direction_BottomLeft) {
+		ixABoundaryBegin = m_info.ixFirst - m_info.sHaloElements;
+		ixABoundaryEnd   = m_info.ixFirst;
+		ixBBoundaryBegin = m_info.ixSecond - m_info.sHaloElements;
+		ixBBoundaryEnd   = m_info.ixSecond;
 
 		// Check that sufficient data remains in send buffer
 		int nTotalValues =
@@ -719,11 +821,11 @@ void ExteriorNeighbor::Unpack(
 		}
 
 	// Unpack data from bottom-right
-	} else if (m_key.dir == Direction_BottomRight) {
-		ixABoundaryBegin = m_meta.ixFirst + 1;
-		ixABoundaryEnd   = m_meta.ixFirst + m_meta.sHaloElements + 1;
-		ixBBoundaryBegin = m_meta.ixSecond - m_meta.sHaloElements;
-		ixBBoundaryEnd   = m_meta.ixSecond;
+	} else if (m_info.dir == Direction_BottomRight) {
+		ixABoundaryBegin = m_info.ixFirst + 1;
+		ixABoundaryEnd   = m_info.ixFirst + m_info.sHaloElements + 1;
+		ixBBoundaryBegin = m_info.ixSecond - m_info.sHaloElements;
+		ixBBoundaryEnd   = m_info.ixSecond;
 
 		// Check that sufficient data remains in send buffer
 		int nTotalValues =
@@ -772,7 +874,7 @@ void ExteriorNeighbor::Unpack(
 				continue;
 			}
 			data3D.AttachTo(data[c]);;
-			Unpack(grid, data3D);
+			Unpack(data3D);
 			data3D.Detach();
 		}
 
@@ -780,7 +882,7 @@ void ExteriorNeighbor::Unpack(
 	} else {
 		for (int c = 0; c < sComponents; c++) {
 			data3D.AttachTo(data[c]);
-			Unpack(grid, data3D);
+			Unpack(data3D);
 			data3D.Detach();
 		}
 	}
@@ -802,15 +904,21 @@ void ExteriorNeighbor::WaitSend() {
 ///////////////////////////////////////////////////////////////////////////////
 
 Connectivity::~Connectivity() {
-/*
+	ClearNeighbors();
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void Connectivity::ClearNeighbors() {
 	for (int n = 0; n < m_vecExteriorNeighbors.size(); n++) {
 		delete m_vecExteriorNeighbors[n];
 	}
-*/
+	m_vecExteriorNeighbors.resize(0);
 /*
 	for (int n = 0; n < m_vecNestedNeighbors; n++) {
 		delete m_vecNestedNeighbors[n];
 	}
+	m_vecNestedNeighbors.resize(0);
 */
 }
 
@@ -837,14 +945,14 @@ void Connectivity::BuildFluxConnectivity() {
 
 		ExteriorNeighbor * pNeighbor = m_vecExteriorNeighbors[n];
 
-		int iDir = static_cast<int>(pNeighbor->m_key.dir);
+		int iDir = static_cast<int>(pNeighbor->m_info.dir);
 
 		// Right or Left side of this PatchBox
-		if ((pNeighbor->m_key.dir == Direction_Right) || 
-		    (pNeighbor->m_key.dir == Direction_Left)
+		if ((pNeighbor->m_info.dir == Direction_Right) || 
+		    (pNeighbor->m_info.dir == Direction_Left)
 		) {
-			int j = pNeighbor->m_meta.ixFirst;
-			for (; j < pNeighbor->m_meta.ixSecond; j++) {
+			int j = pNeighbor->m_info.ixFirst;
+			for (; j < pNeighbor->m_info.ixSecond; j++) {
 				if ((j < box.GetBInteriorBegin()) ||
 					(j >= box.GetBInteriorEnd())
 				) {
@@ -856,11 +964,11 @@ void Connectivity::BuildFluxConnectivity() {
 
 		// Top or Bottom side of this PatchBox
 		} else if (
-		    (pNeighbor->m_key.dir == Direction_Top) ||
-		    (pNeighbor->m_key.dir == Direction_Bottom)
+		    (pNeighbor->m_info.dir == Direction_Top) ||
+		    (pNeighbor->m_info.dir == Direction_Bottom)
 		) {
-			int i = pNeighbor->m_meta.ixFirst;
-			for (; i < pNeighbor->m_meta.ixSecond; i++) {
+			int i = pNeighbor->m_info.ixFirst;
+			for (; i < pNeighbor->m_info.ixSecond; i++) {
 				if ((i < box.GetAInteriorBegin()) ||
 					(i >= box.GetAInteriorEnd())
 				) {
@@ -872,10 +980,10 @@ void Connectivity::BuildFluxConnectivity() {
 
 		// Corners of this PatchBox
 		} else if (
-		    (pNeighbor->m_key.dir == Direction_TopRight) ||
-		    (pNeighbor->m_key.dir == Direction_TopLeft) ||
-		    (pNeighbor->m_key.dir == Direction_BottomRight) ||
-		    (pNeighbor->m_key.dir == Direction_BottomLeft)
+		    (pNeighbor->m_info.dir == Direction_TopRight) ||
+		    (pNeighbor->m_info.dir == Direction_TopLeft) ||
+		    (pNeighbor->m_info.dir == Direction_BottomRight) ||
+		    (pNeighbor->m_info.dir == Direction_BottomLeft)
 		) {
 			if (m_vecExteriorEdge[iDir][0] != NULL) {
 				_EXCEPTION1("Corner patch %i already set", iDir);
@@ -906,7 +1014,7 @@ void Connectivity::Pack(
 ) {
 	// Pack data to exterior neighbors
 	for (int m = 0; m < m_vecExteriorNeighbors.size(); m++) {
-		m_vecExteriorNeighbors[m]->Pack(m_patch.GetGrid(), data);
+		m_vecExteriorNeighbors[m]->Pack(data);
 	}
 }
 

@@ -255,11 +255,6 @@ public:
 	}
 
 	///	<summary>
-	///		Get the longest perimeter over all patches.
-	///	</summary>
-	int GetLongestActivePatchPerimeter() const;
-
-	///	<summary>
 	///		Get the maximum number of nodes in 2D over all patches.
 	///	</summary>
 	int GetMaxNodeCount2D() const;
@@ -471,6 +466,21 @@ protected:
 		const std::string & strGridFile
 	);
 
+public:
+	///	<summary>
+	///		Get a reference to the exchange buffer registry.
+	///	</summary>
+	const ExchangeBufferRegistry & GetExchangeBufferRegistry() const {
+		return m_aExchangeBufferRegistry;
+	}
+
+	///	<summary>
+	///		Get a reference to the exchange buffer registry.
+	///	</summary>
+	ExchangeBufferRegistry & GetExchangeBufferRegistry() {
+		return m_aExchangeBufferRegistry;
+	}
+
 protected:
 	///	<summary>
 	///		Distribute patches among processors and allocate local patches.
@@ -517,7 +527,9 @@ protected:
 	///	<summary>
 	///		Initialize connectivity between patches.
 	///	</summary>
-	void InitializeConnectivity();
+	void InitializeConnectivity(
+		bool fAllocate = true
+	);
 
 public:
 	///	<summary>
@@ -608,7 +620,6 @@ public:
 				m_nRefinementRatio,
 				static_cast<unsigned int>(iRefineLevel)));
 	}
-
 
 public:
 /*
