@@ -83,6 +83,8 @@ MODULE baroclinic_wave
   REAL(8), PARAMETER ::               &
        moistqlat  = 2.d0*pi/9.d0,     & ! Humidity latitudinal width
        moistqp    = 34000.d0,         & ! Humidity vertical pressure width
+       moisttr    = 0.1d0,            & ! Vertical cut-off pressure for humidity
+       moistqs    = 1.d-12,           & ! Humidity above cut-off
        moistq0    = 0.018d0,          & ! Maximum specific humidity
        moistqr    = 0.9d0,            & ! Maximum saturation ratio
        moisteps   = 0.622d0,          & ! Ratio of gas constants
@@ -225,17 +227,12 @@ CONTAINS
     if (moist .eq. 1) then
       eta = p/p0
 
-      q = moistq0 * exp(- (lat/moistqlat)**4)          &
-                  * exp(- ((eta-1.d0)*p0/moistqp)**2)
-
-      !qnum = qratio * moisteps * moistE0Ast / p                             &
-      !       * (1.d0 - Lvap / Rvap * rho * Rd / p + Lvap / Rvap / moistT0)
-
-      !qnum = max(qnum, 0.d0)
-
-      !qden = (1.d0 + qratio * moisteps * moistE0Ast / (p**2) * rho * Rd * Mvap)
-
-      !q = qnum / qden
+      if (eta .gt. moisttr) then
+        q = moistq0 * exp(- (lat/moistqlat)**4)          &
+                    * exp(- ((eta-1.d0)*p0/moistqp)**2)
+      else
+        q = moistqs
+      end if
 
       ! Convert virtual temperature to temperature
       t = t / (1.d0 + Mvap * q)
