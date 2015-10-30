@@ -123,7 +123,7 @@ public:
 
 		// Set the dimensions of the box
 		m_dGDim[0] = 0.0;
-		m_dGDim[1] = 40000000.0;
+		m_dGDim[1] = 30000000.0;
 		m_dGDim[2] = 0.0;
 		m_dGDim[3] = 6000000.0;
 		m_dGDim[4] = 0.0;
@@ -193,9 +193,9 @@ public:
 		double dXp,
 		double dYp
 	) const {
-		const double dRayleighStrength = 8.0e-3;
-		const double dRayleighDepth = 10000.0;
-		const double dRayleighWidth = 10000.0;
+		const double dRayleighStrength = 5.0E-3;
+		const double dRayleighDepth = 5000.0;
+		const double dRayleighWidth = 5.0E7;
 
 		double dNuDepth = 0.0;
 		double dNuRight = 0.0;
@@ -203,8 +203,8 @@ public:
 
 		if (dZ > m_dGDim[5] - dRayleighDepth) {
 			double dNormZ = (m_dGDim[5] - dZ) / dRayleighDepth;
-			//dNuDepth = 0.5 * dRayleighStrength * (1.0 + cos(M_PI * dNormZ));
-			dNuDepth = 0.0;
+			dNuDepth = 0.5 * dRayleighStrength * (1.0 + cos(M_PI * dNormZ));
+			//dNuDepth = 0.0;
 		}
 		if (dXp > m_dGDim[3] - dRayleighWidth) {
 			double dNormY = (m_dGDim[3] - dYp) / dRayleighWidth;

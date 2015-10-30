@@ -105,8 +105,8 @@ public:
 		// Set the dimensions of the box
 		m_dGDim[0] = -25000.;
 		m_dGDim[1] = 25000.0;
-		m_dGDim[2] = -1000.0;
-		m_dGDim[3] = 1000.0;
+		m_dGDim[2] = -100.0;
+		m_dGDim[3] = 100.0;
 		m_dGDim[4] = 0.0;
 		m_dGDim[5] = 21000.0;
 	}
@@ -174,7 +174,7 @@ public:
 		double dXp,
 		double dYp
 	) const {
-		const double dRayleighStrength = 4.0e-2;//8.0e-3;
+		const double dRayleighStrength = 5.0e-2;//8.0e-3;
 		const double dRayleighDepth = 10000.0;
 		const double dRayleighWidth = 10000.0;
 
