@@ -105,6 +105,7 @@ public:
 	///	</summary>
 	void SetGrid(
 		Grid * pGrid,
+		int nPatchCount = (-1),
 		bool fInitializeConnectivity = true
 	);
 

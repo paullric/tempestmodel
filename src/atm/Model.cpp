@@ -95,6 +95,7 @@ void Model::SetParameters(const ModelParameters & param) {
 
 void Model::SetGrid(
 	Grid * pGrid,
+	int nPatchCount,
 	bool fInitializeConnectivity
 ) {
 	if (pGrid == NULL) {
@@ -109,10 +110,14 @@ void Model::SetGrid(
 
 	// Set up patches
 	if (m_param.m_strRestartFile == "") {
-		int nCommSize;
-		MPI_Comm_size(MPI_COMM_WORLD, &nCommSize);
 
-		m_pGrid->ApplyDefaultPatchLayout(nCommSize);
+#ifdef USE_MPI
+		if (nPatchCount == (-1)) {
+			MPI_Comm_size(MPI_COMM_WORLD, &nPatchCount);
+		}
+#endif
+
+		m_pGrid->ApplyDefaultPatchLayout(nPatchCount);
 
 	} else {
 		m_pGrid->FromFile(m_param.m_strRestartFile);

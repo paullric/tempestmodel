@@ -13,6 +13,9 @@ PETSC_LIBDIR= /opt/local/lib/petsc/lib
 # X11 lib directory
 X11_LIBDIR= /opt/X11/lib
 
+# By default use MPI
+CFLAGS+= -DUSE_MPI
+
 ################################################################################
 ## NON-SYSTEM SPECIFIC COMPILATION FLAGS
 

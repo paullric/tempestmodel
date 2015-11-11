@@ -93,7 +93,7 @@ void InitializeModel(
 			dRefLat,
 			eVerticalStaggering);
 
-	(*pModel)->SetGrid(pGrid, false);
+	(*pModel)->SetGrid(pGrid, ParamTotalPatchCount, false);
 
 	pGrid->InitializeAllExchangeBuffers();
 

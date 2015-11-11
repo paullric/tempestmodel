@@ -81,6 +81,11 @@ void GridCartesianGLL::ApplyDefaultPatchLayout(
 	int nPatchCount
 ) {
 
+	// Verify patch count is positive
+	if (nPatchCount < 1) {
+		_EXCEPTIONT("nPatchCount must be a positive integer");
+	}
+
 	// Verify no Patches have been previously added
 	if (m_nInitializedPatchBoxes != 0) {
 		_EXCEPTIONT("ApplyDefaultPatchLayout() must be called on an empty Grid");
