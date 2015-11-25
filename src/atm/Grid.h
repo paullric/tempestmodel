@@ -39,7 +39,11 @@ class ConsolidationStatus;
 class GridSpacing;
 class VerticalStretchFunction;
 
+#ifndef NO_NETCDF
 class NcFile;
+#else
+typedef int NcFile;
+#endif
 
 ///////////////////////////////////////////////////////////////////////////////
 

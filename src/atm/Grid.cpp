@@ -26,7 +26,9 @@
 #include <cfloat>
 #include <cmath>
 
+#ifndef NO_NETCDF
 #include <netcdfcpp.h>
+#endif
 
 #ifdef USE_MPI
 #include "mpi.h"

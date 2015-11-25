@@ -25,6 +25,13 @@ class Time;
 
 ///////////////////////////////////////////////////////////////////////////////
 
+#ifdef NO_NETCDF
+typedef int NcFile;
+typedef int NcVar;
+#endif
+
+///////////////////////////////////////////////////////////////////////////////
+
 ///	<summary>
 ///		OutputManager that handles interpolated output to the reference grid
 ///		(RLL grid on the sphere, Cartesian grid on the plane).

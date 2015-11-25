@@ -21,7 +21,7 @@
 
 #include <cmath>
 
-#ifdef NETCDFENABLED
+#ifndef NO_NETCDF
 #include <netcdfcpp.h>
 #endif
 
@@ -421,7 +421,7 @@ public:
 		return m_dP0 * exp(m_dCp / m_dR * log(dPi / m_dCp));
 	}
 
-#ifdef NETCDFENABLED
+#ifndef NO_NETCDF
 public:
 	///	<summary>
 	///		Output the set of physical constants to a NetCDF file.

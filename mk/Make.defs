@@ -16,6 +16,11 @@ X11_LIBDIR= /opt/X11/lib
 # By default use MPI
 CFLAGS+= -DUSE_MPI
 
+# Add the NO_NETCDF define
+ifdef NO_NETCDF
+  CFLAGS+= -DNO_NETCDF
+endif
+
 ################################################################################
 ## NON-SYSTEM SPECIFIC COMPILATION FLAGS
 
