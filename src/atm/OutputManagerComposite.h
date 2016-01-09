@@ -18,6 +18,9 @@
 #define _OUTPUTMANAGERCOMPOSITE_H_
 
 #include "OutputManager.h"
+#include "DataArray1D.h"
+#include "DataArray2D.h"
+#include <fstream>
 
 class Time;
 
@@ -108,6 +111,16 @@ protected:
 	///	<summary>
 	///		Active output file.
 	///	</summary>
+	std::ofstream m_ofsActiveOutput;
+
+	///	<summary>
+	///		Array of received messages.
+	///	</summary>
+	DataArray2D<int> m_iReceivedMessages;
+/*
+	///	<summary>
+	///		Active output file.
+	///	</summary>
 	NcFile * m_pActiveNcOutput;
 
 	///	<summary>
@@ -149,8 +162,18 @@ protected:
 	///		Vector of tracer variables.
 	///	</summary>
 	std::vector<NcVar *> m_vecTracersVar;
-
+*/
 private:
+	///	<summary>
+	///		Byte size for each GridPatch.
+	///	</summary>
+	DataArray2D<int> m_vecGridPatchByteSize;
+
+	///	<summary>
+	///		Byte location for each GridPatch.
+	///	</summary>
+	DataArray2D<std::streamoff> m_vecGridPatchByteLoc;
+
 	///	<summary>
 	///		Vector used at root node for storage of received data.
 	///	</summary>

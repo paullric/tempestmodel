@@ -61,7 +61,6 @@ OutputManagerReference::OutputManagerReference(
 	m_fOutputAllVarsOnNodes(fOutputAllVarsOnNodes),
 	m_fRemoveReferenceProfile(fRemoveReferenceProfile)
 {
-
 	// Get the reference box
 	double dX0;
 	double dX1;

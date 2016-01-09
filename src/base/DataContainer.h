@@ -115,7 +115,14 @@ public:
 	///	<summary>
 	///		Get the total size of the DataContainer (in bytes).
 	///	</summary>
-	size_t GetTotalByteSize();
+	size_t GetTotalByteSize() const;
+
+	///	<summary>
+	///		Get a pointer to the data.
+	///	</summary>
+	const unsigned char * GetPointer() const {
+		return m_pAllocatedMemory;
+	}
 
 	///	<summary>
 	///		Allocate an array for all DataChunks.

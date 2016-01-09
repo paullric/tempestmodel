@@ -23,7 +23,9 @@
 #include "TimeObj.h"
 #include "Announce.h"
 
+#ifdef USE_MPI
 #include "mpi.h"
+#endif
 
 #include <iostream>
 #include <cstdio>
@@ -46,10 +48,6 @@ OutputManagerComposite::OutputManagerComposite(
 		strOutputDir,
 		strOutputFormat,
 		1),
-	m_pActiveNcOutput(NULL),
-	m_varZs(NULL),
-	m_varRayleighStrengthNode(NULL),
-	m_varRayleighStrengthREdge(NULL),
 	m_strRestartFile(strRestartFile)
 {
 }
@@ -65,149 +63,132 @@ OutputManagerComposite::~OutputManagerComposite() {
 bool OutputManagerComposite::OpenFile(
 	const std::string & strFileName
 ) {
-/*
+#ifdef USE_MPI
 	// Determine processor rank
 	int nRank;
 	MPI_Comm_rank(MPI_COMM_WORLD, &nRank);
 
-	// The active model
-	const Model & model = m_grid.GetModel();
+	// Determine space allocation for each GridPatch
+	m_vecGridPatchByteSize.Allocate(m_grid.GetPatchCount(), 2);
 
-	// Open new NetCDF file
-	NcVar * varZs;
-	NcVar * varRayleighStrengthNode;
-	NcVar * varRayleighStrengthREdge;
+	// Determine maximum recv buffer size
+	for (int i = 0; i < m_grid.GetActivePatchCount(); i++) {
+		const GridPatch * pPatch = m_grid.GetActivePatch(i);
 
-	if (nRank == 0) {
-
-		// Allocate receive buffer
-		m_vecRecvBuffer.Allocate(m_grid.GetMaxDegreesOfFreedom());
-
-		// Check for existing NetCDF file
-		if (m_pActiveNcOutput != NULL) {
-			_EXCEPTIONT("NetCDF file already open");
+		int iPatchIx = pPatch->GetPatchIndex();
+		if (iPatchIx > m_grid.GetPatchCount()) {
+			_EXCEPTION2("PatchIndex (%i) out of range [0,%i)",
+				iPatchIx, m_grid.GetPatchCount());
 		}
 
-		// Open new NetCDF file
-		std::string strNcFileName = strFileName + ".restart.nc";
-		m_pActiveNcOutput = new NcFile(strNcFileName.c_str(), NcFile::Replace);
-		if (m_pActiveNcOutput == NULL) {
-			_EXCEPTIONT("Error opening NetCDF file");
-		}
+		const DataContainer & dcGeometric =
+			pPatch->GetDataContainerGeometric();
+		m_vecGridPatchByteSize[iPatchIx][0] =
+			dcGeometric.GetTotalByteSize();
 
-		// Create nodal index dimension
-		NcDim * dimNodeIndex2D =
-			m_pActiveNcOutput->add_dim(
-				"node_index_2d", m_grid.GetTotalNodeCount2D());
+		const DataContainer & dcActiveState =
+			pPatch->GetDataContainerActiveState();
+		m_vecGridPatchByteSize[iPatchIx][1] =
+			dcActiveState.GetTotalByteSize();
+	}
 
-		NcDim * dimNodeIndex =
-			m_pActiveNcOutput->add_dim(
-				"node_index", m_grid.GetTotalNodeCount(DataLocation_Node));
+	// Reduce GridPatch byte size
+	if (nRank != 0) {
+		MPI_Reduce(
+			&(m_vecGridPatchByteSize[0][0]),
+			&(m_vecGridPatchByteSize[0][0]),
+			m_vecGridPatchByteSize.GetTotalSize(),
+			MPI_INT,
+			MPI_MAX,
+			0,
+			MPI_COMM_WORLD);
 
-		NcDim * dimREdgeIndex =
-			m_pActiveNcOutput->add_dim(
-				"redge_index", m_grid.GetTotalNodeCount(DataLocation_REdge));
+	// Open file at root
+	} else if (nRank == 0) {
 
-		// Output start time and current time
-		m_pActiveNcOutput->add_att("start_time",
-			model.GetStartTime().ToLongString().c_str());
+		// Reduce
+		MPI_Reduce(
+			MPI_IN_PLACE,
+			&(m_vecGridPatchByteSize[0][0]),
+			m_vecGridPatchByteSize.GetTotalSize(),
+			MPI_INT,
+			MPI_MAX,
+			0,
+			MPI_COMM_WORLD);
 
-		// Output equation set
-		const EquationSet & eqn = model.GetEquationSet();
+		// The active Model
+		const Model & model = m_grid.GetModel();
 
-		m_pActiveNcOutput->add_att("equation_set", eqn.GetName().c_str());
-
-		// Output the grid
-		m_grid.ToFile(*m_pActiveNcOutput);
-
-		// Get the patch index dimension
-		NcDim * dimPatchIndex = m_pActiveNcOutput->get_dim("patch_index");
-		if (dimPatchIndex == NULL) {
-			_EXCEPTIONT("Dimension \'patch_index\' not found");
-		}
-
-		// Create variables in NetCDF output file
-		for (int c = 0; c < eqn.GetComponents(); c++) {
-
-			// State variables (only store on relevant level)
-			if (m_grid.GetVarLocation(c) == DataLocation_Node) {
-				m_vecStateVar.push_back(
-					m_pActiveNcOutput->add_var(
-						eqn.GetComponentShortName(c).c_str(),
-						ncDouble, dimNodeIndex));
-
-			} else if (m_grid.GetVarLocation(c) == DataLocation_REdge) {
-				m_vecStateVar.push_back(
-					m_pActiveNcOutput->add_var(
-						eqn.GetComponentShortName(c).c_str(),
-						ncDouble, dimREdgeIndex));
-
-			} else {
-				_EXCEPTIONT("(UNIMPLEMENTED) Invalid DataLocation");
+		// Get maximum byte size for exchange
+		int sMaxRecvBufferByteSize = 0;
+		for (int i = 0; i < m_vecGridPatchByteSize.GetRows(); i++) {
+			if (m_vecGridPatchByteSize[i][0] > sMaxRecvBufferByteSize) {
+				sMaxRecvBufferByteSize = m_vecGridPatchByteSize[i][0];
 			}
-
-			// Reference state variables (store on all levels)
-			if (m_grid.HasReferenceState()) {
-				std::string strRefVarNameNode =
-					eqn.GetComponentShortName(c) + "_RefNode";
-
-				m_vecRefStateVarNode.push_back(
-					m_pActiveNcOutput->add_var(
-						strRefVarNameNode.c_str(),
-						ncDouble, dimNodeIndex));
-
-				std::string strRefVarNameREdge =
-					eqn.GetComponentShortName(c) + "_RefREdge";
-
-				m_vecRefStateVarREdge.push_back(
-					m_pActiveNcOutput->add_var(
-						strRefVarNameREdge.c_str(),
-						ncDouble, dimREdgeIndex));
+			if (m_vecGridPatchByteSize[i][1] > sMaxRecvBufferByteSize) {
+				sMaxRecvBufferByteSize = m_vecGridPatchByteSize[i][1];
 			}
 		}
 
-		for (int c = 0; c < eqn.GetTracers(); c++) {
-			m_vecTracersVar.push_back(
-				m_pActiveNcOutput->add_var(
-					eqn.GetTracerShortName(c).c_str(),
-					ncDouble, dimNodeIndex));
+		// Allocate Recv buffer at root
+		if (m_vecRecvBuffer.GetRows() < sMaxRecvBufferByteSize) {
+			m_vecRecvBuffer.Allocate(sMaxRecvBufferByteSize);
 		}
 
-		// Output topography for each patch
-		m_varZs = m_pActiveNcOutput->add_var("ZS", ncDouble, dimNodeIndex2D);
+		// Initialize byte location for each GridPatch
+		m_vecGridPatchByteLoc.Allocate(m_grid.GetPatchCount(), 2);
+		m_vecGridPatchByteLoc[0][0] = 0;
+		m_vecGridPatchByteLoc[0][1] = m_vecGridPatchByteSize[0][0];
+		for (int i = 1; i < m_vecGridPatchByteSize.GetRows(); i++) { 
+			m_vecGridPatchByteLoc[i][0] =
+				m_vecGridPatchByteLoc[i-1][1]
+				+ m_vecGridPatchByteSize[i-1][1];
 
-		// Output Rayleigh strength for each patch
-		m_varRayleighStrengthNode =
-			m_pActiveNcOutput->add_var(
-				"Rayleigh_Node", ncDouble, dimNodeIndex);
+			m_vecGridPatchByteLoc[i][1] =
+				m_vecGridPatchByteLoc[i][0]
+				+ m_vecGridPatchByteSize[i][0];
+		}
 
-		m_varRayleighStrengthREdge =
-			m_pActiveNcOutput->add_var(
-				"Rayleigh_REdge", ncDouble, dimREdgeIndex);
+		// Allocate array of received messages
+		m_iReceivedMessages.Allocate(m_grid.GetPatchCount(), 2);
+
+		// Check for existing file
+		if (m_ofsActiveOutput.is_open()) {
+			_EXCEPTIONT("Restart file already open");
+		}
+
+		// Open new binary output stream
+		std::string strRestartFileName = strFileName + ".restart.dat";
+		m_ofsActiveOutput.open(
+			strRestartFileName.c_str(), std::ios::binary | std::ios::out);
+
+		if (!m_ofsActiveOutput) {
+			_EXCEPTION1("Error opening output file \"%s\"",
+				strRestartFileName.c_str());
+		}
+/*
+		for (int i = 0; i < m_vecGridPatchByteSize.GetRows(); i++) {
+			printf("%i %i\n",
+				m_vecGridPatchByteLoc[i][0],
+				m_vecGridPatchByteLoc[i][1]);
+		}
+*/
 	}
 
 	// Wait for all processes to complete
 	MPI_Barrier(MPI_COMM_WORLD);
-*/
+
 	return true;
+#else
+	_EXCEPTIONT("Not implemented without USE_MPI");
+#endif
+
 }	
 
 ///////////////////////////////////////////////////////////////////////////////
 
 void OutputManagerComposite::CloseFile() {
-/*
-	if (m_pActiveNcOutput != NULL) {
-		delete(m_pActiveNcOutput);
-		m_pActiveNcOutput = NULL;
-
-		m_vecStateVar.clear();
-		m_vecRefStateVarNode.clear();
-		m_vecRefStateVarREdge.clear();
-		m_vecTracersVar.clear();
-
-		m_vecRecvBuffer.Deallocate();
-	}
-*/
+	m_ofsActiveOutput.close();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -215,6 +196,7 @@ void OutputManagerComposite::CloseFile() {
 void OutputManagerComposite::Output(
 	const Time & time
 ) {
+#ifdef USE_MPI
 	// Check for open file
 	if (!IsFileOpen()) {
 		_EXCEPTIONT("No file available for output");
@@ -224,236 +206,215 @@ void OutputManagerComposite::Output(
 	if (m_ixOutputTime != 0) {
 		_EXCEPTIONT("Only one Composite output allowed per file");
 	}
-/*
+
 	// Determine processor rank
 	int nRank;
 	MPI_Comm_rank(MPI_COMM_WORLD, &nRank);
 
-	// Equation set
-	const EquationSet & eqn = m_grid.GetModel().GetEquationSet();
+	// Data types
+	const int ExchangeDataType_Geometric = 0;
+	const int ExchangeDataType_ActiveState = 1;
+	const int ExchangeDataType_Count = 2;
 
-	// Output start time and current time
-	if (nRank == 0) {
-		m_pActiveNcOutput->add_att(
-			"current_time", time.ToLongString().c_str());
-	}
+	// Send data from GridPatches to root
+	if (nRank != 0) {
 
-	// Begin data consolidation
-	std::vector<DataTypeLocationPair> vecDataTypes;
-	vecDataTypes.push_back(DataType_Topography);
-	vecDataTypes.push_back(
-		DataTypeLocationPair(DataType_RayleighStrength, DataLocation_Node));
-	vecDataTypes.push_back(
-		DataTypeLocationPair(DataType_RayleighStrength, DataLocation_REdge));
+		int nActivePatches = m_grid.GetActivePatchCount();
 
-	if (m_grid.GetVarsAtLocation(DataLocation_Node) != 0) {
-		vecDataTypes.push_back(
-			DataTypeLocationPair(DataType_State, DataLocation_Node));
-	}
-	if (m_grid.GetVarsAtLocation(DataLocation_REdge) != 0) {
-		vecDataTypes.push_back(
-			DataTypeLocationPair(DataType_State, DataLocation_REdge));
-	}
+		DataArray1D<MPI_Request> vecSendReqGeo(nActivePatches);
+		DataArray1D<MPI_Request> vecSendReqAcS(nActivePatches);
 
-	if (m_grid.HasReferenceState()) {
-		vecDataTypes.push_back(
-			DataTypeLocationPair(DataType_RefState, DataLocation_Node));
-		vecDataTypes.push_back(
-			DataTypeLocationPair(DataType_RefState, DataLocation_REdge));
-	}
+		for (int i = 0; i < nActivePatches; i++) {
+			const GridPatch * pPatch = m_grid.GetActivePatch(i);
 
-	if (eqn.GetTracers() != 0) {
-		vecDataTypes.push_back(DataType_Tracers);
-	}
+			const DataContainer & dcGeometric =
+				pPatch->GetDataContainerGeometric();
+			int nGeometricDataByteSize =
+				dcGeometric.GetTotalByteSize();
+			const unsigned char * pGeometricData =
+				dcGeometric.GetPointer();
 
-	ConsolidationStatus status(m_grid, vecDataTypes);
+			MPI_Isend(
+				pGeometricData,
+				nGeometricDataByteSize,
+				MPI_BYTE,
+				0,
+				ExchangeDataType_Geometric,
+				MPI_COMM_WORLD,
+				&(vecSendReqGeo[i]));
 
-	m_grid.ConsolidateDataToRoot(status);
+			const DataContainer & dcActiveState =
+				pPatch->GetDataContainerActiveState();
+			int nActiveStateDataByteSize =
+				dcActiveState.GetTotalByteSize();
+			const unsigned char * pActiveStateData =
+				dcActiveState.GetPointer();
 
-	// Receive all data objects from neighbors
-	while ((nRank == 0) && (!status.Done())) {
-		int nRecvCount;
-		int ixRecvPatch;
-		DataType eRecvDataType;
-		DataLocation eRecvDataLocation;
+			MPI_Isend(
+				pActiveStateData,
+				nActiveStateDataByteSize,
+				MPI_BYTE,
+				0,
+				ExchangeDataType_ActiveState,
+				MPI_COMM_WORLD,
+				&(vecSendReqAcS[i]));
+/*
+			printf("Send Geo %i %i\n", pPatch->GetPatchIndex(), nGeometricDataByteSize);
+			printf("Send AcS %i %i\n", pPatch->GetPatchIndex(), nActiveStateDataByteSize);
+*/
+		}
 
-		m_grid.ConsolidateDataAtRoot(
-			status,
-			m_vecRecvBuffer,
-			nRecvCount,
-			ixRecvPatch,
-			eRecvDataType,
-			eRecvDataLocation);
+		int iWaitAllMsgGeo =
+			MPI_Waitall(
+				nActivePatches,
+				&(vecSendReqGeo[0]),
+				MPI_STATUSES_IGNORE);
 
-		// Store topography data
-		if (eRecvDataType == DataType_Topography) {
-			int nPatchIx = m_grid.GetCumulativePatch2DNodeIndex(ixRecvPatch);
-			m_varZs->set_cur(nPatchIx);
-			m_varZs->put(&(m_vecRecvBuffer[0]), nRecvCount);
+		if (iWaitAllMsgGeo == MPI_ERR_IN_STATUS) {
+			_EXCEPTIONT("MPI_Waitall returned MPI_ERR_IN_STATUS");
+		}
 
-		// Store Rayleigh strength data at nodes and edges
-		} else if (eRecvDataType == DataType_RayleighStrength) {
-			if (eRecvDataLocation == DataLocation_Node) {
-				if (nRecvCount % m_grid.GetRElements() != 0) {
-					_EXCEPTIONT("Invalid message length");
-				}
+		int iWaitAllMsgAcS =
+			MPI_Waitall(
+				nActivePatches,
+				&(vecSendReqAcS[0]),
+				MPI_STATUSES_IGNORE);
 
-			} else if (eRecvDataLocation == DataLocation_REdge) {
-				if (nRecvCount % (m_grid.GetRElements()+1) != 0) {
-					_EXCEPTIONT("Invalid message length");
-				}
+		if (iWaitAllMsgAcS == MPI_ERR_IN_STATUS) {
+			_EXCEPTIONT("MPI_Waitall returned MPI_ERR_IN_STATUS");
+		}
 
+		//std::cout << "WAIT DONE" << std::endl;
+
+	// Receive data and output to file 
+	} else if (nRank == 0) {
+
+		// Active Model
+		const Model & model = m_grid.GetModel();
+
+		// Output start time as string
+		std::string strStartTime = model.GetStartTime().ToLongString();
+		int nStartTimeLen = strStartTime.length();
+		m_ofsActiveOutput.write(
+			(const char *)(&nStartTimeLen), sizeof(int));
+		m_ofsActiveOutput.write(
+			strStartTime.c_str(), sizeof(char)*nStartTimeLen);
+
+		// Output equation set name
+		std::string strEquationSetName = model.GetEquationSet().GetName();
+		int nEquationSetNameLen = strEquationSetName.length();
+		m_ofsActiveOutput.write(
+			(const char *)(&nEquationSetNameLen), sizeof(int));
+		m_ofsActiveOutput.write(
+			strEquationSetName.c_str(), sizeof(char)*nEquationSetNameLen);
+
+		// Output the grid
+		//m_grid.ToFile(*m_pActiveNcOutput);
+
+		// Reference position
+		std::streampos posRefFile = m_ofsActiveOutput.tellp();
+		if (posRefFile == (-1)) {
+			_EXCEPTIONT("ActiveOutput::tellp() fail");
+		}
+
+		// Write my GridPatch data to file
+		for (int i = 0; i < m_grid.GetActivePatchCount(); i++) {
+			const GridPatch * pPatch = m_grid.GetActivePatch(i);
+
+			int iPatchIx = pPatch->GetPatchIndex();
+			if (iPatchIx > m_grid.GetPatchCount()) {
+				_EXCEPTION2("PatchIndex (%i) out of range [0,%i)",
+					iPatchIx, m_grid.GetPatchCount());
+			}
+/*
+			printf("Write %i %i %i %i %i\n",
+				iPatchIx,
+				m_vecGridPatchByteLoc[iPatchIx][0],
+				m_vecGridPatchByteSize[iPatchIx][0],
+				m_vecGridPatchByteLoc[iPatchIx][1],
+				m_vecGridPatchByteSize[iPatchIx][1]);
+*/
+			const DataContainer & dcGeometric =
+				pPatch->GetDataContainerGeometric();
+			int nGeometricDataByteSize =
+				dcGeometric.GetTotalByteSize();
+			const char * pGeometricData =
+				(const char *)(dcGeometric.GetPointer());
+
+			m_ofsActiveOutput.seekp(
+				posRefFile + m_vecGridPatchByteLoc[iPatchIx][0]);
+			m_ofsActiveOutput.write(
+				pGeometricData, m_vecGridPatchByteSize[iPatchIx][0]);
+
+			const DataContainer & dcActiveState =
+				pPatch->GetDataContainerActiveState();
+			int nActiveStateDataByteSize =
+				dcActiveState.GetTotalByteSize();
+			const char * pActiveStateData =
+				(const char *)(dcActiveState.GetPointer());
+
+			m_ofsActiveOutput.seekp(
+				posRefFile + m_vecGridPatchByteLoc[iPatchIx][1]);
+			m_ofsActiveOutput.write(
+				pActiveStateData, m_vecGridPatchByteSize[iPatchIx][1]);
+		}
+
+		// Recieve all data objects from neighbors
+		int nRemainingMessages =
+			2 * (m_grid.GetPatchCount() - m_grid.GetActivePatchCount());
+
+		for (; nRemainingMessages > 0; nRemainingMessages--) {
+
+			// Receive a consolidation message
+			MPI_Status status;
+
+			MPI_Recv(
+				&(m_vecRecvBuffer[0]),
+				m_vecRecvBuffer.GetRows(),
+				MPI_CHAR,
+				MPI_ANY_SOURCE,
+				MPI_ANY_TAG,
+				MPI_COMM_WORLD,
+				&status);
+
+			// Data type from TAG
+			int iDataType = status.MPI_TAG;
+			if ((iDataType < 0) || (iDataType >= ExchangeDataType_Count)) {
+				_EXCEPTION1("MPI_TAG (%i) out of range", iDataType);
+			}
+
+			// Check patch index
+			DataArray1D<int> pPatchIx;
+			pPatchIx.AttachToData(&(m_vecRecvBuffer[0]));
+
+			if (pPatchIx[0] > m_vecGridPatchByteLoc.GetRows()) {
+				_EXCEPTION2("PatchIndex (%i) out of range [0,%i)",
+					pPatchIx[0], m_vecGridPatchByteLoc.GetRows());
+			}
+/*
+			if (iDataType == 0) {
+				printf("Recv Geo %i %i\n",
+					pPatchIx[0],
+					m_vecGridPatchByteSize[pPatchIx[0]][iDataType]);
 			} else {
-				_EXCEPTIONT("Invalid DataLocation");
+				printf("Recv AcS %i %i\n",
+					pPatchIx[0],
+					m_vecGridPatchByteSize[pPatchIx[0]][iDataType]);
 			}
-
-			int ixCumulative2DNode =
-				m_grid.GetCumulativePatch2DNodeIndex(ixRecvPatch);
-
-			int nComponentSize =
-				m_grid.GetPatch(ixRecvPatch)->GetTotalNodeCount(
-					eRecvDataLocation);
-
-			if (eRecvDataLocation == DataLocation_Node) {
-				m_varRayleighStrengthNode->set_cur(
-					ixCumulative2DNode * m_grid.GetRElements());
-				m_varRayleighStrengthNode->put(
-					&(m_vecRecvBuffer[0]), nComponentSize);
-
-			} else if (eRecvDataLocation == DataLocation_REdge) {
-				m_varRayleighStrengthREdge->set_cur(
-					ixCumulative2DNode * (m_grid.GetRElements()+1));
-				m_varRayleighStrengthREdge->put(
-					&(m_vecRecvBuffer[0]), nComponentSize);
-
-			} else {
-				_EXCEPTION();
-			}
-
-		// Store state variable data
-		} else if (eRecvDataType == DataType_State) {
-			if (eRecvDataLocation == DataLocation_Node) {
-				if (nRecvCount % m_grid.GetRElements() != 0) {
-					_EXCEPTIONT("Invalid message length");
-				}
-
-			} else if (eRecvDataLocation == DataLocation_REdge) {
-				if (nRecvCount % (m_grid.GetRElements()+1) != 0) {
-					_EXCEPTIONT("Invalid message length");
-				}
-
-			} else {
-				_EXCEPTIONT("Invalid DataLocation");
-			}
-
-			int ixRecvPtr = 0;
-
-			int ixCumulative2DNode =
-				m_grid.GetCumulativePatch2DNodeIndex(ixRecvPatch);
-
-			for (int c = 0; c < eqn.GetComponents(); c++) {
-
-				// Advance the pointer in the receive buffer
-				int nComponentSize =
-					m_grid.GetPatch(ixRecvPatch)->GetTotalNodeCount(
-						eRecvDataLocation);
-
-				// Only output data at relevant location
-				if (m_grid.GetVarLocation(c) == eRecvDataLocation) {
-					int nRadialDegreesOfFreedom;
-					if (eRecvDataLocation == DataLocation_Node) {
-						nRadialDegreesOfFreedom = m_grid.GetRElements();
-					} else if (eRecvDataLocation == DataLocation_REdge) {
-						nRadialDegreesOfFreedom = m_grid.GetRElements()+1;
-					} else {
-						_EXCEPTION();
-					}
-
-					m_vecStateVar[c]->set_cur(
-						ixCumulative2DNode * nRadialDegreesOfFreedom);
-					m_vecStateVar[c]->put(
-						&(m_vecRecvBuffer[ixRecvPtr]), nComponentSize);
-				}
-
-				ixRecvPtr += nComponentSize;
-			}
-
-		// Store reference state variable data
-		} else if (eRecvDataType == DataType_RefState) {
-			if (eRecvDataLocation == DataLocation_Node) {
-				if (nRecvCount % m_grid.GetRElements() != 0) {
-					_EXCEPTIONT("Invalid message length");
-				}
-
-			} else if (eRecvDataLocation == DataLocation_REdge) {
-				if (nRecvCount % (m_grid.GetRElements()+1) != 0) {
-					_EXCEPTIONT("Invalid message length");
-				}
-
-			} else {
-				_EXCEPTIONT("Invalid DataLocation");
-			}
-
-			int ixRecvPtr = 0;
-
-			int ixCumulative2DNode =
-				m_grid.GetCumulativePatch2DNodeIndex(ixRecvPatch);
-
-			for (int c = 0; c < eqn.GetComponents(); c++) {
-
-				// Advance the pointer in the receive buffer
-				int nComponentSize =
-					m_grid.GetPatch(ixRecvPatch)->GetTotalNodeCount(
-						eRecvDataLocation);
-
-				// Write data to file
-				int nRadialDegreesOfFreedom;
-				if (eRecvDataLocation == DataLocation_Node) {
-					nRadialDegreesOfFreedom = m_grid.GetRElements();
-
-					m_vecRefStateVarNode[c]->set_cur(
-						ixCumulative2DNode * nRadialDegreesOfFreedom);
-					m_vecRefStateVarNode[c]->put(
-						&(m_vecRecvBuffer[ixRecvPtr]), nComponentSize);
-
-				} else if (eRecvDataLocation == DataLocation_REdge) {
-					nRadialDegreesOfFreedom = m_grid.GetRElements()+1;
-
-					m_vecRefStateVarREdge[c]->set_cur(
-						ixCumulative2DNode * nRadialDegreesOfFreedom);
-					m_vecRefStateVarREdge[c]->put(
-						&(m_vecRecvBuffer[ixRecvPtr]), nComponentSize);
-
-				} else {
-					_EXCEPTION();
-				}
-
-				ixRecvPtr += nComponentSize;
-			}
-
-		// Store tracer variable data
-		} else if (eRecvDataType == DataType_Tracers) {
-			int nComponentSize =
-				nRecvCount / eqn.GetTracers();
-
-			if (nRecvCount % eqn.GetTracers() != 0) {
-				_EXCEPTIONT("Invalid message length");
-			}
-
-			int nCumulative3DNodeIx =
-				m_grid.GetCumulativePatch3DNodeIndex(ixRecvPatch);
-
-			for (int c = 0; c < eqn.GetTracers(); c++) {
-				m_vecTracersVar[c]->set_cur(nCumulative3DNodeIx);
-				m_vecTracersVar[c]->put(
-					&(m_vecRecvBuffer[nComponentSize * c]), nComponentSize);
-			}
+*/
+			m_ofsActiveOutput.seekp(
+				posRefFile + m_vecGridPatchByteLoc[pPatchIx[0]][iDataType]);
+			m_ofsActiveOutput.write(
+				(const char *)(&(m_vecRecvBuffer[0])),
+				m_vecGridPatchByteSize[pPatchIx[0]][iDataType]);
 		}
 	}
 
 	// Barrier
 	MPI_Barrier(MPI_COMM_WORLD);
-*/
+#else
+	_EXCEPTIONT("Not implemented without USE_MPI");
+#endif
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -461,7 +422,7 @@ void OutputManagerComposite::Output(
 Time OutputManagerComposite::Input(
 	const std::string & strFileName
 ) {
-/*
+
 	// Set the flag indicating that output came from a restart file
 	m_fFromRestartFile = true;
 
@@ -471,10 +432,7 @@ Time OutputManagerComposite::Input(
 
 	// The active model
 	const Model & model = m_grid.GetModel();
-
-	// Open new NetCDF file
-	NcFile * pNcFile = NULL;
-
+/*
 	// Open NetCDF file
 	pNcFile = new NcFile(strFileName.c_str(), NcFile::ReadOnly);
 	if (pNcFile == NULL) {

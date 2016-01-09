@@ -39,67 +39,6 @@ GridPatch::GridPatch(
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-/*
-int GridPatch::GetTotalDegreesOfFreedom(
-	DataType eDataType,
-	DataLocation eDataLocation
-) const {
-	
-	// Take into account staggering of State data
-	if ((eDataType == DataType_State) ||
-		(eDataType == DataType_RefState)
-	) {
-		int nComponents = m_grid.GetModel().GetEquationSet().GetComponents();
-
-		if (eDataLocation == DataLocation_None) {
-			return (m_box.GetTotalNodeCount2D()
-				* m_grid.GetDegreesOfFreedomPerColumn());
-
-		} else if (eDataLocation == DataLocation_Node) {
-			return (m_box.GetTotalNodeCount2D()
-				* m_grid.GetRElements()
-				* nComponents);
-
-		} else if (eDataLocation == DataLocation_REdge) {
-			return (m_box.GetTotalNodeCount2D()
-				* (m_grid.GetRElements()+1)
-				* nComponents);
-
-		} else {
-			_EXCEPTIONT("Invalid DataLocation");
-		}
-
-	// All tracers on model levels
-	} else if (eDataType == DataType_Tracers) {
-		int nTracers = m_grid.GetModel().GetEquationSet().GetTracers();
-
-		return (m_box.GetTotalNodeCount2D()
-			* m_grid.GetRElements()
-			* nTracers);
-
-	// Topography only at surface
-	} else if (eDataType == DataType_Topography) {
-		return m_box.GetTotalNodeCount2D();
-
-	// Rayleigh strength
-	} else if (eDataType == DataType_RayleighStrength) {
-		if (eDataLocation == DataLocation_Node) {
-			return m_box.GetTotalNodeCount2D() * m_grid.GetRElements();
-
-		} else if (eDataLocation == DataLocation_REdge) {
-			return m_box.GetTotalNodeCount2D() * (m_grid.GetRElements() + 1);
-
-		} else {
-			_EXCEPTIONT("Invalid DataLocation");
-		}
-
-	// Invalid DataType
-	} else {
-		_EXCEPTIONT("(UNIMPLEMENTED) Invalid DataType");
-	}
-}
-*/
-///////////////////////////////////////////////////////////////////////////////
 
 void GridPatch::InitializeDataRemote(
 	int iProcessor
@@ -137,6 +76,9 @@ void GridPatch::InitializeDataLocal(
 
 	// Get the equation set
 	const EquationSet & eqn = model.GetEquationSet();
+
+	// Geometric patch index
+	m_iGeometricPatchIx.SetSize(1);
 
 	// Nodal coordinates in alpha direction
 	m_dANode.SetSize(m_box.GetATotalWidth());
@@ -310,6 +252,9 @@ void GridPatch::InitializeDataLocal(
 		m_box.GetATotalWidth(),
 		m_box.GetBTotalWidth());
 
+	// Active State Patch Index
+	m_iActiveStatePatchIx.SetSize(1);
+
 	// Initialize reference state
 	m_dataRefStateNode.SetDataType(DataType_State);
 	m_dataRefStateNode.SetDataLocation(DataLocation_Node);
@@ -344,6 +289,7 @@ void GridPatch::InitializeDataLocal(
 		m_box.GetBTotalWidth());
 
 	// Put all read-only data objects into DataContainer
+	m_dcGeometric.PushDataChunk(&m_iGeometricPatchIx);
 	m_dcGeometric.PushDataChunk(&m_dANode);
 	m_dcGeometric.PushDataChunk(&m_dAEdge);
 	m_dcGeometric.PushDataChunk(&m_dBNode);
@@ -410,6 +356,7 @@ void GridPatch::InitializeDataLocal(
 			m_box.GetBTotalWidth());
 	}
 
+	m_dcActiveState.PushDataChunk(&m_iActiveStatePatchIx);
 	m_dcActiveState.PushDataChunk(&m_datavecStateNode[0]);
 	m_dcActiveState.PushDataChunk(&m_datavecStateREdge[0]);
 
@@ -501,6 +448,10 @@ void GridPatch::InitializeDataLocal(
 	if (fAllocateAuxiliary) {
 		m_dcAuxiliary.Allocate();
 	}
+
+	// Mark Patch index
+	m_iGeometricPatchIx[0] = m_ixPatch;
+	m_iActiveStatePatchIx[0] = m_ixPatch;
 }
 
 ///////////////////////////////////////////////////////////////////////////////

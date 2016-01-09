@@ -48,7 +48,7 @@ DataContainer::~DataContainer() {
 
 ///////////////////////////////////////////////////////////////////////////////
 
-size_t DataContainer::GetTotalByteSize() {
+size_t DataContainer::GetTotalByteSize() const {
 	
 	// Get the accumulated size of all DataChunks
 	size_t sAccumulated = 0;

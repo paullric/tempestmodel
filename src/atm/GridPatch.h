@@ -388,6 +388,35 @@ public:
 
 public:
 	///	<summary>
+	///		Get the DataContainer for storing geometric data.
+	///	</summary>
+	const DataContainer & GetDataContainerGeometric() const {
+		return m_dcGeometric;
+	}
+
+	///	<summary>
+	///		Get the DataContainer for storing active state data.
+	///	</summary>
+	const DataContainer & GetDataContainerActiveState() const {
+		return m_dcActiveState;
+	}
+
+	///	<summary>
+	///		Get the DataContainer for storing buffer state data.
+	///	</summary>
+	const DataContainer & GetDataContainerBufferState() const {
+		return m_dcBufferState;
+	}
+
+	///	<summary>
+	///		Get the DataContainer for storing auxiliary data.
+	///	</summary>
+	const DataContainer & GetDataContainerAuxiliary() const {
+		return m_dcAuxiliary;
+	}
+
+public:
+	///	<summary>
 	///		Returns true if this GridPatch contains data, ie. is not a stub.
 	///	</summary>
 	bool ContainsData() const {
@@ -1050,220 +1079,231 @@ protected:
 
 protected:
 	///	<summary>
-	///		Array of nodal values in the alpha direction.
+	///		Geometric patch index.
+	///	</summary>
+	DataArray1D<int> m_iGeometricPatchIx;
+
+	///	<summary>
+	///		Array of nodal values in the alpha direction (Geometric).
 	///	</summary>
 	DataArray1D<double> m_dANode;
 
 	///	<summary>
-	///		Array of edge values in the alpha direction.
+	///		Array of edge values in the alpha direction (Geometric).
 	///	</summary>
 	DataArray1D<double> m_dAEdge;
 
 	///	<summary>
-	///		Array of nodal values in the beta direction.
+	///		Array of nodal values in the beta direction (Geometric).
 	///	</summary>
 	DataArray1D<double> m_dBNode;
 
 	///	<summary>
-	///		Array of edge values in the beta direction.
+	///		Array of edge values in the beta direction (Geometric).
 	///	</summary>
 	DataArray1D<double> m_dBEdge;
 
-protected:
 	///	<summary>
-	///		2D Jacobian at each node.
+	///		2D Jacobian at each node (Geometric).
 	///	</summary>
 	DataArray2D<double> m_dataJacobian2D;
 
 	///	<summary>
-	///		2D Contravariant metric (alpha) components.
+	///		2D Contravariant metric (alpha) components (Geometric).
 	///	</summary>
 	DataArray3D<double> m_dataContraMetric2DA;
 
 	///	<summary>
-	///		2D Contravariant metric (beta) components.
+	///		2D Contravariant metric (beta) components (Geometric).
 	///	</summary>
 	DataArray3D<double> m_dataContraMetric2DB;
 
 	///	<summary>
-	///		2D Covariant metric (alpha) components.
+	///		2D Covariant metric (alpha) components (Geometric).
 	///	</summary>
 	DataArray3D<double> m_dataCovMetric2DA;
 
 	///	<summary>
-	///		2D Covariant metric (beta) components.
+	///		2D Covariant metric (beta) components (Geometric).
 	///	</summary>
 	DataArray3D<double> m_dataCovMetric2DB;
 
 	///	<summary>
-	///		Jacobian at each node.
+	///		Jacobian at each node (Geometric).
 	///	</summary>
 	DataArray3D<double> m_dataJacobian;
 
 	///	<summary>
-	///		Jacobian at each edge.
+	///		Jacobian at each edge (Geometric).
 	///	</summary>
 	DataArray3D<double> m_dataJacobianREdge;
 
 	///	<summary>
-	///		Contravariant metric (alpha) components.
+	///		Contravariant metric (alpha) components (Geometric).
 	///	</summary>
 	DataArray4D<double> m_dataContraMetricA;
 
 	///	<summary>
-	///		Contravariant metric (beta) components.
+	///		Contravariant metric (beta) components (Geometric).
 	///	</summary>
 	DataArray4D<double> m_dataContraMetricB;
 
 	///	<summary>
-	///		Contravariant metric (xi) components.
+	///		Contravariant metric (xi) components (Geometric).
 	///	</summary>
 	DataArray4D<double> m_dataContraMetricXi;
 
 	///	<summary>
-	///		Covariant metric (alpha) components.
+	///		Covariant metric (alpha) components (Geometric).
 	///	</summary>
 	DataArray4D<double> m_dataCovMetricA;
 
 	///	<summary>
-	///		Covariant metric (beta) components.
+	///		Covariant metric (beta) components (Geometric).
 	///	</summary>
 	DataArray4D<double> m_dataCovMetricB;
 
 	///	<summary>
-	///		Covariant metric (xi) components.
+	///		Covariant metric (xi) components (Geometric).
 	///	</summary>
 	DataArray4D<double> m_dataCovMetricXi;
 
 	///	<summary>
-	///		Contravariant metric (alpha) components on interfaces.
+	///		Contravariant metric (alpha) components on interfaces (Geometric).
 	///	</summary>
 	DataArray4D<double> m_dataContraMetricAREdge;
 
 	///	<summary>
-	///		Contravariant metric (beta) components on interfaces.
+	///		Contravariant metric (beta) components on interfaces (Geometric).
 	///	</summary>
 	DataArray4D<double> m_dataContraMetricBREdge;
 
 	///	<summary>
-	///		Contravariant metric (xi) components on interfaces.
+	///		Contravariant metric (xi) components on interfaces (Geometric).
 	///	</summary>
 	DataArray4D<double> m_dataContraMetricXiREdge;
 
  	///	<summary>
 	///		Vertical coordinate transform (derivatives of the radius)
-	///		at each node.
+	///		at each node (Geometric).
 	///	</summary>
 	DataArray4D<double> m_dataDerivRNode;
 
  	///	<summary>
 	///		Vertical coordinate transform (derivatives of the radius)
-	///		at each interface.
+	///		at each interface (Geometric).
 	///	</summary>
 	DataArray4D<double> m_dataDerivRREdge;
 
 	///	<summary>
-	///		Element area at each node.
+	///		Element area at each node (Geometric).
 	///	</summary>
 	DataArray3D<double> m_dataElementArea;
 
 	///	<summary>
-	///		Element area at each interface.
+	///		Element area at each interface (Geometric).
 	///	</summary>
 	DataArray3D<double> m_dataElementAreaREdge;
 
 	///	<summary>
-	///		Topography height at each node.
+	///		Topography height at each node (Geometric).
 	///	</summary>
 	DataArray2D<double> m_dataTopography;
 
 	///	<summary>
-	///		Derivatives of topography at each node.
+	///		Derivatives of topography at each node (Geometric).
 	///	</summary>
 	DataArray3D<double> m_dataTopographyDeriv;
 
 	///	<summary>
-	///		Longitude at each node.
+	///		Longitude at each node (Geometric).
 	///	</summary>
 	DataArray2D<double> m_dataLon;
 
 	///	<summary>
-	///		Latitude at each node.
+	///		Latitude at each node (Geometric).
 	///	</summary>
 	DataArray2D<double> m_dataLat;
 
 	///	<summary>
-	///		Coriolis parameter at each node.
+	///		Coriolis parameter at each node (Geometric).
 	///	</summary>
 	DataArray2D<double> m_dataCoriolisF;
 
 	///	<summary>
-	///		Altitude at each level.
+	///		Altitude at each level (Geometric).
 	///	</summary>
 	DataArray3D<double> m_dataZLevels;
 
 	///	<summary>
-	///		Altitude at each interface.
+	///		Altitude at each interface (Geometric).
 	///	</summary>
 	DataArray3D<double> m_dataZInterfaces;
 
 	///	<summary>
-	///		Rayleigh friction strength on nodes.
+	///		Rayleigh friction strength on nodes (Geometric).
 	///	</summary>
 	DataArray3D<double> m_dataRayleighStrengthNode;
 
 	///	<summary>
-	///		Rayleigh friction strength on interfaces.
+	///		Rayleigh friction strength on interfaces (Geometric).
 	///	</summary>
 	DataArray3D<double> m_dataRayleighStrengthREdge;
 
+public:
 	///	<summary>
-	///		Grid data for the reference state on model levels.
+	///		Active State patch index.
+	///	</summary>
+	DataArray1D<int> m_iActiveStatePatchIx;
+
+	///	<summary>
+	///		Grid data for the reference state on model levels (State).
 	///	</summary>
 	DataArray4D<double> m_dataRefStateNode;
 
 	///	<summary>
-	///		Grid data on model interfaces for the reference state.
+	///		Grid data on model interfaces for the reference state (State).
 	///	</summary>
 	DataArray4D<double> m_dataRefStateREdge;
 
 	///	<summary>
-	///		Grid data for state variables on model levels.
+	///		Grid data for state variables on model levels (State).
 	///	</summary>
 	DataArray4DVector m_datavecStateNode;
 
 	///	<summary>
-	///		Grid data on model interfaces for state variables.
+	///		Grid data on model interfaces for state variables (State).
 	///	</summary>
 	DataArray4DVector m_datavecStateREdge;
 
 	///	<summary>
-	///		Grid data for tracer variables.
+	///		Grid data for tracer variables (State).
 	///	</summary>
 	DataArray4DVector m_datavecTracers;
 
+public:
 	///	<summary>
-	///		Computed pointwise pressures.
+	///		Computed pointwise pressures (Auxiliary).
 	///	</summary>
 	DataArray3D<double> m_dataPressure;
 
 	///	<summary>
-	///		Computed pointwise vertical pressure derivatives.
+	///		Computed pointwise vertical pressure derivatives (Auxiliary).
 	///	</summary>
 	DataArray3D<double> m_dataDxPressure;
 
 	///	<summary>
-	///		Computed vorticity.
+	///		Computed vorticity (Auxiliary).
 	///	</summary>
 	DataArray3D<double> m_dataVorticity;
 
 	///	<summary>
-	///		Computed divergence.
+	///		Computed divergence (Auxiliary).
 	///	</summary>
 	DataArray3D<double> m_dataDivergence;
 
 	///	<summary>
-	///		Computed temperature.
+	///		Computed temperature (Auxiliary).
 	///	</summary>
 	DataArray3D<double> m_dataTemperature;
 };

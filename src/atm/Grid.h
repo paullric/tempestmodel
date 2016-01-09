@@ -283,33 +283,8 @@ public:
 	int GetTotalNodeCount(
 		DataLocation loc = DataLocation_Node
 	) const;
-/*
-	///	<summary>
-	///		Get the maximum number of degrees of freedom required for a
-	///		consolidate operation, returned to the root node.
-	///	</summary>
-	int GetMaxDegreesOfFreedom() const;
-*/
+
 public:
-	///	<summary>
-	///		Receive a data object on the root process.
-	///	</summary>
-	void ConsolidateDataAtRoot(
-		ConsolidationStatus & status,
-		DataArray1D<double> & dataRecvBuffer,
-		int & nRecvCount,
-		int & ixRecvPatch,
-		DataType & eRecvDataType,
-		DataLocation & eRecvDataLocation
-	) const;
-
-	///	<summary>
-	///		Send data to the root process and block on receipt.
-	///	</summary>
-	void ConsolidateDataToRoot(
-		ConsolidationStatus & status
-	) const;
-
 	///	<summary>
 	///		Compute vorticity and divergence on the grid.
 	///	</summary>
@@ -627,28 +602,6 @@ public:
 	}
 
 public:
-/*
-	///	<summary>
-	///		Get the specified cumulative patch 2D node index.
-	///	</summary>
-	int GetCumulativePatch2DNodeIndex(int ix) const {
-		if ((ix < 0) || (ix >= m_vecCumulativePatch2DNodeIndex.size())) {
-			_EXCEPTIONT("Invalid patch index");
-		}
-		return m_vecCumulativePatch2DNodeIndex[ix];
-	}
-
-	///	<summary>
-	///		Get the specified cumulative patch 3D node index.
-	///	</summary>
-	int GetCumulativePatch3DNodeIndex(int ix) const {
-		if ((ix < 0) || (ix >= m_vecCumulativePatch2DNodeIndex.size())) {
-			_EXCEPTIONT("Invalid patch index");
-		}
-		return (m_vecCumulativePatch2DNodeIndex[ix]
-			* m_nDegreesOfFreedomPerColumn);
-	}
-*/
 	///	<summary>
 	///		Get the active patch with the specified index.
 	///	</summary>
@@ -816,13 +769,6 @@ public:
 	///	</summary>
 	int GetVarsAtLocation(DataLocation loc) const {
 		return m_vecVarsAtLocation[(int)loc];
-	}
-
-	///	<summary>
-	///		Get the number of degrees of freedom per column.
-	///	</summary>
-	int GetDegreesOfFreedomPerColumn() const {
-		return m_nDegreesOfFreedomPerColumn;
 	}
 
 	///	<summary>
@@ -998,11 +944,6 @@ protected:
 	///		Number of state variables at each location.
 	///	</summary>
 	DataArray1D<int> m_vecVarsAtLocation;
-
-	///	<summary>
-	///		Number of degrees of freedom per column.
-	///	</summary>
-	int m_nDegreesOfFreedomPerColumn;
 
 	///	<summary>
 	///		Flag indicating whether or not a reference state is available.
