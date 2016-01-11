@@ -125,6 +125,13 @@ public:
 	}
 
 	///	<summary>
+	///		Get a pointer to the data.
+	///	</summary>
+	unsigned char * GetPointer() {
+		return m_pAllocatedMemory;
+	}
+
+	///	<summary>
 	///		Allocate an array for all DataChunks.
 	///	</summary>
 	void Allocate();

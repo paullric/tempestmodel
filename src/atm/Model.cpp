@@ -120,7 +120,8 @@ void Model::SetGrid(
 		m_pGrid->ApplyDefaultPatchLayout(nPatchCount);
 
 	} else {
-		m_pGrid->FromFile(m_param.m_strRestartFile);
+		// Load in Grid here
+		//m_pGrid->FromFile(m_param.m_strRestartFile);
 	}
 
 	// Initialize the grid

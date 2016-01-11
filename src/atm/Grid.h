@@ -21,6 +21,7 @@
 #include "ChecksumType.h"
 #include "MathHelper.h"
 #include "Connectivity.h"
+#include "DataStruct.h"
 
 #ifdef USE_MPI
 #include "mpi.h"
@@ -75,7 +76,14 @@ public:
 
 public:
 	///	<summary>
-	///		Constructor.
+	///		Uninitialized Grid constructor.
+	///	</summary>
+	Grid(
+		Model & model
+	);
+
+	///	<summary>
+	///		Initialized Grid constructor.
 	///	</summary>
 	Grid(
 		Model & model,
@@ -92,6 +100,11 @@ public:
 	///		Virtual destructor.
 	///	</summary>
 	virtual ~Grid();
+
+	///	<summary>
+	///		Allocate GridData.
+	///	</summary>
+	void InitializeDataLocal();
 
 public:
 	///	<summary>
@@ -430,21 +443,6 @@ protected:
 		GridPatch * pPatch
 	);
 
-protected:
-	///	<summary>
-	///		Write a grid to a NetCDF file.
-	///	</summary>
-	void ToFile(
-		NcFile & ncfile
-	);
-
-	///	<summary>
-	///		Load a grid from a file.
-	///	</summary>
-	void FromFile(
-		const std::string & strGridFile
-	);
-
 public:
 	///	<summary>
 	///		Get a reference to the exchange buffer registry.
@@ -460,12 +458,13 @@ public:
 		return m_aExchangeBufferRegistry;
 	}
 
-protected:
+public:
 	///	<summary>
 	///		Distribute patches among processors and allocate local patches.
 	///	</summary>
 	void DistributePatches();
 
+protected:
 	///	<summary>
 	///		Register an ExchangeBuffer.
 	///	</summary>
@@ -544,6 +543,36 @@ public:
 	void AddReferenceState(
 		int ix
 	);
+
+public:
+	///	<summary>
+	///		Get the DataContainer storing Grid parameters.
+	///	</summary>
+	const DataContainer & GetDataContainerParameters() const {
+		return m_dcGridParameters;
+	}
+
+	///	<summary>
+	///		Get the DataContainer storing Grid data.
+	///	</summary>
+	const DataContainer & GetDataContainerPatchData() const {
+		return m_dcGridPatchData;
+	}
+
+public:
+	///	<summary>
+	///		Get the DataContainer storing Grid parameters.
+	///	</summary>
+	DataContainer & GetDataContainerParameters() {
+		return m_dcGridParameters;
+	}
+
+	///	<summary>
+	///		Get the DataContainer storing Grid data.
+	///	</summary>
+	DataContainer & GetDataContainerPatchData() {
+		return m_dcGridPatchData;
+	}
 
 public:
 	///	<summary>
@@ -838,25 +867,57 @@ protected:
 
 protected:
 	///	<summary>
+	///		DataContainer for Grid parameters.
+	///	</summary>
+	DataContainer m_dcGridParameters;
+
+protected:
+	///	<summary>
+	///		Maximum number of PatchBoxes.
+	///	</summary>
+	DataStruct<int> m_nMaxPatchCount;
+
+	///	<summary>
+	///		Number of radial elements.
+	///	</summary>
+	DataStruct<int> m_nRElements;
+
+	///	<summary>
+	///		Base resolution in the alpha direction.
+	///	</summary>
+	DataStruct<int> m_nABaseResolution;
+
+	///	<summary>
+	///		Base resolution in the beta direction.
+	///	</summary>
+	DataStruct<int> m_nBBaseResolution;
+
+	///	<summary>
+	///		Refinement ratio.
+	///	</summary>
+	DataStruct<int> m_nRefinementRatio;
+
+	///	<summary>
+	///		Type of vertical stretching being applied.
+	///	</summary>
+	DataStruct<VerticalStaggering> m_eVerticalStaggering;
+
+protected:
+	///	<summary>
 	///		DataContainer for Grid data.
 	///	</summary>
-	DataContainer m_dcGridData;
+	DataContainer m_dcGridPatchData;
 
 protected:
 	///	<summary>
 	///		Number of initialized PatchBoxes.
 	///	</summary>
-	int m_nInitializedPatchBoxes;
+	DataStruct<int> m_nInitializedPatchBoxes;
 
 	///	<summary>
 	///		Array of PatchBoxes.
 	///	</summary>
 	DataArray1D<PatchBox> m_aPatchBoxes;
-
-	///	<summary>
-	///		Type of vertical stretching being applied.
-	///	</summary>
-	VerticalStaggering m_eVerticalStaggering;
 
 	///	<summary>
 	///		Boundary condition in each coordinate direction.
@@ -866,38 +927,18 @@ protected:
 	///	<summary>
 	///		Grid stamp.  This value is incremented whenever the grid changes.
 	///	</summary>
-	int m_iGridStamp;
-
-	///	<summary>
-	///		Base resolution in the alpha direction.
-	///	</summary>
-	int m_nABaseResolution;
-
-	///	<summary>
-	///		Base resolution in the beta direction.
-	///	</summary>
-	int m_nBBaseResolution;
-
-	///	<summary>
-	///		Refinement ratio.
-	///	</summary>
-	int m_nRefinementRatio;
+	DataStruct<int> m_iGridStamp;
 
 	///	<summary>
 	///		Reference length scale.
 	///	</summary>
-	double m_dReferenceLength;
+	DataStruct<double> m_dReferenceLength;
 
 protected:
 	///	<summary>
-	///		Number of radial elements.
-	///	</summary>
-	int m_nRElements;
-
-	///	<summary>
 	///		Model height cap.
 	///	</summary>
-	double m_dZtop;
+	DataStruct<double> m_dZtop;
 
 	///	<summary>
 	///		REta coordinates of levels along radial axis.
@@ -948,12 +989,12 @@ protected:
 	///	<summary>
 	///		Flag indicating whether or not a reference state is available.
 	///	</summary>
-	bool m_fHasReferenceState;
+	DataStruct<bool> m_fHasReferenceState;
 
 	///	<summary>
 	///		Flag indicating whether or not Rayleigh friction is used.
 	///	</summary>
-	bool m_fHasRayleighFriction;
+	DataStruct<bool> m_fHasRayleighFriction;
 };
 
 ///////////////////////////////////////////////////////////////////////////////

@@ -113,56 +113,6 @@ protected:
 	///	</summary>
 	std::ofstream m_ofsActiveOutput;
 
-	///	<summary>
-	///		Array of received messages.
-	///	</summary>
-	DataArray2D<int> m_iReceivedMessages;
-/*
-	///	<summary>
-	///		Active output file.
-	///	</summary>
-	NcFile * m_pActiveNcOutput;
-
-	///	<summary>
-	///		Time variable.
-	///	</summary>
-	NcVar * m_varTime;
-
-	///	<summary>
-	///		Topography variable.
-	///	</summary>
-	NcVar * m_varZs;
-
-	///	<summary>
-	///		Rayleigh strength variable on model levels.
-	///	</summary>
-	NcVar * m_varRayleighStrengthNode;
-
-	///	<summary>
-	///		Rayleigh strength variable on model interfaces.
-	///	</summary>
-	NcVar * m_varRayleighStrengthREdge;
-
-	///	<summary>
-	///		Vector of state variables.
-	///	</summary>
-	std::vector<NcVar *> m_vecStateVar;
-
-	///	<summary>
-	///		Vector of reference state variables on model levels.
-	///	</summary>
-	std::vector<NcVar *> m_vecRefStateVarNode;
-
-	///	<summary>
-	///		Vector of reference state variables on model interfaces.
-	///	</summary>
-	std::vector<NcVar *> m_vecRefStateVarREdge;
-
-	///	<summary>
-	///		Vector of tracer variables.
-	///	</summary>
-	std::vector<NcVar *> m_vecTracersVar;
-*/
 private:
 	///	<summary>
 	///		Byte size for each GridPatch.

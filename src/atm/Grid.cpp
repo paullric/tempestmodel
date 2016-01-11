@@ -37,6 +37,23 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 Grid::Grid(
+	Model & model
+) :
+	m_fInitialized(false),
+	m_model(model),
+	m_fBlockParallelExchange(false),
+	m_pVerticalStretchF(NULL)
+{
+	// Initialize the GridParameters DataContainer
+	m_dcGridParameters.PushDataChunk(&m_nMaxPatchCount);
+	m_dcGridParameters.PushDataChunk(&m_nRElements);
+
+	m_dcGridParameters.Allocate();
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+Grid::Grid(
 	Model & model,
 	int nMaxPatchCount,
 	int nABaseResolution,
@@ -48,64 +65,98 @@ Grid::Grid(
 	m_fInitialized(false),
 	m_model(model),
 	m_fBlockParallelExchange(false),
-	m_pVerticalStretchF(NULL),
-	m_eVerticalStaggering(eVerticalStaggering),
-	m_nInitializedPatchBoxes(0),
-	m_iGridStamp(0),
-	m_nABaseResolution(nABaseResolution),
-	m_nBBaseResolution(nBBaseResolution),
-	m_nRefinementRatio(nRefinementRatio),
-	m_dReferenceLength(1.0),
-	m_nRElements(nRElements),
-	m_dZtop(1.0),
-	m_fHasReferenceState(false),
-	m_fHasRayleighFriction(false)
+	m_pVerticalStretchF(NULL)
 {
 
 	// Assign a default vertical stretching function
 	m_pVerticalStretchF = new VerticalStretchUniform;
 
+	// Four lateral boundaries (rectangular mesh)
+	m_eBoundaryCondition.SetSize(4);
+
+#pragma message "May have to modify DataContainer to incorporate padding for DataChunks"
+	// Initialize the GridParameters DataContainer
+	m_dcGridParameters.PushDataChunk(&m_nMaxPatchCount);
+	m_dcGridParameters.PushDataChunk(&m_nRElements);
+	m_dcGridParameters.PushDataChunk(&m_iGridStamp);
+	m_dcGridParameters.PushDataChunk(&m_eVerticalStaggering);
+	m_dcGridParameters.PushDataChunk(&m_nABaseResolution);
+	m_dcGridParameters.PushDataChunk(&m_nBBaseResolution);
+	m_dcGridParameters.PushDataChunk(&m_nRefinementRatio);
+	m_dcGridParameters.PushDataChunk(&m_eBoundaryCondition);
+	m_dcGridParameters.PushDataChunk(&m_dReferenceLength);
+	m_dcGridParameters.PushDataChunk(&m_dZtop);
+	m_dcGridParameters.PushDataChunk(&m_fHasReferenceState);
+	m_dcGridParameters.PushDataChunk(&m_fHasRayleighFriction);
+
+	m_dcGridParameters.Allocate();
+
+	// Default GridParameters values
+	m_nMaxPatchCount = nMaxPatchCount;
+	m_nRElements = nRElements;
+	m_iGridStamp = 0;
+	m_eVerticalStaggering = eVerticalStaggering;
+	m_nABaseResolution = nABaseResolution;
+	m_nBBaseResolution = nBBaseResolution;
+	m_nRefinementRatio = nRefinementRatio;
+	m_dReferenceLength = 1.0;
+	m_dZtop = 1.0;
+	m_fHasReferenceState = false;
+	m_fHasRayleighFriction = false;
+
+	// Set boundary conditions
+	for (int i = 0; i < 4; i++) {
+		m_eBoundaryCondition[i] = BoundaryCondition_Default;
+	}
+
+	// Initialize
+	InitializeDataLocal();
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void Grid::InitializeDataLocal() {
+
+	if (m_fInitialized) {
+		_EXCEPTIONT("Attempting to call InitializeDataLocal on"
+			" initialized Grid");
+	}
+
 	// Number of components
-	int nComponents = model.GetEquationSet().GetComponents();
+	int nComponents = m_model.GetEquationSet().GetComponents();
 
 	// Set the size of all DataArray objects
-	m_aPatchBoxes.SetSize(nMaxPatchCount);
-	m_eBoundaryCondition.SetSize(4);
-	m_dREtaLevels.SetSize(nRElements);
-	m_dREtaInterfaces.SetSize(nRElements+1);
-	m_dREtaLevelsNormArea.SetSize(nRElements);
-	m_dREtaInterfacesNormArea.SetSize(nRElements+1);
-	m_dREtaStretchLevels.SetSize(nRElements);
-	m_dREtaStretchInterfaces.SetSize(nRElements+1);
+	m_aPatchBoxes.SetSize(m_nMaxPatchCount);
+	m_dREtaLevels.SetSize(m_nRElements);
+	m_dREtaInterfaces.SetSize(m_nRElements+1);
+	m_dREtaLevelsNormArea.SetSize(m_nRElements);
+	m_dREtaInterfacesNormArea.SetSize(m_nRElements+1);
+	m_dREtaStretchLevels.SetSize(m_nRElements);
+	m_dREtaStretchInterfaces.SetSize(m_nRElements+1);
 	m_vecVarLocation.SetSize(nComponents);
 	m_vecVarIndex.SetSize(nComponents);
 	m_vecVarsAtLocation.SetSize((size_t)DataLocation_Count);
 
-	// Initialize the DataContainer
-	m_dcGridData.PushInteger(&m_nInitializedPatchBoxes);
-	m_dcGridData.PushDataChunk(&m_aPatchBoxes);
-	m_dcGridData.PushInteger(&m_eVerticalStaggering);
-	m_dcGridData.PushDataChunk(&m_eBoundaryCondition);
-	m_dcGridData.PushInteger(&m_iGridStamp);
-	m_dcGridData.PushInteger(&m_nABaseResolution);
-	m_dcGridData.PushInteger(&m_nBBaseResolution);
-	m_dcGridData.PushInteger(&m_nRefinementRatio);
-	m_dcGridData.PushDouble(&m_dReferenceLength);
-	m_dcGridData.PushInteger(&m_nRElements);
-	m_dcGridData.PushDouble(&m_dZtop);
-	m_dcGridData.PushDataChunk(&m_dREtaLevels);
-	m_dcGridData.PushDataChunk(&m_dREtaInterfaces);
-	m_dcGridData.PushDataChunk(&m_dREtaLevelsNormArea);
-	m_dcGridData.PushDataChunk(&m_dREtaInterfacesNormArea);
-	m_dcGridData.PushDataChunk(&m_dREtaStretchLevels);
-	m_dcGridData.PushDataChunk(&m_dREtaStretchInterfaces);
-	m_dcGridData.PushDataChunk(&m_vecVarLocation);
-	m_dcGridData.PushDataChunk(&m_vecVarIndex);
-	m_dcGridData.PushDataChunk(&m_vecVarsAtLocation);
-	m_dcGridData.PushBool(&m_fHasReferenceState);
-	m_dcGridData.PushBool(&m_fHasRayleighFriction);
+	// Initialize the GridData DataContainer
+	m_dcGridPatchData.PushDataChunk(&m_nInitializedPatchBoxes);
+	m_dcGridPatchData.PushDataChunk(&m_aPatchBoxes);
+	m_dcGridPatchData.PushDataChunk(&m_dREtaLevels);
+	m_dcGridPatchData.PushDataChunk(&m_dREtaInterfaces);
+	m_dcGridPatchData.PushDataChunk(&m_dREtaLevelsNormArea);
+	m_dcGridPatchData.PushDataChunk(&m_dREtaInterfacesNormArea);
+	m_dcGridPatchData.PushDataChunk(&m_dREtaStretchLevels);
+	m_dcGridPatchData.PushDataChunk(&m_dREtaStretchInterfaces);
+	m_dcGridPatchData.PushDataChunk(&m_vecVarLocation);
+	m_dcGridPatchData.PushDataChunk(&m_vecVarIndex);
+	m_dcGridPatchData.PushDataChunk(&m_vecVarsAtLocation);
 
-	m_dcGridData.Allocate();
+	m_dcGridPatchData.Allocate();
+
+	// Default GridData values
+	m_nInitializedPatchBoxes = 0;
+
+	// Initialized
+	m_fInitialized = true;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -968,348 +1019,6 @@ void Grid::DeactivatePatch(
 				m_vecActiveGridPatches.begin() + i);
 		}
 	}
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
-void Grid::ToFile(
-	NcFile & ncfile
-) {
-/*
-	// Output physical constants
-	const PhysicalConstants & phys = m_model.GetPhysicalConstants();
-
-	ncfile.add_att("earth_radius", phys.GetEarthRadius());
-	ncfile.add_att("g", phys.GetG());
-	ncfile.add_att("omega", phys.GetOmega());
-	ncfile.add_att("alpha", phys.GetAlpha());
-	ncfile.add_att("Rd", phys.GetR());
-	ncfile.add_att("Cp", phys.GetCp());
-	ncfile.add_att("T0", phys.GetT0());
-	ncfile.add_att("P0", phys.GetP0());
-	ncfile.add_att("rho_water", phys.GetRhoWater());
-	ncfile.add_att("Rvap", phys.GetRvap());
-	ncfile.add_att("Mvap", phys.GetMvap());
-	ncfile.add_att("Lvap", phys.GetLvap());
-
-	// Create patch index dimension
-	NcDim * dimPatchIndex =
-		ncfile.add_dim("patch_index", GetPatchCount());
-
-	// Get the length of each dimension array
-	int iANodeIndex = 0;
-	int iBNodeIndex = 0;
-	int iAEdgeIndex = 0;
-	int iBEdgeIndex = 0;
-
-	int nANodeCount = 0;
-	int nBNodeCount = 0;
-	int nAEdgeCount = 0;
-	int nBEdgeCount = 0;
-
-	for (int n = 0; n < GetPatchCount(); n++) {
-		const PatchBox & box = GetPatchBox(n);
-
-		nANodeCount += box.GetATotalWidth();
-		nBNodeCount += box.GetBTotalWidth();
-		nAEdgeCount += box.GetATotalWidth() + 1;
-		nBEdgeCount += box.GetBTotalWidth() + 1;
-	}
-
-	NcDim * dimANodeCount =
-		ncfile.add_dim("alpha_node_index", nANodeCount);
-	NcDim * dimBNodeCount =
-		ncfile.add_dim("beta_node_index", nBNodeCount);
-	NcDim * dimAEdgeCount =
-		ncfile.add_dim("alpha_edge_index", nAEdgeCount);
-	NcDim * dimBEdgeCount =
-		ncfile.add_dim("beta_edge_index", nBEdgeCount);
-
-	NcVar * varANodeCoord =
-		ncfile.add_var(
-			"alpha_node_coord", ncDouble, dimANodeCount);
-	NcVar * varBNodeCoord =
-		ncfile.add_var(
-			"beta_node_coord", ncDouble, dimBNodeCount);
-	NcVar * varAEdgeCoord =
-		ncfile.add_var(
-			"alpha_edge_coord", ncDouble, dimAEdgeCount);
-	NcVar * varBEdgeCoord =
-		ncfile.add_var(
-			"beta_edge_coord", ncDouble, dimBEdgeCount);
-
-	// Output integer grid information
-	int iGridInfo[6];
-	iGridInfo[0] = m_iGridStamp;
-	iGridInfo[1] = m_nABaseResolution;
-	iGridInfo[2] = m_nBBaseResolution;
-	iGridInfo[3] = m_nRefinementRatio;
-	iGridInfo[4] = (int)(m_fHasReferenceState);
-	iGridInfo[5] = (int)(m_fHasRayleighFriction);
-
-	NcDim * dimGridInfoCount =
-		ncfile.add_dim("grid_info_count", 6);
-
-	NcVar * varGridInfo =
-		ncfile.add_var("grid_info", ncInt, dimGridInfoCount);
-
-	varGridInfo->put(iGridInfo, 6);
-
-	// Output floating point grid information
-	double dGridInfo[2];
-	dGridInfo[0] = m_dReferenceLength;
-	dGridInfo[1] = m_dZtop;
-
-	NcDim * dimGridInfoFloat =
-		ncfile.add_dim("grid_info_float_count", 2);
-
-	NcVar * varGridInfoFloat =
-		ncfile.add_var("grid_info_float", ncDouble, dimGridInfoFloat);
-
-	varGridInfoFloat->put(dGridInfo, 2);
-
-	// Output REta coordinate of levels
-	NcDim * dimREtaLevels =
-		ncfile.add_dim("reta_levels", m_dREtaLevels.GetRows());
-
-	NcVar * varREtaLevels =
-		ncfile.add_var("reta_levels", ncDouble, dimREtaLevels);
-
-	varREtaLevels->put(
-		&(m_dREtaStretchLevels[0]), m_dREtaStretchLevels.GetRows());
-
-	// Output REta coordinate of interfaces
-	NcDim * dimREtaInterfaces =
-		ncfile.add_dim("reta_interfaces", m_dREtaInterfaces.GetRows());
-
-	NcVar * varREtaInterfaces =
-		ncfile.add_var("reta_interfaces", ncDouble, dimREtaInterfaces);
-
-	varREtaInterfaces->put(
-		&(m_dREtaStretchInterfaces[0]), m_dREtaStretchInterfaces.GetRows());
-
-	// Output PatchBox for each patch
-	NcDim * dimPatchInfoCount =
-		ncfile.add_dim("patch_info_count", 7);
-
-	NcVar * varPatchInfo =
-		ncfile.add_var("patch_info", ncInt, dimPatchIndex, dimPatchInfoCount);
-
-	for (int n = 0; n < GetPatchCount(); n++) {
-		int iPatchInfo[7];
-
-		const PatchBox & box = GetPatchBox(n);
-
-		iPatchInfo[0] = box.GetPanel();
-		iPatchInfo[1] = box.GetRefinementLevel();
-		iPatchInfo[2] = box.GetHaloElements();
-		iPatchInfo[3] = box.GetAGlobalInteriorBegin();
-		iPatchInfo[4] = box.GetAGlobalInteriorEnd();
-		iPatchInfo[5] = box.GetBGlobalInteriorBegin();
-		iPatchInfo[6] = box.GetBGlobalInteriorEnd();
-
-		varPatchInfo->set_cur(n, 0);
-		varPatchInfo->put(iPatchInfo, 1, 7);
-
-		varANodeCoord->set_cur(iANodeIndex);
-		varBNodeCoord->set_cur(iBNodeIndex);
-		varAEdgeCoord->set_cur(iAEdgeIndex);
-		varBEdgeCoord->set_cur(iBEdgeIndex);
-
-		varANodeCoord->put(pPatch->GetANodes(), pPatch->GetANodes().GetRows());
-		varAEdgeCoord->put(pPatch->GetAEdges(), pPatch->GetAEdges().GetRows());
-		varBNodeCoord->put(pPatch->GetBNodes(), pPatch->GetBNodes().GetRows());
-		varBEdgeCoord->put(pPatch->GetBEdges(), pPatch->GetBEdges().GetRows());
-
-		iANodeIndex += pPatch->GetANodes().GetRows();
-		iAEdgeIndex += pPatch->GetAEdges().GetRows();
-		iBNodeIndex += pPatch->GetBNodes().GetRows();
-		iBEdgeIndex += pPatch->GetBEdges().GetRows();
-
-	}
-*/
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
-void Grid::FromFile(
-	const std::string & strGridFile
-) {
-/*
-	// Check for existing patches
-	if (GetPatchCount() != 0) {
-		_EXCEPTIONT("Trying to load over non-empty grid");
-	}
-
-	// Open the NetCDF file
-	NcFile ncfile(strGridFile.c_str(), NcFile::ReadOnly);
-	if (!ncfile.is_valid()) {
-		_EXCEPTION1("Invalid restart file: %s", strGridFile.c_str());
-	}
-
-	// Input physical constants
-	PhysicalConstants & phys = m_model.GetPhysicalConstants();
-
-	NcAtt * attPhys;
-
-	attPhys = ncfile.get_att("earth_radius");
-	phys.SetEarthRadius(attPhys->as_double(0));
-
-	attPhys = ncfile.get_att("g");
-	phys.SetG(attPhys->as_double(0));
-
-	attPhys = ncfile.get_att("omega");
-	phys.SetOmega(attPhys->as_double(0));
-
-	attPhys = ncfile.get_att("alpha");
-	phys.SetAlpha(attPhys->as_double(0));
-
-	attPhys = ncfile.get_att("Rd");
-	phys.SetR(attPhys->as_double(0));
-
-	attPhys = ncfile.get_att("Cp");
-	phys.SetCp(attPhys->as_double(0));
-
-	attPhys = ncfile.get_att("T0");
-	phys.SetT0(attPhys->as_double(0));
-
-	attPhys = ncfile.get_att("P0");
-	phys.SetP0(attPhys->as_double(0));
-
-	attPhys = ncfile.get_att("rho_water");
-	phys.SetRhoWater(attPhys->as_double(0));
-
-	attPhys = ncfile.get_att("Rvap");
-	phys.SetRvap(attPhys->as_double(0));
-
-	attPhys = ncfile.get_att("Mvap");
-	phys.SetMvap(attPhys->as_double(0));
-
-	attPhys = ncfile.get_att("Lvap");
-	phys.SetLvap(attPhys->as_double(0));
-
-	// Load in grid info
-	int iGridInfo[6];
-
-	NcVar * varGridInfo = ncfile.get_var("grid_info");
-
-	varGridInfo->get(iGridInfo, 6);
-
-	m_iGridStamp = iGridInfo[0];
-	m_nABaseResolution = iGridInfo[1];
-	m_nBBaseResolution = iGridInfo[2];
-	m_nRefinementRatio = iGridInfo[3];
-	m_fHasReferenceState = (bool)(iGridInfo[4]);
-	m_fHasRayleighFriction = (bool)(iGridInfo[5]);
-
-	// Load in floating point grid info
-	double dGridInfo[2];
-
-	NcVar * varGridInfoFloat = ncfile.get_var("grid_info_float");
-
-	varGridInfoFloat->get(dGridInfo, 2);
-
-	m_dReferenceLength = dGridInfo[0];
-	m_dZtop = dGridInfo[1];
-
-	// Load in location of REta levels
-	NcVar * varREtaLevels = ncfile.get_var("reta_levels");
-
-	NcDim * dimREtaLevels = varREtaLevels->get_dim(0);
-	int nREtaLevels = static_cast<int>(dimREtaLevels->size());
-
-	//m_dREtaStretchLevels.Allocate(nREtaLevels);
-	varREtaLevels->get(m_dREtaStretchLevels, nREtaLevels);
-
-	// Load in location of REta interfaces
-	NcVar * varREtaInterfaces = ncfile.get_var("reta_interfaces");
-
-	NcDim * dimREtaInterfaces = varREtaInterfaces->get_dim(0);
-	int nREtaInterfaces = static_cast<int>(dimREtaInterfaces->size());
-
-	//m_dREtaStretchInterfaces.Allocate(nREtaInterfaces);
-	varREtaInterfaces->get(m_dREtaStretchInterfaces, nREtaInterfaces);
-
-	// Coordinate arrays
-	int iANodeIndex = 0;
-	int iBNodeIndex = 0;
-	int iAEdgeIndex = 0;
-	int iBEdgeIndex = 0;
-
-	DataArray1D<double> dANodes;
-	DataArray1D<double> dBNodes;
-	DataArray1D<double> dAEdges;
-	DataArray1D<double> dBEdges;
-
-	// Load in all PatchBoxes
-	NcVar * varPatchInfo = ncfile.get_var("patch_info");
-	if (varPatchInfo == NULL) {
-		_EXCEPTIONT("Invalid GridFile; variable patch_info required");
-	}
-
-	NcVar * varANodeCoord = ncfile.get_var("alpha_node_coord");
-	if (varANodeCoord == NULL) {
-		_EXCEPTIONT("Invalid GridFile; variable alpha_node_coord required");
-	}
-
-	NcVar * varBNodeCoord = ncfile.get_var("beta_node_coord");
-	if (varBNodeCoord == NULL) {
-		_EXCEPTIONT("Invalid GridFile; variable beta_node_coord required");
-	}
-
-	NcVar * varAEdgeCoord = ncfile.get_var("alpha_edge_coord");
-	if (varAEdgeCoord == NULL) {
-		_EXCEPTIONT("Invalid GridFile; variable alpha_edge_coord required");
-	}
-
-	NcVar * varBEdgeCoord = ncfile.get_var("beta_edge_coord");
-	if (varBEdgeCoord == NULL) {
-		_EXCEPTIONT("Invalid GridFile; variable beta_edge_coord required");
-	}
-
-	NcDim * dimPatchInfoCount = varPatchInfo->get_dim(0);
-	int nPatches = static_cast<int>(dimPatchInfoCount->size());
-
-	for (int ix = 0; ix < nPatches; ix++) {
-		int iPatchInfo[7];
-		varPatchInfo->set_cur(ix, 0);
-		varPatchInfo->get(iPatchInfo, 1, 7);
-
-		int nANodes = iPatchInfo[4] - iPatchInfo[3] + 2 * iPatchInfo[2];
-		int nBNodes = iPatchInfo[6] - iPatchInfo[5] + 2 * iPatchInfo[2];
-
-		dANodes.Allocate(nANodes);
-		dBNodes.Allocate(nBNodes);
-		dAEdges.Allocate(nANodes+1);
-		dBEdges.Allocate(nBNodes+1);
-
-		varANodeCoord->set_cur(iANodeIndex);
-		varBNodeCoord->set_cur(iBNodeIndex);
-		varAEdgeCoord->set_cur(iAEdgeIndex);
-		varBEdgeCoord->set_cur(iBEdgeIndex);
-
-		varANodeCoord->get(dANodes, nANodes);
-		varBNodeCoord->get(dBNodes, nBNodes);
-		varAEdgeCoord->get(dAEdges, nANodes+1);
-		varBEdgeCoord->get(dBEdges, nBNodes+1);
-
-		PatchBox box(
-			iPatchInfo[0],
-			iPatchInfo[1],
-			iPatchInfo[2],
-			iPatchInfo[3],
-			iPatchInfo[4],
-			iPatchInfo[5],
-			iPatchInfo[6]);
-
-		AddPatch(ix, box);
-
-		iANodeIndex += nANodes;
-		iBNodeIndex += nBNodes;
-		iAEdgeIndex += nANodes+1;
-		iBEdgeIndex += nBNodes+1;
-	}
-*/
 }
 
 ///////////////////////////////////////////////////////////////////////////////
