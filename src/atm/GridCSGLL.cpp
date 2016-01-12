@@ -32,31 +32,54 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 GridCSGLL::GridCSGLL(
-	Model & model,
+	Model & model
+) :
+	GridGLL::GridGLL(model)
+{ }
+
+///////////////////////////////////////////////////////////////////////////////
+
+void GridCSGLL::DefineParameters() {
+
+	if (m_dcGridParameters.IsAttached()) {
+		_EXCEPTIONT("Attempting to recall DefineParameters");
+	}
+
+	// Call up the stack
+	GridGLL::DefineParameters();
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void GridCSGLL::SetParameters(
+	int nRElements,
 	int nMaxPatchCount,
 	int nBaseResolution,
 	int nRefinementRatio,
 	int nHorizontalOrder,
 	int nVerticalOrder,
-	int nRElements,
 	VerticalStaggering eVerticalStaggering
-) :
+) {
+	if (!m_dcGridParameters.IsAttached()) {
+		_EXCEPTIONT("DefineParameters() must be called before SetParameters()");
+	}
+
+	// At least 6 patches needed
+	if (nMaxPatchCount < 6) {
+		_EXCEPTIONT("nMinPatchCount must be >= 6");
+	}
+
 	// Call up the stack
-	GridGLL::GridGLL(
-		model,
+	GridGLL::SetParameters(
+		nRElements,
 		nMaxPatchCount,
 		nBaseResolution,
 		nBaseResolution,
 		nRefinementRatio,
 		nHorizontalOrder,
 		nVerticalOrder,
-		nRElements,
-		eVerticalStaggering)
-{
-	// At least 6 patches needed
-	if (nMaxPatchCount < 6) {
-		_EXCEPTIONT("nMinPatchCount must be >= 6");
-	}
+		eVerticalStaggering
+	);
 
 	// Set the reference length scale
 	m_dReferenceLength = 0.5 * M_PI / 30.0;

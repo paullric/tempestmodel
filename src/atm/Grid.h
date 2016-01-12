@@ -76,30 +76,34 @@ public:
 
 public:
 	///	<summary>
-	///		Uninitialized Grid constructor.
+	///		Constructor.
 	///	</summary>
 	Grid(
 		Model & model
 	);
 
 	///	<summary>
-	///		Initialized Grid constructor.
+	///		Virtual destructor.
 	///	</summary>
-	Grid(
-		Model & model,
+	virtual ~Grid();
+
+	///	<summary>
+	///		Define the parameters for the Grid.
+	///	</summary>
+	virtual void DefineParameters();
+
+	///	<summary>
+	///		Set the parameters for the Grid
+	///	</summary>
+	virtual void SetParameters(
+		int nRElements,
 		int nMaxPatchCount,
 		int nABaseResolution,
 		int nBBaseResolution,
 		int nRefinementRatio,
-		int nRElements,
 		VerticalStaggering eVerticalStaggering
 			= VerticalStaggering_CharneyPhillips
 	);
-
-	///	<summary>
-	///		Virtual destructor.
-	///	</summary>
-	virtual ~Grid();
 
 	///	<summary>
 	///		Allocate GridData.
@@ -703,6 +707,13 @@ public:
 	}
 
 	///	<summary>
+	///		Get the type of vertical staggering.
+	///	</summary>
+	VerticalStaggering GetVerticalStaggering() const {
+		return m_eVerticalStaggering;
+	}
+
+	///	<summary>
 	///		Get the radial coordinate at the given level.
 	///	</summary>
 	double GetREtaLevel(int ix) const {
@@ -773,11 +784,19 @@ public:
 	}
 
 	///	<summary>
-	///		Get the type of vertical staggering.
+	///		Get the order of accuracy of the method.
 	///	</summary>
-	VerticalStaggering GetVerticalStaggering() const {
-		return m_eVerticalStaggering;
+	int GetHorizontalOrder() const {
+		return m_nHorizontalOrder;
 	}
+
+	///	<summary>
+	///		Get the order of accuracy in the vertical.
+	///	</summary>
+	int GetVerticalOrder() const {
+		return m_nVerticalOrder;
+	}
+
 
 	///	<summary>
 	///		Get the DataLocation of the specified equation set variable.
@@ -901,6 +920,17 @@ protected:
 	///		Type of vertical stretching being applied.
 	///	</summary>
 	DataStruct<VerticalStaggering> m_eVerticalStaggering;
+
+	///	<summary>
+	///		Order of accuracy in the horizontal.
+	///	</summary>
+	DataStruct<int> m_nHorizontalOrder;
+
+	///	<summary>
+	///		Order of accuracy in the vertical.
+	///	</summary>
+	DataStruct<int> m_nVerticalOrder;
+
 
 protected:
 	///	<summary>

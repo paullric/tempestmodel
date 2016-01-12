@@ -19,6 +19,7 @@
 #include "Grid.h"
 #include "TestCase.h"
 #include "OutputManager.h"
+#include "OutputManagerComposite.h"
 
 #include "FunctionTimer.h"
 #include "Announce.h"
@@ -31,6 +32,7 @@
 Model::Model(
 	EquationSet::Type eEquationSetType
 ) :
+	m_fGridFromRestartFile(false),
 	m_pGrid(NULL),
 	m_pTimestepScheme(NULL),
 	m_pHorizontalDynamics(NULL),
@@ -48,6 +50,7 @@ Model::Model(
 Model::Model(
 	const EquationSet & eqn
 ) :
+	m_fGridFromRestartFile(false),
 	m_pGrid(NULL),
 	m_pTimestepScheme(NULL),
 	m_pHorizontalDynamics(NULL),
@@ -109,20 +112,17 @@ void Model::SetGrid(
 	m_pGrid = pGrid;
 
 	// Set up patches
-	if (m_param.m_strRestartFile == "") {
-
 #ifdef USE_MPI
-		if (nPatchCount == (-1)) {
-			MPI_Comm_size(MPI_COMM_WORLD, &nPatchCount);
-		}
+	if (nPatchCount == (-1)) {
+		MPI_Comm_size(MPI_COMM_WORLD, &nPatchCount);
+	}
+#else
+	if (nPatchCount == (-1)) {
+		_EXCEPTIONT("Unimplemented: PatchCount must be specified");
+	}
 #endif
 
-		m_pGrid->ApplyDefaultPatchLayout(nPatchCount);
-
-	} else {
-		// Load in Grid here
-		//m_pGrid->FromFile(m_param.m_strRestartFile);
-	}
+	m_pGrid->ApplyDefaultPatchLayout(nPatchCount);
 
 	// Initialize the grid
 	m_pGrid->Initialize();
@@ -132,6 +132,40 @@ void Model::SetGrid(
 		m_pGrid->InitializeExchangeBuffersFromActivePatches();
 		m_pGrid->InitializeConnectivity();
 	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void Model::SetGridFromRestartFile(
+	Grid * pGrid,
+	const std::string & strRestartFile
+) {
+	if (pGrid == NULL) {
+		_EXCEPTIONT("Invalid Grid (NULL)");
+	}
+	if (m_pGrid != NULL) {
+		_EXCEPTIONT("Grid already specified");
+	}
+
+	// Attach the grid
+	m_pGrid = pGrid;
+
+	// Load the Grid data from the file
+	OutputManagerComposite ompComposite(*m_pGrid, Time(), "", "", "");
+
+	m_time = ompComposite.Input(strRestartFile);
+
+	m_param.m_timeStart = m_time;
+
+	// Initialize the grid
+	m_pGrid->Initialize();
+
+	// Initialize exchange buffers and connectivity
+	m_pGrid->InitializeExchangeBuffersFromActivePatches();
+	m_pGrid->InitializeConnectivity();
+
+	// Set flag indicating Grid was initialized from restart file
+	m_fGridFromRestartFile = true;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -190,7 +224,7 @@ void Model::SetTestCase(
 	m_pTestCase = pTestCase;
 
 	// Evaluate physical constants and data from TestCase
-	if (m_param.m_strRestartFile == "") {
+	if (!m_fGridFromRestartFile) {
 
 		// Evaluate physical constants
 		m_pTestCase->EvaluatePhysicalConstants(m_phys);
@@ -222,32 +256,6 @@ void Model::AttachWorkflowProcess(WorkflowProcess * pWorkflowProcess) {
 
 	// Attach output manager
 	m_vecWorkflowProcess.push_back(pWorkflowProcess);
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
-void Model::EvaluateStateFromRestartFile() {
-	if (m_pGrid == NULL) {
-		_EXCEPTIONT("A grid must be specified before Evaluation");
-	}
-	if (m_param.m_strRestartFile == "") {
-		return;
-	}
-
-	AnnounceStartBlock("Loading state from recovery file");
-
-	int n = 0;
-	for (; n < m_vecOutMan.size(); n++) {
-		if (m_vecOutMan[n]->SupportsInput()) {
-			m_param.m_timeStart =
-				m_vecOutMan[n]->Input(m_param.m_strRestartFile);
-			break;
-		}
-	}
-	if (n == m_vecOutMan.size()) {
-		Announce("Warning: No input capable OutputManager found");
-	}
-	AnnounceEndBlock("Done");
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -314,9 +322,6 @@ void Model::Go() {
 	// NOTE: This needs to be called after EvaluateTestCase, since it relies
 	// on information about topographic derivatives.
 	m_pGrid->EvaluateGeometricTerms();
-
-	// Initialize the state from the input file
-	EvaluateStateFromRestartFile();
 
 	// Apply boundary conditions
 	m_pGrid->ApplyBoundaryConditions();

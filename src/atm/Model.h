@@ -41,18 +41,12 @@ public:
 	///		Constructor.
 	///	</summary>
 	ModelParameters() :
-		m_strRestartFile(""),
 		m_timeDeltaT(),
 		m_timeStart(),
 		m_timeEnd()
 	{ }
 
 public:
-	///	<summary>
-	///		Name of the restart file to use.
-	///	</summary>
-	std::string m_strRestartFile;
-
 	///	<summary>
 	///		Time step size.
 	///	</summary>
@@ -110,6 +104,14 @@ public:
 	);
 
 	///	<summary>
+	///		Set the Grid from a pointer to empty Grid and restart file.
+	///	</summary>
+	void SetGridFromRestartFile(
+		Grid * pGrid,
+		const std::string & strRestartFile
+	);
+
+	///	<summary>
 	///		Set the TimestepScheme from a pointer.  Model assumes ownership
 	///		of the pointer once it is assigned.
 	///	</summary>
@@ -144,12 +146,6 @@ public:
 	///		of the pointer once it is assigned.
 	///	</summary>
 	void AttachWorkflowProcess(WorkflowProcess * pWorkflowProcess);
-
-protected:
-	///	<summary>
-	///		Evaluate the state from a Restart file.
-	///	</summary>
-	void EvaluateStateFromRestartFile();
 
 public:
 	///	<summary>
@@ -299,6 +295,26 @@ public:
 	void SetStartTime(const Time & timeStart) {
 		m_param.m_timeStart = timeStart;
 	}
+
+	///	<summary>
+	///		Get the current time of the simulation.
+	///	</summary>
+	const Time & GetCurrentTime() const {
+		return m_time;
+	}
+
+	///	<summary>
+	///		Set the current time of the simulation.
+	///	</summary>
+	void SetCurrentTime(const Time & timeCurrent) {
+		m_time = timeCurrent;
+	}
+
+protected:
+	///	<summary>
+	///		Flag indicating the Grid has been initialized from a restart file.
+	///	</summary>
+	bool m_fGridFromRestartFile;
 
 protected:
 	///	<summary>

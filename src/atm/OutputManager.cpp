@@ -52,6 +52,7 @@ OutputManager::OutputManager(
 	m_strOutputPrefix(strOutputPrefix),
 	m_nOutputsPerFile(nOutputsPerFile)
 {
+#ifdef USE_MPI
 	// Create the output directory
 	int nRank;
 	MPI_Comm_rank(MPI_COMM_WORLD, &nRank);
@@ -59,6 +60,7 @@ OutputManager::OutputManager(
 	if ((nRank == 0) && (m_strOutputDir != "")) {
 		mkdir(m_strOutputDir.c_str(), 0777);
 	}
+#endif
 }
 
 ///////////////////////////////////////////////////////////////////////////////

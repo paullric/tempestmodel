@@ -44,37 +44,21 @@ Grid::Grid(
 	m_fBlockParallelExchange(false),
 	m_pVerticalStretchF(NULL)
 {
-	// Initialize the GridParameters DataContainer
-	m_dcGridParameters.PushDataChunk(&m_nMaxPatchCount);
-	m_dcGridParameters.PushDataChunk(&m_nRElements);
-
-	m_dcGridParameters.Allocate();
+	// Assign a default vertical stretching function
+	m_pVerticalStretchF = new VerticalStretchUniform;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 
-Grid::Grid(
-	Model & model,
-	int nMaxPatchCount,
-	int nABaseResolution,
-	int nBBaseResolution,
-	int nRefinementRatio,
-	int nRElements,
-	VerticalStaggering eVerticalStaggering
-) :
-	m_fInitialized(false),
-	m_model(model),
-	m_fBlockParallelExchange(false),
-	m_pVerticalStretchF(NULL)
-{
-
-	// Assign a default vertical stretching function
-	m_pVerticalStretchF = new VerticalStretchUniform;
+void Grid::DefineParameters() {
+	if (m_dcGridParameters.IsAttached()) {
+		_EXCEPTIONT("Attempting to recall DefineParameters");
+	}
+#pragma message "May have to modify DataContainer to incorporate padding for DataChunks"
 
 	// Four lateral boundaries (rectangular mesh)
 	m_eBoundaryCondition.SetSize(4);
 
-#pragma message "May have to modify DataContainer to incorporate padding for DataChunks"
 	// Initialize the GridParameters DataContainer
 	m_dcGridParameters.PushDataChunk(&m_nMaxPatchCount);
 	m_dcGridParameters.PushDataChunk(&m_nRElements);
@@ -90,6 +74,21 @@ Grid::Grid(
 	m_dcGridParameters.PushDataChunk(&m_fHasRayleighFriction);
 
 	m_dcGridParameters.Allocate();
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void Grid::SetParameters(
+	int nRElements,
+	int nMaxPatchCount,
+	int nABaseResolution,
+	int nBBaseResolution,
+	int nRefinementRatio,
+	VerticalStaggering eVerticalStaggering
+) {
+	if (!m_dcGridParameters.IsAttached()) {
+		_EXCEPTIONT("DefineParameters() must be called before SetParameters()");
+	}
 
 	// Default GridParameters values
 	m_nMaxPatchCount = nMaxPatchCount;
@@ -108,16 +107,13 @@ Grid::Grid(
 	for (int i = 0; i < 4; i++) {
 		m_eBoundaryCondition[i] = BoundaryCondition_Default;
 	}
-
-	// Initialize
-	InitializeDataLocal();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 
 void Grid::InitializeDataLocal() {
 
-	if (m_fInitialized) {
+	if (m_dcGridPatchData.IsAttached()) {
 		_EXCEPTIONT("Attempting to call InitializeDataLocal on"
 			" initialized Grid");
 	}
@@ -154,9 +150,6 @@ void Grid::InitializeDataLocal() {
 
 	// Default GridData values
 	m_nInitializedPatchBoxes = 0;
-
-	// Initialized
-	m_fInitialized = true;
 }
 
 ///////////////////////////////////////////////////////////////////////////////

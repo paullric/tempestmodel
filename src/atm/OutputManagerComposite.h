@@ -94,6 +94,7 @@ protected:
 		return true;
 	}
 
+public:
 	///	<summary>
 	///		Initialize the grid data from a file.
 	///	</summary>
@@ -103,9 +104,9 @@ protected:
 
 protected:
 	///	<summary>
-	///		Restart file.
+	///		Check bits.
 	///	</summary>
-	std::string m_strRestartFile;
+	int m_iCheck;
 
 protected:
 	///	<summary>

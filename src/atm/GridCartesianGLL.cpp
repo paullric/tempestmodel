@@ -33,35 +33,56 @@
 /////////////////////////////////////////////////////////////////////////////
 
 GridCartesianGLL::GridCartesianGLL(
-	Model & model,
+	Model & model
+) :
+	GridGLL::GridGLL(model)
+{ }
+
+///////////////////////////////////////////////////////////////////////////////
+
+void GridCartesianGLL::DefineParameters() {
+
+	if (m_dcGridParameters.IsAttached()) {
+		_EXCEPTIONT("Attempting to recall SetParameters");
+	}
+
+	// Set the dimension of the Cartesian domain
+	m_dGDim.SetSize(6);
+
+	// Add parameters for GridCartesianGLL
+	m_dcGridParameters.PushDataChunk(&m_dGDim);
+	m_dcGridParameters.PushDataChunk(&m_dRefLat);
+
+	// Call up the stack
+	GridGLL::DefineParameters();
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void GridCartesianGLL::SetParameters(
+	int nRElements,
 	int nMaxPatchCount,
-	int nBaseResolutionA,
-	int nBaseResolutionB,
+	int nABaseResolution,
+	int nBBaseResolution,
 	int nRefinementRatio,
 	int nHorizontalOrder,
 	int nVerticalOrder,
-	int nRElements,
 	double dGDim[],
 	double dRefLat,
 	VerticalStaggering eVerticalStaggering
-) :
+) {
+
 	// Call up the stack
-	GridGLL::GridGLL(
-		model,
+	GridGLL::SetParameters(
+		nRElements,
 		nMaxPatchCount,
-		nBaseResolutionA,
-		nBaseResolutionB,
+		nABaseResolution,
+		nBBaseResolution,
 		nRefinementRatio,
 		nHorizontalOrder,
 		nVerticalOrder,
-		nRElements,
-		eVerticalStaggering)
-{
-	// Boundary condition
-	m_eBoundaryCondition[0] = BoundaryCondition_Periodic;
-	m_eBoundaryCondition[1] = BoundaryCondition_Periodic;
-	m_eBoundaryCondition[2] = BoundaryCondition_Periodic;
-	m_eBoundaryCondition[3] = BoundaryCondition_Periodic;
+		eVerticalStaggering
+	);
 
 	// Bring through the grid dimensions
 	m_dGDim[0] = dGDim[0]; m_dGDim[1] = dGDim[1];

@@ -52,6 +52,7 @@ struct _TempestCommandLineVariables {
 	bool fNoOutput;
 	std::string strOutputDir;
 	std::string strOutputPrefix;
+	std::string strRestartFile;
 	int nOutputsPerFile;
 	Time timeOutputDeltaT;
 	Time timeOutputRestartDeltaT;
@@ -88,7 +89,7 @@ struct _TempestCommandLineVariables {
 	CommandLineBool(_tempestvars.fNoOutput, "output_none"); \
 	CommandLineString(_tempestvars.strOutputDir, "output_dir", "out" TestCaseName); \
 	CommandLineString(_tempestvars.strOutputPrefix, "output_prefix", "out"); \
-	CommandLineString(_tempestvars.param.m_strRestartFile, "restart_file", ""); \
+	CommandLineString(_tempestvars.strRestartFile, "restart_file", ""); \
 	CommandLineInt(_tempestvars.nOutputsPerFile, "output_perfile", -1); \
 	CommandLineDeltaTime(_tempestvars.timeOutputRestartDeltaT, "output_restart_dt", ""); \
 	CommandLineInt(_tempestvars.nOutputResX, "output_x", 360); \
@@ -310,9 +311,7 @@ void _TempestSetupOutputManagers(
 	}
 
 	// Set the composite output manager for the model
-	if ((! vars.timeOutputRestartDeltaT.IsZero()) ||
-		(vars.param.m_strRestartFile != "")
-	) {
+	if (!vars.timeOutputRestartDeltaT.IsZero()) {
 		AnnounceStartBlock("Creating composite output manager");
 		model.AttachOutputManager(
 			new OutputManagerComposite(
@@ -364,45 +363,61 @@ void _TempestSetupCubedSphereModel(
 	}
 
 	// Construct the Grid
-	AnnounceStartBlock("Constructing grid");
+	if (vars.strRestartFile == "") {
+		AnnounceStartBlock("Constructing grid");
 	
-	// Maximum number of patches currently equals communicator size
-	int nCommSize;
-	MPI_Comm_size(MPI_COMM_WORLD, &nCommSize);
+		// Maximum number of patches currently equals communicator size
+		int nCommSize;
+		MPI_Comm_size(MPI_COMM_WORLD, &nCommSize);
 
-	if (nCommSize < 6) {
-		nCommSize = 6;
-	}
+		if (nCommSize < 6) {
+			nCommSize = 6;
+		}
 
-	Grid * pGrid =
-		new GridCSGLL(
-			model,
+		GridCSGLL * pGrid = new GridCSGLL(model);
+
+		pGrid->DefineParameters();
+
+		pGrid->SetParameters(
+			vars.nLevels,
 			nCommSize,
 			vars.nResolutionX,
 			4,
 			vars.nHorizontalOrder,
 			vars.nVerticalOrder,
-			vars.nLevels,
 			eVerticalStaggering);
 
-	// Set the vertical stretching function
-	STLStringHelper::ToLower(vars.strVerticalStretch);
-	if (vars.strVerticalStretch == "uniform") {
+		pGrid->InitializeDataLocal();
 
-	} else if (vars.strVerticalStretch == "cubic") {
-		pGrid->SetVerticalStretchFunction(
-			new VerticalStretchCubic);
+		// Set the vertical stretching function
+		STLStringHelper::ToLower(vars.strVerticalStretch);
+		if (vars.strVerticalStretch == "uniform") {
 
-	} else if (vars.strVerticalStretch == "pwlinear") {
-		pGrid->SetVerticalStretchFunction(
-			new VerticalStretchPiecewiseLinear);
+		} else if (vars.strVerticalStretch == "cubic") {
+			pGrid->SetVerticalStretchFunction(
+				new VerticalStretchCubic);
 
+		} else if (vars.strVerticalStretch == "pwlinear") {
+			pGrid->SetVerticalStretchFunction(
+				new VerticalStretchPiecewiseLinear);
+
+		} else {
+			_EXCEPTIONT("Invalid value for --vstretch");
+		}
+
+		// Set the Model Grid
+		model.SetGrid(pGrid);
+
+	// Set the Grid from Restart file
 	} else {
-		_EXCEPTIONT("Invalid value for --vstretch");
-	}
+		AnnounceStartBlock("Constructing Grid from restart file");
 
-	// Set the Model Grid
-	model.SetGrid(pGrid);
+		Grid * pGrid = new GridCSGLL(model);
+
+		pGrid->DefineParameters();
+
+		model.SetGridFromRestartFile(pGrid, vars.strRestartFile);
+	}
 
 	AnnounceEndBlock("Done");
 
@@ -443,46 +458,62 @@ void _TempestSetupCartesianModel(
 		_EXCEPTIONT("Invalid value for --vstagger");
 	}
 
-	// Set the model grid
-	AnnounceStartBlock("Constructing grid");
+	// Construct the Grid
+	if (vars.strRestartFile == "") {
+		AnnounceStartBlock("Constructing grid");
 
-	// Maximum number of patches currently equals communicator size
-	int nCommSize;
-	MPI_Comm_size(MPI_COMM_WORLD, &nCommSize);
+		// Maximum number of patches currently equals communicator size
+		int nCommSize;
+		MPI_Comm_size(MPI_COMM_WORLD, &nCommSize);
 
-	Grid * pGrid = 
-		new GridCartesianGLL(
-			model,
+		GridCartesianGLL * pGrid = new GridCartesianGLL(model);
+
+		pGrid->DefineParameters();
+
+		pGrid->SetParameters(
+			vars.nLevels,
 			nCommSize,
 			vars.nResolutionX,
 			vars.nResolutionY,
 			4,
 			vars.nHorizontalOrder,
 			vars.nVerticalOrder,
-			vars.nLevels,
 			dGDim,
 			dRefLat,
 			eVerticalStaggering);
 
-	// Set the vertical stretching function
-	STLStringHelper::ToLower(vars.strHorizontalDynamics);
-	if (vars.strVerticalStretch == "uniform") {
+		pGrid->InitializeDataLocal();
 
-	} else if (vars.strVerticalStretch == "cubic") {
-		pGrid->SetVerticalStretchFunction(
-			new VerticalStretchCubic);
+		// Set the vertical stretching function
+		STLStringHelper::ToLower(vars.strHorizontalDynamics);
+		if (vars.strVerticalStretch == "uniform") {
 
-	} else if (vars.strVerticalStretch == "pwlinear") {
-		pGrid->SetVerticalStretchFunction(
-			new VerticalStretchPiecewiseLinear);
+		} else if (vars.strVerticalStretch == "cubic") {
+			pGrid->SetVerticalStretchFunction(
+				new VerticalStretchCubic);
 
+		} else if (vars.strVerticalStretch == "pwlinear") {
+			pGrid->SetVerticalStretchFunction(
+				new VerticalStretchPiecewiseLinear);
+
+		} else {
+			_EXCEPTIONT("Invalid value for --vstretch");
+
+		}
+
+		// Set the Model Grid
+		model.SetGrid(pGrid);
+
+	// Set the Grid from Restart file
 	} else {
-		_EXCEPTIONT("Invalid value for --vstretch");
+		AnnounceStartBlock("Constructing Grid from restart file");
 
+		Grid * pGrid = new GridCartesianGLL(model);
+
+		pGrid->DefineParameters();
+
+		model.SetGridFromRestartFile(pGrid, vars.strRestartFile);
 	}
-
-	// Set the Model Grid
-	model.SetGrid(pGrid);
 
 	AnnounceEndBlock("Done");
 

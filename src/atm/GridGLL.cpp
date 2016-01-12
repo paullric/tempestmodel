@@ -27,28 +27,56 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 GridGLL::GridGLL(
-	Model & model,
+	Model & model
+) :
+	Grid(model)
+{ }
+
+///////////////////////////////////////////////////////////////////////////////
+
+void GridGLL::DefineParameters() {
+
+	if (m_dcGridParameters.IsAttached()) {
+		_EXCEPTIONT("Attempting to recall DefineParameters");
+	}
+
+	// Initialize the GridParameters relevant to GridGLL
+	m_dcGridParameters.PushDataChunk(&m_nHorizontalOrder);
+	m_dcGridParameters.PushDataChunk(&m_nVerticalOrder);
+
+	// Call up the stack
+	Grid::DefineParameters();
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void GridGLL::SetParameters(
+	int nRElements,
 	int nMaxPatchCount,
-	int nBaseResolutionA,
-	int nBaseResolutionB,
+	int nABaseResolution,
+	int nBBaseResolution,
 	int nRefinementRatio,
 	int nHorizontalOrder,
 	int nVerticalOrder,
-	int nRElements,
 	VerticalStaggering eVerticalStaggering
-) :
+) {
+	if (!m_dcGridParameters.IsAttached()) {
+		_EXCEPTIONT("DefineParameters() must be called before SetParameters()");
+	}
+
 	// Call up the stack
-	Grid::Grid(
-		model,
-		nMaxPatchCount,
-		nBaseResolutionA,
-		nBaseResolutionB,
-		nRefinementRatio,
+	Grid::SetParameters(
 		nRElements,
-		eVerticalStaggering),
-	m_nHorizontalOrder(nHorizontalOrder),
-	m_nVerticalOrder(nVerticalOrder)
-{
+		nMaxPatchCount,
+		nABaseResolution,
+		nBBaseResolution,
+		nRefinementRatio,
+		eVerticalStaggering
+	);
+
+	// Set the default parameters
+	m_nHorizontalOrder = nHorizontalOrder;
+	m_nVerticalOrder = nVerticalOrder;
 }
 
 ///////////////////////////////////////////////////////////////////////////////

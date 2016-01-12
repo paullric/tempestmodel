@@ -151,6 +151,13 @@ public:
 	///	</summary>
 	void Detach();
 
+	///	<summary>
+	///		Check if this DataContainer is attached.
+	///	</summary>
+	bool IsAttached() const {
+		return (m_pAllocatedMemory != NULL);
+	}
+
 private:
 	///	<summary>
 	///		Flag indicating that this DataContainer owns is memory space.

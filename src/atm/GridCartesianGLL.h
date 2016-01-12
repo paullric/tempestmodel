@@ -32,18 +32,29 @@ public:
 	///		Constructor.
 	///	</summary>
 	GridCartesianGLL(
-		Model & model,
+		Model & model
+	);
+
+	///	<summary>
+	///		Define the parameters for the Grid.
+	///	</summary>
+	virtual void DefineParameters();
+
+	///	<summary>
+	///		Set the parameters for the GridGLL.
+	///	</summary>
+	virtual void SetParameters(
+		int nRElements,
 		int nMaxPatchCount,
-		int nBaseResolutionA,
-		int nBaseResolutionB,
+		int nABaseResolution,
+		int nBBaseResolution,
 		int nRefinementRatio,
 		int nHorizontalOrder,
 		int nVerticalOrder,
-		int nRElements,
 		double dGDim[],
 		double dRefLat,
-		VerticalStaggering eVerticalStaggering =
-			VerticalStaggering_CharneyPhillips
+		VerticalStaggering eVerticalStaggering
+			= VerticalStaggering_CharneyPhillips
 	);
 
 public:
@@ -165,12 +176,12 @@ public:
 	///	<summary>
 	///		Dimension of the grid - private to cartesian grids.
 	///	</summary>
-	double m_dGDim[6];
+	DataArray1D<double> m_dGDim;
 
 	///	<summary>
 	///		Referece latitude (for beta plane cases)
 	///	</summary>
-	double m_dRefLat;
+	DataStruct<double> m_dRefLat;
 };
 
 ///////////////////////////////////////////////////////////////////////////////

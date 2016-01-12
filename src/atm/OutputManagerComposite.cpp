@@ -47,9 +47,9 @@ OutputManagerComposite::OutputManagerComposite(
 		timeOutputFrequency,
 		strOutputDir,
 		strOutputFormat,
-		1),
-	m_strRestartFile(strRestartFile)
+		1)
 {
+	m_iCheck = 171456;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -208,23 +208,12 @@ void OutputManagerComposite::Output(
 				+ m_vecGridPatchByteSize[i][0];
 		}
 
-		// Write Model information to file
+		// Write check bits
+		m_ofsActiveOutput.write((const char *)(&m_iCheck), sizeof(int));
 
-		// Output start time as string
-		std::string strStartTime = model.GetStartTime().ToLongString();
-		int nStartTimeLen = strStartTime.length();
-		m_ofsActiveOutput.write(
-			(const char *)(&nStartTimeLen), sizeof(int));
-		m_ofsActiveOutput.write(
-			strStartTime.c_str(), sizeof(char)*nStartTimeLen);
-
-		// Output equation set name
-		std::string strEquationSetName = model.GetEquationSet().GetName();
-		int nEquationSetNameLen = strEquationSetName.length();
-		m_ofsActiveOutput.write(
-			(const char *)(&nEquationSetNameLen), sizeof(int));
-		m_ofsActiveOutput.write(
-			strEquationSetName.c_str(), sizeof(char)*nEquationSetNameLen);
+		// Write current time
+		const Time & timeCurrent = model.GetCurrentTime();
+		m_ofsActiveOutput.write((const char *)(&(timeCurrent)), sizeof(Time));
 
 		// Write Grid information to file
 		const DataContainer & dcGridParameters =
@@ -252,6 +241,9 @@ void OutputManagerComposite::Output(
 	if (nRank != 0) {
 
 		int nActivePatches = m_grid.GetActivePatchCount();
+		if (nActivePatches == 0) {
+			_EXCEPTIONT("No GridPatches on processor");
+		}
 
 		DataArray1D<MPI_Request> vecSendReqGeo(nActivePatches);
 		DataArray1D<MPI_Request> vecSendReqAcS(nActivePatches);
@@ -319,7 +311,7 @@ void OutputManagerComposite::Output(
 		//std::cout << "WAIT DONE" << std::endl;
 
 	// Receive data and output to file 
-	} else if (nRank == 0) {
+	} else {
 
 		// Reference position
 		std::streampos posRefFile = m_ofsActiveOutput.tellp();
@@ -394,12 +386,11 @@ void OutputManagerComposite::Output(
 			}
 
 			// Check patch index
-			DataArray1D<int> pPatchIx;
-			pPatchIx.AttachToData(&(m_vecRecvBuffer[0]));
+			int iPatchIx = *((int*)(&(m_vecRecvBuffer[0])));
 
-			if (pPatchIx[0] > m_vecGridPatchByteLoc.GetRows()) {
+			if (iPatchIx > m_vecGridPatchByteLoc.GetRows()) {
 				_EXCEPTION2("PatchIndex (%i) out of range [0,%i)",
-					pPatchIx[0], m_vecGridPatchByteLoc.GetRows());
+					iPatchIx, m_vecGridPatchByteLoc.GetRows());
 			}
 /*
 			if (iDataType == 0) {
@@ -413,10 +404,10 @@ void OutputManagerComposite::Output(
 			}
 */
 			m_ofsActiveOutput.seekp(
-				posRefFile + m_vecGridPatchByteLoc[pPatchIx[0]][iDataType]);
+				posRefFile + m_vecGridPatchByteLoc[iPatchIx][iDataType]);
 			m_ofsActiveOutput.write(
 				(const char *)(&(m_vecRecvBuffer[0])),
-				m_vecGridPatchByteSize[pPatchIx[0]][iDataType]);
+				m_vecGridPatchByteSize[iPatchIx][iDataType]);
 		}
 	}
 
@@ -454,27 +445,19 @@ Time OutputManagerComposite::Input(
 			strFileName.c_str());
 	}
 
-	// Load Model information from file
+	// Read check bits
+	int iCheckInput;
+	ifsActiveInput.read((char *)(&iCheckInput), sizeof(int));
+	if (iCheckInput != m_iCheck) {
+		_EXCEPTION1("Invalid or incompatible input file \"%s\"",
+			strFileName.c_str());
+	}
 
-	// Input start time as string
-	std::string strStartTime;
-	int nStartTimeLen;
-	ifsActiveInput.read(
-		(char *)(&nStartTimeLen), sizeof(int));
-	strStartTime.resize(nStartTimeLen);
-	ifsActiveInput.read(
-		(char *)(&(strStartTime[0])), sizeof(char)*nStartTimeLen);
+	// Read current time
+	Time timeCurrent;
+	ifsActiveInput.read((char *)(&(timeCurrent)), sizeof(Time));
 
-	// Input equation set name
-	std::string strEquationSetName;
-	int nEquationSetNameLen;
-	ifsActiveInput.read(
-		(char *)(&nEquationSetNameLen), sizeof(int));
-	strEquationSetName.resize(nEquationSetNameLen);
-	ifsActiveInput.read(
-		(char *)(&(strEquationSetName[0])), sizeof(char)*nEquationSetNameLen);
-
-	// Load Grid parameters from file
+	// Read Grid parameters from file
 	DataContainer & dcGridParameters = m_grid.GetDataContainerParameters();
 	int nGridParametersByteSize =
 		dcGridParameters.GetTotalByteSize();
@@ -529,6 +512,20 @@ Time OutputManagerComposite::Input(
 		MPI_MAX,
 		MPI_COMM_WORLD);
 
+	// Initialize byte location for each GridPatch
+	m_vecGridPatchByteLoc.Allocate(m_grid.GetPatchCount(), 2);
+	m_vecGridPatchByteLoc[0][0] = 0;
+	m_vecGridPatchByteLoc[0][1] = m_vecGridPatchByteSize[0][0];
+	for (int i = 1; i < m_vecGridPatchByteSize.GetRows(); i++) { 
+		m_vecGridPatchByteLoc[i][0] =
+			m_vecGridPatchByteLoc[i-1][1]
+			+ m_vecGridPatchByteSize[i-1][1];
+
+		m_vecGridPatchByteLoc[i][1] =
+			m_vecGridPatchByteLoc[i][0]
+			+ m_vecGridPatchByteSize[i][0];
+	}
+
 	// Reference position
 	std::streampos posRefFile = ifsActiveInput.tellg();
 	if (posRefFile == (-1)) {
@@ -580,7 +577,7 @@ Time OutputManagerComposite::Input(
 	_EXCEPTIONT("Not implemented without USE_MPI");
 #endif
 
-	return Time(strStartTime);
+	return timeCurrent;
 }
 
 ///////////////////////////////////////////////////////////////////////////////

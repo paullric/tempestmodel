@@ -32,15 +32,26 @@ public:
 	///		Constructor.
 	///	</summary>
 	GridCSGLL(
-		Model & model,
+		Model & model
+	);
+
+	///	<summary>
+	///		Define the parameters for the Grid.
+	///	</summary>
+	virtual void DefineParameters();
+
+	///	<summary>
+	///		Set the parameters for the GridGLL.
+	///	</summary>
+	virtual void SetParameters(
+		int nRElements,
 		int nMaxPatchCount,
 		int nBaseResolution,
 		int nRefinementRatio,
 		int nHorizontalOrder,
 		int nVerticalOrder,
-		int nRElements,
-		VerticalStaggering eVerticalStaggering =
-			VerticalStaggering_CharneyPhillips
+		VerticalStaggering eVerticalStaggering
+			= VerticalStaggering_CharneyPhillips
 	);
 
 public:

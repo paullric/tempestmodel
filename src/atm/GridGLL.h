@@ -36,14 +36,25 @@ public:
 	///		Constructor.
 	///	</summary>
 	GridGLL(
-		Model & model,
+		Model & model
+	);
+
+	///	<summary>
+	///		Define the parameters for the GridGLL.
+	///	</summary>
+	virtual void DefineParameters();
+
+	///	<summary>
+	///		Set the parameters for the GridGLL.
+	///	</summary>
+	virtual void SetParameters(
+		int nRElements,
 		int nMaxPatchCount,
-		int nBaseResolutionA,
-		int nBaseResolutionB,
+		int nABaseResolution,
+		int nBBaseResolution,
 		int nRefinementRatio,
 		int nHorizontalOrder,
 		int nVerticalOrder,
-		int nRElements,
 		VerticalStaggering eVerticalStaggering
 			= VerticalStaggering_CharneyPhillips
 	);
@@ -324,13 +335,14 @@ protected:
 	///	<summary>
 	///		Order of accuracy of the method (number of nodes per element).
 	///	</summary>
-	int m_nHorizontalOrder;
+	DataStruct<int> m_nHorizontalOrder;
 
 	///	<summary>
 	///		Order of accuracy in the vertical.
 	///	</summary>
-	int m_nVerticalOrder;
+	DataStruct<int> m_nVerticalOrder;
 
+protected:
 	///	<summary>
 	///		Derivatives of the basis functions at nodal points on the
 	///		horizontal reference element.
