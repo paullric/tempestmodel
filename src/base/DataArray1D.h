@@ -349,6 +349,20 @@ public:
 		return m_data;
 	}
 
+	///	<summary>
+	///		Parenthetical array accessor.
+	///	</summary>
+	inline T & operator()(size_t i) {
+		return m_data[i];
+	}
+
+	///	<summary>
+	///		Parenthetical array accessor.
+	///	</summary>
+	inline const T & operator()(size_t i) const {
+		return m_data[i];
+	}
+
 private:
 	///	<summary>
 	///		A flag indicating this array owns its data.

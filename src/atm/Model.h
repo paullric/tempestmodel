@@ -32,40 +32,6 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 ///	<summary>
-///		Relevant parameters for initialization and execution of the model.
-///	</summary>
-class ModelParameters {
-
-public:
-	///	<summary>
-	///		Constructor.
-	///	</summary>
-	ModelParameters() :
-		m_timeDeltaT(),
-		m_timeStart(),
-		m_timeEnd()
-	{ }
-
-public:
-	///	<summary>
-	///		Time step size.
-	///	</summary>
-	Time m_timeDeltaT;
-
-	///	<summary>
-	///		Start time of the simulation.
-	///	</summary>
-	Time m_timeStart;
-
-	///	<summary>
-	///		End time of the simulation.
-	///	</summary>
-	Time m_timeEnd;
-};
-
-///////////////////////////////////////////////////////////////////////////////
-
-///	<summary>
 ///		Master class for atmospheric model.
 ///	</summary>
 class Model {
@@ -88,11 +54,6 @@ public:
 	virtual ~Model();
 
 public:
-	///	<summary>
-	///		Set the model parameters.
-	///	</summary>
-	void SetParameters(const ModelParameters & param);
-
 	///	<summary>
 	///		Set the Grid from a pointer.  Model assumes ownership of the
 	///		pointer once it is assigned.
@@ -276,27 +237,6 @@ public:
 
 public:
 	///	<summary>
-	///		Get the time step size.
-	///	</summary>
-	const Time & GetDeltaT() const {
-		return m_param.m_timeDeltaT;
-	}
-
-	///	<summary>
-	///		Get the start time of the simulation.
-	///	</summary>
-	const Time & GetStartTime() const {
-		return m_param.m_timeStart;
-	}
-
-	///	<summary>
-	///		Set the start time of the simulation.
-	///	</summary>
-	void SetStartTime(const Time & timeStart) {
-		m_param.m_timeStart = timeStart;
-	}
-
-	///	<summary>
 	///		Get the current time of the simulation.
 	///	</summary>
 	const Time & GetCurrentTime() const {
@@ -310,6 +250,48 @@ public:
 		m_time = timeCurrent;
 	}
 
+	///	<summary>
+	///		Get the time step size.
+	///	</summary>
+	const Time & GetDeltaT() const {
+		return m_timeDeltaT;
+	}
+
+	///	<summary>
+	///		Get the time step size.
+	///	</summary>
+	void SetDeltaT(const Time & timeDeltaT) {
+		m_timeDeltaT = timeDeltaT;
+	}
+
+	///	<summary>
+	///		Get the start time of the simulation.
+	///	</summary>
+	const Time & GetStartTime() const {
+		return m_timeStart;
+	}
+
+	///	<summary>
+	///		Set the start time of the simulation.
+	///	</summary>
+	void SetStartTime(const Time & timeStart) {
+		m_timeStart = timeStart;
+	}
+
+	///	<summary>
+	///		Get the end time of the simulation.
+	///	</summary>
+	const Time & GetEndTime() const {
+		return m_timeEnd;
+	}
+
+	///	<summary>
+	///		Set the end time of the simulation.
+	///	</summary>
+	void SetEndTime(const Time & timeEnd) {
+		m_timeEnd = timeEnd;
+	}
+
 protected:
 	///	<summary>
 	///		Flag indicating the Grid has been initialized from a restart file.
@@ -317,11 +299,6 @@ protected:
 	bool m_fGridFromRestartFile;
 
 protected:
-	///	<summary>
-	///		Model parameters.
-	///	</summary>
-	ModelParameters m_param;
-
 	///	<summary>
 	///		Pointer to grid
 	///	</summary>
@@ -377,6 +354,21 @@ private:
 	///		Current model time.
 	///	</summary>
 	Time m_time;
+
+	///	<summary>
+	///		Time step size.
+	///	</summary>
+	Time m_timeDeltaT;
+
+	///	<summary>
+	///		Start time of the simulation.
+	///	</summary>
+	Time m_timeStart;
+
+	///	<summary>
+	///		End time of the simulation.
+	///	</summary>
+	Time m_timeEnd;
 };
 
 ///////////////////////////////////////////////////////////////////////////////

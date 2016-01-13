@@ -48,7 +48,6 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 struct _TempestCommandLineVariables {
-	ModelParameters param;
 	bool fNoOutput;
 	std::string strOutputDir;
 	std::string strOutputPrefix;
@@ -56,6 +55,8 @@ struct _TempestCommandLineVariables {
 	int nOutputsPerFile;
 	Time timeOutputDeltaT;
 	Time timeOutputRestartDeltaT;
+	Time timeDeltaT;
+	Time timeEndTime;
 	int nOutputResX;
 	int nOutputResY;
 	bool fOutputVorticity;
@@ -139,10 +140,10 @@ struct _TempestCommandLineVariables {
 	CommandLineDeltaTime(_tempestvars.timeOutputDeltaT, "outputtime", default_output_dt);
 
 #define SetDefaultDeltaT(default_dt) \
-	CommandLineDeltaTime(_tempestvars.param.m_timeDeltaT, "dt", default_dt);
+	CommandLineDeltaTime(_tempestvars.timeDeltaT, "dt", default_dt);
 
 #define SetDefaultEndTime(default_endtime) \
-	CommandLineFixedTime(_tempestvars.param.m_timeEnd, "endtime", default_endtime);
+	CommandLineFixedTime(_tempestvars.timeEndTime, "endtime", default_endtime);
 
 #define SetDefaultHorizontalOrder(default_order) \
 	CommandLineInt(_tempestvars.nHorizontalOrder, "order", default_order)
@@ -337,8 +338,9 @@ void _TempestSetupCubedSphereModel(
 	Model & model,
 	_TempestCommandLineVariables & vars
 ) {
-	// Set the parameters
-	model.SetParameters(vars.param);
+	// Set the time step size and end time
+	model.SetDeltaT(vars.timeDeltaT);
+	model.SetEndTime(vars.timeEndTime);
 
 	// Setup Method of Lines
 	_TempestSetupMethodOfLines(model, vars);
@@ -433,8 +435,9 @@ void _TempestSetupCartesianModel(
 	double dRefLat,
 	_TempestCommandLineVariables & vars
 ) {
-	// Set the parameters
-	model.SetParameters(vars.param);
+	// Set the time step size and end time
+	model.SetDeltaT(vars.timeDeltaT);
+	model.SetEndTime(vars.timeEndTime);
 
 	// Setup Method of Lines
 	_TempestSetupMethodOfLines(model, vars);

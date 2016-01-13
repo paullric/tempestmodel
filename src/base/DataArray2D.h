@@ -485,6 +485,20 @@ public:
 		return m_data;
 	}
 
+	///	<summary>
+	///		Parenthetical array accessor.
+	///	</summary>
+	inline T & operator()(size_t i, size_t j) {
+		return (*(m_data1D + i * m_sSize[1] + j));
+	}
+
+	///	<summary>
+	///		Parenthetical array accessor.
+	///	</summary>
+	inline const T & operator()(size_t i, size_t j) const {
+		return (*(m_data1D + i * m_sSize[1] + j));
+	}
+
 private:
 	///	<summary>
 	///		A flag indicating this array owns its data.

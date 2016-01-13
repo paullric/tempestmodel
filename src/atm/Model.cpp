@@ -90,12 +90,6 @@ Model::~Model() {
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void Model::SetParameters(const ModelParameters & param) {
-	m_param = param;
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
 void Model::SetGrid(
 	Grid * pGrid,
 	int nPatchCount,
@@ -155,7 +149,7 @@ void Model::SetGridFromRestartFile(
 
 	m_time = ompComposite.Input(strRestartFile);
 
-	m_param.m_timeStart = m_time;
+	m_timeStart = m_time;
 
 	// Initialize the grid
 	m_pGrid->Initialize();
@@ -230,7 +224,7 @@ void Model::SetTestCase(
 		m_pTestCase->EvaluatePhysicalConstants(m_phys);
 
 		// Initialize the topography and data
-		m_pGrid->EvaluateTestCase(*pTestCase, m_param.m_timeStart);
+		m_pGrid->EvaluateTestCase(*pTestCase, m_timeStart);
 	}
 }
 
@@ -269,10 +263,10 @@ void Model::SubStep(
 	double dDeltaT;
 
 	Time timeNext = m_time;
-	timeNext += m_param.m_timeDeltaT;
+	timeNext += m_timeDeltaT;
 
-	if (timeNext >= m_param.m_timeEnd) {
-		dDeltaT = m_param.m_timeEnd - m_time;
+	if (timeNext >= m_timeEnd) {
+		dDeltaT = m_timeEnd - m_time;
 		fLastStep = true;
 
 	} else {
@@ -313,7 +307,7 @@ void Model::Go() {
 	}
 
 	// Check time step
-	if (m_param.m_timeDeltaT.IsZero()) {
+	if (m_timeDeltaT.IsZero()) {
 		_EXCEPTIONT("Dynamic timestepping not implemented. "
 		            "DeltaT must be non-zero.");
 	}
@@ -332,14 +326,14 @@ void Model::Go() {
 	m_pVerticalDynamics->Initialize();
 
 	// Set the current time
-	m_time = m_param.m_timeStart;
+	m_time = m_timeStart;
 
 	// Check time
-	if (m_time >= m_param.m_timeEnd) {
+	if (m_time >= m_timeEnd) {
 		Announce("Warning: Simulation start time (%s)\n"
 			"  equals or exceeds end time (%s)",
 			m_time.ToString().c_str(),
-			m_param.m_timeEnd.ToString().c_str());
+			m_timeEnd.ToString().c_str());
 		return;
 	}
 
@@ -370,10 +364,10 @@ void Model::Go() {
 		double dDeltaT;
 
 		Time timeNext = m_time;
-		timeNext += m_param.m_timeDeltaT;
+		timeNext += m_timeDeltaT;
 
-		if (timeNext >= m_param.m_timeEnd) {
-			dDeltaT = m_param.m_timeEnd - m_time;
+		if (timeNext >= m_timeEnd) {
+			dDeltaT = m_timeEnd - m_time;
 			fLastStep = true;
 
 		} else {
@@ -431,8 +425,8 @@ void Model::Go() {
 		}
 */
 		// Update the timer
-		if (timeNext >= m_param.m_timeEnd) {
-			m_time = m_param.m_timeEnd;
+		if (timeNext >= m_timeEnd) {
+			m_time = m_timeEnd;
 		} else {
 			m_time = timeNext;
 		}

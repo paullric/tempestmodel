@@ -551,6 +551,20 @@ public:
 		return m_data;
 	}
 
+	///	<summary>
+	///		Parenthetical array accessor.
+	///	</summary>
+	inline T & operator()(size_t i, size_t j, size_t k, size_t l) {
+		return (*(m_data1D + i * m_sSize[1] * m_sSize[2] * m_sSize[3] + j * m_sSize[2] * m_sSize[3] + k * m_sSize[3] + l));
+	}
+
+	///	<summary>
+	///		Parenthetical array accessor.
+	///	</summary>
+	inline const T & operator()(size_t i, size_t j, size_t k, size_t l) const {
+		return (*(m_data1D + i * m_sSize[1] * m_sSize[2] * m_sSize[3] + j * m_sSize[2] * m_sSize[3] + k * m_sSize[3] + l));
+	}
+
 private:
 	///	<summary>
 	///		A flag indicating this array owns its data.
