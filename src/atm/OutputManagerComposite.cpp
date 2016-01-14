@@ -259,7 +259,7 @@ void OutputManagerComposite::Output(
 				dcGeometric.GetPointer();
 
 			MPI_Isend(
-				pGeometricData,
+				const_cast<unsigned char *>(pGeometricData),
 				nGeometricDataByteSize,
 				MPI_BYTE,
 				0,
@@ -275,7 +275,7 @@ void OutputManagerComposite::Output(
 				dcActiveState.GetPointer();
 
 			MPI_Isend(
-				pActiveStateData,
+				const_cast<unsigned char *>(pActiveStateData),
 				nActiveStateDataByteSize,
 				MPI_BYTE,
 				0,
