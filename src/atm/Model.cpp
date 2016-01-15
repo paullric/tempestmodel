@@ -115,20 +115,14 @@ void Model::SetGrid(
 		_EXCEPTIONT("Unimplemented: PatchCount must be specified");
 	}
 #endif
-        //std::cout << "Apply default patch layout..." << "\n";
 	m_pGrid->ApplyDefaultPatchLayout(nPatchCount);
 
-	// Initialize the grid
-        //std::cout << "Grid initialize..." << "\n";    
+	// Initialize the grid  
 	m_pGrid->Initialize();
 
-        //std::cout << "Connectivity initialize..." << "\n";
 	if (fInitializeConnectivity) {
-                //std::cout << "Distribute patches..." << "\n";
 		m_pGrid->DistributePatches();
-                //std::cout << "Exchange buffer initialize..." << "\n";
 		m_pGrid->InitializeExchangeBuffersFromActivePatches();
-                //std::cout << "Connectivity initialize..." << "\n";
 		m_pGrid->InitializeConnectivity();
 	}
 }
@@ -227,10 +221,12 @@ void Model::SetTestCase(
 
 		// Evaluate physical constants
 		m_pTestCase->EvaluatePhysicalConstants(m_phys);
-
+                AnnounceBanner("Entering evaluate test in Model 225");
 		// Initialize the topography and data
 		m_pGrid->EvaluateTestCase(*pTestCase, m_timeStart);
+                AnnounceBanner("Finished evaluate test in Model 225");
 	}
+AnnounceBanner("Finished set test in Model 229");
 }
 
 ///////////////////////////////////////////////////////////////////////////////

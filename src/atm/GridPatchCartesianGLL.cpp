@@ -105,23 +105,23 @@ void GridPatchCartesianGLL::InitializeCoordinateData() {
 	GridSpacingGaussLobattoRepeated
 		glspacingB(dElementDeltaB, Y0, m_nHorizontalOrder);
 
-        std::cout << "Initialize coordinate data in GridPatchCartesianGLL..." << "\n";
+        //std::cout << "Initialize coordinate data in GridPatchCartesianGLL..." << "\n";
 	for (int i = m_box.GetAGlobalBegin(); i < m_box.GetAGlobalEnd(); i++) {
 		m_dANode[i - m_box.GetAGlobalBegin()] = glspacingA.GetNode(i);
 	}
-        std::cout << "Global loop index 1 coordinate data in GridPatchCartesianGLL..." << "\n";
+        //std::cout << "Global loop index 1 coordinate data in GridPatchCartesianGLL..." << "\n";
 	for (int i = m_box.GetAGlobalBegin(); i <= m_box.GetAGlobalEnd(); i++) {
 		m_dAEdge[i - m_box.GetAGlobalBegin()] = glspacingA.GetEdge(i);
 	}
-        std::cout << "Global loop index 2 coordinate data in GridPatchCartesianGLL..." << "\n";
+        //std::cout << "Global loop index 2 coordinate data in GridPatchCartesianGLL..." << "\n";
 	for (int j = m_box.GetBGlobalBegin(); j < m_box.GetBGlobalEnd(); j++) {
 		m_dBNode[j - m_box.GetBGlobalBegin()] = glspacingB.GetNode(j);
 	}
-        std::cout << "Global loop index 3 coordinate data in GridPatchCartesianGLL..." << "\n";
+        //std::cout << "Global loop index 3 coordinate data in GridPatchCartesianGLL..." << "\n";
 	for (int j = m_box.GetBGlobalBegin(); j <= m_box.GetBGlobalEnd(); j++) {
 		m_dBEdge[j - m_box.GetBGlobalBegin()] = glspacingB.GetEdge(j);
 	}
-        std::cout << "Global loop index 4 coordinate data in GridPatchCartesianGLL..." << "\n";
+        //std::cout << "Global loop index 4 coordinate data in GridPatchCartesianGLL..." << "\n";
 
 	for (int i = 0; i < m_box.GetATotalWidth(); i++) {
 	for (int j = 0; j < m_box.GetBTotalWidth(); j++) {
@@ -130,7 +130,7 @@ void GridPatchCartesianGLL::InitializeCoordinateData() {
 	}
 	}
 
-        std::cout << "Initialize coordinate data in GridPatchGLL..." << "\n";
+        //std::cout << "Initialize coordinate data in GridPatchGLL..." << "\n";
 	GridPatchGLL::InitializeCoordinateData();
 }
 
@@ -514,13 +514,14 @@ void GridPatchCartesianGLL::EvaluateTestCase(
 		_EXCEPTIONT("VerticalOrder / Dimensionality mismatch:\n"
 			"For 2D problems vertical order must be 1.");
 	}
-
+        //AnnounceBanner("Evaluating topography in GridPatchCartesianGLL 518");
 	// Evaluate topography
 	EvaluateTopography(test);
 
 	// Physical constants
 	const PhysicalConstants & phys = m_grid.GetModel().GetPhysicalConstants();
 	
+        //AnnounceBanner("Initializing coord surfaces in GridPatchCartesianGLL 525");
 	// Initialize the topography at each node
 	for (int i = 0; i < m_box.GetATotalWidth(); i++) {
 	for (int j = 0; j < m_box.GetBTotalWidth(); j++) {
@@ -563,7 +564,7 @@ void GridPatchCartesianGLL::EvaluateTestCase(
 */
 	}
 	}
-
+        //AnnounceBanner("Initializing Rayleigh in GridPatchCartesianGLL 569");
 	// Initialize the Rayleigh friction strength at each node
 	if (test.HasRayleighFriction()) {
 		for (int i = 0; i < m_box.GetATotalWidth(); i++) {
@@ -585,7 +586,7 @@ void GridPatchCartesianGLL::EvaluateTestCase(
 		}
 		}
 	}
-
+        //AnnounceBanner("Pointwise state buffer in GridPatchCartesianGLL 591");
 	// Buffer vector for storing pointwise states
 	const EquationSet & eqns = m_grid.GetModel().GetEquationSet();
 
@@ -601,7 +602,7 @@ void GridPatchCartesianGLL::EvaluateTestCase(
 			dPointwiseTracers.Allocate(nTracers);
 		}
 	}
-
+        //AnnounceBanner("Initial state LEV in GridPatchCartesianGLL 606");
 	// Evaluate the state on model levels
 	for (int k = 0; k < m_grid.GetRElements(); k++) {
 	for (int i = 0; i < m_box.GetATotalWidth(); i++) {
@@ -649,7 +650,7 @@ void GridPatchCartesianGLL::EvaluateTestCase(
 	}
 	}
 	}
-
+        //AnnounceBanner("Initial state INT in GridPatchCartesianGLL 654");
 	// Evaluate the state on model interfaces
 	for (int k = 0; k <= m_grid.GetRElements(); k++) {
 	for (int i = 0; i < m_box.GetATotalWidth(); i++) {
@@ -690,6 +691,11 @@ void GridPatchCartesianGLL::EvaluateTestCase(
 	}
 	}
 	}
+//AnnounceBanner("Finished test evaluation in GridPatchCartesianGLL 694");
+//std::cout << sizeof(bool) << std::endl;
+//std::cout << sizeof(int) << std::endl;
+//std::cout << sizeof(double) << std::endl;
+//std::cout << sizeof(size_t) << std::endl;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
