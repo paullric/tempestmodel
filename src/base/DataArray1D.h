@@ -89,7 +89,14 @@ public:
 	///		Get the size of the data, in bytes.
 	///	</summary>
 	virtual size_t GetByteSize() const {
-		return (m_sSize * sizeof(T));
+
+		// Verify data aligns on word boundaries
+		if ((m_sSize * sizeof(T)) % sizeof(size_t) == 0) {
+			return (m_sSize * sizeof(T));
+		} else {
+			return ((m_sSize * sizeof(T)) / sizeof(size_t) + 1)
+				* sizeof(size_t);
+		}
 	}
 
 	///	<summary>

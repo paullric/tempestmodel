@@ -659,7 +659,7 @@ public:
 	///	<summary>
 	///		Get the node that contains the specified GridPatch.
 	///	</summary>
-	const int GetPatchProcessor(int ixPatch) const {
+	int GetPatchProcessor(int ixPatch) const {
 		if ((ixPatch < 0) || (ixPatch >= m_vecPatchProcessor.size())) {
 			_EXCEPTIONT("Invalid active patch index");
 		}

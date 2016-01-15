@@ -165,7 +165,13 @@ public:
 	///		Get the size of this DataChunk, in bytes.
 	///	</summary>
 	virtual size_t GetByteSize() const {
-		return (m_sSize[0] * m_sSize[1] * m_sSize[2] * sizeof(T));
+		size_t sSize = (m_sSize[0] * m_sSize[1] * m_sSize[2] * sizeof(T));
+		
+		if (sSize % sizeof(size_t) == 0) {
+			return sSize;
+		} else {
+			return (sSize / sizeof(size_t) + 1) * sizeof(size_t);
+		}
 	}
 
 	///	<summary>

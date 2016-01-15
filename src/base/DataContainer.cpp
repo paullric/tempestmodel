@@ -58,7 +58,13 @@ size_t DataContainer::GetTotalByteSize() const {
 			DataChunk * pDataChunk =
 				reinterpret_cast<DataChunk*>(m_vecDataChunks[i]);
 
-			sAccumulated += pDataChunk->GetByteSize();
+			// Verify byte alignment
+			size_t sByteSize = pDataChunk->GetByteSize();
+			if (sByteSize % sizeof(size_t) != 0) {
+				_EXCEPTIONT("Misaligned array detected in DataContainer");
+			}
+			sAccumulated += sByteSize;
+
 		} else if (m_vecType[i] == PRIMTYPE_INT) {
 			sAccumulated += int_aligned_size;
 		} else if (m_vecType[i] == PRIMTYPE_FLOAT) {
