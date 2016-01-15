@@ -73,6 +73,7 @@ public:
 	static const int BoundaryCondition_Default = 0;
 	static const int BoundaryCondition_Periodic = 0;
 	static const int BoundaryCondition_NoFlux = 1;
+        static const int BoundaryCondition_NoSlip = 2;
 
 public:
 	///	<summary>

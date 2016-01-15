@@ -26,6 +26,11 @@
 class ScharMountainCartesianTest : public TestCase {
 
 public:
+        /// <summary>
+	///		Lateral BC array (FOR CARTESIAN GRIDS).
+	///	</summary>
+	int m_iLatBC[4];
+
 	/// <summary>
 	///		Grid dimension array (FOR CARTESIAN GRIDS).
 	///	</summary>
@@ -103,12 +108,18 @@ public:
 		m_fNoRayleighFriction(fNoRayleighFriction)
 	{
 		// Set the dimensions of the box
-		m_dGDim[0] = -25000.;
-		m_dGDim[1] = 25000.0;
-		m_dGDim[2] = -100.0;
-		m_dGDim[3] = 100.0;
+		m_dGDim[0] = -30000.0;
+		m_dGDim[1] = 30000.0;
+		m_dGDim[2] = -200.0;
+		m_dGDim[3] = 200.0;
 		m_dGDim[4] = 0.0;
-		m_dGDim[5] = 21000.0;
+		m_dGDim[5] = 30000.0;
+
+                // Set the boundary conditions for this test (no-flux in Y)
+                m_iLatBC[0] = Grid::BoundaryCondition_Periodic;
+                m_iLatBC[1] = Grid::BoundaryCondition_Periodic;
+                m_iLatBC[2] = Grid::BoundaryCondition_Periodic;
+                m_iLatBC[3] = Grid::BoundaryCondition_Periodic;
 	}
 
 public:
@@ -174,7 +185,8 @@ public:
 		double dXp,
 		double dYp
 	) const {
-		const double dRayleighStrength = 5.0e-2;//8.0e-3;
+		const double dRayleighStrengthZ = 2.0e-1;//8.0e-3;
+		const double dRayleighStrengthX = 0.1 * dRayleighStrengthZ;
 		const double dRayleighDepth = 10000.0;
 		const double dRayleighWidth = 10000.0;
 
@@ -184,15 +196,15 @@ public:
 
 		if (dZ > m_dGDim[5] - dRayleighDepth) {
 			double dNormZ = (m_dGDim[5] - dZ) / dRayleighDepth;
-			dNuDepth = 0.5 * dRayleighStrength * (1.0 + cos(M_PI * dNormZ));
+			dNuDepth = 0.5 * dRayleighStrengthZ * (1.0 + cos(M_PI * dNormZ));
 		}
 		if (dXp > m_dGDim[1] - dRayleighWidth) {
 			double dNormX = (m_dGDim[1] - dXp) / dRayleighWidth;
-			dNuRight = 0.5 * dRayleighStrength * (1.0 + cos(M_PI * dNormX));
+			dNuRight = 0.5 * dRayleighStrengthX * (1.0 + cos(M_PI * dNormX));
 		}
 		if (dXp < m_dGDim[0] + dRayleighWidth) {
 			double dNormX = (dXp - m_dGDim[0]) / dRayleighWidth;
-			dNuLeft = 0.5 * dRayleighStrength * (1.0 + cos(M_PI * dNormX));
+			dNuLeft = 0.5 * dRayleighStrengthX * (1.0 + cos(M_PI * dNormX));
 		}
 
 		if ((dNuDepth >= dNuRight) && (dNuDepth >= dNuLeft)) {
@@ -369,7 +381,9 @@ try {
 
 	Model model(EquationSet::PrimitiveNonhydrostaticEquations);
 
-	TempestSetupCartesianModel(model, test->m_dGDim, 0.0);
+	// Setup the cartesian model with dimensions and reference latitude
+	TempestSetupCartesianModel(model, test->m_dGDim, 0.0, 
+                                   test->m_iLatBC);
 
 	// Set the reference length to reduce diffusion relative to global scale
 	const double XL = std::abs(test->m_dGDim[1] - test->m_dGDim[0]);

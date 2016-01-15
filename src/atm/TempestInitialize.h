@@ -433,6 +433,7 @@ void _TempestSetupCartesianModel(
 	Model & model,
 	double dGDim[],
 	double dRefLat,
+        int iLatBC[],
 	_TempestCommandLineVariables & vars
 ) {
 	// Set the time step size and end time
@@ -483,8 +484,9 @@ void _TempestSetupCartesianModel(
 			vars.nVerticalOrder,
 			dGDim,
 			dRefLat,
+                        iLatBC,
 			eVerticalStaggering);
-
+                
 		pGrid->InitializeDataLocal();
 
 		// Set the vertical stretching function
@@ -529,8 +531,8 @@ void _TempestSetupCartesianModel(
 #define TempestSetupCubedSphereModel(model) \
 	_TempestSetupCubedSphereModel(model, _tempestvars);
 
-#define TempestSetupCartesianModel(model, dimensions, latitude) \
-	_TempestSetupCartesianModel(model, dimensions, latitude, _tempestvars);
+#define TempestSetupCartesianModel(model, dimensions, latitude, lateralBC) \
+	_TempestSetupCartesianModel(model, dimensions, latitude, lateralBC, _tempestvars);
 
 ///////////////////////////////////////////////////////////////////////////////
 

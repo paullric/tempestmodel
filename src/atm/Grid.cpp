@@ -1034,8 +1034,11 @@ void Grid::DistributePatches() {
 
 		if (iPatchProcessor == nRank) {
 			GridPatch * pPatch = NewPatch(n);
+                        //std::cout << "Initialize data patches..." << "\n";
 			pPatch->InitializeDataLocal();
+                        //std::cout << "Gridpatch push back..." << "\n";
 			m_vecActiveGridPatches.push_back(pPatch);
+                        //std::cout << "Gridpatch index push back..." << "\n";
 			m_vecActiveGridPatchIndices.push_back(n);
 		}
 	}
