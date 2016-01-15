@@ -109,16 +109,19 @@ void GridPatchCartesianGLL::InitializeCoordinateData() {
 	for (int i = m_box.GetAGlobalBegin(); i < m_box.GetAGlobalEnd(); i++) {
 		m_dANode[i - m_box.GetAGlobalBegin()] = glspacingA.GetNode(i);
 	}
+        std::cout << "Global loop index 1 coordinate data in GridPatchCartesianGLL..." << "\n";
 	for (int i = m_box.GetAGlobalBegin(); i <= m_box.GetAGlobalEnd(); i++) {
 		m_dAEdge[i - m_box.GetAGlobalBegin()] = glspacingA.GetEdge(i);
 	}
-
+        std::cout << "Global loop index 2 coordinate data in GridPatchCartesianGLL..." << "\n";
 	for (int j = m_box.GetBGlobalBegin(); j < m_box.GetBGlobalEnd(); j++) {
 		m_dBNode[j - m_box.GetBGlobalBegin()] = glspacingB.GetNode(j);
 	}
+        std::cout << "Global loop index 3 coordinate data in GridPatchCartesianGLL..." << "\n";
 	for (int j = m_box.GetBGlobalBegin(); j <= m_box.GetBGlobalEnd(); j++) {
 		m_dBEdge[j - m_box.GetBGlobalBegin()] = glspacingB.GetEdge(j);
 	}
+        std::cout << "Global loop index 4 coordinate data in GridPatchCartesianGLL..." << "\n";
 
 	for (int i = 0; i < m_box.GetATotalWidth(); i++) {
 	for (int j = 0; j < m_box.GetBTotalWidth(); j++) {
@@ -127,6 +130,7 @@ void GridPatchCartesianGLL::InitializeCoordinateData() {
 	}
 	}
 
+        std::cout << "Initialize coordinate data in GridPatchGLL..." << "\n";
 	GridPatchGLL::InitializeCoordinateData();
 }
 

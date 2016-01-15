@@ -307,7 +307,7 @@ void GridCartesianGLL::GetPatchFromCoordinateIndex(
 	int nLocalResolutionB =
 		m_nHorizontalOrder * GetBBaseResolution(iRefinementLevel);
         
-        std::cout << m_eBoundaryCondition[Direction_Bottom] << '\n';
+        //std::cout << m_eBoundaryCondition[Direction_Bottom] << '\n';
 	// Loop through all entries
 	int iLastPatch = GridPatch::InvalidIndex;
 	for (int i = 0; i < nVectorLength; i++) {
@@ -346,7 +346,6 @@ void GridCartesianGLL::GetPatchFromCoordinateIndex(
 			if (eBottomBoundary == BoundaryCondition_Periodic) {
 				iB += nLocalResolutionB;
 			} else {
-                                std::cout << m_eBoundaryCondition[Direction_Bottom] << '\n';
 				vecPatchIndex[i] = GridPatch::InvalidIndex;
 				continue;
 			}

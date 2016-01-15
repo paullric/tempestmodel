@@ -532,6 +532,7 @@ try {
 
 } catch(Exception & e) {
 	std::cout << e.ToString() << std::endl;
+        std::cout << "Try/catch block in the main program!" << std::endl;
 }
 
 	// Deinitialize Tempest

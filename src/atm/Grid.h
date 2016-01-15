@@ -1020,12 +1020,12 @@ protected:
 	///	<summary>
 	///		Flag indicating whether or not a reference state is available.
 	///	</summary>
-	DataStruct<bool> m_fHasReferenceState;
+	DataStruct<int> m_fHasReferenceState;
 
 	///	<summary>
 	///		Flag indicating whether or not Rayleigh friction is used.
 	///	</summary>
-	DataStruct<bool> m_fHasRayleighFriction;
+	DataStruct<int> m_fHasRayleighFriction;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
