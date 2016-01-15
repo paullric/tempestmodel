@@ -54,30 +54,15 @@ size_t DataContainer::GetTotalByteSize() const {
 	size_t sAccumulated = 0;
 
 	for (size_t i = 0; i < m_vecDataChunks.size(); i++) {
-		if (m_vecType[i] == PRIMTYPE_DATACHUNK) {
-			DataChunk * pDataChunk =
-				reinterpret_cast<DataChunk*>(m_vecDataChunks[i]);
+		DataChunk * pDataChunk =
+			reinterpret_cast<DataChunk*>(m_vecDataChunks[i]);
 
-			// Verify byte alignment
-			size_t sByteSize = pDataChunk->GetByteSize();
-			if (sByteSize % sizeof(size_t) != 0) {
-				_EXCEPTIONT("Misaligned array detected in DataContainer");
-			}
-			sAccumulated += sByteSize;
-
-		} else if (m_vecType[i] == PRIMTYPE_INT) {
-			sAccumulated += int_aligned_size;
-		} else if (m_vecType[i] == PRIMTYPE_FLOAT) {
-			sAccumulated += float_aligned_size;
-		} else if (m_vecType[i] == PRIMTYPE_DOUBLE) {
-			sAccumulated += double_aligned_size;
-		} else if (m_vecType[i] == PRIMTYPE_SIZET) {
-			sAccumulated += size_t_aligned_size;
-		} else if (m_vecType[i] == PRIMTYPE_BOOL) {
-			sAccumulated += bool_aligned_size;
-		} else {
-			_EXCEPTIONT("Invalid PRIMTYPE");
+		// Verify byte alignment
+		size_t sByteSize = pDataChunk->GetByteSize();
+		if (sByteSize % sizeof(size_t) != 0) {
+			_EXCEPTIONT("Misaligned array detected in DataContainer");
 		}
+		sAccumulated += sByteSize;
 	}
 
 	return sAccumulated;
@@ -109,42 +94,14 @@ void DataContainer::Allocate() {
 	unsigned char * pAccumulated = m_pAllocatedMemory;
 
 	for (size_t i = 0; i < m_vecDataChunks.size(); i++) {
+		DataChunk * pDataChunk =
+			reinterpret_cast<DataChunk*>(m_vecDataChunks[i]);
 
-		// DataChunk type
-		if (m_vecType[i] == PRIMTYPE_DATACHUNK) {
-			DataChunk * pDataChunk =
-				reinterpret_cast<DataChunk*>(m_vecDataChunks[i]);
-
-			pDataChunk->AttachToData(
-				reinterpret_cast<void *>(pAccumulated));
+		pDataChunk->AttachToData(
+			reinterpret_cast<void *>(pAccumulated));
 
 #pragma message "Alignment may be an issue here on 32-bit systems"
-			pAccumulated += pDataChunk->GetByteSize();
-
-		// int type
-		} else if (m_vecType[i] == PRIMTYPE_INT) {
-			pAccumulated += int_aligned_size;
-
-		// float type
-		} else if (m_vecType[i] == PRIMTYPE_FLOAT) {
-			pAccumulated += float_aligned_size;
-
-		// double type
-		} else if (m_vecType[i] == PRIMTYPE_DOUBLE) {
-			pAccumulated += double_aligned_size;
-
-		// size_t type
-		} else if (m_vecType[i] == PRIMTYPE_SIZET) {
-			pAccumulated += size_t_aligned_size;
-
-		// bool type
-		} else if (m_vecType[i] == PRIMTYPE_BOOL) {
-			pAccumulated += bool_aligned_size;
-
-		// Invalid type
-		} else {
-			_EXCEPTIONT("Invalid PRIMTYPE");
-		}
+		pAccumulated += pDataChunk->GetByteSize();
 	}
 }
 
@@ -171,54 +128,12 @@ void DataContainer::AttachTo(
 
 	for (size_t i = 0; i < m_vecDataChunks.size(); i++) {
 
-		// DataChunk type
-		if (m_vecType[i] == PRIMTYPE_DATACHUNK) {
-			DataChunk * pDataChunk =
-				reinterpret_cast<DataChunk *>(m_vecDataChunks[i]);
-			pDataChunk->AttachToData(
-				reinterpret_cast<void *>(pAccumulated));
+		DataChunk * pDataChunk =
+			reinterpret_cast<DataChunk *>(m_vecDataChunks[i]);
+		pDataChunk->AttachToData(
+			reinterpret_cast<void *>(pAccumulated));
 
-			pAccumulated += pDataChunk->GetByteSize();
-
-		// int type
-		} else if (m_vecType[i] == PRIMTYPE_INT) {
-			int * pInt = reinterpret_cast<int *>(m_vecDataChunks[i]);
-			(*pInt) = *(reinterpret_cast<int *>(pAccumulated));
-
-			pAccumulated += int_aligned_size;
-
-		// float type
-		} else if (m_vecType[i] == PRIMTYPE_FLOAT) {
-			float * pFloat = reinterpret_cast<float *>(m_vecDataChunks[i]);
-			(*pFloat) = *(reinterpret_cast<float *>(pAccumulated));
-
-			pAccumulated += float_aligned_size;
-
-		// double type
-		} else if (m_vecType[i] == PRIMTYPE_DOUBLE) {
-			double * pDouble = reinterpret_cast<double *>(m_vecDataChunks[i]);
-			(*pDouble) = *(reinterpret_cast<size_t *>(pAccumulated));
-
-			pAccumulated += double_aligned_size;
-
-		// size_t type
-		} else if (m_vecType[i] == PRIMTYPE_SIZET) {
-			size_t * pSizeT = reinterpret_cast<size_t *>(m_vecDataChunks[i]);
-			(*pSizeT) = *(reinterpret_cast<size_t *>(pAccumulated));
-
-			pAccumulated += size_t_aligned_size;
-
-		// bool type
-		} else if (m_vecType[i] == PRIMTYPE_BOOL) {
-			bool * pBool = reinterpret_cast<bool *>(m_vecDataChunks[i]);
-			(*pBool) = *(reinterpret_cast<bool *>(pAccumulated));
-
-			pAccumulated += bool_aligned_size;
-
-		// Invalid type
-		} else {
-			_EXCEPTIONT("Invalid PRIMTYPE");
-		}
+		pAccumulated += pDataChunk->GetByteSize();
 	}
 }
 
@@ -227,12 +142,10 @@ void DataContainer::AttachTo(
 void DataContainer::Detach() {
 
 	for (size_t i = 0; i < m_vecDataChunks.size(); i++) {
-		if (m_vecType[i] == PRIMTYPE_DATACHUNK) {
-			DataChunk * pDataChunk =
-				reinterpret_cast<DataChunk *>(m_vecDataChunks[i]);
+		DataChunk * pDataChunk =
+			reinterpret_cast<DataChunk *>(m_vecDataChunks[i]);
 
-			pDataChunk->Detach();
-		}
+		pDataChunk->Detach();
 	}
 
 	if ((m_fOwnsData) && (m_pAllocatedMemory != NULL)) {

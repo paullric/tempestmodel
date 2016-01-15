@@ -30,19 +30,6 @@ class DataContainer {
 
 public:
 	///	<summary>
-	///		Primtive types stored in the DataContainer.
-	///	</summary>
-	enum PRIMTYPE {
-		PRIMTYPE_DATACHUNK,
-		PRIMTYPE_INT,
-		PRIMTYPE_FLOAT,
-		PRIMTYPE_DOUBLE,
-		PRIMTYPE_SIZET,
-		PRIMTYPE_BOOL
-	};
-
-public:
-	///	<summary>
 	///		Constructor.
 	///	</summary>
 	DataContainer();
@@ -57,57 +44,6 @@ public:
 	///	</summary>
 	size_t PushDataChunk(DataChunk * pChunk) {
 		m_vecDataChunks.push_back(pChunk);
-		m_vecType.push_back(PRIMTYPE_DATACHUNK);
-
-		return (m_vecDataChunks.size() - 1);
-	}
-
-	///	<summary>
-	///		Add a new integer to the DataContainer.
-	///	</summary>
-	size_t PushInteger(int * pInt) {
-		m_vecDataChunks.push_back(pInt);
-		m_vecType.push_back(PRIMTYPE_INT);
-
-		return (m_vecDataChunks.size() - 1);
-	}
-
-	///	<summary>
-	///		Add a new float to the DataContainer.
-	///	</summary>
-	size_t PushFloat(float * pFloat) {
-		m_vecDataChunks.push_back(pFloat);
-		m_vecType.push_back(PRIMTYPE_FLOAT);
-
-		return (m_vecDataChunks.size() - 1);
-	}
-
-	///	<summary>
-	///		Add a new double to the DataContainer.
-	///	</summary>
-	size_t PushDouble(double * pDouble) {
-		m_vecDataChunks.push_back(pDouble);
-		m_vecType.push_back(PRIMTYPE_DOUBLE);
-
-		return (m_vecDataChunks.size() - 1);
-	}
-
-	///	<summary>
-	///		Add a new size_t to the DataContainer.
-	///	</summary>
-	size_t PushSizeT(size_t * pSizeT) {
-		m_vecDataChunks.push_back(pSizeT);
-		m_vecType.push_back(PRIMTYPE_SIZET);
-
-		return (m_vecDataChunks.size() - 1);
-	}
-
-	///	<summary>
-	///		Add a new size_t to the DataContainer.
-	///	</summary>
-	size_t PushBool(bool * pBool) {
-		m_vecDataChunks.push_back(pBool);
-		m_vecType.push_back(PRIMTYPE_BOOL);
 
 		return (m_vecDataChunks.size() - 1);
 	}
@@ -173,11 +109,6 @@ private:
 	///		Vector of DataChunks stored in this DataContainer.
 	///	</summary>
 	std::vector<void *> m_vecDataChunks;
-
-	///	<summary>
-	///		Vector of primitive types.
-	///	</summary>
-	std::vector<PRIMTYPE> m_vecType;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
