@@ -20,8 +20,6 @@
 #include "HorizontalDynamics.h"
 #include "VerticalDynamics.h"
 
-#pragma message "File tagged for cleanup"
-
 ///////////////////////////////////////////////////////////////////////////////
 // THESE COEFFICIENTS ARE COMPUTED FROM THE ORIGINAL TABLEAUX
 // IMPLEMENTS ARK(2,2,2) FROM ASCHER ET AL. 1997 PG. 9
@@ -100,9 +98,9 @@ void TimestepSchemeARK2::Step(
 	// Compute uf1
 	pGrid->CopyData(0, 1, DataType_State);
 	pHorizontalDynamics->StepExplicit(
-		0, 1, time /*+ m_dTimeCf[0] * dDeltaT*/, m_dExpCf[1][0] * dDeltaT);
+		0, 1, time, m_dExpCf[1][0] * dDeltaT);
 	pVerticalDynamics->StepExplicit(
-		0, 1, time /*+ m_dTimeCf[0] * dDeltaT*/, m_dExpCf[1][0] * dDeltaT);
+		0, 1, time, m_dExpCf[1][0] * dDeltaT);
 	pGrid->PostProcessSubstage(1, DataType_State);
 	pGrid->PostProcessSubstage(1, DataType_Tracers);
 
@@ -112,7 +110,7 @@ void TimestepSchemeARK2::Step(
 	// Compute u1
 	pGrid->CopyData(1, 2, DataType_State);
 	pVerticalDynamics->StepImplicit(
-		1, 2, time /*+ m_dTimeCf[0] * dDeltaT*/, m_dImpCf[0][0] * dDeltaT);
+		1, 2, time, m_dImpCf[0][0] * dDeltaT);
 	pGrid->PostProcessSubstage(2, DataType_State);
 	pGrid->PostProcessSubstage(2, DataType_Tracers);
 
@@ -123,16 +121,16 @@ void TimestepSchemeARK2::Step(
 	// Compute uf2 from u1 and store it to index 1 (over uf1)
 	pGrid->LinearCombineData(m_du2fCombo, 1, DataType_State);
 	pHorizontalDynamics->StepExplicit(
-		2, 1, time /*+ m_dTimeCf[1] * dDeltaT*/, m_dExpCf[2][1] * dDeltaT);
+		2, 1, time, m_dExpCf[2][1] * dDeltaT);
 	pVerticalDynamics->StepExplicit(
-		2, 1, time /*+ m_dTimeCf[1] * dDeltaT*/, m_dExpCf[2][1] * dDeltaT);
+		2, 1, time, m_dExpCf[2][1] * dDeltaT);
 	pGrid->PostProcessSubstage(1, DataType_State);
 	pGrid->PostProcessSubstage(1, DataType_Tracers);
 
 	// Compute u2 from uf2 and u2 and store it to index 0 (over u0)
 	pGrid->CopyData(1, 2, DataType_State);
 	pVerticalDynamics->StepImplicit(
-		1, 2, time /*+ m_dTimeCf[1] * dDeltaT*/, m_dImpCf[1][1] * dDeltaT);
+		1, 2, time, m_dImpCf[1][1] * dDeltaT);
 	pGrid->PostProcessSubstage(2, DataType_State);
 	pGrid->PostProcessSubstage(2, DataType_Tracers);
 

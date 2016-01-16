@@ -27,6 +27,11 @@
 class Baroclinic3DCartesianRidgeTest : public TestCase {
 
 public:
+        /// <summary>
+	///		Lateral BC array (FOR CARTESIAN GRIDS).
+	///	</summary>
+	int m_iLatBC[4];
+
 	/// <summary>
 	///		Grid dimension array (FOR CARTESIAN GRIDS).
 	///	</summary>
@@ -148,6 +153,12 @@ public:
 
 		// Set the center of the domain in Y
 		m_dY0 = 0.5 * (m_dGDim[3] - m_dGDim[2]);
+
+                // Set the boundary conditions for this test (no-flux in Y)
+                m_iLatBC[0] = Grid::BoundaryCondition_Periodic;
+                m_iLatBC[1] = Grid::BoundaryCondition_NoFlux;
+                m_iLatBC[2] = Grid::BoundaryCondition_Periodic;
+                m_iLatBC[3] = Grid::BoundaryCondition_NoFlux;
 	}
 
 public:
@@ -507,16 +518,16 @@ try {
 	// Create a new instance of the test
 	Baroclinic3DCartesianRidgeTest * test =
 		new Baroclinic3DCartesianRidgeTest(dbC,
-									  dU0,
-									  dUp,
-									  ddTdz,
-									  dT0,
-									  dLpC,
-									  dhC,
-									  daC,
-									  dXC,
-									  dYC,
-									  fNoRayleighFriction);
+		        dU0,
+			dUp,
+			ddTdz,
+			dT0,
+			dLpC,
+			dhC,
+			daC,
+			dXC,
+			dYC,
+			fNoRayleighFriction);
 
 	// Setup the Model
 	AnnounceBanner("MODEL SETUP");
@@ -524,7 +535,8 @@ try {
 	Model model(EquationSet::PrimitiveNonhydrostaticEquations);
 	
 	// Setup the cartesian model with dimensions and reference latitude
-	TempestSetupCartesianModel(model, test->m_dGDim, test->m_dRefLat);
+	TempestSetupCartesianModel(model, test->m_dGDim, test->m_dRefLat, 
+                                   test->m_iLatBC);
 
 	// Set the reference length to reduce diffusion relative to global scale
 	const double XL = std::abs(test->m_dGDim[1] - test->m_dGDim[0]);

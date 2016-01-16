@@ -53,6 +53,7 @@ public:
 		int nVerticalOrder,
 		double dGDim[],
 		double dRefLat,
+                int iLatBC[],
 		VerticalStaggering eVerticalStaggering
 			= VerticalStaggering_CharneyPhillips
 	);

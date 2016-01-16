@@ -26,6 +26,11 @@
 class RobertBubbleCartesianTest : public TestCase {
 
 public:
+        /// <summary>
+	///		Lateral BC array (FOR CARTESIAN GRIDS).
+	///	</summary>
+	int m_iLatBC[4];
+
 	/// <summary>
 	///		Grid dimension array (FOR CARTESIAN GRIDS).
 	///	</summary>
@@ -88,6 +93,12 @@ public:
 		m_dGDim[3] = 5.0;
 		m_dGDim[4] = 0.0;
 		m_dGDim[5] = 1500.0;
+
+                // Set the boundary conditions for this test (no-flux in Y)
+                m_iLatBC[0] = Grid::BoundaryCondition_Periodic;
+                m_iLatBC[1] = Grid::BoundaryCondition_Periodic;
+                m_iLatBC[2] = Grid::BoundaryCondition_Periodic;
+                m_iLatBC[3] = Grid::BoundaryCondition_Periodic;
 	}
 
 public:
@@ -288,7 +299,9 @@ try {
 
 	Model model(EquationSet::PrimitiveNonhydrostaticEquations);
 
-	TempestSetupCartesianModel(model, test->m_dGDim, 0.0);
+	// Setup the cartesian model with dimensions and reference latitude
+	TempestSetupCartesianModel(model, test->m_dGDim, 0.0, 
+                                   test->m_iLatBC);
 
 	// Set the reference length to reduce diffusion relative to global scale
 	const double XL = std::abs(test->m_dGDim[1] - test->m_dGDim[0]);
