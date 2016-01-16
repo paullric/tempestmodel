@@ -1081,7 +1081,7 @@ protected:
 	///	<summary>
 	///		Geometric patch index.
 	///	</summary>
-	DataArray1D<int> m_iGeometricPatchIx;
+	DataArray1D<size_t> m_iGeometricPatchIx;
 
 	///	<summary>
 	///		Array of nodal values in the alpha direction (Geometric).
@@ -1254,7 +1254,7 @@ public:
 	///	<summary>
 	///		Active State patch index.
 	///	</summary>
-	DataArray1D<int> m_iActiveStatePatchIx;
+	DataArray1D<size_t> m_iActiveStatePatchIx;
 
 	///	<summary>
 	///		Grid data for the reference state on model levels (State).

@@ -221,12 +221,12 @@ void Model::SetTestCase(
 
 		// Evaluate physical constants
 		m_pTestCase->EvaluatePhysicalConstants(m_phys);
-                AnnounceBanner("Entering evaluate test in Model 225");
+                //AnnounceBanner("Entering evaluate test in Model 225");
 		// Initialize the topography and data
 		m_pGrid->EvaluateTestCase(*pTestCase, m_timeStart);
-                AnnounceBanner("Finished evaluate test in Model 225");
+                //AnnounceBanner("Finished evaluate test in Model 225");
 	}
-AnnounceBanner("Finished set test in Model 229");
+//AnnounceBanner("Finished set test in Model 229");
 }
 
 ///////////////////////////////////////////////////////////////////////////////
