@@ -331,6 +331,13 @@ public:
 		return m_opDiffDiffREdgeToREdge;
 	}
 
+	///	<summary>
+	///		Get the second derivative operator from levels to levels.
+	///	</summary>
+	const LinearColumnDiscPenaltyFEM & GetOpPenaltyNodeToNode() const {
+		return m_opPenaltyNodeToNode;
+	}
+
 protected:
 	///	<summary>
 	///		Order of accuracy of the method (number of nodes per element).
@@ -411,6 +418,11 @@ protected:
 	///		Second derivative operator from interfaces to interfaces.
 	///	</summary>
 	LinearColumnDiffDiffFEM m_opDiffDiffREdgeToREdge;
+
+	///	<summary>
+	///		Discontinuous penalty operator from levels to levels.
+	///	</summary>
+	LinearColumnDiscPenaltyFEM m_opPenaltyNodeToNode;
 
 	///	<summary>
 	///		Integral operator from levels to levels.

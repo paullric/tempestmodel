@@ -57,8 +57,16 @@ HorizontalDynamicsFEM::HorizontalDynamicsFEM(
 
 void HorizontalDynamicsFEM::Initialize() {
 
-	int nRElements = m_model.GetGrid()->GetRElements();
+	// Get a copy of the GLL grid
+	GridGLL * pGrid = dynamic_cast<GridGLL*>(m_model.GetGrid());
+	if (pGrid == NULL) {
+		_EXCEPTIONT("Grid must be of type GridGLL");
+	}
 
+	// Number of vertical levels
+	int nRElements = pGrid->GetRElements();
+
+	// Number of tracers
 	int nTracerCount = m_model.GetEquationSet().GetTracers();
 
 	// Initialize the alpha and beta mass fluxes
@@ -118,7 +126,6 @@ void HorizontalDynamicsFEM::Initialize() {
 	m_dJGradientB.Allocate(
 		m_nHorizontalOrder,
 		m_nHorizontalOrder);
-
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -493,6 +500,9 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 	// Get a copy of the GLL grid
 	GridGLL * pGrid = dynamic_cast<GridGLL*>(m_model.GetGrid());
 
+	// Vertical order
+	const int nVerticalOrder = pGrid->GetVerticalOrder();
+
 	// Number of vertical elements
 	const int nRElements = pGrid->GetRElements();
 
@@ -562,8 +572,8 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 		const double dZtop = pGrid->GetZtop();
 		
 		// Get the coordinates to check force balance externally
-		const DataArray2D<double>   & dLongitude  = pPatch->GetLongitude();
-		const DataArray2D<double>   & dLatitude   = pPatch->GetLatitude();
+		const DataArray2D<double> & dLongitude  = pPatch->GetLongitude();
+		const DataArray2D<double> & dLatitude   = pPatch->GetLatitude();
 		const DataArray3D<double> & dZLevels    = pPatch->GetZLevels();
 
 		// Data
@@ -640,12 +650,11 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 				double dCovUa = dataInitialNode[UIx][k][iA][iB];
 				double dCovUb = dataInitialNode[VIx][k][iA][iB];
 
-				// Calculate Ux
+				// Calculate covariant xi velocity and store
 				double dCovUx =
 					  dataInitialNode[WIx][k][iA][iB]
 					* dDerivRNode[k][iA][iB][2];
 
-				// Covariant xi velocity
 				m_dAuxDataNode[CovUxIx][k][i][j] = dCovUx;
 
 				// Contravariant velocities
@@ -705,9 +714,6 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 				int iElementB = b * m_nHorizontalOrder + box.GetHaloElements();
 
 				// Vertical derivatives
-				//double dCovDxUa = 0.0;
-				//double dCovDxUb = 0.0;
-
 				double dCovDxUa =
 					pGrid->DifferentiateNodeToNode(
 						&(dataInitialNode[UIx][0][iA][iB]),
@@ -762,17 +768,7 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 				double dJZetaA = (dCovDbUx - dCovDxUb);
 				double dJZetaB = (dCovDxUa - dCovDaUx);
 				double dJZetaX = (dCovDaUb - dCovDbUa);
-/*
-				// Rotational terms (covariant)
-				double dCovUCrossZetaA = dConUb * dJZetaX - dConUx * dJZetaB;
-				double dCovUCrossZetaB = dConUx * dJZetaA - dConUa * dJZetaX;
-				double dCovUCrossZetaX = dConUa * dJZetaB - dConUb * dJZetaA;
 
-				// U cross Relative Vorticity (contravariant)
-				m_dAuxDataNode[UCrossZetaAIx][k][i][j] = dCovUCrossZetaA;
-				m_dAuxDataNode[UCrossZetaBIx][k][i][j] = dCovUCrossZetaB;
-				m_dAuxDataNode[UCrossZetaXIx][k][i][j] = dCovUCrossZetaX;
-*/
 				// U cross Relative Vorticity (contravariant)
 				m_dAuxDataNode[UCrossZetaAIx][k][i][j] =
 					dConUb * dJZetaX - dConUx * dJZetaB;

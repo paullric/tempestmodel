@@ -259,6 +259,12 @@ void GridGLL::Initialize() {
 			m_dREtaLevels,
 			m_dREtaInterfaces);
 
+		// Initialize discontinuous penalty operator
+		m_opPenaltyNodeToNode.Initialize(
+			m_nVerticalOrder,
+			m_dREtaLevels,
+			m_dREtaInterfaces);
+
 		// Initialize integral operator
 		m_opIntNodeToNode.InitializeNodeToNodeInterfaceMethod(
 			m_nVerticalOrder,

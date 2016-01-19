@@ -28,10 +28,14 @@
 
 ///////////////////////////////////////////////////////////////////////////////
 
-#define UPWIND_HORIZONTAL_VELOCITIES
-#define UPWIND_THERMO
-#define UPWIND_VERTICAL_VELOCITY
-#define UPWIND_RHO
+// Choose 
+//#define VERTICAL_HYPERVISCOSITY
+//#define VERTICAL_UPWINDING
+
+#define DIFFUSE_HORIZONTAL_VELOCITIES
+//#define DIFFUSE_THERMO
+//#define DIFFUSE_VERTICAL_VELOCITY
+//#define DIFFUSE_RHO
 
 //#define DETECT_CFL_VIOLATION
 //#define CAP_VERTICAL_VELOCITY
@@ -189,6 +193,9 @@ void VerticalDynamicsFEM::Initialize() {
 #endif
 #endif
 
+	// Upwind weights
+	m_dUpwindWeights.Allocate(nRElements / m_nVerticalOrder - 1);
+
 	// Allocate column for JFNK
 	m_dColumnState.Allocate(m_nColumnStateSize);
 
@@ -287,21 +294,21 @@ void VerticalDynamicsFEM::Initialize() {
 	// Variables to upwind
 	m_fUpwind.Allocate(m_model.GetEquationSet().GetComponents());
 
-	if (m_nHypervisOrder != 0) {
-#ifdef UPWIND_HORIZONTAL_VELOCITIES
-		m_fUpwind[UIx] = true;
-		m_fUpwind[VIx] = true;
+#if defined(VERTICAL_HYPERVISCOSITY) || defined(VERTICAL_UPWINDING)
+#ifdef DIFFUSE_HORIZONTAL_VELOCITIES
+	m_fUpwind[UIx] = true;
+	m_fUpwind[VIx] = true;
 #endif
-#ifdef UPWIND_THERMO
-		m_fUpwind[PIx] = true;
+#ifdef DIFFUSE_THERMO
+	m_fUpwind[PIx] = true;
 #endif
-#ifdef UPWIND_VERTICAL_VELOCITY
-		m_fUpwind[WIx] = true;
+#ifdef DIFFUSE_VERTICAL_VELOCITY
+	m_fUpwind[WIx] = true;
 #endif
-#ifdef UPWIND_RHO
-		m_fUpwind[RIx] = true;
+#ifdef DIFFUSE_RHO
+	m_fUpwind[RIx] = true;
 #endif
-	}
+#endif
 
 	// Compute hyperviscosity coefficient
 	if (m_nHypervisOrder == 0) {
@@ -414,6 +421,18 @@ void VerticalDynamicsFEM::StepExplicit(
 
 		const DataArray4D<double> & dContraMetricXi =
 			pPatch->GetContraMetricXi();
+
+#ifdef VERTICAL_UPWINDING
+		// Interpolate U and V to interfaces
+		pPatch->InterpolateNodeToREdge(UIx, iDataInitial);
+		pPatch->InterpolateNodeToREdge(VIx, iDataInitial);
+
+		const DataArray4D<double> & dDerivRREdge =
+			pPatch->GetDerivRREdge();
+
+		const DataArray4D<double> & dContraMetricXiREdge =
+			pPatch->GetContraMetricXiREdge();
+#endif
 
 		// Loop over all nodes
 		for (int i = box.GetAInteriorBegin(); i < box.GetAInteriorEnd(); i++) {
@@ -536,6 +555,59 @@ void VerticalDynamicsFEM::StepExplicit(
 */
 			}
 
+#ifdef VERTICAL_UPWINDING
+			// Apply upwinding (discontinuous penalization) to U and V
+			if (m_fUpwind[UIx]) {
+
+				// Calculate u^xi on model interfaces (if not done above)
+				if (!m_fFullyExplicit) {
+					for (int k = 0; k <= nRElements; k++) {
+						double dCovUa = dataInitialREdge[UIx][k][i][j];
+						double dCovUb = dataInitialREdge[VIx][k][i][j];
+
+						double dCovUx =
+							  dataInitialREdge[WIx][k][i][j]
+							* dDerivRREdge[k][i][j][2];
+
+						m_dXiDotREdge[k] =
+							  dContraMetricXiREdge[k][i][j][0] * dCovUa
+							+ dContraMetricXiREdge[k][i][j][1] * dCovUb
+							+ dContraMetricXiREdge[k][i][j][2] * dCovUx;
+					}
+				}
+
+				// Calculate weights
+				for (int a = 0; a < nFiniteElements - 1; a++) {
+					int k = (a+1) * m_nVerticalOrder;
+					m_dUpwindWeights[a] =
+						0.5 * dDeltaT * fabs(m_dXiDotREdge[k]);
+				}
+
+				// Apply upwinding
+				const LinearColumnDiscPenaltyFEM & opPenalty =
+					pGrid->GetOpPenaltyNodeToNode();
+
+				int nUpwindStride =
+					dataInitialNode.GetSize(2)
+					* dataInitialNode.GetSize(3);
+
+				opPenalty.Apply(
+					&(m_dUpwindWeights[0]),
+					&(dataInitialNode[UIx][0][i][j]),
+					&(dataUpdateNode[UIx][0][i][j]),
+					nUpwindStride,
+					nUpwindStride);
+
+				opPenalty.Apply(
+					&(m_dUpwindWeights[0]),
+					&(dataInitialNode[VIx][0][i][j]),
+					&(dataUpdateNode[VIx][0][i][j]),
+					nUpwindStride,
+					nUpwindStride);
+			}
+#endif
+
+#if defined(VERTICAL_HYPERVISCOSITY) || defined(UNIFORM_DIFFUSION)
 			// Apply hyperviscosity to U and V
 			if (m_fUpwind[UIx] && (m_nHypervisOrder > 0)) {
 
@@ -568,7 +640,7 @@ void VerticalDynamicsFEM::StepExplicit(
 					m_dStateNode[VIx],
 					m_dHyperDiffState[VIx]);
 
-#ifdef UNIFORM_DIFFUSION
+#if defined(UNIFORM_DIFFUSION)
 				// Apply uniform diffusion in the vertical
 				double dZtop = pGrid->GetZtop();
 
@@ -586,8 +658,8 @@ void VerticalDynamicsFEM::StepExplicit(
 						* m_dHyperDiffState[VIx][k];
 				}
 #endif
-
-				// Compute higher derivatives of theta used for hyperdiffusion
+				// Compute higher derivatives of u and v used for
+				// hyperviscosity
 				for (int h = 2; h < m_nHypervisOrder; h += 2) {
 					memcpy(
 						m_dStateAux,
@@ -625,6 +697,7 @@ void VerticalDynamicsFEM::StepExplicit(
 						* m_dHyperDiffState[VIx][k];
 				}
 			}
+#endif
 		}
 		}
 	}
@@ -1654,6 +1727,7 @@ void VerticalDynamicsFEM::PrepareColumn(
 		m_dXiDotNode[nRElements-1] = 0.0;
 	}
 
+#if defined(VERTICAL_HYPERVISCOSITY) || defined(UNIFORM_DIFFUSION)
 	// Calculate second derivatives of other state variables
 	if (m_nHypervisOrder > 0) {
 
@@ -1717,6 +1791,7 @@ void VerticalDynamicsFEM::PrepareColumn(
 			}
 		}
 	}
+#endif
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -2079,6 +2154,7 @@ void VerticalDynamicsFEM::BuildF(
 				+ m_dColumnContraMetricBREdge[k][1] * dCovUb
 				+ m_dColumnContraMetricBREdge[k][2] * dCovUx;
 
+			// This is the implicit part of the curl term
 			double dCurlTerm =
 				- dConUa * m_dDiffUa[k]
 				- dConUb * m_dDiffUb[k];
@@ -2122,6 +2198,7 @@ void VerticalDynamicsFEM::BuildF(
 	}
 #endif
 
+#if defined(VERTICAL_HYPERVISCOSITY) || defined(UNIFORM_DIFFUSION)
 	// Apply flow-dependent hyperviscosity
 	if (m_nHypervisOrder > 0) {
 		for (int c = 2; c < 5; c++) {
@@ -2153,6 +2230,7 @@ void VerticalDynamicsFEM::BuildF(
 			}
 		}
 	}
+#endif
 
 #ifdef DEBUG
 	if (dF[VecFIx(FWIx, 0)] != 0.0) {
@@ -2323,12 +2401,14 @@ void VerticalDynamicsFEM::BuildJacobianF(
 		_EXCEPTIONT("Mass flux on levels -- not implemented");
 	}
 
+#ifdef VERTICAL_HYPERVISCOSITY
 	// Check upwinding
 	for (int c = 2; c < 5; c++) {
 		if (m_fUpwind[c]) {
 			_EXCEPTIONT("Upwinding not implemented in BuildJacobian");
 		}
 	}
+#endif
 
 //////////////////////////////////////////////
 // Prognostic thermodynamic variable pressure

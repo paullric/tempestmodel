@@ -200,4 +200,66 @@ public:
 
 ///////////////////////////////////////////////////////////////////////////////
 
+///	<summary>
+///		Discontinuous penalty operator working on a column.
+///	</summary>
+class LinearColumnDiscPenaltyFEM {
+
+public:
+	///	<summary>
+	///		Default constructor.
+	///	</summary>
+	LinearColumnDiscPenaltyFEM()
+	{ }
+
+	///	<summary>
+	///		Initialize the left penalty operator.
+	///	</summary>
+	void Initialize(
+		int nVerticalOrder,
+		const DataArray1D<double> & dREtaNode,
+		const DataArray1D<double> & dREtaREdge
+	);
+
+	///	<summary>
+	///		Apply the discontinuous penalty with given weights.
+	///	</summary>
+	void Apply(
+		const double * dWeight,
+		const double * dDataIn,
+		double * dDataOut,
+		int nStrideIn,
+		int nStrideOut
+	) const;
+
+private:
+	///	<summary>
+	///		Vertical order.
+	///	</summary>
+	int m_nVerticalOrder;
+
+	///	<summary>
+	///		Number of finite elements.
+	///	</summary>
+	int m_nRFiniteElements;
+
+	///	<summary>
+	///		Left penalization operator.
+	///	</summary>
+	LinearColumnOperator m_opLeft;
+
+	///	<summary>
+	///		Right penalization operator.
+	///	</summary>
+	LinearColumnOperator m_opRight;
+
+	///	<summary>
+	///		Buffer array.
+	///	</summary>
+	DataArray1D<double> m_dBuffer;
+
+};
+
+///////////////////////////////////////////////////////////////////////////////
+
 #endif

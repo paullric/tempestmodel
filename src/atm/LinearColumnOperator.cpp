@@ -106,9 +106,15 @@ void LinearColumnOperator::ComposeWith(
 
 void LinearColumnOperator::DebugOutput(
 	const DataArray1D<double> * pREtaNode,
-	const DataArray1D<double> * pREtaREdge
+	const DataArray1D<double> * pREtaREdge,
+	const std::string & strTag,
+	bool fExcept
 ) {
-	FILE * fp = fopen("op.txt", "w");
+	std::string strOpFile = "op" + strTag + ".txt";
+	std::string strRnFile = "rn" + strTag + ".txt";
+	std::string strRiFile = "ri" + strTag + ".txt";
+
+	FILE * fp = fopen(strOpFile.c_str(), "w");
 	for (int i = 0; i < m_dCoeff.GetRows(); i++) {
 		for (int j = 0; j < m_dCoeff.GetColumns(); j++) {
 			fprintf(fp, "%1.15e\t", m_dCoeff[i][j]);
@@ -118,7 +124,7 @@ void LinearColumnOperator::DebugOutput(
 	fclose(fp);
 
 	if (pREtaNode != NULL) {
-		FILE * fpn = fopen("rn.txt", "w");
+		FILE * fpn = fopen(strRnFile.c_str(), "w");
 		for (int i = 0; i < pREtaNode->GetRows(); i++) {
 			fprintf(fpn, "%1.15e\n", (*pREtaNode)[i]);
 		}
@@ -126,7 +132,7 @@ void LinearColumnOperator::DebugOutput(
 	}
 
 	if (pREtaREdge != NULL) {
-		FILE * fpi = fopen("ri.txt", "w");
+		FILE * fpi = fopen(strRiFile.c_str(), "w");
 		for (int i = 0; i < pREtaREdge->GetRows(); i++) {
 			fprintf(fpi, "%1.15e\n", (*pREtaREdge)[i]);
 		}
@@ -137,7 +143,9 @@ void LinearColumnOperator::DebugOutput(
 		printf("%i %i\n", m_iBegin[i], m_iEnd[i]);
 	}
 
-	_EXCEPTION();
+	if (fExcept) {
+		_EXCEPTION();
+	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////

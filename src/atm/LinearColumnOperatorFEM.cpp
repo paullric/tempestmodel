@@ -1196,4 +1196,194 @@ void LinearColumnIntFEM::InitializeNodeToNodeInterfaceMethod(
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+/// LinearColumnDiscPenaltyFEM
+///////////////////////////////////////////////////////////////////////////////
+
+void LinearColumnDiscPenaltyFEM::Initialize(
+	int nVerticalOrder,
+	const DataArray1D<double> & dREtaNode,
+	const DataArray1D<double> & dREtaREdge
+) {
+	const int ParamFluxCorrectionType = 2;
+
+	// Store vertical order
+	m_nVerticalOrder = nVerticalOrder;
+
+	// Number of elements
+	m_nRFiniteElements = dREtaNode.GetRows() / nVerticalOrder;
+
+	// Verify input parameters
+	if (dREtaNode.GetRows() == 0) {
+		_EXCEPTIONT("At least one row required for dREtaNode");
+	}
+	if (dREtaNode.GetRows() % nVerticalOrder != 0) {
+		_EXCEPTIONT("Column RElements / VerticalOrder mismatch");
+	}
+
+	// Initialize LinearColumnOperators
+	m_opLeft.Initialize(
+		dREtaNode.GetRows(),
+		dREtaNode.GetRows());
+
+	m_opRight.Initialize(
+		dREtaNode.GetRows(),
+		dREtaNode.GetRows());
+
+	DataArray2D<double> & dLeftPenaltyCoeff = m_opLeft.GetCoeffs();
+	DataArray1D<int> & iLeftPenaltyBegin = m_opLeft.GetIxBegin();
+	DataArray1D<int> & iLeftPenaltyEnd = m_opLeft.GetIxEnd();
+
+	DataArray2D<double> & dRightPenaltyCoeff = m_opRight.GetCoeffs();
+	DataArray1D<int> & iRightPenaltyBegin = m_opRight.GetIxBegin();
+	DataArray1D<int> & iRightPenaltyEnd = m_opRight.GetIxEnd();
+
+	// Interpolation to interior element edges
+	DataArray2D<double> dLeftInterpRElementEdge(
+		m_nRFiniteElements-1, nVerticalOrder);
+	DataArray2D<double> dRightInterpRElementEdge(
+		m_nRFiniteElements-1, nVerticalOrder);
+
+	for (int a = 0; a < m_nRFiniteElements-1; a++) {
+		PolynomialInterp::LagrangianPolynomialCoeffs(
+			nVerticalOrder,
+			&(dREtaNode[a*nVerticalOrder]),
+			&(dLeftInterpRElementEdge[a][0]),
+			dREtaREdge[(a+1)*nVerticalOrder]);
+
+		PolynomialInterp::LagrangianPolynomialCoeffs(
+			nVerticalOrder,
+			&(dREtaNode[(a+1)*nVerticalOrder]),
+			&(dRightInterpRElementEdge[a][0]),
+			dREtaREdge[(a+1)*nVerticalOrder]);
+	}
+
+	// Buffer arrays
+	DataArray1D<double> dSubLevels(nVerticalOrder);
+	DataArray1D<double> dDiffFluxCorrection(nVerticalOrder);
+
+	// Distribution of penalty to the left of the finite element edge
+	for (int a = 0; a < m_nRFiniteElements-1; a++) {
+
+		int ax = a * nVerticalOrder;
+
+		double dLeftREdge = dREtaREdge[a * nVerticalOrder];
+		double dRightREdge = dREtaREdge[(a+1) * nVerticalOrder];
+
+		for (int i = 0; i < nVerticalOrder; i++) {
+			dSubLevels[i] =
+				(dREtaNode[a*nVerticalOrder + i] - dLeftREdge)
+				/ (dRightREdge - dLeftREdge);
+		}
+
+		FluxCorrectionFunction::GetDerivatives(
+			ParamFluxCorrectionType,
+			nVerticalOrder+1,
+			dSubLevels,
+			dDiffFluxCorrection);
+
+		for (int i = 0; i < nVerticalOrder; i++) {
+			dDiffFluxCorrection[i] /= (dRightREdge - dLeftREdge);
+		}
+
+		for (int i = 0; i < nVerticalOrder; i++) {
+			for (int j = 0; j < nVerticalOrder; j++) {
+				dLeftPenaltyCoeff[ax + i][ax + j] =
+					- dDiffFluxCorrection[i]
+					* dLeftInterpRElementEdge[a][j];
+
+				dLeftPenaltyCoeff[ax + i][ax + nVerticalOrder + j] =
+					+ dDiffFluxCorrection[i]
+					* dRightInterpRElementEdge[a][j];
+			}
+
+			iLeftPenaltyBegin[ax + i] = a * nVerticalOrder;
+			iLeftPenaltyEnd[ax + i] = (a+2) * nVerticalOrder;
+		}
+	}
+
+	// Distribution of penalty to the right of the finite element edge
+	for (int a = 1; a < m_nRFiniteElements; a++) {
+		int ax = a * nVerticalOrder;
+
+		double dLeftREdge = dREtaREdge[a * nVerticalOrder];
+		double dRightREdge = dREtaREdge[(a+1) * nVerticalOrder];
+
+		for (int i = 0; i < nVerticalOrder; i++) {
+			dSubLevels[i] =
+				(dREtaNode[a*nVerticalOrder + i] - dLeftREdge)
+				/ (dRightREdge - dLeftREdge);
+
+			dSubLevels[i] = 1.0 - dSubLevels[i];
+		}
+
+		FluxCorrectionFunction::GetDerivatives(
+			ParamFluxCorrectionType,
+			nVerticalOrder+1,
+			dSubLevels,
+			dDiffFluxCorrection);
+
+		for (int i = 0; i < nVerticalOrder; i++) {
+			dDiffFluxCorrection[i] /= - (dRightREdge - dLeftREdge);
+		}
+
+		for (int i = 0; i < nVerticalOrder; i++) {
+			for (int j = 0; j < nVerticalOrder; j++) {
+				dRightPenaltyCoeff[ax + i][ax - nVerticalOrder + j] =
+					- dDiffFluxCorrection[i]
+					* dLeftInterpRElementEdge[a-1][j];
+
+				dRightPenaltyCoeff[ax + i][ax + j] =
+					+ dDiffFluxCorrection[i]
+					* dRightInterpRElementEdge[a-1][j];
+			}
+
+			iRightPenaltyBegin[ax + i] = (a-1) * nVerticalOrder;
+			iRightPenaltyEnd[ax + i] = (a+1) * nVerticalOrder;
+		}
+	}
+
+	// Allocate buffer array
+	m_dBuffer.Allocate(dREtaNode.GetRows());
+/*
+	// DEBUGGING
+	m_opLeft.DebugOutput(&dREtaNode, &dREtaREdge, "L", false);
+	m_opRight.DebugOutput(&dREtaNode, &dREtaREdge, "R", true);
+*/
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void LinearColumnDiscPenaltyFEM::Apply(
+	const double * dWeight,
+	const double * dDataIn,
+	double * dDataOut,
+	int nStrideIn,
+	int nStrideOut
+) const {
+	// Apply distribution of penalty to left of finite element edge
+	m_opLeft.Apply(dDataIn, &(m_dBuffer[0]), nStrideIn, 1);
+	for (int a = 0; a < m_nRFiniteElements-1; a++) {
+		int ax = a * m_nVerticalOrder;
+		for (int i = 0; i < m_nVerticalOrder; i++) {
+			//if (ax+i >= m_dBuffer.GetRows()) {
+			//	_EXCEPTION5("%i %i %i %i %i", a, m_nRFiniteElements, i, ax+i, m_dBuffer.GetRows());
+			//}
+			dDataOut[(ax+i)*nStrideOut] += m_dBuffer[ax+i] * dWeight[a];
+		}
+	}
+
+	// Apply distribution of penalty to right of finite element edge
+	m_opRight.Apply(dDataIn, &(m_dBuffer[0]), nStrideIn, 1);
+	for (int a = 1; a < m_nRFiniteElements; a++) {
+		int ax = a * m_nVerticalOrder;
+		for (int i = 0; i < m_nVerticalOrder; i++) {
+			//if (ax+i >= m_dBuffer.GetRows()) {
+			//	_EXCEPTION4("%i %i %i %i", a, i, ax+i, m_dBuffer.GetRows());
+			//}
+			dDataOut[(ax+i)*nStrideOut] += m_dBuffer[ax+i] * dWeight[a-1];
+		}
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
 

@@ -308,6 +308,11 @@ protected:
 
 protected:
 	///	<summary>
+	///		Finite element upwinding weights.
+	///	</summary>
+	DataArray1D<double> m_dUpwindWeights;
+
+	///	<summary>
 	///		State variable column.
 	///	</summary>
 	DataArray1D<double> m_dColumnState;

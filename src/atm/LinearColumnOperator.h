@@ -62,7 +62,9 @@ public:
 	///	</summary>
 	void DebugOutput(
 		const DataArray1D<double> * pREtaNode = NULL,
-		const DataArray1D<double> * pREtaREdge = NULL
+		const DataArray1D<double> * pREtaREdge = NULL,
+		const std::string & strTag = "",
+		bool fExcept = true
 	);
 
 public:
