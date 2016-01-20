@@ -35,7 +35,7 @@
 #define DIFFUSE_HORIZONTAL_VELOCITIES
 #define DIFFUSE_THERMO
 //#define DIFFUSE_VERTICAL_VELOCITY
-//#define DIFFUSE_RHO
+#define DIFFUSE_RHO
 
 //#define DETECT_CFL_VIOLATION
 //#define CAP_VERTICAL_VELOCITY
@@ -659,8 +659,9 @@ void VerticalDynamicsFEM::StepExplicit(
 						nUpwindStride);
 				}
 
+#ifdef EXPLICIT_THERMO
 				// Apply upwinding to thermodynamic variable
-				if (m_fUpwind[PIx]) {
+				if ((m_fUpwind[PIx]) && (!m_fFullyExplicit)) {
 					opPenalty.Apply(
 						&(m_dUpwindWeights[0]),
 						&(dataInitialNode[PIx][0][i][j]),
@@ -668,6 +669,26 @@ void VerticalDynamicsFEM::StepExplicit(
 						nUpwindStride,
 						nUpwindStride);
 				}
+#endif
+/*
+///////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////
+				// Apply upwinding to density
+				if ((m_fUpwind[RIx]) && (!m_fFullyExplicit)) {
+					opPenalty.Apply(
+						&(m_dUpwindWeights[0]),
+						&(dataInitialNode[RIx][0][i][j]),
+						&(dataUpdateNode[RIx][0][i][j]),
+						nUpwindStride,
+						nUpwindStride);
+				}
+///////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////
+*/
 			}
 #endif
 
@@ -2282,7 +2303,65 @@ void VerticalDynamicsFEM::BuildF(
 	}
 #endif
 
+#ifdef VERTICAL_UPWINDING
+	{
+#ifndef USE_JFNK_GMRES
+		_EXCEPTIONT("Not implemented: Vertical upwinding only supported by GMRES");
+#endif
+		// Get penalty operator
+		const LinearColumnDiscPenaltyFEM & opPenalty =
+			pGrid->GetOpPenaltyNodeToNode();
+
+		int nFiniteElements = nRElements / m_nVerticalOrder;
+
+		// Calculate weights
+		for (int a = 0; a < nFiniteElements - 1; a++) {
+			int k = (a+1) * m_nVerticalOrder;
+			m_dUpwindWeights[a] =
+				0.5 * fabs(m_dXiDotREdge[k]);
+		}
+
+		// Loop through all variables
+		for (int c = 2; c < 5; c++) {
+
+			// Only upwind select variables
+			if (!m_fUpwind[c]) {
+				continue;
+			}
+
+#ifdef EXPLICIT_THERMO
+			// Don't upwind thermodynamic variable if explicit
+			if (c == PIx) {
+				continue;
+			}
+#endif
+
+			// Upwinding on interfaces (not implemented)
+			if (pGrid->GetVarLocation(c) == DataLocation_REdge) {
+				_EXCEPTIONT("Upwinding on interfaces not implemented");
+
+			// Upwinding on levels
+			} else {
+
+				// Apply upwinding
+				m_dStateAux.Zero();
+				opPenalty.Apply(
+					&(m_dUpwindWeights[0]),
+					&(m_dStateNode[c][0]),
+					&(m_dStateAux[0]),
+					1,
+					1);
+
+				for (int k = 0; k < nRElements; k++) {
+					dF[VecFIx(FIxFromCIx(c), k)] -= m_dStateAux[k];
+				}
+			}
+		}
+	}
+#endif
+
 #if defined(VERTICAL_HYPERVISCOSITY) || defined(UNIFORM_DIFFUSION)
+	_EXCEPTION();
 	// Apply flow-dependent hyperviscosity
 	if (m_nHypervisOrder > 0) {
 		for (int c = 2; c < 5; c++) {
@@ -2386,6 +2465,7 @@ void VerticalDynamicsFEM::BuildJacobianF(
 	const double * dX,
 	double * dDG
 ) {
+	_EXCEPTIONT("Upwinding on theta not implemented");
 	// Indices of EquationSet variables
 	const int UIx = 0;
 	const int VIx = 1;

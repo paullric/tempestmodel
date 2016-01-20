@@ -1365,9 +1365,6 @@ void LinearColumnDiscPenaltyFEM::Apply(
 	for (int a = 0; a < m_nRFiniteElements-1; a++) {
 		int ax = a * m_nVerticalOrder;
 		for (int i = 0; i < m_nVerticalOrder; i++) {
-			//if (ax+i >= m_dBuffer.GetRows()) {
-			//	_EXCEPTION5("%i %i %i %i %i", a, m_nRFiniteElements, i, ax+i, m_dBuffer.GetRows());
-			//}
 			dDataOut[(ax+i)*nStrideOut] += m_dBuffer[ax+i] * dWeight[a];
 		}
 	}
@@ -1377,9 +1374,6 @@ void LinearColumnDiscPenaltyFEM::Apply(
 	for (int a = 1; a < m_nRFiniteElements; a++) {
 		int ax = a * m_nVerticalOrder;
 		for (int i = 0; i < m_nVerticalOrder; i++) {
-			//if (ax+i >= m_dBuffer.GetRows()) {
-			//	_EXCEPTION4("%i %i %i %i", a, i, ax+i, m_dBuffer.GetRows());
-			//}
 			dDataOut[(ax+i)*nStrideOut] += m_dBuffer[ax+i] * dWeight[a-1];
 		}
 	}

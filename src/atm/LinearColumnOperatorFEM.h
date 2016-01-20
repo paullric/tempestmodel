@@ -232,6 +232,20 @@ public:
 		int nStrideOut
 	) const;
 
+	///	<summary>
+	///		Get left operator.
+	///	</summary>
+	const LinearColumnOperator & GetLeftOp() const {
+		return m_opLeft;
+	}
+
+	///	<summary>
+	///		Get right operator.
+	///	</summary>
+	const LinearColumnOperator & GetRightOp() const {
+		return m_opRight;
+	}
+
 private:
 	///	<summary>
 	///		Vertical order.
