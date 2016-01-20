@@ -33,12 +33,14 @@
 //#define VERTICAL_UPWINDING
 
 #define DIFFUSE_HORIZONTAL_VELOCITIES
-//#define DIFFUSE_THERMO
+#define DIFFUSE_THERMO
 //#define DIFFUSE_VERTICAL_VELOCITY
 //#define DIFFUSE_RHO
 
 //#define DETECT_CFL_VIOLATION
 //#define CAP_VERTICAL_VELOCITY
+
+//#define EXPLICIT_THERMO
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -433,6 +435,10 @@ void VerticalDynamicsFEM::StepExplicit(
 		const DataArray4D<double> & dContraMetricXiREdge =
 			pPatch->GetContraMetricXiREdge();
 #endif
+#ifdef EXPLICIT_THERMO
+		// Interpolate W to levels
+		pPatch->InterpolateREdgeToNode(WIx, iDataInitial);
+#endif
 
 		// Loop over all nodes
 		for (int i = box.GetAInteriorBegin(); i < box.GetAInteriorEnd(); i++) {
@@ -555,9 +561,54 @@ void VerticalDynamicsFEM::StepExplicit(
 */
 			}
 
+#if defined(EXPLICIT_THERMO) && defined(FORMULATION_THETA)
+			// Explicit update of thermodynamic equation
+			{
+				// Calculate u^xi on model levels
+				if (!m_fFullyExplicit) {
+					for (int k = 0; k < nRElements; k++) {
+						double dCovUa = dataInitialNode[UIx][k][i][j];
+						double dCovUb = dataInitialNode[VIx][k][i][j];
+
+						double dCovUx =
+							  dataInitialNode[WIx][k][i][j]
+							* dDerivRNode[k][i][j][2];
+
+						m_dXiDotNode[k] =
+							  dContraMetricXi[k][i][j][0] * dCovUa
+							+ dContraMetricXi[k][i][j][1] * dCovUb
+							+ dContraMetricXi[k][i][j][2] * dCovUx;
+
+						m_dStateNode[UIx][k] = dCovUa;
+						m_dStateNode[VIx][k] = dCovUb;
+					}
+				}
+
+				int nUpwindStride =
+					dataInitialNode.GetSize(2)
+					* dataInitialNode.GetSize(3);
+
+				// Differentiate theta
+				const LinearColumnDiffFEM & opDiffNodeToNode =
+					pGrid->GetOpDiffNodeToNode();
+
+				opDiffNodeToNode.Apply(
+					&(dataInitialNode[PIx][0][i][j]),
+					&(m_dDiffThetaNode[0]),
+					nUpwindStride,
+					1);
+
+				// Calculate update to theta
+				for (int k = 0; k < nRElements; k++) {
+					dataUpdateNode[PIx][k][i][j] -=
+						dDeltaT * m_dXiDotNode[k] * m_dDiffThetaNode[k];
+				}
+			}
+#endif
+
 #ifdef VERTICAL_UPWINDING
-			// Apply upwinding (discontinuous penalization) to U and V
-			if (m_fUpwind[UIx]) {
+			// Apply upwinding (discontinuous penalization)
+			{
 
 				// Calculate u^xi on model interfaces (if not done above)
 				if (!m_fFullyExplicit) {
@@ -591,19 +642,32 @@ void VerticalDynamicsFEM::StepExplicit(
 					dataInitialNode.GetSize(2)
 					* dataInitialNode.GetSize(3);
 
-				opPenalty.Apply(
-					&(m_dUpwindWeights[0]),
-					&(dataInitialNode[UIx][0][i][j]),
-					&(dataUpdateNode[UIx][0][i][j]),
-					nUpwindStride,
-					nUpwindStride);
+				// Apply upwinding to U and V
+				if (m_fUpwind[UIx]) {
+					opPenalty.Apply(
+						&(m_dUpwindWeights[0]),
+						&(dataInitialNode[UIx][0][i][j]),
+						&(dataUpdateNode[UIx][0][i][j]),
+						nUpwindStride,
+						nUpwindStride);
 
-				opPenalty.Apply(
-					&(m_dUpwindWeights[0]),
-					&(dataInitialNode[VIx][0][i][j]),
-					&(dataUpdateNode[VIx][0][i][j]),
-					nUpwindStride,
-					nUpwindStride);
+					opPenalty.Apply(
+						&(m_dUpwindWeights[0]),
+						&(dataInitialNode[VIx][0][i][j]),
+						&(dataUpdateNode[VIx][0][i][j]),
+						nUpwindStride,
+						nUpwindStride);
+				}
+
+				// Apply upwinding to thermodynamic variable
+				if (m_fUpwind[PIx]) {
+					opPenalty.Apply(
+						&(m_dUpwindWeights[0]),
+						&(dataInitialNode[PIx][0][i][j]),
+						&(dataUpdateNode[PIx][0][i][j]),
+						nUpwindStride,
+						nUpwindStride);
+				}
 			}
 #endif
 
@@ -1094,7 +1158,25 @@ void VerticalDynamicsFEM::StepImplicit(
 			}
 #endif
 */
-			// Apply updated state to theta
+#ifdef EXPLICIT_THERMO
+			// Verify thermodynamic closure is untouched by update
+			if (pGrid->GetVarLocation(PIx) == DataLocation_REdge) {
+				for (int k = 0; k <= pGrid->GetRElements(); k++) {
+					if (fabs(m_dSoln[VecFIx(FPIx, k)] - dataInitialREdge[PIx][k][iA][iB]) > 1.0e-12) {
+						_EXCEPTIONT("Logic error");
+					}
+				}
+
+			} else {
+				for (int k = 0; k < pGrid->GetRElements(); k++) {
+					if (fabs(m_dSoln[VecFIx(FPIx, k)] - dataInitialNode[PIx][k][iA][iB]) > 1.0e-12) {
+						_EXCEPTIONT("Logic error");
+					}
+				}
+			}
+
+#else
+			// Apply updated state to thermodynamic closure
 			if (pGrid->GetVarLocation(PIx) == DataLocation_REdge) {
 				for (int k = 0; k <= pGrid->GetRElements(); k++) {
 					dataUpdateREdge[PIx][k][iA][iB] =
@@ -1106,7 +1188,7 @@ void VerticalDynamicsFEM::StepImplicit(
 						m_dSoln[VecFIx(FPIx, k)];
 				}
 			}
-
+#endif
 			// Copy over W
 			if (pGrid->GetVarLocation(WIx) == DataLocation_REdge) {
 				for (int k = 0; k <= pGrid->GetRElements(); k++) {
@@ -1869,6 +1951,7 @@ void VerticalDynamicsFEM::BuildF(
 			* m_dColumnInvJacobianNode[k];
 	}
 
+#ifndef EXPLICIT_THERMO
 #ifdef FORMULATION_PRESSURE
 	// Pressure flux calculated on model interfaces
 	if (!fMassFluxOnLevels) {
@@ -2031,6 +2114,7 @@ void VerticalDynamicsFEM::BuildF(
 				* m_dColumnInvJacobianREdge[k];
 		}
 	}
+#endif
 #endif
 
 	// Kinetic energy on model levels
@@ -2421,6 +2505,7 @@ void VerticalDynamicsFEM::BuildJacobianF(
 	// Vertical velocity on nodes (LEV or INT staggering)
 	} else {
 
+#ifndef EXPLICIT_THERMO
 		// dP_k/dP_n
 		for (int k = 0; k < nRElements; k++) {
 
@@ -2482,6 +2567,7 @@ void VerticalDynamicsFEM::BuildJacobianF(
 				* m_dColumnDerivRNode[k][2]
 				* m_dDiffPNode[k];
 		}
+#endif
 
 		// Account for interfaces
 		int kBegin = 0;
@@ -2530,6 +2616,7 @@ void VerticalDynamicsFEM::BuildJacobianF(
 			_EXCEPTIONT("Not implemented");
 		}
 
+#ifndef EXPLICIT_THERMO
 		// dT_k/dW_l
 		for (int k = 0; k < nRElements; k++) {
 			int l = iInterpREdgeToNodeBegin[k];
@@ -2551,6 +2638,7 @@ void VerticalDynamicsFEM::BuildJacobianF(
 					* m_dXiDotNode[k];
 			}
 		}
+#endif
 
 		// dW_k/dT_m and dW_k/dR_m
 		for (int k = 1; k < nRElements; k++) {
@@ -2595,6 +2683,7 @@ void VerticalDynamicsFEM::BuildJacobianF(
 			_EXCEPTIONT("Not implemented");
 		}
 
+#ifndef EXPLICIT_THERMO
 		// dT_k/dW_k
 		for (int k = 1; k < nRElements; k++) {
 			dDG[MatFIx(FWIx, k, FPIx, k)] +=
@@ -2612,6 +2701,7 @@ void VerticalDynamicsFEM::BuildJacobianF(
 					* m_dXiDotREdge[k];
 			}
 		}
+#endif
 
 		// dW_k/dT_l and dW_k/dR_m
 		for (int k = 1; k < nRElements; k++) {
