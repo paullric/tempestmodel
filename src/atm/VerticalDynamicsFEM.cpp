@@ -29,20 +29,20 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 //#define VERTICAL_HYPERVISCOSITY
-//#define VERTICAL_UPWINDING
+#define VERTICAL_UPWINDING
 
 #define DIFFUSE_HORIZONTAL_VELOCITIES
 #define DIFFUSE_THERMO
 //#define DIFFUSE_VERTICAL_VELOCITY
-#define DIFFUSE_RHO
+//#define DIFFUSE_RHO
 
 //#define DETECT_CFL_VIOLATION
 //#define CAP_VERTICAL_VELOCITY
 
-//#define EXPLICIT_THERMO
+#define EXPLICIT_THERMO
 
 //#define EXPLICIT_VERTICAL_VELOCITY_ADVECTION_CLARK
-//#define EXPLICIT_VERTICAL_VELOCITY_ADVECTION_MATERIAL
+#define EXPLICIT_VERTICAL_VELOCITY_ADVECTION_MATERIAL
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -660,7 +660,7 @@ void VerticalDynamicsFEM::StepExplicit(
 						double dCurlTerm =
 							- dConUa * m_dDiffUa[k]
 							- dConUb * m_dDiffUb[k];
-
+/*
 						// DEBUG
 						double dValue =
 							(m_dDiffKineticEnergyREdge[k] + dCurlTerm)
@@ -682,7 +682,7 @@ void VerticalDynamicsFEM::StepExplicit(
 							printf("UxDxW: %1.5e\n",
 								dXiDotREdge * dDxW);
 						}
-
+*/
 						dataUpdateREdge[WIx][k][i][j] -=
 							dDeltaT
 							* (m_dDiffKineticEnergyREdge[k] + dCurlTerm)
@@ -2451,8 +2451,16 @@ void VerticalDynamicsFEM::BuildF(
 #ifdef VERTICAL_UPWINDING
 	{
 #ifdef USE_DIRECTSOLVE
-		_EXCEPTIONT("Not implemented: Vertical upwinding only supported by GMRES");
+		if (m_fUpwind[3] || m_fUpwind[4]) {
+			_EXCEPTIONT("Not implemented: Vertical upwinding only supported by GMRES");
+		}
+#ifndef EXPLICIT_THERMO
+		if (m_fUpwind[2]) {
+			_EXCEPTIONT("Not implemented: Vertical upwinding only supported by GMRES");
+		}
 #endif
+#endif
+
 		// Get penalty operator
 		const LinearColumnDiscPenaltyFEM & opPenalty =
 			pGrid->GetOpPenaltyNodeToNode();
@@ -2609,7 +2617,6 @@ void VerticalDynamicsFEM::BuildJacobianF(
 	const double * dX,
 	double * dDG
 ) {
-	_EXCEPTIONT("Upwinding on theta not implemented");
 	// Indices of EquationSet variables
 	const int UIx = 0;
 	const int VIx = 1;
