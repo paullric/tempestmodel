@@ -18,6 +18,7 @@
 #include "VerticalDynamicsFEM.h"
 #include "TimestepScheme.h"
 
+#include "Announce.h"
 #include "Model.h"
 #include "Grid.h"
 #include "GridCSGLL.h"
@@ -194,6 +195,48 @@ void VerticalDynamicsFEM::Initialize() {
 	}
 #endif
 #endif
+
+	// Announce vertical dynamics configuration
+	AnnounceStartBlock("Configuring VerticalDynamicsFEM");
+
+#if defined(VERTICAL_HYPERVISCOSITY)
+	Announce("Hyperviscosity enabled");
+#elif defined(VERTICAL_UPWINDING)
+	Announce("Upwinding enabled");
+#else
+	Announce("Vertical diffusion disabled");
+#endif
+
+#if defined(VERTICAL_HYPERVISCOSITY) || defined(VERTICAL_UPWINDING)
+#if defined(DIFFUSE_HORIZONTAL_VELOCITIES)
+	Announce("Diffuse horizontal velocities");
+#endif
+#if defined(DIFFUSE_THERMO)
+	Announce("Diffuse thermodynamic variable");
+#endif
+#if defined(DIFFUSE_VERTICAL_VELOCITY)
+	Announce("Diffuse vertical velocity");
+#endif
+#if defined(DIFFUSE_RHO)
+	Announce("Diffuse density");
+#endif
+#endif
+
+#if defined(EXPLICIT_THERMO)
+	Announce("Explicit thermodynamic advection");
+#else
+	Announce("Implicit thermodynamic advection");
+#endif
+#if defined(EXPLICIT_VERTICAL_VELOCITY_ADVECTION_CLARK)
+	Announce("Explicit vertical velocity advection (Clark form)");
+#elif defined(EXPLICIT_VERTICAL_VELOCITY_ADVECTION_MATERIAL)
+	Announce("Explicit vertical velocity advection (Material form)");
+#else
+	Announce("Implicit vertical velocity advection");
+#endif
+
+	// End block
+	AnnounceEndBlock(NULL);
 
 	// Upwind weights
 	m_dUpwindWeights.Allocate(nRElements / m_nVerticalOrder - 1);
