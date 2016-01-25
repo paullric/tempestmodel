@@ -2413,7 +2413,7 @@ void VerticalDynamicsFEM::BuildF(
 				- dConUa * m_dDiffUa[k]
 				- dConUb * m_dDiffUb[k];
 
-			dF[VecFIx(FWIx, k)] =
+			dF[VecFIx(FWIx, k)] +=
 				(m_dDiffKineticEnergyREdge[k] + dCurlTerm)
 					/ m_dColumnDerivRREdge[k][2];
 #endif
