@@ -414,23 +414,22 @@ void GridPatchCSGLL::EvaluateGeometricTerms() {
 
 			// Gal-Chen and Somerville (1975) linear terrain-following coord
 			double dREta = m_grid.GetREtaLevel(k);
-
+/*
 			double dREtaStretch;
 			double dDxREtaStretch;
 			m_grid.EvaluateVerticalStretchF(
 				dREta, dREtaStretch, dDxREtaStretch);
 
 			double dZ = dZs + (m_grid.GetZtop() - dZs) * dREtaStretch;
-
 			double dDaR = (1.0 - dREtaStretch) * dDaZs;
 			double dDbR = (1.0 - dREtaStretch) * dDbZs;
 			double dDxR = (m_grid.GetZtop() - dZs) * dDxREtaStretch;
+*/
 
-/*
+			double dZ = dZs + (m_grid.GetZtop() - dZs) * dREta;
 			double dDaR = (1.0 - dREta) * dDaZs;
 			double dDbR = (1.0 - dREta) * dDbZs;
-			double dDxR = m_grid.GetZtop() - dZs;
-*/
+			double dDxR = (m_grid.GetZtop() - dZs);
 
 			// Calculate pointwise Jacobian
 			m_dataJacobian[k][iA][iB] = dDxR * m_dataJacobian2D[iA][iB];
@@ -564,7 +563,7 @@ void GridPatchCSGLL::EvaluateGeometricTerms() {
 
 			// Gal-Chen and Somerville (1975) linear terrain-following coord
 			double dREta = m_grid.GetREtaInterface(k);
-
+/*
 			double dREtaStretch;
 			double dDxREtaStretch;
 			m_grid.EvaluateVerticalStretchF(
@@ -575,6 +574,11 @@ void GridPatchCSGLL::EvaluateGeometricTerms() {
 			double dDaR = (1.0 - dREtaStretch) * dDaZs;
 			double dDbR = (1.0 - dREtaStretch) * dDbZs;
 			double dDxR = (m_grid.GetZtop() - dZs) * dDxREtaStretch;
+*/
+			double dZ = dZs + (m_grid.GetZtop() - dZs) * dREta;
+			double dDaR = (1.0 - dREta) * dDaZs;
+			double dDbR = (1.0 - dREta) * dDbZs;
+			double dDxR = (m_grid.GetZtop() - dZs);
 
 			// Calculate pointwise Jacobian
 			m_dataJacobianREdge[k][iA][iB] =
@@ -687,29 +691,27 @@ void GridPatchCSGLL::EvaluateTestCase(
 			// Gal-Chen and Sommerville (1975) vertical coordinate
 			for (int k = 0; k < m_grid.GetRElements(); k++) {
 				double dREta = m_grid.GetREtaLevel(k);
-
+/*
 				double dREtaStretch;
 				double dDxREtaStretch;
 				m_grid.EvaluateVerticalStretchF(
 					dREta, dREtaStretch, dDxREtaStretch);
-
+*/
 				m_dataZLevels[k][i][j] =
 					m_dataTopography[i][j]
-						+ dREtaStretch
-							* (m_grid.GetZtop() - m_dataTopography[i][j]);
+						+ dREta * (m_grid.GetZtop() - m_dataTopography[i][j]);
 			}
 			for (int k = 0; k <= m_grid.GetRElements(); k++) {
 				double dREta = m_grid.GetREtaInterface(k);
-
+/*
 				double dREtaStretch;
 				double dDxREtaStretch;
 				m_grid.EvaluateVerticalStretchF(
 					dREta, dREtaStretch, dDxREtaStretch);
-
+*/
 				m_dataZInterfaces[k][i][j] =
 					m_dataTopography[i][j]
-						+ dREtaStretch
-							* (m_grid.GetZtop() - m_dataTopography[i][j]);
+						+ dREta * (m_grid.GetZtop() - m_dataTopography[i][j]);
 			}
 		}
 		}

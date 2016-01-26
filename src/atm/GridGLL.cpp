@@ -22,6 +22,7 @@
 #include "Direction.h"
 #include "FluxCorrectionFunction.h"
 #include "PolynomialInterp.h"
+#include "GaussQuadrature.h"
 #include "GaussLobattoQuadrature.h"
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -85,27 +86,6 @@ void GridGLL::Initialize() {
 
 	// Call up the stack
 	Grid::Initialize();
-
-	// Initialize the vertical coordinate (INT staggering)
-	if (m_eVerticalStaggering == VerticalStaggering_Interfaces) {
-		double dDeltaElement =
-			static_cast<double>(m_nVerticalOrder - 1)
-			/ static_cast<double>(m_nRElements - 1);
-
-		InitializeVerticalCoordinate(
-			GridSpacingGaussLobatto(dDeltaElement, 0.0, m_nVerticalOrder)
-		);
-
-	// Initialize the vertical coordinate (LEV / LOR / CPH staggering)
-	} else {
-		double dDeltaElement =
-			static_cast<double>(m_nVerticalOrder)
-			/ static_cast<double>(m_nRElements);
-
-		InitializeVerticalCoordinate(
-			GridSpacingMixedGaussLobatto(dDeltaElement, 0.0, m_nVerticalOrder)
-		);
-	}
 
 	// Quadrature points for Gauss and Gauss-Lobatto quadrature
 	DataArray1D<double> dG;
@@ -182,13 +162,13 @@ void GridGLL::Initialize() {
 		m_opDiffDiffNodeToNode.InitializeGLLNodes(
 			m_nVerticalOrder,
 			m_dREtaLevels);
-
+/*
 		// Initialize integral operator
 		m_opIntNodeToNode.InitializeNodeToNodeInterfaceMethod(
 			m_nVerticalOrder,
 			m_dREtaLevels,
 			m_dREtaInterfaces);
-
+*/
 	} else {
 		// Interpolation operators
 		m_opInterpNodeToREdge.Initialize(
@@ -271,236 +251,183 @@ void GridGLL::Initialize() {
 			m_dREtaLevels,
 			m_dREtaInterfaces);
 	}
-/*
-	FILE * fp1 = fopen("op1.txt", "w");
-	const DataArray2D<double> & dCoeff1 = m_opDiffNodeToNode.GetCoeffs();
-	for (int n = 0; n < dCoeff1.GetRows(); n++) {
-		for (int m = 0; m < dCoeff1.GetColumns(); m++) {
-			fprintf(fp1, "%1.16e\t", dCoeff1[n][m]);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void GridGLL::InitializeVerticalCoordinate() {
+
+	// Initialize variable locations
+	Grid::InitializeVerticalCoordinate();
+
+	// Initialize 
+	if (m_model.GetEquationSet().GetDimensionality() == 2) {
+		return;
+	}
+
+	// Initialize the vertical coordinate (INT staggering)
+	if (m_eVerticalStaggering == VerticalStaggering_Interfaces) {
+
+		// Check number of levels
+		if ((m_nRElements - 1) % (m_nVerticalOrder - 1) != 0) {
+			_EXCEPTIONT("(vertorder - 1) must divide (levels - 1) equally");
 		}
-		fprintf(fp1, "\n");
-	}
-	fclose(fp1);
 
-	FILE * fp2 = fopen("lev.txt", "w");
-	for (int n = 0; n < m_dREtaStretchLevels.GetRows(); n++) {
-		fprintf(fp2, "%1.16e\n", m_dREtaStretchLevels[n]);
-	}
-	fclose(fp2);
-	_EXCEPTION();
-*/
-/*
-	const DataArray1D<int> & ixBegin1 = m_opDiffNodeToNode.GetIxBegin();
-	const DataArray1D<int> & ixEnd1 = m_opDiffNodeToNode.GetIxEnd();
-	for (int n = 0; n < dCoeff1.GetRows(); n++) {
-		fprintf(fp1, "%i\t%i\n", ixBegin1[n], ixEnd1[n]);
-	}
-	for (int n = 0; n < m_dREtaStretchLevels.GetRows(); n++) {
-		fprintf(fp1, "%1.5e %1.5e\n", m_dREtaStretchInterfaces[n], m_dREtaStretchLevels[n]);
-	}
-*/
-/*
-	FILE * fp2 = fopen("op2.txt", "w");
-	const DataArray2D<double> & dCoeff2 = m_opInterpREdgeToNode.GetCoeffs();
-	for (int n = 0; n < dCoeff2.GetRows(); n++) {
-		for (int m = 0; m < dCoeff2.GetColumns(); m++) {
-			fprintf(fp2, "%1.5e\t", dCoeff2[n][m]);
+		// Get Gauss-Lobatto points
+		DataArray1D<double> dGL;
+		DataArray1D<double> dWL;
+
+		GaussLobattoQuadrature::GetPoints(
+			m_nVerticalOrder, 0.0, 1.0, dGL, dWL);
+
+		// Number of finite elements
+		int nFiniteElements = (m_nRElements - 1) / (m_nVerticalOrder - 1);
+		double dAvgDeltaElement = 1.0 / static_cast<double>(nFiniteElements);
+
+		// Uniform stretching
+		if (m_pVerticalStretchF == NULL) {
+			for (int k = 0; k < m_nRElements; k++) {
+				double dA = static_cast<double>(k / (m_nVerticalOrder - 1));
+				int kx = k % (m_nVerticalOrder - 1);
+
+				m_dREtaLevels[k] = (dGL[kx] + dA) * dAvgDeltaElement;
+				m_dREtaLevelsNormArea[k] = dWL[kx] * dAvgDeltaElement;
+			}
+			for (int a = 1; a < nFiniteElements; a++) {
+				m_dREtaLevelsNormArea[a * (m_nVerticalOrder-1)] *= 2.0;
+			}
+
+		// Non-uniform stretching
+		} else {
+
+			double dStretchREta = 0.0;
+			double dDxStretchREta = 0.0;
+
+			double dREta0 = 0.0;
+			double dREta1 = 0.0;
+
+			EvaluateVerticalStretchF(
+				dAvgDeltaElement,
+				dREta1,
+				dDxStretchREta);
+
+			m_dREtaLevelsNormArea.Zero();
+
+			for (int a = 0; a < nFiniteElements; a++) {
+
+				double dDeltaElement = dREta1 - dREta0;
+				for (int k = 0; k < m_nVerticalOrder; k++) {
+					int kx = a * (m_nVerticalOrder - 1) + k;
+					m_dREtaLevels[kx] = dREta0 + dGL[k] * dDeltaElement;
+					m_dREtaLevelsNormArea[kx] += dWL[k] * dDeltaElement;
+				}
+
+				// Update element bounds
+				dREta0 = dREta1;
+
+				EvaluateVerticalStretchF(
+					static_cast<double>(a+2) * dAvgDeltaElement,
+					dREta1,
+					dDxStretchREta);
+			}
 		}
-		fprintf(fp2, "\n");
-	}
-	const DataArray1D<int> & ixBegin2 = m_opInterpREdgeToNode.GetIxBegin();
-	const DataArray1D<int> & ixEnd2 = m_opInterpREdgeToNode.GetIxEnd();
-	for (int n = 0; n < dCoeff2.GetRows(); n++) {
-		fprintf(fp2, "%i\t%i\n", ixBegin2[n], ixEnd2[n]);
-	}
-	fclose(fp2);
-*/
-/*
-	///////////////////////////////////////////////////////////////////////////
-	// Get quadrature points for Gauss quadrature (vertical)
-	GaussQuadrature::GetPoints(m_nVerticalOrder, 0.0, 1.0, dG, dW);
 
-	// Get quadrature points for Gauss-Lobatto quadrature (vertical)
-	GaussLobattoQuadrature::GetPoints(m_nVerticalOrder+1, 0.0, 1.0, dGL, dWL);
+	// Initialize the vertical coordinate (LEV / LOR / CPH staggering)
+	} else {
 
-	// Storage for variables on element interfaces (used for computing
-	// derivatives from nodes)
-	int nFiniteElements = GetRElements() / m_nVerticalOrder;
-	if (GetRElements() % m_nVerticalOrder != 0) {
-		_EXCEPTIONT("Logic error: Vertical order must divide RElements");
-	}
-
-	// Vertical elemental grid spacing
-	double dElementDeltaXi =
-		static_cast<double>(m_nVerticalOrder)
-		/ static_cast<double>(GetRElements());
-
-	// Interpolation coefficients from nodes to interfaces and vice versa
-	m_dInterpNodeToREdge.Initialize(m_nVerticalOrder+1, m_nVerticalOrder);
-	m_dInterpREdgeToNode.Initialize(m_nVerticalOrder, m_nVerticalOrder+1);
-
-	for (int n = 0; n < m_nVerticalOrder+1; n++) {
-		PolynomialInterp::LagrangianPolynomialCoeffs(
-			m_nVerticalOrder,
-			m_dREtaLevels,
-			m_dInterpNodeToREdge[n],
-			m_dREtaInterfaces[n]);
-	}
-	for (int n = 0; n < m_nVerticalOrder; n++) {
-		PolynomialInterp::LagrangianPolynomialCoeffs(
-			m_nVerticalOrder+1,
-			m_dREtaInterfaces,
-			m_dInterpREdgeToNode[n],
-			m_dREtaLevels[n]);
-	}
-
-	// Differentiation coefficients
-	m_dDiffREdgeToNode.Initialize(m_nVerticalOrder, m_nVerticalOrder+1);
-	m_dDiffREdgeToREdge.Initialize(m_nVerticalOrder+1, m_nVerticalOrder+1);
-	m_dDiffNodeToREdge.Initialize(m_nVerticalOrder+1, m_nVerticalOrder);
-	m_dDiffNodeToNode.Initialize(m_nVerticalOrder, m_nVerticalOrder);
-
-	// Compute differentiation coefficients
-	for (int n = 0; n < m_nVerticalOrder; n++) {
-		PolynomialInterp::DiffLagrangianPolynomialCoeffs(
-			m_nVerticalOrder+1, dGL, m_dDiffREdgeToNode[n], dG[n]);
-		PolynomialInterp::DiffLagrangianPolynomialCoeffs(
-			m_nVerticalOrder, dG, m_dDiffNodeToNode[n], dG[n]);
-
-		for (int m = 0; m <= m_nVerticalOrder; m++) {
-			m_dDiffREdgeToNode[n][m] /= dElementDeltaXi;
+		// Check number of levels
+		if (m_nRElements % m_nVerticalOrder != 0) {
+			_EXCEPTIONT("vertorder must divide levels equally");
 		}
-		for (int m = 0; m < m_nVerticalOrder; m++) {
-			m_dDiffNodeToNode[n][m] /= dElementDeltaXi;
+
+		// Get Gauss points
+		DataArray1D<double> dG;
+		DataArray1D<double> dW;
+
+		GaussQuadrature::GetPoints(
+			m_nVerticalOrder, 0.0, 1.0, dG, dW);
+
+		// Get Gauss-Lobatto points
+		DataArray1D<double> dGL;
+		DataArray1D<double> dWL;
+
+		GaussLobattoQuadrature::GetPoints(
+			m_nVerticalOrder+1, 0.0, 1.0, dGL, dWL);
+
+		// Number of finite elements
+		int nFiniteElements = m_nRElements / m_nVerticalOrder;
+		double dAvgDeltaElement = 1.0 / static_cast<double>(nFiniteElements);
+
+		// Uniform stretching
+		if (m_pVerticalStretchF == NULL) {
+			for (int k = 0; k < m_nRElements; k++) {
+				double dA = static_cast<double>(k / m_nVerticalOrder);
+				int kx = k % m_nVerticalOrder;
+
+				m_dREtaLevels[k] = (dG[kx] + dA) * dAvgDeltaElement;
+				m_dREtaLevelsNormArea[k] = dW[kx] * dAvgDeltaElement;
+			}
+
+			for (int k = 0; k <= m_nRElements; k++) {
+				double dA = static_cast<double>(k / m_nVerticalOrder);
+				int kx = k % m_nVerticalOrder;
+
+				m_dREtaInterfaces[k] = (dGL[kx] + dA) * dAvgDeltaElement;
+				m_dREtaInterfacesNormArea[k] = dWL[kx] * dAvgDeltaElement;
+			}
+			for (int a = 1; a < nFiniteElements; a++) {
+				m_dREtaInterfacesNormArea[a * m_nVerticalOrder] *= 2.0;
+			}
+
+		// Non-uniform stretching
+		} else {
+
+			double dStretchREta = 0.0;
+			double dDxStretchREta = 0.0;
+
+			double dREta0 = 0.0;
+			double dREta1 = 0.0;
+
+			EvaluateVerticalStretchF(
+				dAvgDeltaElement,
+				dREta1,
+				dDxStretchREta);
+
+			m_dREtaLevelsNormArea.Zero();
+			m_dREtaInterfacesNormArea.Zero();
+
+			for (int a = 0; a < nFiniteElements; a++) {
+
+				double dDeltaElement = dREta1 - dREta0;
+
+				for (int k = 0; k < m_nVerticalOrder; k++) {
+					int kx = a * m_nVerticalOrder + k;
+					m_dREtaLevels[kx] = dREta0 + dG[k] * dDeltaElement;
+					m_dREtaLevelsNormArea[kx] = dW[k] * dDeltaElement;
+				}
+
+				for (int k = 0; k <= m_nVerticalOrder; k++) {
+					int kx = a * m_nVerticalOrder + k;
+					m_dREtaInterfaces[kx] = dREta0 + dGL[k] * dDeltaElement;
+					m_dREtaInterfacesNormArea[kx] += dWL[k] * dDeltaElement;
+				}
+
+				// Update element bounds
+				dREta0 = dREta1;
+
+				EvaluateVerticalStretchF(
+					static_cast<double>(a+2) * dAvgDeltaElement,
+					dREta1,
+					dDxStretchREta);
+			}
+
 		}
 	}
-	for (int n = 0; n <= m_nVerticalOrder; n++) {
-		PolynomialInterp::DiffLagrangianPolynomialCoeffs(
-			m_nVerticalOrder, dG, m_dDiffNodeToREdge[n], dGL[n]);
-		PolynomialInterp::DiffLagrangianPolynomialCoeffs(
-			m_nVerticalOrder+1, dGL, m_dDiffREdgeToREdge[n], dGL[n]);
 
-		for (int m = 0; m <= m_nVerticalOrder; m++) {
-			m_dDiffREdgeToREdge[n][m] /= dElementDeltaXi;
-		}
-		for (int m = 0; m < m_nVerticalOrder; m++) {
-			m_dDiffNodeToREdge[n][m] /= dElementDeltaXi;
-		}
-	}
+	// Copy to stretch arrays (deprecated)
+	m_dREtaStretchLevels = m_dREtaLevels;
+	m_dREtaStretchInterfaces = m_dREtaInterfaces;
 
-	// Get derivatives of flux reconstruction function and scale to the
-	// element [0, dElementDeltaXi]
-	FluxCorrectionFunction::GetDerivatives(
-		m_nReconstructionPolyType,
-		m_nVerticalOrder+1, dG, m_dDiffReconsPolyNode);
-
-	FluxCorrectionFunction::GetDerivatives(
-		m_nReconstructionPolyType,
-		m_nVerticalOrder+1, dGL, m_dDiffReconsPolyREdge);
-
-	for (int n = 0; n < m_dDiffReconsPolyNode.GetRows(); n++) {
-		m_dDiffReconsPolyNode[n] /= dElementDeltaXi;
-	}
-	for (int n = 0; n < m_dDiffReconsPolyREdge.GetRows(); n++) {
-		m_dDiffReconsPolyREdge[n] /= dElementDeltaXi;
-	}
-
-	// Compute amalgamated differentiation coefficients
-	m_dDiffNodeToREdgeAmal.Initialize(
-		m_nVerticalOrder+1, 3*m_nVerticalOrder);
-
-	m_dDiffNodeToREdgeLeft.Initialize(
-		m_nVerticalOrder+1, 2*m_nVerticalOrder);
-
-	m_dDiffNodeToREdgeRight.Initialize(
-		m_nVerticalOrder+1, 2*m_nVerticalOrder);
-
-	for (int n = 0; n <= m_nVerticalOrder; n++) {
-	for (int m = 0; m < m_nVerticalOrder; m++) {
-		m_dDiffNodeToREdgeAmal[n][m_nVerticalOrder + m] =
-			m_dDiffNodeToREdge[n][m];
-		m_dDiffNodeToREdgeLeft[n][m] =
-			m_dDiffNodeToREdge[n][m];
-		m_dDiffNodeToREdgeRight[n][m_nVerticalOrder + m] =
-			m_dDiffNodeToREdge[n][m];
-	}
-	}
-
-	// Overlay differentiation stencils
-	for (int m = 0; m < 2 * m_nVerticalOrder; m++) {
-		m_dDiffNodeToREdgeAmal[0][m] = 0.5 * (
-			  m_dDiffNodeToREdgeAmal[0][m]
-			+ m_dDiffNodeToREdgeAmal[m_nVerticalOrder][m_nVerticalOrder+m]);
-
-		m_dDiffNodeToREdgeAmal[m_nVerticalOrder][m_nVerticalOrder+m] =
-			m_dDiffNodeToREdgeAmal[0][m];
-	}
-
-	// Contributions due to interface values
-	for (int n = 0; n <= m_nVerticalOrder; n++) {
-	for (int m = 0; m < m_nVerticalOrder; m++) {
-		// Contribution from element on the right
-		m_dDiffNodeToREdgeAmal[n][m_nVerticalOrder + m] -=
-			0.5 * m_dInterpNodeToREdge[m_nVerticalOrder][m]
-			* m_dDiffReconsPolyREdge[n];
-
-		m_dDiffNodeToREdgeAmal[n][2 * m_nVerticalOrder + m] +=
-			0.5 * m_dInterpNodeToREdge[0][m]
-			* m_dDiffReconsPolyREdge[n];
-
-		m_dDiffNodeToREdgeLeft[n][m] -=
-			0.5 * m_dInterpNodeToREdge[m_nVerticalOrder][m] * (
-				m_dDiffReconsPolyREdge[n]
-				+ m_dDiffReconsPolyREdge[m_nVerticalOrder - n]);
-
-		m_dDiffNodeToREdgeLeft[n][m_nVerticalOrder + m] +=
-			0.5 * m_dInterpNodeToREdge[0][m] * (
-				m_dDiffReconsPolyREdge[n]
-				+ m_dDiffReconsPolyREdge[m_nVerticalOrder - n]);
-
-		// Contribution from element on the left
-		m_dDiffNodeToREdgeAmal[n][m] +=
-			- 0.5 * m_dInterpNodeToREdge[m_nVerticalOrder][m]
-			* m_dDiffReconsPolyREdge[m_nVerticalOrder - n];
-
-		m_dDiffNodeToREdgeAmal[n][m_nVerticalOrder + m] -=
-			- 0.5* m_dInterpNodeToREdge[0][m]
-			* m_dDiffReconsPolyREdge[m_nVerticalOrder - n];
-
-		m_dDiffNodeToREdgeRight[n][m] +=
-			- 0.5 * m_dInterpNodeToREdge[m_nVerticalOrder][m] * (
-				m_dDiffReconsPolyREdge[m_nVerticalOrder - n]
-				+ m_dDiffReconsPolyREdge[n]);
-
-		m_dDiffNodeToREdgeRight[n][m_nVerticalOrder + m] -=
-			- 0.5 * m_dInterpNodeToREdge[0][m] * (
-				m_dDiffReconsPolyREdge[m_nVerticalOrder - n]
-				+ m_dDiffReconsPolyREdge[n]);
-	}
-	}
-*/
-/*
-	// Test
-	double dValue[12];
-	double dDiffValue[12];
-	for (int k = 0; k < 12; k++) {
-		dValue[k] = 15.0 * m_dREtaStretchLevels[k];
-	}
-
-	DifferentiateNodeToNode(
-		dValue,
-		dDiffValue,
-		false);
-
-	for (int k = 0; k < 12; k++) {
-		printf("%i: %1.5e\n", k, dDiffValue[k]);
-	}
-	m_opDiffNodeToNode.Apply(dValue, dDiffValue);
-	for (int k = 0; k < 12; k++) {
-		printf("%i: %1.5e\n", k, dDiffValue[k]);
-	}
-	_EXCEPTION();
-*/
 }
 
 ///////////////////////////////////////////////////////////////////////////////

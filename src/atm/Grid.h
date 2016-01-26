@@ -160,15 +160,18 @@ protected:
 	///		Initialize grid patches.
 	///	</summary>
 	virtual void Initialize() {
+
+		// Initialize the vertical coordinate
+		InitializeVerticalCoordinate();
+
+		// Set the grid as initialized
 		m_fInitialized = true;
 	}
 
 	///	<summary>
 	///		Initialize the vertical coordinate.
 	///	</summary>
-	virtual void InitializeVerticalCoordinate(
-		const GridSpacing & aGridSpacing
-	);
+	virtual void InitializeVerticalCoordinate();
 
 	///	<summary>
 	///		Initialize topography height/derivatives, state and tracer data

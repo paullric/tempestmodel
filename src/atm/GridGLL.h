@@ -62,7 +62,12 @@ public:
 	///	<summary>
 	///		Initializer.
 	///	</summary>
-	void Initialize();
+	virtual void Initialize();
+
+	///	<summary>
+	///		Initialize the vertical coordinate.
+	///	</summary>
+	virtual void InitializeVerticalCoordinate();
 
 	///	<summary>
 	///		Initialize topography height/derivatives, state and tracer data

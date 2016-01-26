@@ -322,7 +322,7 @@ void GridPatchCartesianGLL::EvaluateGeometricTerms() {
 				// Gal-Chen and Somerville (1975) terrain following coord
 				// Schar Exponential Decay terrain following coord
 				double dREta = m_grid.GetREtaLevel(k);
-
+/*
 				double dREtaStretch;
 				double dDxREtaStretch;
 				m_grid.EvaluateVerticalStretchF(
@@ -334,11 +334,14 @@ void GridPatchCartesianGLL::EvaluateGeometricTerms() {
 				//double dZ = m_grid.GetZtop() * dREtaStretch + dZs; // * dbZ;
 
 				double dZ = dZs + (m_grid.GetZtop() - dZs) * dREtaStretch;
-
 				double dDaZ = (1.0 - dREtaStretch) * dDaZs;
 				double dDbZ = (1.0 - dREtaStretch) * dDbZs;
 				double dDxZ = (m_grid.GetZtop() - dZs) * dDxREtaStretch;
-
+*/
+				double dZ = dZs + (m_grid.GetZtop() - dZs) * dREta;
+				double dDaZ = (1.0 - dREta) * dDaZs;
+				double dDbZ = (1.0 - dREta) * dDbZs;
+				double dDxZ = (m_grid.GetZtop() - dZs);
 /*
 				double dDaZ = dbZ * dDaZs;
 				double dDbZ = dbZ * dDbZs;
@@ -426,20 +429,27 @@ void GridPatchCartesianGLL::EvaluateGeometricTerms() {
 				double dDbZ = (1.0 - dREtaStretch) * dDbZs;
 				double dDxZ = (m_grid.GetZtop() - dZs) * dDxREtaStretch;
 */
+				double dZ = dZs + (m_grid.GetZtop() - dZs) * dREta;
+				double dDaZ = (1.0 - dREta) * dDaZs;
+				double dDbZ = (1.0 - dREta) * dDbZs;
+				double dDxZ = (m_grid.GetZtop() - dZs);
+
+/*
 				double dREtaStretch;
 				double dDxREtaStretch;
 				m_grid.EvaluateVerticalStretchF(
 					dREta, dREtaStretch, dDxREtaStretch);
+*/
 /*
 				//double dZ = dZs + (m_grid.GetZtop() - dZs) * dREtaStretch;
 				double dbZ = sinh(m_grid.GetZtop() * (1.0 - dREtaStretch) / m_dSL) / 
 					sinh(m_grid.GetZtop() / m_dSL);
 				double dZ = m_grid.GetZtop() * dREtaStretch + dZs * dbZ;
-*/
 
 				double dDaZ = (1.0 - dREtaStretch) * dDaZs;
 				double dDbZ = (1.0 - dREtaStretch) * dDbZs;
 		     	double dDxZ = (m_grid.GetZtop() - dZs) * dDxREtaStretch;
+*/
 /*
 				double dDaZ = dbZ * dDaZs;
 				double dDbZ = dbZ * dDbZs;
