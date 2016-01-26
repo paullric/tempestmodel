@@ -40,7 +40,7 @@
 //#define DETECT_CFL_VIOLATION
 //#define CAP_VERTICAL_VELOCITY
 
-#define EXPLICIT_THERMO
+//#define EXPLICIT_THERMO
 
 //#define EXPLICIT_VERTICAL_VELOCITY_ADVECTION_CLARK
 #define EXPLICIT_VERTICAL_VELOCITY_ADVECTION_MATERIAL
@@ -2493,16 +2493,9 @@ void VerticalDynamicsFEM::BuildF(
 
 #ifdef VERTICAL_UPWINDING
 	{
-#ifdef USE_DIRECTSOLVE
-		if (m_fUpwind[3] || m_fUpwind[4]) {
-			_EXCEPTIONT("Not implemented: Vertical upwinding only supported by GMRES");
+		if (m_fUpwind[3]) {
+			_EXCEPTIONT("Not implemented: Vertical upwinding of vertical velocity");
 		}
-#ifndef EXPLICIT_THERMO
-		if (m_fUpwind[2]) {
-			_EXCEPTIONT("Not implemented: Vertical upwinding only supported by GMRES");
-		}
-#endif
-#endif
 
 		// Get penalty operator
 		const LinearColumnDiscPenaltyFEM & opPenalty =
@@ -2722,26 +2715,40 @@ void VerticalDynamicsFEM::BuildJacobianF(
 		opDiffREdgeToNode.GetIxEnd();
 	const DataArray1D<int> & iDiffREdgeToREdgeEnd =
 		opDiffREdgeToREdge.GetIxEnd();
-/*
-	// Metric components
-	const DataArray3D<double> & dJacobianNode =
-		m_pPatch->GetJacobian();
-	const DataArray3D<double> & dJacobianREdge =
-		m_pPatch->GetJacobianREdge();
-	const DataArray4D<double> & dContraMetricXi =
-		m_pPatch->GetContraMetricXi();
-	const DataArray4D<double> & dDerivRNode =
-		m_pPatch->GetDerivRNode();
-	const DataArray4D<double> & dContraMetricXiREdge =
-		m_pPatch->GetContraMetricXiREdge();
-	const DataArray4D<double> & dDerivRREdge =
-		m_pPatch->GetDerivRREdge();
-*/
+
+#ifdef VERTICAL_UPWINDING
+	// Get the column penalization coefficients
+	const LinearColumnDiscPenaltyFEM & opPenalty =
+		pGrid->GetOpPenaltyNodeToNode();
+	const LinearColumnOperator & opPenaltyLeft =
+		opPenalty.GetLeftOp();
+	const LinearColumnOperator & opPenaltyRight =
+		opPenalty.GetRightOp();
+
+	const DataArray2D<double> & dPenaltyLeft =
+		opPenaltyLeft.GetCoeffs();
+	const DataArray2D<double> & dPenaltyRight =
+		opPenaltyRight.GetCoeffs();
+
+	const DataArray1D<int> & iPenaltyLeftBegin =
+		opPenaltyLeft.GetIxBegin();
+	const DataArray1D<int> & iPenaltyRightBegin =
+		opPenaltyRight.GetIxBegin();
+
+	const DataArray1D<int> & iPenaltyLeftEnd =
+		opPenaltyLeft.GetIxEnd();
+	const DataArray1D<int> & iPenaltyRightEnd =
+		opPenaltyRight.GetIxEnd();
+#endif
+
 	// Physical constants
 	const PhysicalConstants & phys = m_model.GetPhysicalConstants();
 
 	// Number of radial elements
 	const int nRElements = pGrid->GetRElements();
+
+	// Number of radial finite elements
+	const int nFiniteElements = nRElements / m_nVerticalOrder;
 
 	// Zero DG
 	memset(dDG, 0,
@@ -2763,7 +2770,7 @@ void VerticalDynamicsFEM::BuildJacobianF(
 	// Check upwinding
 	for (int c = 2; c < 5; c++) {
 		if (m_fUpwind[c]) {
-			_EXCEPTIONT("Upwinding not implemented in BuildJacobian");
+			_EXCEPTIONT("Hyperviscosity not implemented in BuildJacobian");
 		}
 	}
 #endif
@@ -3124,6 +3131,82 @@ void VerticalDynamicsFEM::BuildJacobianF(
 			}
 		}
 	}
+
+#ifdef VERTICAL_UPWINDING
+	// Vertical upwinding
+	for (int c = 2; c < 5; c++) {
+
+		// Check upwinding
+		if (!m_fUpwind[c]) {
+			continue;
+		}
+		if (pGrid->GetVarLocation(c) != DataLocation_Node) {
+			_EXCEPTIONT("Upwinding on interfaces not implemented");
+		}
+		if (pGrid->GetVarLocation(WIx) != DataLocation_REdge) {
+			_EXCEPTIONT("Upwinding DIRECTSOLVE requires W on interfaces");
+		}
+
+		for (int a = 1; a < nFiniteElements; a++) {
+			double dWeight = 0.5 * fabs(m_dXiDotREdge[a * m_nVerticalOrder]);
+			double dSignWeight;
+			if (m_dXiDotREdge[a * m_nVerticalOrder] > 0.0) {
+				dSignWeight = 0.5;
+			} else if (m_dXiDotREdge[a * m_nVerticalOrder] < 0.0) {
+				dSignWeight = -0.5;
+			} else {
+				dSignWeight = 0.0;
+			}
+
+			int kLeftBegin = (a-1) * m_nVerticalOrder;
+			int kLeftEnd = a * m_nVerticalOrder;
+
+			int kRightBegin = a * m_nVerticalOrder;
+			int kRightEnd = (a+1) * m_nVerticalOrder;
+
+#pragma message "Need to account for horizontal flow contribution to xi_dot"
+			// dC_k/dW_a (left operator)
+			for (int k = kLeftBegin; k < kLeftEnd; k++) {
+			for (int n = iPenaltyLeftBegin[k]; n < iPenaltyLeftEnd[k]; n++) {
+				//printf("%1.15e %1.15e %1.15e\n",
+				//	dSignWeight, dPenaltyLeft[k][n], m_dStateNode[c][n]);
+				dDG[MatFIx(FWIx, kLeftEnd, FIxFromCIx(c), k)] -=
+					dSignWeight
+					/ m_dColumnDerivRREdge[kLeftEnd][2]
+					* dPenaltyLeft[k][n]
+					* m_dStateNode[c][n];
+			}
+			}
+
+			// dC_k/dW_a (right operator)
+			for (int k = kRightBegin; k < kRightEnd; k++) {
+			for (int n = iPenaltyRightBegin[k]; n < iPenaltyRightEnd[k]; n++) {
+				dDG[MatFIx(FWIx, kRightBegin, FIxFromCIx(c), k)] -=
+					dSignWeight
+					/ m_dColumnDerivRREdge[kRightBegin][2]
+					* dPenaltyRight[k][n]
+					* m_dStateNode[c][n];
+			}
+			}
+
+			// dC_k/dC_n (left operator)
+			for (int k = kLeftBegin; k < kLeftEnd; k++) {
+			for (int n = iPenaltyLeftBegin[k]; n < iPenaltyLeftEnd[k]; n++) {
+				dDG[MatFIx(FIxFromCIx(c), n, FIxFromCIx(c), k)] -=
+					dWeight * dPenaltyLeft[k][n];
+			}
+			}
+
+			// dC_k/dC_n (right operator)
+			for (int k = kRightBegin; k < kRightEnd; k++) {
+			for (int n = iPenaltyRightBegin[k]; n < iPenaltyRightEnd[k]; n++) {
+				dDG[MatFIx(FIxFromCIx(c), n, FIxFromCIx(c), k)] -=
+					dWeight * dPenaltyRight[k][n];
+			}
+			}
+		}
+	}
+#endif
 
 	// Add the identity components
 	for (int k = 0; k <= nRElements; k++) {
