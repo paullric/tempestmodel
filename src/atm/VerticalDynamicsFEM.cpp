@@ -3136,6 +3136,13 @@ void VerticalDynamicsFEM::BuildJacobianF(
 	// Vertical upwinding
 	for (int c = 2; c < 5; c++) {
 
+#ifdef EXPLICIT_THERMO
+		// Don't upwind thermodynamic variable if explicit
+		if (c == PIx) {
+			continue;
+		}
+#endif
+
 		// Check upwinding
 		if (!m_fUpwind[c]) {
 			continue;
