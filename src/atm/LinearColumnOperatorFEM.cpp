@@ -678,6 +678,117 @@ void LinearColumnDiffFEM::InitializeGLLNodes(
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+
+void LinearColumnDiffFEM::InitializeVariationalNodeToREdge(
+	int nVerticalOrder,
+	const DataArray1D<double> & dREtaNode,
+	const DataArray1D<double> & dREtaREdge
+) {
+
+	const int nRElementsIn  = dREtaNode.GetRows();
+	const int nRElementsOut = dREtaREdge.GetRows();
+
+	const int nFiniteElements = nRElementsIn / nVerticalOrder;
+
+	// Verify input parameters
+	if (nRElementsIn == 0) {
+		_EXCEPTIONT("At least one row required for dREtaNode");
+	}
+	if (nRElementsOut == 0) {
+		_EXCEPTIONT("At least one row required for dREtaREdge");
+	}
+
+	// Initialize LinearColumnOperator for differentiation from interfaces
+	LinearColumnOperator::Initialize(nRElementsIn, nRElementsOut);
+
+	// Local differentiation coefficients
+	DataArray2D<double> dLocalDiffCoeff(nVerticalOrder, nVerticalOrder+1);
+
+	// Loop through all output elements
+	for (int a = 0; a < nFiniteElements; a++) {
+
+		// Gauss quadrature nodes
+		DataArray1D<double> dG;
+		DataArray1D<double> dW;
+		GaussQuadrature::GetPoints(
+			nVerticalOrder,
+			dREtaREdge[a * nVerticalOrder],
+			dREtaREdge[(a+1) * nVerticalOrder],
+			dG, dW);
+
+		// Gauss-Lobatto quadrature nodes (on reference element)
+		DataArray1D<double> dGL;
+		DataArray1D<double> dWL;
+		GaussLobattoQuadrature::GetPoints(
+			nVerticalOrder+1, 0.0, 1.0, dGL, dWL);
+
+		// Get derivatives of GLL characteristic functions at each
+		// Gaussian quadrature node
+		for (int i = 0; i < nVerticalOrder; i++) {
+			PolynomialInterp::DiffLagrangianPolynomialCoeffs(
+				nVerticalOrder + 1,
+				&(dREtaREdge[a * nVerticalOrder]),
+				dLocalDiffCoeff[i],
+				dG[i]);
+		}
+
+		// Add contributions to each output edge
+		for (int j = 0; j <= nVerticalOrder; j++) {
+			int jx = j + a * nVerticalOrder;
+
+			// Local area under GLL basis function
+			double dWLlocal = dWL[j]
+				* ( dREtaREdge[(a+1) * nVerticalOrder]
+				  - dREtaREdge[ a    * nVerticalOrder]);
+
+			if ((j == 0) && (a != 0)) {
+				dWLlocal += dWL[nVerticalOrder]
+					* ( dREtaREdge[ a    * nVerticalOrder]
+				      - dREtaREdge[(a-1) * nVerticalOrder]);
+			}
+			if ((j == nVerticalOrder) && (a != nFiniteElements-1)) {
+				dWLlocal += dWL[0]
+					* ( dREtaREdge[(a+2) * nVerticalOrder]
+				      - dREtaREdge[(a+1) * nVerticalOrder]);
+			}
+
+			// Contributions from each nodal value
+			for (int i = 0; i < nVerticalOrder; i++) {
+				int ix = i + a * nVerticalOrder;
+
+				m_dCoeff[jx][ix] =
+					- dLocalDiffCoeff[i][j]
+					* dW[i] / dWLlocal;
+			}
+		}
+
+		// Set bounds on coefficient indices
+		if (a == 0) {
+			m_iBegin[0] = 0;
+			m_iEnd[0] = nVerticalOrder;
+		} else {
+			m_iBegin[a * nVerticalOrder] = (a-1) * nVerticalOrder;
+			m_iEnd[a * nVerticalOrder] = (a+1) * nVerticalOrder;
+		}
+
+		if (a == nFiniteElements-1) {
+			m_iBegin[(a+1) * nVerticalOrder] = a * nVerticalOrder;
+			m_iEnd[(a+1) * nVerticalOrder] = (a+1) * nVerticalOrder;
+		}
+
+		for (int j = 1; j < nVerticalOrder; j++) {
+			m_iBegin[a * nVerticalOrder + j] = a * nVerticalOrder;
+			m_iEnd[a * nVerticalOrder + j] = (a+1) * nVerticalOrder;
+		}
+
+	}
+/*
+	// DEBUGGING
+	DebugOutput(&dREtaNode, &dREtaREdge);
+*/
+}
+
+///////////////////////////////////////////////////////////////////////////////
 /// LinearColumnDiffDiffFEM
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -688,8 +799,6 @@ void LinearColumnDiffDiffFEM::Initialize(
 	const DataArray1D<double> & dREtaREdge
 ) {
 	const int ParamFluxCorrectionType = 2;
-
-	const double ParamEpsilon = 1.0e-12;
 
 	int nRElementsIn;
 	int nRElementsOut;
@@ -1013,8 +1122,6 @@ void LinearColumnDiffDiffFEM::InitializeGLLNodes(
 	const DataArray1D<double> & dREtaNode
 ) {
 
-	const double ParamEpsilon = 1.0e-12;
-
 	const int nRElementsIn  = dREtaNode.GetRows();
 	const int nRElementsOut = dREtaNode.GetRows();
 
@@ -1131,8 +1238,6 @@ void LinearColumnIntFEM::InitializeNodeToNodeInterfaceMethod(
 	const DataArray1D<double> & dREtaNode,
 	const DataArray1D<double> & dREtaREdge
 ) {
-	const double ParamEpsilon = 1.0e-12;
-
 	const int nRElementsIn  = dREtaNode.GetRows();
 	const int nRElementsOut = dREtaNode.GetRows();
 	const int nRElementsREdge = dREtaREdge.GetRows();

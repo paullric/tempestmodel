@@ -202,13 +202,10 @@ void GridGLL::Initialize() {
 			m_dREtaLevels,
 			true);
 
-		m_opDiffNodeToREdge.InitializeFluxCorrectionMethod(
-			LinearColumnDiffFEM::InterpSource_Levels,
+		m_opDiffNodeToREdge.InitializeVariationalNodeToREdge(
 			m_nVerticalOrder,
 			m_dREtaLevels,
-			m_dREtaInterfaces,
-			m_dREtaInterfaces,
-			false);
+			m_dREtaInterfaces);
 
 		m_opDiffREdgeToNode.InitializeInterfaceMethod(
 			LinearColumnDiffFEM::InterpSource_Interfaces,
@@ -360,6 +357,7 @@ void GridGLL::InitializeVerticalCoordinate() {
 
 		// Uniform stretching
 		if (m_pVerticalStretchF == NULL) {
+
 			for (int k = 0; k < m_nRElements; k++) {
 				double dA = static_cast<double>(k / m_nVerticalOrder);
 				int kx = k % m_nVerticalOrder;

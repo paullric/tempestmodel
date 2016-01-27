@@ -288,10 +288,10 @@ void Grid::InitializeVerticalCoordinate() {
 		}
 
 		// Default to uniform GridSpacing
-		double dDeltaElement = 1.0 / static_cast<double>(m_nRElements);
+		double dAvgDeltaElement = 1.0 / static_cast<double>(m_nRElements);
 		double dZeroCoord = 0.0;
 
-		GridSpacingUniform gridspacing(dDeltaElement, dZeroCoord);
+		GridSpacingUniform gridspacing(dAvgDeltaElement, dZeroCoord);
 
 		// Get node/interface location from GridSpacing
 		for (int k = 0; k < m_nRElements; k++) {

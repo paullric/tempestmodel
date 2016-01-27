@@ -119,6 +119,16 @@ public:
 		const DataArray1D<double> & dREtaNode,
 		const DataArray1D<double> & dREtaOut
 	);
+
+	///	<summary>
+	///		Initialize a differentiation operator applied to GLL nodes.
+	///	</summary>
+	void InitializeVariationalNodeToREdge(
+		int nVerticalOrder,
+		const DataArray1D<double> & dREtaNode,
+		const DataArray1D<double> & dREtaREdge
+	);
+
 };
 
 ///////////////////////////////////////////////////////////////////////////////
