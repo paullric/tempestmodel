@@ -41,9 +41,9 @@
 //#define CAP_VERTICAL_VELOCITY
 
 //#define EXPLICIT_THERMO
+//#define EXPLICIT_VERTICAL_VELOCITY_ADVECTION
 
-//#define EXPLICIT_VERTICAL_VELOCITY_ADVECTION_CLARK
-#define EXPLICIT_VERTICAL_VELOCITY_ADVECTION_MATERIAL
+//#define VERTICAL_VELOCITY_ADVECTION_CLARK
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -227,12 +227,15 @@ void VerticalDynamicsFEM::Initialize() {
 #else
 	Announce("Implicit thermodynamic advection");
 #endif
-#if defined(EXPLICIT_VERTICAL_VELOCITY_ADVECTION_CLARK)
-	Announce("Explicit vertical velocity advection (Clark form)");
-#elif defined(EXPLICIT_VERTICAL_VELOCITY_ADVECTION_MATERIAL)
-	Announce("Explicit vertical velocity advection (Material form)");
+#if defined(EXPLICIT_VERTICAL_VELOCITY_ADVECTION)
+	Announce("Explicit vertical velocity advection");
 #else
 	Announce("Implicit vertical velocity advection");
+#endif
+#if defined(VERTICAL_VELOCITY_ADVECTION_CLARK)
+	Announce("Vertical velocity advection in Clark form");
+#else
+	Announce("Vertical velocity advection in advective form");
 #endif
 
 	// End block
@@ -292,6 +295,9 @@ void VerticalDynamicsFEM::Initialize() {
 
 	m_dDiffThetaNode.Allocate(nRElements);
 	m_dDiffThetaREdge.Allocate(nRElements+1);
+
+	m_dDiffWNode.Allocate(nRElements);
+	m_dDiffWREdge.Allocate(nRElements+1);
 
 	m_dHorizKineticEnergyNode.Allocate(nRElements);
 	m_dKineticEnergyNode.Allocate(nRElements);
@@ -473,7 +479,8 @@ void VerticalDynamicsFEM::StepExplicit(
 		const DataArray4D<double> & dContraMetricXiREdge =
 			pPatch->GetContraMetricXiREdge();
 
-#if defined(EXPLICIT_VERTICAL_VELOCITY_ADVECTION_CLARK)
+#if defined(EXPLICIT_VERTICAL_VELOCITY_ADVECTION) && \
+    defined(VERTICAL_VELOCITY_ADVECTION_CLARK)
 		const DataArray4D<double> & dContraMetricA =
 			pPatch->GetContraMetricA();
 
@@ -487,14 +494,14 @@ void VerticalDynamicsFEM::StepExplicit(
 			pPatch->GetContraMetricBREdge();
 #endif
 #if defined(VERTICAL_UPWINDING) \
- || defined(EXPLICIT_VERTICAL_VELOCITY_ADVECTION_CLARK) \
- || defined(EXPLICIT_VERTICAL_VELOCITY_ADVECTION_MATERIAL)
+ || defined(EXPLICIT_VERTICAL_VELOCITY_ADVECTION)
 		// Interpolate U and V to interfaces
 		pPatch->InterpolateNodeToREdge(UIx, iDataInitial);
 		pPatch->InterpolateNodeToREdge(VIx, iDataInitial);
 #endif
 #if defined(EXPLICIT_THERMO) \
- || defined(EXPLICIT_VERTICAL_VELOCITY_ADVECTION_CLARK)
+ || (defined(EXPLICIT_VERTICAL_VELOCITY_ADVECTION) \
+     && defined(VERTICAL_VELOCITY_ADVECTION_CLARK))
 		// Interpolate W to levels
 		pPatch->InterpolateREdgeToNode(WIx, iDataInitial);
 #endif
@@ -592,7 +599,8 @@ void VerticalDynamicsFEM::StepExplicit(
 */
 			}
 
-#if defined(EXPLICIT_VERTICAL_VELOCITY_ADVECTION_CLARK)
+#if defined(EXPLICIT_VERTICAL_VELOCITY_ADVECTION)
+#if defined(VERTICAL_VELOCITY_ADVECTION_CLARK)
 			// Explicit vertical velocity advection (Clark form)
 			{
 				// Calculate specific kinetic energy on model levels
@@ -733,9 +741,8 @@ void VerticalDynamicsFEM::StepExplicit(
 					}
 				}
 			}
-#endif
-#if defined(EXPLICIT_VERTICAL_VELOCITY_ADVECTION_MATERIAL)
-			// Explicit vertical velocity advection (material form)
+#else
+			// Explicit vertical velocity advection (advective form)
 			{
 				// Stride through state matrix
 				int nVerticalStateStride =
@@ -772,6 +779,7 @@ void VerticalDynamicsFEM::StepExplicit(
 					}
 				}
 			}
+#endif
 #endif
 
 #if defined(EXPLICIT_THERMO) && defined(FORMULATION_THETA)
@@ -818,7 +826,6 @@ void VerticalDynamicsFEM::StepExplicit(
 				}
 			}
 #endif
-
 #ifdef VERTICAL_UPWINDING
 			// Apply upwinding (discontinuous penalization)
 			{
@@ -1594,8 +1601,8 @@ void VerticalDynamicsFEM::SetupReferenceColumn(
 			m_dStateNode[VIx]);
 	}
 
-#if !defined(EXPLICIT_VERTICAL_VELOCITY_ADVECTION_CLARK) \
- && !defined(EXPLICIT_VERTICAL_VELOCITY_ADVECTION_MATERIAL)
+#if !defined(EXPLICIT_VERTICAL_VELOCITY_ADVECTION) && \
+	defined(VERTICAL_VELOCITY_ADVECTION_CLARK)
 	// Calculate vertical derivatives of horizontal velocity
 	if (pGrid->GetVarLocation(WIx) == DataLocation_Node) {
 		pGrid->DifferentiateNodeToNode(
@@ -1998,11 +2005,18 @@ void VerticalDynamicsFEM::PrepareColumn(
 		m_dXiDotREdge[nRElements] = 0.0;
 	}
 
-	// Strictly enforce conservation
+#if !defined(EXPLICIT_VERTICAL_VELOCITY_ADVECTION) \
+ && !defined(VERTICAL_VELOCITY_ADVECTION_CLARK)
 	if (pGrid->GetVarLocation(WIx) == DataLocation_Node) {
-		m_dXiDotNode[0] = 0.0;
-		m_dXiDotNode[nRElements-1] = 0.0;
+		pGrid->DifferentiateNodeToNode(
+			m_dStateNode[WIx],
+			m_dDiffWNode);
+	} else {
+		pGrid->DifferentiateREdgeToREdge(
+			m_dStateREdge[WIx],
+			m_dDiffWREdge);
 	}
+#endif
 
 #if defined(VERTICAL_HYPERVISCOSITY) || defined(UNIFORM_DIFFUSION)
 	// Calculate second derivatives of other state variables
@@ -2312,8 +2326,8 @@ void VerticalDynamicsFEM::BuildF(
 #endif
 #endif
 
-#if !defined(EXPLICIT_VERTICAL_VELOCITY_ADVECTION_CLARK) \
- && !defined(EXPLICIT_VERTICAL_VELOCITY_ADVECTION_MATERIAL)
+#if !defined(EXPLICIT_VERTICAL_VELOCITY_ADVECTION)
+#if defined(VERTICAL_VELOCITY_ADVECTION_CLARK)
 	// Kinetic energy on model levels
 	for (int k = 0; k < nRElements; k++) {
 		double dCovUa = m_dStateNode[UIx][k];
@@ -2350,6 +2364,7 @@ void VerticalDynamicsFEM::BuildF(
 			m_dDiffKineticEnergyREdge);
 	}
 #endif
+#endif
 
 	// Update equation for vertical velocity on levels
 	if (pGrid->GetVarLocation(WIx) == DataLocation_Node) {
@@ -2380,8 +2395,8 @@ void VerticalDynamicsFEM::BuildF(
 			dF[VecFIx(FWIx, k)] +=
 				phys.GetG();
 
-#if !defined(EXPLICIT_VERTICAL_VELOCITY_ADVECTION_CLARK) \
- && !defined(EXPLICIT_VERTICAL_VELOCITY_ADVECTION_MATERIAL)
+#if !defined(EXPLICIT_VERTICAL_VELOCITY_ADVECTION)
+#if defined(VERTICAL_VELOCITY_ADVECTION_CLARK)
 			// Vertical advection of vertical velocity
 			double dCovUa = m_dStateNode[UIx][k];
 			double dCovUb = m_dStateNode[VIx][k];
@@ -2404,6 +2419,11 @@ void VerticalDynamicsFEM::BuildF(
 			dF[VecFIx(FWIx, k)] +=
 				(m_dDiffKineticEnergyNode[k] + dCurlTerm)
 					/ m_dColumnDerivRNode[k][2];
+
+#else // VERTICAL VELOCITY ADVECTION (ADVECTIVE FORM)
+			dF[VecFIx(FWIx, k)] +=
+				m_dXiDotNode[k] * m_dDiffWNode[k];
+#endif
 #endif
 		}
 
@@ -2435,8 +2455,8 @@ void VerticalDynamicsFEM::BuildF(
 			dF[VecFIx(FWIx, k)] +=
 				phys.GetG();
 
-#if !defined(EXPLICIT_VERTICAL_VELOCITY_ADVECTION_CLARK) \
- && !defined(EXPLICIT_VERTICAL_VELOCITY_ADVECTION_MATERIAL)
+#if !defined(EXPLICIT_VERTICAL_VELOCITY_ADVECTION)
+#if defined(VERTICAL_VELOCITY_ADVECTION_CLARK)
 			// Vertical advection of vertical velocity
 			double dCovUa = m_dStateREdge[UIx][k];
 			double dCovUb = m_dStateREdge[VIx][k];
@@ -2459,6 +2479,12 @@ void VerticalDynamicsFEM::BuildF(
 			dF[VecFIx(FWIx, k)] +=
 				(m_dDiffKineticEnergyREdge[k] + dCurlTerm)
 					/ m_dColumnDerivRREdge[k][2];
+
+#else // VERTICAL VELOCITY ADVECTION (ADVECTIVE FORM)
+			dF[VecFIx(FWIx, k)] +=
+				m_dXiDotREdge[k] * m_dDiffWREdge[k];
+
+#endif
 #endif
 		}
 	}
@@ -2897,7 +2923,7 @@ void VerticalDynamicsFEM::BuildJacobianF(
 			_EXCEPTIONT("Not implemented");
 		}
 
-#ifndef EXPLICIT_THERMO
+#if !defined(EXPLICIT_THERMO)
 		// dT_k/dW_l
 		for (int k = 0; k < nRElements; k++) {
 			int l = iInterpREdgeToNodeBegin[k];
@@ -3056,8 +3082,8 @@ void VerticalDynamicsFEM::BuildJacobianF(
 			}
 		}
 
-#if !defined(EXPLICIT_VERTICAL_VELOCITY_ADVECTION_CLARK) \
- && !defined(EXPLICIT_VERTICAL_VELOCITY_ADVECTION_MATERIAL)
+#if !defined(EXPLICIT_VERTICAL_VELOCITY_ADVECTION)
+#if defined(VERTICAL_VELOCITY_ADVECTION_CLARK)
 		// dW_k/dW_m
 		for (int k = 1; k < nRElements; k++) {
 			int l = iDiffNodeToREdgeBegin[k];
@@ -3074,6 +3100,24 @@ void VerticalDynamicsFEM::BuildJacobianF(
 				}
 			}
 		}
+#else
+
+		// dW_k/dW_m
+		for (int k = 1; k < nRElements; k++) {
+			int m = iDiffREdgeToREdgeBegin[k];
+			for (; m < iDiffREdgeToREdgeEnd[k]; m++) {
+				dDG[MatFIx(FWIx, m, FWIx, k)] +=
+					m_dXiDotREdge[k]
+					* dDiffREdgeToREdge[k][m];
+			}
+
+			dDG[MatFIx(FWIx, k, FWIx, k)] +=
+				m_dDiffWREdge[k]
+				* m_dColumnContraMetricXiREdge[k][2]
+				* m_dColumnDerivRREdge[k][2];
+		}
+
+#endif
 #endif
 
 	// Vertical velocity on nodes (LEV or INT staggering)
@@ -3119,6 +3163,8 @@ void VerticalDynamicsFEM::BuildJacobianF(
 				}
 			}
 
+#if !defined(EXPLICIT_VERTICAL_VELOCITY_ADVECTION)
+#if defined(VERTICAL_VELOCITY_ADVECTION_CLARK)
 			// dW_k/dW_n
 			n = iDiffNodeToNodeBegin[k];
 			for (; n < iDiffNodeToNodeEnd[k]; n++) {
@@ -3129,6 +3175,23 @@ void VerticalDynamicsFEM::BuildJacobianF(
 					* m_dXiDotNode[n];
 
 			}
+#else
+		// dW_k/dW_m
+		for (int k = 0; k < nRElements; k++) {
+			int m = iDiffNodeToNodeBegin[k];
+			for (; m < iDiffNodeToNodeEnd[k]; m++) {
+				dDG[MatFIx(FWIx, m, FWIx, k)] +=
+					m_dXiDotNode[k]
+					* dDiffNodeToNode[k][m];
+			}
+
+			dDG[MatFIx(FWIx, k, FWIx, k)] +=
+				m_dDiffWNode[k]
+				* m_dColumnContraMetricXi[k][2];
+		}
+#endif
+#endif
+
 		}
 	}
 

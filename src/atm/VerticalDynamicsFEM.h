@@ -398,6 +398,16 @@ protected:
 	DataArray1D<double> m_dDiffThetaREdge;
 
 	///	<summary>
+	///		Auxiliary storage for derivative of vertical velocity on nodes.
+	///	</summary>
+	DataArray1D<double> m_dDiffWNode;
+
+	///	<summary>
+	///		Auxiliary storage for derivative of vertical velocity on interfaces.
+	///	</summary>
+	DataArray1D<double> m_dDiffWREdge;
+
+	///	<summary>
 	///		Horizontal Kinetic energy on model levels.
 	///	</summary>
 	DataArray1D<double> m_dHorizKineticEnergyNode;
