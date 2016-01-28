@@ -16,11 +16,15 @@ FILES= CubedSphereTrans.cpp \
        ConsolidationStatus.cpp \
        Connectivity.cpp \
        Model.cpp \
-	   EquationSet.cpp \
+       EquationSet.cpp \
        TimestepSchemeStrang.cpp \
        TimestepSchemeARK2.cpp \
+       TimestepSchemeHARK222.cpp \
+       TimestepSchemeHARK332.cpp \
        TimestepSchemeARK3.cpp \
+       TimestepSchemeARK343.cpp \
        TimestepSchemeARK4.cpp \
+       TimestepSchemeSplitExp.cpp \
        HorizontalDynamicsFEM.cpp \
        HorizontalDynamicsDG.cpp \
        VerticalDynamicsFEM.cpp \
@@ -43,8 +47,8 @@ FILES= CubedSphereTrans.cpp \
        GridPatchCartesianGLL.cpp \
        Direction.cpp \
        TestCase.cpp \
-	   WorkflowProcess.cpp \
-	   HeldSuarezPhysics.cpp
+       WorkflowProcess.cpp \
+       HeldSuarezPhysics.cpp
 
 ##
 ## Build flags

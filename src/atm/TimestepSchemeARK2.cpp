@@ -97,6 +97,7 @@ void TimestepSchemeARK2::Step(
 	// SUBSTAGE 1
 	// Compute uf1
 	pGrid->CopyData(0, 1, DataType_State);
+        pGrid->CopyData(0, 1, DataType_Tracers);
 	pHorizontalDynamics->StepExplicit(
 		0, 1, time, m_dExpCf[1][0] * dDeltaT);
 	pVerticalDynamics->StepExplicit(
@@ -106,9 +107,11 @@ void TimestepSchemeARK2::Step(
 
 	// Store the evaluation Kh1 to index 4
 	pGrid->LinearCombineData(m_dKh1Combo, 4, DataType_State);
+        pGrid->LinearCombineData(m_dKh1Combo, 4, DataType_Tracers);
 
 	// Compute u1
 	pGrid->CopyData(1, 2, DataType_State);
+        pGrid->CopyData(1, 2, DataType_State);        
 	pVerticalDynamics->StepImplicit(
 		1, 2, time, m_dImpCf[0][0] * dDeltaT);
 	pGrid->PostProcessSubstage(2, DataType_State);
@@ -116,10 +119,12 @@ void TimestepSchemeARK2::Step(
 
 	// Store the evaluation K1 to index 3
 	pGrid->LinearCombineData(m_dK1Combo, 3, DataType_State);
+        pGrid->LinearCombineData(m_dK1Combo, 3, DataType_Tracers);
 
 	// SUBSTAGE 2
 	// Compute uf2 from u1 and store it to index 1 (over uf1)
 	pGrid->LinearCombineData(m_du2fCombo, 1, DataType_State);
+        pGrid->LinearCombineData(m_du2fCombo, 1, DataType_Tracers);
 	pHorizontalDynamics->StepExplicit(
 		2, 1, time, m_dExpCf[2][1] * dDeltaT);
 	pVerticalDynamics->StepExplicit(
@@ -129,6 +134,7 @@ void TimestepSchemeARK2::Step(
 
 	// Compute u2 from uf2 and u2 and store it to index 0 (over u0)
 	pGrid->CopyData(1, 2, DataType_State);
+	pGrid->CopyData(1, 2, DataType_Tracers);
 	pVerticalDynamics->StepImplicit(
 		1, 2, time, m_dImpCf[1][1] * dDeltaT);
 	pGrid->PostProcessSubstage(2, DataType_State);
@@ -136,8 +142,10 @@ void TimestepSchemeARK2::Step(
 
 	// Apply hyperdiffusion at the end of the explicit substep (ask Paul)
 	pGrid->CopyData(2, 1, DataType_State);
+        pGrid->CopyData(2, 1, DataType_Tracers);
 	pHorizontalDynamics->StepAfterSubCycle(2, 1, 3, time, dDeltaT);
 	pGrid->CopyData(1, 0, DataType_State);
+        pGrid->CopyData(1, 0, DataType_Tracers);
 }
 
 ///////////////////////////////////////////////////////////////////////////////

@@ -1,8 +1,8 @@
 ///////////////////////////////////////////////////////////////////////////////
 ///
-///	\file    TimestepSchemeARK3.h
-///	\author  Paul Ullrich
-///	\version April 22, 2014
+///	\file    TimestepSchemeARK343.h
+///	\author  Jorge Guerra
+///	\version January 27, 2016
 ///
 ///	<remarks>
 ///		Copyright 2000-2010 Paul Ullrich, Jorge Guerra
@@ -14,8 +14,8 @@
 ///		or implied warranty.
 ///	</remarks>
 
-#ifndef _TIMESTEPSCHEMEARK3_H_
-#define _TIMESTEPSCHEMEARK3_H_
+#ifndef _TIMESTEPSCHEMEARK343_H_
+#define _TIMESTEPSCHEMEARK343_H_
 
 #include "TimestepScheme.h"
 #include "Exception.h"
@@ -31,13 +31,13 @@ class Time;
 ///	<summary>
 ///		Adaptive Fourth-Order Runge-Kutta time stepping.
 ///	</summary>
-class TimestepSchemeARK3 : public TimestepScheme {
+class TimestepSchemeARK343 : public TimestepScheme {
 
 public:
 	///	<summary>
 	///		Constructor.
 	///	</summary>
-	TimestepSchemeARK3(
+	TimestepSchemeARK343(
 		Model & model
 	);
 
@@ -69,24 +69,34 @@ protected:
 
 private:
         ///	<summary>
-	///		ARK3 parameter gamma
+	///		ARK343 parameter gamma
 	///	</summary>
 	static const double m_dgamma;
 
         ///	<summary>
-	///		Coefficients for the time increment ARK3.
+	///		ARK343 parameter b1
 	///	</summary>
-	static const double m_dTimeCf[4];
+	static const double m_db1;
 
         ///	<summary>
-	///		Coefficients for the explicit ARK3.
+	///		ARK343 parameter b2
 	///	</summary>
-	static const double m_dExpCf[5][5];
+	static const double m_db2;
+
+        ///	<summary>
+	///		Coefficients for the time increment ARK343.
+	///	</summary>
+	static const double m_dbCf[3];
+
+        ///	<summary>
+	///		Coefficients for the explicit ARK343.
+	///	</summary>
+	static const double m_dExpCf[4][4];
 
 	///	<summary>
-	///		Coefficients for the explicit ARK3.
+	///		Coefficients for the explicit ARK343.
 	///	</summary>
-	static const double m_dImpCf[4][4];
+	static const double m_dImpCf[3][3];
 
 	///	<summary>
 	///		K1 vector combination (Implicit)

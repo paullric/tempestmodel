@@ -21,7 +21,11 @@
 #include "Model.h"
 #include "TimestepSchemeStrang.h"
 #include "TimestepSchemeARK2.h"
+#include "TimestepSchemeHARK222.h"
+#include "TimestepSchemeHARK332.h"
 #include "TimestepSchemeARK3.h"
+#include "TimestepSchemeARK343.h"
+#include "TimestepSchemeSplitExp.h"
 #include "HorizontalDynamicsStub.h"
 #include "HorizontalDynamicsFEM.h"
 #include "HorizontalDynamicsDG.h"
@@ -194,9 +198,25 @@ void _TempestSetupMethodOfLines(
 		model.SetTimestepScheme(
 			new TimestepSchemeARK2(model));
 
+	} else if (vars.strTimestepScheme == "hark222") {
+		model.SetTimestepScheme(
+			new TimestepSchemeHARK222(model));
+
+	} else if (vars.strTimestepScheme == "hark332") {
+		model.SetTimestepScheme(
+			new TimestepSchemeHARK222(model));
+
+	} else if (vars.strTimestepScheme == "ark343") {
+		model.SetTimestepScheme(
+			new TimestepSchemeARK343(model));
+
 	} else if (vars.strTimestepScheme == "ark3") {
 		model.SetTimestepScheme(
 			new TimestepSchemeARK3(model));
+
+        } else if (vars.strTimestepScheme == "spex") {
+		model.SetTimestepScheme(
+			new TimestepSchemeSplitExp(model));
 
 	} else {
 		_EXCEPTIONT("Invalid timescheme: Expected "

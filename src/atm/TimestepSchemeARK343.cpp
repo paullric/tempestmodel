@@ -1,10 +1,11 @@
+///////////////////////////////////////////////////////////////////////////////
 ///
-///	\file    TimestepSchemeARK3.cpp
-///	\author  Paul Ullrich
-///	\version May 29, 2014
+///	\file    TimestepSchemeARK343.h
+///	\author  Jorge Guerra
+///	\version January 27, 2016
 ///
 ///	<remarks>
-///		Copyright 2000-2010 Paul Ullrich and Jorge Guerra
+///		Copyright 2000-2010 Paul Ullrich, Jorge Guerra
 ///
 ///		This file is distributed as part of the Tempest source code package.
 ///		Permission is granted to use, copy, modify and distribute this
@@ -13,7 +14,7 @@
 ///		or implied warranty.
 ///	</remarks>
 
-#include "TimestepSchemeARK3.h"
+#include "TimestepSchemeARK343.h"
 #include "Model.h"
 #include "Grid.h"
 #include "HorizontalDynamics.h"
@@ -21,25 +22,28 @@
 
 ///////////////////////////////////////////////////////////////////////////////
 // THESE COEFFICIENTS ARE COMPUTED FROM THE ORIGINAL TABLEAUX
-// IMPLEMENTS ARK(4,4,3) FROM ASCHER ET AL. 1997 PG. 9
+// IMPLEMENTS ARK(3,4,3) FROM ASCHER ET AL. 1997 PG. 9
+const double TimestepSchemeARK343::m_dgamma = 0.4358665215;
+const double TimestepSchemeARK343::m_db1 = -1.5 * m_dgamma * m_dgamma + 
+                                           4.0 * m_dgamma - 0.25;
+const double TimestepSchemeARK343::m_db2 = 1.5 * m_dgamma * m_dgamma -
+                                           5.0 * m_dgamma + 1.2;
 // Time step coefficients
-const double TimestepSchemeARK3::m_dTimeCf[4] = {1./2., 2./3., 1./2., 1.};
+const double TimestepSchemeARK343::m_dbCf[3] = {m_db1, m_db2, m_dgamma};
 // Implicit stage coefficients - Converted to U from Ascher et al. 1997 Pg 9
-const double TimestepSchemeARK3::m_dImpCf[4][4] = {
-  {1./2., 0., 0., 0.},
-  {1./6., 1./2., 0., 0.},
-  {-1./2., 1./2., 1./2., 0.},
-  {3./2., -3./2., 1./2., 1./2.}};
+const double TimestepSchemeARK343::m_dImpCf[3][3] = {
+  {m_dgamma, 0., 0.},
+  {0.5 * (1.0 - m_dgamma), m_dgamma, 0.},
+  {m_db1, m_db2, m_dgamma}};
 
 // Explicit stage coefficients - Converted to U from Ascher et al. 1997 Pg 9
-const double TimestepSchemeARK3::m_dExpCf[5][5] = {
-  {0., 0., 0., 0., 0.},
-  {1./2., 0., 0., 0., 0.},
-  {11./18., 1./18., 0., 0., 0.},
-  {5./6., -5./6., 1./2., 0., 0.},
-  {1./4., 7./4., 3./4., -7./4., 0.}};
+const double TimestepSchemeARK343::m_dExpCf[4][4] = {
+  {0., 0., 0., 0.},
+  {m_dgamma, 0., 0., 0.},
+  {0.3212788860, 0.3966543747, 0., 0.},
+  {-0.105858296, 0.5529291479, 0.5529291479, 0.}};
 
-TimestepSchemeARK3::TimestepSchemeARK3(
+TimestepSchemeARK343::TimestepSchemeARK343(
 	Model & model
 ) :
 	TimestepScheme(model)
@@ -57,7 +61,7 @@ TimestepSchemeARK3::TimestepSchemeARK3(
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void TimestepSchemeARK3::Step(
+void TimestepSchemeARK343::Step(
 	bool fFirstStep,
 	bool fLastStep,
 	const Time & time,
@@ -145,12 +149,12 @@ void TimestepSchemeARK3::Step(
 	m_du4fCombo[0] = 1.0;
 	m_du4fCombo[1] = 0.0;
 	m_du4fCombo[2] = 0.0;
-	m_du4fCombo[3] = dDeltaT * m_dImpCf[3][0];
-	m_du4fCombo[4] = dDeltaT * m_dExpCf[4][0];
-	m_du4fCombo[5] = dDeltaT * m_dImpCf[3][1];
-	m_du4fCombo[6] = dDeltaT * m_dExpCf[4][1];
-	m_du4fCombo[7] = dDeltaT * m_dImpCf[3][2];
-	m_du4fCombo[8] = dDeltaT * m_dExpCf[4][2];
+	m_du4fCombo[3] = dDeltaT * m_dbCf[0];
+	m_du4fCombo[4] = 0.0;
+	m_du4fCombo[5] = dDeltaT * m_dbCf[1];
+	m_du4fCombo[6] = dDeltaT * m_dbCf[0];
+	m_du4fCombo[7] = dDeltaT * m_dbCf[2];
+	m_du4fCombo[8] = dDeltaT * m_dbCf[1];
 
 	// SUBSTAGE 1
 	// Compute the explicit step to index 1
@@ -237,10 +241,10 @@ void TimestepSchemeARK3::Step(
 
 	//std::cout << "Substage 3 done ... \n";
 
-	// SUBSTAGE 4
+	// FINAL STAGE
 	// Compute uf4 from u3 and store it to index 2
 	Time timeSub4 = time;
-	double dtSub4 = m_dExpCf[4][3] * dDeltaT;
+	double dtSub4 = m_dbCf[2] * dDeltaT;
 	pGrid->LinearCombineData(m_du4fCombo, 1, DataType_State);
         pGrid->LinearCombineData(m_du4fCombo, 1, DataType_Tracers);
 	pHorizontalDynamics->StepExplicit(2, 1, timeSub4, dtSub4);
@@ -248,17 +252,7 @@ void TimestepSchemeARK3::Step(
 	pGrid->PostProcessSubstage(1, DataType_State);
 	pGrid->PostProcessSubstage(1, DataType_Tracers);
 
-	// Compute u4 from uf4 and store it to index 2 (over u3)
-	dtSub4 = m_dImpCf[3][3] * dDeltaT;
-	pGrid->CopyData(1, 2, DataType_State);
-        pGrid->CopyData(1, 2, DataType_Tracers);
-	pVerticalDynamics->StepImplicit(1, 2, timeSub4, dtSub4);
-	pGrid->PostProcessSubstage(2, DataType_State);
-	pGrid->PostProcessSubstage(2, DataType_Tracers);
-
 	// Apply hyperdiffusion at the end of the explicit substep (ask Paul)
-	pGrid->CopyData(2, 1, DataType_State);
-        pGrid->CopyData(2, 1, DataType_Tracers);
 	pHorizontalDynamics->StepAfterSubCycle(2, 1, 3, time, dDeltaT);
 	pGrid->CopyData(1, 0, DataType_State);
         pGrid->CopyData(1, 0, DataType_Tracers);
