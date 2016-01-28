@@ -75,7 +75,7 @@ void TimestepSchemeSplitExp::Step(
 	VerticalDynamicsFEM * pVerticalDynamics = (VerticalDynamicsFEM *) m_model.GetVerticalDynamics();
 
 	// Check that vertical dynamics is set to full explicit evaluation
-	if (pVerticalDynamics->m_fFullyExplicit == false) {
+	if (pVerticalDynamics->IsFullyExplicit() == false) {
 		_EXCEPTIONT("Set --explicitvertical in the command line for"  
 			    " Split Explicit --spex time integration!");
 	}
