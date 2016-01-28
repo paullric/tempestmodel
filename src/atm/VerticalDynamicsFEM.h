@@ -237,7 +237,9 @@ public:
 	///	<summary>
 	///		Execute vertical solve as fully explicit.
 	///	</summary>
-	bool m_fFullyExplicit;
+	bool IsFullyExplicit() const {
+		return m_fFullyExplicit;
+	}
 
 protected:
 	///	<summary>
@@ -249,6 +251,11 @@ protected:
 	///		Vertical order of accuacy of the method.
 	///	</summary>
 	int m_nVerticalOrder;
+
+	///	<summary>
+	///		Execute vertical solve as fully explicit.
+	///	</summary>
+	bool m_fFullyExplicit;
 
 	///	<summary>
 	///		Use the background reference profile when computing vertical
