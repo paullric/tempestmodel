@@ -233,6 +233,12 @@ public:
 		int iDataUpdate
 	);
 
+public:
+	///	<summary>
+	///		Execute vertical solve as fully explicit.
+	///	</summary>
+	bool m_fFullyExplicit;
+
 protected:
 	///	<summary>
 	///		Horizontal order of accuracy of the method.
@@ -243,11 +249,6 @@ protected:
 	///		Vertical order of accuacy of the method.
 	///	</summary>
 	int m_nVerticalOrder;
-
-	///	<summary>
-	///		Execute vertical solve as fully explicit.
-	///	</summary>
-	bool m_fFullyExplicit;
 
 	///	<summary>
 	///		Use the background reference profile when computing vertical
