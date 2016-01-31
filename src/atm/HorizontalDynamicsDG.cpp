@@ -1212,16 +1212,16 @@ void HorizontalDynamicsDG::ApplyScalarHyperdiffusionToBoundary(
 
 			int nElementCountR;
 
-			double *** pDataState;
-			double *** pDataUpdate;
+			DataArray4D<double> * pDataState;
+			DataArray4D<double> * pDataUpdate;
 			if (pGrid->GetVarLocation(c) == DataLocation_Node) {
-				pDataState = dataStateNode[c];
-				pDataUpdate = dataUpdateNode[c];
+				pDataState = &dataStateNode;
+				pDataUpdate = &dataUpdateNode;
 				nElementCountR = pGrid->GetRElements();
 
 			} else if (pGrid->GetVarLocation(c) == DataLocation_REdge) {
-				pDataState = dataStateREdge[c];
-				pDataUpdate = dataUpdateREdge[c];
+				pDataState = &dataStateREdge;
+				pDataUpdate = &dataUpdateREdge;
 				nElementCountR = pGrid->GetRElements()+1;
 
 			} else {
@@ -1260,12 +1260,12 @@ void HorizontalDynamicsDG::ApplyScalarHyperdiffusionToBoundary(
 					for (int s = 0; s < m_nHorizontalOrder; s++) {
 						// Derivative with respect to alpha
 						dDaPsi +=
-							pDataState[k][iElementA+s][iB]
+							(*pDataState)[c][k][iElementA+s][iB]
 							* dDxBasis1D[s][i];
 
 						// Derivative with respect to beta
 						dDbPsi +=
-							pDataState[k][iA][iElementB+s]
+							(*pDataState)[c][k][iA][iElementB+s]
 							* dDxBasis1D[s][j];
 					}
 
@@ -1274,26 +1274,26 @@ void HorizontalDynamicsDG::ApplyScalarHyperdiffusionToBoundary(
 
 					// Add contribution due to boundaries
 					if (i == 0) {
-						double dPsiL = pDataState[k][iA-1][iB];
-						double dPsiR = pDataState[k][iA  ][iB];
+						double dPsiL = (*pDataState)[c][k][iA-1][iB];
+						double dPsiR = (*pDataState)[c][k][iA  ][iB];
 
 						dDaPsi += 0.5 * dUpdateDerivA * (dPsiR - dPsiL);
 					}
 					if (i == m_nHorizontalOrder-1) {
-						double dPsiL = pDataState[k][iA  ][iB];
-						double dPsiR = pDataState[k][iA+1][iB];
+						double dPsiL = (*pDataState)[c][k][iA  ][iB];
+						double dPsiR = (*pDataState)[c][k][iA+1][iB];
 
 						dDaPsi += 0.5 * dUpdateDerivA * (dPsiR - dPsiL);
 					}
 					if (j == 0) {
-						double dPsiL = pDataState[k][iA][iB-1];
-						double dPsiR = pDataState[k][iA][iB  ];
+						double dPsiL = (*pDataState)[c][k][iA][iB-1];
+						double dPsiR = (*pDataState)[c][k][iA][iB  ];
 
 						dDbPsi += 0.5 * dUpdateDerivB * (dPsiR - dPsiL);
 					}
 					if (j == m_nHorizontalOrder-1) {
-						double dPsiL = pDataState[k][iA][iB  ];
-						double dPsiR = pDataState[k][iA][iB+1];
+						double dPsiL = (*pDataState)[c][k][iA][iB  ];
+						double dPsiR = (*pDataState)[c][k][iA][iB+1];
 
 						dDbPsi += 0.5 * dUpdateDerivB * (dPsiR - dPsiL);
 					}
@@ -1327,9 +1327,9 @@ void HorizontalDynamicsDG::ApplyScalarHyperdiffusionToBoundary(
 								Direction_Right, c, k, iB, dUpdateA);
 
 						} else {
-							pDataUpdate[k][iA+1][iB] -= dUpdateA;
+							(*pDataUpdate)[c][k][iA+1][iB] -= dUpdateA;
 						}
-						pDataUpdate[k][iA][iB] += dUpdateA;
+						(*pDataUpdate)[c][k][iA][iB] += dUpdateA;
 					}
 
 					// Either set up communication with neighbor or apply
@@ -1340,9 +1340,9 @@ void HorizontalDynamicsDG::ApplyScalarHyperdiffusionToBoundary(
 								Direction_Top, c, k, iA, dUpdateB);
 
 						} else {
-							pDataUpdate[k][iA][iB+1] -= dUpdateB;
+							(*pDataUpdate)[c][k][iA][iB+1] -= dUpdateB;
 						}
-						pDataUpdate[k][iA][iB] += dUpdateB;
+						(*pDataUpdate)[c][k][iA][iB] += dUpdateB;
 					}
 
 					// Either set up communication with neighbor or apply
@@ -1352,9 +1352,9 @@ void HorizontalDynamicsDG::ApplyScalarHyperdiffusionToBoundary(
 							connect.SetSendBuffer(
 								Direction_Left, c, k, iB, dUpdateA);
 						} else {
-							pDataUpdate[k][iA-1][iB] += dUpdateA;
+							(*pDataUpdate)[c][k][iA-1][iB] += dUpdateA;
 						}
-						pDataUpdate[k][iA][iB] -= dUpdateA;
+						(*pDataUpdate)[c][k][iA][iB] -= dUpdateA;
 					}
 
 					// Either set up communication with neighbor or apply
@@ -1365,9 +1365,9 @@ void HorizontalDynamicsDG::ApplyScalarHyperdiffusionToBoundary(
 								Direction_Bottom, c, k, iA, dUpdateB);
 
 						} else {
-							pDataUpdate[k][iA][iB-1] += dUpdateB;
+							(*pDataUpdate)[c][k][iA][iB-1] += dUpdateB;
 						}
-						pDataUpdate[k][iA][iB] -= dUpdateB;
+						(*pDataUpdate)[c][k][iA][iB] -= dUpdateB;
 					}
 				}
 				}
@@ -1712,14 +1712,14 @@ void HorizontalDynamicsDG::FinalizeApplyHyperdiffusionToBoundary(
 
 			int nElementCountR;
 
-			double *** pDataState;
-			double *** pDataUpdate;
+			DataArray4D<double> * pDataState;
+			DataArray4D<double> * pDataUpdate;
 			if (pGrid->GetVarLocation(c) == DataLocation_Node) {
-				pDataUpdate = dataUpdateNode[c];
+				pDataUpdate = &dataUpdateNode;
 				nElementCountR = pGrid->GetRElements();
 
 			} else if (pGrid->GetVarLocation(c) == DataLocation_REdge) {
-				pDataUpdate = dataUpdateREdge[c];
+				pDataUpdate = &dataUpdateREdge;
 				nElementCountR = pGrid->GetRElements()+1;
 
 			} else {
@@ -1732,13 +1732,13 @@ void HorizontalDynamicsDG::FinalizeApplyHyperdiffusionToBoundary(
 				j < box.GetBInteriorEnd(); j++
 			) {
 				int i = box.GetAInteriorEnd();
-				double dUpdateA = pDataUpdate[k][i][j];
+				double dUpdateA = (*pDataUpdate)[c][k][i][j];
 
 				if (connect.IsCoordinateFlipped(Direction_Right, j)) {
 					dUpdateA *= -1.0;
 				}
 
-				pDataUpdate[k][i-1][j] += dUpdateA;
+				(*pDataUpdate)[c][k][i-1][j] += dUpdateA;
 			}
 			}
 
@@ -1748,13 +1748,13 @@ void HorizontalDynamicsDG::FinalizeApplyHyperdiffusionToBoundary(
 				i < box.GetAInteriorEnd(); i++
 			) {
 				int j = box.GetBInteriorEnd();
-				double dUpdateB = pDataUpdate[k][i][j];
+				double dUpdateB = (*pDataUpdate)[c][k][i][j];
 
 				if (connect.IsCoordinateFlipped(Direction_Top, i)) {
 					dUpdateB *= -1.0;
 				}
 
-				pDataUpdate[k][i][j-1] += dUpdateB;
+				(*pDataUpdate)[c][k][i][j-1] += dUpdateB;
 			}
 			}
 
@@ -1764,13 +1764,13 @@ void HorizontalDynamicsDG::FinalizeApplyHyperdiffusionToBoundary(
 				j < box.GetBInteriorEnd(); j++
 			) {
 				int i = box.GetAInteriorBegin()-1;
-				double dUpdateA = pDataUpdate[k][i][j];
+				double dUpdateA = (*pDataUpdate)[c][k][i][j];
 
 				if (connect.IsCoordinateFlipped(Direction_Left, j)) {
 					dUpdateA *= -1.0;
 				}
 
-				pDataUpdate[k][i+1][j] -= dUpdateA;
+				(*pDataUpdate)[c][k][i+1][j] -= dUpdateA;
 			}
 			}
 
@@ -1780,13 +1780,13 @@ void HorizontalDynamicsDG::FinalizeApplyHyperdiffusionToBoundary(
 				i < box.GetAInteriorEnd(); i++
 			) {
 				int j = box.GetBInteriorBegin()-1;
-				double dUpdateB = pDataUpdate[k][i][j];
+				double dUpdateB = (*pDataUpdate)[c][k][i][j];
 
 				if (connect.IsCoordinateFlipped(Direction_Bottom, i)) {
 					dUpdateB *= -1.0;
 				}
 
-				pDataUpdate[k][i][j+1] -= dUpdateB;
+				(*pDataUpdate)[c][k][i][j+1] -= dUpdateB;
 			}
 			}
 		}

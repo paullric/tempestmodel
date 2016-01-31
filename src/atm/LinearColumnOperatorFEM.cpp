@@ -684,7 +684,6 @@ void LinearColumnDiffFEM::InitializeVariationalNodeToREdge(
 	const DataArray1D<double> & dREtaNode,
 	const DataArray1D<double> & dREtaREdge
 ) {
-
 	const int nRElementsIn  = dREtaNode.GetRows();
 	const int nRElementsOut = dREtaREdge.GetRows();
 
@@ -1316,6 +1315,11 @@ void LinearColumnDiscPenaltyFEM::Initialize(
 
 	// Number of elements
 	m_nRFiniteElements = dREtaNode.GetRows() / nVerticalOrder;
+
+	// Do not initialize if only one finite element present
+	if (m_nRFiniteElements == 1) {
+		return;
+	}
 
 	// Verify input parameters
 	if (dREtaNode.GetRows() == 0) {

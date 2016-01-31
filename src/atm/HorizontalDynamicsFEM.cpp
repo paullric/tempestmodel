@@ -805,6 +805,25 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 				}
 				}
 				}
+/*
+				// DEBUG
+				if (box.GetPanel() == 5) {
+					int k = 3;
+					for (int i = 0; i < m_nHorizontalOrder; i++) {
+					for (int j = 0; j < m_nHorizontalOrder; j++) {
+
+						int iA = a * m_nHorizontalOrder + i + box.GetHaloElements();
+						int iB = b * m_nHorizontalOrder + j + box.GetHaloElements();
+
+						if ((iA == 5) && (iB == 5)) {
+							printf("H: %1.5e\n",
+								m_dAuxDataREdge[UCrossZetaXIx][k][i][j]
+								/ dDerivRREdge[k][iA][iB][2]);
+						}
+					}
+					}
+				}
+*/
 			}
 
 			// Update quantities on nodes
@@ -1645,31 +1664,32 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusion(
 
 				int nElementCountR;
 
-				double *** pDataInitial;
-				double *** pDataUpdate;
-				double *** pJacobian;
+				const DataArray4D<double> * pDataInitial;
+				const DataArray4D<double> * pDataUpdate;
+				const DataArray3D<double> * pJacobian;
+
 				if (iType == 0) {
 					if (pGrid->GetVarLocation(c) == DataLocation_Node) {
-						pDataInitial = dataInitialNode[c];
-						pDataUpdate  = dataUpdateNode[c];
+						pDataInitial = &dataInitialNode;
+						pDataUpdate  = &dataUpdateNode;
 						nElementCountR = nRElements;
-						pJacobian = dJacobianNode;
+						pJacobian = &dJacobianNode;
 
 					} else if (pGrid->GetVarLocation(c) == DataLocation_REdge) {
-						pDataInitial = dataInitialREdge[c];
-						pDataUpdate  = dataUpdateREdge[c];
+						pDataInitial = &dataInitialREdge;
+						pDataUpdate  = &dataUpdateREdge;
 						nElementCountR = nRElements + 1;
-						pJacobian = dJacobianREdge;
+						pJacobian = &dJacobianREdge;
 
 					} else {
 						_EXCEPTIONT("UNIMPLEMENTED");
 					}
 
 				} else {
-					pDataInitial = dataInitialTracer[c];
-					pDataUpdate = dataUpdateTracer[c];
+					pDataInitial = &dataInitialTracer;
+					pDataUpdate = &dataUpdateTracer;
 					nElementCountR = nRElements;
-					pJacobian = dJacobianNode;
+					pJacobian = &dJacobianNode;
 				}
 
 				// Loop over all finite elements
@@ -1692,22 +1712,22 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusion(
 						double dDbPsi = 0.0;
 						for (int s = 0; s < m_nHorizontalOrder; s++) {
 							dDaPsi +=
-								pDataInitial[k][iElementA+s][iB]
+								(*pDataInitial)[c][k][iElementA+s][iB]
 								* dDxBasis1D[s][i];
 
 							dDbPsi +=
-								pDataInitial[k][iA][iElementB+s]
+								(*pDataInitial)[c][k][iA][iElementB+s]
 								* dDxBasis1D[s][j];
 						}
 
 						dDaPsi *= dInvElementDeltaA;
 						dDbPsi *= dInvElementDeltaB;
 
-						m_dJGradientA[i][j] = pJacobian[k][iA][iB] * (
+						m_dJGradientA[i][j] = (*pJacobian)[k][iA][iB] * (
 							+ dContraMetricA[iA][iB][0] * dDaPsi
 							+ dContraMetricA[iA][iB][1] * dDbPsi);
 
-						m_dJGradientB[i][j] = pJacobian[k][iA][iB] * (
+						m_dJGradientB[i][j] = (*pJacobian)[k][iA][iB] * (
 							+ dContraMetricB[iA][iB][0] * dDaPsi
 							+ dContraMetricB[iA][iB][1] * dDbPsi);
 					}
@@ -1719,7 +1739,7 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusion(
 						int iA = iElementA + i;
 						int iB = iElementB + j;
 
-						double dInvJacobian = 1.0 / pJacobian[k][iA][iB];
+						double dInvJacobian = 1.0 / (*pJacobian)[k][iA][iB];
 
 						// Compute integral term
 						double dUpdateA = 0.0;
@@ -1739,7 +1759,7 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusion(
 						dUpdateB *= dInvElementDeltaB;
 
 						// Apply update
-						pDataUpdate[k][iA][iB] -=
+						(*pDataUpdate)[c][k][iA][iB] -=
 							dDeltaT * dInvJacobian * dLocalNu
 								* (dUpdateA + dUpdateB);
 					}

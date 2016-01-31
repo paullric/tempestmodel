@@ -1419,127 +1419,133 @@ void GridPatchCartesianGLL::InterpolateData(
 	// Physical constants
 	const PhysicalConstants & phys = m_grid.GetModel().GetPhysicalConstants();
 
-	// Loop throught all points
-	for (int i = 0; i < dAlpha.GetRows(); i++) {
+	// Perform interpolation on all variables
+	int nComponents;
+	int nRElements = 1;
 
-		// Element index
-		if (iPatch[i] != GetPatchIndex()) {
-			continue;
+	// State Data: Perform interpolation on all variables
+	if (eDataType == DataType_State) {
+		if (eDataLocation == DataLocation_Node) {
+			nComponents = m_datavecStateNode[0].GetSize(0);
+			nRElements = m_grid.GetRElements();
+		} else {
+			nComponents = m_datavecStateREdge[0].GetSize(0);
+			nRElements = m_grid.GetRElements() + 1;
 		}
 
-		// Verify point lies within domain of patch
-		const double Eps = 1.0e-10;
-		if ((dAlpha[i] < m_dAEdge[m_box.GetAInteriorBegin()] - Eps) ||
-			(dAlpha[i] > m_dAEdge[m_box.GetAInteriorEnd()] + Eps) ||
-			(dBeta[i] < m_dBEdge[m_box.GetBInteriorBegin()] - Eps) ||
-			(dBeta[i] > m_dBEdge[m_box.GetBInteriorEnd()] + Eps)
-		) {
-			_EXCEPTIONT("Point out of range");
-		}
+	// Tracer Data: Perform interpolation on all variables
+	} else if (eDataType == DataType_Tracers) {
+		nComponents = m_datavecTracers[0].GetSize(0);
+		nRElements = m_grid.GetRElements();
 
-		// Determine finite element index
-		int iA =
-			(dAlpha[i] - m_dAEdge[m_box.GetAInteriorBegin()]) / dDeltaA;
+	// Topography Data
+	} else if (eDataType == DataType_Topography) {
+		nComponents = 1;
 
-		int iB =
-			(dBeta[i] - m_dBEdge[m_box.GetBInteriorBegin()]) / dDeltaB;
+	// Vorticity Data
+	} else if (eDataType == DataType_Vorticity) {
+		nComponents = 1;
 
-		// Bound the index within the element
-		if (iA < 0) {
-			iA = 0;
-		}
-		if (iA >= (m_box.GetAInteriorWidth() / m_nHorizontalOrder)) {
-			iA = m_box.GetAInteriorWidth() / m_nHorizontalOrder - 1;
-		}
-		if (iB < 0) {
-			iB = 0;
-		}
-		if (iB >= (m_box.GetBInteriorWidth() / m_nHorizontalOrder)) {
-			iB = m_box.GetBInteriorWidth() / m_nHorizontalOrder - 1;
-		}
+	// Divergence Data
+	} else if (eDataType == DataType_Divergence) {
+		nComponents = 1;
 
-		iA = m_box.GetHaloElements() + iA * m_nHorizontalOrder;
-		iB = m_box.GetHaloElements() + iB * m_nHorizontalOrder;
+	// Temperature Data
+	} else if (eDataType == DataType_Temperature) {
+		nComponents = 1;
 
-		// Compute interpolation coefficients
-		PolynomialInterp::LagrangianPolynomialCoeffs(
-			m_nHorizontalOrder,
-			&(m_dAEdge[iA]),
-			dAInterpCoeffs,
-			dAlpha[i]);
+	} else {
+		_EXCEPTIONT("Invalid DataType");
+	}
 
-		PolynomialInterp::LagrangianPolynomialCoeffs(
-			m_nHorizontalOrder,
-			&(m_dBEdge[iB]),
-			dBInterpCoeffs,
-			dBeta[i]);
+	// Loop through all components
+	for (int c = 0; c < nComponents; c++) {
 
-		int nComponents;
-		int nRElements = m_grid.GetRElements();
+		// Get a pointer to the 3D data structure
+		DataArray3D<double> pData;
 
-		double ** pData2D;
+		pData.SetSize(
+			nRElements,
+			m_box.GetATotalWidth(),
+			m_box.GetBTotalWidth());
 
-		// State Data: Perform interpolation on all variables
 		if (eDataType == DataType_State) {
 			if (eDataLocation == DataLocation_Node) {
-				nComponents = m_datavecStateNode[0].GetSize(0);
+				pData.AttachToData(&(m_datavecStateNode[0][c][0][0][0]));
 			} else {
-				nComponents = m_datavecStateREdge[0].GetSize(0);
-				nRElements = m_grid.GetRElements() + 1;
+				pData.AttachToData(&(m_datavecStateREdge[0][c][0][0][0]));
 			}
 
-		// Tracer Data: Perform interpolation on all variables
 		} else if (eDataType == DataType_Tracers) {
-			nComponents = m_datavecTracers[0].GetSize(0);
+			pData.AttachToData(&(m_datavecTracers[0][c][0][0][0]));
 
-		// Topography Data: Special handling due to 2D nature of data
 		} else if (eDataType == DataType_Topography) {
-			nComponents = 1;
-			pData2D = (double**)(m_dataTopography);
+			pData.AttachToData(&(m_dataTopography[0][0]));
 
-		// Vorticity Data
 		} else if (eDataType == DataType_Vorticity) {
-			nComponents = 1;
+			pData.AttachToData(&(m_dataVorticity[0][0][0]));
 
-		// Divergence Data
 		} else if (eDataType == DataType_Divergence) {
-			nComponents = 1;
+			pData.AttachToData(&(m_dataDivergence[0][0][0]));
 
-		// Temperature Data
 		} else if (eDataType == DataType_Temperature) {
-			nComponents = 1;
-
-		} else {
-			_EXCEPTIONT("Invalid DataType");
+			pData.AttachToData(&(m_dataTemperature[0][0][0]));
 		}
 
-		// Number of radial elements
-		for (int c = 0; c < nComponents; c++) {
+		// Loop throught all points
+		for (int i = 0; i < dAlpha.GetRows(); i++) {
 
-			const double *** pData;
-			if (eDataType == DataType_State) {
-				if (eDataLocation == DataLocation_Node) {
-					pData = (const double ***)(m_datavecStateNode[0][c]);
-				} else {
-					pData = (const double ***)(m_datavecStateREdge[0][c]);
-				}
-	
-			} else if (eDataType == DataType_Topography) {
-				pData = (const double ***)(&pData2D);
-				nRElements = 1;
-
-			} else if (eDataType == DataType_Tracers) {
-				pData = (const double ***)(m_datavecTracers[0][c]);
-
-			} else if (eDataType == DataType_Vorticity) {
-				pData = (const double ***)(double ***)(m_dataVorticity);
-
-			} else if (eDataType == DataType_Divergence) {
-				pData = (const double ***)(double ***)(m_dataDivergence);
-
-			} else if (eDataType == DataType_Temperature) {
-				pData = (const double ***)(double ***)(m_dataTemperature);
+			// Element index
+			if (iPatch[i] != GetPatchIndex()) {
+				continue;
 			}
+
+			// Verify point lies within domain of patch
+			const double Eps = 1.0e-10;
+			if ((dAlpha[i] < m_dAEdge[m_box.GetAInteriorBegin()] - Eps) ||
+				(dAlpha[i] > m_dAEdge[m_box.GetAInteriorEnd()] + Eps) ||
+				(dBeta[i] < m_dBEdge[m_box.GetBInteriorBegin()] - Eps) ||
+				(dBeta[i] > m_dBEdge[m_box.GetBInteriorEnd()] + Eps)
+			) {
+				_EXCEPTIONT("Point out of range");
+			}
+
+			// Determine finite element index
+			int iA =
+				(dAlpha[i] - m_dAEdge[m_box.GetAInteriorBegin()]) / dDeltaA;
+
+			int iB =
+				(dBeta[i] - m_dBEdge[m_box.GetBInteriorBegin()]) / dDeltaB;
+
+			// Bound the index within the element
+			if (iA < 0) {
+				iA = 0;
+			}
+			if (iA >= (m_box.GetAInteriorWidth() / m_nHorizontalOrder)) {
+				iA = m_box.GetAInteriorWidth() / m_nHorizontalOrder - 1;
+			}
+			if (iB < 0) {
+				iB = 0;
+			}
+			if (iB >= (m_box.GetBInteriorWidth() / m_nHorizontalOrder)) {
+				iB = m_box.GetBInteriorWidth() / m_nHorizontalOrder - 1;
+			}
+
+			iA = m_box.GetHaloElements() + iA * m_nHorizontalOrder;
+			iB = m_box.GetHaloElements() + iB * m_nHorizontalOrder;
+
+			// Compute interpolation coefficients
+			PolynomialInterp::LagrangianPolynomialCoeffs(
+				m_nHorizontalOrder,
+				&(m_dAEdge[iA]),
+				dAInterpCoeffs,
+				dAlpha[i]);
+
+			PolynomialInterp::LagrangianPolynomialCoeffs(
+				m_nHorizontalOrder,
+				&(m_dBEdge[iB]),
+				dBInterpCoeffs,
+				dBeta[i]);
 
 			// Perform interpolation on all levels
 			for (int k = 0; k < nRElements; k++) {

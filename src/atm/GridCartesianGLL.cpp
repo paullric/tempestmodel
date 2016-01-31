@@ -492,26 +492,57 @@ void GridCartesianGLL::ApplyDSS(
 
 			// Obtain the array of working data
 			int nRElements = GetRElements();
-			double *** pDataUpdate;
-			if (eDataType == DataType_State) {
-				pDataUpdate =
-					pPatch->GetDataState(iDataUpdate, GetVarLocation(c))[c];
 
-				if (GetVarLocation(c) == DataLocation_REdge) {
-					nRElements++;
-				}
+			DataArray3D<double> pDataUpdate;
 
-			} else if (eDataType == DataType_Tracers) {
-				pDataUpdate =
-					pPatch->GetDataTracers(iDataUpdate)[c];
-			} else if (eDataType == DataType_Vorticity) {
-				pDataUpdate = pPatch->GetDataVorticity();
-			} else if (eDataType == DataType_Divergence) {
-				pDataUpdate = pPatch->GetDataDivergence();
-			} else if (eDataType == DataType_TopographyDeriv) {
-				pDataUpdate = pPatch->GetTopographyDeriv();
-
+			if ((eDataType == DataType_State) &&
+				(GetVarLocation(c) == DataLocation_REdge)
+			) {
+				nRElements++;
+			}
+			if (eDataType == DataType_TopographyDeriv) {
 				nRElements = 2;
+			}
+
+			pDataUpdate.SetSize(
+				nRElements,
+				box.GetATotalWidth(),
+				box.GetBTotalWidth());
+
+			// State data
+			if (eDataType == DataType_State) {
+				DataArray4D<double> & dState =
+					pPatch->GetDataState(iDataUpdate, GetVarLocation(c));
+
+				pDataUpdate.AttachToData(&(dState[c][0][0][0]));
+
+			// Tracer data
+			} else if (eDataType == DataType_Tracers) {
+				DataArray4D<double> & dTracers =
+					pPatch->GetDataTracers(iDataUpdate);
+
+				pDataUpdate.AttachToData(&(dTracers[c][0][0][0]));
+
+			// Vorticity data
+			} else if (eDataType == DataType_Vorticity) {
+				DataArray3D<double> & dVorticity =
+					pPatch->GetDataVorticity();
+
+				pDataUpdate.AttachToData(&(dVorticity[0][0][0]));
+
+			// Divergence data
+			} else if (eDataType == DataType_Divergence) {
+				DataArray3D<double> & dDivergence =
+					pPatch->GetDataDivergence();
+
+				pDataUpdate.AttachToData(&(dDivergence[0][0][0]));
+
+			// Topographic derivative data
+			} else if (eDataType == DataType_TopographyDeriv) {
+				DataArray3D<double> & dTopographyDeriv =
+					pPatch->GetTopographyDeriv();
+
+				pDataUpdate.AttachToData(&(dTopographyDeriv[0][0][0]));
 			}
 
 			// Averaging DSS across patch boundaries
