@@ -20,11 +20,11 @@
 #include "Defines.h"
 #include "Model.h"
 #include "TimestepSchemeStrang.h"
-#include "TimestepSchemeARK2.h"
-#include "TimestepSchemeHARK222.h"
-#include "TimestepSchemeHARK332.h"
-#include "TimestepSchemeARK3.h"
-#include "TimestepSchemeARK343.h"
+#include "TimestepSchemeARS222.h"
+#include "TimestepSchemeARS232.h"
+#include "TimestepSchemeARK232.h"
+#include "TimestepSchemeARS343.h"
+#include "TimestepSchemeARS443.h"
 #include "TimestepSchemeSplitExp.h"
 #include "HorizontalDynamicsStub.h"
 #include "HorizontalDynamicsFEM.h"
@@ -194,25 +194,25 @@ void _TempestSetupMethodOfLines(
 			new TimestepSchemeStrang(
 				model, 0.0, TimestepSchemeStrang::RungeKuttaSSPRK53));
 
-	} else if (vars.strTimestepScheme == "ark2") {
+	} else if (vars.strTimestepScheme == "ars222") {
 		model.SetTimestepScheme(
-			new TimestepSchemeARK2(model));
+			new TimestepSchemeARS222(model));
 
-	} else if (vars.strTimestepScheme == "hark222") {
+	} else if (vars.strTimestepScheme == "ars232") {
 		model.SetTimestepScheme(
-			new TimestepSchemeHARK222(model));
+			new TimestepSchemeARS232(model));
 
-	} else if (vars.strTimestepScheme == "hark332") {
+	} else if (vars.strTimestepScheme == "ark232") {
 		model.SetTimestepScheme(
-			new TimestepSchemeHARK222(model));
+			new TimestepSchemeARK232(model));
 
-	} else if (vars.strTimestepScheme == "ark343") {
+	} else if (vars.strTimestepScheme == "ars343") {
 		model.SetTimestepScheme(
-			new TimestepSchemeARK343(model));
+			new TimestepSchemeARS343(model));
 
-	} else if (vars.strTimestepScheme == "ark3") {
+	} else if (vars.strTimestepScheme == "ars443") {
 		model.SetTimestepScheme(
-			new TimestepSchemeARK3(model));
+			new TimestepSchemeARS443(model));
 
         } else if (vars.strTimestepScheme == "spex") {
 		model.SetTimestepScheme(
@@ -220,7 +220,8 @@ void _TempestSetupMethodOfLines(
 
 	} else {
 		_EXCEPTIONT("Invalid timescheme: Expected "
-			"\"Strang\", \"ARK2\", \"ARK3\"");
+			"\"Strang\", \"ARS222\", \"ARS232\", \"ARK232\""
+                        "\"ARS343\", \"ARS443\"");
 	}
 	AnnounceEndBlock("Done");
 

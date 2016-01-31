@@ -1,8 +1,8 @@
 ///////////////////////////////////////////////////////////////////////////////
 ///
-///	\file    TimestepSchemeHARK222.h
-///	\author  Jorge Guerra
-///	\version January 27, 2016
+///	\file    TimestepSchemeARK232.h
+///	\author  Paul Ullrich
+///	\version April 22, 2014
 ///
 ///	<remarks>
 ///		Copyright 2000-2010 Paul Ullrich, Jorge Guerra
@@ -14,8 +14,8 @@
 ///		or implied warranty.
 ///	</remarks>
 
-#ifndef _TIMESTEPSCHEMEHARK222_H_
-#define _TIMESTEPSCHEMEHARK222_H_
+#ifndef _TIMESTEPSCHEMEARK232_H_
+#define _TIMESTEPSCHEMEARK232_H_
 
 #include "TimestepScheme.h"
 #include "Exception.h"
@@ -29,15 +29,15 @@ class Time;
 ///////////////////////////////////////////////////////////////////////////////
 
 ///	<summary>
-///		Additive SSP IMEX RK2 by (Higueras, 2012)
+///		Adaptive Fourth-Order Runge-Kutta time stepping.
 ///	</summary>
-class TimestepSchemeHARK222 : public TimestepScheme {
+class TimestepSchemeARK232 : public TimestepScheme {
 
 public:
 	///	<summary>
 	///		Constructor.
 	///	</summary>
-	TimestepSchemeHARK222(
+	TimestepSchemeARK232(
 		Model & model
 	);
 
@@ -46,14 +46,14 @@ public:
 	///		Get the number of component data instances.
 	///	</summary>
 	virtual int GetComponentDataInstances() const {
-		return 6;
+		return 7;
 	}
 
 	///	<summary>
 	///		Get the number of tracer data instances.
 	///	</summary>
 	virtual int GetTracerDataInstances() const {
-		return 6;
+		return 7;
 	}
 
 protected:
@@ -69,49 +69,38 @@ protected:
 
 private:
         ///	<summary>
-        ///		ARK2 parameter gamma
-        ///	</summary>
-        static const double m_dgamma;
+	///		ARK232 parameter gamma
+	///	</summary>
+	static const double m_dgamma;
 
         ///	<summary>
-	///		Coefficients for final weights ARK2.
+	///		ARK232 parameter alpha
 	///	</summary>
-	static const double m_dbCf[2];
+	static const double m_dalpha;
 
         ///	<summary>
-	///		Coefficients for the explicit ARK2.
+	///		ARK232 parameter delta
 	///	</summary>
-	static const double m_dExpCf[2][2];
+	static const double m_ddelta;
+
+        ///	<summary>
+	///		Coefficients for the explicit ARK232.
+	///	</summary>
+	static const double m_dExpCf[3][3];
 
 	///	<summary>
-	///		Coefficients for the explicit ARK2.
+	///		Coefficients for the explicit ARK232.
 	///	</summary>
-	static const double m_dImpCf[2][2];
+	static const double m_dImpCf[3][3];
+
+	///		Explicit evaluation at the 2nd substage
+	///	</summary>
+	DataArray1D<double> m_du2fCombo;
 
 	///	<summary>
-	///		K1 vector combination (Implicit)
+	///		Explicit evaluation at the 3rd substage
 	///	</summary>
-	DataArray1D<double> m_dKv1Combo;
-
-	///	<summary>
-	///		K2 vector combination (Implicit)
-	///	</summary>
-	DataArray1D<double> m_dKv2Combo;
-
-	///	<summary>
-	///		Kh2 vector combination (Explicit)
-	///	</summary>
-	DataArray1D<double> m_dKh1Combo;
-
-	///	<summary>
-	///		Explicit evaluation at the 2nd stage
-	///	</summary>
-	DataArray1D<double> m_du2Combo;
-
-	///	<summary>
-	///		Explicit evaluation at the final stage
-	///	</summary>
-	DataArray1D<double> m_dufCombo;
+	DataArray1D<double> m_du3fCombo;
 };
 
 ///////////////////////////////////////////////////////////////////////////////

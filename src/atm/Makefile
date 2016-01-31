@@ -18,11 +18,11 @@ FILES= CubedSphereTrans.cpp \
        Model.cpp \
        EquationSet.cpp \
        TimestepSchemeStrang.cpp \
-       TimestepSchemeARK2.cpp \
-       TimestepSchemeHARK222.cpp \
-       TimestepSchemeHARK332.cpp \
-       TimestepSchemeARK3.cpp \
-       TimestepSchemeARK343.cpp \
+       TimestepSchemeARS222.cpp \
+       TimestepSchemeARS232.cpp \
+       TimestepSchemeARK232.cpp \
+       TimestepSchemeARS343.cpp \
+       TimestepSchemeARS443.cpp \
        TimestepSchemeARK4.cpp \
        TimestepSchemeSplitExp.cpp \
        HorizontalDynamicsFEM.cpp \

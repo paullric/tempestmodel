@@ -30,10 +30,10 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 //#define VERTICAL_HYPERVISCOSITY
-#define VERTICAL_UPWINDING
+//#define VERTICAL_UPWINDING
 
-#define DIFFUSE_HORIZONTAL_VELOCITIES
-#define DIFFUSE_THERMO
+//#define DIFFUSE_HORIZONTAL_VELOCITIES
+//#define DIFFUSE_THERMO
 //#define DIFFUSE_VERTICAL_VELOCITY
 //#define DIFFUSE_RHO
 
@@ -399,6 +399,19 @@ void VerticalDynamicsFEM::Initialize() {
 	m_dColumnContraMetricAREdge.Allocate(nRElements+1, 3);
 	m_dColumnContraMetricBREdge.Allocate(nRElements+1, 3);
 	m_dColumnContraMetricXiREdge.Allocate(nRElements+1, 3);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+void VerticalDynamicsFEM::ForceStepExplicit(
+	int iDataInitial,
+	int iDataUpdate,
+	const Time & time,
+	double dDeltaT
+) {
+        bool fOldFullyExplicit = m_fFullyExplicit;
+        m_fFullyExplicit = true;
+        StepExplicit(iDataInitial, iDataUpdate, time, dDeltaT);
+        m_fFullyExplicit = fOldFullyExplicit;
 }
 
 ///////////////////////////////////////////////////////////////////////////////

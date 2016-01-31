@@ -73,6 +73,17 @@ public:
 	}
 
 	///	<summary>
+	///		Force a full explicit update one time only
+	///	</summary>
+	virtual void ForceStepExplicit(
+		int iDataInitial,
+		int iDataUpdate,
+		const Time & time,
+		double dDeltaT
+	) {
+        }
+
+	///	<summary>
 	///		Perform one implicit time step.
 	///	</summary>
 	virtual void StepImplicit(

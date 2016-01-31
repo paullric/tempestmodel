@@ -1,8 +1,8 @@
 ///////////////////////////////////////////////////////////////////////////////
 ///
-///	\file    TimestepSchemeHARK332.h
+///	\file    TimestepSchemeARS222.h
 ///	\author  Jorge Guerra
-///	\version January 27, 2016
+///	\version January 29, 2016
 ///
 ///	<remarks>
 ///		Copyright 2000-2010 Paul Ullrich, Jorge Guerra
@@ -14,8 +14,8 @@
 ///		or implied warranty.
 ///	</remarks>
 
-#ifndef _TIMESTEPSCHEMEHARK332_H_
-#define _TIMESTEPSCHEMEHARK332_H_
+#ifndef _TIMESTEPSCHEMEARS222_H_
+#define _TIMESTEPSCHEMEARS222_H_
 
 #include "TimestepScheme.h"
 #include "Exception.h"
@@ -29,15 +29,15 @@ class Time;
 ///////////////////////////////////////////////////////////////////////////////
 
 ///	<summary>
-///		Additive SSP IMEX RK2 by (Higueras, 2012)
+///		Adaptive Fourth-Order Runge-Kutta time stepping.
 ///	</summary>
-class TimestepSchemeHARK332 : public TimestepScheme {
+class TimestepSchemeARS222 : public TimestepScheme {
 
 public:
 	///	<summary>
 	///		Constructor.
 	///	</summary>
-	TimestepSchemeHARK332(
+	TimestepSchemeARS222(
 		Model & model
 	);
 
@@ -46,14 +46,14 @@ public:
 	///		Get the number of component data instances.
 	///	</summary>
 	virtual int GetComponentDataInstances() const {
-		return 8;
+		return 4;
 	}
 
 	///	<summary>
 	///		Get the number of tracer data instances.
 	///	</summary>
 	virtual int GetTracerDataInstances() const {
-		return 8;
+		return 4;
 	}
 
 protected:
@@ -68,60 +68,34 @@ protected:
 	);
 
 private:
-        ///	<summary>
-	///		Coefficients for final weights ARK2.
+    ///	<summary>
+	///		ARS222 parameter gamma
 	///	</summary>
-	static const double m_dbCf[3];
+	static const double m_dgamma;
+	///	<summary>
+	///		ARS222 parameter delta
+	///	</summary>
+	static const double m_ddelta;
 
-        ///	<summary>
-	///		Coefficients for the explicit ARK2.
+    ///	<summary>
+	///		Coefficients for the time increment ARS222.
 	///	</summary>
-	static const double m_dExpCf[3][3];
+	static const double m_dTimeCf[2];
+
+    ///	<summary>
+	///		Coefficients for the explicit ARS222.
+	///	</summary>
+	static const double m_dExpCf[2][2];
 
 	///	<summary>
-	///		Coefficients for the explicit ARK2.
+	///		Coefficients for the explicit ARS222.
 	///	</summary>
-	static const double m_dImpCf[3][3];
+	static const double m_dImpCf[2][2];
 
 	///	<summary>
-	///		K1 vector combination (Implicit)
+	///		Explicit evaluation at the 2nd substage
 	///	</summary>
-	DataArray1D<double> m_dKv1Combo;
-
-	///	<summary>
-	///		K2 vector combination (Implicit)
-	///	</summary>
-	DataArray1D<double> m_dKv2Combo;
-
-	///	<summary>
-	///		K3 vector combination (Implicit)
-	///	</summary>
-	DataArray1D<double> m_dKv3Combo;
-
-	///	<summary>
-	///		Kh1 vector combination (Explicit)
-	///	</summary>
-	DataArray1D<double> m_dKh1Combo;
-
-	///	<summary>
-	///		Kh2 vector combination (Explicit)
-	///	</summary>
-	DataArray1D<double> m_dKh2Combo;
-
-	///	<summary>
-	///		Explicit evaluation at the 2nd stage
-	///	</summary>
-	DataArray1D<double> m_du2Combo;
-
-	///	<summary>
-	///		Explicit evaluation at the 2nd stage
-	///	</summary>
-	DataArray1D<double> m_du3Combo;
-
-	///	<summary>
-	///		Explicit evaluation at the final stage
-	///	</summary>
-	DataArray1D<double> m_dufCombo;
+	DataArray1D<double> m_du2fCombo;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
