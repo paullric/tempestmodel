@@ -148,6 +148,16 @@ public:
 	);
 
 	///	<summary>
+	///		Advance an explicit update of implicit terms one time
+	///	</summary>
+	virtual void StepImplicitTermsExplicitly(
+		int iDataInitial,
+		int iDataUpdate,
+		const Time & time,
+		double dDeltaT
+	);
+
+	///	<summary>
 	///		Force a full explicit update one time only
 	///	</summary>
 	virtual void ForceStepExplicit(

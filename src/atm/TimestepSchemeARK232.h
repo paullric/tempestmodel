@@ -46,14 +46,14 @@ public:
 	///		Get the number of component data instances.
 	///	</summary>
 	virtual int GetComponentDataInstances() const {
-		return 7;
+		return 8;
 	}
 
 	///	<summary>
 	///		Get the number of tracer data instances.
 	///	</summary>
 	virtual int GetTracerDataInstances() const {
-		return 7;
+		return 8;
 	}
 
 protected:

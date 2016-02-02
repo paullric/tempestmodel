@@ -415,7 +415,181 @@ void VerticalDynamicsFEM::ForceStepExplicit(
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+void VerticalDynamicsFEM::StepImplicitTermsExplicitly(
+	int iDataInitial,
+	int iDataUpdate,
+	const Time & time,
+	double dDeltaT
+) {
+	// Get a copy of the grid
+	GridGLL * pGrid = dynamic_cast<GridGLL *>(m_model.GetGrid());
 
+	// Physical constants
+	const PhysicalConstants & phys = m_model.GetPhysicalConstants();
+
+	// Indices of EquationSet variables
+	const int UIx = 0;
+	const int VIx = 1;
+	const int PIx = 2;
+	const int WIx = 3;
+	const int RIx = 4;
+
+	// Number of elements
+	const int nRElements = pGrid->GetRElements();
+
+	// Number of finite elements in the vertical
+	const int nFiniteElements = nRElements / m_nVerticalOrder;
+
+	// Store timestep size
+	m_dDeltaT = dDeltaT;
+
+	// Reset the reference state
+	memset(m_dStateRefNode[WIx],  0,  nRElements   *sizeof(double));
+	memset(m_dStateRefREdge[WIx], 0, (nRElements+1)*sizeof(double));
+
+	// Perform local update
+	for (int n = 0; n < pGrid->GetActivePatchCount(); n++) {
+		GridPatch * pPatch = pGrid->GetActivePatch(n);
+
+		const PatchBox & box = pPatch->GetPatchBox();
+
+		// State Data
+		const DataArray4D<double> & dataRefNode =
+			pPatch->GetReferenceState(DataLocation_Node);
+
+		const DataArray4D<double> & dataInitialNode =
+			pPatch->GetDataState(iDataInitial, DataLocation_Node);
+
+		DataArray4D<double> & dataUpdateNode =
+			pPatch->GetDataState(iDataUpdate, DataLocation_Node);
+
+		const DataArray4D<double> & dataRefREdge =
+			pPatch->GetReferenceState(DataLocation_REdge);
+
+		const DataArray4D<double> & dataInitialREdge =
+			pPatch->GetDataState(iDataInitial, DataLocation_REdge);
+
+		DataArray4D<double> & dataUpdateREdge =
+			pPatch->GetDataState(iDataUpdate, DataLocation_REdge);
+
+		DataArray4D<double> & dataInitialTracer =
+			pPatch->GetDataTracers(iDataInitial);
+
+		DataArray4D<double> & dataUpdateTracer =
+			pPatch->GetDataTracers(iDataUpdate);
+
+		// Metric quantities
+		const DataArray4D<double> & dDerivRNode =
+			pPatch->GetDerivRNode();
+
+		const DataArray4D<double> & dContraMetricXi =
+			pPatch->GetContraMetricXi();
+
+		const DataArray4D<double> & dDerivRREdge =
+			pPatch->GetDerivRREdge();
+
+		const DataArray4D<double> & dContraMetricXiREdge =
+			pPatch->GetContraMetricXiREdge();
+
+#if defined(EXPLICIT_VERTICAL_VELOCITY_ADVECTION) && \
+    defined(VERTICAL_VELOCITY_ADVECTION_CLARK)
+		const DataArray4D<double> & dContraMetricA =
+			pPatch->GetContraMetricA();
+
+		const DataArray4D<double> & dContraMetricB =
+			pPatch->GetContraMetricB();
+
+		const DataArray4D<double> & dContraMetricAREdge =
+			pPatch->GetContraMetricAREdge();
+
+		const DataArray4D<double> & dContraMetricBREdge =
+			pPatch->GetContraMetricBREdge();
+#endif
+#if defined(VERTICAL_UPWINDING) \
+ || defined(EXPLICIT_VERTICAL_VELOCITY_ADVECTION)
+		// Interpolate U and V to interfaces
+		pPatch->InterpolateNodeToREdge(UIx, iDataInitial);
+		pPatch->InterpolateNodeToREdge(VIx, iDataInitial);
+#endif
+#if defined(EXPLICIT_THERMO) \
+ || (defined(EXPLICIT_VERTICAL_VELOCITY_ADVECTION) \
+     && defined(VERTICAL_VELOCITY_ADVECTION_CLARK))
+		// Interpolate W to levels
+		pPatch->InterpolateREdgeToNode(WIx, iDataInitial);
+#endif
+
+		// Loop over all nodes
+		for (int i = box.GetAInteriorBegin(); i < box.GetAInteriorEnd(); i++) {
+		for (int j = box.GetBInteriorBegin(); j < box.GetBInteriorEnd(); j++) {
+
+                        //UPDATE ONLY THE TERMS TREATED IMPLICITLY BUT EXPLICITLY
+			int iA = i;
+			int iB = j;
+
+			SetupReferenceColumn(
+				pPatch, iA, iB,
+				dataRefNode,
+				dataInitialNode,
+				dataRefREdge,
+				dataInitialREdge);
+
+			Evaluate(m_dColumnState, m_dSoln);
+
+			// Apply update to P
+			if (pGrid->GetVarLocation(PIx) == DataLocation_REdge) {
+				for (int k = 0; k <= nRElements; k++) {
+					dataUpdateREdge[PIx][k][iA][iB] -=
+						dDeltaT * m_dSoln[VecFIx(FPIx, k)];
+				}
+			} else {
+				for (int k = 0; k < nRElements; k++) {
+					dataUpdateNode[PIx][k][iA][iB] -=
+						dDeltaT * m_dSoln[VecFIx(FPIx, k)];
+				}
+			}
+
+			// Apply update to W
+			if (pGrid->GetVarLocation(WIx) == DataLocation_REdge) {
+				for (int k = 0; k <= nRElements; k++) {
+					dataUpdateREdge[WIx][k][iA][iB] -=
+						dDeltaT * m_dSoln[VecFIx(FWIx, k)];
+				}
+
+			} else {
+				for (int k = 0; k < nRElements; k++) {
+					dataUpdateNode[WIx][k][iA][iB] -=
+						dDeltaT * m_dSoln[VecFIx(FWIx, k)];
+				}
+			}
+
+			// Apply update to Rho
+			if (pGrid->GetVarLocation(RIx) == DataLocation_REdge) {
+				for (int k = 0; k <= nRElements; k++) {
+					dataUpdateREdge[RIx][k][iA][iB] -=
+						dDeltaT * m_dSoln[VecFIx(FRIx, k)];
+				}
+			} else {
+				for (int k = 0; k < nRElements; k++) {
+					dataUpdateNode[RIx][k][iA][iB] -=
+						dDeltaT * m_dSoln[VecFIx(FRIx, k)];
+				}
+			}
+
+			// Update tracers in column
+			UpdateColumnTracers(
+				dDeltaT,
+				dataInitialNode,
+				dataUpdateNode,
+				dataInitialREdge,
+				dataUpdateREdge,
+				dataInitialTracer,
+				dataUpdateTracer);
+                }
+                }
+        }             
+}
+
+///////////////////////////////////////////////////////////////////////////////
 void VerticalDynamicsFEM::StepExplicit(
 	int iDataInitial,
 	int iDataUpdate,
