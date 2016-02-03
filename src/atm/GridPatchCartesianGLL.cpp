@@ -1421,7 +1421,7 @@ void GridPatchCartesianGLL::InterpolateData(
 
 	// Perform interpolation on all variables
 	int nComponents;
-	int nRElements = 1;
+	int nRElements = m_grid.GetRElements();
 
 	// State Data: Perform interpolation on all variables
 	if (eDataType == DataType_State) {
@@ -1436,11 +1436,11 @@ void GridPatchCartesianGLL::InterpolateData(
 	// Tracer Data: Perform interpolation on all variables
 	} else if (eDataType == DataType_Tracers) {
 		nComponents = m_datavecTracers[0].GetSize(0);
-		nRElements = m_grid.GetRElements();
 
 	// Topography Data
 	} else if (eDataType == DataType_Topography) {
 		nComponents = 1;
+		nRElements = 1;
 
 	// Vorticity Data
 	} else if (eDataType == DataType_Vorticity) {

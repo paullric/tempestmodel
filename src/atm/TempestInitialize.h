@@ -220,7 +220,7 @@ void _TempestSetupMethodOfLines(
 
 	} else {
 		_EXCEPTIONT("Invalid timescheme: Expected "
-			"\"Strang\", \"ARS222\", \"ARS232\", \"ARK232\""
+			"\"Strang\", \"ARS222\", \"ARS232\", \"ARK232\", "
                         "\"ARS343\", \"ARS443\"");
 	}
 	AnnounceEndBlock("Done");
