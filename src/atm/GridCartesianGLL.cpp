@@ -69,7 +69,8 @@ void GridCartesianGLL::SetParameters(
 	int nVerticalOrder,
 	double dGDim[],
 	double dRefLat,
-        int iLatBC[],
+	int iLatBC[],
+	VerticalDiscretization eVerticalDiscretization,
 	VerticalStaggering eVerticalStaggering
 ) {
 
@@ -82,6 +83,7 @@ void GridCartesianGLL::SetParameters(
 		nRefinementRatio,
 		nHorizontalOrder,
 		nVerticalOrder,
+		eVerticalDiscretization,
 		eVerticalStaggering
 	);
 
@@ -95,18 +97,18 @@ void GridCartesianGLL::SetParameters(
 	// Bring in the reference latitude (if any) for large regions where the
 	// beta plane approximation is necessary in the equations
 	m_dRefLat = dRefLat;
-        
-        //std::cout << iLatBC[0] << '\n';
-        // Bring in the boundary conditions
-        //SetBoundaryCondition(Direction_Right,iLatBC[0]);
-        //SetBoundaryCondition(Direction_Top,iLatBC[1]);
-        //SetBoundaryCondition(Direction_Left,iLatBC[2]);
-        //SetBoundaryCondition(Direction_Bottom,iLatBC[3]);
-        m_eBoundaryCondition[Direction_Right] = iLatBC[0];
-        m_eBoundaryCondition[Direction_Top] = iLatBC[1];
-        m_eBoundaryCondition[Direction_Left] = iLatBC[2];
-        m_eBoundaryCondition[Direction_Bottom] = iLatBC[3];
-        //std::cout << m_eBoundaryCondition[Direction_Right] << '\n';
+	
+	//std::cout << iLatBC[0] << '\n';
+	// Bring in the boundary conditions
+	//SetBoundaryCondition(Direction_Right,iLatBC[0]);
+	//SetBoundaryCondition(Direction_Top,iLatBC[1]);
+	//SetBoundaryCondition(Direction_Left,iLatBC[2]);
+	//SetBoundaryCondition(Direction_Bottom,iLatBC[3]);
+	m_eBoundaryCondition[Direction_Right] = iLatBC[0];
+	m_eBoundaryCondition[Direction_Top] = iLatBC[1];
+	m_eBoundaryCondition[Direction_Left] = iLatBC[2];
+	m_eBoundaryCondition[Direction_Bottom] = iLatBC[3];
+	//std::cout << m_eBoundaryCondition[Direction_Right] << '\n';
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -306,8 +308,8 @@ void GridCartesianGLL::GetPatchFromCoordinateIndex(
 		m_nHorizontalOrder * GetABaseResolution(iRefinementLevel);
 	int nLocalResolutionB =
 		m_nHorizontalOrder * GetBBaseResolution(iRefinementLevel);
-        
-        //std::cout << m_eBoundaryCondition[Direction_Bottom] << '\n';
+	
+	//std::cout << m_eBoundaryCondition[Direction_Bottom] << '\n';
 	// Loop through all entries
 	int iLastPatch = GridPatch::InvalidIndex;
 	for (int i = 0; i < nVectorLength; i++) {

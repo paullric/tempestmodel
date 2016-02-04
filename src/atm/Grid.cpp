@@ -60,6 +60,7 @@ void Grid::DefineParameters() {
 	m_dcGridParameters.PushDataChunk(&m_nMaxPatchCount);
 	m_dcGridParameters.PushDataChunk(&m_nRElements);
 	m_dcGridParameters.PushDataChunk(&m_iGridStamp);
+	m_dcGridParameters.PushDataChunk(&m_eVerticalDiscretization);
 	m_dcGridParameters.PushDataChunk(&m_eVerticalStaggering);
 	m_dcGridParameters.PushDataChunk(&m_nABaseResolution);
 	m_dcGridParameters.PushDataChunk(&m_nBBaseResolution);
@@ -81,6 +82,7 @@ void Grid::SetParameters(
 	int nABaseResolution,
 	int nBBaseResolution,
 	int nRefinementRatio,
+	VerticalStaggering eVerticalDiscretization,
 	VerticalStaggering eVerticalStaggering
 ) {
 	if (!m_dcGridParameters.IsAttached()) {
@@ -91,6 +93,7 @@ void Grid::SetParameters(
 	m_nMaxPatchCount = nMaxPatchCount;
 	m_nRElements = nRElements;
 	m_iGridStamp = 0;
+	m_eVerticalDiscretization = eVerticalDiscretization;
 	m_eVerticalStaggering = eVerticalStaggering;
 	m_nABaseResolution = nABaseResolution;
 	m_nBBaseResolution = nBBaseResolution;
@@ -834,7 +837,7 @@ void Grid::ReduceInterpolate(
 	) {
 		_EXCEPTIONT("Unable to Interpolate with no tracers.");
 	}
-	
+
 	// Check interpolation data array size
 	if ((eDataType == DataType_State) &&
 		(dInterpData.GetRows() != m_model.GetEquationSet().GetComponents())

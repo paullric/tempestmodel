@@ -59,6 +59,7 @@ void GridGLL::SetParameters(
 	int nRefinementRatio,
 	int nHorizontalOrder,
 	int nVerticalOrder,
+	VerticalDiscretization eVerticalDiscretization,
 	VerticalStaggering eVerticalStaggering
 ) {
 	if (!m_dcGridParameters.IsAttached()) {
@@ -72,6 +73,7 @@ void GridGLL::SetParameters(
 		nABaseResolution,
 		nBBaseResolution,
 		nRefinementRatio,
+		eVerticalDiscretization,
 		eVerticalStaggering
 	);
 
@@ -150,7 +152,51 @@ void GridGLL::Initialize() {
 		2, m_nHorizontalOrder, dGL, m_dFluxDeriv1D);
 
 	// Initialize differentiation operators
-	if (m_eVerticalStaggering == VerticalStaggering_Interfaces) {
+	if (m_eVerticalDiscretization == VerticalDiscretization_FiniteVolume) {
+
+		// Interpolation operators
+		m_opInterpNodeToREdge.InitializeReconstructed(
+			m_nVerticalOrder,
+			m_dREtaStretchLevels,
+			m_dREtaStretchInterfaces);
+
+		m_opInterpREdgeToNode.InitializeReconstructed(
+			m_nVerticalOrder,
+			m_dREtaStretchInterfaces,
+			m_dREtaStretchLevels);
+
+		// Differentiation operators
+		m_opDiffNodeToNode.InitializeReconstructed(
+			LinearColumnDiffFEM::InterpSource_Levels,
+			LinearColumnDiffFEM::InterpSource_Levels,
+			m_nVerticalOrder,
+			m_dREtaLevels,
+			m_dREtaInterfaces);
+
+		m_opDiffNodeToREdge.InitializeReconstructed(
+			LinearColumnDiffFEM::InterpSource_Levels,
+			LinearColumnDiffFEM::InterpSource_Interfaces,
+			m_nVerticalOrder,
+			m_dREtaLevels,
+			m_dREtaInterfaces);
+
+		m_opDiffREdgeToNode.InitializeReconstructed(
+			LinearColumnDiffFEM::InterpSource_Interfaces,
+			LinearColumnDiffFEM::InterpSource_Levels,
+			m_nVerticalOrder,
+			m_dREtaLevels,
+			m_dREtaInterfaces);
+
+		m_opDiffREdgeToREdge.InitializeReconstructed(
+			LinearColumnDiffFEM::InterpSource_Interfaces,
+			LinearColumnDiffFEM::InterpSource_Interfaces,
+			m_nVerticalOrder,
+			m_dREtaLevels,
+			m_dREtaInterfaces);
+
+
+	// Finite element discretization on interfaces
+	} else if (m_eVerticalStaggering == VerticalStaggering_Interfaces) {
 
 		// Special differentiation operator
 		m_opDiffNodeToNode.InitializeGLLNodes(
@@ -169,6 +215,7 @@ void GridGLL::Initialize() {
 			m_dREtaLevels,
 			m_dREtaInterfaces);
 */
+
 	} else {
 		// Interpolation operators
 		m_opInterpNodeToREdge.Initialize(
@@ -262,11 +309,17 @@ void GridGLL::InitializeVerticalCoordinate() {
 		return;
 	}
 
+	// For finite volume discretization, backup vertical order
+	int nNodesPerFiniteElement = m_nVerticalOrder;
+	if (m_eVerticalDiscretization == VerticalDiscretization_FiniteVolume) {
+		nNodesPerFiniteElement = 1;
+	}
+
 	// Initialize the vertical coordinate (INT staggering)
 	if (m_eVerticalStaggering == VerticalStaggering_Interfaces) {
 
 		// Check number of levels
-		if ((m_nRElements - 1) % (m_nVerticalOrder - 1) != 0) {
+		if ((m_nRElements - 1) % (nNodesPerFiniteElement - 1) != 0) {
 			_EXCEPTIONT("(vertorder - 1) must divide (levels - 1) equally");
 		}
 
@@ -275,23 +328,28 @@ void GridGLL::InitializeVerticalCoordinate() {
 		DataArray1D<double> dWL;
 
 		GaussLobattoQuadrature::GetPoints(
-			m_nVerticalOrder, 0.0, 1.0, dGL, dWL);
+			nNodesPerFiniteElement, 0.0, 1.0, dGL, dWL);
 
 		// Number of finite elements
-		int nFiniteElements = (m_nRElements - 1) / (m_nVerticalOrder - 1);
-		double dAvgDeltaElement = 1.0 / static_cast<double>(nFiniteElements);
+		int nFiniteElements =
+			(m_nRElements - 1) / (nNodesPerFiniteElement - 1);
+
+		double dAvgDeltaElement =
+			1.0 / static_cast<double>(nFiniteElements);
 
 		// Uniform stretching
 		if (m_pVerticalStretchF == NULL) {
 			for (int k = 0; k < m_nRElements; k++) {
-				double dA = static_cast<double>(k / (m_nVerticalOrder - 1));
-				int kx = k % (m_nVerticalOrder - 1);
+				double dA =
+					static_cast<double>(k / (nNodesPerFiniteElement - 1));
+
+				int kx = k % (nNodesPerFiniteElement - 1);
 
 				m_dREtaLevels[k] = (dGL[kx] + dA) * dAvgDeltaElement;
 				m_dREtaLevelsNormArea[k] = dWL[kx] * dAvgDeltaElement;
 			}
 			for (int a = 1; a < nFiniteElements; a++) {
-				m_dREtaLevelsNormArea[a * (m_nVerticalOrder-1)] *= 2.0;
+				m_dREtaLevelsNormArea[a * (nNodesPerFiniteElement-1)] *= 2.0;
 			}
 
 		// Non-uniform stretching
@@ -313,8 +371,8 @@ void GridGLL::InitializeVerticalCoordinate() {
 			for (int a = 0; a < nFiniteElements; a++) {
 
 				double dDeltaElement = dREta1 - dREta0;
-				for (int k = 0; k < m_nVerticalOrder; k++) {
-					int kx = a * (m_nVerticalOrder - 1) + k;
+				for (int k = 0; k < nNodesPerFiniteElement; k++) {
+					int kx = a * (nNodesPerFiniteElement - 1) + k;
 					m_dREtaLevels[kx] = dREta0 + dGL[k] * dDeltaElement;
 					m_dREtaLevelsNormArea[kx] += dWL[k] * dDeltaElement;
 				}
@@ -333,7 +391,7 @@ void GridGLL::InitializeVerticalCoordinate() {
 	} else {
 
 		// Check number of levels
-		if (m_nRElements % m_nVerticalOrder != 0) {
+		if (m_nRElements % nNodesPerFiniteElement != 0) {
 			_EXCEPTIONT("vertorder must divide levels equally");
 		}
 
@@ -342,39 +400,39 @@ void GridGLL::InitializeVerticalCoordinate() {
 		DataArray1D<double> dW;
 
 		GaussQuadrature::GetPoints(
-			m_nVerticalOrder, 0.0, 1.0, dG, dW);
+			nNodesPerFiniteElement, 0.0, 1.0, dG, dW);
 
 		// Get Gauss-Lobatto points
 		DataArray1D<double> dGL;
 		DataArray1D<double> dWL;
 
 		GaussLobattoQuadrature::GetPoints(
-			m_nVerticalOrder+1, 0.0, 1.0, dGL, dWL);
+			nNodesPerFiniteElement+1, 0.0, 1.0, dGL, dWL);
 
 		// Number of finite elements
-		int nFiniteElements = m_nRElements / m_nVerticalOrder;
+		int nFiniteElements = m_nRElements / nNodesPerFiniteElement;
 		double dAvgDeltaElement = 1.0 / static_cast<double>(nFiniteElements);
 
 		// Uniform stretching
 		if (m_pVerticalStretchF == NULL) {
 
 			for (int k = 0; k < m_nRElements; k++) {
-				double dA = static_cast<double>(k / m_nVerticalOrder);
-				int kx = k % m_nVerticalOrder;
+				double dA = static_cast<double>(k / nNodesPerFiniteElement);
+				int kx = k % nNodesPerFiniteElement;
 
 				m_dREtaLevels[k] = (dG[kx] + dA) * dAvgDeltaElement;
 				m_dREtaLevelsNormArea[k] = dW[kx] * dAvgDeltaElement;
 			}
 
 			for (int k = 0; k <= m_nRElements; k++) {
-				double dA = static_cast<double>(k / m_nVerticalOrder);
-				int kx = k % m_nVerticalOrder;
+				double dA = static_cast<double>(k / nNodesPerFiniteElement);
+				int kx = k % nNodesPerFiniteElement;
 
 				m_dREtaInterfaces[k] = (dGL[kx] + dA) * dAvgDeltaElement;
 				m_dREtaInterfacesNormArea[k] = dWL[kx] * dAvgDeltaElement;
 			}
 			for (int a = 1; a < nFiniteElements; a++) {
-				m_dREtaInterfacesNormArea[a * m_nVerticalOrder] *= 2.0;
+				m_dREtaInterfacesNormArea[a * nNodesPerFiniteElement] *= 2.0;
 			}
 
 		// Non-uniform stretching
@@ -398,14 +456,14 @@ void GridGLL::InitializeVerticalCoordinate() {
 
 				double dDeltaElement = dREta1 - dREta0;
 
-				for (int k = 0; k < m_nVerticalOrder; k++) {
-					int kx = a * m_nVerticalOrder + k;
+				for (int k = 0; k < nNodesPerFiniteElement; k++) {
+					int kx = a * nNodesPerFiniteElement + k;
 					m_dREtaLevels[kx] = dREta0 + dG[k] * dDeltaElement;
 					m_dREtaLevelsNormArea[kx] = dW[k] * dDeltaElement;
 				}
 
-				for (int k = 0; k <= m_nVerticalOrder; k++) {
-					int kx = a * m_nVerticalOrder + k;
+				for (int k = 0; k <= nNodesPerFiniteElement; k++) {
+					int kx = a * nNodesPerFiniteElement + k;
 					m_dREtaInterfaces[kx] = dREta0 + dGL[k] * dDeltaElement;
 					m_dREtaInterfacesNormArea[kx] += dWL[k] * dDeltaElement;
 				}

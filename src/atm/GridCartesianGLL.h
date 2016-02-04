@@ -53,9 +53,9 @@ public:
 		int nVerticalOrder,
 		double dGDim[],
 		double dRefLat,
-                int iLatBC[],
+		int iLatBC[],
+		VerticalDiscretization eVerticalDiscretization,
 		VerticalStaggering eVerticalStaggering
-			= VerticalStaggering_CharneyPhillips
 	);
 
 public:

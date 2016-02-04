@@ -58,6 +58,7 @@ void GridCSGLL::SetParameters(
 	int nRefinementRatio,
 	int nHorizontalOrder,
 	int nVerticalOrder,
+	VerticalDiscretization eVerticalDiscretization,
 	VerticalStaggering eVerticalStaggering
 ) {
 	if (!m_dcGridParameters.IsAttached()) {
@@ -78,6 +79,7 @@ void GridCSGLL::SetParameters(
 		nRefinementRatio,
 		nHorizontalOrder,
 		nVerticalOrder,
+		eVerticalDiscretization,
 		eVerticalStaggering
 	);
 

@@ -67,13 +67,21 @@ public:
 
 public:
 	///	<summary>
+	///		Type of vertical discretization to be used.
+	///	</summary>
+	typedef int VerticalDiscretization;
+	static const int VerticalDiscretization_FiniteElement = 0;
+	static const int VerticalDiscretization_FiniteVolume = 1;
+
+public:
+	///	<summary>
 	///		Boundary condition type applied in each direction.
 	///	</summary>
 	typedef int BoundaryCondition;
 	static const int BoundaryCondition_Default = 0;
 	static const int BoundaryCondition_Periodic = 0;
 	static const int BoundaryCondition_NoFlux = 1;
-        static const int BoundaryCondition_NoSlip = 2;
+	static const int BoundaryCondition_NoSlip = 2;
 
 public:
 	///	<summary>
@@ -102,8 +110,8 @@ public:
 		int nABaseResolution,
 		int nBBaseResolution,
 		int nRefinementRatio,
+		VerticalDiscretization eVerticalDiscretization,
 		VerticalStaggering eVerticalStaggering
-			= VerticalStaggering_CharneyPhillips
 	);
 
 	///	<summary>
@@ -711,6 +719,13 @@ public:
 	}
 
 	///	<summary>
+	///		Get the type of vertical discretization.
+	///	</summary>
+	VerticalDiscretization GetVerticalDiscretization() const {
+		return m_eVerticalDiscretization;
+	}
+
+	///	<summary>
 	///		Get the type of vertical staggering.
 	///	</summary>
 	VerticalStaggering GetVerticalStaggering() const {
@@ -919,6 +934,11 @@ protected:
 	///		Refinement ratio.
 	///	</summary>
 	DataStruct<int> m_nRefinementRatio;
+
+	///	<summary>
+	///		Type of vertical stretching being applied.
+	///	</summary>
+	DataStruct<VerticalDiscretization> m_eVerticalDiscretization;
 
 	///	<summary>
 	///		Type of vertical stretching being applied.

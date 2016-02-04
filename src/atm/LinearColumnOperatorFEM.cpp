@@ -203,6 +203,81 @@ void LinearColumnInterpFEM::Initialize(
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+
+void LinearColumnInterpFEM::InitializeReconstructed(
+	int nVerticalOrder,
+	const DataArray1D<double> & dREtaIn,
+	const DataArray1D<double> & dREtaOut
+) {
+	const double ParamEpsilon = 1.0e-12;
+
+	const int nRElementsIn  = dREtaIn.GetRows();
+	const int nRElementsOut = dREtaOut.GetRows();
+
+	// Verify input parameters
+	if (nRElementsIn == 0) {
+		_EXCEPTIONT("At least one row required for dREtaIn");
+	}
+	if (nRElementsOut == 0) {
+		_EXCEPTIONT("At least one row required for dREtaOut");
+	}
+
+	// Verify enough input nodes are present
+	if (nRElementsIn <= nVerticalOrder) {
+		_EXCEPTIONT("Insufficient nodes for desired order of accuracy");
+	}
+	if (nVerticalOrder < 2) {
+		_EXCEPTIONT("Reconstructed interpolant requires 2nd order or higher");
+	}
+
+	// Initialize
+	LinearColumnOperator::Initialize(nRElementsIn, nRElementsOut);
+
+	// Loop through all output nodes
+	for (int k = 0; k < nRElementsOut; k++) {
+
+		// Boundaries on interpolant
+		int j = 0;
+		for (; j < nRElementsIn-2; j++) {
+			if (dREtaIn[j+1] > dREtaOut[k]) {
+				break;
+			}
+		}
+
+		int jbegin = j;
+		int jlast = j+1;
+
+		for (;;) {
+			if (jlast - jbegin >= nVerticalOrder - 1) {
+				break;
+			}
+			if (jlast != nRElementsIn-1) {
+				jlast++;
+			}
+			if (jlast - jbegin >= nVerticalOrder - 1) {
+				break;
+			}
+			if (jbegin != 0) {
+				jbegin--;
+			}
+		}
+
+		PolynomialInterp::LagrangianPolynomialCoeffs(
+			nVerticalOrder,
+			&(dREtaIn[jbegin]),
+			&(m_dCoeff[k][jbegin]),
+			dREtaOut[k]);
+
+		m_iBegin[k] = jbegin;
+		m_iEnd[k] = jlast + 1;
+	}
+/*
+	// DEBUGGING
+	DebugOutput(&dREtaIn, &dREtaOut);
+*/
+}
+
+///////////////////////////////////////////////////////////////////////////////
 /// LinearColumnDiffFEM
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -784,6 +859,140 @@ void LinearColumnDiffFEM::InitializeVariationalNodeToREdge(
 /*
 	// DEBUGGING
 	DebugOutput(&dREtaNode, &dREtaREdge);
+*/
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void LinearColumnDiffFEM::InitializeReconstructed(
+	InterpSource eInterpSource,
+	InterpSource eInterpDest,
+	int nVerticalOrder,
+	const DataArray1D<double> & dREtaNode,
+	const DataArray1D<double> & dREtaREdge
+) {
+	const int nRElementsNode = dREtaNode.GetRows();
+	const int nRElementsREdge = dREtaREdge.GetRows();
+
+	// Verify input parameters
+	if (nRElementsNode == 0) {
+		_EXCEPTIONT("At least one row required for dREtaNode");
+	}
+	if (nRElementsREdge == 0) {
+		_EXCEPTIONT("At least one row required for dREtaREdge");
+	}
+	if (nVerticalOrder < 2) {
+		_EXCEPTIONT("Reconstructed interpolant requires 2nd order or higher");
+	}
+
+	if (nVerticalOrder % 2 != 0) {
+		_EXCEPTIONT("Odd vertical order not supported");
+	}
+
+	// Differentiation from interfaces to levels (central difference)
+	if ((eInterpSource == InterpSource_Interfaces) &&
+		(eInterpDest == InterpSource_Levels)
+	) {
+		LinearColumnOperator::Initialize(nRElementsREdge, nRElementsNode);
+
+		for (int k = 0; k < nRElementsNode; k++) {
+			double dDeltaVolume = dREtaREdge[k+1] - dREtaREdge[k];
+
+			m_dCoeff[k][k]   = -1.0 / dDeltaVolume;
+			m_dCoeff[k][k+1] = +1.0 / dDeltaVolume;
+
+			m_iBegin[k] = k;
+			m_iEnd[k] = k+2;
+		}
+
+	// Differentiation from levels to levels
+	} else if (
+		(eInterpSource == InterpSource_Levels) &&
+		(eInterpDest == InterpSource_Levels)
+	) {
+		LinearColumnInterpFEM opInterp;
+		opInterp.InitializeReconstructed(
+			nVerticalOrder,
+			dREtaNode,
+			dREtaREdge);
+
+		InitializeReconstructed(
+			InterpSource_Interfaces,
+			InterpSource_Levels,
+			nVerticalOrder,
+			dREtaNode,
+			dREtaREdge);
+
+		ComposeWith(opInterp);
+
+	// Differentiation from interfaces to interfaces
+	} else if (
+		(eInterpSource == InterpSource_Interfaces) &&
+		(eInterpDest == InterpSource_Interfaces)
+	) {
+
+		// Initialize
+		LinearColumnOperator::Initialize(nRElementsREdge, nRElementsREdge);
+
+		for (int k = 0; k < nRElementsREdge; k++) {
+			int kbegin = k - nVerticalOrder/2;
+			int klast = k + nVerticalOrder/2;
+
+			if (kbegin < 0) {
+				kbegin = 0;
+			}
+			if (klast >= nRElementsREdge) {
+				klast = nRElementsREdge-1;
+			}
+
+			PolynomialInterp::DiffLagrangianPolynomialCoeffs(
+				klast - kbegin + 1,
+				&(dREtaREdge[kbegin]),
+				&(m_dCoeff[k][kbegin]),
+				dREtaREdge[k]);
+
+			m_iBegin[k] = kbegin;
+			m_iEnd[k] = klast + 1;
+		}
+
+	// Differentiation from levels to interfaces
+	} else if (
+		(eInterpSource == InterpSource_Levels) &&
+		(eInterpDest == InterpSource_Interfaces)
+	) {
+
+		// Initialize
+		LinearColumnOperator::Initialize(nRElementsNode, nRElementsREdge);
+
+		for (int k = 0; k < nRElementsREdge; k++) {
+			int kbegin = k - nVerticalOrder/2;
+			int klast = k + nVerticalOrder/2 - 1;
+
+			if (kbegin < 0) {
+				kbegin = 0;
+			}
+			if (klast >= nRElementsNode) {
+				klast = nRElementsNode-1;
+			}
+
+			PolynomialInterp::DiffLagrangianPolynomialCoeffs(
+				klast - kbegin + 1,
+				&(dREtaNode[kbegin]),
+				&(m_dCoeff[k][kbegin]),
+				dREtaREdge[k]);
+
+			m_iBegin[k] = kbegin;
+			m_iEnd[k] = klast + 1;
+		}
+
+	}
+/*
+	// DEBUGGING
+	if ((eInterpSource == InterpSource_Levels) &&
+		(eInterpDest == InterpSource_Interfaces)
+	) {
+		DebugOutput(&dREtaNode, &dREtaREdge);
+	}
 */
 }
 
