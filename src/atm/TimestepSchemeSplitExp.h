@@ -68,7 +68,7 @@ protected:
 	);
 
 private:
-        ///	<summary>
+	///	<summary>
 	///		Linear combination coefficients used by KGU53.
 	///	</summary>
 	DataArray1D<double> m_dKinnmarkGrayUllrichCombination;

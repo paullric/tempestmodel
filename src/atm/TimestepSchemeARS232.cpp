@@ -43,8 +43,8 @@ TimestepSchemeARS232::TimestepSchemeARS232(
 ) :
 	TimestepScheme(model)
 {
-    m_du2fCombo.Allocate(6);
-    m_du3fCombo.Allocate(7);
+	m_du2fCombo.Allocate(6);
+	m_du3fCombo.Allocate(7);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -67,27 +67,27 @@ void TimestepSchemeARS232::Step(
 	// u2 explicit evaluation combination
 	m_du2fCombo[0] = 1.0 - m_dExpCf[1][0] / m_dExpCf[0][0];
 	m_du2fCombo[1] = m_dExpCf[1][0] / m_dExpCf[0][0] - 
-                         m_dImpCf[1][0] / m_dImpCf[0][0];
+					 m_dImpCf[1][0] / m_dImpCf[0][0];
 	m_du2fCombo[2] = m_dImpCf[1][0] / m_dImpCf[0][0];
-        m_du2fCombo[3] = 0.0;
-        m_du2fCombo[4] = 0.0;
-        m_du2fCombo[5] = 0.0;
+	m_du2fCombo[3] = 0.0;
+	m_du2fCombo[4] = 0.0;
+	m_du2fCombo[5] = 0.0;
 
 	// u3 explicit evaluation combination
 	m_du3fCombo[0] = 1.0 - m_dExpCf[2][0] / m_dExpCf[0][0];
 	m_du3fCombo[1] = m_dExpCf[2][0] / m_dExpCf[0][0] - 
-                         m_dImpCf[2][0] / m_dImpCf[0][0];
+					 m_dImpCf[2][0] / m_dImpCf[0][0];
 	m_du3fCombo[2] = m_dImpCf[2][0] / m_dImpCf[0][0];
 	m_du3fCombo[3] = m_dExpCf[2][1] / m_dExpCf[1][1] - 
-                         m_dImpCf[2][1] / m_dImpCf[1][1];
+					 m_dImpCf[2][1] / m_dImpCf[1][1];
 	m_du3fCombo[4] = m_dImpCf[2][1] / m_dImpCf[1][1];
 	m_du3fCombo[5] = -m_dExpCf[2][1] / m_dExpCf[1][1];
-        m_du3fCombo[6] = 0.0;
+	m_du3fCombo[6] = 0.0;
 
 	// STAGE 1
 	// Compute uf1 into index 1
 	pGrid->CopyData(0, 1, DataType_State);
-        pGrid->CopyData(0, 1, DataType_Tracers);
+	pGrid->CopyData(0, 1, DataType_Tracers);
 	pHorizontalDynamics->StepExplicit(
 		0, 1, time, m_dExpCf[0][0] * dDeltaT);
 	pVerticalDynamics->StepExplicit(
@@ -97,7 +97,7 @@ void TimestepSchemeARS232::Step(
 
 	// Compute u1 into index 2
 	pGrid->CopyData(1, 2, DataType_State);
-        pGrid->CopyData(1, 2, DataType_State);        
+	pGrid->CopyData(1, 2, DataType_State);        
 	pVerticalDynamics->StepImplicit(
 		2, 2, time, m_dImpCf[0][0] * dDeltaT);
 	pGrid->PostProcessSubstage(2, DataType_State);
@@ -106,9 +106,9 @@ void TimestepSchemeARS232::Step(
 	// STAGE 2
 	// Compute uf2 from u1 (index 2) into index 5
 	pGrid->LinearCombineData(m_du2fCombo, 5, DataType_State);
-        pGrid->LinearCombineData(m_du2fCombo, 5, DataType_Tracers);
-        pGrid->CopyData(5, 3, DataType_State);
-        pGrid->CopyData(5, 3, DataType_Tracers);
+	pGrid->LinearCombineData(m_du2fCombo, 5, DataType_Tracers);
+	pGrid->CopyData(5, 3, DataType_State);
+	pGrid->CopyData(5, 3, DataType_Tracers);
 	pHorizontalDynamics->StepExplicit(
 		2, 3, time, m_dExpCf[1][1] * dDeltaT);
 	pVerticalDynamics->StepExplicit(
@@ -117,8 +117,8 @@ void TimestepSchemeARS232::Step(
 	pGrid->PostProcessSubstage(3, DataType_Tracers);
 
 	// Compute u2 from uf2 (index 3) into index 4
-        pGrid->CopyData(3, 4, DataType_State);
-        pGrid->CopyData(3, 4, DataType_State);
+	pGrid->CopyData(3, 4, DataType_State);
+	pGrid->CopyData(3, 4, DataType_State);
 	pVerticalDynamics->StepImplicit(
 		4, 4, time, m_dImpCf[1][1] * dDeltaT);
 	pGrid->PostProcessSubstage(4, DataType_State);
@@ -127,7 +127,7 @@ void TimestepSchemeARS232::Step(
 	// STAGE 3
 	// Compute uf3 from u2 (index 4) into index 6
 	pGrid->LinearCombineData(m_du3fCombo, 6, DataType_State);
-        pGrid->LinearCombineData(m_du3fCombo, 6, DataType_Tracers);
+	pGrid->LinearCombineData(m_du3fCombo, 6, DataType_Tracers);
 	pHorizontalDynamics->StepExplicit(
 		4, 6, time, m_dExpCf[2][2] * dDeltaT);
 	pVerticalDynamics->StepExplicit(
@@ -141,13 +141,12 @@ void TimestepSchemeARS232::Step(
 	//pGrid->PostProcessSubstage(6, DataType_State);
 	//pGrid->PostProcessSubstage(6, DataType_Tracers);
 
-
 	// Apply hyperdiffusion at the end of the explicit substep (ask Paul)
 	pGrid->CopyData(6, 2, DataType_State);
-        pGrid->CopyData(6, 2, DataType_Tracers);
+	pGrid->CopyData(6, 2, DataType_Tracers);
 	pHorizontalDynamics->StepAfterSubCycle(2, 1, 6, time, dDeltaT);
 	pGrid->CopyData(1, 0, DataType_State);
-        pGrid->CopyData(1, 0, DataType_Tracers);
+	pGrid->CopyData(1, 0, DataType_Tracers);
 }
 
 ///////////////////////////////////////////////////////////////////////////////

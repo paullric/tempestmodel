@@ -68,17 +68,17 @@ protected:
 	);
 
 private:
-        ///	<summary>
+	///	<summary>
 	///		ARS232 parameter gamma
 	///	</summary>
 	static const double m_dgamma;
 
-        ///	<summary>
+	///	<summary>
 	///		ARS232 parameter delta
 	///	</summary>
 	static const double m_ddelta;
 
-        ///	<summary>
+	///	<summary>
 	///		Coefficients for the explicit ARS232.
 	///	</summary>
 	static const double m_dExpCf[3][3];

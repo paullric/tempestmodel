@@ -1,6 +1,6 @@
 ///////////////////////////////////////////////////////////////////////////////
 ///
-///	\file    TimestepSchemeARS222.h
+///	\file    TimestepSchemeGARK2.h
 ///	\author  Jorge Guerra
 ///	\version January 29, 2016
 ///
@@ -14,8 +14,8 @@
 ///		or implied warranty.
 ///	</remarks>
 
-#ifndef _TIMESTEPSCHEMEARS222_H_
-#define _TIMESTEPSCHEMEARS222_H_
+#ifndef _TIMESTEPSCHEMEGARK2_H_
+#define _TIMESTEPSCHEMEGARK2_H_
 
 #include "TimestepScheme.h"
 #include "Exception.h"
@@ -31,13 +31,13 @@ class Time;
 ///	<summary>
 ///		Adaptive Fourth-Order Runge-Kutta time stepping.
 ///	</summary>
-class TimestepSchemeARS222 : public TimestepScheme {
+class TimestepSchemeGARK2 : public TimestepScheme {
 
 public:
 	///	<summary>
 	///		Constructor.
 	///	</summary>
-	TimestepSchemeARS222(
+	TimestepSchemeGARK2(
 		Model & model
 	);
 
@@ -46,14 +46,14 @@ public:
 	///		Get the number of component data instances.
 	///	</summary>
 	virtual int GetComponentDataInstances() const {
-		return 4;
+		return 5;
 	}
 
 	///	<summary>
 	///		Get the number of tracer data instances.
 	///	</summary>
 	virtual int GetTracerDataInstances() const {
-		return 4;
+		return 5;
 	}
 
 protected:
@@ -69,33 +69,44 @@ protected:
 
 private:
 	///	<summary>
-	///		ARS222 parameter gamma
+	///		GARK2 parameter gamma
 	///	</summary>
 	static const double m_dgamma;
 	///	<summary>
-	///		ARS222 parameter delta
+	///		GARK2 parameter alpha
 	///	</summary>
-	static const double m_ddelta;
+	static const double m_dalpha;
+
 
 	///	<summary>
-	///		Coefficients for the time increment ARS222.
-	///	</summary>
-	static const double m_dTimeCf[2];
-
-	///	<summary>
-	///		Coefficients for the explicit ARS222.
+	///		Coefficients for the explicit GARK2.
 	///	</summary>
 	static const double m_dExpCf[2][2];
 
 	///	<summary>
-	///		Coefficients for the explicit ARS222.
+	///		Coefficients for the explicit GARK2.
 	///	</summary>
 	static const double m_dImpCf[2][2];
 
 	///	<summary>
-	///		Explicit evaluation at the 2nd substage
+	///		Coefficients for the explicit to implicit GARK2.
+	///	</summary>
+	static const double m_dEICf[2][2];
+
+	///	<summary>
+	///		Coefficients for the implicit to explicit GARK2.
+	///	</summary>
+	static const double m_dIECf[2][2];
+
+	///	<summary>
+	///		Y evaluation at the 2nd substage
 	///	</summary>
 	DataArray1D<double> m_du2fCombo;
+
+	///	<summary>
+	///		Z evaluation at the 2nd substage
+	///	</summary>
+	DataArray1D<double> m_du3fCombo;
 };
 
 ///////////////////////////////////////////////////////////////////////////////

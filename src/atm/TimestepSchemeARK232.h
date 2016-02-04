@@ -68,22 +68,22 @@ protected:
 	);
 
 private:
-        ///	<summary>
+	///	<summary>
 	///		ARK232 parameter gamma
 	///	</summary>
 	static const double m_dgamma;
 
-        ///	<summary>
+	///	<summary>
 	///		ARK232 parameter alpha
 	///	</summary>
 	static const double m_dalpha;
 
-        ///	<summary>
+	///	<summary>
 	///		ARK232 parameter delta
 	///	</summary>
 	static const double m_ddelta;
 
-        ///	<summary>
+	///	<summary>
 	///		Coefficients for the explicit ARK232.
 	///	</summary>
 	static const double m_dExpCf[3][3];

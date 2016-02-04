@@ -23,6 +23,7 @@
 #include "TimestepSchemeARS222.h"
 #include "TimestepSchemeARS232.h"
 #include "TimestepSchemeARK232.h"
+#include "TimestepSchemeGARK2.h"
 #include "TimestepSchemeARS343.h"
 #include "TimestepSchemeARS443.h"
 #include "TimestepSchemeSplitExp.h"
@@ -207,6 +208,10 @@ void _TempestSetupMethodOfLines(
 	} else if (vars.strTimestepScheme == "ark232") {
 		model.SetTimestepScheme(
 			new TimestepSchemeARK232(model));
+
+        } else if (vars.strTimestepScheme == "gark2") {
+		model.SetTimestepScheme(
+			new TimestepSchemeGARK2(model));
 
 	} else if (vars.strTimestepScheme == "ars343") {
 		model.SetTimestepScheme(

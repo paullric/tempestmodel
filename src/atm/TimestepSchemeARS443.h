@@ -68,17 +68,17 @@ protected:
 	);
 
 private:
-        ///	<summary>
+	///	<summary>
 	///		ARS443 parameter gamma
 	///	</summary>
 	static const double m_dgamma;
 
-        ///	<summary>
+	///	<summary>
 	///		Coefficients for the time increment ARS443.
 	///	</summary>
 	static const double m_dTimeCf[4];
 
-        ///	<summary>
+	///	<summary>
 	///		Coefficients for the explicit ARS443.
 	///	</summary>
 	static const double m_dExpCf[4][4];

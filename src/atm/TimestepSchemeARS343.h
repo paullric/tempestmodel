@@ -68,27 +68,27 @@ protected:
 	);
 
 private:
-        ///	<summary>
+	///	<summary>
 	///		ARK3 parameter gamma
 	///	</summary>
 	static const double m_dgamma;
 
-        ///	<summary>
+	///	<summary>
 	///		ARK3 parameter b1
 	///	</summary>
 	static const double m_db1;
 
-        ///	<summary>
+	///	<summary>
 	///		ARK3 parameter b2
 	///	</summary>
 	static const double m_db2;
 
-        ///	<summary>
+	///	<summary>
 	///		Coefficients for the time increment ARK3.
 	///	</summary>
 	static const double m_dTimeCf[4];
 
-        ///	<summary>
+	///	<summary>
 	///		Coefficients for the explicit ARK3.
 	///	</summary>
 	static const double m_dExpCf[4][4];
