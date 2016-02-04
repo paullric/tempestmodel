@@ -156,14 +156,18 @@ void GridGLL::Initialize() {
 
 		// Interpolation operators
 		m_opInterpNodeToREdge.InitializeReconstructed(
+			LinearColumnInterpFEM::InterpSource_Levels,
+			LinearColumnInterpFEM::InterpSource_Interfaces,
 			m_nVerticalOrder,
-			m_dREtaStretchLevels,
-			m_dREtaStretchInterfaces);
+			m_dREtaLevels,
+			m_dREtaInterfaces);
 
 		m_opInterpREdgeToNode.InitializeReconstructed(
+			LinearColumnInterpFEM::InterpSource_Interfaces,
+			LinearColumnInterpFEM::InterpSource_Levels,
 			m_nVerticalOrder,
-			m_dREtaStretchInterfaces,
-			m_dREtaStretchLevels);
+			m_dREtaLevels,
+			m_dREtaInterfaces);
 
 		// Differentiation operators
 		m_opDiffNodeToNode.InitializeReconstructed(
@@ -194,6 +198,11 @@ void GridGLL::Initialize() {
 			m_dREtaLevels,
 			m_dREtaInterfaces);
 
+		// Initialize discontinuous penalty operator
+		m_opPenaltyNodeToNode.InitializeReconstructed(
+			m_nVerticalOrder,
+			m_dREtaLevels,
+			m_dREtaInterfaces);
 
 	// Finite element discretization on interfaces
 	} else if (m_eVerticalStaggering == VerticalStaggering_Interfaces) {

@@ -242,7 +242,14 @@ void VerticalDynamicsFEM::Initialize() {
 	AnnounceEndBlock(NULL);
 
 	// Upwind weights
-	m_dUpwindWeights.Allocate(nRElements / m_nVerticalOrder - 1);
+	if (pGrid->GetVerticalDiscretization() ==
+	    Grid::VerticalDiscretization_FiniteVolume
+	) {
+		m_dUpwindWeights.Allocate(nRElements-1);
+
+	} else {
+		m_dUpwindWeights.Allocate(nRElements / m_nVerticalOrder - 1);
+	}
 
 	// Allocate column for JFNK
 	m_dColumnState.Allocate(m_nColumnStateSize);
@@ -263,13 +270,7 @@ void VerticalDynamicsFEM::Initialize() {
 	m_dStateREdge.Allocate(
 		m_model.GetEquationSet().GetComponents(),
 		nRElements+1);
-/*
-	// Auxiliary variables at interfaces
-	int nFiniteElements = nRElements / m_nVerticalOrder;
-	if (nRElements % m_nVerticalOrder != 0) {
-		_EXCEPTIONT("Logic error: Vertical order must divide RElements");
-	}
-*/
+
 	// Auxiliary variables
 	m_dStateAux.Allocate(nRElements+1);
 	m_dStateAuxDiff.Allocate(nRElements+1);
@@ -402,19 +403,21 @@ void VerticalDynamicsFEM::Initialize() {
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+
 void VerticalDynamicsFEM::ForceStepExplicit(
 	int iDataInitial,
 	int iDataUpdate,
 	const Time & time,
 	double dDeltaT
 ) {
-        bool fOldFullyExplicit = m_fFullyExplicit;
-        m_fFullyExplicit = true;
-        StepExplicit(iDataInitial, iDataUpdate, time, dDeltaT);
-        m_fFullyExplicit = fOldFullyExplicit;
+	bool fOldFullyExplicit = m_fFullyExplicit;
+	m_fFullyExplicit = true;
+	StepExplicit(iDataInitial, iDataUpdate, time, dDeltaT);
+	m_fFullyExplicit = fOldFullyExplicit;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+
 void VerticalDynamicsFEM::StepImplicitTermsExplicitly(
 	int iDataInitial,
 	int iDataUpdate,
@@ -522,7 +525,7 @@ void VerticalDynamicsFEM::StepImplicitTermsExplicitly(
 		for (int i = box.GetAInteriorBegin(); i < box.GetAInteriorEnd(); i++) {
 		for (int j = box.GetBInteriorBegin(); j < box.GetBInteriorEnd(); j++) {
 
-                        //UPDATE ONLY THE TERMS TREATED IMPLICITLY BUT EXPLICITLY
+			//UPDATE ONLY THE TERMS TREATED IMPLICITLY BUT EXPLICITLY
 			int iA = i;
 			int iB = j;
 
@@ -584,12 +587,13 @@ void VerticalDynamicsFEM::StepImplicitTermsExplicitly(
 				dataUpdateREdge,
 				dataInitialTracer,
 				dataUpdateTracer);
-                }
-                }
-        }             
+		}
+		}
+	}	     
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+
 void VerticalDynamicsFEM::StepExplicit(
 	int iDataInitial,
 	int iDataUpdate,
@@ -613,7 +617,15 @@ void VerticalDynamicsFEM::StepExplicit(
 	const int nRElements = pGrid->GetRElements();
 
 	// Number of finite elements in the vertical
-	const int nFiniteElements = nRElements / m_nVerticalOrder;
+	int nFiniteElements = nRElements / m_nVerticalOrder;
+	int nNodesPerFiniteElement = m_nVerticalOrder;
+
+	if (pGrid->GetVerticalDiscretization() ==
+	    Grid::VerticalDiscretization_FiniteVolume
+	) {
+		nFiniteElements = nRElements;
+		nNodesPerFiniteElement = 1;
+	}
 
 	// Store timestep size
 	m_dDeltaT = dDeltaT;
@@ -1036,9 +1048,9 @@ void VerticalDynamicsFEM::StepExplicit(
 
 				// Calculate weights
 				for (int a = 0; a < nFiniteElements - 1; a++) {
-					int k = (a+1) * m_nVerticalOrder;
+					int k = (a+1) * nNodesPerFiniteElement;
 					m_dUpwindWeights[a] =
-						0.5 * dDeltaT * fabs(m_dXiDotREdge[k]);
+						dDeltaT * fabs(m_dXiDotREdge[k]);
 				}
 
 				// Apply upwinding
@@ -1426,20 +1438,20 @@ void VerticalDynamicsFEM::StepImplicit(
 */
 			// DEBUG (check for NANs in output)
 			if (!(m_dSoln[0] == m_dSoln[0])) {
-                DataArray1D<double> dEval;
-                dEval.Allocate(m_dColumnState.GetRows());
-                Evaluate(m_dSoln, dEval);
+				DataArray1D<double> dEval;
+				dEval.Allocate(m_dColumnState.GetRows());
+				Evaluate(m_dSoln, dEval);
 
-                for (int p = 0; p < dEval.GetRows(); p++) {
-                    printf("%1.15e %1.15e %1.15e\n",
-						dEval[p], m_dSoln[p] - m_dColumnState[p], m_dColumnState[p]);
-                }
+				for (int p = 0; p < dEval.GetRows(); p++) {
+					printf("%1.15e %1.15e %1.15e\n",
+					dEval[p], m_dSoln[p] - m_dColumnState[p], m_dColumnState[p]);
+				}
 				for (int p = 0; p < m_dExnerRefREdge.GetRows(); p++) {
 					printf("%1.15e %1.15e\n",
 						m_dExnerRefREdge[p], dataRefREdge[RIx][p][iA][iB]);
 				}
-                _EXCEPTIONT("Inversion failure");
-            }
+				_EXCEPTIONT("Inversion failure");
+	    	}
 
 #endif
 #ifdef USE_DIRECTSOLVE_APPROXJ
@@ -2707,20 +2719,29 @@ void VerticalDynamicsFEM::BuildF(
 #ifdef VERTICAL_UPWINDING
 	{
 		if (m_fUpwind[3]) {
-			_EXCEPTIONT("Not implemented: Vertical upwinding of vertical velocity");
+			_EXCEPTIONT("Not implemented: Vertical upwinding of "
+				"vertical velocity");
 		}
 
 		// Get penalty operator
 		const LinearColumnDiscPenaltyFEM & opPenalty =
 			pGrid->GetOpPenaltyNodeToNode();
 
+		// Number of finite elements in the vertical
 		int nFiniteElements = nRElements / m_nVerticalOrder;
+		int nNodesPerFiniteElement = m_nVerticalOrder;
+
+		if (pGrid->GetVerticalDiscretization() ==
+		    Grid::VerticalDiscretization_FiniteVolume
+		) {
+			nFiniteElements = nRElements;
+			nNodesPerFiniteElement = 1;
+		}
 
 		// Calculate weights
 		for (int a = 0; a < nFiniteElements - 1; a++) {
-			int k = (a+1) * m_nVerticalOrder;
-			m_dUpwindWeights[a] =
-				0.5 * fabs(m_dXiDotREdge[k]);
+			int k = (a+1) * nNodesPerFiniteElement;
+			m_dUpwindWeights[a] = fabs(m_dXiDotREdge[k]);
 		}
 
 		// Loop through all variables
@@ -2960,8 +2981,16 @@ void VerticalDynamicsFEM::BuildJacobianF(
 	// Number of radial elements
 	const int nRElements = pGrid->GetRElements();
 
-	// Number of radial finite elements
-	const int nFiniteElements = nRElements / m_nVerticalOrder;
+	// Number of finite elements in the vertical
+	int nFiniteElements = nRElements / m_nVerticalOrder;
+	int nNodesPerFiniteElement = m_nVerticalOrder;
+
+	if (pGrid->GetVerticalDiscretization() ==
+	    Grid::VerticalDiscretization_FiniteVolume
+	) {
+		nFiniteElements = nRElements;
+		nNodesPerFiniteElement = 1;
+	}
 
 	// Zero DG
 	memset(dDG, 0,
@@ -3405,21 +3434,21 @@ void VerticalDynamicsFEM::BuildJacobianF(
 		}
 
 		for (int a = 1; a < nFiniteElements; a++) {
-			double dWeight = 0.5 * fabs(m_dXiDotREdge[a * m_nVerticalOrder]);
+			double dWeight = fabs(m_dXiDotREdge[a * nNodesPerFiniteElement]);
 			double dSignWeight;
-			if (m_dXiDotREdge[a * m_nVerticalOrder] > 0.0) {
-				dSignWeight = 0.5;
-			} else if (m_dXiDotREdge[a * m_nVerticalOrder] < 0.0) {
-				dSignWeight = -0.5;
+			if (m_dXiDotREdge[a * nNodesPerFiniteElement] > 0.0) {
+				dSignWeight = 1.0;
+			} else if (m_dXiDotREdge[a * nNodesPerFiniteElement] < 0.0) {
+				dSignWeight = -1.0;
 			} else {
 				dSignWeight = 0.0;
 			}
 
-			int kLeftBegin = (a-1) * m_nVerticalOrder;
-			int kLeftEnd = a * m_nVerticalOrder;
+			int kLeftBegin = (a-1) * nNodesPerFiniteElement;
+			int kLeftEnd = a * nNodesPerFiniteElement;
 
-			int kRightBegin = a * m_nVerticalOrder;
-			int kRightEnd = (a+1) * m_nVerticalOrder;
+			int kRightBegin = a * nNodesPerFiniteElement;
+			int kRightEnd = (a+1) * nNodesPerFiniteElement;
 
 #pragma message "Need to account for horizontal flow contribution to xi_dot"
 			// dC_k/dW_a (left operator)
