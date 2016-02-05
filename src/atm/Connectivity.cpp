@@ -577,13 +577,11 @@ void ExteriorNeighbor::Pack(
 	size_t sComponents = data.GetSize(0);
 
 	// 3D Grid Data
-	DataArray3D<double> data3D(
+	DataArray3D<double> data3D;
+	data3D.SetSize(
 		data.GetSize(1),
 		data.GetSize(2),
-		data.GetSize(3),
-		data.GetDataType(),
-		data.GetDataLocation(),
-		false);
+		data.GetSize(3));
 
 	// For state data exclude non-collacted data points
 	if (data.GetDataType() == DataType_State) {
@@ -593,7 +591,7 @@ void ExteriorNeighbor::Pack(
 			if (grid.GetVarLocation(c) != data.GetDataLocation()) {
 				continue;
 			}
-			data3D.AttachTo(data[c]);
+			data3D.AttachToData(&(data[c][0][0][0]));
 			Pack(data3D);
 			data3D.Detach();
 		}
@@ -601,7 +599,7 @@ void ExteriorNeighbor::Pack(
 	// Send everything
 	} else {
 		for (int c = 0; c < sComponents; c++) {
-			data3D.AttachTo(data[c]);
+			data3D.AttachToData(&(data[c][0][0][0]));
 			Pack(data3D);
 			data3D.Detach();
 		}
@@ -874,13 +872,11 @@ void ExteriorNeighbor::Unpack(
 	size_t sComponents = data.GetSize(0);
 
 	// 3D Grid Data
-	DataArray3D<double> data3D(
+	DataArray3D<double> data3D;
+	data3D.SetSize(
 		data.GetSize(1),
 		data.GetSize(2),
-		data.GetSize(3),
-		data.GetDataType(),
-		data.GetDataLocation(),
-		false);
+		data.GetSize(3));
 
 	// List of variable indices to receive
 	// - exclude variables which are not-collocated with this data structure
@@ -889,7 +885,7 @@ void ExteriorNeighbor::Unpack(
 			if (grid.GetVarLocation(c) != data.GetDataLocation()) {
 				continue;
 			}
-			data3D.AttachTo(data[c]);;
+			data3D.AttachToData(&(data[c][0][0][0]));
 			Unpack(data3D);
 			data3D.Detach();
 		}
@@ -897,7 +893,7 @@ void ExteriorNeighbor::Unpack(
 	// Unpack all variables
 	} else {
 		for (int c = 0; c < sComponents; c++) {
-			data3D.AttachTo(data[c]);
+			data3D.AttachToData(&(data[c][0][0][0]));
 			Unpack(data3D);
 			data3D.Detach();
 		}

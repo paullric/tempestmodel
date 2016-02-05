@@ -1821,24 +1821,20 @@ void HorizontalDynamicsFEM::ApplyVectorHyperdiffusion(
 		const DataArray2D<double> & dStiffness1D = pGrid->GetStiffness1D();
 
 		// Compute curl and divergence of U on the grid
-		DataArray3D<double> dataUa(
+		DataArray3D<double> dataUa;
+		dataUa.SetSize(
 			dataInitial.GetSize(1),
 			dataInitial.GetSize(2),
-			dataInitial.GetSize(3),
-			dataInitial.GetDataType(),
-			dataInitial.GetDataLocation(),
-			false);
+			dataInitial.GetSize(3));
 
-		DataArray3D<double> dataUb(
+		DataArray3D<double> dataUb;
+		dataUb.SetSize(
 			dataInitial.GetSize(1),
 			dataInitial.GetSize(2),
-			dataInitial.GetSize(3),
-			dataInitial.GetDataType(),
-			dataInitial.GetDataLocation(),
-			false);
+			dataInitial.GetSize(3));
 
-		dataUa.AttachTo(dataInitial[UIx]);
-		dataUb.AttachTo(dataInitial[VIx]);
+		dataUa.AttachToData(&(dataInitial[UIx][0][0][0]));
+		dataUb.AttachToData(&(dataInitial[VIx][0][0][0]));
 
 		// Compute curl and divergence of U on the grid
 		pPatch->ComputeCurlAndDiv(dataUa, dataUb);

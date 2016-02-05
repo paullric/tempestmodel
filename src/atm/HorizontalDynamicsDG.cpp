@@ -1486,10 +1486,10 @@ void HorizontalDynamicsDG::ApplyVectorHyperdiffusionToBoundary(
 				dataStateNode.GetSize(2),
 				dataStateNode.GetSize(3));
 
-			dataStateU.AttachTo(dataStateNode[UIx]);
-			dataStateV.AttachTo(dataStateNode[VIx]);
-			dataUpdateU.AttachTo(dataStateNode[UIx]);
-			dataUpdateV.AttachTo(dataStateNode[VIx]);
+			dataStateU.AttachToData(&(dataStateNode[UIx][0][0][0]));
+			dataStateV.AttachToData(&(dataStateNode[VIx][0][0][0]));
+			dataUpdateU.AttachToData(&(dataStateNode[UIx][0][0][0]));
+			dataUpdateV.AttachToData(&(dataStateNode[VIx][0][0][0]));
 			nElementCountR = dataStateNode.GetSize(1);
 
 		} else if (pGrid->GetVarLocation(UIx) == DataLocation_REdge) {
@@ -1513,10 +1513,10 @@ void HorizontalDynamicsDG::ApplyVectorHyperdiffusionToBoundary(
 				dataStateREdge.GetSize(2),
 				dataStateREdge.GetSize(3));
 
-			dataStateU.AttachTo(dataStateREdge[UIx]);
-			dataStateV.AttachTo(dataStateREdge[VIx]);
-			dataUpdateU.AttachTo(dataStateREdge[UIx]);
-			dataUpdateV.AttachTo(dataStateREdge[VIx]);
+			dataStateU.AttachToData(&(dataStateREdge[UIx][0][0][0]));
+			dataStateV.AttachToData(&(dataStateREdge[VIx][0][0][0]));
+			dataUpdateU.AttachToData(&(dataStateREdge[UIx][0][0][0]));
+			dataUpdateV.AttachToData(&(dataStateREdge[VIx][0][0][0]));
 			nElementCountR = dataStateREdge.GetSize(1);
 
 		} else {

@@ -1211,24 +1211,20 @@ void GridPatchCSGLL::ComputeVorticityDivergence(
 	}
 
 	// Get the alpha and beta components of vorticity
-	DataArray3D<double> dataUa(
+	DataArray3D<double> dataUa;
+	dataUa.SetSize(
 		dataState.GetSize(1),
 		dataState.GetSize(2),
-		dataState.GetSize(3),
-		dataState.GetDataType(),
-		dataState.GetDataLocation(),
-		false);
+		dataState.GetSize(3));
 
-	DataArray3D<double> dataUb(
+	DataArray3D<double> dataUb;
+	dataUb.SetSize(
 		dataState.GetSize(1),
 		dataState.GetSize(2),
-		dataState.GetSize(3),
-		dataState.GetDataType(),
-		dataState.GetDataLocation(),
-		false);
+		dataState.GetSize(3));
 
-	dataUa.AttachTo(dataState[0]);
-	dataUb.AttachTo(dataState[1]);
+	dataUa.AttachToData(&(dataState[0][0][0][0]));
+	dataUb.AttachToData(&(dataState[1][0][0][0]));
 
 	// Compute the radial component of the curl of the velocity field
 	ComputeCurlAndDiv(dataUa, dataUb);
