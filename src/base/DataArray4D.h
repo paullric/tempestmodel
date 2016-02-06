@@ -23,6 +23,7 @@
 #include "DataChunk.h"
 #include "DataType.h"
 #include "DataLocation.h"
+#include "Subscript.h"
 
 #include <cstdlib>
 #include <cstring>
@@ -31,6 +32,8 @@ template <typename T>
 class DataArray4D : public DataChunk {
 
 public:
+	typedef T ValueType;
+
 	///	<summary>
 	///		Constructor.
 	///	</summary>
@@ -544,31 +547,86 @@ public:
 
 public:
 	///	<summary>
-	///		Get the data.
+	///		Subscript DSEL operator.
 	///	</summary>
-	inline T**** GetData() const {
-		return m_data;
+	inline Subscript<DataArray4D<T> const, 3, 4>
+	operator[](std::ptrdiff_t idx) const noexcept
+	{
+		Subscript<DataArray4D<T> const, 4, 4> s(*this);
+		return s[idx];
 	}
-
 	///	<summary>
-	///		Cast to an array.
+	///		Subscript DSEL operator.
 	///	</summary>
-	inline operator T****() const {
-		return m_data;
+	inline Subscript<DataArray4D<T>, 3, 4>
+	operator[](std::ptrdiff_t idx) noexcept
+	{
+		Subscript<DataArray4D<T>, 4, 4> s(*this);
+		return s[idx];
 	}
 
 	///	<summary>
 	///		Parenthetical array accessor.
 	///	</summary>
-	inline T & operator()(size_t i, size_t j, size_t k, size_t l) {
-		return (*(m_data1D + i * m_sSize[1] * m_sSize[2] * m_sSize[3] + j * m_sSize[2] * m_sSize[3] + k * m_sSize[3] + l));
+	inline T const&
+	operator()(std::array<std::ptrdiff_t, 4> indices) const noexcept
+	{
+		return (*this)(indices[0], indices[1], indices[2], indices[3]);
+	}
+	///	<summary>
+	///		Parenthetical array accessor.
+	///	</summary>
+	inline T&
+	operator()(std::array<std::ptrdiff_t, 4> indices) noexcept
+	{
+		return (*this)(indices[0], indices[1], indices[2], indices[3]);
 	}
 
 	///	<summary>
 	///		Parenthetical array accessor.
 	///	</summary>
 	inline const T & operator()(size_t i, size_t j, size_t k, size_t l) const {
-		return (*(m_data1D + i * m_sSize[1] * m_sSize[2] * m_sSize[3] + j * m_sSize[2] * m_sSize[3] + k * m_sSize[3] + l));
+		return (*(m_data1D + i * m_sSize[1] * m_sSize[2] * m_sSize[3]
+				+ j * m_sSize[2] * m_sSize[3] + k * m_sSize[3] + l));
+	}
+	///	<summary>
+	///		Parenthetical array accessor.
+	///	</summary>
+	inline T & operator()(size_t i, size_t j, size_t k, size_t l) {
+		return (*(m_data1D + i * m_sSize[1] * m_sSize[2] * m_sSize[3]
+				+ j * m_sSize[2] * m_sSize[3] + k * m_sSize[3] + l));
+	}
+
+	///	<summary>
+	///		Parenthetical array accessor (unit-stride slicer).
+	///	</summary>
+	inline T const*
+	operator()(std::array<std::ptrdiff_t, 3> indices) const noexcept
+	{
+		return (*this)(indices[0], indices[1], indices[2]);
+	}
+	///	<summary>
+	///		Parenthetical array accessor (unit-stride slicer).
+	///	</summary>
+	inline T*
+	operator()(std::array<std::ptrdiff_t, 3> indices) noexcept
+	{
+		return (*this)(indices[0], indices[1], indices[2]);
+	}
+
+	///	<summary>
+	///		Parenthetical array accessor (unit-stride slicer).
+	///	</summary>
+	inline T const* operator()(size_t i, size_t j, size_t k) const noexcept {
+		return m_data1D + i * m_sSize[1] * m_sSize[2] * m_sSize[3]
+				+ j * m_sSize[2] * m_sSize[3] + k * m_sSize[3];
+	}
+	///	<summary>
+	///		Parenthetical array accessor (unit-stride slicer).
+	///	</summary>
+	inline T* operator()(size_t i, size_t j, size_t k) noexcept {
+		return m_data1D + i * m_sSize[1] * m_sSize[2] * m_sSize[3]
+				+ j * m_sSize[2] * m_sSize[3] + k * m_sSize[3];
 	}
 
 private:

@@ -31,6 +31,8 @@ template <typename T>
 class DataArray1D : public DataChunk {
 
 public:
+	typedef T ValueType;
+
 	///	<summary>
 	///		Constructor.
 	///	</summary>
@@ -154,7 +156,7 @@ public:
 	///	</summary>
 	virtual void AttachToData(void * ptr) {
 		if (IsAttached()) {
-			_EXCEPTIONT("Attempting to attach already attached DataArray1D");
+			_EXCEPTIONT("Attempting AttachToData() on attached DataArray1D");
 		}
 
 		m_data = reinterpret_cast<T *>(ptr);
@@ -343,16 +345,15 @@ public:
 
 public:
 	///	<summary>
-	///		Cast to an array.
+	///		Implicit converstion to a pointer.
 	///	</summary>
-	inline T* GetData() const {
+	inline operator T const*() const {
 		return m_data;
 	}
-
 	///	<summary>
-	///		Cast to an array.
+	///		Implicit converstion to a pointer.
 	///	</summary>
-	inline operator T*() const {
+	inline operator T*() {
 		return m_data;
 	}
 
