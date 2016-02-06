@@ -10,7 +10,7 @@ CLEAN_TARGETS= src/base.clean src/atm.clean test.clean
 .PHONY: all test clean $(CLEAN_TARGETS)
 
 # Build rules.
-all: $(LIB_TARGETS)
+all: $(LIB_TARGETS) test
 
 lib/libtempestbase.a:
 	cd src/base; $(MAKE)
