@@ -4,22 +4,22 @@
 # Distributed under the Boost Software License, Version 1.0. (See accompanying 
 # file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
-LIB_TARGETS= lib/libtempestbase.a lib/libhardcoreatm.a 
-CLEAN_TARGETS= src/base.clean src/atm.clean test.clean
+BUILD_TARGETS= src/base src/atm test 
+CLEAN_TARGETS= $(addsuffix .clean,$(BUILD_TARGETS))
 
-.PHONY: all test clean $(CLEAN_TARGETS)
+.PHONY: all clean $(BUILD_TARGETS) $(CLEAN_TARGETS)
 
 # Build rules.
-all: $(LIB_TARGETS) test
+all: $(BUILD_TARGETS)
 
-lib/libtempestbase.a:
-	cd src/base; $(MAKE)
+lib/libtempestbase.a: src/base
 
-lib/libhardcoreatm.a:
-	cd src/atm; $(MAKE)
+lib/libhardcoreatm.a: src/atm
 
-test: $(LIB_TARGETS) 
-	cd test; $(MAKE)
+test: src/base src/atm
+
+$(BUILD_TARGETS): %:
+	cd $*; $(MAKE)
 
 # Clean rules.
 clean: $(CLEAN_TARGETS)
