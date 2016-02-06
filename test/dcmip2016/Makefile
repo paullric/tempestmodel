@@ -1,53 +1,55 @@
-# TempestBase directory
+# Copyright (c) 2016      Bryce Adelstein-Lelbach aka wash
+# Copyright (c) 2000-2016 Paul Ullrich 
+#
+# Distributed under the Boost Software License, Version 1.0. (See accompanying 
+# file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+
+# Base directory.
 TEMPESTBASEDIR= ../..
 
+# Load Makefile framework. 
+include $(TEMPESTBASEDIR)/mk/framework.make
 
-# Compile with BLAS libraries
-USEBLAS= true
+FILES= TropicalCycloneTest.cpp \
+       BaroclinicWaveUMJSTest.cpp \
+       MesoscaleStormTest.cpp
 
-# Load system-specific defaults
-include $(TEMPESTBASEDIR)/mk/Make.defs
+SHARED_FILES= KesslerPhysics.cpp
 
-##
-## Build instructions
-##
-all: atm TropicalCycloneTest BaroclinicWaveUMJSTest MesoscaleStormTest
-atm:
-	cd $(TEMPESTBASEDIR)/src/base; make
-	cd $(TEMPESTBASEDIR)/src/atm; make
-	cd interface; make 
+INTERFACE_FILES= interface/tropical_cyclone_test.f90 \
+                 interface/baroclinic_wave_test.f90 \
+                 interface/mesoscale_storm_test.f90 \
+                 interface/kessler.f90
 
-INTERFACE_FILES= interface/tropical_cyclone_test.o interface/baroclinic_wave_test.o interface/mesoscale_storm_test.o interface/kessler.o
+SHARED_OBJS= $(SHARED_FILES:%.cpp=$(BUILDDIR)/%.o) 
+INTERFACE_OBJS= $(INTERFACE_FILES:interface/%.f90=$(BUILDDIR)/interface/%.o) 
 
-#Local files
-FILES=KesslerPhysics.cpp
+EXEC_TARGETS= $(FILES:%.cpp=%)
+CLEAN_TARGETS= $(addsuffix .clean,$(EXEC_TARGETS))
 
-##
-## Individual test case build instructions
-##
-BaroclinicWaveUMJSTest : $(BUILDDIR)/BaroclinicWaveUMJSTest.o $(FILES:%.cpp=$(BUILDDIR)/%.o) $(TEMPESTLIBS)
-	$(CC) $(LDFLAGS) -o $@ $(BUILDDIR)/BaroclinicWaveUMJSTest.o $(FILES:%.cpp=$(BUILDDIR)/%.o) $(INTERFACE_FILES) $(LDFILES) -lgfortran
+.PHONY: all clean
 
-TropicalCycloneTest : $(BUILDDIR)/TropicalCycloneTest.o $(FILES:%.cpp=$(BUILDDIR)/%.o) $(TEMPESTLIBS)
-	$(CC) $(LDFLAGS) -o $@ $(BUILDDIR)/TropicalCycloneTest.o $(FILES:%.cpp=$(BUILDDIR)/%.o) $(INTERFACE_FILES) $(LDFILES) -lgfortran
+# Build rules. 
+all: $(EXEC_TARGETS)
 
-MesoscaleStormTest : $(BUILDDIR)/MesoscaleStormTest.o $(FILES:%.cpp=$(BUILDDIR)/%.o) $(TEMPESTLIBS)
-	$(CC) $(LDFLAGS) -o $@ $(BUILDDIR)/MesoscaleStormTest.o $(FILES:%.cpp=$(BUILDDIR)/%.o) $(INTERFACE_FILES) $(LDFILES) -lgfortran
+$(EXEC_TARGETS): %: $(BUILDDIR)/%.o $(SHARED_OBJS) $(INTERFACE_OBJS) $(TEMPESTLIBS)
+	$(CXX) $(LDFLAGS) -o $@ $(BUILDDIR)/$*.o $(SHARED_OBJS) $(INTERFACE_OBJS) $(LIBRARIES) $(F90_RUNTIME)
 
-##
-## Clean
-##
-clean:
-	rm -f BaroclinicWaveUMJSTest
-	rm -f TropicalCycloneTest
-	rm -f MesoscaleStormTest
+# Go up to the root directory and build the libraries if needed.
+$(TEMPESTBASEDIR)/%.a:
+	cd $(TEMPESTBASEDIR); $(MAKE) $*.a
+
+# Clean rules.
+clean: $(CLEAN_TARGETS)
 	rm -rf $(DEPDIR)
 	rm -rf $(BUILDDIR)
+	rm -f *.mod
 
-##
-## Include dependencies
-##
-include $(FILES:%.cpp=$(DEPDIR)/%.d)
+$(CLEAN_TARGETS): %.clean:
+	rm -f $*
+
+# Include dependencies.
+-include $(FILES:%.cpp=$(DEPDIR)/%.d)
+-include $(SHARED_FILES:%.cpp=$(DEPDIR)/%.d)
 
 # DO NOT DELETE
-

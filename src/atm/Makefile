@@ -1,16 +1,15 @@
-# TempestBase directory
+# Copyright (c) 2016      Bryce Adelstein-Lelbach aka wash
+# Copyright (c) 2000-2016 Paul Ullrich 
+#
+# Distributed under the Boost Software License, Version 1.0. (See accompanying 
+# file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+
+# Base directory.
 TEMPESTBASEDIR= ../..
 
-# Library name
-LIBNAME= libhardcoreatm
+# Load Makefile framework. 
+include $(TEMPESTBASEDIR)/mk/framework.make
 
-# Compile with BLAS libraries
-USEBLAS= true
-
-# Load system-specific defaults
-include $(TEMPESTBASEDIR)/mk/Make.defs
-
-# Local files
 FILES= CubedSphereTrans.cpp \
        GridSpacing.cpp \
        ConsolidationStatus.cpp \
@@ -51,31 +50,26 @@ FILES= CubedSphereTrans.cpp \
        WorkflowProcess.cpp \
        HeldSuarezPhysics.cpp
 
-##
-## Build flags
-##
-CFLAGS+= -I$(TEMPESTBASEDIR)/include
+LIBNAME= libhardcoreatm
 
-##
-## Build instructions
-##
-all: $(FILES:%.cpp=$(BUILDDIR)/%.o)
-	rsync --checksum *.h $(TEMPESTBASEDIR)/include
-	rm -f $(TEMPESTBASEDIR)/lib/$(LIBNAME).a
-	ar -cqs $(TEMPESTBASEDIR)/lib/$(LIBNAME).a build/*.o
+LIB_TARGET= $(TEMPESTBASEDIR)/lib/$(LIBNAME).a
 
-##
-## Clean
-##
+.PHONY: all clean
+
+# Build rules.
+all: $(LIB_TARGET)
+
+$(LIB_TARGET): $(FILES:%.cpp=$(BUILDDIR)/%.o)
+	rm -f $(LIB_TARGET)
+	ar -cqs $(LIB_TARGET) build/*.o
+
+# Clean rules.
 clean:
-	rm -f $(TEMPESTBASEDIR)/lib/$(LIBNAME).a
+	rm -f $(LIB_TARGET) 
 	rm -rf $(DEPDIR)
 	rm -rf $(BUILDDIR)
 
-##
-## Include dependencies
-##
-include $(FILES:%.cpp=$(DEPDIR)/%.d)
+# Include dependencies.
+-include $(FILES:%.cpp=$(DEPDIR)/%.d)
 
 # DO NOT DELETE
-

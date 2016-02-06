@@ -106,7 +106,7 @@ void Model::SetGrid(
 	m_pGrid = pGrid;
 
 	// Set up patches
-#ifdef USE_MPI
+#ifdef TEMPEST_MPIOMP
 	if (nPatchCount == (-1)) {
 		MPI_Comm_size(MPI_COMM_WORLD, &nPatchCount);
 	}

@@ -23,8 +23,8 @@
 #include "TimeObj.h"
 #include "Announce.h"
 
-#ifdef USE_MPI
-#include "mpi.h"
+#ifdef TEMPEST_MPIOMP
+#include <mpi.h>
 #endif
 
 #include <iostream>
@@ -63,7 +63,7 @@ OutputManagerComposite::~OutputManagerComposite() {
 bool OutputManagerComposite::OpenFile(
 	const std::string & strFileName
 ) {
-#ifdef USE_MPI
+#ifdef TEMPEST_MPIOMP
 	// Determine processor rank
 	int nRank;
 	MPI_Comm_rank(MPI_COMM_WORLD, &nRank);
@@ -92,7 +92,7 @@ bool OutputManagerComposite::OpenFile(
 
 	return true;
 #else
-	_EXCEPTIONT("Not implemented without USE_MPI");
+	_EXCEPTIONT("Not implemented without TEMPEST_MPIOMP");
 #endif
 
 }	
@@ -108,7 +108,7 @@ void OutputManagerComposite::CloseFile() {
 void OutputManagerComposite::Output(
 	const Time & time
 ) {
-#ifdef USE_MPI
+#ifdef TEMPEST_MPIOMP
 	// Check for open file
 	if (!IsFileOpen()) {
 		_EXCEPTIONT("No file available for output");
@@ -415,7 +415,7 @@ void OutputManagerComposite::Output(
 	MPI_Barrier(MPI_COMM_WORLD);
 
 #else
-	_EXCEPTIONT("Not implemented without USE_MPI");
+	_EXCEPTIONT("Not implemented without TEMPEST_MPIOMP");
 #endif
 }
 
@@ -424,7 +424,7 @@ void OutputManagerComposite::Output(
 Time OutputManagerComposite::Input(
 	const std::string & strFileName
 ) {
-#ifdef USE_MPI
+#ifdef TEMPEST_MPIOMP
 	// Set the flag indicating that output came from a restart file
 	m_fFromRestartFile = true;
 
@@ -574,7 +574,7 @@ Time OutputManagerComposite::Input(
 	MPI_Barrier(MPI_COMM_WORLD);
 
 #else
-	_EXCEPTIONT("Not implemented without USE_MPI");
+	_EXCEPTIONT("Not implemented without TEMPEST_MPIOMP");
 #endif
 
 	return timeCurrent;

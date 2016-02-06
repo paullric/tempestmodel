@@ -25,7 +25,7 @@ class Time;
 
 ///////////////////////////////////////////////////////////////////////////////
 
-#ifdef NO_NETCDF
+#ifndef TEMPEST_NETCDF
 typedef int NcFile;
 typedef int NcVar;
 #endif

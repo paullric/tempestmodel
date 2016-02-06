@@ -1,55 +1,45 @@
-# TempestBase directory
+# Copyright (c) 2016      Bryce Adelstein-Lelbach aka wash
+# Copyright (c) 2000-2016 Paul Ullrich 
+#
+# Distributed under the Boost Software License, Version 1.0. (See accompanying 
+# file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+
+# Base directory.
 TEMPESTBASEDIR= ../..
 
-# Compile with BLAS libraries
-USEBLAS= true
+# Load Makefile framework. 
+include $(TEMPESTBASEDIR)/mk/framework.make
 
-# Load system-specific defaults
-include $(TEMPESTBASEDIR)/mk/Make.defs
+FILES= ComputeWaveModes.cpp \
+       GenerateMountainResponse.cpp \
+       GenerateWaveTopography.cpp \
+       GenerateScharTopography.cpp \
+       ExtractSurface.cpp
 
-##
-## Build instructions
-##
-all: atm ComputeWaveModes GenerateMountainResponse GenerateWaveTopography GenerateScharTopography
+EXEC_TARGETS= $(FILES:%.cpp=%)
+CLEAN_TARGETS= $(addsuffix .clean,$(EXEC_TARGETS))
 
-atm:
-	cd $(TEMPESTBASEDIR)/src/base; make
-	cd $(TEMPESTBASEDIR)/src/atm; make
+.PHONY: all clean
 
-##
-## Individual test case build instructions
-##
-ComputeWaveModes: $(BUILDDIR)/ComputeWaveModes.o $(FILES:%.cpp=$(BUILDDIR)/%.o) $(TEMPESTLIBS)
-	$(CC) $(LDFLAGS) -o $@ $(BUILDDIR)/ComputeWaveModes.o $(FILES:%.cpp=$(BUILDDIR)/%.o) $(LDFILES)
+# Build rules. 
+all: $(EXEC_TARGETS)
 
-GenerateMountainResponse: $(BUILDDIR)/GenerateMountainResponse.o $(FILES:%.cpp=$(BUILDDIR)/%.o) $(TEMPESTLIBS)
-	$(CC) $(LDFLAGS) -o $@ $(BUILDDIR)/GenerateMountainResponse.o $(FILES:%.cpp=$(BUILDDIR)/%.o) $(LDFILES)
+$(EXEC_TARGETS): %: $(BUILDDIR)/%.o $(TEMPESTLIBS)
+	$(CXX) $(LDFLAGS) -o $@ $(BUILDDIR)/$*.o $(LIBRARIES) 
 
-GenerateWaveTopography: $(BUILDDIR)/GenerateWaveTopography.o $(FILES:%.cpp=$(BUILDDIR)/%.o) $(TEMPESTLIBS)
-	$(CC) $(LDFLAGS) -o $@ $(BUILDDIR)/GenerateWaveTopography.o $(FILES:%.cpp=$(BUILDDIR)/%.o) $(LDFILES)
+# Go up to the root directory and build the libraries if needed.
+$(TEMPESTBASEDIR)/%.a:
+	cd $(TEMPESTBASEDIR); $(MAKE) $*.a
 
-GenerateScharTopography: $(BUILDDIR)/GenerateScharTopography.o $(FILES:%.cpp=$(BUILDDIR)/%.o) $(TEMPESTLIBS)
-	$(CC) $(LDFLAGS) -o $@ $(BUILDDIR)/GenerateScharTopography.o $(FILES:%.cpp=$(BUILDDIR)/%.o) $(LDFILES)
-
-ExtractSurface: $(BUILDDIR)/ExtractSurface.o $(FILES:%.cpp=$(BUILDDIR)/%.o) $(TEMPESTLIBS)
-	$(CC) $(LDFLAGS) -o $@ $(BUILDDIR)/ExtractSurface.o $(FILES:%.cpp=$(BUILDDIR)/%.o) $(LDFILES)
-
-##
-## Clean
-##
-clean:
-	rm -f ComputeWaveModes
-	rm -f GenerateMountainResponse
-	rm -f GenerateWaveTopography
-	rm -f GenerateScharTopography
-	rm -f ExtractSurface
+# Clean rules.
+clean: $(CLEAN_TARGETS)
 	rm -rf $(DEPDIR)
 	rm -rf $(BUILDDIR)
 
-##
-## Include dependencies
-##
-include $(FILES:%.cpp=$(DEPDIR)/%.d)
+$(CLEAN_TARGETS): %.clean:
+	rm -f $*
+
+# Include dependencies.
+-include $(FILES:%.cpp=$(DEPDIR)/%.d)
 
 # DO NOT DELETE
-

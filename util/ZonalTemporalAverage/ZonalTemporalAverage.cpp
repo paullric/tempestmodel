@@ -20,10 +20,11 @@
 #include "CommandLine.h"
 #include "Announce.h"
 
-#include <cstdlib>
-#include <netcdfcpp.h>
+#include <mpi.h>
 
-#include "mpi.h"
+#include <cstdlib>
+
+#include <netcdfcpp.h>
 
 ////////////////////////////////////////////////////////////////////////////////
 

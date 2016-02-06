@@ -34,15 +34,15 @@
 
 ///////////////////////////////////////////////////////////////////////////////
 
-#ifdef USEACML
+#ifdef TEMPEST_LAPACK_ACML_INTERFACE
 #include <acml.h>
 #endif
 
-#ifdef USEESSL
+#ifdef TEMPEST_LAPACK_ESSL_INTERFACE
 #include <essl.h>
 #endif
 
-#if defined USEVECLIB || defined USEMKL
+#ifdef TEMPEST_LAPACK_FORTRAN_INTERFACE
 
 extern "C" {
 
@@ -135,10 +135,11 @@ public:
 			_EXCEPTIONT("Incompatible vectors.");
 		}
 
-#if defined USEACML || defined USEESSL
+#if defined TEMPEST_LAPACK_ACML_INTERFACE \
+ || defined TEMPEST_LAPACK_ESSL_INTERFACE
 		dswap(nRowsX, &(dX[0]), nIncX, &(dY[0]), nIncY);
 #endif
-#if defined USEVECLIB || defined USEMKL
+#ifdef TEMPEST_LAPACK_FORTRAN_INTERFACE
 		dswap_(&nRowsX, &(dX[0]), &nIncX, &(dY[0]), &nIncY);
 #endif
 	}
@@ -153,10 +154,11 @@ public:
 	) {
 		int nRows = dX.GetRows();
 
-#if defined USEACML || defined USEESSL
+#if defined TEMPEST_LAPACK_ACML_INTERFACE \
+ || defined TEMPEST_LAPACK_ESSL_INTERFACE
 		dscal(nRows, dAlpha, &(dX[0]), nInc);
 #endif
-#if defined USEVECLIB || defined USEMKL
+#ifdef TEMPEST_LAPACK_FORTRAN_INTERFACE
 		dscal_(&nRows, &dAlpha, &(dX[0]), &nInc);
 #endif
 	}
@@ -177,10 +179,11 @@ public:
 			dY.Allocate(nRowsX);
 		}
 
-#if defined USEACML || defined USEESSL
+#if defined TEMPEST_LAPACK_ACML_INTERFACE \
+ || defined TEMPEST_LAPACK_ESSL_INTERFACE
 		dcopy(nRowsX, &(dX[0]), nIncX, &(dY[0]), nIncY);
 #endif
-#if defined USEVECLIB || defined USEMKL
+#ifdef TEMPEST_LAPACK_FORTRAN_INTERFACE
 		dcopy_(&nRowsX, &(dX[0]), &nIncX, &(dY[0]), &nIncY);
 #endif
 	}
@@ -196,10 +199,11 @@ public:
 	) {
 		int nRowsX = dX.GetRows();
 
-#if defined USEACML || defined USEESSL
+#if defined TEMPEST_LAPACK_ACML_INTERFACE \
+ || defined TEMPEST_LAPACK_ESSL_INTERFACE
 		dcopy(nRowsX, &(dX[0]), nIncX, dY, nIncY);
 #endif
-#if defined USEVECLIB || defined USEMKL
+#ifdef TEMPEST_LAPACK_FORTRAN_INTERFACE
 		dcopy_(&nRowsX, &(dX[0]), &nIncX, dY, &nIncY);
 #endif
 	}
@@ -217,10 +221,11 @@ public:
 	) {
 		int nRowsX = dX.GetRows();
 
-#if defined USEACML || defined USEESSL
+#if defined TEMPEST_LAPACK_ACML_INTERFACE \
+ || defined TEMPEST_LAPACK_ESSL_INTERFACE
 		daxpy(nRowsX, dAlpha, &(dX[0]), nIncX, &(dY[0]), nIncY);
 #endif
-#if defined USEVECLIB || defined USEMKL
+#ifdef TEMPEST_LAPACK_FORTRAN_INTERFACE
 		daxpy_(&nRowsX, &dAlpha, &(dX[0]), &nIncX, &(dY[0]), &nIncY);
 #endif
 	}
@@ -238,10 +243,11 @@ public:
 	) {
 		int nRowsY = dY.GetRows();
 
-#if defined USEACML || defined USEESSL
+#if defined TEMPEST_LAPACK_ACML_INTERFACE \
+ || defined TEMPEST_LAPACK_ESSL_INTERFACE
 		daxpy(nRowsY, dAlpha, dX, nIncX, &(dY[0]), nIncY);
 #endif
-#if defined USEVECLIB || defined USEMKL
+#ifdef TEMPEST_LAPACK_FORTRAN_INTERFACE
 		daxpy_(&nRowsY, &dAlpha, dX, &nIncX, &(dY[0]), &nIncY);
 #endif
 	}
@@ -262,10 +268,11 @@ public:
 			_EXCEPTIONT("Incompatible vectors.");
 		}
 
-#if defined USEACML || defined USEESSL
+#if defined TEMPEST_LAPACK_ACML_INTERFACE \
+ || defined TEMPEST_LAPACK_ESSL_INTERFACE
 		return ddot(nRowsX, &(dX[0]), nIncX, &(dY[0]), nIncY);
 #endif
-#if defined USEVECLIB || defined USEMKL
+#ifdef TEMPEST_LAPACK_FORTRAN_INTERFACE
 		return ddot_(&nRowsX, &(dX[0]), &nIncX, &(dY[0]), &nIncY);
 #endif
 	}
@@ -281,10 +288,11 @@ public:
 		int nIncX = 1;
 		int nIncY = 1;
 
-#if defined USEACML || defined USEESSL
+#if defined TEMPEST_LAPACK_ACML_INTERFACE \
+ || defined TEMPEST_LAPACK_ESSL_INTERFACE
 		return ddot(nRowsX, &(dX[0]), nIncX, dY, nIncY);
 #endif
-#if defined USEVECLIB || defined USEMKL
+#ifdef TEMPEST_LAPACK_FORTRAN_INTERFACE
 		return ddot_(&nRowsX, &(dX[0]), &nIncX, dY, &nIncY);
 #endif
 	}
@@ -298,10 +306,11 @@ public:
 		int nRows = static_cast<int>(dX.GetRows());
 		int nIncX = 1;
 
-#if defined USEACML || defined USEESSL
+#if defined TEMPEST_LAPACK_ACML_INTERFACE \
+ || defined TEMPEST_LAPACK_ESSL_INTERFACE
 		return dnrm2(nRows, &(dX[0]), nIncX);
 #endif
-#if defined USEVECLIB || defined USEMKL
+#ifdef TEMPEST_LAPACK_FORTRAN_INTERFACE
 		return dnrm2_(&nRows, &(dX[0]), &nIncX);
 #endif
 	}

@@ -43,10 +43,12 @@
 #include "Announce.h"
 #include "CommandLine.h"
 #include "STLStringHelper.h"
-#include <string>
-#include "mpi.h"
 
-#ifdef USE_PETSC
+#include <mpi.h>
+
+#include <string>
+
+#ifdef TEMPEST_PETSC
 #include <petscsnes.h>
 #endif
 
@@ -597,7 +599,7 @@ void _TempestSetupCartesianModel(
 
 void TempestInitialize(int * argc, char*** argv) {
 
-#ifdef USE_PETSC
+#ifdef TEMPEST_PETSC
 	// Initialize PetSc
 	PetscInitialize(argc, argv, NULL, NULL);
 #else
@@ -611,7 +613,7 @@ void TempestInitialize(int * argc, char*** argv) {
 
 void TempestDeinitialize() {
 
-#ifdef USE_PETSC
+#ifdef TEMPEST_PETSC
 	// Finalize PetSc
 	PetscFinalize();
 #else
