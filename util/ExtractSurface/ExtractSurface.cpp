@@ -21,11 +21,12 @@
 #include "Announce.h"
 
 #include <cstdlib>
+#include <cmath>
 #include <netcdfcpp.h>
 
 #include "PolynomialInterp.h"
 
-#include "mpi.h"
+#include <mpi.h>
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -601,7 +602,7 @@ try {
 	NcAtt * attP0 = ncdf_in.get_att("P0");
 	double dP0 = attP0->as_double(0);
 
-	double dPressureScaling = dP0 * pow(dRd / dP0, dGamma);
+	double dPressureScaling = dP0 * std::pow(dRd / dP0, dGamma);
 
 	NcAtt * attZtop = ncdf_in.get_att("Ztop");
 	double dZtop = attZtop->as_double(0);
@@ -1033,7 +1034,7 @@ try {
 
 				dTotalEnergy +=
 					(dKineticEnergy + dInternalEnergy)
-						* cos(M_PI * dLat[i] / 180.0) * dElementRefArea
+						* std::cos(M_PI * dLat[i] / 180.0) * dElementRefArea
 						* (dZtop - dZs[i][j]) / static_cast<double>(nLev);
 			}
 			}
