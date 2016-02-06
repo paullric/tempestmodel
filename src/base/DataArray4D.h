@@ -305,23 +305,6 @@ public:
 	}
 
 	///	<summary>
-	///		Attach this DataArray2D to an array of pre-allocated data.
-	///	</summary>
-	void AttachTo(T **** ptr) {
-		if (IsAttached()) {
-			_EXCEPTIONT("Attempting AttachTo() on attached DataArray2D");
-		}
-		if (!m_fOwnsPointerTree) {
-			_EXCEPTIONT("Attempting AttachTo() on attached DataArray3D");
-		}
-
-		m_data = ptr;
-		m_data1D = ptr[0][0][0];
-		m_fOwnsData = false;
-		m_fOwnsPointerTree = false;
-	}
-
-	///	<summary>
 	///		Detach data from this DataChunk.
 	///	</summary>
 	virtual void Detach() {
