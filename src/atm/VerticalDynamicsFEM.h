@@ -242,7 +242,7 @@ protected:
 		const DataArray4D<double> & dataInitialREdge,
 		const DataArray4D<double> & dataUpdateREdge,
 		const DataArray4D<double> & dataInitialTracer,
-		const DataArray4D<double> & dataUpdateTracer
+		DataArray4D<double> & dataUpdateTracer
 	);
 
 public:

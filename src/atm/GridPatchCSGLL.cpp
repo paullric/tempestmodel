@@ -1002,7 +1002,7 @@ void GridPatchCSGLL::EvaluateTestCase_StateOnly(
 void GridPatchCSGLL::ComputeCurlAndDiv(
 	const DataArray3D<double> & dataUa,
 	const DataArray3D<double> & dataUb
-) const {
+) {
 	// Parent grid
 	const GridCSGLL & gridCSGLL = dynamic_cast<const GridCSGLL &>(m_grid);
 
@@ -1202,7 +1202,7 @@ void GridPatchCSGLL::ComputeVorticityDivergence(
 	const PhysicalConstants & phys = m_grid.GetModel().GetPhysicalConstants();
 
 	// Working data
-	const DataArray4D<double> & dataState =
+	DataArray4D<double> & dataState =
 		GetDataState(iDataIndex, DataLocation_Node);
 
 	if (dataState.GetSize(0) < 2) {

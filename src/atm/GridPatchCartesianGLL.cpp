@@ -1217,7 +1217,7 @@ void GridPatchCartesianGLL::ApplyBoundaryConditions(
 void GridPatchCartesianGLL::ComputeCurlAndDiv(
 	const DataArray3D<double> & dataUa,
 	const DataArray3D<double> & dataUb
-) const {
+) {
 	// Parent grid
 	const GridCartesianGLL & gridCSGLL =
 		dynamic_cast<const GridCartesianGLL &>(m_grid);
@@ -1344,7 +1344,7 @@ void GridPatchCartesianGLL::ComputeVorticityDivergence(
 	const PhysicalConstants & phys = m_grid.GetModel().GetPhysicalConstants();
 
 	// Working data
-	const DataArray4D<double> & dataState =
+	DataArray4D<double> & dataState =
 		GetDataState(iDataIndex, DataLocation_Node);
 
 	if (dataState.GetSize(0) < 2) {

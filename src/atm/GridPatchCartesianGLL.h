@@ -104,7 +104,7 @@ public:
 	virtual void ComputeCurlAndDiv(
 		const DataArray3D<double> & dataUa,
 		const DataArray3D<double> & dataUb
-	) const;
+	);
 
 	///	<summary>
 	///		Compute the divergence and vorticity of the vector velocity
