@@ -1665,7 +1665,7 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusion(
 				int nElementCountR;
 
 				const DataArray4D<double> * pDataInitial;
-				const DataArray4D<double> * pDataUpdate;
+				DataArray4D<double> * pDataUpdate;
 				const DataArray3D<double> * pJacobian;
 
 				if (iType == 0) {

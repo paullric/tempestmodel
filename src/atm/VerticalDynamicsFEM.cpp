@@ -450,6 +450,11 @@ void VerticalDynamicsFEM::StepImplicitTermsExplicitly(
 	memset(m_dStateRefNode[WIx],  0,  nRElements   *sizeof(double));
 	memset(m_dStateRefREdge[WIx], 0, (nRElements+1)*sizeof(double));
 
+	for (std::ptrdiff_t e = 0; e < nRElements; ++e)
+		m_dStateRefNode[WIx][e];
+	for (std::ptrdiff_t e = 0; e < (nRElements+1); ++e)
+		m_dStateRefREdge[WIx][e];
+
 	// Perform local update
 	for (int n = 0; n < pGrid->GetActivePatchCount(); n++) {
 		GridPatch * pPatch = pGrid->GetActivePatch(n);
@@ -3536,7 +3541,7 @@ void VerticalDynamicsFEM::UpdateColumnTracers(
 	const DataArray4D<double> & dataInitialREdge,
 	const DataArray4D<double> & dataUpdateREdge,
 	const DataArray4D<double> & dataInitialTracer,
-	const DataArray4D<double> & dataUpdateTracer
+	DataArray4D<double> & dataUpdateTracer
 ) {
 	// Indices of EquationSet variables
 	const int UIx = 0;

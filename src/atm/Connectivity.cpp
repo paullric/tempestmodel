@@ -591,7 +591,7 @@ void ExteriorNeighbor::Pack(
 			if (grid.GetVarLocation(c) != data.GetDataLocation()) {
 				continue;
 			}
-			data3D.AttachToData(&(data[c][0][0][0]));
+			data3D.AttachToData(const_cast<double*>(&(data[c][0][0][0])));
 			Pack(data3D);
 			data3D.Detach();
 		}
@@ -599,7 +599,7 @@ void ExteriorNeighbor::Pack(
 	// Send everything
 	} else {
 		for (int c = 0; c < sComponents; c++) {
-			data3D.AttachToData(&(data[c][0][0][0]));
+			data3D.AttachToData(const_cast<double*>(&(data[c][0][0][0])));
 			Pack(data3D);
 			data3D.Detach();
 		}

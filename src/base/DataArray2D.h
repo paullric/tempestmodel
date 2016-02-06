@@ -23,6 +23,7 @@
 #include "DataChunk.h"
 #include "DataType.h"
 #include "DataLocation.h"
+#include "Subscript.h"
 
 #include <cstdlib>
 #include <cstring>
@@ -31,6 +32,8 @@ template <typename T>
 class DataArray2D : public DataChunk {
 
 public:
+	typedef T ValueType;
+ 
 	///	<summary>
 	///		Constructor.
 	///	</summary>
@@ -39,10 +42,8 @@ public:
 		DataLocation eDataLocation = DataLocation_Default
 	) :
 		m_fOwnsData(true),
-		m_fOwnsPointerTree(true),
 		m_eDataType(eDataType),
 		m_eDataLocation(eDataLocation),
-		m_data(NULL),
 		m_data1D(NULL)
 	{
 		m_sSize[0] = 0;
@@ -60,10 +61,8 @@ public:
 		bool fAllocate = true
 	) :
 		m_fOwnsData(true),
-		m_fOwnsPointerTree(true),
 		m_eDataType(eDataType),
 		m_eDataLocation(eDataLocation),
-		m_data(NULL),
 		m_data1D(NULL)
 	{
 		m_sSize[0] = sSize0;
@@ -79,10 +78,8 @@ public:
 	///	</summary>
 	DataArray2D(const DataArray2D<T> & da) :
 		m_fOwnsData(true),
-		m_fOwnsPointerTree(true),
 		m_eDataType(DataType_Default),
-		m_eDataLocation(DataLocation_Default),
-		m_data(NULL)
+		m_eDataLocation(DataLocation_Default)
 	{
 		m_sSize[0] = 0;
 		m_sSize[1] = 0;
@@ -95,58 +92,8 @@ public:
 	///	</summary>
 	virtual ~DataArray2D() {
 		Detach();
-		DeletePointerTree();
 	}
 
-private:
-	///	<summary>
-	///		Build the pointer tree for the specified data.
-	///	</summary>
-	void BuildPointerTree() {
-		if (m_data != NULL) {
-			_EXCEPTIONT("Attempting to rebuild existing pointer tree");
-		}
-		if (!m_fOwnsPointerTree) {
-			_EXCEPTIONT("Logic error");
-		}
-
-		m_data = new T*[m_sSize[0]];
-		for (size_t i = 0; i < m_sSize[0]; i++) {
-			m_data[i] = m_data1D + i * m_sSize[1];
-		}
-	}
-
-	///	<summary>
-	///		Delete the pointer tree.
-	///	</summary>
-	void DeletePointerTree() {
-		if (!m_fOwnsPointerTree) {
-			m_data = NULL;
-			m_fOwnsPointerTree = true;
-			return;
-		}
-		if (m_data == NULL) {
-			return;
-		}
-
-		delete[] m_data;
-
-		m_data = NULL;
-	}
-
-	///	<summary>
-	///		Attach pointer tree to 1D data.
-	///	</summary>
-	void AttachPointerTree() {
-		if (!m_fOwnsPointerTree) {
-			_EXCEPTIONT("Attempting to modify attached pointer tree");
-		}
-		for (size_t i = 0; i < m_sSize[0]; i++) {
-			m_data[i] = m_data1D + i * m_sSize[1];
-		}
-	}
-
-public:
 	///	<summary>
 	///		Get the size of this DataChunk, in bytes.
 	///	</summary>
@@ -167,7 +114,7 @@ public:
 		size_t sSize0 = 0,
 		size_t sSize1 = 0
 	) {
-		if ((!m_fOwnsData) || (!m_fOwnsPointerTree)) {
+		if (!m_fOwnsData) {
 			_EXCEPTIONT("Attempting to Allocate() on attached DataArray2D");
 		}
 
@@ -185,14 +132,12 @@ public:
 		    (m_sSize[1] != sSize1)
 		) {
 			Detach();
-			DeletePointerTree();
 
 			m_sSize[0] = sSize0;
 			m_sSize[1] = sSize1;
 
 			m_data1D = reinterpret_cast<T *>(malloc(GetByteSize()));
 
-			BuildPointerTree();
 		}
 
 		Zero();
@@ -209,14 +154,6 @@ public:
 	) {
 		if (IsAttached()) {
 			_EXCEPTIONT("Attempting SetSize() on attached DataArray2D");
-		}
-
-		if (m_data != NULL) {
-			if ((m_sSize[0] != sSize0) ||
-			    (m_sSize[1] != sSize1)
-			) {
-				DeletePointerTree();
-			}
 		}
 
 		m_sSize[0] = sSize0;
@@ -238,45 +175,15 @@ public:
 		if (IsAttached()) {
 			_EXCEPTIONT("Attempting AttachToData() on attached DataArray2D");
 		}
-		if (!m_fOwnsPointerTree) {
-			_EXCEPTIONT("Attempting AttachToData() on attached DataArray2D");
-		}
 
 		m_data1D = reinterpret_cast<T *>(ptr);
 		m_fOwnsData = false;
-
-		if (m_data == NULL) {
-			BuildPointerTree();
-		} else {
-			AttachPointerTree();
-		}
-	}
-
-	///	<summary>
-	///		Attach this DataArray2D to an array of pre-allocated data.
-	///	</summary>
-	void AttachTo(T ** ptr) {
-		if (IsAttached()) {
-			_EXCEPTIONT("Attempting AttachTo() on attached DataArray2D");
-		}
-		if (!m_fOwnsPointerTree) {
-			_EXCEPTIONT("Attempting AttachTo() on attached DataArray2D");
-		}
-
-		m_data = ptr;
-		m_data1D = ptr[0];
-		m_fOwnsData = false;
-		m_fOwnsPointerTree = false;
 	}
 
 	///	<summary>
 	///		Detach data from this DataChunk.
 	///	</summary>
 	virtual void Detach() {
-		if (!m_fOwnsPointerTree) {
-			m_fOwnsPointerTree = true;
-			m_data = NULL;
-		}
 		if ((m_fOwnsData) && (m_data1D != NULL)) {
 			delete[] m_data1D;
 		}
@@ -293,7 +200,6 @@ public:
 		}
 
 		Detach();
-		DeletePointerTree();
 	}
 
 public:
@@ -364,7 +270,7 @@ public:
 				return;
 			}
 
-			_EXCEPTIONT("Attempting to assign unattached DataArray2D\n"
+			_EXCEPTIONT("Attempting to assign unattached DataArray2D "
 				"to attached DataArray2D (undefined behavior)");
 		}
 
@@ -478,31 +384,82 @@ public:
 
 public:
 	///	<summary>
-	///		Cast to an array.
+	///		Subscript DSEL operator.
 	///	</summary>
-	inline operator T**() {
-		return m_data;
+	inline Subscript<DataArray2D<T> const, 1, 2>
+	operator[](std::ptrdiff_t idx) const noexcept
+	{
+		Subscript<DataArray2D<T> const, 2, 2> s(*this);
+		return s[idx];
 	}
-
 	///	<summary>
-	///		Cast to an array.
+	///		Subscript DSEL operator.
 	///	</summary>
-	inline operator T**() const {
-		return m_data;
+	inline Subscript<DataArray2D<T>, 1, 2>
+	operator[](std::ptrdiff_t idx) noexcept
+	{
+		Subscript<DataArray2D<T>, 2, 2> s(*this);
+		return s[idx];
 	}
 
 	///	<summary>
 	///		Parenthetical array accessor.
 	///	</summary>
-	inline T & operator()(size_t i, size_t j) {
-		return (*(m_data1D + i * m_sSize[1] + j));
+	inline T const&
+	operator()(std::array<std::ptrdiff_t, 2> indices) const noexcept
+	{
+		return (*this)(indices[0], indices[1]);
+	}
+	///	<summary>
+	///		Parenthetical array accessor.
+	///	</summary>
+	inline T&
+	operator()(std::array<std::ptrdiff_t, 2> indices) noexcept
+	{
+		return (*this)(indices[0], indices[1]);
 	}
 
 	///	<summary>
 	///		Parenthetical array accessor.
 	///	</summary>
-	inline const T & operator()(size_t i, size_t j) const {
+	inline const T & operator()(size_t i, size_t j) const noexcept {
 		return (*(m_data1D + i * m_sSize[1] + j));
+	}
+	///	<summary>
+	///		Parenthetical array accessor.
+	///	</summary>
+	inline T & operator()(size_t i, size_t j) noexcept {
+		return (*(m_data1D + i * m_sSize[1] + j));
+	}
+
+	///	<summary>
+	///		Parenthetical array accessor (unit-stride slicer).
+	///	</summary>
+	inline T const*
+	operator()(std::array<std::ptrdiff_t, 1> indices) const noexcept
+	{
+		return (*this)(indices[0]);
+	}
+	///	<summary>
+	///		Parenthetical array accessor (unit-stride slicer).
+	///	</summary>
+	inline T*
+	operator()(std::array<std::ptrdiff_t, 1> indices) noexcept
+	{
+		return (*this)(indices[0]);
+	}
+
+	///	<summary>
+	///		Parenthetical array accessor (unit-stride slicer).
+	///	</summary>
+	inline T const* operator()(size_t i) const noexcept {
+		return m_data1D + i * m_sSize[1];
+	}
+	///	<summary>
+	///		Parenthetical array accessor (unit-stride slicer).
+	///	</summary>
+	inline T* operator()(size_t i) noexcept {
+		return m_data1D + i * m_sSize[1];
 	}
 
 private:
@@ -510,11 +467,6 @@ private:
 	///		A flag indicating this array owns its data.
 	///	</summary>
 	bool m_fOwnsData;
-
-	///	<summary>
-	///		A flag indicating this array owns its pointer tree.
-	///	</summary>
-	bool m_fOwnsPointerTree;
 
 	///	<summary>
 	///		The size of each dimension of this DataArray3D.
@@ -530,11 +482,6 @@ private:
 	///		The location of data stored in this DataArray2D.
 	///	</summary>
 	DataLocation m_eDataLocation;
-
-	///	<summary>
-	///		The top level pointer in pointer tree.
-	///	</summary>
-	T ** m_data;
 
 	///	<summary>
 	///		A pointer to the data for this DataArray2D.

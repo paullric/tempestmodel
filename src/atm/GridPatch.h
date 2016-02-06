@@ -157,7 +157,7 @@ public:
 	virtual void ComputeCurlAndDiv(
 		const DataArray3D<double> & dataUa,
 		const DataArray3D<double> & dataUb
-	) const {
+	) {
 		_EXCEPTIONT("Unimplemented");
 	}
 
