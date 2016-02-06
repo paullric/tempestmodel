@@ -42,10 +42,8 @@ public:
 		DataLocation eDataLocation = DataLocation_Default
 	) :
 		m_fOwnsData(true),
-		m_fOwnsPointerTree(true),
 		m_eDataType(eDataType),
 		m_eDataLocation(eDataLocation),
-		m_data(NULL),
 		m_data1D(NULL)
 	{
 		m_sSize[0] = 0;
@@ -67,10 +65,8 @@ public:
 		bool fAllocate = true
 	) :
 		m_fOwnsData(true),
-		m_fOwnsPointerTree(true),
 		m_eDataType(eDataType),
 		m_eDataLocation(eDataLocation),
-		m_data(NULL),
 		m_data1D(NULL)
 	{
 		m_sSize[0] = sSize0;
@@ -88,10 +84,8 @@ public:
 	///	</summary>
 	DataArray4D(const DataArray4D<T> & da) :
 		m_fOwnsData(true),
-		m_fOwnsPointerTree(true),
 		m_eDataType(DataType_Default),
-		m_eDataLocation(DataLocation_Default),
-		m_data(NULL)
+		m_eDataLocation(DataLocation_Default)
 	{
 		m_sSize[0] = 0;
 		m_sSize[1] = 0;
@@ -106,76 +100,8 @@ public:
 	///	</summary>
 	virtual ~DataArray4D() {
 		Detach();
-		DeletePointerTree();
 	}
 
-private:
-	///	<summary>
-	///		Build the pointer tree for the specified data.
-	///	</summary>
-	void BuildPointerTree() {
-		if (m_data != NULL) {
-			_EXCEPTIONT("Attempting to rebuild existing pointer tree");
-		}
-		if (!m_fOwnsPointerTree) {
-			_EXCEPTIONT("Logic error");
-		}
-
-		m_data = new T***[m_sSize[0]];
-		for (size_t i = 0; i < m_sSize[0]; i++) {
-			m_data[i] = new T**[m_sSize[1]];
-			for (size_t j = 0; j < m_sSize[1]; j++) {
-				m_data[i][j] = new T*[m_sSize[2]];
-				for (size_t k = 0; k < m_sSize[2]; k++) {
-					m_data[i][j][k] = m_data1D
-						+ ((i * m_sSize[1] + j) * m_sSize[2] + k) * m_sSize[3];
-				}
-			}
-		}
-	}
-
-	///	<summary>
-	///		Delete the pointer tree.
-	///	</summary>
-	void DeletePointerTree() {
-		if (!m_fOwnsPointerTree) {
-			m_data = NULL;
-			m_fOwnsPointerTree = true;
-			return;
-		}
-		if (m_data == NULL) {
-			return;
-		}
-
-		for (int i = 0; i < m_sSize[0]; i++) {
-			for (int j = 0; j < m_sSize[1]; j++) {
-				delete[] m_data[i][j];
-			}
-			delete[] m_data[i];
-		}
-		delete[] m_data;
-
-		m_data = NULL;
-	}
-
-	///	<summary>
-	///		Attach pointer tree to 1D data.
-	///	</summary>
-	void AttachPointerTree() {
-		if (!m_fOwnsPointerTree) {
-			_EXCEPTIONT("Attempting to modify attached pointer tree");
-		}
-		for (size_t i = 0; i < m_sSize[0]; i++) {
-			for (size_t j = 0; j < m_sSize[1]; j++) {
-				for (size_t k = 0; k < m_sSize[2]; k++) {
-					m_data[i][j][k] = m_data1D
-						+ ((i * m_sSize[1] + j) * m_sSize[2] + k) * m_sSize[3];
-				}
-			}
-		}
-	}
-
-public:
 	///	<summary>
 	///		Get the size of this DataChunk, in bytes.
 	///	</summary>
@@ -199,7 +125,7 @@ public:
 		size_t sSize2 = 0,
 		size_t sSize3 = 0
 	) {
-		if ((!m_fOwnsData) || (!m_fOwnsPointerTree)) {
+		if (!m_fOwnsData) {
 			_EXCEPTIONT("Attempting to Allocate() on attached DataArray4D");
 		}
 
@@ -229,7 +155,6 @@ public:
 		    (m_sSize[3] != sSize3)
 		) {
 			Detach();
-			DeletePointerTree();
 
 			m_sSize[0] = sSize0;
 			m_sSize[1] = sSize1;
@@ -237,8 +162,6 @@ public:
 			m_sSize[3] = sSize3;
 
 			m_data1D = reinterpret_cast<T *>(malloc(GetByteSize()));
-
-			BuildPointerTree();
 		}
 
 		Zero();
@@ -257,16 +180,6 @@ public:
 	) {
 		if (IsAttached()) {
 			_EXCEPTIONT("Attempting SetSize() on attached DataArray4D");
-		}
-
-		if (m_data != NULL) {
-			if ((m_sSize[0] != sSize0) ||
-			    (m_sSize[1] != sSize1) ||
-				(m_sSize[2] != sSize2) ||
-				(m_sSize[3] != sSize3)
-			) {
-				DeletePointerTree();
-			}
 		}
 
 		m_sSize[0] = sSize0;
@@ -290,28 +203,15 @@ public:
 		if (IsAttached()) {
 			_EXCEPTIONT("Attempting AttachToData() on attached DataArray4D");
 		}
-		if (!m_fOwnsPointerTree) {
-			_EXCEPTIONT("Attempting AttachToData() on attached DataArray4D");
-		}
 
 		m_data1D = reinterpret_cast<T *>(ptr);
 		m_fOwnsData = false;
-
-		if (m_data == NULL) {
-			BuildPointerTree();
-		} else {
-			AttachPointerTree();
-		}
 	}
 
 	///	<summary>
 	///		Detach data from this DataChunk.
 	///	</summary>
 	virtual void Detach() {
-		if (!m_fOwnsPointerTree) {
-			m_fOwnsPointerTree = true;
-			m_data = NULL;
-		}
 		if ((m_fOwnsData) && (m_data1D != NULL)) {
 			delete[] m_data1D;
 		}
@@ -328,7 +228,6 @@ public:
 		}
 
 		Detach();
-		DeletePointerTree();
 	}
 
 public:
@@ -619,11 +518,6 @@ private:
 	bool m_fOwnsData;
 
 	///	<summary>
-	///		A flag indicating this array owns its pointer tree.
-	///	</summary>
-	bool m_fOwnsPointerTree;
-
-	///	<summary>
 	///		The size of each dimension of this DataArray4D.
 	///	</summary>
 	size_t m_sSize[4];
@@ -637,11 +531,6 @@ private:
 	///		The location of data stored in this DataArray4D.
 	///	</summary>
 	DataLocation m_eDataLocation;
-
-	///	<summary>
-	///		The top level pointer in pointer tree.
-	///	</summary>
-	T **** m_data;
 
 	///	<summary>
 	///		A pointer to the data for this DataArray4D.

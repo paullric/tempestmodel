@@ -42,10 +42,8 @@ public:
 		DataLocation eDataLocation = DataLocation_Default
 	) :
 		m_fOwnsData(true),
-		m_fOwnsPointerTree(true),
 		m_eDataType(eDataType),
 		m_eDataLocation(eDataLocation),
-		m_data(NULL),
 		m_data1D(NULL)
 	{
 		m_sSize[0] = 0;
@@ -63,10 +61,8 @@ public:
 		bool fAllocate = true
 	) :
 		m_fOwnsData(true),
-		m_fOwnsPointerTree(true),
 		m_eDataType(eDataType),
 		m_eDataLocation(eDataLocation),
-		m_data(NULL),
 		m_data1D(NULL)
 	{
 		m_sSize[0] = sSize0;
@@ -82,10 +78,8 @@ public:
 	///	</summary>
 	DataArray2D(const DataArray2D<T> & da) :
 		m_fOwnsData(true),
-		m_fOwnsPointerTree(true),
 		m_eDataType(DataType_Default),
-		m_eDataLocation(DataLocation_Default),
-		m_data(NULL)
+		m_eDataLocation(DataLocation_Default)
 	{
 		m_sSize[0] = 0;
 		m_sSize[1] = 0;
@@ -98,58 +92,8 @@ public:
 	///	</summary>
 	virtual ~DataArray2D() {
 		Detach();
-		DeletePointerTree();
 	}
 
-private:
-	///	<summary>
-	///		Build the pointer tree for the specified data.
-	///	</summary>
-	void BuildPointerTree() {
-		if (m_data != NULL) {
-			_EXCEPTIONT("Attempting to rebuild existing pointer tree");
-		}
-		if (!m_fOwnsPointerTree) {
-			_EXCEPTIONT("Logic error");
-		}
-
-		m_data = new T*[m_sSize[0]];
-		for (size_t i = 0; i < m_sSize[0]; i++) {
-			m_data[i] = m_data1D + i * m_sSize[1];
-		}
-	}
-
-	///	<summary>
-	///		Delete the pointer tree.
-	///	</summary>
-	void DeletePointerTree() {
-		if (!m_fOwnsPointerTree) {
-			m_data = NULL;
-			m_fOwnsPointerTree = true;
-			return;
-		}
-		if (m_data == NULL) {
-			return;
-		}
-
-		delete[] m_data;
-
-		m_data = NULL;
-	}
-
-	///	<summary>
-	///		Attach pointer tree to 1D data.
-	///	</summary>
-	void AttachPointerTree() {
-		if (!m_fOwnsPointerTree) {
-			_EXCEPTIONT("Attempting to modify attached pointer tree");
-		}
-		for (size_t i = 0; i < m_sSize[0]; i++) {
-			m_data[i] = m_data1D + i * m_sSize[1];
-		}
-	}
-
-public:
 	///	<summary>
 	///		Get the size of this DataChunk, in bytes.
 	///	</summary>
@@ -170,7 +114,7 @@ public:
 		size_t sSize0 = 0,
 		size_t sSize1 = 0
 	) {
-		if ((!m_fOwnsData) || (!m_fOwnsPointerTree)) {
+		if (!m_fOwnsData) {
 			_EXCEPTIONT("Attempting to Allocate() on attached DataArray2D");
 		}
 
@@ -188,14 +132,12 @@ public:
 		    (m_sSize[1] != sSize1)
 		) {
 			Detach();
-			DeletePointerTree();
 
 			m_sSize[0] = sSize0;
 			m_sSize[1] = sSize1;
 
 			m_data1D = reinterpret_cast<T *>(malloc(GetByteSize()));
 
-			BuildPointerTree();
 		}
 
 		Zero();
@@ -212,14 +154,6 @@ public:
 	) {
 		if (IsAttached()) {
 			_EXCEPTIONT("Attempting SetSize() on attached DataArray2D");
-		}
-
-		if (m_data != NULL) {
-			if ((m_sSize[0] != sSize0) ||
-			    (m_sSize[1] != sSize1)
-			) {
-				DeletePointerTree();
-			}
 		}
 
 		m_sSize[0] = sSize0;
@@ -241,28 +175,15 @@ public:
 		if (IsAttached()) {
 			_EXCEPTIONT("Attempting AttachToData() on attached DataArray2D");
 		}
-		if (!m_fOwnsPointerTree) {
-			_EXCEPTIONT("Attempting AttachToData() on attached DataArray2D");
-		}
 
 		m_data1D = reinterpret_cast<T *>(ptr);
 		m_fOwnsData = false;
-
-		if (m_data == NULL) {
-			BuildPointerTree();
-		} else {
-			AttachPointerTree();
-		}
 	}
 
 	///	<summary>
 	///		Detach data from this DataChunk.
 	///	</summary>
 	virtual void Detach() {
-		if (!m_fOwnsPointerTree) {
-			m_fOwnsPointerTree = true;
-			m_data = NULL;
-		}
 		if ((m_fOwnsData) && (m_data1D != NULL)) {
 			delete[] m_data1D;
 		}
@@ -279,7 +200,6 @@ public:
 		}
 
 		Detach();
-		DeletePointerTree();
 	}
 
 public:
@@ -350,7 +270,7 @@ public:
 				return;
 			}
 
-			_EXCEPTIONT("Attempting to assign unattached DataArray2D\n"
+			_EXCEPTIONT("Attempting to assign unattached DataArray2D "
 				"to attached DataArray2D (undefined behavior)");
 		}
 
@@ -549,11 +469,6 @@ private:
 	bool m_fOwnsData;
 
 	///	<summary>
-	///		A flag indicating this array owns its pointer tree.
-	///	</summary>
-	bool m_fOwnsPointerTree;
-
-	///	<summary>
 	///		The size of each dimension of this DataArray3D.
 	///	</summary>
 	size_t m_sSize[2];
@@ -567,11 +482,6 @@ private:
 	///		The location of data stored in this DataArray2D.
 	///	</summary>
 	DataLocation m_eDataLocation;
-
-	///	<summary>
-	///		The top level pointer in pointer tree.
-	///	</summary>
-	T ** m_data;
 
 	///	<summary>
 	///		A pointer to the data for this DataArray2D.
