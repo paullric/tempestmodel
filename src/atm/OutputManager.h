@@ -21,8 +21,8 @@
 #include "DataArray1D.h"
 #include "DataArray4D.h"
 
-#ifndef NO_NETCDF
-#include "netcdfcpp.h"
+#ifdef TEMPEST_NETCDF
+#include <netcdfcpp.h>
 #endif
 
 #include <vector>

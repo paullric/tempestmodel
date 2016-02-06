@@ -20,7 +20,8 @@
 #include "DataMatrix.h"
 #include "Announce.h"
 #include "Parameters.h"
-#include "mpi.h"
+
+#include <mpi.h>
 
 #include <cmath>
 

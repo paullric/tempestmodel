@@ -25,7 +25,7 @@
 #include <map>
 #include <cmath>
 
-#include "mpi.h"
+#include <mpi.h>
 
 #include <netcdfcpp.h>
 

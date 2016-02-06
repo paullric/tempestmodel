@@ -1,71 +1,49 @@
-# TempestBase directory
+# Copyright (c) 2016      Bryce Adelstein-Lelbach aka wash
+# Copyright (c) 2000-2016 Paul Ullrich 
+#
+# Distributed under the Boost Software License, Version 1.0. (See accompanying 
+# file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+
+# Base directory.
 TEMPESTBASEDIR= ../..
 
-# Compile with BLAS libraries
-USEBLAS= true
+# Load Makefile framework. 
+include $(TEMPESTBASEDIR)/mk/framework.make
 
-# Load system-specific defaults
-include $(TEMPESTBASEDIR)/mk/Make.defs
+FILES= InertialGravityCartesianXZTest.cpp \
+       ThermalBubbleCartesianTest.cpp \
+       ScharMountainCartesianTest.cpp \
+       HydrostaticMountainCartesianTest.cpp \
+       NonHydroMountainCartesianTest.cpp \
+       Baroclinic3DCartesianTest.cpp \
+       Baroclinic3DCartesianRidgeTest.cpp \
+       RobertBubbleCartesianTest.cpp \
+       DensityCurrentCartesianTest.cpp
 
-##
-## Build instructions
-##
-all: atm InertialGravityCartesianXZTest ThermalBubbleCartesianTest ScharMountainCartesianTest HydrostaticMountainCartesianTest NonHydroMountainCartesianTest Baroclinic3DCartesianTest Baroclinic3DCartesianRidgeTest RobertBubbleCartesianTest DensityCurrentCartesianTest
+EXEC_TARGETS= $(FILES:%.cpp=%)
+CLEAN_TARGETS= $(addsuffix .clean,$(EXEC_TARGETS))
 
-atm:
-	cd $(TEMPESTBASEDIR)/src/base; make
-	cd $(TEMPESTBASEDIR)/src/atm; make
+.PHONY: all clean
 
-##
-## Individual test case build instructions
-##
-ThermalBubbleCartesianTest: $(BUILDDIR)/ThermalBubbleCartesianTest.o $(FILES:%.cpp=$(BUILDDIR)/%.o) $(TEMPESTLIBS)
-	$(CC) $(LDFLAGS) -o $@ $(BUILDDIR)/ThermalBubbleCartesianTest.o $(FILES:%.cpp=$(BUILDDIR)/%.o) $(LDFILES)
+# Build rules. 
+all: $(EXEC_TARGETS)
 
-RobertBubbleCartesianTest: $(BUILDDIR)/RobertBubbleCartesianTest.o $(FILES:%.cpp=$(BUILDDIR)/%.o) $(TEMPESTLIBS)
-	$(CC) $(LDFLAGS) -o $@ $(BUILDDIR)/RobertBubbleCartesianTest.o $(FILES:%.cpp=$(BUILDDIR)/%.o) $(LDFILES)
+$(EXEC_TARGETS): %: $(BUILDDIR)/%.o $(TEMPESTLIBS)
+	$(CXX) $(LDFLAGS) -o $@ $(BUILDDIR)/$*.o $(LIBRARIES) 
 
-DensityCurrentCartesianTest: $(BUILDDIR)/DensityCurrentCartesianTest.o $(FILES:%.cpp=$(BUILDDIR)/%.o) $(TEMPESTLIBS)
-	$(CC) $(LDFLAGS) -o $@ $(BUILDDIR)/DensityCurrentCartesianTest.o $(FILES:%.cpp=$(BUILDDIR)/%.o) $(LDFILES)
+# Go up to the root directory and build the libraries if needed.
+$(TEMPESTBASEDIR)/%.a:
+	cd $(TEMPESTBASEDIR); $(MAKE) $*.a
 
-InertialGravityCartesianXZTest: $(BUILDDIR)/InertialGravityCartesianXZTest.o $(FILES:%.cpp=$(BUILDDIR)/%.o) $(TEMPESTLIBS)
-	$(CC) $(LDFLAGS) -o $@ $(BUILDDIR)/InertialGravityCartesianXZTest.o $(FILES:%.cpp=$(BUILDDIR)/%.o) $(LDFILES)
-
-ScharMountainCartesianTest: $(BUILDDIR)/ScharMountainCartesianTest.o $(FILES:%.cpp=$(BUILDDIR)/%.o) $(TEMPESTLIBS)
-	$(CC) $(LDFLAGS) -o $@ $(BUILDDIR)/ScharMountainCartesianTest.o $(FILES:%.cpp=$(BUILDDIR)/%.o) $(LDFILES)
-
-HydrostaticMountainCartesianTest: $(BUILDDIR)/HydrostaticMountainCartesianTest.o $(FILES:%.cpp=$(BUILDDIR)/%.o) $(TEMPESTLIBS)
-	$(CC) $(LDFLAGS) -o $@ $(BUILDDIR)/HydrostaticMountainCartesianTest.o $(FILES:%.cpp=$(BUILDDIR)/%.o) $(LDFILES)
-
-NonHydroMountainCartesianTest: $(BUILDDIR)/NonHydroMountainCartesianTest.o $(FILES:%.cpp=$(BUILDDIR)/%.o) $(TEMPESTLIBS)
-	$(CC) $(LDFLAGS) -o $@ $(BUILDDIR)/NonHydroMountainCartesianTest.o $(FILES:%.cpp=$(BUILDDIR)/%.o) $(LDFILES)
-
-Baroclinic3DCartesianTest: $(BUILDDIR)/Baroclinic3DCartesianTest.o $(FILES:%.cpp=$(BUILDDIR)/%.o) $(TEMPESTLIBS)
-	$(CC) $(LDFLAGS) -o $@ $(BUILDDIR)/Baroclinic3DCartesianTest.o $(FILES:%.cpp=$(BUILDDIR)/%.o) $(LDFILES)
-
-Baroclinic3DCartesianRidgeTest: $(BUILDDIR)/Baroclinic3DCartesianRidgeTest.o $(FILES:%.cpp=$(BUILDDIR)/%.o) $(TEMPESTLIBS)
-	$(CC) $(LDFLAGS) -o $@ $(BUILDDIR)/Baroclinic3DCartesianRidgeTest.o $(FILES:%.cpp=$(BUILDDIR)/%.o) $(LDFILES)
-
-##
-## Clean
-##
-clean:
-	rm -f ThermalBubbleCartesianTest
-	rm -f RobertBubbleCartesianTest
-	rm -f DensityCurrentCartesianTest
-	rm -f InertialGravityCartesianXZTest
-	rm -f ScharMountainCartesianTest
-	rm -f HydrostaticMountainCartesianTest
-	rm -f NonHydroMountainCartesianTest
-	rm -f Baroclinic3DCartesianTest
-	rm -f Baroclinic3DCartesianRidgeTest
+# Clean rules.
+clean: $(CLEAN_TARGETS)
 	rm -rf $(DEPDIR)
 	rm -rf $(BUILDDIR)
 
-##
-## Include dependencies
-##
-include $(FILES:%.cpp=$(DEPDIR)/%.d)
+$(CLEAN_TARGETS): %.clean:
+	rm -f $*
+
+# Include dependencies.
+-include $(FILES:%.cpp=$(DEPDIR)/%.d)
 
 # DO NOT DELETE
-

@@ -23,8 +23,8 @@
 #include "Connectivity.h"
 #include "DataStruct.h"
 
-#ifdef USE_MPI
-#include "mpi.h"
+#ifdef TEMPEST_MPIOMP
+#include <mpi.h>
 #endif
 
 #include <string>
@@ -40,7 +40,7 @@ class ConsolidationStatus;
 class GridSpacing;
 class VerticalStretchFunction;
 
-#ifndef NO_NETCDF
+#ifdef TEMPEST_NETCDF
 class NcFile;
 #else
 typedef int NcFile;
@@ -667,7 +667,7 @@ public:
 		return m_vecActiveGridPatches[ix];
 	}
 
-#ifdef USE_MPI
+#ifdef TEMPEST_MPIOMP
 	///	<summary>
 	///		Get the node that contains the specified GridPatch.
 	///	</summary>
@@ -891,7 +891,7 @@ protected:
 	///	</summary>
 	std::vector<int> m_vecActiveGridPatchIndices;
 
-#ifdef USE_MPI
+#ifdef TEMPEST_MPIOMP
 	///	<summary>
 	///		Vector of processors that contain the specified GridPatch.
 	///	</summary>

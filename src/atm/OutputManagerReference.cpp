@@ -23,7 +23,7 @@
 #include "TimeObj.h"
 #include "Announce.h"
 
-#include "mpi.h"
+#include <mpi.h>
 
 #include <iostream>
 #include <cstdio>
@@ -230,7 +230,7 @@ bool OutputManagerReference::CalculatePatchCoordinates() {
 bool OutputManagerReference::OpenFile(
 	const std::string & strFileName
 ) {
-#ifndef NO_NETCDF
+#ifdef TEMPEST_NETCDF
 	// Determine processor rank; only proceed if root node
 	int nRank;
 	MPI_Comm_rank(MPI_COMM_WORLD, &nRank);
@@ -438,7 +438,7 @@ void OutputManagerReference::Output(
 		_EXCEPTIONT("No file available for output");
 	}
 
-#ifndef NO_NETCDF
+#ifdef TEMPEST_NETCDF
 	// Get processor rank
 	int nRank;
 	MPI_Comm_rank(MPI_COMM_WORLD, &nRank);

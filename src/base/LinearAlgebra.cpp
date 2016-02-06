@@ -50,19 +50,19 @@ void LAPACK::DGEMM(
 	int nLDB  = k;
 	int nLDC  = m;
 
-#ifdef USEACML
+#ifdef TEMPEST_LAPACK_ACML_INTERFACE
 	// Call the matrix solve
 	dgemm(cTransA, cTransB, m, n, k,
 		dAlpha, &(dA[0][0]), nLDA, &(dB[0][0]), nLDB,
 		dBeta, &(dC[0][0]), nLDC);
 #endif
-#ifdef USEESSL
+#ifdef TEMPEST_LAPACK_ESSL_INTERFACE
 	// Call the matrix solve
 	dgemm(cTransA, cTransB, m, n, k,
 		dAlpha, &(dA[0][0]), nLDA, &(dB[0][0]), nLDB,
 		dBeta, &(dC[0][0]), nLDC);
 #endif
-#if defined USEVECLIB || defined USEMKL
+#ifdef TEMPEST_LAPACK_FORTRAN_INTERFACE
 	// Call the matrix solve
 	dgemm_(&cTransA, &cTransB, &m, &n, &k, &dAlpha,
 		&(dA[0][0]), &nLDA, &(dB[0][0]), &nLDB, &dBeta, &(dC[0][0]), &nLDC);
@@ -91,15 +91,15 @@ int LAPACK::DGESV(
 
 	int nInfo;
 
-#ifdef USEACML
+#ifdef TEMPEST_LAPACK_ACML_INTERFACE
 	// Call the matrix solve
 	dgesv(n, nRHS, &(dA[0][0]), nLDA, &(iPIV[0]), &(dBX[0]), nLDB, &nInfo);
 #endif
-#ifdef USEESSL
+#ifdef TEMPEST_LAPACK_ESSL_INTERFACE
 	// Call the matrix solve
 	dgesv(n, nRHS, &(dA[0][0]), nLDA, &(iPIV[0]), &(dBX[0]), nLDB, nInfo);
 #endif
-#if defined USEVECLIB || defined USEMKL
+#ifdef TEMPEST_LAPACK_FORTRAN_INTERFACE
 	// Call the matrix solve
 	dgesv_(
 		&n, &nRHS,
@@ -131,17 +131,17 @@ int LAPACK::DGESV(
 
 	int nInfo;
 
-#ifdef USEACML
+#ifdef TEMPEST_LAPACK_ACML_INTERFACE
 	// Call the matrix solve
 	dgesv(n, nRHS,
 		&(dA[0][0]), nLDA, &(iPIV[0]), &(dBX[0][0]), nLDB, &nInfo);
 #endif
-#ifdef USEESSL
+#ifdef TEMPEST_LAPACK_ESSL_INTERFACE
 	// Call the matrix solve
 	dgesv(n, nRHS,
 		&(dA[0][0]), nLDA, &(iPIV[0]), &(dBX[0][0]), nLDB, nInfo);
 #endif
-#if defined USEVECLIB || defined USEMKL
+#ifdef TEMPEST_LAPACK_FORTRAN_INTERFACE
 	// Call the matrix solve
 	dgesv_(
 		&n, &nRHS,
@@ -175,19 +175,19 @@ int LAPACK::DGBSV(
 
 	int nInfo;
 
-#ifdef USEACML
+#ifdef TEMPEST_LAPACK_ACML_INTERFACE
 	// Call the banded diagonal matrix solve
 	dgbsv(
 		n, nKL, nKU, nRHS,
 		&(dA[0][0]), nLDAB, &(iPIV[0]), &(dBX[0]), nLDB, &nInfo);
 #endif
-#ifdef USEESSL
+#ifdef TEMPEST_LAPACK_ESSL_INTERFACE
 	// Call the banded diagonal matrix solve
 	dgbf(&(dA[0][0]), nLDAB, n, nKL, nKU, &(iPIV[0]));
 	dgbs(&(dA[0][0]), nLDAB, n, nKL, nKU, &(iPIV[0]), &(dBX[0]));
 	nInfo = 0;
 #endif
-#if defined USEVECLIB || defined USEMKL
+#ifdef TEMPEST_LAPACK_FORTRAN_INTERFACE
 	// Call the banded diagonal matrix solve
 	dgbsv_(
 		&n, &nKL, &nKU, &nRHS,
@@ -209,10 +209,11 @@ int LAPACK::DTPSV(
 ) {
 	int iIncX = 1;
 
-#if defined USEACML || defined USEESSL
+#if defined TEMPEST_LAPACK_ACML_INTERFACE \
+ || defined TEMPEST_LAPACK_ESSL_INTERFACE
 	_EXCEPTION();
 #endif
-#if defined USEVECLIB || defined USEMKL
+#ifdef TEMPEST_LAPACK_FORTRAN_INTERFACE
 	// Call the triangular matrix solve
 	dtpsv_(
 		&chUpperLower, &chTrans, &chDiagonal,
@@ -235,13 +236,13 @@ int LAPACK::DGETRF(
 
 	int nInfo;
 
-#ifdef USEACML
+#ifdef TEMPEST_LAPACK_ACML_INTERFACE
 	dgetrf(m, n, &(dA[0][0]), lda, &(iPIV[0]), &nInfo);
 #endif
-#ifdef USEESSL
+#ifdef TEMPEST_LAPACK_ESSL_INTERFACE
 	dgetrf(m, n, &(dA[0][0]), lda, &(iPIV[0]), nInfo);
 #endif
-#if defined USEVECLIB || defined USEMKL
+#ifdef TEMPEST_LAPACK_FORTRAN_INTERFACE
 	dgetrf_(&m, &n, &(dA[0][0]), &lda, &(iPIV[0]), &nInfo);
 #endif
 
@@ -263,13 +264,13 @@ int LAPACK::DGBTRF(
 
 	int nInfo;
 
-#ifdef USEACML
+#ifdef TEMPEST_LAPACK_ACML_INTERFACE
 	dgbtrf(m, n, &iKL, &iKU, &(dA[0][0]), lda, &(iPIV[0]), &nInfo);
 #endif
-#ifdef USEESSL
+#ifdef TEMPEST_LAPACK_ESSL_INTERFACE
 	dgbtrf(m, n, iKL, iKU, &(dA[0][0]), lda, &(iPIV[0]), nInfo);
 #endif
-#if defined USEVECLIB || defined USEMKL
+#ifdef TEMPEST_LAPACK_FORTRAN_INTERFACE
 	dgbtrf_(&m, &n, &iKL, &iKU, &(dA[0][0]), &lda, &(iPIV[0]), &nInfo);
 #endif
 
@@ -293,13 +294,13 @@ int LAPACK::DGETRS(
 
 	int nInfo = 0;
 
-#ifdef USEACML
+#ifdef TEMPEST_LAPACK_ACML_INTERFACE
 	dgetrs(chTrans, n, nrhs, &(dA[0][0]), lda, &(iPIV[0]), &(dB[0]), ldb, &nInfo);
 #endif
-#ifdef USEESSL
+#ifdef TEMPEST_LAPACK_ESSL_INTERFACE
 	dgetrs(chTrans, n, nrhs, &(dA[0][0]), lda, &(iPIV[0]), &(dB[0]), ldb, nInfo);
 #endif
-#if defined USEVECLIB || defined USEMKL
+#ifdef TEMPEST_LAPACK_FORTRAN_INTERFACE
 	dgetrs_(&chTrans, &n, &nrhs, &(dA[0][0]), &lda, &(iPIV[0]), &(dB[0]), &ldb, &nInfo);
 #endif
 
@@ -325,13 +326,13 @@ int LAPACK::DGBTRS(
 
 	int nInfo;
 
-#ifdef USEACML
+#ifdef TEMPEST_LAPACK_ACML_INTERFACE
 	dgbtrs(chTrans, n, iKL, iKU, nRHS, &(dA[0][0]), lda, &(iPIV[0]), &(dB[0]), ldb, &nInfo);
 #endif
-#ifdef USEESSL
+#ifdef TEMPEST_LAPACK_ESSL_INTERFACE
 	dgbtrs(chTrans, n, iKL, iKU, nRHS, &(dA[0][0]), lda, &(iPIV[0]), &(dB[0]), ldb, nInfo);
 #endif
-#if defined USEVECLIB || defined USEMKL
+#ifdef TEMPEST_LAPACK_FORTRAN_INTERFACE
 	dgbtrs_(&chTrans, &n, &iKL, &iKU, &nRHS, &(dA[0][0]), &lda, &(iPIV[0]), &(dB[0]), &ldb, &nInfo);
 #endif
 
@@ -362,12 +363,13 @@ int LAPACK::DGETRI(
 
 	int nInfo;
 
-#if defined USEACML || defined USEESSL
+#if defined TEMPEST_LAPACK_ACML_INTERFACE \
+ || defined TEMPEST_LAPACK_ESSL_INTERFACE
 	//dgetri(n, &(dA[0][0]), n, &(iPIV[0]), &(dWork[0]), nWork, &nInfo);
 	nInfo = 0;
 	_EXCEPTIONT("Unimplemented.");
 #endif
-#if defined USEVECLIB || defined USEMKL
+#ifdef TEMPEST_LAPACK_FORTRAN_INTERFACE
 	dgetri_(&n, &(dA[0][0]), &n, &(iPIV[0]), &(dWork[0]), &nWork, &nInfo);
 #endif
 
@@ -389,13 +391,13 @@ int LAPACK::DTRTRI(
 
 	int nInfo;
 
-#ifdef USEACML
+#ifdef TEMPEST_LAPACK_ACML_INTERFACE
 	dtrtri(chUpperLower, chDiagonal, n, &(dA[0][0]), n, &nInfo);
 #endif
-#ifdef USEESSL
+#ifdef TEMPEST_LAPACK_ESSL_INTERFACE
 	dtrtri(&chUpperLower, &chDiagonal, n, &(dA[0][0]), n, nInfo);
 #endif
-#if defined USEVECLIB || defined USEMKL
+#ifdef TEMPEST_LAPACK_FORTRAN_INTERFACE
 	dtrtri_(&chUpperLower, &chDiagonal, &n, &(dA[0][0]), &n, &nInfo);
 #endif
 
@@ -417,13 +419,14 @@ int LAPACK::DGEQRF(
 
 	int nInfo;
 
-#if defined USEACML || defined USEESSL
+#if defined TEMPEST_LAPACK_ACML_INTERFACE \
+ || defined TEMPEST_LAPACK_ESSL_INTERFACE
 	//dgeqrf(nRows, nCols, &(dA[0][0]), nLDA, &(dTau[0]),
 	//	&(dWork[0]), nWork, &nInfo);
 	nInfo = 0;
 	_EXCEPTION();
 #endif
-#if defined USEVECLIB || defined USEMKL
+#ifdef TEMPEST_LAPACK_FORTRAN_INTERFACE
 	dgeqrf_(&nRows, &nCols, &(dA[0][0]), &nLDA, &(dTau[0]),
 		&(dWork[0]), &nWork, &nInfo);
 #endif
@@ -450,13 +453,14 @@ int LAPACK::DORGQR(
 			nCols, nWork);
 	}
 
-#if defined USEACML || defined USEESSL
+#if defined TEMPEST_LAPACK_ACML_INTERFACE \
+ || defined TEMPEST_LAPACK_ESSL_INTERFACE
 	//dorgqr(nRows, nCols, nCols, &(dA[0][0]), nRows, &(dTau[0]),
 	//	&(dWork[0]), nWork, &nInfo);
 	nInfo = 0;
 	_EXCEPTION();
 #endif
-#if defined USEVECLIB || defined USEMKL
+#ifdef TEMPEST_LAPACK_FORTRAN_INTERFACE
 	dorgqr_(&nRows, &nCols, &nCols, &(dA[0][0]), &nRows, &(dTau[0]),
 		&(dWork[0]), &nWork, &nInfo);
 #endif
@@ -567,7 +571,7 @@ void LAPACK::GeneralizedInverseSVD(
 
 	int nInfo = 0;
 
-#if defined USEVECLIB || defined USEMKL
+#ifdef TEMPEST_LAPACK_FORTRAN_INTERFACE
 	dgesvd_(&jobu, &jobvt, &m, &n, &(dA[0][0]), &m, &(dS[0]), &(dU[0][0]), &m, &(dVT[0][0]), &n, &(dWork[0]), &lwork, &nInfo);
 #else
 	_EXCEPTIONT("Unimplemented");

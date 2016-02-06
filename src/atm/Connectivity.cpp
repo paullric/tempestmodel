@@ -201,7 +201,7 @@ bool Neighbor::CheckReceive() {
 		return false;
 	}
 
-#ifdef USE_MPI
+#ifdef TEMPEST_MPIOMP
 	// Test receive request
 	int fRecvWaiting;
 	MPI_Status status;
@@ -225,7 +225,7 @@ void ExteriorNeighbor::PrepareExchange(
 	// Call up the stack
 	Neighbor::PrepareExchange(grid);
 
-#ifdef USE_MPI
+#ifdef TEMPEST_MPIOMP
 	// Information for receive
 	int iProcessor = grid.GetPatchProcessor(m_info.ixTargetPatch);
 
@@ -612,7 +612,7 @@ void ExteriorNeighbor::Send(
 	const Grid & grid
 ) {
 
-#ifdef USE_MPI
+#ifdef TEMPEST_MPIOMP
 	// Send the data
 	int iProcessor = grid.GetPatchProcessor(m_info.ixTargetPatch);
 
@@ -904,7 +904,7 @@ void ExteriorNeighbor::Unpack(
 
 void ExteriorNeighbor::WaitSend() {
 
-#ifdef USE_MPI
+#ifdef TEMPEST_MPIOMP
 	MPI_Status status;
 	MPI_Wait(&m_reqSend, &status);
 #endif

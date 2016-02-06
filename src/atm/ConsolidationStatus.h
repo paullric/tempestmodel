@@ -20,7 +20,7 @@
 #include "DataType.h"
 #include "DataLocation.h"
 
-#include "mpi.h"
+#include <mpi.h>
 
 #include <vector>
 #include <map>

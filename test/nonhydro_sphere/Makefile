@@ -1,70 +1,49 @@
-# TempestBase directory
+# Copyright (c) 2016      Bryce Adelstein-Lelbach aka wash
+# Copyright (c) 2000-2016 Paul Ullrich 
+#
+# Distributed under the Boost Software License, Version 1.0. (See accompanying 
+# file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+
+# Base directory.
 TEMPESTBASEDIR= ../..
 
-# Compile with BLAS libraries
-USEBLAS= true
+# Load Makefile framework. 
+include $(TEMPESTBASEDIR)/mk/framework.make
 
-# Load system-specific defaults
-include $(TEMPESTBASEDIR)/mk/Make.defs
+FILES= BaroclinicWaveJWTest.cpp \
+       BaroclinicWaveUMJSTest.cpp \
+       MountainWaveSphereTest.cpp \
+       ScharMountainSphereTest.cpp \
+       InertiaGravityWaveTest.cpp \
+       BaldaufGravityWaveTest.cpp \
+       MountainRossby3DTest.cpp \
+       StationaryMountainFlowTest.cpp \
+       HeldSuarezTest.cpp
 
-##
-## Build instructions
-##
-all: atm BaroclinicWaveJWTest BaroclinicWaveUMJSTest MountainWaveSphereTest ScharMountainSphereTest InertiaGravityWaveTest BaldaufGravityWaveTest MountainRossby3DTest StationaryMountainFlowTest HeldSuarezTest
- 
-atm:
-	cd $(TEMPESTBASEDIR)/src/base; make
-	cd $(TEMPESTBASEDIR)/src/atm; make
+EXEC_TARGETS= $(FILES:%.cpp=%)
+CLEAN_TARGETS= $(addsuffix .clean,$(EXEC_TARGETS))
 
-##
-## Individual test case build instructions
-##
-BaroclinicWaveJWTest: $(BUILDDIR)/BaroclinicWaveJWTest.o $(FILES:%.cpp=$(BUILDDIR)/%.o) $(TEMPESTLIBS)
-	$(CC) $(LDFLAGS) -o $@ $(BUILDDIR)/BaroclinicWaveJWTest.o $(FILES:%.cpp=$(BUILDDIR)/%.o) $(LDFILES)
+.PHONY: all clean
 
-BaroclinicWaveUMJSTest: $(BUILDDIR)/BaroclinicWaveUMJSTest.o $(FILES:%.cpp=$(BUILDDIR)/%.o) $(TEMPESTLIBS)
-	$(CC) $(LDFLAGS) -o $@ $(BUILDDIR)/BaroclinicWaveUMJSTest.o $(FILES:%.cpp=$(BUILDDIR)/%.o) $(LDFILES)
+# Build rules. 
+all: $(EXEC_TARGETS)
 
-MountainWaveSphereTest: $(BUILDDIR)/MountainWaveSphereTest.o $(FILES:%.cpp=$(BUILDDIR)/%.o) $(TEMPESTLIBS)
-	$(CC) $(LDFLAGS) -o $@ $(BUILDDIR)/MountainWaveSphereTest.o $(FILES:%.cpp=$(BUILDDIR)/%.o) $(LDFILES)
+$(EXEC_TARGETS): %: $(BUILDDIR)/%.o $(TEMPESTLIBS)
+	$(CXX) $(LDFLAGS) -o $@ $(BUILDDIR)/$*.o $(LIBRARIES) 
 
-ScharMountainSphereTest: $(BUILDDIR)/ScharMountainSphereTest.o $(FILES:%.cpp=$(BUILDDIR)/%.o) $(TEMPESTLIBS)
-	$(CC) $(LDFLAGS) -o $@ $(BUILDDIR)/ScharMountainSphereTest.o $(FILES:%.cpp=$(BUILDDIR)/%.o) $(LDFILES)
+# Go up to the root directory and build the libraries if needed.
+$(TEMPESTBASEDIR)/%.a:
+	cd $(TEMPESTBASEDIR); $(MAKE) $*.a
 
-InertiaGravityWaveTest: $(BUILDDIR)/InertiaGravityWaveTest.o $(FILES:%.cpp=$(BUILDDIR)/%.o) $(TEMPESTLIBS)
-	$(CC) $(LDFLAGS) -o $@ $(BUILDDIR)/InertiaGravityWaveTest.o $(FILES:%.cpp=$(BUILDDIR)/%.o) $(LDFILES)
-
-BaldaufGravityWaveTest: $(BUILDDIR)/BaldaufGravityWaveTest.o $(FILES:%.cpp=$(BUILDDIR)/%.o) $(TEMPESTLIBS)
-	$(CC) $(LDFLAGS) -o $@ $(BUILDDIR)/BaldaufGravityWaveTest.o $(FILES:%.cpp=$(BUILDDIR)/%.o) $(LDFILES)
-
-MountainRossby3DTest: $(BUILDDIR)/MountainRossby3DTest.o $(FILES:%.cpp=$(BUILDDIR)/%.o) $(TEMPESTLIBS)
-	$(CC) $(LDFLAGS) -o $@ $(BUILDDIR)/MountainRossby3DTest.o $(FILES:%.cpp=$(BUILDDIR)/%.o) $(LDFILES)
-
-StationaryMountainFlowTest: $(BUILDDIR)/StationaryMountainFlowTest.o $(FILES:%.cpp=$(BUILDDIR)/%.o) $(TEMPESTLIBS)
-	$(CC) $(LDFLAGS) -o $@ $(BUILDDIR)/StationaryMountainFlowTest.o $(FILES:%.cpp=$(BUILDDIR)/%.o) $(LDFILES)
-
-HeldSuarezTest: $(BUILDDIR)/HeldSuarezTest.o $(FILES:%.cpp=$(BUILDDIR)/%.o) $(TEMPESTLIBS)
-	$(CC) $(LDFLAGS) -o $@ $(BUILDDIR)/HeldSuarezTest.o $(FILES:%.cpp=$(BUILDDIR)/%.o) $(LDFILES)
-
-##
-## Clean
-##
-clean:
-	rm -f BaroclinicWaveJWTest
-	rm -f BaroclinicWaveUMJSTest
-	rm -f MountainWaveSphereTest
-	rm -f InertiaGravityWaveTest
-	rm -f BaldaufGravityWaveTest
-	rm -f MountainRossby3DTest
-	rm -f StationaryMountainFlowTest
-	rm -f HeldSuarezTest
+# Clean rules.
+clean: $(CLEAN_TARGETS)
 	rm -rf $(DEPDIR)
 	rm -rf $(BUILDDIR)
 
-##
-## Include dependencies
-##
-include $(FILES:%.cpp=$(DEPDIR)/%.d)
+$(CLEAN_TARGETS): %.clean:
+	rm -f $*
+
+# Include dependencies.
+-include $(FILES:%.cpp=$(DEPDIR)/%.d)
 
 # DO NOT DELETE
-

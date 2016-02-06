@@ -26,12 +26,12 @@
 #include <cfloat>
 #include <cmath>
 
-#ifndef NO_NETCDF
+#ifdef TEMPEST_NETCDF
 #include <netcdfcpp.h>
 #endif
 
-#ifdef USE_MPI
-#include "mpi.h"
+#ifdef TEMPEST_MPIOMP
+#include <mpi.h>
 #endif
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -436,7 +436,7 @@ void Grid::Checksum(
 	int iDataIndex,
 	ChecksumType eChecksumType
 ) const {
-#ifdef USE_MPI
+#ifdef TEMPEST_MPIOMP
 	// Identify root process
 	int nRank;
 	MPI_Comm_rank(MPI_COMM_WORLD, &nRank);
@@ -512,7 +512,7 @@ double Grid::ComputeTotalEnergy(
 	// Global energy
 	double dGlobalEnergy = 0.0;
 
-#ifdef USE_MPI
+#ifdef TEMPEST_MPIOMP
 	// Reduce to obtain global energy integral
 	MPI_Reduce(
 		&dLocalEnergy,
@@ -547,7 +547,7 @@ double Grid::ComputeTotalPotentialEnstrophy(
 	// Global potential enstrophy
 	double dGlobalPotentialEnstrophy = 0.0;
 
-#ifdef USE_MPI
+#ifdef TEMPEST_MPIOMP
 	// Reduce to obtain global energy integral
 	MPI_Reduce(
 		&dLocalPotentialEnstrophy,
@@ -574,7 +574,7 @@ void Grid::Exchange(
 		return;
 	}
 
-#ifdef USE_MPI
+#ifdef TEMPEST_MPIOMP
 	// Verify all processors are prepared to exchange
 	MPI_Barrier(MPI_COMM_WORLD);
 #endif
@@ -610,7 +610,7 @@ void Grid::ExchangeBuffers() {
 		return;
 	}
 
-#ifdef USE_MPI
+#ifdef TEMPEST_MPIOMP
 	// Verify all processors are prepared to exchange
 	MPI_Barrier(MPI_COMM_WORLD);
 #endif
@@ -648,7 +648,7 @@ void Grid::ExchangeBuffersAndUnpack(
 		return;
 	}
 
-#ifdef USE_MPI
+#ifdef TEMPEST_MPIOMP
 	// Verify all processors are prepared to exchange
 	MPI_Barrier(MPI_COMM_WORLD);
 #endif
@@ -912,7 +912,7 @@ void Grid::ReduceInterpolate(
 			fConvertToPrimitive);
 	}
 
-#ifdef USE_MPI
+#ifdef TEMPEST_MPIOMP
 	// Perform an Reduce operation to combine all data
 	int nRank;
 	MPI_Comm_rank(MPI_COMM_WORLD, &nRank);
@@ -989,7 +989,7 @@ void Grid::DeactivatePatch(
 ///////////////////////////////////////////////////////////////////////////////
 
 void Grid::DistributePatches() {
-#ifdef USE_MPI
+#ifdef TEMPEST_MPIOMP
 	// Number of processors
 	int nSize;
 	MPI_Comm_size(MPI_COMM_WORLD, &nSize);

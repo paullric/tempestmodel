@@ -364,15 +364,15 @@ void PolynomialInterp::InterpolateCoeffs(
 
 	int nInfo;
 
-#ifdef USEACML
+#ifdef TEMPEST_LAPACK_ACML_INTERFACE
 	// Call the matrix solve
 	dgesv(n, nRHS, dWorkspace, nLDA, iPivot, dA, nLDB, &nInfo);
 #endif
-#ifdef USEESSL
+#ifdef TEMPEST_LAPACK_ESSL_INTERFACE
 	// Call the matrix solve
 	dgesv(n, nRHS, dWorkspace, nLDA, iPivot, dA, nLDB, nInfo);
 #endif
-#if defined USEVECLIB || defined USEMKL
+#ifdef TEMPEST_LAPACK_FORTRAN_INTERFACE
 	// Call the matrix solve
 	dgesv_(&n, &nRHS, dWorkspace, &nLDA, iPivot, dA, &nLDB, &nInfo);
 #endif

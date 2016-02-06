@@ -1,39 +1,41 @@
-# TempestBase directory
+# Copyright (c) 2016      Bryce Adelstein-Lelbach aka wash
+# Copyright (c) 2000-2016 Paul Ullrich 
+#
+# Distributed under the Boost Software License, Version 1.0. (See accompanying 
+# file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+
+# Base directory.
 TEMPESTBASEDIR= ../..
 
-# Use BLAS
-USEBLAS=True
+# Load Makefile framework. 
+include $(TEMPESTBASEDIR)/mk/framework.make
 
-# Load system-specific defaults
-include $(TEMPESTBASEDIR)/mk/Make.defs
+FILES= ExtractSurface.cpp
 
-##
-## Build instructions
-##
-all: atm ExtractSurface
+EXEC_TARGETS= $(FILES:%.cpp=%)
+CLEAN_TARGETS= $(addsuffix .clean,$(EXEC_TARGETS))
 
-atm:
-	cd $(TEMPESTBASEDIR)/src/base; make
-	cd $(TEMPESTBASEDIR)/src/atm; make
+.PHONY: all clean
 
-##
-## Individual test case build instructions
-##
-ExtractSurface: $(BUILDDIR)/ExtractSurface.o $(FILES:%.cpp=$(BUILDDIR)/%.o) $(TEMPESTLIBS)
-	$(CC) $(LDFLAGS) -o $@ $(BUILDDIR)/ExtractSurface.o $(FILES:%.cpp=$(BUILDDIR)/%.o) $(LDFILES)
+# Build rules. 
+all: $(EXEC_TARGETS)
 
-##
-## Clean
-##
-clean:
-	rm -f ExtractSurface 
+$(EXEC_TARGETS): %: $(BUILDDIR)/%.o $(TEMPESTLIBS)
+	$(CXX) $(LDFLAGS) -o $@ $(BUILDDIR)/$*.o $(LIBRARIES) 
+
+# Go up to the root directory and build the libraries if needed.
+$(TEMPESTBASEDIR)/%.a:
+	cd $(TEMPESTBASEDIR); $(MAKE) $*.a
+
+# Clean rules.
+clean: $(CLEAN_TARGETS)
 	rm -rf $(DEPDIR)
 	rm -rf $(BUILDDIR)
 
-##
-## Include dependencies
-##
-include $(FILES:%.cpp=$(DEPDIR)/%.d)
+$(CLEAN_TARGETS): %.clean:
+	rm -f $*
+
+# Include dependencies.
+-include $(FILES:%.cpp=$(DEPDIR)/%.d)
 
 # DO NOT DELETE
-

@@ -23,13 +23,14 @@
 
 #include <map>
 
-#include "mpi.h"
+#include <mpi.h>
+
 #include <netcdfcpp.h>
 
 #include "LinearAlgebra.h"
 
 /*
-#if defined USEVECLIB || defined USEMKL
+#ifdef TEMPEST_LAPACK_FORTRAN_INTERFACE
 
 extern "C" {
 	int dgesv_(int *n, int *nrhs, double *a, int *lda, int *ipiv, double *b, int *ldb, int *info);

@@ -23,7 +23,7 @@
 
 #include "Announce.h"
 
-#include "mpi.h"
+#include <mpi.h>
 
 #include <iostream>
 #include <cstdio>
@@ -52,7 +52,7 @@ OutputManager::OutputManager(
 	m_strOutputPrefix(strOutputPrefix),
 	m_nOutputsPerFile(nOutputsPerFile)
 {
-#ifdef USE_MPI
+#ifdef TEMPEST_MPIOMP
 	// Create the output directory
 	int nRank;
 	MPI_Comm_rank(MPI_COMM_WORLD, &nRank);

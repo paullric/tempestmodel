@@ -1,42 +1,42 @@
-# TempestBase directory
+# Copyright (c) 2016      Bryce Adelstein-Lelbach aka wash
+# Copyright (c) 2000-2016 Paul Ullrich 
+#
+# Distributed under the Boost Software License, Version 1.0. (See accompanying 
+# file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+
+# Base directory.
 TEMPESTBASEDIR= ../..
 
+# Load Makefile framework. 
+include $(TEMPESTBASEDIR)/mk/framework.make
 
-# Compile with BLAS libraries
-USEBLAS= true
+FILES= DataContainerTest.cpp \
+       TaskTest.cpp
 
-# Load system-specific defaults
-include $(TEMPESTBASEDIR)/mk/Make.defs
+EXEC_TARGETS= $(FILES:%.cpp=%)
+CLEAN_TARGETS= $(addsuffix .clean,$(EXEC_TARGETS))
 
-##
-## Build instructions
-##
-all: atm DataContainerTest TaskTest
-atm:
-	cd $(TEMPESTBASEDIR)/src/base; make
-	cd $(TEMPESTBASEDIR)/src/atm; make
+.PHONY: all clean
 
-##
-## Individual test case build instructions
-##
-DataContainerTest : $(BUILDDIR)/DataContainerTest.o $(FILES:%.cpp=$(BUILDDIR)/%.o) $(TEMPESTLIBS)
-	$(CC) $(LDFLAGS) -o $@ $(BUILDDIR)/DataContainerTest.o $(FILES:%.cpp=$(BUILDDIR)/%.o) $(LDFILES)
+# Build rules. 
+all: $(EXEC_TARGETS)
 
-TaskTest : $(BUILDDIR)/TaskTest.o $(FILES:%.cpp=$(BUILDDIR)/%.o) $(TEMPESTLIBS)
-	$(CC) $(LDFLAGS) -o $@ $(BUILDDIR)/TaskTest.o $(FILES:%.cpp=$(BUILDDIR)/%.o) $(LDFILES)
+$(EXEC_TARGETS): %: $(BUILDDIR)/%.o $(TEMPESTLIBS)
+	$(CXX) $(LDFLAGS) -o $@ $(BUILDDIR)/$*.o $(LIBRARIES) 
 
-##
-## Clean
-##
-clean:
-	rm -f DataContainerTest TaskTest
+# Go up to the root directory and build the libraries if needed.
+$(TEMPESTBASEDIR)/%.a:
+	cd $(TEMPESTBASEDIR); $(MAKE) $*.a
+
+# Clean rules.
+clean: $(CLEAN_TARGETS)
 	rm -rf $(DEPDIR)
 	rm -rf $(BUILDDIR)
 
-##
-## Include dependencies
-##
-include $(FILES:%.cpp=$(DEPDIR)/%.d)
+$(CLEAN_TARGETS): %.clean:
+	rm -f $*
+
+# Include dependencies.
+-include $(FILES:%.cpp=$(DEPDIR)/%.d)
 
 # DO NOT DELETE
-

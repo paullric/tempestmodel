@@ -26,8 +26,8 @@
 #include "DataArray3D.h"
 #include "DataArray4D.h"
 
-#ifdef USE_MPI
-#include "mpi.h"
+#ifdef TEMPEST_MPIOMP
+#include <mpi.h>
 #endif
 
 #include <vector>
@@ -41,13 +41,13 @@ class Connectivity;
 
 ///////////////////////////////////////////////////////////////////////////////
 
-#ifdef USE_MPI
+#ifdef TEMPEST_MPIOMP
 typedef int ExchangeBufferId;
 #endif
-#ifdef USE_OCR
+#ifdef TEMPEST_OCR
 typedef int ExchangeBufferId;
 #endif
-#ifdef USE_HPX
+#ifdef TEMPEST_HPX
 typedef int ExchangeBufferId;
 #endif
 
@@ -440,7 +440,7 @@ public:
 	///	</summary>
 	int m_ixRecvBuffer;
 
-#ifdef USE_MPI
+#ifdef TEMPEST_MPIOMP
 	///	<summary>
 	///		MPI_Request objects used for asynchronous exchange of data.
 	///	</summary>
