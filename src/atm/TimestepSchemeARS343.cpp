@@ -21,9 +21,10 @@
 #include "VerticalDynamics.h"
 
 ///////////////////////////////////////////////////////////////////////////////
-// THESE COEFFICIENTS ARE COMPUTED FROM THE ORIGINAL TABLEAUX
-// IMPLEMENTS ARK(3,4,3) FROM ASCHER ET AL. 1997 PG. 9
-const double TimestepSchemeARS343::m_dgamma = 0.4358665215;
+// COEFFICIENTS COMPUTED FROM THE ORIGINAL TABLEAUX
+// IMPLEMENTS ARS(3,4,3) FROM ASCHER ET AL. 1997 PG. 9
+/*
+const double TimestepSchemeARS343::m_dgamma = 0.4358665215084590;
 const double TimestepSchemeARS343::m_db1 = -1.5 * m_dgamma * m_dgamma + 
 											4.0 * m_dgamma - 0.25;
 const double TimestepSchemeARS343::m_db2 = 1.5 * m_dgamma * m_dgamma -
@@ -33,14 +34,35 @@ const double TimestepSchemeARS343::m_dImpCf[4][4] = {
 	{m_dgamma, 0., 0., 0.},
 	{0.5 * (1.0 - m_dgamma), m_dgamma, 0., 0.},
 	{m_db1, m_db2, m_dgamma, 0.},
-	{1.208496649, -0.644363171, m_dgamma, 0.}};
+	{1.208496649176010, -0.6443631706844690, m_dgamma, 0.}};
 
 // Explicit stage coefficients - Converted to U from Ascher et al. 1997 Pg 9
 const double TimestepSchemeARS343::m_dExpCf[4][4] = {
 	{m_dgamma, 0., 0., 0.},
-	{0.3212788860, 0.3966543747, 0., 0.},
-	{-0.105858296, 0.5529291479, 0.5529291479, 0.},
-	{0., 1.208496649, -0.644363171, m_dgamma}};
+	{0.3212788860286278, 0.3966543747256017, 0., 0.},
+	{-0.1058582960718797, 0.5529291480359398, 0.5529291480359398, 0.},
+	{0., 1.208496649176010, -0.6443631706844690, m_dgamma}};
+*/
+// MODIFIED ARS343 COEFFICIENTS COMPUTED BY (Boscarino, 2009)
+const double TimestepSchemeARS343::m_dgamma = 0.4358665215084590;
+const double TimestepSchemeARS343::m_db1 = -1.5 * m_dgamma * m_dgamma + 
+											4.0 * m_dgamma - 0.25;
+const double TimestepSchemeARS343::m_db2 = 1.5 * m_dgamma * m_dgamma -
+											5.0 * m_dgamma + 1.2;
+
+// Implicit stage coefficients - Boscarino, 2009
+const double TimestepSchemeARS343::m_dImpCf[4][4] = {
+	{m_dgamma, 0., 0., 0.},
+	{0.5 * (1.0 - m_dgamma), m_dgamma, 0., 0.},
+	{m_db1, m_db2, m_dgamma, 0.},
+	{1.208496649176010, -0.6443631706844690, m_dgamma, 0.}};
+
+// Explicit stage coefficients - Boscarino, 2009
+const double TimestepSchemeARS343::m_dExpCf[4][4] = {
+	{m_dgamma, 0., 0., 0.},
+	{0.5353965403073543, 0.1825367204468752, 0., 0.},
+	{0.6304125581528727, -0.8319339010630845, 1.201521342910212, 0.},
+	{0., 1.208496649176010, -0.6443631706844690, m_dgamma}};
 
 TimestepSchemeARS343::TimestepSchemeARS343(
 	Model & model

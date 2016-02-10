@@ -97,7 +97,7 @@ void TimestepSchemeARS232::Step(
 
 	// Compute u1 into index 2
 	pGrid->CopyData(1, 2, DataType_State);
-	pGrid->CopyData(1, 2, DataType_State);        
+	pGrid->CopyData(1, 2, DataType_State);
 	pVerticalDynamics->StepImplicit(
 		2, 2, time, m_dImpCf[0][0] * dDeltaT);
 	pGrid->PostProcessSubstage(2, DataType_State);

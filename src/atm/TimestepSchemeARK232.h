@@ -20,6 +20,9 @@
 #include "TimestepScheme.h"
 #include "Exception.h"
 #include "DataArray1D.h"
+#include "Grid.h"
+#include "HorizontalDynamics.h"
+#include "VerticalDynamics.h"
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -65,6 +68,37 @@ protected:
 		bool fLastStep,
 		const Time & time,
 		double dDeltaT
+	);
+
+private:
+	///	<summary>
+	///		Cycle an explicit step within a stage.
+	///	</summary>
+	virtual void SubcycleStageExplicit(
+		const Time & time,
+		double dStageCoeff,
+		double dDeltaT,
+		int iNS,
+		int iinpIndex,
+		int ioutIndex,
+		HorizontalDynamics * pHorizontalDynamics,
+		VerticalDynamics * pVerticalDynamics,
+		Grid * pGrid
+	);
+
+	///	<summary>
+	///		Cycle an explicit step of implicit terms within a stage.
+	///	</summary>
+	virtual void SubcycleStageImplicitExplicitly(
+		const Time & time,
+		double dStageCoeff,
+		double dDeltaT,
+		int iNS,
+		int iinpIndex,
+		int ioutIndex,
+		HorizontalDynamics * pHorizontalDynamics,
+		VerticalDynamics * pVerticalDynamics,
+		Grid * pGrid
 	);
 
 private:
