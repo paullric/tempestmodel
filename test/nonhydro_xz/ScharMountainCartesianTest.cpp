@@ -108,18 +108,18 @@ public:
 		m_fNoRayleighFriction(fNoRayleighFriction)
 	{
 		// Set the dimensions of the box
-		m_dGDim[0] = -30000.0;
-		m_dGDim[1] = 30000.0;
+		m_dGDim[0] = -25000.0;
+		m_dGDim[1] = 25000.0;
 		m_dGDim[2] = -200.0;
 		m_dGDim[3] = 200.0;
 		m_dGDim[4] = 0.0;
-		m_dGDim[5] = 30000.0;
+		m_dGDim[5] = 21000.0;
 
-                // Set the boundary conditions for this test (no-flux in Y)
-                m_iLatBC[0] = Grid::BoundaryCondition_Periodic;
-                m_iLatBC[1] = Grid::BoundaryCondition_Periodic;
-                m_iLatBC[2] = Grid::BoundaryCondition_Periodic;
-                m_iLatBC[3] = Grid::BoundaryCondition_Periodic;
+		// Set the boundary conditions for this test (no-flux in Y)
+		m_iLatBC[0] = Grid::BoundaryCondition_Periodic;
+		m_iLatBC[1] = Grid::BoundaryCondition_Periodic;
+		m_iLatBC[2] = Grid::BoundaryCondition_Periodic;
+		m_iLatBC[3] = Grid::BoundaryCondition_Periodic;
 	}
 
 public:
@@ -171,8 +171,8 @@ public:
 	) const {
 		// Specify the Schar Mountain (Test case 5 from Giraldo et al. 2008)
 		double hsm = m_dhC * exp(-dXp/m_daC * dXp/m_daC) *
-                     cos(M_PI * dXp / m_dlC) * cos(M_PI * dXp / m_dlC);
-        //std::cout << hsm << "\n";
+					 cos(M_PI * dXp / m_dlC) * cos(M_PI * dXp / m_dlC);
+		//std::cout << hsm << "\n";
 
 		return hsm;
 	}
@@ -185,10 +185,10 @@ public:
 		double dXp,
 		double dYp
 	) const {
-		const double dRayleighStrengthZ = 2.0e-1;//8.0e-3;
-		const double dRayleighStrengthX = 0.1 * dRayleighStrengthZ;
-		const double dRayleighDepth = 10000.0;
-		const double dRayleighWidth = 10000.0;
+		const double dRayleighStrengthZ = 5.0E-3;//8.0e-3;
+		const double dRayleighStrengthX = 1.0 * dRayleighStrengthZ;
+		const double dRayleighDepth = 5000.0;
+		const double dRayleighWidth = 5000.0;
 
 		double dNuDepth = 0.0;
 		double dNuRight = 0.0;
@@ -206,7 +206,8 @@ public:
 			double dNormX = (dXp - m_dGDim[0]) / dRayleighWidth;
 			dNuLeft = 0.5 * dRayleighStrengthX * (1.0 + cos(M_PI * dNormX));
 		}
-
+		
+		//std::cout << dXp << ' ' << dZ << ' ' << dNuDepth << std::endl;
 		if ((dNuDepth >= dNuRight) && (dNuDepth >= dNuLeft)) {
 			return dNuDepth;
 		}
@@ -288,7 +289,7 @@ public:
 		dState[0] = m_dU0;
 		dState[1] = 0.0;
 		dState[3] = 0.0;
-		dState[3] = sin(M_PI * dZp / m_dGDim[5]);
+		//dState[3] = sin(M_PI * dZp / m_dGDim[5]);
 
 		// Set the initial density based on the Exner pressure
 		double dExnerP = (dG * dG) / (dCp * m_dTheta0 * m_dNbar * m_dNbar);
@@ -383,7 +384,7 @@ try {
 
 	// Setup the cartesian model with dimensions and reference latitude
 	TempestSetupCartesianModel(model, test->m_dGDim, 0.0, 
-                                   test->m_iLatBC);
+								test->m_iLatBC, true);
 
 	// Set the reference length to reduce diffusion relative to global scale
 	const double XL = std::abs(test->m_dGDim[1] - test->m_dGDim[0]);

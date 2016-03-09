@@ -52,6 +52,7 @@ void GridCartesianGLL::DefineParameters() {
 	// Add parameters for GridCartesianGLL
 	m_dcGridParameters.PushDataChunk(&m_dGDim);
 	m_dcGridParameters.PushDataChunk(&m_dRefLat);
+	//m_dcGridParameters.PushDataChunk(&m_fCartesianXZ);
 
 	// Call up the stack
 	GridGLL::DefineParameters();
@@ -70,6 +71,7 @@ void GridCartesianGLL::SetParameters(
 	double dGDim[],
 	double dRefLat,
 	int iLatBC[],
+	bool fCartesianXZ,
 	VerticalDiscretization eVerticalDiscretization,
 	VerticalStaggering eVerticalStaggering
 ) {
@@ -87,6 +89,9 @@ void GridCartesianGLL::SetParameters(
 		eVerticalStaggering
 	);
 
+	// Set the flag indicating a 2D XZ domain (turn off Ub update and Coriolis)
+	m_fCartesianXZ = fCartesianXZ;
+
 	// Bring through the grid dimensions
 	m_dGDim[0] = dGDim[0]; m_dGDim[1] = dGDim[1];
 	m_dGDim[2] = dGDim[2]; m_dGDim[3] = dGDim[3];
@@ -98,17 +103,16 @@ void GridCartesianGLL::SetParameters(
 	// beta plane approximation is necessary in the equations
 	m_dRefLat = dRefLat;
 	
-	//std::cout << iLatBC[0] << '\n';
-	// Bring in the boundary conditions
-	//SetBoundaryCondition(Direction_Right,iLatBC[0]);
-	//SetBoundaryCondition(Direction_Top,iLatBC[1]);
-	//SetBoundaryCondition(Direction_Left,iLatBC[2]);
-	//SetBoundaryCondition(Direction_Bottom,iLatBC[3]);
+	// Set the boundary conditions for this run
 	m_eBoundaryCondition[Direction_Right] = iLatBC[0];
 	m_eBoundaryCondition[Direction_Top] = iLatBC[1];
 	m_eBoundaryCondition[Direction_Left] = iLatBC[2];
 	m_eBoundaryCondition[Direction_Bottom] = iLatBC[3];
-	//std::cout << m_eBoundaryCondition[Direction_Right] << '\n';
+
+	// Initialize maximum topographic height (8000 meters by default)
+	m_dTopoHeight = 8000.0;
+	// Initialize the scale height for the decay of topography features (SLEVE)
+	m_dSL = m_dZtop / 5.0;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -242,9 +246,9 @@ void GridCartesianGLL::ConvertReferenceToPatchCoord(
 				box.GetBGlobalInteriorEnd() / m_nHorizontalOrder;
 
 			if ((box.GetAGlobalInteriorBegin() % m_nHorizontalOrder != 0) ||
-			    (box.GetAGlobalInteriorEnd()   % m_nHorizontalOrder != 0) ||
-			    (box.GetBGlobalInteriorBegin() % m_nHorizontalOrder != 0) ||
-			    (box.GetBGlobalInteriorEnd()   % m_nHorizontalOrder != 0)
+				(box.GetAGlobalInteriorEnd()   % m_nHorizontalOrder != 0) ||
+				(box.GetBGlobalInteriorBegin() % m_nHorizontalOrder != 0) ||
+				(box.GetBGlobalInteriorEnd()   % m_nHorizontalOrder != 0)
 			) {
 				_EXCEPTIONT("Elements must be aligned with HorizontalOrder");
 			}
@@ -486,7 +490,7 @@ void GridCartesianGLL::ApplyDSS(
 
 		// Apply BC only to state DSS
 		if (eDataType == DataType_State) {
-			pPatch->ApplyBoundaryConditions(iDataUpdate);
+			pPatch->ApplyBoundaryConditions(iDataUpdate, DataType_State, n);
 		}
 
 		// Perform Direct Stiffness Summation (DSS)

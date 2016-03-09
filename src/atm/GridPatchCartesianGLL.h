@@ -93,7 +93,8 @@ public:
 	///	</summary>
 	virtual void ApplyBoundaryConditions(
 		int iDataUpdate,
-		DataType eDataType = DataType_State
+		DataType eDataType,
+		int iAlphaBCPatch
 	);
 
 public:
@@ -144,7 +145,7 @@ public:
 		bool fIncludeReferenceState = true,
 		bool fConvertToPrimitive = true
 	);
-
+/*
 public:
 
 	///	<summary>
@@ -165,12 +166,13 @@ public:
 	///	<summary>
 	///		Maximum height of a topography feature
 	///	</summary>
-    double m_dTopoHeight;
+	double m_dTopoHeight;
 
 	///	<summary>
 	///		Scale height for exponential decay of topography
 	///	</summary>
 	double m_dSL;
+*/
 };
 
 ///////////////////////////////////////////////////////////////////////////////

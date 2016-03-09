@@ -26,7 +26,7 @@
 const double TimestepSchemeARK232::m_dgamma = 1.0 - 1.0 / std::sqrt(2.0);
 const double TimestepSchemeARK232::m_ddelta = 1.0 / (2.0 * std::sqrt(2.0));
 const double TimestepSchemeARK232::m_dalpha = 1.0 / 6.0 * 
-                                              (3.0 + 2.0 * std::sqrt(2.0));
+											  (3.0 + 2.0 * std::sqrt(2.0));
 // Implicit stage coefficients
 const double TimestepSchemeARK232::m_dImpCf[3][3] = {
   {m_dgamma, m_dgamma, 0.},
@@ -91,7 +91,7 @@ void TimestepSchemeARK232::Step(
 
 	// STAGE 1
 	// Compute uf1 into index 1
-	SubcycleStageExplicit(time, m_dExpCf[0][0], dDeltaT, 4, 0, 1, 
+	SubcycleStageExplicit(time, m_dExpCf[0][0], dDeltaT, 2, 0, 1, 
 		pHorizontalDynamics, pVerticalDynamics, pGrid);
 /*
 	pGrid->CopyData(0, 1, DataType_State);

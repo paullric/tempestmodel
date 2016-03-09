@@ -258,11 +258,19 @@ void GridGLL::Initialize() {
 			m_dREtaLevels,
 			true);
 
+		m_opDiffNodeToREdge.InitializeFluxCorrectionMethod(
+			LinearColumnDiffFEM::InterpSource_Levels,
+			m_nVerticalOrder,
+			m_dREtaLevels,
+			m_dREtaInterfaces,
+			m_dREtaInterfaces,
+			true);
+/*
 		m_opDiffNodeToREdge.InitializeVariationalNodeToREdge(
 			m_nVerticalOrder,
 			m_dREtaLevels,
 			m_dREtaInterfaces);
-
+*/
 		m_opDiffREdgeToNode.InitializeInterfaceMethod(
 			LinearColumnDiffFEM::InterpSource_Interfaces,
 			m_nVerticalOrder,

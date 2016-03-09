@@ -115,11 +115,11 @@ public:
 		m_dGDim[4] = 0.0;
 		m_dGDim[5] = 10000.0;
 
-                // Set the boundary conditions for this test (no-flux in Y)
-                m_iLatBC[0] = Grid::BoundaryCondition_Periodic;
-                m_iLatBC[1] = Grid::BoundaryCondition_Periodic;
-                m_iLatBC[2] = Grid::BoundaryCondition_Periodic;
-                m_iLatBC[3] = Grid::BoundaryCondition_Periodic;
+		// Set the boundary conditions for this test
+		m_iLatBC[0] = Grid::BoundaryCondition_Periodic;
+		m_iLatBC[1] = Grid::BoundaryCondition_Periodic;
+		m_iLatBC[2] = Grid::BoundaryCondition_Periodic;
+		m_iLatBC[3] = Grid::BoundaryCondition_Periodic;
 	}
 
 public:
@@ -382,7 +382,7 @@ try {
 
 	// Setup the cartesian model with dimensions and reference latitude
 	TempestSetupCartesianModel(model, test->m_dGDim, 0.0, 
-                                   test->m_iLatBC);
+								test->m_iLatBC, true);
 
 	// Set the reference length to reduce diffusion relative to global scale
 	const double XL = std::abs(test->m_dGDim[1] - test->m_dGDim[0]);

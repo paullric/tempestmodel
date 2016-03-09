@@ -48,9 +48,7 @@ GridPatchCartesianGLL::GridPatchCartesianGLL(
 		ixPatch,
 		box,
 		nHorizontalOrder,
-		nVerticalOrder),
-	m_dTopoHeight(0.0),
-	m_dSL(0.0)
+		nVerticalOrder)
 {
 
 }
@@ -138,7 +136,7 @@ void GridPatchCartesianGLL::EvaluateTopography(
 	GridCartesianGLL & gridCartesianGLL =
 		dynamic_cast<GridCartesianGLL &>(m_grid);
 
-	// Compute values of topography
+	// Compute values of topography and find the top
 	for (int i = 0; i < m_box.GetATotalWidth(); i++) {
 	for (int j = 0; j < m_box.GetBTotalWidth(); j++) {
 
@@ -150,25 +148,8 @@ void GridPatchCartesianGLL::EvaluateTopography(
 		if (m_dataTopography[i][j] >= m_grid.GetZtop()) {
 			_EXCEPTIONT("TestCase topography exceeds model top.");
 		}
-	}
-	}
 
-	// Initialize maximum topographic height
-	m_dTopoHeight = 0.0;
-
-	for (int i = m_box.GetAInteriorBegin(); i < m_box.GetAInteriorEnd(); i++) {
-	for (int j = m_box.GetBInteriorBegin(); j < m_box.GetBInteriorEnd(); j++) {
-		if (m_dataTopography[i][j] > m_dTopoHeight) {
-			m_dTopoHeight = m_dataTopography[i][j];
-		}
 	}
-	}
-
-	// Set the scale height for the decay of topography features (SLEVE)
-	m_dSL = 10.0 * m_dTopoHeight;
-
-	if (m_dSL >= m_grid.GetZtop()) {
-		_EXCEPTIONT("Coordinate scale height exceeds model top.");
 	}
 
 	// Get derivatves from basis
@@ -258,7 +239,8 @@ void GridPatchCartesianGLL::EvaluateGeometricTerms() {
 	const DataArray2D<double> & dDxBasis1D = gridCartesianGLL.GetDxBasis1D();
 
 	// Initialize the Coriolis force at each node
-	double dRefLat = gridCartesianGLL.GetReferenceLatitude();	
+	bool fCartesianXZ = gridCartesianGLL.GetIsCartesianXZ();
+	double dRefLat = gridCartesianGLL.GetReferenceLatitude();
 	double dy0 = 0.5 * fabs(gridCartesianGLL.GetMaximumY() - 
 							gridCartesianGLL.GetMinimumY());
 	double dfp = 2.0 * phys.GetOmega() * sin(dRefLat);
@@ -266,10 +248,14 @@ void GridPatchCartesianGLL::EvaluateGeometricTerms() {
 					phys.GetEarthRadius();
 	for (int i = 0; i < m_box.GetATotalWidth(); i++) {
 	for (int j = 0; j < m_box.GetBTotalWidth(); j++) {
-		// Coriolis force by beta approximation
-		m_dataCoriolisF[i][j] = dfp + dbetap * (m_dataLat[i][j] - dy0);
-		//m_dataCoriolisF[i][j] = dfp;
-		//m_dataCoriolisF[i][j] = 0.0;
+		if (!fCartesianXZ) {
+			// Coriolis force by beta approximation
+			m_dataCoriolisF[i][j] = dfp + dbetap * (m_dataLat[i][j] - dy0);
+			//m_dataCoriolisF[i][j] = dfp;
+		}
+		else {
+			m_dataCoriolisF[i][j] = 0.0;
+		}
 	}
 	}
 
@@ -309,40 +295,95 @@ void GridPatchCartesianGLL::EvaluateGeometricTerms() {
 			m_dataCovMetric2DB[iA][iB][0] = 0.0;
 			m_dataCovMetric2DB[iA][iB][1] = 1.0;
 
-			// Vertical coordinate transform and its derivatives
+			// Metric terms at vertical levels
 			for (int k = 0; k < m_grid.GetRElements(); k++) {
 
 				// Gal-Chen and Somerville (1975) terrain following coord
+				// 2nd order polynomial decay terrain following coord
+				// 4th order polynomial decay terrain following coord
 				// Schar Exponential Decay terrain following coord
 				double dREta = m_grid.GetREtaLevel(k);
-/*
-				double dREtaStretch;
-				double dDxREtaStretch;
-				m_grid.EvaluateVerticalStretchF(
-					dREta, dREtaStretch, dDxREtaStretch);
 
-				//double dZ = dZs + (m_grid.GetZtop() - dZs) * dREtaStretch;
-				//double dbZ = sinh(m_grid.GetZtop() * (1.0 - dREtaStretch) / m_dSL)
-				//	/ sinh(m_grid.GetZtop() / m_dSL);
-				//double dZ = m_grid.GetZtop() * dREtaStretch + dZs; // * dbZ;
-
-				double dZ = dZs + (m_grid.GetZtop() - dZs) * dREtaStretch;
-				double dDaZ = (1.0 - dREtaStretch) * dDaZs;
-				double dDbZ = (1.0 - dREtaStretch) * dDbZs;
-				double dDxZ = (m_grid.GetZtop() - dZs) * dDxREtaStretch;
-*/
 				double dZ = dZs + (m_grid.GetZtop() - dZs) * dREta;
 				double dDaZ = (1.0 - dREta) * dDaZs;
 				double dDbZ = (1.0 - dREta) * dDbZs;
 				double dDxZ = (m_grid.GetZtop() - dZs);
+				//double dDXZs = -hc * exp(-pow(m_dataLon[iA][iB] / ac,2.0))
+				//* (M_PI / lm * sin(2 * M_PI * m_dataLon[iA][iB] / lm)
+				//+ 2.0 * m_dataLon[iA][iB] / (ac * ac) 
+				//* pow(cos(M_PI * m_dataLon[iA][iB] / lm),2.0));
+				//double dDaX = sqrt(1.0 + dDXZs * dDXZs);
+				//double dDaZ = (1.0 - dREta) * dDXZs * dDaX / (1.0 + dDXZs * dDXZs);
+
 /*
+				double dZ = m_grid.GetZtop() * dREta + 
+							std::pow((1.0 - dREta), 2.0) * dZs;
+				double dDaZ = std::pow((1.0 - dREta), 2.0) * dDaZs;
+				double dDbZ = std::pow((1.0 - dREta), 2.0) * dDbZs;
+				double dDxZ = m_grid.GetZtop() - 
+							2.0 * (1.0 - dREta) * dZs;
+*/
+/*
+				double dZ = m_grid.GetZtop() * dREta + 
+							std::pow((1.0 - dREta), 4.0) * dZs;
+				double dDaZ = std::pow((1.0 - dREta), 4.0) * dDaZs;
+				double dDbZ = std::pow((1.0 - dREta), 4.0) * dDbZs;
+				double dDxZ = m_grid.GetZtop() - 
+							4.0 * std::pow((1.0 - dREta), 3.0) * dZs;
+*/
+/*
+				double dZ = m_grid.GetZtop() * dREta 
+					+ std::pow(std::cos(0.5 * M_PI * dREta), 4.0) * dZs;
+				double dDaZ = std::pow(std::cos(0.5 * M_PI * dREta), 4.0)
+					* dDaZs;
+				double dDbZ = std::pow(std::cos(0.5 * M_PI * dREta), 4.0)
+					* dDbZs;
+				double dDxZ = m_grid.GetZtop() - 2.0 * M_PI
+					* std::sin(0.5 * M_PI * dREta)
+					* std::pow(std::cos(0.5 * M_PI * dREta), 3.0) * dZs;
+*/
+/*
+				double dZ = m_grid.GetZtop() * dREta 
+					+ std::pow(std::cos(0.5 * M_PI * dREta), 8.0) * dZs;
+				double dDaZ = std::pow(std::cos(0.5 * M_PI * dREta), 8.0)
+					* dDaZs;
+				double dDbZ = std::pow(std::cos(0.5 * M_PI * dREta), 8.0)
+					* dDbZs;
+				double dDxZ = m_grid.GetZtop() - 4.0 * M_PI
+					* std::sin(0.5 * M_PI * dREta)
+					* std::pow(std::cos(0.5 * M_PI * dREta), 7.0) * dZs;
+*/
+/*
+				double dScaleH = gridCartesianGLL.m_dSL;
+				double dH = m_grid.GetZtop();
+				double dbZ = sinh(dH * (1.0 - dREta) / dScaleH)
+							/ sinh(dH / dScaleH);
+				double dZ = m_grid.GetZtop() * dREta + dZs * dbZ;
 				double dDaZ = dbZ * dDaZs;
 				double dDbZ = dbZ * dDbZs;
-				double dDxZ = m_grid.GetZtop() - dZs * m_grid.GetZtop() * 
-					cosh(m_grid.GetZtop() * (1.0 - dREtaStretch) / m_dSL) /
-					(m_dSL * sinh(m_grid.GetZtop() / m_dSL));
-				dDxZ *= dDxREtaStretch;
+				double dDxZ = dH - dZs * dH * 
+					cosh(dH * (1.0 - dREta) / dScaleH) /
+					(dScaleH * sinh(dH / dScaleH));
 */
+/*
+				double power = 10.0;
+				double botRate = 1.0;
+				double dZ = m_grid.GetZtop() * dREta 
+					+ (1.0 - botRate * dREta)
+					* std::pow(std::cos(0.5 * M_PI * dREta), power) * dZs;
+				double dDaZ = (1.0 - botRate * dREta)
+					* std::pow(std::cos(0.5 * M_PI * dREta), power)
+					* dDaZs;
+				double dDbZ = (1.0 - botRate * dREta)
+					* std::pow(std::cos(0.5 * M_PI * dREta), power)
+					* dDbZs;
+				double dDxZ = m_grid.GetZtop() - 0.5 * power * M_PI
+					* (1.0 - botRate * dREta) * std::sin(0.5 * M_PI * dREta)
+					* std::pow(std::cos(0.5 * M_PI * dREta), power - 1.0) * dZs
+					- botRate * std::pow(std::cos(0.5 * M_PI * dREta), power) * dZs;
+*/
+//printf("%.10E %.10E %.10E %.10E %.10E %.10E \n",m_dataLon[iA][iB],m_dataLat[iA][iB],dZ,dDaZ,dDbZ,dDxZ);
+
 				// Calculate pointwise Jacobian
 				m_dataJacobian[k][iA][iB] =
 					dDxZ * m_dataJacobian2D[iA][iB];
@@ -408,49 +449,89 @@ void GridPatchCartesianGLL::EvaluateGeometricTerms() {
 			for (int k = 0; k <= m_grid.GetRElements(); k++) {
 
 				// Gal-Chen and Somerville (1975) terrain following coord
+				// 2nd order polynomial decay terrain following coord
+				// 4th order polynomial decay terrain following coord
 				// Schar Exponential decay terrain following coord
 				double dREta = m_grid.GetREtaInterface(k);
-/*				
-				double dREtaStretch;
-				double dDxREtaStretch;
-				m_grid.EvaluateVerticalStretchF(
-					dREta, dREtaStretch, dDxREtaStretch);
-
-				double dZ = dZs + (m_grid.GetZtop() - dZs) * dREtaStretch;
-
-				double dDaZ = (1.0 - dREtaStretch) * dDaZs;
-				double dDbZ = (1.0 - dREtaStretch) * dDbZs;
-				double dDxZ = (m_grid.GetZtop() - dZs) * dDxREtaStretch;
-*/
 				double dZ = dZs + (m_grid.GetZtop() - dZs) * dREta;
 				double dDaZ = (1.0 - dREta) * dDaZs;
 				double dDbZ = (1.0 - dREta) * dDbZs;
 				double dDxZ = (m_grid.GetZtop() - dZs);
-
+				//double dDXZs = -hc * exp(-pow(m_dataLon[iA][iB] / ac,2.0))
+				//* (M_PI / lm * sin(2 * M_PI * m_dataLon[iA][iB] / lm)
+				//+ 2.0 * m_dataLon[iA][iB] / (ac * ac) 
+				//* pow(cos(M_PI * m_dataLon[iA][iB] / lm),2.0));
+				//double dDaX = sqrt(1.0 + dDXZs * dDXZs);
+				//double dDaZ = (1.0 - dREta) * dDXZs * dDaX / (1.0 + dDXZs * dDXZs);
 /*
-				double dREtaStretch;
-				double dDxREtaStretch;
-				m_grid.EvaluateVerticalStretchF(
-					dREta, dREtaStretch, dDxREtaStretch);
+				double dZ = m_grid.GetZtop() * dREta + 
+							std::pow((1.0 - dREta), 2.0) * dZs;
+				double dDaZ = std::pow((1.0 - dREta), 2.0) * dDaZs;
+				double dDbZ = std::pow((1.0 - dREta), 2.0) * dDbZs;
+				double dDxZ = m_grid.GetZtop() - 
+							2.0 * (1.0 - dREta) * dZs;
 */
 /*
-				//double dZ = dZs + (m_grid.GetZtop() - dZs) * dREtaStretch;
-				double dbZ = sinh(m_grid.GetZtop() * (1.0 - dREtaStretch) / m_dSL) / 
-					sinh(m_grid.GetZtop() / m_dSL);
-				double dZ = m_grid.GetZtop() * dREtaStretch + dZs * dbZ;
-
-				double dDaZ = (1.0 - dREtaStretch) * dDaZs;
-				double dDbZ = (1.0 - dREtaStretch) * dDbZs;
-		     	double dDxZ = (m_grid.GetZtop() - dZs) * dDxREtaStretch;
+				double dZ = m_grid.GetZtop() * dREta + 
+							std::pow((1.0 - dREta), 4.0) * dZs;
+				double dDaZ = std::pow((1.0 - dREta), 4.0) * dDaZs;
+				double dDbZ = std::pow((1.0 - dREta), 4.0) * dDbZs;
+				double dDxZ = m_grid.GetZtop() - 
+							4.0 * std::pow((1.0 - dREta), 3.0) * dZs;
 */
 /*
+				double dZ = m_grid.GetZtop() * dREta 
+					+ std::pow(std::cos(0.5 * M_PI * dREta), 4.0) * dZs;
+				double dDaZ = std::pow(std::cos(0.5 * M_PI * dREta), 4.0)
+					* dDaZs;
+				double dDbZ = std::pow(std::cos(0.5 * M_PI * dREta), 4.0)
+					* dDbZs;
+				double dDxZ = m_grid.GetZtop() - 2.0 * M_PI
+					* std::sin(0.5 * M_PI * dREta)
+					* std::pow(std::cos(0.5 * M_PI * dREta), 3.0) * dZs;
+*/
+/*
+				double dZ = m_grid.GetZtop() * dREta 
+					+ std::pow(std::cos(0.5 * M_PI * dREta), 8.0) * dZs;
+				double dDaZ = std::pow(std::cos(0.5 * M_PI * dREta), 8.0)
+					* dDaZs;
+				double dDbZ = std::pow(std::cos(0.5 * M_PI * dREta), 8.0)
+					* dDbZs;
+				double dDxZ = m_grid.GetZtop() - 2.0 * M_PI
+					* std::sin(0.5 * M_PI * dREta)
+					* std::pow(std::cos(0.5 * M_PI * dREta), 7.0) * dZs;
+*/
+/*
+				double dScaleH = gridCartesianGLL.m_dSL;
+				double dH = m_grid.GetZtop();
+				double dbZ = sinh(dH * (1.0 - dREta) / dScaleH)
+							/ sinh(dH / dScaleH);
+				double dZ = m_grid.GetZtop() * dREta + dZs * dbZ;
 				double dDaZ = dbZ * dDaZs;
 				double dDbZ = dbZ * dDbZs;
-				double dDxZ = m_grid.GetZtop() - dZs * m_grid.GetZtop() * 
-					cosh(m_grid.GetZtop() * (1.0 - dREtaStretch) / m_dSL) /
-					(m_dSL * sinh(m_grid.GetZtop() / m_dSL));
-				dDxZ *= dDxREtaStretch;
+				double dDxZ = dH - dZs * dH * 
+					cosh(dH * (1.0 - dREta) / dScaleH) /
+					(dScaleH * sinh(dH / dScaleH));
 */
+/*
+				double power = 10.0;
+				double botRate = 1.0;
+				double dZ = m_grid.GetZtop() * dREta 
+					+ (1.0 - botRate * dREta)
+					* std::pow(std::cos(0.5 * M_PI * dREta), power) * dZs;
+				double dDaZ = (1.0 - botRate * dREta)
+					* std::pow(std::cos(0.5 * M_PI * dREta), power)
+					* dDaZs;
+				double dDbZ = (1.0 - botRate * dREta)
+					* std::pow(std::cos(0.5 * M_PI * dREta), power)
+					* dDbZs;
+				double dDxZ = m_grid.GetZtop() - 0.5 * power * M_PI
+					* (1.0 - botRate * dREta) * std::sin(0.5 * M_PI * dREta)
+					* std::pow(std::cos(0.5 * M_PI * dREta), power - 1.0) * dZs
+					- botRate * std::pow(std::cos(0.5 * M_PI * dREta), power) * dZs;
+*/
+//printf("%.16E %.16E %.16E %.16E %.16E %.16E \n",m_dataLon[iA][iB],m_dataLat[iA][iB],dZ,dDaZ,dDbZ,dDxZ);
+
 				// Calculate pointwise Jacobian
 				m_dataJacobianREdge[k][iA][iB] =
 					dDxZ * m_dataJacobian2D[iA][iB];
@@ -517,14 +598,16 @@ void GridPatchCartesianGLL::EvaluateTestCase(
 		_EXCEPTIONT("VerticalOrder / Dimensionality mismatch:\n"
 			"For 2D problems vertical order must be 1.");
 	}
-        //AnnounceBanner("Evaluating topography in GridPatchCartesianGLL 518");
+
 	// Evaluate topography
 	EvaluateTopography(test);
 
 	// Physical constants
 	const PhysicalConstants & phys = m_grid.GetModel().GetPhysicalConstants();
-	
-        //AnnounceBanner("Initializing coord surfaces in GridPatchCartesianGLL 525");
+
+	GridCartesianGLL & gridCartesianGLL =
+		dynamic_cast<GridCartesianGLL &>(m_grid);
+
 	// Initialize the topography at each node
 	for (int i = 0; i < m_box.GetATotalWidth(); i++) {
 	for (int j = 0; j < m_box.GetBTotalWidth(); j++) {
@@ -553,22 +636,103 @@ void GridPatchCartesianGLL::EvaluateTestCase(
 		}
 
 /*
+		// 2nd order decay vertical coordinate
+		for (int k = 0; k < m_grid.GetRElements(); k++) {
+			m_dataZLevels[k][i][j] =
+				m_grid.GetREtaLevel(k) * m_grid.GetZtop()
+				+ m_dataTopography[i][j]
+				* std::pow(1.0 - m_grid.GetREtaLevel(k), 2.0);
+		}
+		for (int k = 0; k <= m_grid.GetRElements(); k++) {
+			m_dataZInterfaces[k][i][j] =
+				m_grid.GetREtaInterface(k) * m_grid.GetZtop()
+				+ m_dataTopography[i][j]
+				* std::pow(1.0 - m_grid.GetREtaInterface(k), 2.0);
+		}
+*/
+/*
+		// 4th order decay vertical coordinate
+		for (int k = 0; k < m_grid.GetRElements(); k++) {
+			m_dataZLevels[k][i][j] =
+				m_grid.GetREtaLevel(k) * m_grid.GetZtop()
+				+ m_dataTopography[i][j]
+				* std::pow(1.0 - m_grid.GetREtaLevel(k), 4.0);
+		}
+		for (int k = 0; k <= m_grid.GetRElements(); k++) {
+			m_dataZInterfaces[k][i][j] =
+				m_grid.GetREtaInterface(k) * m_grid.GetZtop()
+				+ m_dataTopography[i][j]
+				* std::pow(1.0 - m_grid.GetREtaInterface(k), 4.0);
+		}
+*/
+/*
+		// 4th order cosine decay vertical coordinate
+		for (int k = 0; k < m_grid.GetRElements(); k++) {
+			m_dataZLevels[k][i][j] =
+				m_grid.GetREtaLevel(k) * m_grid.GetZtop()
+				+ m_dataTopography[i][j]
+				* std::pow(std::cos(0.5 * M_PI * m_grid.GetREtaLevel(k)), 4.0);
+		}
+		for (int k = 0; k <= m_grid.GetRElements(); k++) {
+			m_dataZInterfaces[k][i][j] =
+				m_grid.GetREtaInterface(k) * m_grid.GetZtop()
+				+ m_dataTopography[i][j]
+				* std::pow(std::cos(0.5 * M_PI * m_grid.GetREtaInterface(k)), 4.0);
+		}
+*/
+/*
+		// 8th order cosine decay vertical coordinate
+		for (int k = 0; k < m_grid.GetRElements(); k++) {
+			m_dataZLevels[k][i][j] =
+				m_grid.GetREtaLevel(k) * m_grid.GetZtop()
+				+ m_dataTopography[i][j]
+				* std::pow(std::cos(0.5 * M_PI * m_grid.GetREtaLevel(k)), 8.0);
+		}
+		for (int k = 0; k <= m_grid.GetRElements(); k++) {
+			m_dataZInterfaces[k][i][j] =
+				m_grid.GetREtaInterface(k) * m_grid.GetZtop()
+				+ m_dataTopography[i][j]
+				* std::pow(std::cos(0.5 * M_PI * m_grid.GetREtaInterface(k)), 8.0);
+		}
+*/
+/*
 		// Schar Exponential Decay vertical coordinate
 		for (int k = 0; k < m_grid.GetRElements(); k++) {
 			m_dataZLevels[k][i][j] = m_grid.GetZtop() * m_grid.GetREtaLevel(k) + 
-			m_dataTopography[i][j] * sinh(m_grid.GetZtop() * (1.0 - m_grid.GetREtaLevel(k)) / m_dSL) / 
-			sinh(m_grid.GetZtop() / m_dSL);
+			m_dataTopography[i][j] * sinh(m_grid.GetZtop() * 
+			(1.0 - m_grid.GetREtaLevel(k)) / gridCartesianGLL.m_dSL) / 
+			sinh(m_grid.GetZtop() / gridCartesianGLL.m_dSL);
 		}
 		for (int k = 0; k <= m_grid.GetRElements(); k++) {
 			m_dataZInterfaces[k][i][j] = m_grid.GetZtop() * m_grid.GetREtaInterface(k) + 
-			m_dataTopography[i][j] * sinh(m_grid.GetZtop() * (1.0 - m_grid.GetREtaInterface(k)) / m_dSL) / 
-			sinh(m_grid.GetZtop() / m_dSL);
+			m_dataTopography[i][j] * sinh(m_grid.GetZtop() * 
+			(1.0 - m_grid.GetREtaInterface(k)) / gridCartesianGLL.m_dSL) / 
+			sinh(m_grid.GetZtop() / gridCartesianGLL.m_dSL);
+		}
+*/
+/*
+		// 10th order cosine decay with finite bottom slope vertical coordinate
+		double power = 10.0;
+		double botRate = 1.0;
+		for (int k = 0; k < m_grid.GetRElements(); k++) {
+			m_dataZLevels[k][i][j] =
+				m_grid.GetREtaLevel(k) * m_grid.GetZtop()
+				+ m_dataTopography[i][j] 
+				* (1.0 - botRate * m_grid.GetREtaLevel(k))
+				* std::pow(std::cos(0.5 * M_PI * m_grid.GetREtaLevel(k)), power);
+		}
+		for (int k = 0; k <= m_grid.GetRElements(); k++) {
+			m_dataZInterfaces[k][i][j] =
+				m_grid.GetREtaInterface(k) * m_grid.GetZtop()
+				+ m_dataTopography[i][j] 
+				* (1.0 - botRate * m_grid.GetREtaInterface(k))
+				* std::pow(std::cos(0.5 * M_PI * m_grid.GetREtaInterface(k)), power);
 		}
 */
 	}
 	}
 
-	// Initialize the Rayleigh friction strength at each node
+	// Initialize the Rayleigh friction strength at each node IN COMPUTATIONAL GRID
 	if (test.HasRayleighFriction()) {
 		for (int i = 0; i < m_box.GetATotalWidth(); i++) {
 		for (int j = 0; j < m_box.GetBTotalWidth(); j++) {
@@ -700,7 +864,8 @@ void GridPatchCartesianGLL::EvaluateTestCase(
 
 void GridPatchCartesianGLL::ApplyBoundaryConditions(
 	int iDataIndex,
-	DataType eDataType
+	DataType eDataType,
+	int iAlphaBCPatch
 ) {
 	// Indices of EquationSet variables
 	const int UIx = 0;
@@ -715,11 +880,13 @@ void GridPatchCartesianGLL::ApplyBoundaryConditions(
 	double gaa = 0.0; double gab = 0.0; double gax = 0.0;
 	double gbb = 0.0; double gba = 0.0; double gbx = 0.0;
 
+//std::cout << m_box.GetAGlobalBegin() << "  " << m_box.GetAGlobalEnd() << std::endl;
+
 	// Impose boundary conditions (everything on levels)
 	if (m_grid.GetVerticalStaggering() ==
 		Grid::VerticalStaggering_Levels
 	) {
-		_EXCEPTIONT("Not implemented");
+		_EXCEPTIONT("Not implemented: BC for all variables on levels!");
 
 	// Impose boundary conditions (everything on interfaces)
 	} else if (m_grid.GetVerticalStaggering() ==
@@ -743,7 +910,7 @@ void GridPatchCartesianGLL::ApplyBoundaryConditions(
 					m_datavecStateNode[iDataIndex][WIx][k][i][j] =
 						- m_datavecStateNode[iDataIndex][WIx][k][i-1][j];
 				} else if (eBoundaryRight != Grid::BoundaryCondition_NoFlux) {
-					// DSS the local boundary u_beta and u_xi				
+					// DSS the local boundary u_beta and u_xi
 					ub_hat = 0.5 * 
 						m_datavecStateNode[iDataIndex][VIx][k][i][j] +
 						m_datavecStateNode[iDataIndex][VIx][k][i-1][j];
@@ -786,7 +953,7 @@ void GridPatchCartesianGLL::ApplyBoundaryConditions(
 					m_datavecStateNode[iDataIndex][WIx][k][i][j] =
 						- m_datavecStateNode[iDataIndex][WIx][k][i][j-1];
 				} else if (eBoundaryTop != Grid::BoundaryCondition_NoFlux) {
-					// DSS the local boundary u_alpha and u_xi				
+					// DSS the local boundary u_alpha and u_xi
 					ua_hat = 0.5 * 
 						m_datavecStateNode[iDataIndex][UIx][k][i][j] +
 						m_datavecStateNode[iDataIndex][UIx][k][i][j-1];
@@ -1293,6 +1460,7 @@ void GridPatchCartesianGLL::ComputeCurlAndDiv(
 			dCovDaUb /= GetElementDeltaA();
 			dCovDbUa /= GetElementDeltaB();
 
+			// Radial vorticity (vertical component)
 			m_dataVorticity[k][iA+i][iB+j] =
 				(dCovDaUb - dCovDbUa) / m_dataJacobian2D[iA+i][iB+j];
 

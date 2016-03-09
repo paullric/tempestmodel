@@ -235,6 +235,19 @@ public:
 
 public:
 	///	<summary>
+	///		2D Cartesian flag
+	///	</summary>
+	bool m_fCartesianXZ = false;
+
+	///	<summary>
+	///		Get the 2D Cartesian flag
+	///	</summary>
+	bool GetIsCartesianXZ() const {
+		return m_fCartesianXZ;
+	}
+
+public:
+	///	<summary>
 	///		Get the order of accuracy of the method.
 	///	</summary>
 	int GetHorizontalOrder() const {

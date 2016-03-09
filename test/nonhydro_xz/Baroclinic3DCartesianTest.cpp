@@ -139,12 +139,12 @@ public:
 
 		// Set the center of the domain in Y
 		m_dY0 = 0.5 * (m_dGDim[3] - m_dGDim[2]);
-                
-                // Set the boundary conditions for this test (no-flux in Y)
-                m_iLatBC[0] = Grid::BoundaryCondition_Periodic;
-                m_iLatBC[1] = Grid::BoundaryCondition_NoFlux;
-                m_iLatBC[2] = Grid::BoundaryCondition_Periodic;
-                m_iLatBC[3] = Grid::BoundaryCondition_NoFlux;
+
+		// Set the boundary conditions for this test (no-flux in Y)
+		m_iLatBC[0] = Grid::BoundaryCondition_Periodic;
+		m_iLatBC[1] = Grid::BoundaryCondition_NoFlux;
+		m_iLatBC[2] = Grid::BoundaryCondition_Periodic;
+		m_iLatBC[3] = Grid::BoundaryCondition_NoFlux;
 	}
 
 public:
@@ -182,8 +182,8 @@ public:
 	///		Evaluate the topography at the given point. (cartesian version)
 	///	</summary>
 	virtual double EvaluateTopography(
-	   double dXp,
-	   double dYp
+		double dXp,
+		double dYp
 	) const {
 		// This test case has no topography associated with it
 		return 0.0;
@@ -504,7 +504,7 @@ try {
 	
 	// Setup the cartesian model with dimensions and reference latitude
 	TempestSetupCartesianModel(model, test->m_dGDim, test->m_dRefLat, 
-                                   test->m_iLatBC);
+								test->m_iLatBC, false);
 
 	// Set the reference length to reduce diffusion relative to global scale
 	const double XL = std::abs(test->m_dGDim[1] - test->m_dGDim[0]);

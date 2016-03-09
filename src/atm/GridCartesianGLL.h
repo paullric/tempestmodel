@@ -54,6 +54,7 @@ public:
 		double dGDim[],
 		double dRefLat,
 		int iLatBC[],
+		bool fCartesianXZ,
 		VerticalDiscretization eVerticalDiscretization,
 		VerticalStaggering eVerticalStaggering
 	);
@@ -172,8 +173,44 @@ public:
 	double GetMaximumY() const {
 		return m_dGDim[3];
 	}
-	
+
+	///	<summary>
+	///		Get the maximum topography height
+	///	</summary>
+	double GetMaxTopoHeight() const {
+		return m_dTopoHeight;
+	}
+
+	///	<summary>
+	///		Get the reference latitude for f-plane or b-plane models
+	///	</summary>
+	double GetTopoScaleHeight() {
+		return m_dSL;
+	}
+
+	///	<summary>
+	///		Get the 2D Cartesian flag
+	///	</summary>
+	//bool GetIsCartesianXZ() {
+	//	return m_fCartesianXZ;
+	//}
+
 public:
+	///	<summary>
+	///		2D Cartesian flag
+	///	</summary>
+	//bool m_fCartesianXZ;
+
+	///	<summary>
+	///		Maximum topography height
+	///	</summary>
+	double m_dTopoHeight;
+
+	///	<summary>
+	///		Scale height for exponential decay of topography
+	///	</summary>
+	double m_dSL;
+
 	///	<summary>
 	///		Dimension of the grid - private to cartesian grids.
 	///	</summary>

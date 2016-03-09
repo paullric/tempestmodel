@@ -43,7 +43,7 @@
 //#define EXPLICIT_THERMO
 //#define EXPLICIT_VERTICAL_VELOCITY_ADVECTION
 
-//#define VERTICAL_VELOCITY_ADVECTION_CLARK
+#define VERTICAL_VELOCITY_ADVECTION_CLARK
 
 ///////////////////////////////////////////////////////////////////////////////
 

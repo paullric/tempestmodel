@@ -1138,15 +1138,20 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
  					// Apply update to horizontal velocity on model levels
 					dataUpdateNode[UIx][k][iA][iB] +=
 						dDeltaT * dLocalUpdateUa;
-					dataUpdateNode[VIx][k][iA][iB] +=
-						dDeltaT * dLocalUpdateUb;
+					// Omit beta update for XZ 2D models
+					if (pGrid->GetIsCartesianXZ() == false) {
+						dataUpdateNode[VIx][k][iA][iB] +=
+							dDeltaT * dLocalUpdateUb;
+					}
 
 #ifdef INSTEP_DIVERGENCE_DAMPING
 					// Apply instep divergence
 					dataUpdateNode[UIx][k][iA][iB] +=
 						dDeltaT * m_dInstepNuDiv * dDaDiv;
-					dataUpdateNode[VIx][k][iA][iB] +=
-						dDeltaT * m_dInstepNuDiv * dDbDiv;
+					if (pGrid->GetIsCartesianXZ() == false) {
+						dataUpdateNode[VIx][k][iA][iB] +=
+							dDeltaT * m_dInstepNuDiv * dDbDiv;
+					}
 #endif
 
 					// Update density on model levels
@@ -1922,7 +1927,9 @@ void HorizontalDynamicsFEM::ApplyVectorHyperdiffusion(
 
 				dataUpdate[UIx][k][iA][iB] -= dDeltaT * dUpdateUa;
 
-				dataUpdate[VIx][k][iA][iB] -= dDeltaT * dUpdateUb;
+				if (pGrid->GetIsCartesianXZ() == false) {
+					dataUpdate[VIx][k][iA][iB] -= dDeltaT * dUpdateUb;
+				}
 
 /*
 				if (k == 0) {
@@ -1954,6 +1961,10 @@ void HorizontalDynamicsFEM::ApplyRayleighFriction(
 
 	// Number of components to hit with friction
 	int nComponents = m_model.GetEquationSet().GetComponents();
+
+	// Subcycle the rayleigh update
+	int NSCR = 10;
+	double SCRF = 1.0 / NSCR;
 
 	// Perform local update
 	for (int n = 0; n < pGrid->GetActivePatchCount(); n++) {
@@ -1999,13 +2010,22 @@ void HorizontalDynamicsFEM::ApplyRayleighFriction(
 
 				double dNuNode = 1.0 / (1.0 + dDeltaT * dNu);
 
-				// Loop over all components
+				// Loop over all components NOT DENSITY
 				for (int c = 0; c < nComponents; c++) {
-					if (pGrid->GetVarLocation(c) == DataLocation_Node) {
-						dataUpdateNode[c][k][i][j] =
-							dNuNode * dataUpdateNode[c][k][i][j]
-							+ (1.0 - dNuNode)
+					if ((m_model.GetEquationSet().GetComponentShortName(c) == "U") ||
+					((m_model.GetEquationSet().GetComponentShortName(c) == "V") && 
+					 (pGrid->GetIsCartesianXZ() == false)) ||
+					(m_model.GetEquationSet().GetComponentShortName(c) == "W") ||
+					(m_model.GetEquationSet().GetComponentShortName(c) == "Theta")) {
+						for (int si = 0; si < NSCR; si++) { 
+						dNuNode = 1.0 / (1.0 + SCRF * dDeltaT * dNu);
+						if (pGrid->GetVarLocation(c) == DataLocation_Node) {
+							dataUpdateNode[c][k][i][j] = 
+								dNuNode * dataUpdateNode[c][k][i][j]
+								+ (1.0 - dNuNode)
 								* dataReferenceNode[c][k][i][j];
+						}
+						}
 					}
 				}
 			}
@@ -2022,13 +2042,22 @@ void HorizontalDynamicsFEM::ApplyRayleighFriction(
 
 				double dNuREdge = 1.0 / (1.0 + dDeltaT * dNu);
 
-				// Loop over all components
+				// Loop over all components NOT DENSITY
 				for (int c = 0; c < nComponents; c++) {
-					if (pGrid->GetVarLocation(c) == DataLocation_REdge) {
-						dataUpdateREdge[c][k][i][j] =
-							dNuREdge * dataUpdateREdge[c][k][i][j]
-							+ (1.0 - dNuREdge)
+					if ((m_model.GetEquationSet().GetComponentShortName(c) == "U") ||
+					((m_model.GetEquationSet().GetComponentShortName(c) == "V") && 
+					 (pGrid->GetIsCartesianXZ() == false)) ||
+					(m_model.GetEquationSet().GetComponentShortName(c) == "W") ||
+					(m_model.GetEquationSet().GetComponentShortName(c) == "Theta")) {
+						for (int si = 0; si < NSCR; si++) {
+						if (pGrid->GetVarLocation(c) == DataLocation_REdge) {
+							dNuREdge = 1.0 / (1.0 + SCRF * dDeltaT * dNu);
+							dataUpdateREdge[c][k][i][j] = 
+								dNuREdge * dataUpdateREdge[c][k][i][j]
+								+ (1.0 - dNuREdge)
 								* dataReferenceREdge[c][k][i][j];
+						}
+						}
 					}
 				}
 			}
