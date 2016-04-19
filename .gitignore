@@ -11,6 +11,7 @@
 *--
 *.tgz
 *.mod
+include/*
 test/BaroclinicWaveJWTest
 test/BaroclinicWaveUMJSTest
 test/BarotropicInstabilityTest

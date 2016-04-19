@@ -100,6 +100,13 @@ void GridGLL::Initialize() {
 	// Get quadrature points for Gauss-Lobatto quadrature (horizontal)
 	GaussLobattoQuadrature::GetPoints(m_nHorizontalOrder, 0.0, 1.0, dGL, dWL);
 
+	if (m_nHorizontalOrder == 4) {
+		dGL[0] = 0.0;
+		dGL[1] = 0.276393202250021;
+		dGL[2] = 0.723606797749979;
+		dGL[3] = 1.0;
+	}
+
 	// Derivatives of the 1D basis functions at each point on the reference
 	// element [0, 1]
 	m_dDxBasis1D.Allocate(m_nHorizontalOrder, m_nHorizontalOrder);
@@ -110,31 +117,31 @@ void GridGLL::Initialize() {
 	for (int i = 0; i < m_nHorizontalOrder; i++) {
 		PolynomialInterp::DiffLagrangianPolynomialCoeffs(
 			m_nHorizontalOrder, dGL, dCoeffs, dGL[i]);
-/*
+
 		if (m_nHorizontalOrder == 4) {
 			if (i == 0) {
 				dCoeffs[0] = -6.0;
-				dCoeffs[1] =  8.090169943749478;
-				dCoeffs[2] = -3.090169943749475;
+				dCoeffs[1] =  8.09016994374947425;
+				dCoeffs[2] = -3.09016994374947425;
 				dCoeffs[3] =  1.0;
 			} else if (i == 1) {
-				dCoeffs[0] = -1.618033988749895;
+				dCoeffs[0] = -1.61803398874989485;
 				dCoeffs[1] =  0.0;
-				dCoeffs[2] =  2.236067977499781;
-				dCoeffs[3] = -0.618033988749895;
+				dCoeffs[2] =  2.23606797749978970;
+				dCoeffs[3] = -0.61803398874989485;
 			} else if (i == 2) {
-				dCoeffs[0] =  0.618033988749895;
-				dCoeffs[1] = -2.236067977499781;
+				dCoeffs[0] =  0.61803398874989485;
+				dCoeffs[1] = -2.23606797749978970;
 				dCoeffs[2] =  0.0;
-				dCoeffs[3] =  1.618033988749895;
+				dCoeffs[3] =  1.61803398874989485;
 			} else {
 				dCoeffs[0] = -1.0;
-				dCoeffs[1] =  3.090169943749476;
-				dCoeffs[2] = -8.090169943749475;
+				dCoeffs[1] =  3.09016994374947425;
+				dCoeffs[2] = -8.09016994374947425;
 				dCoeffs[3] =  6.0;
 			}
 		}
-*/
+
 #pragma message "Verify that DxBasis1D adds up to 0"
 		for (int m = 0; m < m_nHorizontalOrder; m++) {
 			m_dDxBasis1D[m][i] = dCoeffs[m];
