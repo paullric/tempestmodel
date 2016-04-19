@@ -366,13 +366,13 @@ public:
 	///		DataLocation_REdge = Interpolate all variables on redges
 	///	</param>
 	void ReduceInterpolate(
+		DataType eDataType,
+		const DataArray1D<double> & dREta,
 		const DataArray1D<double> & dAlpha,
 		const DataArray1D<double> & dBeta,
 		const DataArray1D<int> & iPatch,
-		DataType eDataType,
-		DataLocation eDataLocation,
-		bool fInterpAllVariables,
 		DataArray3D<double> & dInterpData,
+		DataLocation eOnlyVariablesAt = DataLocation_None,
 		bool fIncludeReferenceState = true,
 		bool fConvertToPrimitive = true
 	) const;

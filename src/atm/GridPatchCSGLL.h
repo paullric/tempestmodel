@@ -132,13 +132,13 @@ public:
 	///		Linearly interpolate data to the specified point.
 	///	</summary>
 	virtual void InterpolateData(
+		DataType eDataType,
+		const DataArray1D<double> & dREta,
 		const DataArray1D<double> & dAlpha,
 		const DataArray1D<double> & dBeta,
 		const DataArray1D<int> & iPatch,
-		DataType eDataType,
-		DataLocation eDataLocation,
-		bool fInterpAllVariables,
 		DataArray3D<double> & dInterpData,
+		DataLocation eOnlyVariablesAt = DataLocation_None,
 		bool fIncludeReferenceState = true,
 		bool fConvertToPrimitive = true
 	);

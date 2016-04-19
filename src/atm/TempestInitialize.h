@@ -66,6 +66,7 @@ struct _TempestCommandLineVariables {
 	Time timeEndTime;
 	int nOutputResX;
 	int nOutputResY;
+	int nOutputResZ;
 	bool fOutputVorticity;
 	bool fOutputDivergence;
 	bool fOutputTemperature;
@@ -103,6 +104,7 @@ struct _TempestCommandLineVariables {
 	CommandLineDeltaTime(_tempestvars.timeOutputRestartDeltaT, "output_restart_dt", ""); \
 	CommandLineInt(_tempestvars.nOutputResX, "output_x", 360); \
 	CommandLineInt(_tempestvars.nOutputResY, "output_y", 180); \
+	CommandLineInt(_tempestvars.nOutputResZ, "output_z", 0); \
 	CommandLineBool(_tempestvars.fOutputVorticity, "output_vort"); \
 	CommandLineBool(_tempestvars.fOutputDivergence, "output_div"); \
 	CommandLineBool(_tempestvars.fOutputTemperature, "output_temp"); \
@@ -324,6 +326,7 @@ void _TempestSetupOutputManagers(
 				vars.nOutputsPerFile,
 				vars.nOutputResX,
 				vars.nOutputResY,
+				vars.nOutputResZ,
 				false,
 				true);
 

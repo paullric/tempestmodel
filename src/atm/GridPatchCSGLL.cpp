@@ -1233,13 +1233,13 @@ void GridPatchCSGLL::ComputeVorticityDivergence(
 ///////////////////////////////////////////////////////////////////////////////
 
 void GridPatchCSGLL::InterpolateData(
+	DataType eDataType,
+	const DataArray1D<double> & dREta,
 	const DataArray1D<double> & dAlpha,
 	const DataArray1D<double> & dBeta,
 	const DataArray1D<int> & iPatch,
-	DataType eDataType,
-	DataLocation eDataLocation,
-	bool fInterpAllVariables,
 	DataArray3D<double> & dInterpData,
+	DataLocation eOnlyVariablesAt,
 	bool fIncludeReferenceState,
 	bool fConvertToPrimitive
 ) {
@@ -1260,18 +1260,13 @@ void GridPatchCSGLL::InterpolateData(
 	const PhysicalConstants & phys = m_grid.GetModel().GetPhysicalConstants();
 
 	// Perform interpolation on all variables
-	int nComponents;
+	int nComponents = 0;
 	int nRElements = m_grid.GetRElements();
 
 	// State Data: Perform interpolation on all variables
 	if (eDataType == DataType_State) {
-		if (eDataLocation == DataLocation_Node) {
-			nComponents = m_datavecStateNode[0].GetSize(0);
-			nRElements = m_grid.GetRElements();
-		} else {
-			nComponents = m_datavecStateREdge[0].GetSize(0);
-			nRElements = m_grid.GetRElements() + 1;
-		}
+		nComponents = m_datavecStateNode[0].GetSize(0);
+		nRElements = m_grid.GetRElements() + 1;
 
 	// Tracer Data: Perform interpolation on all variables
 	} else if (eDataType == DataType_Tracers) {
@@ -1298,13 +1293,75 @@ void GridPatchCSGLL::InterpolateData(
 		_EXCEPTIONT("Invalid DataType");
 	}
 
+	// Buffer storage in column
+	DataArray1D<double> dColumnDataOut(dREta.GetRows());
+
 	// Loop through all components
 	for (int c = 0; c < nComponents; c++) {
 
+		DataLocation eDataLocation = DataLocation_Node;
+
+		if (eDataType == DataType_State) {
+			eDataLocation = m_grid.GetVarLocation(c);
+
+			// Exclude variables not at the specified DataLocation
+			if ((eOnlyVariablesAt != DataLocation_None) &&
+			    (eOnlyVariablesAt != eDataLocation)
+			) {
+				continue;
+			}
+
+			// Adjust RElements depending on state data location
+			if (eDataLocation == DataLocation_Node) {
+				nRElements = m_grid.GetRElements();
+			} else if (eDataLocation == DataLocation_REdge) {
+				nRElements = m_grid.GetRElements() + 1;
+			} else {
+				_EXCEPTIONT("Invalid DataLocation");
+			}
+		}
+
+		// Vertical interpolation operator
+		LinearColumnInterpFEM opInterp;
+
+		if (nRElements != 1) {
+			if (eDataLocation == DataLocation_Node) {
+				opInterp.Initialize(
+					LinearColumnInterpFEM::InterpSource_Levels,
+					m_nVerticalOrder,
+					m_grid.GetREtaLevels(),
+					m_grid.GetREtaInterfaces(),
+					dREta);
+
+			} else if (eDataLocation == DataLocation_REdge) {
+				opInterp.Initialize(
+					LinearColumnInterpFEM::InterpSource_Interfaces,
+					m_nVerticalOrder,
+					m_grid.GetREtaLevels(),
+					m_grid.GetREtaInterfaces(),
+					dREta);
+
+			} else {
+				_EXCEPTIONT("Invalid DataLocation");
+			}
+
+		} else {
+			opInterp.InitializeIdentity(1);
+		}
+
+		// Buffer storage in column
+		DataArray1D<double> dColumnData(nRElements);
+
 		// Get a pointer to the 3D data structure
 		DataArray3D<double> pData;
+		DataArray3D<double> pDataRef;
 
 		pData.SetSize(
+			nRElements,
+			m_box.GetATotalWidth(),
+			m_box.GetBTotalWidth());
+
+		pDataRef.SetSize(
 			nRElements,
 			m_box.GetATotalWidth(),
 			m_box.GetBTotalWidth());
@@ -1312,8 +1369,12 @@ void GridPatchCSGLL::InterpolateData(
 		if (eDataType == DataType_State) {
 			if (eDataLocation == DataLocation_Node) {
 				pData.AttachToData(&(m_datavecStateNode[0][c][0][0][0]));
-			} else {
+				pDataRef.AttachToData(&(m_dataRefStateNode[c][0][0][0]));
+			} else if (eDataLocation == DataLocation_REdge) {
 				pData.AttachToData(&(m_datavecStateREdge[0][c][0][0][0]));
+				pDataRef.AttachToData(&(m_dataRefStateREdge[c][0][0][0]));
+			} else {
+				_EXCEPTIONT("Invalid DataLocation");
 			}
 
 		} else if (eDataType == DataType_Tracers) {
@@ -1392,11 +1453,11 @@ void GridPatchCSGLL::InterpolateData(
 			// Perform interpolation on all levels
 			for (int k = 0; k < nRElements; k++) {
 
-				dInterpData[c][k][i] = 0.0;
+				dColumnData[k] = 0.0;
 
 				for (int m = 0; m < m_nHorizontalOrder; m++) {
 				for (int n = 0; n < m_nHorizontalOrder; n++) {
-					dInterpData[c][k][i] +=
+					dColumnData[k] +=
 						  dAInterpCoeffs[m]
 						* dBInterpCoeffs[n]
 						* pData[k][iA+m][iB+n];
@@ -1407,34 +1468,32 @@ void GridPatchCSGLL::InterpolateData(
 				if ((eDataType == DataType_State) &&
 					(!fIncludeReferenceState)
 				) {
-					if (eDataLocation == DataLocation_Node) {
-						for (int m = 0; m < m_nHorizontalOrder; m++) {
-						for (int n = 0; n < m_nHorizontalOrder; n++) {
-							dInterpData[c][k][i] -=
-								  dAInterpCoeffs[m]
-								* dBInterpCoeffs[n]
-								* m_dataRefStateNode[c][k][iA+m][iB+n];
-						}
-						}
-
-					} else {
-						for (int m = 0; m < m_nHorizontalOrder; m++) {
-						for (int n = 0; n < m_nHorizontalOrder; n++) {
-							dInterpData[c][k][i] -=
-								  dAInterpCoeffs[m]
-								* dBInterpCoeffs[n]
-								* m_dataRefStateREdge[c][k][iA+m][iB+n];
-						}
-						}
+					for (int m = 0; m < m_nHorizontalOrder; m++) {
+					for (int n = 0; n < m_nHorizontalOrder; n++) {
+						dColumnData[k] -=
+							  dAInterpCoeffs[m]
+							* dBInterpCoeffs[n]
+							* pDataRef[k][iA+m][iB+n];
+					}
 					}
 				}
+			}
+
+			// Interpolate vertically
+			opInterp.Apply(
+				&(dColumnData[0]),
+				&(dColumnDataOut[0]));
+
+			// Store data
+			for (int k = 0; k < dREta.GetRows(); k++) {
+				dInterpData[c][k][i] = dColumnDataOut[k];
 			}
 		}
 	}
 
 	// Convert to primitive variables
 	if ((eDataType == DataType_State) && (fConvertToPrimitive)) {
-		for (int k = 0; k < nRElements; k++) {
+		for (int k = 0; k < dREta.GetRows(); k++) {
 			for (int i = 0; i < dAlpha.GetRows(); i++) { 
 				double dUalpha =
 					dInterpData[0][k][i] / phys.GetEarthRadius();

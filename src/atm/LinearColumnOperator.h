@@ -50,6 +50,13 @@ public:
 	);
 
 	///	<summary>
+	///		Initialize an identity operator.
+	///	</summary>
+	void InitializeIdentity(
+		int nRElements
+	);
+
+	///	<summary>
 	///		Compose this operator with another LinearColumnOperator.  The
 	///		resulting operator will be (this) o (op)
 	///	</summary>

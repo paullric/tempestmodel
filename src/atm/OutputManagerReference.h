@@ -50,6 +50,7 @@ public:
 		int nOutputsPerFile,
 		int nXReference,
 		int nYReference,
+		int nZReference,
 		bool fOutputAllVarsOnNodes = true,
 		bool fRemoveReferenceProfile = false
 	);
@@ -139,6 +140,11 @@ protected:
 	int m_nYReference;
 
 	///	<summary>
+	///		Number of reference points in the Z direction.
+	///	</summary>
+	int m_nZReference;
+
+	///	<summary>
 	///		Flag indicating that all state variables should be output on nodes.
 	///	</summary>
 	bool m_fOutputAllVarsOnNodes;
@@ -159,12 +165,17 @@ protected:
 	DataArray1D<double> m_dYCoord;
 
 	///	<summary>
+	///		Vector of vertical reference points
+	///	</summary>
+	DataArray1D<double> m_dREtaCoord;
+
+	///	<summary>
 	///		Vector of alpha reference points.
 	///	</summary>
 	DataArray1D<double> m_dAlpha;
 
 	///	<summary>
-	///		Vector of reference points.
+	///		Vector of beta reference points.
 	///	</summary>
 	DataArray1D<double> m_dBeta;
 

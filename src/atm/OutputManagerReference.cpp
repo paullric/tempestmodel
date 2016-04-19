@@ -41,6 +41,7 @@ OutputManagerReference::OutputManagerReference(
 	int nOutputsPerFile,
 	int nXReference,
 	int nYReference,
+	int nZReference,
 	bool fOutputAllVarsOnNodes,
 	bool fRemoveReferenceProfile
 ) :
@@ -54,6 +55,7 @@ OutputManagerReference::OutputManagerReference(
 	m_fFreshOutputFile(false),
 	m_nXReference(nXReference),
 	m_nYReference(nYReference),
+	m_nZReference(nZReference),
 	m_pActiveNcOutput(NULL),
 	m_fOutputVorticity(false),
 	m_fOutputDivergence(false),
@@ -82,6 +84,19 @@ OutputManagerReference::OutputManagerReference(
 	for (int j = 0; j < m_nYReference; j++) {
 		m_dYCoord[j] =
 			dDeltaY * (static_cast<double>(j) + 0.5) + dY0;
+	}
+
+	if (nZReference == 0) {
+		m_dREtaCoord = grid.GetREtaLevels();
+
+	} else {
+		m_fOutputAllVarsOnNodes = true;
+		m_dREtaCoord.Allocate(m_nZReference);
+		double dDeltaREta = 1.0 / static_cast<double>(m_nZReference);
+		for (int k = 0; k < m_nZReference; k++) {
+			m_dREtaCoord[k] =
+				dDeltaREta * (static_cast<double>(k) + 0.5);
+		}
 	}
 }
 
@@ -171,7 +186,7 @@ bool OutputManagerReference::CalculatePatchCoordinates() {
 
 	m_dataStateNode.Allocate(
 		m_grid.GetModel().GetEquationSet().GetComponents(),
-		m_grid.GetRElements(),
+		m_dREtaCoord.GetRows(),
 		m_nXReference * m_nYReference);
 
 	if (!m_fOutputAllVarsOnNodes) {
@@ -184,39 +199,41 @@ bool OutputManagerReference::CalculatePatchCoordinates() {
 	if (m_grid.GetModel().GetEquationSet().GetTracers() != 0) {
 		m_dataTracers.Allocate(
 			m_grid.GetModel().GetEquationSet().GetTracers(),
-			m_grid.GetRElements(),
+			m_dREtaCoord.GetRows(),
 			m_nXReference * m_nYReference);
 	}
 
 	if (m_fOutputVorticity) {
 		m_dataVorticity.Allocate(
 			1,
-			m_grid.GetRElements(),
+			m_dREtaCoord.GetRows(),
 			m_nXReference * m_nYReference);
 	}
 
 	if (m_fOutputDivergence) {
 		m_dataDivergence.Allocate(
 			1,
-			m_grid.GetRElements(),
+			m_dREtaCoord.GetRows(),
 			m_nXReference * m_nYReference);
 	}
 
 	if (m_fOutputTemperature) {
 		m_dataTemperature.Allocate(
 			1,
-			m_grid.GetRElements(),
+			m_dREtaCoord.GetRows(),
 			m_nXReference * m_nYReference);
 	}
 
 	// Reduce/Interpolate topography array
+	DataArray1D<double> dREtaSurace(1);
+
 	m_grid.ReduceInterpolate(
-		m_dAlpha, m_dBeta, m_iPatch,
 		DataType_Topography,
-		DataLocation_None,
-		m_fOutputAllVarsOnNodes,
-		m_dataTopography,
-		false);
+		dREtaSurace,
+		m_dAlpha,
+		m_dBeta,
+		m_iPatch,
+		m_dataTopography);
 
 	// Update grid stamp
 	m_iGridStamp = m_grid.GetGridStamp();
@@ -283,7 +300,7 @@ bool OutputManagerReference::OpenFile(
 
 		// Create levels dimension
 		NcDim * dimLev =
-			m_pActiveNcOutput->add_dim("lev", m_grid.GetRElements());
+			m_pActiveNcOutput->add_dim("lev", m_dREtaCoord.GetRows());
 
 		// Create interfaces dimension
 		NcDim * dimILev =
@@ -384,8 +401,8 @@ bool OutputManagerReference::OpenFile(
 			m_pActiveNcOutput->add_var("lev", ncDouble, dimLev);
 
 		varLev->put(
-			m_grid.GetREtaStretchLevels(),
-			m_grid.GetREtaStretchLevels().GetRows());
+			m_dREtaCoord,
+			m_dREtaCoord.GetRows());
 
 		varLev->add_att("long_name", "level");
 		varLev->add_att("units", "level");
@@ -466,7 +483,7 @@ void OutputManagerReference::Output(
 		m_varTime->set_cur(m_ixOutputTime);
 		m_varTime->put(&dTimeDays, 1);
 	}
-
+/*
 	// Vertically interpolate data to model levels
 	if (m_fOutputAllVarsOnNodes) {
 		for (int c = 0; c < eqn.GetComponents(); c++) {
@@ -475,23 +492,31 @@ void OutputManagerReference::Output(
 			}
 		}
 	}
-
+*/
 	// Perform Interpolate / Reduction on state data
 	m_dataStateNode.Zero();
 
 	m_grid.ReduceInterpolate(
-		m_dAlpha, m_dBeta, m_iPatch,
-		DataType_State, DataLocation_Node, m_fOutputAllVarsOnNodes,
+		DataType_State,
+		m_dREtaCoord,
+		m_dAlpha,
+		m_dBeta,
+		m_iPatch,
 		m_dataStateNode,
+		(m_fOutputAllVarsOnNodes)?(DataLocation_None):(DataLocation_Node),
 		!m_fRemoveReferenceProfile);
 
 	if (!m_fOutputAllVarsOnNodes) {
 		m_dataStateREdge.Zero();
 
 		m_grid.ReduceInterpolate(
-			m_dAlpha, m_dBeta, m_iPatch,
-			DataType_State, DataLocation_REdge, false,
+			DataType_State,
+			m_grid.GetREtaInterfaces(),
+			m_dAlpha,
+			m_dBeta,
+			m_iPatch,
 			m_dataStateREdge,
+			DataLocation_REdge,
 			!m_fRemoveReferenceProfile);
 	}
 
@@ -500,9 +525,14 @@ void OutputManagerReference::Output(
 		m_dataTracers.Zero();
 
 		m_grid.ReduceInterpolate(
-			m_dAlpha, m_dBeta, m_iPatch,
-			DataType_Tracers, DataLocation_Node, false,
-			m_dataTracers, true);
+			DataType_Tracers,
+			m_dREtaCoord,
+			m_dAlpha,
+			m_dBeta,
+			m_iPatch,
+			m_dataTracers,
+			DataLocation_None,
+			true);
 	}
 
 	// Perform Interpolate / Reduction on computed vorticity
@@ -511,14 +541,20 @@ void OutputManagerReference::Output(
 
 		if (m_fOutputVorticity) {
 			m_grid.ReduceInterpolate(
-				m_dAlpha, m_dBeta, m_iPatch,
-				DataType_Vorticity, DataLocation_Node, false,
+				DataType_Vorticity,
+				m_dREtaCoord,
+				m_dAlpha,
+				m_dBeta,
+				m_iPatch,
 				m_dataVorticity);
 		}
 		if (m_fOutputDivergence) {
 			m_grid.ReduceInterpolate(
-				m_dAlpha, m_dBeta, m_iPatch,
-				DataType_Divergence, DataLocation_Node, false,
+				DataType_Divergence,
+				m_dREtaCoord,
+				m_dAlpha,
+				m_dBeta,
+				m_iPatch,
 				m_dataDivergence);
 		}
 	}
@@ -528,8 +564,11 @@ void OutputManagerReference::Output(
 		m_grid.ComputeTemperature(0);
 
 		m_grid.ReduceInterpolate(
-			m_dAlpha, m_dBeta, m_iPatch,
-			DataType_Temperature, DataLocation_Node, false,
+			DataType_Temperature,
+			m_dREtaCoord,
+			m_dAlpha,
+			m_dBeta,
+			m_iPatch,
 			m_dataTemperature);
 	}
 

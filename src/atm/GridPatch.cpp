@@ -1003,7 +1003,7 @@ double GridPatch::ComputeTotalPotentialEnstrophy(
 
 		// Set to zero
 		dLocalPotentialEnstrophy = 0.0;
-/*
+
 		// Loop over all elements
 		int k;
 		int i;
@@ -1021,7 +1021,7 @@ double GridPatch::ComputeTotalPotentialEnstrophy(
 		}
 		}
 		}
-*/
+
 	}
 
 	return dLocalPotentialEnstrophy;
@@ -1354,13 +1354,13 @@ void GridPatch::AddReferenceState(
 ///////////////////////////////////////////////////////////////////////////////
 
 void GridPatch::InterpolateData(
+	DataType eDataType,
+	const DataArray1D<double> & dREta,
 	const DataArray1D<double> & dAlpha,
 	const DataArray1D<double> & dBeta,
-	const DataArray1D<int> & iPanel,
-	DataType eDataType,
-	DataLocation eDataLocation,
-	bool fInterpAllVariables,
+	const DataArray1D<int> & iPatch,
 	DataArray3D<double> & dInterpData,
+	DataLocation eOnlyVariablesAt,
 	bool fIncludeReferenceState,
 	bool fConvertToPrimitive
 ) {

@@ -296,15 +296,15 @@ public:
 	///		Linearly interpolate data horizontally to the specified points.
 	///	</summary>
 	virtual void InterpolateData(
+		DataType eDataType,
+		const DataArray1D<double> & dREta,
 		const DataArray1D<double> & dAlpha,
 		const DataArray1D<double> & dBeta,
-		const DataArray1D<int> & iPanel,
-		DataType eDataType,
-		DataLocation eDataLocation,
-		bool fInterpAllVariables,
+		const DataArray1D<int> & iPatch,
 		DataArray3D<double> & dInterpData,
+		DataLocation eOnlyVariablesAt = DataLocation_None,
 		bool fIncludeReferenceState = true,
-		bool fConvertToPrimitive = false
+		bool fConvertToPrimitive = true
 	);
 
 public:
