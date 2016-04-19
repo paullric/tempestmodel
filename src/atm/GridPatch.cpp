@@ -449,6 +449,7 @@ void GridPatch::InitializeDataLocal(
 		m_dcAuxiliary.Allocate();
 	}
 
+#pragma message "Remove these two lines?"
 	// Mark Patch index
 	m_iGeometricPatchIx[0] = m_ixPatch;
 	m_iActiveStatePatchIx[0] = m_ixPatch;
@@ -999,8 +1000,24 @@ double GridPatch::ComputeTotalPotentialEnstrophy(
 	} else {
 
 #pragma message "Calculate total potential enstrophy here"
-		// Unimplemented
+
+		// Set to zero
 		dLocalPotentialEnstrophy = 0.0;
+/*
+		// Loop over all elements
+		int k;
+		int i;
+		int j;
+
+		for (k = 0; k < m_grid.GetRElements(); k++) {
+		for (i = m_box.GetAInteriorBegin(); i < m_box.GetAInteriorEnd(); i++) {
+		for (j = m_box.GetBInteriorBegin(); j < m_box.GetBInteriorEnd(); j++) {
+			dLocalPotentialEnstrophy +=
+				dataNode[RIx][k][i][j] * dataNode[UIx][k][i][j];
+		}
+		}
+		}
+*/
 	}
 
 	return dLocalPotentialEnstrophy;
