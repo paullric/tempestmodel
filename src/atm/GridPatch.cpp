@@ -1012,8 +1012,12 @@ double GridPatch::ComputeTotalPotentialEnstrophy(
 		for (k = 0; k < m_grid.GetRElements(); k++) {
 		for (i = m_box.GetAInteriorBegin(); i < m_box.GetAInteriorEnd(); i++) {
 		for (j = m_box.GetBInteriorBegin(); j < m_box.GetBInteriorEnd(); j++) {
+
+			// Zonal momentum
 			dLocalPotentialEnstrophy +=
-				dataNode[RIx][k][i][j] * dataNode[UIx][k][i][j];
+				m_dataElementArea[k][i][j]
+				* dataNode[RIx][k][i][j]
+				* dataNode[UIx][k][i][j];
 		}
 		}
 		}
