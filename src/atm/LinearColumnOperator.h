@@ -120,7 +120,7 @@ public:
 	///	<summary>
 	///		Apply the operator to a column with the reference state.
 	///	</summary>
-	void Apply(
+	void ApplyWithRef(
 		const double * dColumnIn,
 		const double * dColumnRefIn,
 		double * dColumnOut,
@@ -131,7 +131,7 @@ public:
 	///		Apply the operator to a column with the reference state.  Stride
 	///		indicates the sparsity of the column array.
 	///	</summary>
-	void Apply(
+	void ApplyWithRef(
 		const double * dColumnIn,
 		const double * dColumnRefIn,
 		double * dColumnOut,

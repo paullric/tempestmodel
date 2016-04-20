@@ -257,7 +257,7 @@ void LinearColumnOperator::Apply(
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void LinearColumnOperator::Apply(
+void LinearColumnOperator::ApplyWithRef(
 	const double * dColumnIn,
 	const double * dColumnRefIn,
 	double * dColumnOut,
@@ -281,7 +281,7 @@ void LinearColumnOperator::Apply(
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void LinearColumnOperator::Apply(
+void LinearColumnOperator::ApplyWithRef(
 	const double * dColumnIn,
 	const double * dColumnRefIn,
 	double * dColumnOut,
