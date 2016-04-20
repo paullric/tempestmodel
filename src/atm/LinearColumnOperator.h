@@ -82,7 +82,7 @@ public:
 	double Apply(
 		const double * dColumnIn,
 		int iRout,
-		int nStride = 1
+		int nStride
 	) const;
 
 	///	<summary>
@@ -94,7 +94,7 @@ public:
 		const double * dColumnRefIn,
 		double dColumnRefOut,
 		int iRout,
-		int nStride = 1
+		int nStride
 	) const;
 
 public:

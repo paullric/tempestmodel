@@ -207,7 +207,6 @@ double LinearColumnOperator::Apply(
 	return dOut;
 }
 
-
 ///////////////////////////////////////////////////////////////////////////////
 
 void LinearColumnOperator::Apply(

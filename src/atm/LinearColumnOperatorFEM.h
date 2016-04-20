@@ -312,7 +312,7 @@ private:
 	///	<summary>
 	///		Buffer array.
 	///	</summary>
-	DataArray1D<double> m_dBuffer;
+	mutable DataArray1D<double> m_dBuffer;
 
 };
 
