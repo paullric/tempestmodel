@@ -1029,6 +1029,67 @@ double GridPatch::ComputeTotalPotentialEnstrophy(
 
 ///////////////////////////////////////////////////////////////////////////////
 
+double GridPatch::ComputeTotalVerticalMomentum(
+	int iDataIndex
+) {
+	// Physical constants
+	const PhysicalConstants & phys = m_grid.GetModel().GetPhysicalConstants();
+
+	// Accumulated local energy
+	double dLocalVerticalMomentum = 0.0;
+
+	// Indices of EquationSet variables
+	const int UIx = 0;
+	const int VIx = 1;
+	const int PIx = 2;
+	const int WIx = 3;
+	const int RIx = 4;
+
+	// Determine type of energy to compute from EquationSet
+	EquationSet::Type eEquationSetType =
+		m_grid.GetModel().GetEquationSet().GetType();
+
+	// Grid data
+	if ((iDataIndex < 0) || (iDataIndex >= m_datavecStateNode.size())) {
+		_EXCEPTION1("iDataIndex out of range: %i", iDataIndex);
+	}
+	const DataArray4D<double> & dataNode = m_datavecStateNode[iDataIndex];
+
+	// Shallow Water ZonalMomentum
+	if (eEquationSetType == EquationSet::ShallowWaterEquations) {
+		_EXCEPTIONT("ComputeTotalVerticalMomentum() Not implemented "
+			"for ShallowWaterEquations");
+
+	} else {
+
+		// Set to zero
+		dLocalVerticalMomentum = 0.0;
+
+		// Loop over all elements
+		int k;
+		int i;
+		int j;
+
+		for (k = 0; k < m_grid.GetRElements(); k++) {
+		for (i = m_box.GetAInteriorBegin(); i < m_box.GetAInteriorEnd(); i++) {
+		for (j = m_box.GetBInteriorBegin(); j < m_box.GetBInteriorEnd(); j++) {
+
+			// Vertical momentum
+			dLocalVerticalMomentum +=
+				m_dataElementArea[k][i][j]
+				* dataNode[RIx][k][i][j]
+				* dataNode[WIx][k][i][j];
+		}
+		}
+		}
+
+	}
+
+	return dLocalVerticalMomentum;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
 void GridPatch::PrepareExchange() {
 	m_connect.PrepareExchange();
 }

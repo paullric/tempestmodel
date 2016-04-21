@@ -203,6 +203,13 @@ public:
 		int iDataIndex
 	);
 
+	///	<summary>
+	///		Compute total vertical momentum over this GridPatch.
+	///	</summary>
+	double ComputeTotalVerticalMomentum(
+		int iDataIndex
+	);
+
 public:
 	///	<summary>
 	///		Prepare for the exchange of halo data between processors.

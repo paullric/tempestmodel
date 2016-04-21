@@ -244,9 +244,16 @@ public:
 	) const;
 
 	///	<summary>
-	///		Compute total energy on the grid.
+	///		Compute total potential enstrophy on the grid.
 	///	</summary>
 	double ComputeTotalPotentialEnstrophy(
+		int iDataIndex
+	);
+
+	///	<summary>
+	///		Compute total vertical momentum on the grid.
+	///	</summary>
+	double ComputeTotalVerticalMomentum(
 		int iDataIndex
 	);
 
