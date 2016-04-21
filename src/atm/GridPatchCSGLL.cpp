@@ -1493,8 +1493,12 @@ void GridPatchCSGLL::InterpolateData(
 
 	// Convert to primitive variables
 	if ((eDataType == DataType_State) && (fConvertToPrimitive)) {
-		for (int k = 0; k < dREta.GetRows(); k++) {
-			for (int i = 0; i < dAlpha.GetRows(); i++) { 
+		for (int i = 0; i < dAlpha.GetRows(); i++) { 
+			if (iPatch[i] != GetPatchIndex()) {
+				continue;
+			}
+
+			for (int k = 0; k < dREta.GetRows(); k++) {
 				double dUalpha =
 					dInterpData[0][k][i] / phys.GetEarthRadius();
 				double dUbeta =
