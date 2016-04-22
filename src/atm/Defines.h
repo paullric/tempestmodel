@@ -31,8 +31,8 @@
 ///		Jacobian storage form
 ///	</summary>
 //#define USE_JACOBIAN_DEBUG
-#define USE_JACOBIAN_GENERAL
-//#define USE_JACOBIAN_DIAGONAL
+//#define USE_JACOBIAN_GENERAL
+#define USE_JACOBIAN_DIAGONAL
 
 ///	<summary>
 ///		Thermodynamic closure to use.
@@ -57,7 +57,8 @@
 ///	<summary>
 ///		Apply constant coefficient del^2 diffusion.
 ///	</summary>
-//#define UNIFORM_DIFFUSION
+#define UNIFORM_DIFFUSION
+#define UNIFORM_DIFFUSION_COEFF 500.0
 
 ///////////////////////////////////////////////////////////////////////////////
 
