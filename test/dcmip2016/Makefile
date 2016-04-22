@@ -12,13 +12,13 @@ include $(TEMPESTBASEDIR)/mk/framework.make
 
 FILES= TropicalCycloneTest.cpp \
        BaroclinicWaveUMJSTest.cpp \
-       MesoscaleStormTest.cpp
+       SupercellTest.cpp
 
 SHARED_FILES= KesslerPhysics.cpp
 
 INTERFACE_FILES= interface/tropical_cyclone_test.f90 \
                  interface/baroclinic_wave_test.f90 \
-                 interface/mesoscale_storm_test.f90 \
+                 interface/supercell_test.f90 \
                  interface/kessler.f90
 
 SHARED_OBJS= $(SHARED_FILES:%.cpp=$(BUILDDIR)/%.o) 

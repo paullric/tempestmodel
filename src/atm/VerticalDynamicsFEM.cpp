@@ -1153,6 +1153,7 @@ void VerticalDynamicsFEM::StepExplicit(
 						* m_dHyperDiffState[VIx][k];
 				}
 #endif
+#if defined(VERTICAL_HYPERVISCOSITY)
 				// Compute higher derivatives of u and v used for
 				// hyperviscosity
 				for (int h = 2; h < m_nHypervisOrder; h += 2) {
@@ -1191,6 +1192,7 @@ void VerticalDynamicsFEM::StepExplicit(
 						* fabs(m_dXiDotNode[k])
 						* m_dHyperDiffState[VIx][k];
 				}
+#endif
 			}
 #endif
 		}
@@ -2240,13 +2242,13 @@ void VerticalDynamicsFEM::PrepareColumn(
 					m_dStateREdge[c],
 					m_dHyperDiffState[c]);
 
-#ifdef UNIFORM_DIFFUSION
+#if defined(UNIFORM_DIFFUSION)
 				// Uniform diffusion needs second derivatives of the state
 				for (int k = 0; k <= nRElements; k++) {
 					m_dDiffDiffState[c][k] = m_dHyperDiffState[c][k];
 				}
 #endif
-
+#if defined(VERTICAL_HYPERVISCOSITY)
 				for (int h = 2; h < m_nHypervisOrder; h += 2) {
 					memcpy(
 						m_dStateAux,
@@ -2258,6 +2260,7 @@ void VerticalDynamicsFEM::PrepareColumn(
 						m_dHyperDiffState[c]
 					);
 				}
+#endif
 
 			// High-order derivatives on levels
 			} else {
@@ -2265,13 +2268,13 @@ void VerticalDynamicsFEM::PrepareColumn(
 					m_dStateNode[c],
 					m_dHyperDiffState[c]);
 
-#ifdef UNIFORM_DIFFUSION
+#if defined(UNIFORM_DIFFUSION)
 				// Uniform diffusion needs second derivatives of the state
 				for (int k = 0; k < nRElements; k++) {
 					m_dDiffDiffState[c][k] = m_dHyperDiffState[c][k];
 				}
 #endif
-
+#if defined(VERTICAL_HYPERVISCOSITY)
 				for (int h = 2; h < m_nHypervisOrder; h += 2) {
 					memcpy(
 						m_dStateAux,
@@ -2283,6 +2286,7 @@ void VerticalDynamicsFEM::PrepareColumn(
 						m_dHyperDiffState[c]
 					);
 				}
+#endif
 			}
 		}
 	}
@@ -2693,7 +2697,7 @@ void VerticalDynamicsFEM::BuildF(
 		}
 	}
 
-#ifdef UNIFORM_DIFFUSION
+#if defined(UNIFORM_DIFFUSION)
 	// Apply uniform diffusion to theta and vertical velocity
 	double dZtop = pGrid->GetZtop();
 
@@ -2721,7 +2725,7 @@ void VerticalDynamicsFEM::BuildF(
 	}
 #endif
 
-#ifdef VERTICAL_UPWINDING
+#if defined(VERTICAL_UPWINDING)
 	{
 		if (m_fUpwind[3]) {
 			_EXCEPTIONT("Not implemented: Vertical upwinding of "

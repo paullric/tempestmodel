@@ -1,14 +1,14 @@
-MODULE mesoscale_storm
+MODULE supercell
 
 !=======================================================================
 !
-!  Date:  July 28, 2015
+!  Date:  April 22, 2016
 !
 !  Functions for setting up idealized initial conditions for the
-!  Klemp et al. mesoscale storm test.  Before sampling the result,
-!  mesoscale_storm_test_init() must be called.
+!  Klemp et al. supercell test.  Before sampling the result,
+!  supercell_test_init() must be called.
 !
-!  SUBROUTINE mesoscale_storm_sample(
+!  SUBROUTINE supercell_sample(
 !    lon,lat,p,z,zcoords,u,v,t,thetav,ps,rho,q)
 !
 !  Given a point specified by: 
@@ -103,10 +103,10 @@ MODULE mesoscale_storm
 CONTAINS
 
 !=======================================================================
-!    Generate the mesoscale storm initial conditions
+!    Generate the supercell initial conditions
 !=======================================================================
-  SUBROUTINE mesoscale_storm_init() &
-    BIND(c, name = "mesoscale_storm_init")
+  SUBROUTINE supercell_init() &
+    BIND(c, name = "supercell_init")
 
     IMPLICIT NONE
 
@@ -331,13 +331,13 @@ CONTAINS
     ! Initialization successful
     initialized = 1
 
-  END SUBROUTINE mesoscale_storm_init
+  END SUBROUTINE supercell_init
 
 !-----------------------------------------------------------------------
-!    Evaluate the mesoscale storm initial conditions
+!    Evaluate the supercell initial conditions
 !-----------------------------------------------------------------------
-  SUBROUTINE mesoscale_storm_test(lon,lat,p,z,zcoords,u,v,t,thetav,ps,rho,q) &
-    BIND(c, name = "mesoscale_storm_test")
+  SUBROUTINE supercell_test(lon,lat,p,z,zcoords,u,v,t,thetav,ps,rho,q) &
+    BIND(c, name = "supercell_test")
  
     IMPLICIT NONE
 
@@ -373,7 +373,7 @@ CONTAINS
 
     ! Check that we are initialized
     if (initialized .ne. 1) then
-      write(*,*) 'mesoscale_storm_init() has not been called'
+      write(*,*) 'supercell_init() has not been called'
       stop
     end if
 
@@ -389,14 +389,13 @@ CONTAINS
     end if
 
     ! Sample surface pressure
-    CALL mesoscale_storm_z(lon, lat, 0.d0, ps, thetav, rho, q)
-    ps = p0 * ps**(cp/Rd)
+    CALL supercell_z(lon, lat, 0.d0, ps, thetav, rho, q)
 
     ! Calculate dependent variables
     if (zcoords .eq. 1) then
-      CALL mesoscale_storm_z(lon, lat, z, p, thetav, rho, q)
+      CALL supercell_z(lon, lat, z, p, thetav, rho, q)
     else
-      CALL mesoscale_storm_p(lon, lat, p, z, thetav, rho, q)
+      CALL supercell_p(lon, lat, p, z, thetav, rho, q)
     end if
 
     ! Sample the zonal velocity
@@ -408,12 +407,12 @@ CONTAINS
     ! Temperature
     t = thetav / (1.d0 + 0.61d0 * q) * (p / p0)**(Rd/cp)
 
-  END SUBROUTINE mesoscale_storm_test
+  END SUBROUTINE supercell_test
 
 !-----------------------------------------------------------------------
 !    Calculate pointwise pressure and temperature
 !-----------------------------------------------------------------------
-  SUBROUTINE mesoscale_storm_z(lon, lat, z, p, thetav, rho, q)
+  SUBROUTINE supercell_z(lon, lat, z, p, thetav, rho, q)
 
     REAL(8), INTENT(IN)  :: &
                 lon,        & ! Longitude (radians)
@@ -476,12 +475,12 @@ CONTAINS
     ! Updated pressure
     p = p0 * (rho * Rd * thetav / p0)**(cp/(cp-Rd))
 
-  END SUBROUTINE mesoscale_storm_z
+  END SUBROUTINE supercell_z
 
 !-----------------------------------------------------------------------
 !    Calculate pointwise z and temperature given pressure
 !-----------------------------------------------------------------------
-  SUBROUTINE mesoscale_storm_p(lon, lat, p, z, thetav, rho, q)
+  SUBROUTINE supercell_p(lon, lat, p, z, thetav, rho, q)
 
     REAL(8), INTENT(IN)  :: &
                 lon,        & ! Longitude (radians)
@@ -500,8 +499,8 @@ CONTAINS
     za = z1
     zb = z2
 
-    CALL mesoscale_storm_z(lon, lat, za, pa, thetav, rho, q)
-    CALL mesoscale_storm_z(lon, lat, zb, pb, thetav, rho, q)
+    CALL supercell_z(lon, lat, za, pa, thetav, rho, q)
+    CALL supercell_z(lon, lat, zb, pb, thetav, rho, q)
 
     if (pa .lt. p) then
       write(*,*) 'Requested pressure out of range on bottom, adjust sample interval'
@@ -519,7 +518,7 @@ CONTAINS
 
       zc = (za * (pb - p) - zb * (pa - p)) / (pb - pa)
 
-      CALL mesoscale_storm_z(lon, lat, zc, pc, thetav, rho, q)
+      CALL supercell_z(lon, lat, zc, pc, thetav, rho, q)
 
       !write(*,*) pc
 
@@ -543,7 +542,7 @@ CONTAINS
 
     z = zc
 
-  END SUBROUTINE mesoscale_storm_p
+  END SUBROUTINE supercell_p
 
 !-----------------------------------------------------------------------
 !    Calculate pointwise z and temperature given pressure
@@ -759,4 +758,4 @@ CONTAINS
 
   END SUBROUTINE
 
-END MODULE mesoscale_storm
+END MODULE supercell

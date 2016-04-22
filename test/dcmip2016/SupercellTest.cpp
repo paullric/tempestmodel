@@ -1,6 +1,6 @@
 ///////////////////////////////////////////////////////////////////////////////
 ///
-///	\file	MesoscaleStormTest.cpp
+///	\file	SupercellTest.cpp
 ///	\author  Paul Ullrich
 ///	\version June 23, 2013
 ///
@@ -21,10 +21,10 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 extern "C" {
-	void mesoscale_storm_init(
+	void supercell_init(
 	);
 
-	void mesoscale_storm_test(
+	void supercell_test(
 		double * dLon,
 		double * dLat,
 		double * dP,
@@ -45,7 +45,7 @@ extern "C" {
 ///	<summary>
 ///		DCMIP 2016: Tropical Cyclone Test
 ///	</summary>
-class MesoscaleStormTest : public TestCase {
+class SupercellTest : public TestCase {
 
 protected:
 	///	<summary>
@@ -62,14 +62,14 @@ public:
 	///	<summary>
 	///		Constructor.
 	///	</summary>
-	MesoscaleStormTest(
+	SupercellTest(
 		double dZtop,
 		double dEarthScaling
 	) :
 		m_dZtop(dZtop),
 		m_dEarthScaling(dEarthScaling)
 	{
-		mesoscale_storm_init();
+		supercell_init();
 	}
 
 public:
@@ -167,7 +167,7 @@ public:
 
 		// Calculate the reference state
 		//EvaluateReferenceState(phys, dZ, dLon, dLat, dState);
-		mesoscale_storm_test(
+		supercell_test(
 			&dLon,
 			&dLat,
 			&dP,
@@ -209,7 +209,7 @@ try {
 	double dEarthScaling;
 
 	// Parse the command line
-	BeginTempestCommandLine("MesoscaleStormTest");
+	BeginTempestCommandLine("SupercellTest");
 		SetDefaultResolution(20);
 		SetDefaultLevels(10);
 		SetDefaultOutputDeltaT("60s");
@@ -243,7 +243,7 @@ try {
 	// Set the test case for the model
 	AnnounceStartBlock("Initializing test case");
 	model.SetTestCase(
-		new MesoscaleStormTest(
+		new SupercellTest(
 			dZtop,
 			dEarthScaling));
 	AnnounceEndBlock("Done");

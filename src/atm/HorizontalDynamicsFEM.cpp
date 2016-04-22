@@ -1531,9 +1531,6 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 		}
 		}
 	}
-
-	// Apply positive definite filter to tracers
-	FilterNegativeTracers(iDataUpdate);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1565,6 +1562,30 @@ void HorizontalDynamicsFEM::StepExplicit(
 		_EXCEPTIONT("Invalid EquationSet");
 	}
 
+#ifdef UNIFORM_DIFFUSION
+	// Apply scalar and vector viscosity
+	const double dUniformDiffusionCoeff = 75.0;
+
+	ApplyScalarHyperdiffusion(
+		iDataInitial,
+		iDataUpdate,
+		dDeltaT,
+		dUniformDiffusionCoeff,
+		false,
+		false);
+
+	ApplyVectorHyperdiffusion(
+		iDataInitial,
+		iDataUpdate,
+		-dDeltaT,
+		dUniformDiffusionCoeff,
+		dUniformDiffusionCoeff,
+		false);
+#endif
+
+	// Apply positive definite filter to tracers
+	FilterNegativeTracers(iDataUpdate);
+
 /*
 	// Apply Direct Stiffness Summation (DSS) procedure
 	if (m_eHorizontalDynamicsType == SpectralElement) {
@@ -1581,7 +1602,8 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusion(
 	int iDataUpdate,
 	double dDeltaT,
 	double dNu,
-	bool fScaleNuLocally
+	bool fScaleNuLocally,
+	bool fDiffuseMass
 ) {
 	// Get a copy of the GLL grid
 	GridGLL * pGrid = dynamic_cast<GridGLL*>(m_model.GetGrid());
@@ -1640,7 +1662,7 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusion(
 		int nElementCountB = pPatch->GetElementCountB();
 
 		// Compute new hyperviscosity coefficient
-		double dLocalNu  = dNu;
+		double dLocalNu = dNu;
 
 		if (fScaleNuLocally) {
 			double dReferenceLength = pGrid->GetReferenceLength();
@@ -1658,6 +1680,10 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusion(
 			if (iType == 0) {
 				nComponentStart = 2;
 				nComponentEnd = m_model.GetEquationSet().GetComponents();
+
+				if (!fDiffuseMass) {
+					nComponentEnd--;
+				}
 
 			} else {
 				nComponentStart = 0;
@@ -1952,6 +1978,8 @@ void HorizontalDynamicsFEM::ApplyVectorHyperdiffusion(
 
 ///////////////////////////////////////////////////////////////////////////////
 
+#pragma message "jeguerra: Clean up this function"
+
 void HorizontalDynamicsFEM::ApplyRayleighFriction(
 	int iDataUpdate,
 	double dDeltaT
@@ -2071,10 +2099,6 @@ void HorizontalDynamicsFEM::ApplyRayleighFriction(
 int HorizontalDynamicsFEM::GetSubStepAfterSubCycleCount() {
 	int iSubStepCount = m_nHyperviscosityOrder / 2;
 
-#ifdef UNIFORM_DIFFUSION
-	iSubStepCount++;
-#endif
-
 	return iSubStepCount;
 }
 
@@ -2092,40 +2116,8 @@ int HorizontalDynamicsFEM::SubStepAfterSubCycle(
 	// Get the GLL grid
 	GridGLL * pGrid = dynamic_cast<GridGLL*>(m_model.GetGrid());
 
-#ifdef UNIFORM_DIFFUSION
-	const int iFirstHypervisSubStep = 1;
-
-	// Apply scalar and vector viscosity
-	if (iSubStep == 0) {
-		const double dUniformDiffusionCoeff = 75.0;
-
-		ApplyScalarHyperdiffusion(
-			iDataInitial,
-			iDataUpdate,
-			dDeltaT,
-			dUniformDiffusionCoeff,
-			false);
-
-		ApplyVectorHyperdiffusion(
-			iDataInitial,
-			iDataUpdate,
-			-dDeltaT,
-			dUniformDiffusionCoeff,
-			dUniformDiffusionCoeff,
-			false);
-
-		// Apply positive definite filter to tracers
-		FilterNegativeTracers(iDataUpdate);
-
-		return iDataUpdate;
-	}
-
-#else
-	const int iFirstHypervisSubStep = 0;
-#endif
-
 	// First calculation of Laplacian
-	if (iSubStep == iFirstHypervisSubStep) {
+	if (iSubStep == 0) {
 
 		// Apply scalar and vector hyperviscosity (first application)
 		pGrid->ZeroData(iDataWorking, DataType_State);
@@ -2139,7 +2131,7 @@ int HorizontalDynamicsFEM::SubStepAfterSubCycle(
 		return iDataWorking;
 
 	// Second calculation of Laplacian
-	} else if (iSubStep == iFirstHypervisSubStep+1) {
+	} else if (iSubStep == 1) {
 
 		// Copy initial data to updated data
 		pGrid->CopyData(iDataInitial, iDataUpdate, DataType_State);
@@ -2191,35 +2183,6 @@ void HorizontalDynamicsFEM::StepAfterSubCycle(
 	// Copy initial data to updated data
 	pGrid->CopyData(iDataInitial, iDataUpdate, DataType_State);
 	pGrid->CopyData(iDataInitial, iDataUpdate, DataType_Tracers);
-
-#ifdef UNIFORM_DIFFUSION
-	// Apply scalar and vector viscosity
-	const double dUniformDiffusionCoeff = 75.0;
-
-	ApplyScalarHyperdiffusion(
-		iDataInitial,
-		iDataUpdate,
-		dDeltaT,
-		dUniformDiffusionCoeff,
-		false);
-
-	ApplyVectorHyperdiffusion(
-		iDataInitial,
-		iDataUpdate,
-		-dDeltaT,
-		dUniformDiffusionCoeff,
-		dUniformDiffusionCoeff,
-		false);
-
-	// Apply positive definite filter to tracers
-	FilterNegativeTracers(iDataUpdate);
-
-	// Apply Direct Stiffness Summation
-	if ((m_dNuScalar == 0.0) && (m_dNuDiv == 0.0) && (m_dNuVort == 0.0)) {
-		pGrid->ApplyDSS(iDataUpdate, DataType_State);
-		pGrid->ApplyDSS(iDataUpdate, DataType_Tracers);
-	}
-#endif
 
 	// No hyperdiffusion
 	if ((m_dNuScalar == 0.0) && (m_dNuDiv == 0.0) && (m_dNuVort == 0.0)) {

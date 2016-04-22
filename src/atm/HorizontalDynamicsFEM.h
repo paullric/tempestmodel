@@ -112,7 +112,8 @@ protected:
 		int iDataUpdate,
 		double dDeltaT,
 		double dNu,
-		bool fScaleNuLocally
+		bool fScaleNuLocally,
+		bool fDiffuseMass = true
 	);
 
 	///	<summary>
