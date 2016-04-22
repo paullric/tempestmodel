@@ -72,3 +72,5 @@ test/dcmip2016/MesoscaleStormTest
 test/nonhydro_xz/Baroclinic3DCartesianRidgeTest
 test/hpc/DataContainerTest
 test/hpc/TaskTest
+
+test/dcmip2016/SupercellTest

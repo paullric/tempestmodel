@@ -1139,18 +1139,34 @@ void VerticalDynamicsFEM::StepExplicit(
 				// Apply uniform diffusion in the vertical
 				double dZtop = pGrid->GetZtop();
 
-				double dUniformDiffusionCoeff = 75.0 / (dZtop * dZtop);
+				double dUniformDiffusionCoeff =
+					UNIFORM_DIFFUSION_COEFF / (dZtop * dZtop);
+
+				for (int k = 0; k < nRElements; k++) {
+					m_dStateRefNode[UIx][k] = dataRefNode[UIx][k][i][j];
+					m_dStateRefNode[VIx][k] = dataRefNode[VIx][k][i][j];
+				}
+
+				pGrid->DiffDiffNodeToNode(
+					m_dStateRefNode[UIx],
+					m_dDiffDiffState[UIx]);
+
+				pGrid->DiffDiffNodeToNode(
+					m_dStateRefNode[VIx],
+					m_dDiffDiffState[VIx]);
 
 				for (int k = 0; k < nRElements; k++) {
 					dataUpdateNode[UIx][k][i][j] +=
 						dDeltaT
 						* dUniformDiffusionCoeff
-						* m_dHyperDiffState[UIx][k];
+						* (m_dHyperDiffState[UIx][k]
+							- m_dDiffDiffState[UIx][k]);
 
 					dataUpdateNode[VIx][k][i][j] +=
 						dDeltaT
 						* dUniformDiffusionCoeff
-						* m_dHyperDiffState[VIx][k];
+						* (m_dHyperDiffState[VIx][k]
+							- m_dDiffDiffState[VIx][k]);
 				}
 #endif
 #if defined(VERTICAL_HYPERVISCOSITY)
@@ -1868,7 +1884,8 @@ void VerticalDynamicsFEM::SetupReferenceColumn(
 				dataInitialNode[RIx][k][iA][iB];
 		}
 	}
-/*
+
+#if defined(UNIFORM_DIFFUSION)
 	// Construct reference column
 	if (m_fUseReferenceState) {
 		for (int k = 0; k < pGrid->GetRElements(); k++) {
@@ -1879,7 +1896,7 @@ void VerticalDynamicsFEM::SetupReferenceColumn(
 			m_dStateRefREdge[RIx][k] = dataRefREdge[RIx][k][iA][iB];
 			m_dStateRefREdge[PIx][k] = dataRefREdge[PIx][k][iA][iB];
 		}
-
+/*
 		// Build the Exner pressure reference
 		for (int k = 0; k < pGrid->GetRElements(); k++) {
 			m_dExnerRefNode[k] = dataExnerNode[k][iA][iB];
@@ -1890,8 +1907,9 @@ void VerticalDynamicsFEM::SetupReferenceColumn(
 			m_dExnerRefREdge[k] = dataExnerREdge[k][iA][iB];
 			m_dDiffExnerRefREdge[k] = dataDiffExnerREdge[k][iA][iB];
 		}
-	}
 */
+	}
+#endif
 
 	// Metric terms
 	const DataArray3D<double> & dJacobian =
@@ -2243,9 +2261,15 @@ void VerticalDynamicsFEM::PrepareColumn(
 					m_dHyperDiffState[c]);
 
 #if defined(UNIFORM_DIFFUSION)
+				pGrid->DiffDiffREdgeToREdge(
+					m_dStateRefREdge[c],
+					m_dDiffDiffState[c]);
+
 				// Uniform diffusion needs second derivatives of the state
 				for (int k = 0; k <= nRElements; k++) {
-					m_dDiffDiffState[c][k] = m_dHyperDiffState[c][k];
+					m_dDiffDiffState[c][k] =
+						m_dHyperDiffState[c][k]
+						- m_dDiffDiffState[c][k];
 				}
 #endif
 #if defined(VERTICAL_HYPERVISCOSITY)
@@ -2269,9 +2293,15 @@ void VerticalDynamicsFEM::PrepareColumn(
 					m_dHyperDiffState[c]);
 
 #if defined(UNIFORM_DIFFUSION)
+				pGrid->DiffDiffNodeToNode(
+					m_dStateRefNode[c],
+					m_dDiffDiffState[c]);
+
 				// Uniform diffusion needs second derivatives of the state
 				for (int k = 0; k < nRElements; k++) {
-					m_dDiffDiffState[c][k] = m_dHyperDiffState[c][k];
+					m_dDiffDiffState[c][k] =
+						m_dHyperDiffState[c][k]
+						- m_dDiffDiffState[c][k];
 				}
 #endif
 #if defined(VERTICAL_HYPERVISCOSITY)
@@ -2701,10 +2731,14 @@ void VerticalDynamicsFEM::BuildF(
 	// Apply uniform diffusion to theta and vertical velocity
 	double dZtop = pGrid->GetZtop();
 
-	double dUniformDiffusionCoeff = 75.0 / (dZtop * dZtop);
+	double dUniformDiffusionCoeff = UNIFORM_DIFFUSION_COEFF / (dZtop * dZtop);
 
-	// NOTE: Do not apply diffusion to density
-	for (int c = 2; c < 4; c++) {
+	for (int c = 2; c < 5; c++) {
+
+		// Only upwind select variables
+		if (!m_fUpwind[c]) {
+			continue;
+		}
 
 		// Uniform diffusion on interfaces
 		if (pGrid->GetVarLocation(c) == DataLocation_REdge) {
@@ -2792,7 +2826,7 @@ void VerticalDynamicsFEM::BuildF(
 	}
 #endif
 
-#if defined(VERTICAL_HYPERVISCOSITY) || defined(UNIFORM_DIFFUSION)
+#if defined(VERTICAL_HYPERVISCOSITY)
 	// Apply flow-dependent hyperviscosity
 	if (m_nHypervisOrder > 0) {
 		for (int c = 2; c < 5; c++) {

@@ -1564,7 +1564,7 @@ void HorizontalDynamicsFEM::StepExplicit(
 
 #ifdef UNIFORM_DIFFUSION
 	// Apply scalar and vector viscosity
-	const double dUniformDiffusionCoeff = 75.0;
+	const double dUniformDiffusionCoeff = UNIFORM_DIFFUSION_COEFF;
 
 	ApplyScalarHyperdiffusion(
 		iDataInitial,

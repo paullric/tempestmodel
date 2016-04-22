@@ -36,7 +36,8 @@ extern "C" {
 		double * dThetaV,
 		double * dPs,
 		double * dRho,
-		double * dQ
+		double * dQ,
+		int * iPert
 	);
 } 
 
@@ -126,17 +127,41 @@ public:
 		double * dState
 	) const {
 
-		// Store the state
-		// State 0 = Zonal velocity (m/s)
-		// State 1 = Meridional velocity (m/s)
-		// State 2 = Theta (K)
-		// State 3 = Vertical velocity (m/s)
-		// State 4 = Density (kg/m^3)
-		dState[0] = 0.0;
-		dState[1] = 0.0;
-		dState[2] = 0.0;
+		int iZcoords = 1;
+		
+		double dX = m_dEarthScaling;
+		double dP;
+		double dU;
+		double dV;
+		double dT;
+		double dThetaV;
+		double dPhis;
+		double dPs;
+		double dRho;
+		double dQ;
+		int iPert = 0;
+
+		// Calculate the reference state
+		supercell_test(
+			&dLon,
+			&dLat,
+			&dP,
+			&dZ,
+			&iZcoords,
+			&dU,
+			&dV,
+			&dT,
+			&dThetaV,
+			&dPs,
+			&dRho,
+			&dQ,
+			&iPert);
+
+		dState[0] = dU;
+		dState[1] = dV;
+		dState[2] = dThetaV;
 		dState[3] = 0.0;
-		dState[4] = 0.0;
+		dState[4] = dRho;
 	}
 	
 	///	<summary>
@@ -153,7 +178,7 @@ public:
 	) const {
 
 		int iZcoords = 1;
-		
+
 		double dX = m_dEarthScaling;
 		double dP;
 		double dU;
@@ -164,9 +189,9 @@ public:
 		double dPs;
 		double dRho;
 		double dQ;
+		int iPert = 1;
 
 		// Calculate the reference state
-		//EvaluateReferenceState(phys, dZ, dLon, dLat, dState);
 		supercell_test(
 			&dLon,
 			&dLat,
@@ -179,7 +204,8 @@ public:
 			&dThetaV,
 			&dPs,
 			&dRho,
-			&dQ);
+			&dQ,
+			&iPert);
 
 		dState[0] = dU;
 		dState[1] = dV;
@@ -265,6 +291,7 @@ try {
 
 } catch(Exception & e) {
 	std::cout << e.ToString() << std::endl;
+	TempestAbort();
 }
 
 	// Deinitialize Tempest

@@ -16,6 +16,7 @@ MODULE supercell
 !      lat    latitude (radians) 
 !      p/z    pressure (Pa) / height (m)
 !  zcoords    1 if z is specified, 0 if p is specified
+!     pert    1 if thermal perturbation included, 0 if not
 !
 !  the functions will return:
 !        p    pressure if z is specified (Pa)
@@ -336,7 +337,7 @@ CONTAINS
 !-----------------------------------------------------------------------
 !    Evaluate the supercell initial conditions
 !-----------------------------------------------------------------------
-  SUBROUTINE supercell_test(lon,lat,p,z,zcoords,u,v,t,thetav,ps,rho,q) &
+  SUBROUTINE supercell_test(lon,lat,p,z,zcoords,u,v,t,thetav,ps,rho,q,pert) &
     BIND(c, name = "supercell_test")
  
     IMPLICIT NONE
@@ -364,6 +365,9 @@ CONTAINS
                 rho,        & ! density (kg m^-3)
                 q             ! water vapor mixing ratio (kg/kg)
 
+    INTEGER, INTENT(IN) :: pert  ! 1 if perturbation should be included
+                                 ! 0 if no perturbation should be included
+
     !------------------------------------------------
     !   Local variables
     !------------------------------------------------
@@ -389,13 +393,13 @@ CONTAINS
     end if
 
     ! Sample surface pressure
-    CALL supercell_z(lon, lat, 0.d0, ps, thetav, rho, q)
+    CALL supercell_z(lon, lat, 0.d0, ps, thetav, rho, q, pert)
 
     ! Calculate dependent variables
     if (zcoords .eq. 1) then
-      CALL supercell_z(lon, lat, z, p, thetav, rho, q)
+      CALL supercell_z(lon, lat, z, p, thetav, rho, q, pert)
     else
-      CALL supercell_p(lon, lat, p, z, thetav, rho, q)
+      CALL supercell_p(lon, lat, p, z, thetav, rho, q, pert)
     end if
 
     ! Sample the zonal velocity
@@ -412,12 +416,15 @@ CONTAINS
 !-----------------------------------------------------------------------
 !    Calculate pointwise pressure and temperature
 !-----------------------------------------------------------------------
-  SUBROUTINE supercell_z(lon, lat, z, p, thetav, rho, q)
+  SUBROUTINE supercell_z(lon, lat, z, p, thetav, rho, q, pert)
 
     REAL(8), INTENT(IN)  :: &
                 lon,        & ! Longitude (radians)
                 lat,        & ! Latitude (radians)
                 z             ! Altitude (m)
+
+    INTEGER, INTENT(IN) :: pert  ! 1 if perturbation should be included
+                                 ! 0 if no perturbation should be included
 
     ! Evaluated variables
     REAL(8), INTENT(OUT) :: p, thetav, rho, q
@@ -469,8 +476,10 @@ CONTAINS
     rho = p / (Rd * exner * thetav)
 
     ! Modified virtual potential temperature
-    thetav = thetav &
-      + thermal_perturbation(lon, lat, z) * (1.d0 + 0.61d0 * q)
+    if (pert .ne. 0) then
+        thetav = thetav &
+           + thermal_perturbation(lon, lat, z) * (1.d0 + 0.61d0 * q)
+    end if
 
     ! Updated pressure
     p = p0 * (rho * Rd * thetav / p0)**(cp/(cp-Rd))
@@ -480,12 +489,15 @@ CONTAINS
 !-----------------------------------------------------------------------
 !    Calculate pointwise z and temperature given pressure
 !-----------------------------------------------------------------------
-  SUBROUTINE supercell_p(lon, lat, p, z, thetav, rho, q)
+  SUBROUTINE supercell_p(lon, lat, p, z, thetav, rho, q, pert)
 
     REAL(8), INTENT(IN)  :: &
                 lon,        & ! Longitude (radians)
                 lat,        & ! Latitude (radians)
                 p             ! Pressure (Pa)
+
+    INTEGER, INTENT(IN) :: pert  ! 1 if perturbation should be included
+                                 ! 0 if no perturbation should be included
 
     ! Evaluated variables
     REAL(8), INTENT(OUT) :: z, thetav, rho, q
@@ -499,8 +511,8 @@ CONTAINS
     za = z1
     zb = z2
 
-    CALL supercell_z(lon, lat, za, pa, thetav, rho, q)
-    CALL supercell_z(lon, lat, zb, pb, thetav, rho, q)
+    CALL supercell_z(lon, lat, za, pa, thetav, rho, q, pert)
+    CALL supercell_z(lon, lat, zb, pb, thetav, rho, q, pert)
 
     if (pa .lt. p) then
       write(*,*) 'Requested pressure out of range on bottom, adjust sample interval'
@@ -518,7 +530,7 @@ CONTAINS
 
       zc = (za * (pb - p) - zb * (pa - p)) / (pb - pa)
 
-      CALL supercell_z(lon, lat, zc, pc, thetav, rho, q)
+      CALL supercell_z(lon, lat, zc, pc, thetav, rho, q, pert)
 
       !write(*,*) pc
 

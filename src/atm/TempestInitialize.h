@@ -607,9 +607,21 @@ void TempestInitialize(int * argc, char*** argv) {
 #ifdef TEMPEST_PETSC
 	// Initialize PetSc
 	PetscInitialize(argc, argv, NULL, NULL);
-#else
+#endif
+#ifdef TEMPEST_MPIOMP
 	// Initialize MPI
 	MPI_Init(argc, argv);
+#endif
+
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void TempestAbort() {
+
+#ifdef TEMPEST_MPIOMP
+	// Abort
+	MPI_Abort(MPI_COMM_WORLD, 1);
 #endif
 
 }
@@ -621,7 +633,8 @@ void TempestDeinitialize() {
 #ifdef TEMPEST_PETSC
 	// Finalize PetSc
 	PetscFinalize();
-#else
+#endif
+#ifdef TEMPEST_MPIOMP
 	// Finalize MPI
 	MPI_Finalize();
 #endif
