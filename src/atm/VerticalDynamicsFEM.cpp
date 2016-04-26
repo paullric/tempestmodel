@@ -36,6 +36,7 @@
 //#define DIFFUSE_THERMO
 //#define DIFFUSE_VERTICAL_VELOCITY
 //#define DIFFUSE_RHO
+//#define DIFFUSE_TRACERS
 
 //#define DETECT_CFL_VIOLATION
 //#define CAP_VERTICAL_VELOCITY
@@ -2733,7 +2734,8 @@ void VerticalDynamicsFEM::BuildF(
 
 	double dUniformDiffusionCoeff = UNIFORM_DIFFUSION_COEFF / (dZtop * dZtop);
 
-	for (int c = 2; c < 5; c++) {
+	// NOTE: Do not diffuse density
+	for (int c = 2; c < 4; c++) {
 
 		// Only upwind select variables
 		if (!m_fUpwind[c]) {
@@ -3667,6 +3669,12 @@ void VerticalDynamicsFEM::UpdateColumnTracers(
 	// is being performed.
 	if (!m_fFullyExplicit) {
 
+#if defined(VERTICAL_HYPERVISCOSITY) || defined(VERTICAL_UPWINDING)
+#if defined(DIFFUSE_TRACERS)
+		_EXCEPTIONT("Not implemented");
+#endif
+#endif
+
 		// Mass flux on model levels
 		if (fMassFluxOnLevels) {
 
@@ -3913,6 +3921,25 @@ void VerticalDynamicsFEM::UpdateColumnTracers(
 					* m_dXiDotREdge[k];
 			}
 
+#ifdef UNIFORM_DIFFUSION
+			for (int k = 0; k < nRElements; k++) {
+				m_dStateAux[k] =
+					m_dTracerDensityNode[k]
+					/ m_dStateNode[RIx][k];
+			}
+
+			pGrid->DifferentiateNodeToREdge(
+				m_dStateAux,
+				m_dStateAuxDiff);
+
+			for (int k = 0; k <= nRElements; k++) {
+				m_dMassFluxREdge[k] +=
+					UNIFORM_DIFFUSION_COEFF
+					* m_dStateREdge[RIx][k]
+					* m_dStateAuxDiff[k];
+			}
+#endif
+
 			pGrid->DifferentiateREdgeToNode(
 				m_dMassFluxREdge,
 				m_dDiffMassFluxNode);
@@ -3925,6 +3952,57 @@ void VerticalDynamicsFEM::UpdateColumnTracers(
 				/ dJacobianNode[k][m_iA][m_iB];
 		}
 
+#if defined(VERTICAL_UPWINDING)
+#if defined(DIFFUSE_TRACERS)
+		{
+			if (!m_fFullyExplicit) {
+				_EXCEPTIONT("Not implemented: Implicit upwinding of tracers");
+			}
+
+			// Get penalty operator
+			const LinearColumnDiscPenaltyFEM & opPenalty =
+				pGrid->GetOpPenaltyNodeToNode();
+
+			// Number of finite elements in the vertical
+			int nFiniteElements = nRElements / m_nVerticalOrder;
+			int nNodesPerFiniteElement = m_nVerticalOrder;
+
+			if (pGrid->GetVerticalDiscretization() ==
+			    Grid::VerticalDiscretization_FiniteVolume
+			) {
+				nFiniteElements = nRElements;
+				nNodesPerFiniteElement = 1;
+			}
+
+			// Calculate weights
+			for (int a = 0; a < nFiniteElements - 1; a++) {
+				int k = (a+1) * nNodesPerFiniteElement;
+				m_dUpwindWeights[a] = fabs(m_dXiDotREdge[k]);
+			}
+
+			// Apply upwinding
+			m_dStateAux.Zero();
+			opPenalty.Apply(
+				&(m_dUpwindWeights[0]),
+				&(m_dTracerDensityNode[0]),
+				&(m_dStateAux[0]),
+				1,
+				1);
+
+			for (int k = 0; k < nRElements; k++) {
+				m_vecTracersF[k] -= m_dStateAux[k];
+			}
+		}
+#endif
+#endif
+
+#if defined(VERTICAL_HYPERVISCOSITY)
+#if defined(DIFFUSE_TRACERS)
+	_EXCEPTIONT("Not implemented: Tracer hyperviscosity");
+#endif
+#endif
+
+/*
 		double dDiff = 0.0;
 		double dSum = 0.0;
 		for (int k = 0; k < nRElements; k++) {
@@ -3945,7 +4023,7 @@ void VerticalDynamicsFEM::UpdateColumnTracers(
 				_EXCEPTION();
 			}
 		}
-
+*/
 /*
 		FILE * fpF = fopen("TracersF.txt", "w");
 		for (int k = 0; k < nRElements; k++) {
