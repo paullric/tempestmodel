@@ -105,8 +105,28 @@ public:
 		double dZ,
 		double dLon,
 		double dLat,
+		double * dState,
+		double * dTracer
+	) const {
+		EvaluateReferenceState(
+			phys,
+			dZ,
+			dLon,
+			dLat,
+			dState);
+	}
+
+	///	<summary>
+	///		Evaluate the reference state at the given point.
+	///	</summary>
+	virtual void EvaluateReferenceState(
+		const PhysicalConstants & phys,
+		double dZ,
+		double dLon,
+		double dLat,
 		double * dState
 	) const {
+		_EXCEPTIONT("EvaluateReferenceState not implemented");
 	}
 
 	///	<summary>

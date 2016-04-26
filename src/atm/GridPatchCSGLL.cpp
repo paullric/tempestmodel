@@ -21,6 +21,7 @@
 #include "GridSpacing.h"
 #include "HorizontalDynamicsDG.h"
 #include "VerticalStretch.h"
+#include "Defines.h"
 
 #include "Direction.h"
 #include "CubedSphereTrans.h"
@@ -748,10 +749,12 @@ void GridPatchCSGLL::EvaluateTestCase(
 	DataArray1D<double> dPointwiseState(nComponents);
 	DataArray1D<double> dPointwiseRefState(nComponents);
 	DataArray1D<double> dPointwiseTracers;
+	DataArray1D<double> dPointwiseRefTracers;
 
 	if (m_datavecTracers.size() > 0) {
 		if (nTracers > 0) {
 			dPointwiseTracers.Allocate(nTracers);
+			dPointwiseRefTracers.Allocate(nTracers);
 		}
 	}
 
@@ -802,15 +805,21 @@ void GridPatchCSGLL::EvaluateTestCase(
 				m_dataZLevels[k][i][j],
 				m_dataLon[i][j],
 				m_dataLat[i][j],
-				dPointwiseRefState);
+				dPointwiseRefState,
+				dPointwiseRefTracers);
 
-			DataArray1D<double> dPointwiseRefTracers;
 			eqns.ConvertComponents(
 				phys, dPointwiseRefState, dPointwiseRefTracers);
 
-			for (int c = 0; c < dPointwiseState.GetRows(); c++) {
+			for (int c = 0; c < dPointwiseRefState.GetRows(); c++) {
 				m_dataRefStateNode[c][k][i][j] = dPointwiseRefState[c];
 			}
+
+#if defined(TRACER_REFERENCE_STATE)
+			for (int c = 0; c < dPointwiseRefTracers.GetRows(); c++) {
+				m_dataRefTracers[c][k][i][j] = dPointwiseRefTracers[c];
+			}
+#endif
 
 			// Transform reference velocities
 			dUlon = m_dataRefStateNode[0][k][i][j];
@@ -882,9 +891,9 @@ void GridPatchCSGLL::EvaluateTestCase(
 				m_dataZInterfaces[k][i][j],
 				m_dataLon[i][j],
 				m_dataLat[i][j],
-				dPointwiseRefState);
+				dPointwiseRefState,
+				dPointwiseRefTracers);
 
-			DataArray1D<double> dPointwiseRefTracers;
 			eqns.ConvertComponents(
 				phys, dPointwiseRefState, dPointwiseRefTracers);
 

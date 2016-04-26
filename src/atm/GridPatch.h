@@ -928,6 +928,52 @@ public:
 	}
 
 	///	<summary>
+	///		Get the tracer data reference state.
+	///	</summary>
+	DataArray4D<double> & GetReferenceTracers() {
+		if (!m_fContainsData) {
+			_EXCEPTIONT("Stub patch does not store data.");
+		}
+		return m_dataRefTracers;
+	}
+
+	///	<summary>
+	///		Get the tracer data reference state.
+	///	</summary>
+	const DataArray4D<double> & GetReferenceTracers() const {
+		if (!m_fContainsData) {
+			_EXCEPTIONT("Stub patch does not store data.");
+		}
+		return m_dataRefTracers;
+	}
+
+	///	<summary>
+	///		Get the tracer data matrix with the specified index.
+	///	</summary>
+	DataArray4D<double> & GetDataTracersReference(int ix) {
+		if (!m_fContainsData) {
+			_EXCEPTIONT("Stub patch does not store data.");
+		}
+		if ((ix < 0) || (ix > m_datavecTracers.size())) {
+			_EXCEPTIONT("Invalid index in TracersData vector.");
+		}
+		return m_datavecTracers[ix];
+	}
+
+	///	<summary>
+	///		Get the tracer data matrix with the specified index.
+	///	</summary>
+	const DataArray4D<double> & GetDataTracersReference(int ix) const {
+		if (!m_fContainsData) {
+			_EXCEPTIONT("Stub patch does not store data.");
+		}
+		if ((ix < 0) || (ix > m_datavecTracers.size())) {
+			_EXCEPTIONT("Invalid index in TracersData vector.");
+		}
+		return m_datavecTracers[ix];
+	}
+
+	///	<summary>
 	///		Get the pressure data.
 	///	</summary>
 	DataArray3D<double> & GetDataPressure() {
@@ -1287,6 +1333,11 @@ public:
 	///		Grid data for tracer variables (State).
 	///	</summary>
 	DataArray4DVector m_datavecTracers;
+
+	///	<summary>
+	///		Grid data for the reference state on model levels (State).
+	///	</summary>
+	DataArray4D<double> m_dataRefTracers;
 
 public:
 	///	<summary>

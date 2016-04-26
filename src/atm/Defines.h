@@ -57,8 +57,15 @@
 ///	<summary>
 ///		Apply constant coefficient del^2 diffusion.
 ///	</summary>
-#define UNIFORM_DIFFUSION
+//#define UNIFORM_DIFFUSION
 #define UNIFORM_DIFFUSION_COEFF 500.0
+
+///	<summary>
+///		Define a reference state for tracers.
+///	</summary>
+#if defined(UNIFORM_DIFFUSION)
+#define TRACER_REFERENCE_STATE
+#endif
 
 ///////////////////////////////////////////////////////////////////////////////
 

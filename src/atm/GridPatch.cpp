@@ -271,6 +271,16 @@ void GridPatch::InitializeDataLocal(
 		m_grid.GetRElements()+1,
 		m_box.GetATotalWidth(),
 		m_box.GetBTotalWidth());
+	
+#if defined(TRACER_REFERENCE_STATE)
+	m_dataRefTracers.SetDataType(DataType_Tracers);
+	m_dataRefTracers.SetDataLocation(DataLocation_Node);
+	m_dataRefTracers.SetSize(
+		eqn.GetTracers(),
+		m_grid.GetRElements(),
+		m_box.GetATotalWidth(),
+		m_box.GetBTotalWidth());
+#endif
 
 	// Rayleigh friction strength
 	m_dataRayleighStrengthNode.SetDataType(DataType_None);
@@ -323,6 +333,11 @@ void GridPatch::InitializeDataLocal(
 	m_dcGeometric.PushDataChunk(&m_dataZInterfaces);
 	m_dcGeometric.PushDataChunk(&m_dataRefStateNode);
 	m_dcGeometric.PushDataChunk(&m_dataRefStateREdge);
+
+#if defined(TRACER_REFERENCE_STATE)
+	m_dcGeometric.PushDataChunk(&m_dataRefTracers);
+#endif
+
 	m_dcGeometric.PushDataChunk(&m_dataRayleighStrengthNode);
 	m_dcGeometric.PushDataChunk(&m_dataRayleighStrengthREdge);
 
@@ -382,7 +397,7 @@ void GridPatch::InitializeDataLocal(
 				m_box.GetATotalWidth(),
 				m_box.GetBTotalWidth());
 		}
-	
+
 		// Store active state data
 		m_dcActiveState.PushDataChunk(&m_datavecTracers[0]);
 

@@ -241,6 +241,7 @@ protected:
 		const DataArray4D<double> & dataUpdateNode,
 		const DataArray4D<double> & dataInitialREdge,
 		const DataArray4D<double> & dataUpdateREdge,
+		const DataArray4D<double> & dataRefTracer,
 		const DataArray4D<double> & dataInitialTracer,
 		DataArray4D<double> & dataUpdateTracer
 	);

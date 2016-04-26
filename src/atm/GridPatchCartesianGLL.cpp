@@ -764,9 +764,12 @@ void GridPatchCartesianGLL::EvaluateTestCase(
 	DataArray1D<double> dPointwiseRefState(nComponents);
 
 	DataArray1D<double> dPointwiseTracers;
+	DataArray1D<double> dPointwiseRefTracers;
+
 	if (m_datavecTracers.size() > 0) {
 		if (nTracers > 0) {
 			dPointwiseTracers.Allocate(nTracers);
+			dPointwiseRefTracers.Allocate(nTracers);
 		}
 	}
 
@@ -801,13 +804,19 @@ void GridPatchCartesianGLL::EvaluateTestCase(
 				m_dataLat[i][j],
 				dPointwiseRefState);
 
-			DataArray1D<double> dPointwiseRefTracers;
 			eqns.ConvertComponents(
 				phys, dPointwiseRefState, dPointwiseRefTracers);
 
 			for (int c = 0; c < dPointwiseState.GetRows(); c++) {
 				m_dataRefStateNode[c][k][i][j] = dPointwiseRefState[c];
 			}
+
+#if defined(TRACER_REFERENCE_STATE)
+			for (int c = 0; c < dPointwiseRefTracers.GetRows(); c++) {
+				m_dataRefTracers[c][k][i][j] =
+					dPointwiseRefTracers[c];
+			}
+#endif
 		}
 
 		// Evaluate tracers

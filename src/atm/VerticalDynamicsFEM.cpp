@@ -481,6 +481,9 @@ void VerticalDynamicsFEM::StepImplicitTermsExplicitly(
 		DataArray4D<double> & dataUpdateREdge =
 			pPatch->GetDataState(iDataUpdate, DataLocation_REdge);
 
+		DataArray4D<double> & dataReferenceTracer =
+			pPatch->GetReferenceTracers();
+
 		DataArray4D<double> & dataInitialTracer =
 			pPatch->GetDataTracers(iDataInitial);
 
@@ -591,6 +594,7 @@ void VerticalDynamicsFEM::StepImplicitTermsExplicitly(
 				dataUpdateNode,
 				dataInitialREdge,
 				dataUpdateREdge,
+				dataReferenceTracer,
 				dataInitialTracer,
 				dataUpdateTracer);
 		}
@@ -664,6 +668,9 @@ void VerticalDynamicsFEM::StepExplicit(
 
 		DataArray4D<double> & dataUpdateREdge =
 			pPatch->GetDataState(iDataUpdate, DataLocation_REdge);
+
+		DataArray4D<double> & dataReferenceTracer =
+			pPatch->GetReferenceTracers();
 
 		DataArray4D<double> & dataInitialTracer =
 			pPatch->GetDataTracers(iDataInitial);
@@ -777,6 +784,7 @@ void VerticalDynamicsFEM::StepExplicit(
 					dataUpdateNode,
 					dataInitialREdge,
 					dataUpdateREdge,
+					dataReferenceTracer,
 					dataInitialTracer,
 					dataUpdateTracer);
 /*
@@ -1345,6 +1353,9 @@ void VerticalDynamicsFEM::StepImplicit(
 			pPatch->GetDataState(iDataUpdate, DataLocation_REdge);
 
 		// Tracer Data
+		DataArray4D<double> & dataReferenceTracer =
+			pPatch->GetReferenceTracers();
+
 		DataArray4D<double> & dataInitialTracer =
 			pPatch->GetDataTracers(iDataInitial);
 
@@ -1644,6 +1655,7 @@ void VerticalDynamicsFEM::StepImplicit(
 				dataUpdateNode,
 				dataInitialREdge,
 				dataUpdateREdge,
+				dataReferenceTracer,
 				dataInitialTracer,
 				dataUpdateTracer);
 		}
@@ -3580,6 +3592,7 @@ void VerticalDynamicsFEM::UpdateColumnTracers(
 	const DataArray4D<double> & dataUpdateNode,
 	const DataArray4D<double> & dataInitialREdge,
 	const DataArray4D<double> & dataUpdateREdge,
+	const DataArray4D<double> & dataRefTracer,
 	const DataArray4D<double> & dataInitialTracer,
 	DataArray4D<double> & dataUpdateTracer
 ) {
@@ -3926,6 +3939,12 @@ void VerticalDynamicsFEM::UpdateColumnTracers(
 				m_dStateAux[k] =
 					m_dTracerDensityNode[k]
 					/ m_dStateNode[RIx][k];
+
+#if defined(TRACER_REFERENCE_STATE)
+				m_dStateAux[k] -=
+					dataRefTracer[c][k][m_iA][m_iB]
+					/ m_dStateRefNode[RIx][k];
+#endif
 			}
 
 			pGrid->DifferentiateNodeToREdge(
