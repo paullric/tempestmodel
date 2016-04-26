@@ -3687,6 +3687,9 @@ void VerticalDynamicsFEM::UpdateColumnTracers(
 		_EXCEPTIONT("Not implemented");
 #endif
 #endif
+#ifdef UNIFORM_DIFFUSION
+		_EXCEPTIONT("Not implemented");
+#endif
 
 		// Mass flux on model levels
 		if (fMassFluxOnLevels) {
@@ -4050,7 +4053,7 @@ void VerticalDynamicsFEM::UpdateColumnTracers(
 		}
 		fclose(fpF);
 */
-/*
+
 #if defined(USE_JACOBIAN_GENERAL) || defined(USE_JACOBIAN_DEBUG)
 		// Solve the matrix system using LU decomposed matrix
 		int iInfo =
@@ -4073,7 +4076,7 @@ void VerticalDynamicsFEM::UpdateColumnTracers(
 #else
 	_EXCEPTIONT("Invalid Jacobian type");
 #endif
-*/
+
 		if (iInfo != 0) {
 			_EXCEPTIONT("Inversion failure");
 		}
