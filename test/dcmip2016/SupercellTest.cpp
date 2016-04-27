@@ -124,7 +124,8 @@ public:
 		double dZ,
 		double dLon,
 		double dLat,
-		double * dState
+		double * dState,
+		double * dTracer
 	) const {
 
 		int iZcoords = 1;
@@ -162,6 +163,10 @@ public:
 		dState[2] = dThetaV;
 		dState[3] = 0.0;
 		dState[4] = dRho;
+
+		dTracer[0] = dRho * dQ;
+		dTracer[1] = 0.0;
+		dTracer[2] = 0.0;
 	}
 	
 	///	<summary>
