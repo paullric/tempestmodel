@@ -908,6 +908,9 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 								* dDxBasis1D[s][j];
 						}
 
+						dCovDaQ *= dInvElementDeltaA;
+						dCovDbQ *= dInvElementDeltaB;
+
 						// Gradient of tracer mixing ratio
 						double dConDaQ =
 							  dContraMetricA[k][iA][iB][0] * dCovDaQ
