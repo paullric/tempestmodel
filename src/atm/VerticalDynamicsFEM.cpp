@@ -788,6 +788,14 @@ void VerticalDynamicsFEM::StepExplicit(
 					dataInitialTracer,
 					dataUpdateTracer);
 /*
+				if ((pPatch->GetPatchIndex() == 0) && (iA == 3) && (iB == 3)) {
+					int k = 0;
+					printf("X %1.15e %1.15e\n",
+						dataUpdateNode[RIx][k][iA][iB] - dataInitialNode[RIx][k][iA][iB],
+						dataUpdateTracer[0][k][iA][iB] - dataInitialTracer[0][k][iA][iB]);
+				}
+*/
+/*
 				// Check boundary condition
 				{
 					const DataArray4D<double> & dContraMetricXi =
@@ -3723,7 +3731,6 @@ void VerticalDynamicsFEM::UpdateColumnTracers(
 			m_dXiDotNode[0] = 0.0;
 			m_dXiDotNode[nRElements-1] = 0.0;
 
-			_EXCEPTION();
 			// dRhoQ_k/dRhoQ_n
 			for (int k = 0; k < nRElements; k++) {
 
@@ -3835,6 +3842,11 @@ void VerticalDynamicsFEM::UpdateColumnTracers(
 	// with mass flux on levels
 	if (fMassFluxOnLevels) {
 
+		// Not implemented
+		if (m_fFullyExplicit) {
+			_EXCEPTIONT("Not implemented");
+		}
+
 		// Calculate u^xi on model levels
 		if (pGrid->GetVarLocation(WIx) == DataLocation_REdge) {
 			for (int k = 0; k <= nRElements; k++) {
@@ -3868,16 +3880,36 @@ void VerticalDynamicsFEM::UpdateColumnTracers(
 	} else {
 
 		// Calculate u^xi on model interfaces
-		if (pGrid->GetVarLocation(WIx) == DataLocation_REdge) {
-			for (int k = 0; k <= nRElements; k++) {
-				m_dStateREdge[WIx][k] = dataUpdateREdge[WIx][k][m_iA][m_iB];
+		if (m_fFullyExplicit) {
+			if (pGrid->GetVarLocation(WIx) == DataLocation_REdge) {
+				for (int k = 0; k <= nRElements; k++) {
+					m_dStateREdge[WIx][k] =
+						dataInitialREdge[WIx][k][m_iA][m_iB];
+				}
+
+			} else {
+				for (int k = 0; k < nRElements; k++) {
+					m_dStateNode[WIx][k] =
+						dataInitialNode[WIx][k][m_iA][m_iB];
+				}
 			}
 
 		} else {
-			for (int k = 0; k < nRElements; k++) {
-				m_dStateNode[WIx][k] = dataUpdateNode[WIx][k][m_iA][m_iB];
-			}
+			if (pGrid->GetVarLocation(WIx) == DataLocation_REdge) {
+				for (int k = 0; k <= nRElements; k++) {
+					m_dStateREdge[WIx][k] =
+						dataUpdateREdge[WIx][k][m_iA][m_iB];
+				}
 
+			} else {
+				for (int k = 0; k < nRElements; k++) {
+					m_dStateNode[WIx][k] =
+						dataUpdateNode[WIx][k][m_iA][m_iB];
+				}
+			}
+		}
+
+		if (pGrid->GetVarLocation(WIx) == DataLocation_Node) {
 			pGrid->InterpolateNodeToREdge(
 				m_dStateNode[WIx],
 				m_dStateREdge[WIx]);

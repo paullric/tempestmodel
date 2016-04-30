@@ -890,6 +890,46 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 						m_dBetaTracerFlux[c][i][j] =
 							dBetaBaseFlux
 							* dataInitialTracer[c][k][iA][iB];
+
+#if defined(UNIFORM_DIFFUSION)
+						// Derivatives of tracer mixing ratio
+						double dCovDaQ = 0.0;
+						double dCovDbQ = 0.0;
+
+						for (int s = 0; s < m_nHorizontalOrder; s++) {
+							dCovDaQ +=
+								dataInitialTracer[c][k][iElementA+s][iB]
+								/ dataInitialNode[RIx][k][iElementA+s][iB]
+								* dDxBasis1D[s][i];
+
+							dCovDbQ +=
+								dataInitialTracer[c][k][iA][iElementB+s]
+								/ dataInitialNode[RIx][k][iA][iElementB+s]
+								* dDxBasis1D[s][j];
+						}
+
+						// Gradient of tracer mixing ratio
+						double dConDaQ =
+							  dContraMetricA[k][iA][iB][0] * dCovDaQ
+							+ dContraMetricA[k][iA][iB][1] * dCovDbQ;
+
+						double dConDbQ =
+							  dContraMetricB[k][iA][iB][0] * dCovDaQ
+							+ dContraMetricB[k][iA][iB][1] * dCovDbQ;
+
+						m_dAlphaTracerFlux[c][i][j] +=
+							UNIFORM_DIFFUSION_COEFF
+							* dJacobian[k][iA][iB]
+							* dataInitialNode[RIx][k][iA][iB]
+							* dConDaQ;
+
+						m_dBetaTracerFlux[c][i][j] +=
+							UNIFORM_DIFFUSION_COEFF
+							* dJacobian[k][iA][iB]
+							* dataInitialNode[RIx][k][iA][iB]
+							* dConDbQ;
+#endif
+
 					}
 
 #ifdef INSTEP_DIVERGENCE_DAMPING
@@ -1138,6 +1178,7 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
  					// Apply update to horizontal velocity on model levels
 					dataUpdateNode[UIx][k][iA][iB] +=
 						dDeltaT * dLocalUpdateUa;
+
 					// Omit beta update for XZ 2D models
 					if (pGrid->GetIsCartesianXZ() == false) {
 						dataUpdateNode[VIx][k][iA][iB] +=
@@ -1688,6 +1729,10 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusion(
 			} else {
 				nComponentStart = 0;
 				nComponentEnd = m_model.GetEquationSet().GetTracers();
+
+				if (!fDiffuseMass) {
+					continue;
+				}
 			}
 
 			// Loop over all components
