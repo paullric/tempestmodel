@@ -1911,10 +1911,12 @@ void VerticalDynamicsFEM::SetupReferenceColumn(
 	if (m_fUseReferenceState) {
 		for (int k = 0; k < pGrid->GetRElements(); k++) {
 			m_dStateRefNode[RIx][k] = dataRefNode[RIx][k][iA][iB];
+			m_dStateRefNode[WIx][k] = dataRefNode[WIx][k][iA][iB];
 			m_dStateRefNode[PIx][k] = dataRefNode[PIx][k][iA][iB];
 		}
 		for (int k = 0; k <= pGrid->GetRElements(); k++) {
 			m_dStateRefREdge[RIx][k] = dataRefREdge[RIx][k][iA][iB];
+			m_dStateRefREdge[WIx][k] = dataRefREdge[WIx][k][iA][iB];
 			m_dStateRefREdge[PIx][k] = dataRefREdge[PIx][k][iA][iB];
 		}
 /*
@@ -2754,6 +2756,10 @@ void VerticalDynamicsFEM::BuildF(
 
 	double dUniformDiffusionCoeff = UNIFORM_DIFFUSION_COEFF / (dZtop * dZtop);
 
+	// Do not diffusion vertical velocity on boundaries
+	m_dDiffDiffState[WIx][0] = 0.0;
+	m_dDiffDiffState[WIx][nRElements] = 0.0;
+
 	// NOTE: Do not diffuse density
 	for (int c = 2; c < 4; c++) {
 
@@ -2783,11 +2789,12 @@ void VerticalDynamicsFEM::BuildF(
 
 #if defined(VERTICAL_UPWINDING)
 	{
+/*
 		if (m_fUpwind[3]) {
 			_EXCEPTIONT("Not implemented: Vertical upwinding of "
 				"vertical velocity");
 		}
-
+*/
 		// Get penalty operator
 		const LinearColumnDiscPenaltyFEM & opPenalty =
 			pGrid->GetOpPenaltyNodeToNode();
@@ -2826,7 +2833,8 @@ void VerticalDynamicsFEM::BuildF(
 
 			// Upwinding on interfaces (not implemented)
 			if (pGrid->GetVarLocation(c) == DataLocation_REdge) {
-				_EXCEPTIONT("Upwinding on interfaces not implemented");
+				continue;
+				//_EXCEPTIONT("Upwinding on interfaces not implemented");
 
 			// Upwinding on levels
 			} else {
