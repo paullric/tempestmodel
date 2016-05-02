@@ -2267,7 +2267,8 @@ void VerticalDynamicsFEM::PrepareColumn(
 
 #if defined(VERTICAL_HYPERVISCOSITY) || defined(UNIFORM_DIFFUSION)
 	// Calculate second derivatives of other state variables
-	if (m_nHypervisOrder > 0) {
+	//if (m_nHypervisOrder > 0) {
+	{
 
 		// Do not upwind horizontal velocity here
 		for (int c = 2; c < 5; c++) {
