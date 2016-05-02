@@ -205,6 +205,19 @@ void GridGLL::Initialize() {
 			m_dREtaLevels,
 			m_dREtaInterfaces);
 
+		// Initialize second derivative operators
+		m_opDiffDiffNodeToNode.Initialize(
+			LinearColumnDiffDiffFEM::InterpSource_Levels,
+			1,
+			m_dREtaLevels,
+			m_dREtaInterfaces);
+
+		m_opDiffDiffREdgeToREdge.Initialize(
+			LinearColumnDiffDiffFEM::InterpSource_Interfaces,
+			1,
+			m_dREtaLevels,
+			m_dREtaInterfaces);
+
 		// Initialize discontinuous penalty operator
 		m_opPenaltyNodeToNode.InitializeReconstructed(
 			m_nVerticalOrder,
