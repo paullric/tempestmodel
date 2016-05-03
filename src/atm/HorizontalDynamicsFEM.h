@@ -113,7 +113,8 @@ protected:
 		double dDeltaT,
 		double dNu,
 		bool fScaleNuLocally,
-		bool fDiffuseMass = true
+		int iComponent = (-1),
+		bool fRemoveRefState = false
 	);
 
 	///	<summary>
@@ -226,6 +227,11 @@ protected:
 	///		Nodal pointwise gradient of Jacobian in beta direction (buffer).
 	///	</summary>
 	DataArray2D<double> m_dJGradientB;
+
+	///	<summary>
+	///		Nodal state values (buffer).
+	///	</summary>
+	DataArray2D<double> m_dBufferState;
 
 protected:
 	///	<summary>

@@ -1120,7 +1120,7 @@ void VerticalDynamicsFEM::StepExplicit(
 #endif
 
 #if defined(VERTICAL_HYPERVISCOSITY) || defined(UNIFORM_DIFFUSION)
-			// Apply hyperviscosity to U and V
+			// Apply hyperviscosity or uniform diffusion to U and V
 			if (m_fUpwind[UIx]) {
 
 				// Calculate u^xi on model levels (if not done above)
@@ -1157,7 +1157,7 @@ void VerticalDynamicsFEM::StepExplicit(
 				double dZtop = pGrid->GetZtop();
 
 				double dUniformDiffusionCoeff =
-					UNIFORM_DIFFUSION_COEFF / (dZtop * dZtop);
+					UNIFORM_VECTOR_DIFFUSION_COEFF / (dZtop * dZtop);
 
 				for (int k = 0; k < nRElements; k++) {
 					m_dStateRefNode[UIx][k] = dataRefNode[UIx][k][i][j];
@@ -2760,8 +2760,6 @@ void VerticalDynamicsFEM::BuildF(
 	// Apply uniform diffusion to theta and vertical velocity
 	double dZtop = pGrid->GetZtop();
 
-	double dUniformDiffusionCoeff = UNIFORM_DIFFUSION_COEFF / (dZtop * dZtop);
-
 	// Do not diffusion vertical velocity on boundaries
 	m_dDiffDiffState[WIx][0] = 0.0;
 	m_dDiffDiffState[WIx][nRElements] = 0.0;
@@ -2772,6 +2770,16 @@ void VerticalDynamicsFEM::BuildF(
 		// Only upwind select variables
 		if (!m_fUpwind[c]) {
 			continue;
+		}
+
+		double dUniformDiffusionCoeff = 0.0;
+		if (c == 2) {
+			dUniformDiffusionCoeff =
+				UNIFORM_SCALAR_DIFFUSION_COEFF / (dZtop * dZtop);
+		}
+		if (c == 3) {
+			dUniformDiffusionCoeff =
+				UNIFORM_VECTOR_DIFFUSION_COEFF / (dZtop * dZtop);
 		}
 
 		// Uniform diffusion on interfaces
@@ -3983,7 +3991,7 @@ void VerticalDynamicsFEM::UpdateColumnTracers(
 					* m_dXiDotREdge[k];
 			}
 
-#ifdef UNIFORM_DIFFUSION
+#if defined(UNIFORM_DIFFUSION)
 			for (int k = 0; k < nRElements; k++) {
 				m_dStateAux[k] =
 					m_dTracerDensityNode[k]
@@ -4000,13 +4008,16 @@ void VerticalDynamicsFEM::UpdateColumnTracers(
 				m_dStateAux,
 				m_dStateAuxDiff);
 
-			for (int k = 0; k <= nRElements; k++) {
+			for (int k = 1; k < nRElements; k++) {
 				m_dMassFluxREdge[k] +=
-					UNIFORM_DIFFUSION_COEFF
+					UNIFORM_SCALAR_DIFFUSION_COEFF
 					* m_dStateREdge[RIx][k]
 					* m_dStateAuxDiff[k];
 			}
 #endif
+
+			m_dMassFluxREdge[0] = 0.0;
+			m_dMassFluxREdge[nRElements] = 0.0;
 
 			pGrid->DifferentiateREdgeToNode(
 				m_dMassFluxREdge,

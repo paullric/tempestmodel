@@ -126,6 +126,11 @@ void HorizontalDynamicsFEM::Initialize() {
 	m_dJGradientB.Allocate(
 		m_nHorizontalOrder,
 		m_nHorizontalOrder);
+
+	// Buffer state
+	m_dBufferState.Allocate(
+		m_nHorizontalOrder,
+		m_nHorizontalOrder);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -921,13 +926,13 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 							+ dContraMetricB[k][iA][iB][1] * dCovDbQ;
 
 						m_dAlphaTracerFlux[c][i][j] +=
-							UNIFORM_DIFFUSION_COEFF
+							UNIFORM_SCALAR_DIFFUSION_COEFF
 							* dJacobian[k][iA][iB]
 							* dataInitialNode[RIx][k][iA][iB]
 							* dConDaQ;
 
 						m_dBetaTracerFlux[c][i][j] +=
-							UNIFORM_DIFFUSION_COEFF
+							UNIFORM_SCALAR_DIFFUSION_COEFF
 							* dJacobian[k][iA][iB]
 							* dataInitialNode[RIx][k][iA][iB]
 							* dConDbQ;
@@ -1607,36 +1612,44 @@ void HorizontalDynamicsFEM::StepExplicit(
 	}
 
 #ifdef UNIFORM_DIFFUSION
-	// Apply scalar and vector viscosity
-	const double dUniformDiffusionCoeff = UNIFORM_DIFFUSION_COEFF;
+	// Uniform diffusion of U and V with UNIFORM_VECTOR_DIFFUSION_COEFF
+	for (int c = 2; c < eqn.GetComponents()-1; c++) {
+		ApplyScalarHyperdiffusion(
+			iDataInitial,
+			iDataUpdate,
+			dDeltaT,
+			UNIFORM_VECTOR_DIFFUSION_COEFF,
+			false,
+			c,
+			true);
+	}
+	
+	if (eqn.GetType() == EquationSet::PrimitiveNonhydrostaticEquations) {
 
-	ApplyScalarHyperdiffusion(
-		iDataInitial,
-		iDataUpdate,
-		dDeltaT,
-		dUniformDiffusionCoeff,
-		false,
-		false);
+		// Uniform diffusion of Theta with UNIFORM_SCALAR_DIFFUSION_COEFF
+		ApplyScalarHyperdiffusion(
+			iDataInitial,
+			iDataUpdate,
+			dDeltaT,
+			UNIFORM_SCALAR_DIFFUSION_COEFF,
+			false,
+			2,
+			true);
 
-	ApplyVectorHyperdiffusion(
-		iDataInitial,
-		iDataUpdate,
-		-dDeltaT,
-		dUniformDiffusionCoeff,
-		dUniformDiffusionCoeff,
-		false);
+		// Uniform diffusion of W with UNIFORM_VECTOR_DIFFUSION_COEFF
+		ApplyScalarHyperdiffusion(
+			iDataInitial,
+			iDataUpdate,
+			dDeltaT,
+			UNIFORM_VECTOR_DIFFUSION_COEFF,
+			false,
+			3,
+			true);
+	}
 #endif
 
 	// Apply positive definite filter to tracers
 	FilterNegativeTracers(iDataUpdate);
-
-/*
-	// Apply Direct Stiffness Summation (DSS) procedure
-	if (m_eHorizontalDynamicsType == SpectralElement) {
-		GridGLL * pGrid = dynamic_cast<GridGLL*>(m_model.GetGrid());
-		pGrid->ApplyDSS(iDataUpdate);
-	}
-*/
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1647,13 +1660,19 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusion(
 	double dDeltaT,
 	double dNu,
 	bool fScaleNuLocally,
-	bool fDiffuseMass
+	int iComponent,
+	bool fRemoveRefState
 ) {
 	// Get a copy of the GLL grid
 	GridGLL * pGrid = dynamic_cast<GridGLL*>(m_model.GetGrid());
 
 	// Number of radial elements in grid
 	int nRElements = pGrid->GetRElements();
+
+	// Check argument
+	if (iComponent < (-1)) {
+		_EXCEPTIONT("Invalid component index");
+	}
 
 	// Perform local update
 	for (int n = 0; n < pGrid->GetActivePatchCount(); n++) {
@@ -1683,6 +1702,12 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusion(
 
 		DataArray4D<double> & dataUpdateREdge =
 			pPatch->GetDataState(iDataUpdate, DataLocation_REdge);
+
+		const DataArray4D<double> & dataRefNode =
+			pPatch->GetReferenceState(DataLocation_Node);
+
+		const DataArray4D<double> & dataRefREdge =
+			pPatch->GetReferenceState(DataLocation_REdge);
 
 		// Tracer data
 		DataArray4D<double> & dataInitialTracer =
@@ -1725,15 +1750,20 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusion(
 				nComponentStart = 2;
 				nComponentEnd = m_model.GetEquationSet().GetComponents();
 
-				if (!fDiffuseMass) {
-					nComponentEnd--;
+				if (iComponent != (-1)) {
+					if (iComponent >= nComponentEnd) {
+						_EXCEPTIONT("Invalid component index");
+					}
+
+					nComponentStart = iComponent;
+					nComponentEnd = iComponent+1;
 				}
 
 			} else {
 				nComponentStart = 0;
 				nComponentEnd = m_model.GetEquationSet().GetTracers();
 
-				if (!fDiffuseMass) {
+				if (iComponent != (-1)) {
 					continue;
 				}
 			}
@@ -1745,18 +1775,21 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusion(
 
 				const DataArray4D<double> * pDataInitial;
 				DataArray4D<double> * pDataUpdate;
+				const DataArray4D<double> * pDataRef;
 				const DataArray3D<double> * pJacobian;
 
 				if (iType == 0) {
 					if (pGrid->GetVarLocation(c) == DataLocation_Node) {
 						pDataInitial = &dataInitialNode;
 						pDataUpdate  = &dataUpdateNode;
+						pDataRef = &dataRefNode;
 						nElementCountR = nRElements;
 						pJacobian = &dJacobianNode;
 
 					} else if (pGrid->GetVarLocation(c) == DataLocation_REdge) {
 						pDataInitial = &dataInitialREdge;
 						pDataUpdate  = &dataUpdateREdge;
+						pDataRef = &dataRefREdge;
 						nElementCountR = nRElements + 1;
 						pJacobian = &dJacobianREdge;
 
@@ -1781,6 +1814,29 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusion(
 					int iElementB =
 						b * m_nHorizontalOrder + box.GetHaloElements();
 
+					// Store the buffer state
+					for (int i = 0; i < m_nHorizontalOrder; i++) {
+					for (int j = 0; j < m_nHorizontalOrder; j++) {
+						int iA = iElementA + i;
+						int iB = iElementB + j;
+
+						m_dBufferState[i][j] = (*pDataInitial)[c][k][iA][iB];
+					}
+					}
+
+					// Remove the reference state from the buffer state
+					if (fRemoveRefState) {
+						for (int i = 0; i < m_nHorizontalOrder; i++) {
+						for (int j = 0; j < m_nHorizontalOrder; j++) {
+							int iA = iElementA + i;
+							int iB = iElementB + j;
+
+							m_dBufferState[i][j] -=
+								(*pDataRef)[c][k][iA][iB];
+						}
+						}
+					}
+
 					// Calculate the pointwise gradient of the scalar field
 					for (int i = 0; i < m_nHorizontalOrder; i++) {
 					for (int j = 0; j < m_nHorizontalOrder; j++) {
@@ -1791,11 +1847,11 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusion(
 						double dDbPsi = 0.0;
 						for (int s = 0; s < m_nHorizontalOrder; s++) {
 							dDaPsi +=
-								(*pDataInitial)[c][k][iElementA+s][iB]
+								m_dBufferState[s][j]
 								* dDxBasis1D[s][i];
 
 							dDbPsi +=
-								(*pDataInitial)[c][k][iA][iElementB+s]
+								m_dBufferState[i][s]
 								* dDxBasis1D[s][j];
 						}
 
