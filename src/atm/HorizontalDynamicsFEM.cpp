@@ -1618,12 +1618,14 @@ void HorizontalDynamicsFEM::StepExplicit(
 		iDataUpdate,
 		dDeltaT,
 		UNIFORM_VECTOR_DIFFUSION_COEFF,
+		UNIFORM_VECTOR_DIFFUSION_COEFF,
 		false);
 
 	ApplyVectorHyperdiffusion(
 		DATA_INDEX_REFERENCE,
 		iDataUpdate,
 		dDeltaT,
+		- UNIFORM_VECTOR_DIFFUSION_COEFF,
 		- UNIFORM_VECTOR_DIFFUSION_COEFF,
 		false);
 
