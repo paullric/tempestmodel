@@ -49,6 +49,13 @@ typedef int NcFile;
 ///////////////////////////////////////////////////////////////////////////////
 
 ///	<summary>
+///		Data index used to denote the reference state.
+///	</summary>
+#define DATA_INDEX_REFERENCE (-1)
+
+///////////////////////////////////////////////////////////////////////////////
+
+///	<summary>
 ///		Atmospheric model grid data.  Container for GridPatch objects.
 ///	</summary>
 class Grid {

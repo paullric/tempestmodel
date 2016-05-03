@@ -1618,16 +1618,14 @@ void HorizontalDynamicsFEM::StepExplicit(
 		iDataUpdate,
 		dDeltaT,
 		UNIFORM_VECTOR_DIFFUSION_COEFF,
-		false,
 		false);
 
 	ApplyVectorHyperdiffusion(
-		iDataInitial,
+		DATA_INDEX_REFERENCE,
 		iDataUpdate,
 		dDeltaT,
 		- UNIFORM_VECTOR_DIFFUSION_COEFF,
-		false,
-		true);
+		false);
 
 	if (eqn.GetType() == EquationSet::PrimitiveNonhydrostaticEquations) {
 
@@ -1920,8 +1918,7 @@ void HorizontalDynamicsFEM::ApplyVectorHyperdiffusion(
 	double dDeltaT,
 	double dNuDiv,
 	double dNuVort,
-	bool fScaleNuLocally,
-	bool fApplyToRefState
+	bool fScaleNuLocally
 ) {
 	// Variable indices
 	const int UIx = 0;
@@ -1930,6 +1927,12 @@ void HorizontalDynamicsFEM::ApplyVectorHyperdiffusion(
 
 	// Get a copy of the GLL grid
 	GridGLL * pGrid = dynamic_cast<GridGLL*>(m_model.GetGrid());
+
+	// Apply viscosity to reference state
+	bool fApplyToRefState = false;
+	if (iDataInitial == DATA_INDEX_REFERENCE) {
+		fApplyToRefState = true;
+	}
 
 	// Loop over all patches
 	for (int n = 0; n < pGrid->GetActivePatchCount(); n++) {

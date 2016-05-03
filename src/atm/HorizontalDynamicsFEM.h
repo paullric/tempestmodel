@@ -126,8 +126,7 @@ protected:
 		double dDeltaT,
 		double dNuDiff,
 		double dNuVort,
-		bool fScaleNuLocally,
-		bool fApplyToRefState = false
+		bool fScaleNuLocally
 	);
 
 	///	<summary>
