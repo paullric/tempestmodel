@@ -1,14 +1,23 @@
-//
-//  KesslerPhysics.cpp
-//  
-//
-//  Created by Antonin Verlet-Banide on 5/19/15.
-//
-//
+///////////////////////////////////////////////////////////////////////////////
+///
+///	\file    KesslerPhysics.cpp
+///	\author  Antonin Verlet-Banide
+///	\version May 3, 2016
+///
+///	<remarks>
+///		Copyright 2000-2016 Paul Ullrich
+///
+///		This file is distributed as part of the Tempest source code package.
+///		Permission is granted to use, copy, modify and distribute this
+///		source code and its documentation under the terms of the GNU General
+///		Public License.  This software is provided "as is" without express
+///		or implied warranty.
+///	</remarks>
 
 #include "KesslerPhysics.h"
 
 #include "Model.h"
+#include "GridGLL.h"
 
 #include "Announce.h" 
 
@@ -51,25 +60,22 @@ WorkflowProcess(
 		const int WIx = 3;
 		const int RIx = 4;
 
-
 		// Get a copy of the GLL grid
 		Grid * pGrid = m_model.GetGrid();
 
 		// Check position of variables
-		if (pGrid->GetVarLocation(TIx) == DataLocation_REdge) {
-			_EXCEPTIONT("Not implemented for --vstagger CPH, use --vstagger LOR");
-		}
+		int nRElements = pGrid->GetRElements();
 
-		int ndim=pGrid->GetRElements();
+		m_dQv.Allocate(nRElements);
+		m_dQc.Allocate(nRElements);
+		m_dQr.Allocate(nRElements);
+		m_dRho.Allocate(nRElements);
+		m_dZc.Allocate(nRElements);
+		m_dPk.Allocate(nRElements);
+		m_dTheta.Allocate(nRElements);
 
-		qv.Allocate(ndim);
-		qc.Allocate(ndim);
-		qr.Allocate(ndim);
-		t.Allocate(ndim);
-		rho.Allocate(ndim);
-		zc.Allocate(ndim);
-		pk.Allocate(ndim);
-	
+		m_dThetaVNode.Allocate(nRElements);
+		m_dThetaVREdge.Allocate(nRElements+1);
 }
 
 	
@@ -87,24 +93,22 @@ void KesslerPhysics::Perform(
 
 	// Get DeltaT
 	double dDeltaT = m_timeFrequency.GetSeconds();
-		
-	// Get a copy of the GLL grid
-	Grid * pGrid = m_model.GetGrid();
 
-	// Check position of variables
-	if (pGrid->GetVarLocation(TIx) == DataLocation_REdge) {
-		_EXCEPTIONT("Not implemented for --vstagger CPH, use --vstagger LOR");
+	// Get a copy of the GLL grid
+	GridGLL * pGridGLL = dynamic_cast<GridGLL*>(m_model.GetGrid());
+	if (pGridGLL == NULL) {
+		_EXCEPTIONT("Not implemented for a general Grid");
 	}
 
 	// Physical constants
 	const PhysicalConstants & phys = m_model.GetPhysicalConstants();
 
 	// Number of radial elements
-	int nz = pGrid->GetRElements();
+	int nRElements = pGridGLL->GetRElements();
 
 	// Perform local update
-	for (int n = 0; n < pGrid->GetActivePatchCount(); n++) {
-		GridPatch * pPatch = pGrid->GetActivePatch(n);
+	for (int n = 0; n < pGridGLL->GetActivePatchCount(); n++) {
+		GridPatch * pPatch = pGridGLL->GetActivePatch(n);
 
 		const PatchBox & box = pPatch->GetPatchBox();
 
@@ -113,10 +117,13 @@ void KesslerPhysics::Perform(
 
 		// Grid data
 		DataArray4D<double> & dataNode =
-		pPatch->GetDataState(0, DataLocation_Node);
+			pPatch->GetDataState(0, DataLocation_Node);
+
+		DataArray4D<double> & dataREdge =
+			pPatch->GetDataState(0, DataLocation_REdge);
 
 		DataArray4D<double> & dataTracer =
-		pPatch->GetDataTracers(0);
+			pPatch->GetDataTracers(0);
 
 		const DataArray3D<double> & dataZLevels = pPatch->GetZLevels();
 
@@ -124,8 +131,25 @@ void KesslerPhysics::Perform(
 		for (int i = box.GetAInteriorBegin(); i < box.GetAInteriorEnd(); i++) {
 		for (int j = box.GetBInteriorBegin(); j < box.GetBInteriorEnd(); j++) {
 
+			// Remap virtual potential temperature tendency to levels
+			if (pGridGLL->GetVarLocation(TIx) == DataLocation_REdge) {
+				for (int k = 0; k < nRElements+1; k++) {
+					m_dThetaVREdge[k] = dataREdge[TIx][k][i][j];
+				}
+
+				pGridGLL->InterpolateREdgeToNode(
+					&(m_dThetaVREdge[0]),
+					&(m_dThetaVNode[0]));
+
+			// Store virtual potential temperature on levels
+			} else {
+				for (int k = 0; k < nRElements; k++) {
+					m_dThetaVNode[k] = dataNode[TIx][k][i][j];
+				}
+			}
+
 			// Loop over all levels in column
-			for (int k = 0; k < pGrid->GetRElements(); k++) {
+			for (int k = 0; k < nRElements; k++) {
 
 				// Total density
 				double dRho = dataNode[RIx][k][i][j];
@@ -137,65 +161,86 @@ void KesslerPhysics::Perform(
 					- dataTracer[1][k][i][j]
 					- dataTracer[2][k][i][j];
 
-				// Virtual potential temperature
-				double dThetav = dataNode[TIx][k][i][j];
-
 				// Calculate moist pressure
 				double dPressure =
-					phys.PressureFromRhoTheta(dRho * dThetav);
+					phys.PressureFromRhoTheta(dRho * m_dThetaVNode[k]);
 
 				// Pointwise virtual temperature
 				double dTv = dPressure / (dRho * phys.GetR());
 
 				// Water vapor (RhoQv / Rho)
-				qv[k] = dataTracer[0][k][i][j] / dataNode[RIx][k][i][j];
+				m_dQv[k] = dataTracer[0][k][i][j] / dataNode[RIx][k][i][j];
 
 				// Cloud water (RhoQc / Rho)
-				qc[k] = dataTracer[1][k][i][j] / dataNode[RIx][k][i][j];
+				m_dQc[k] = dataTracer[1][k][i][j] / dataNode[RIx][k][i][j];
 
 				// Rain water (RhoQr / Rho)
-				qr[k] = dataTracer[2][k][i][j] / dataNode[RIx][k][i][j];
+				m_dQr[k] = dataTracer[2][k][i][j] / dataNode[RIx][k][i][j];
 
 				// Potential temperature
-				t[k] = dThetav / (1.0 + 0.61 * qv[k]);
+				m_dTheta[k] = m_dThetaVNode[k] / (1.0 + 0.61 * m_dQv[k]);
 
 				// Dry air density
-				rho[k] = dRhoD;
+				m_dRho[k] = dRhoD;
  
 				// Heights of each level
-				zc[k] = dataZLevels[k][i][j];
+				m_dZc[k] = dataZLevels[k][i][j];
 	
 				// Exner function (Tv/thetav)
-				pk[k] = dTv / dThetav;
+				m_dPk[k] = dTv / m_dThetaVNode[k];
 			}
 
-			double rainnc = 0.0;
+			double dRainNc = 0.0;
 			kessler(
-				&(t[0]),
-				&(qv[0]),
-				&(qc[0]),
-				&(qr[0]),
-				&(rho[0]),
-				&(pk[0]),
+				&(m_dTheta[0]),
+				&(m_dQv[0]),
+				&(m_dQc[0]),
+				&(m_dQr[0]),
+				&(m_dRho[0]),
+				&(m_dPk[0]),
 				&(dDeltaT),
-				&(zc[0]),
-				&nz,
-				&rainnc);
+				&(m_dZc[0]),
+				&(nRElements),
+				&(dRainNc));
 
-			// Update variables
-			for (int k = 0; k < pGrid->GetRElements(); k++) {
+			// Remap virtual potential temperature tendency to interfaces
+			if (pGridGLL->GetVarLocation(TIx) == DataLocation_REdge) {
+
+				// Store negative virtual potential tendency
+				for (int k = 0; k < nRElements; k++) {
+					m_dThetaVNode[k] -=
+						m_dTheta[k] * (1.0 + 0.61 * m_dQv[k]);
+				}
+
+				// Interpolate negative tendency
+				pGridGLL->InterpolateNodeToREdge(
+					&(m_dThetaVNode[0]),
+					&(m_dThetaVREdge[0]));
+
+				// Update thetaV on interfaces
+				for (int k = 0; k <= nRElements; k++) {
+					dataREdge[TIx][k][i][j] -= m_dThetaVREdge[k];
+				}
+
+			// Update thetaV on nodes
+			} else {
+				for (int k = 0; k < nRElements; k++) {
+					dataNode[TIx][k][i][j] =
+						m_dTheta[k] * (1.0 + 0.61 * m_dQv[k]);
+				}
+			}
+
+			// Update mass variables
+			for (int k = 0; k < nRElements; k++) {
 
 				// Moist density
-				dataNode[RIx][k][i][j]=
-					rho[k] / (1.0 - qv[k] - qc[k] - qr[k]);
+				dataNode[RIx][k][i][j] =
+					m_dRho[k] / (1.0 - m_dQv[k] - m_dQc[k] - m_dQr[k]);
 
 				// Virtual potential temperature
-				dataNode[TIx][k][i][j] =
-					t[k] * (1.0 + 0.61 * qv[k]);
-
-				dataTracer[0][k][i][j] = qv[k] * dataNode[RIx][k][i][j];
-				dataTracer[1][k][i][j] = qc[k] * dataNode[RIx][k][i][j];
-				dataTracer[2][k][i][j] = qr[k] * dataNode[RIx][k][i][j];
+				dataTracer[0][k][i][j] = m_dQv[k] * dataNode[RIx][k][i][j];
+				dataTracer[1][k][i][j] = m_dQc[k] * dataNode[RIx][k][i][j];
+				dataTracer[2][k][i][j] = m_dQr[k] * dataNode[RIx][k][i][j];
 			}
 		}
 		}
