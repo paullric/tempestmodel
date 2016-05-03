@@ -1933,6 +1933,7 @@ void HorizontalDynamicsFEM::ApplyVectorHyperdiffusion(
 	// Apply viscosity to reference state
 	bool fApplyToRefState = false;
 	if (iDataInitial == DATA_INDEX_REFERENCE) {
+		iDataInitial = 0;
 		fApplyToRefState = true;
 	}
 
