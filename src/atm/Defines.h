@@ -57,7 +57,7 @@
 ///	<summary>
 ///		Apply constant coefficient del^2 diffusion (COEFFs in m^2/s)
 ///	</summary>
-#define UNIFORM_DIFFUSION
+//#define UNIFORM_DIFFUSION
 #define UNIFORM_SCALAR_DIFFUSION_COEFF 1500.0
 #define UNIFORM_VECTOR_DIFFUSION_COEFF 500.0
 
