@@ -1613,17 +1613,22 @@ void HorizontalDynamicsFEM::StepExplicit(
 
 #ifdef UNIFORM_DIFFUSION
 	// Uniform diffusion of U and V with UNIFORM_VECTOR_DIFFUSION_COEFF
-	for (int c = 2; c < eqn.GetComponents()-1; c++) {
-		ApplyScalarHyperdiffusion(
-			iDataInitial,
-			iDataUpdate,
-			dDeltaT,
-			UNIFORM_VECTOR_DIFFUSION_COEFF,
-			false,
-			c,
-			true);
-	}
-	
+	ApplyVectorHyperdiffusion(
+		iDataInitial,
+		iDataUpdate,
+		dDeltaT,
+		UNIFORM_VECTOR_DIFFUSION_COEFF,
+		false,
+		false);
+
+	ApplyVectorHyperdiffusion(
+		iDataInitial,
+		iDataUpdate,
+		dDeltaT,
+		- UNIFORM_VECTOR_DIFFUSION_COEFF,
+		false,
+		true);
+
 	if (eqn.GetType() == EquationSet::PrimitiveNonhydrostaticEquations) {
 
 		// Uniform diffusion of Theta with UNIFORM_SCALAR_DIFFUSION_COEFF
@@ -1915,7 +1920,8 @@ void HorizontalDynamicsFEM::ApplyVectorHyperdiffusion(
 	double dDeltaT,
 	double dNuDiv,
 	double dNuVort,
-	bool fScaleNuLocally
+	bool fScaleNuLocally,
+	bool fApplyToRefState
 ) {
 	// Variable indices
 	const int UIx = 0;
@@ -1945,6 +1951,9 @@ void HorizontalDynamicsFEM::ApplyVectorHyperdiffusion(
 		DataArray4D<double> & dataUpdate =
 			pPatch->GetDataState(iDataUpdate, DataLocation_Node);
 
+		DataArray4D<double> & dataRef =
+			pPatch->GetReferenceState(DataLocation_Node);
+
 		// Element grid spacing and derivative coefficients
 		const double dElementDeltaA = pPatch->GetElementDeltaA();
 		const double dElementDeltaB = pPatch->GetElementDeltaB();
@@ -1968,8 +1977,13 @@ void HorizontalDynamicsFEM::ApplyVectorHyperdiffusion(
 			dataInitial.GetSize(2),
 			dataInitial.GetSize(3));
 
-		dataUa.AttachToData(&(dataInitial[UIx][0][0][0]));
-		dataUb.AttachToData(&(dataInitial[VIx][0][0][0]));
+		if (fApplyToRefState) {
+			dataUa.AttachToData(&(dataRef[UIx][0][0][0]));
+			dataUb.AttachToData(&(dataRef[VIx][0][0][0]));
+		} else {
+			dataUa.AttachToData(&(dataInitial[UIx][0][0][0]));
+			dataUb.AttachToData(&(dataInitial[VIx][0][0][0]));
+		}
 
 		// Compute curl and divergence of U on the grid
 		pPatch->ComputeCurlAndDiv(dataUa, dataUb);
