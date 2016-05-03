@@ -2512,6 +2512,11 @@ void VerticalDynamicsFEM::BuildF(
 	// Update theta on model levels
 	if (pGrid->GetVarLocation(PIx) == DataLocation_Node) {
 
+		// Test using u^xi on interfaces interpolated to nodes for Lorenz
+		pGrid->InterpolateREdgeToNode(
+				m_dXiDotREdge,
+				m_dXiDotNode);
+
 		// Change in Theta on model levels
 		for (int k = 0; k < nRElements; k++) {
 			dF[VecFIx(FPIx, k)] +=
@@ -2530,6 +2535,12 @@ void VerticalDynamicsFEM::BuildF(
 #ifdef FORMULATION_THETA_FLUX
 	// Update theta on model levels
 	if (pGrid->GetVarLocation(PIx) == DataLocation_Node) {
+
+		// Test using u^xi on interfaces interpolated to nodes for Lorenz
+		pGrid->InterpolateREdgeToNode(
+				m_dXiDotREdge,
+				m_dXiDotNode);
+
 		// Pressure flux on model levels
 		for (int k = 0; k < nRElements; k++) {
 			m_dPressureFluxNode[k] =
@@ -3238,6 +3249,11 @@ void VerticalDynamicsFEM::BuildJacobianF(
 					* m_dColumnDerivRNode[k][2];
 			}
 		}
+
+		// Test using u^xi on interfaces interpolated to nodes for Lorenz
+		pGrid->InterpolateREdgeToNode(
+				m_dXiDotREdge,
+				m_dXiDotNode);
 
 		// dT_k/dT_l
 		for (int k = 0; k < nRElements; k++) {
