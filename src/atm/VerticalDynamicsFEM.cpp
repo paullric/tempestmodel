@@ -1121,7 +1121,7 @@ void VerticalDynamicsFEM::StepExplicit(
 
 #if defined(VERTICAL_HYPERVISCOSITY) || defined(UNIFORM_DIFFUSION)
 			// Apply hyperviscosity to U and V
-			if (m_fUpwind[UIx] && (m_nHypervisOrder > 0)) {
+			if (m_fUpwind[UIx]) {
 
 				// Calculate u^xi on model levels (if not done above)
 				if (!m_fFullyExplicit) {
@@ -1187,6 +1187,11 @@ void VerticalDynamicsFEM::StepExplicit(
 				}
 #endif
 #if defined(VERTICAL_HYPERVISCOSITY)
+				// No hyperviscosity from command line
+				if (m_nHypervisOrder == 0) {
+					continue;
+				}
+
 				// Compute higher derivatives of u and v used for
 				// hyperviscosity
 				for (int h = 2; h < m_nHypervisOrder; h += 2) {
