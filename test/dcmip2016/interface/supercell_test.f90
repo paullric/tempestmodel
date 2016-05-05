@@ -75,7 +75,8 @@ MODULE supercell
        theta_tr   = 343.d0     ,      & ! theta at the tropopause
        z_tr       = 12000.d0   ,      & ! altitude at the tropopause
        T_tr       = 213.d0     ,      & ! temperature at the tropopause
-       pseq       = 95690.0d0           ! surface pressure at equator
+       pseq       = 100000.0d0          ! surface pressure at equator (Pa)
+       !pseq       = 95690.0d0           ! surface pressure at equator (Pa)
 
   REAL(8), PARAMETER ::               &
        us         = 30.d0      ,      & ! maximum zonal wind velocity
@@ -639,7 +640,7 @@ CONTAINS
   END FUNCTION equator_theta
 
 !-----------------------------------------------------------------------
-!    Calculate pointwise relative humidity at the equator at the
+!    Calculate pointwise relative humidity (in %) at the equator at the
 !    given altitude
 !-----------------------------------------------------------------------
   REAL(8) FUNCTION equator_relative_humidity(z)
@@ -657,13 +658,15 @@ CONTAINS
   END FUNCTION equator_relative_humidity
 
 !-----------------------------------------------------------------------
-!    Calculate saturation mixing ratio in terms of pressure
-!    and temperature
+!    Calculate saturation mixing ratio (in kg/kg) in terms of pressure
+!    (in Pa) and temperature (in K)
 !-----------------------------------------------------------------------
   REAL(8) FUNCTION saturation_mixing_ratio(p, T)
 
+    IMPLICIT NONE
+
     REAL(8), INTENT(IN)  :: &
-                p,        & ! Pressure
+                p,        & ! Pressure in Pa
                 T           ! Temperature
 
     REAL(8) :: ip
@@ -672,6 +675,10 @@ CONTAINS
     ip = p / 100.0;
     saturation_mixing_ratio = &
       380.0d0 / p * exp(17.27d0 * (T - 273.d0) / (T - 36.d0))
+
+    if (saturation_mixing_ratio > 0.014) then
+      saturation_mixing_ratio = 0.014
+    end if
 
   END FUNCTION saturation_mixing_ratio
 
