@@ -74,7 +74,8 @@ MODULE supercell
        theta0     = 300.d0     ,      & ! theta at the equatorial surface
        theta_tr   = 343.d0     ,      & ! theta at the tropopause
        z_tr       = 12000.d0   ,      & ! altitude at the tropopause
-       T_tr       = 213.d0              ! temperature at the tropopause
+       T_tr       = 213.d0     ,      & ! temperature at the tropopause
+       pseq       = 95690.0d0           ! surface pressure at equator
 
   REAL(8), PARAMETER ::               &
        us         = 30.d0      ,      & ! maximum zonal wind velocity
@@ -145,7 +146,7 @@ CONTAINS
     REAL(8), DIMENSION(nz) :: exnereq, H
 
     ! Variables for calculation of equatorial profile
-    REAL(8) :: p, T, qvs, qv
+    REAL(8) :: exnereqs, p, T, qvs, qv
 
     ! Error metric
     REAL(8) :: err
@@ -255,6 +256,9 @@ CONTAINS
     end do
     thetavyz(1,:) = thetaeq
 
+    ! Exner pressure at the equatorial surface
+    exnereqs = (pseq / p0)**(Rd/cp)
+
     ! Iterate on equatorial profile
     do iter = 1, 12
 
@@ -264,9 +268,9 @@ CONTAINS
         exnereq(k) = dot_product(intz(:,k), rhs(1,:))
       end do
       do k = 2, nz
-        exnereq(k) = exnereq(k) + (1.0d0 - exnereq(1))
+        exnereq(k) = exnereq(k) + (exnereqs - exnereq(1))
       end do
-      exnereq(1) = 1.0d0
+      exnereq(1) = exnereqs
 
       ! Calculate new pressure and temperature
       do k = 1, nz
@@ -279,6 +283,10 @@ CONTAINS
         thetavyz(1,k) = thetaeq(k) * (1.d0 + 0.61d0 * qveq(k))
       end do
     end do
+
+    !do k = 1, nz
+    !  write(*,*) exnereq(k) * thetaeq(k)
+    !end do
 
     ! Iterate on remainder of domain
     do iter = 1, 12
