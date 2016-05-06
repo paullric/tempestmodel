@@ -676,10 +676,6 @@ CONTAINS
     saturation_mixing_ratio = &
       380.0d0 / p * exp(17.27d0 * (T - 273.d0) / (T - 36.d0))
 
-    if (saturation_mixing_ratio > 0.014) then
-      saturation_mixing_ratio = 0.014
-    end if
-
   END FUNCTION saturation_mixing_ratio
 
 !-----------------------------------------------------------------------
