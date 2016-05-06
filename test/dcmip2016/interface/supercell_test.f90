@@ -62,8 +62,8 @@ MODULE supercell
 !    Test case parameters
 !=======================================================================
   INTEGER(4), PARAMETER ::            &
-       nz         = 30         ,      & ! number of vertical levels in init
-       nphi       = 16                  ! number of meridional points in init
+       nz         = 100         ,      & ! number of vertical levels in init
+       nphi       = 50                  ! number of meridional points in init
 
   REAL(8), PARAMETER ::               &
        z1         = 0.0d0      ,      & ! lower sample altitude
@@ -280,13 +280,17 @@ CONTAINS
         qvs = saturation_mixing_ratio(p, T)
         qveq(k) = qvs * H(k)
 
+        !write(*,*) zcoord(k), qvs
+
+        ! Constrain the bottom 1km of the mixing ratio and shift curve
+        if (zcoord(k) .le. 1000.0d0) then
+          qveq(k) = 0.014d0 !kg/kg
+        end if
+
+        thetavyz(1,k) = thetaeq(k) * (1.d0 + 0.61d0 * qveq(k))
         thetavyz(1,k) = thetaeq(k) * (1.d0 + 0.61d0 * qveq(k))
       end do
     end do
-
-    !do k = 1, nz
-    !  write(*,*) exnereq(k) * thetaeq(k)
-    !end do
 
     ! Iterate on remainder of domain
     do iter = 1, 12
@@ -662,8 +666,12 @@ CONTAINS
                 p,        & ! Pressure
                 T           ! Temperature
 
+    REAL(8) :: ip
+
+    ! Pressure input converted to hPa
+    ip = p / 100.0;
     saturation_mixing_ratio = &
-      380.d0 / p * exp(17.27d0 * (T - 273.d0) / (T - 36.d0))
+      380.0d0 / p * exp(17.27d0 * (T - 273.d0) / (T - 36.d0))
 
   END FUNCTION saturation_mixing_ratio
 
