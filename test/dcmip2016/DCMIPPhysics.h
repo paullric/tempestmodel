@@ -135,6 +135,31 @@ protected:
 	///	</summary>
 	DataArray1D<double> m_dTvREdge;
 
+	///	<summary>
+	///		Jacobian coefficients for implicit solve in the boundary layer.
+	///	</summary>
+	DataArray2D<double> m_dBLJacobian;
+
+	///	<summary>
+	///		Column eddy fluxes on model levels.
+	///	</summary>
+	DataArray2D<double> m_dEddyStateNode;
+
+	///	<summary>
+	///		Column eddy fluxes on model interfaces.
+	///	</summary>
+	DataArray2D<double> m_dEddyStateREdge;
+
+	///	<summary>
+	///		Column eddy fluxes on model levels.
+	///	</summary>
+	DataArray2D<double> m_dEddyTracerNode;
+
+	///	<summary>
+	///		Column eddy fluxes on model interfaces.
+	///	</summary>
+	DataArray2D<double> m_dEddyTracerREdge;
+
 };
 
 ///////////////////////////////////////////////////////////////////////////////
