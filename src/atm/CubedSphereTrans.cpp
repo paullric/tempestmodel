@@ -652,6 +652,16 @@ void CubedSphereTrans::CoVecTransRLLFromABP(
 
 	double lat;
 
+	if ((nP > 3) && (fabs(dX) < 1.0e-13) && (fabs(dY) < 1.0e-13)) {
+		if (nP == 4) {
+			dUlon = dUalpha;
+		} else {
+			dUlon = - dUalpha;
+		}
+		dUlat = dUbeta;
+		return;
+	}
+
 	switch (nP) {
 		// Equatorial panels
 		case 0:
