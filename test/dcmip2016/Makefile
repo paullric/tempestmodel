@@ -14,12 +14,14 @@ FILES= TropicalCycloneTest.cpp \
        BaroclinicWaveUMJSTest.cpp \
        SupercellTest.cpp
 
-SHARED_FILES= KesslerPhysics.cpp
+SHARED_FILES= KesslerPhysics.cpp \
+              DCMIPPhysics.cpp
 
 INTERFACE_FILES= interface/tropical_cyclone_test.f90 \
                  interface/baroclinic_wave_test.f90 \
                  interface/supercell_test.f90 \
-                 interface/kessler.f90
+                 interface/kessler.f90 \
+                 interface/simple_physics_v6.f90
 
 SHARED_OBJS= $(SHARED_FILES:%.cpp=$(BUILDDIR)/%.o) 
 INTERFACE_OBJS= $(INTERFACE_FILES:interface/%.f90=$(BUILDDIR)/interface/%.o) 

@@ -289,7 +289,6 @@ CONTAINS
         end if
 
         thetavyz(1,k) = thetaeq(k) * (1.d0 + 0.61d0 * qveq(k))
-        thetavyz(1,k) = thetaeq(k) * (1.d0 + 0.61d0 * qveq(k))
       end do
     end do
 
