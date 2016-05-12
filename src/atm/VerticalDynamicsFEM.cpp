@@ -3817,7 +3817,7 @@ void VerticalDynamicsFEM::UpdateColumnTracers(
 
 			m_dXiDotREdge[0] = 0.0;
 			m_dXiDotREdge[nRElements] = 0.0;
-/*
+
 			// dRhoQ_k/dRhoQ_n
 			for (int k = 0; k < nRElements; k++) {
 
@@ -3836,7 +3836,6 @@ void VerticalDynamicsFEM::UpdateColumnTracers(
 					}
 				}
 			}
-*/
 		}
 	}
 
