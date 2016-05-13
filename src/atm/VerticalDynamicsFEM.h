@@ -296,6 +296,11 @@ protected:
 	double m_dHypervisCoeff;
 
 	///	<summary>
+	///		Upwinding coefficient.
+	///	</summary>
+	double m_dUpwindCoeff;
+
+	///	<summary>
 	///		Variables to upwind.
 	///	</summary>
 	DataArray1D<bool> m_fUpwind;
@@ -387,6 +392,11 @@ protected:
 	DataArray1D<double> m_dXiDotREdge;
 
 	///	<summary>
+	///		Velocity across xi surfaces (xi_dot) at interfaces.
+	///	</summary>
+	DataArray1D<double> m_dXiDotREdgeInitial;
+
+	///	<summary>
 	///		Auxiliary storage for derivative of alpha velocity.
 	///	</summary>
 	DataArray1D<double> m_dDiffUa;
@@ -409,12 +419,27 @@ protected:
 	///	<summary>
 	///		Auxiliary storage for second derivatives of the state
 	///	</summary>
-	DataArray2D<double> m_dDiffDiffState;
+	DataArray2D<double> m_dUpwindDiffDiffState;
+
+	///	<summary>
+	///		Auxiliary storage for second derivatives of the state
+	///	</summary>
+	DataArray2D<double> m_dUniformDiffDiffState;
 
 	///	<summary>
 	///		Auxiliary storage for higher derivatives of the state
 	///	</summary>
 	DataArray2D<double> m_dHyperDiffState;
+
+	///	<summary>
+	///		Hyperviscosity velocity update for tracers.
+	///	</summary>
+	DataArray1D<double> m_dTracerDFWUpdate;
+
+	///	<summary>
+	///		Auxiliary storage for higher derivatives of a tracer field.
+	///	</summary>
+	DataArray1D<double> m_dHyperDiffTracers;
 
 	///	<summary>
 	///		Auxiliary storage for derivative of theta on nodes.
