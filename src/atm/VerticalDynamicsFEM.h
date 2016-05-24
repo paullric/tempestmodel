@@ -432,16 +432,6 @@ protected:
 	DataArray2D<double> m_dHyperDiffState;
 
 	///	<summary>
-	///		Hyperviscosity velocity update for tracers.
-	///	</summary>
-	DataArray1D<double> m_dTracerDFWUpdate;
-
-	///	<summary>
-	///		Auxiliary storage for higher derivatives of a tracer field.
-	///	</summary>
-	DataArray1D<double> m_dHyperDiffTracers;
-
-	///	<summary>
 	///		Auxiliary storage for derivative of theta on nodes.
 	///	</summary>
 	DataArray1D<double> m_dDiffThetaNode;

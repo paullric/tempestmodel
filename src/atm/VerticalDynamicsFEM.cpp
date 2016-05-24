@@ -305,9 +305,6 @@ void VerticalDynamicsFEM::Initialize() {
 		m_model.GetEquationSet().GetComponents(),
 		nRElements+1);
 
-	m_dTracerDFWUpdate.Allocate(nRElements);
-	m_dHyperDiffTracers.Allocate(nRElements);
-
 	m_dDiffThetaNode.Allocate(nRElements);
 	m_dDiffThetaREdge.Allocate(nRElements+1);
 
@@ -3977,7 +3974,7 @@ void VerticalDynamicsFEM::UpdateColumnTracers(
 #if defined(VERTICAL_HYPERVISCOSITY) && defined(DIFFUSE_TRACERS)
 		_EXCEPTIONT("Not implemented");
 #endif
-#ifdef UNIFORM_DIFFUSION
+#if defined(UNIFORM_DIFFUSION) && defined(DIFFUSE_TRACERS)
 		_EXCEPTIONT("Not implemented");
 #endif
 
@@ -4309,11 +4306,6 @@ void VerticalDynamicsFEM::UpdateColumnTracers(
 */
 #if defined(VERTICAL_UPWINDING) && defined(DIFFUSE_TRACERS)
 		{
-			for (int k = 0; k < nRElements; k++) {
-				m_vecTracersF[k] -=
-					m_dTracerDFWUpdate[k];
-			}
-
 			// Get penalty operator
 			const LinearColumnDiscPenaltyFEM & opPenalty =
 				pGrid->GetOpPenaltyNodeToNode();
