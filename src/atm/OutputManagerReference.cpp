@@ -659,7 +659,6 @@ void OutputManagerReference::Output(
 				m_vecUserData2DVar[c]->put(
 					&(m_dataUserData2D[c][0][0]),
 					1,
-					1,
 					m_dYCoord.GetRows(),
 					m_dXCoord.GetRows());
 			}

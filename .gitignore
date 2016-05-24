@@ -45,4 +45,5 @@ util/MountainWavesSphere/ComputeWaveModes
 util/MountainWavesSphere/GenerateMountainResponse
 util/MountainWavesSphere/GenerateScharTopography
 util/MountainWavesSphere/GenerateWaveTopography
+test/dcmip2016/out*
 

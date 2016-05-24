@@ -1300,7 +1300,7 @@ void GridPatchCSGLL::InterpolateData(
 
 	// 2D User Data
 	} else if (eDataType == DataType_Auxiliary2D) {
-		nComponents = m_dataUserData2D.GetSize(0);;
+		nComponents = m_dataUserData2D.GetSize(0);
 		nRElements = 1;
 
 	} else {
