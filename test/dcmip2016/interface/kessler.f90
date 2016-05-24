@@ -117,7 +117,7 @@ SUBROUTINE KESSLER(theta, qv, qc, qr, rho, pk, dt, z, nz, rainnc) &
   end do
 
   ! Maximum time step size in accordance with CFL condition
-  dt_max = 1.d0
+  dt_max = dt
   do k=1,nz-1
     if (velqr(k) .ne. 0.d0) then
       dt_max = min(dt_max, 0.8d0*(z(k+1)-z(k))/velqr(k))

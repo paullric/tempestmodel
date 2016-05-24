@@ -165,6 +165,12 @@ protected:
 	DataArray1D<double> m_dYCoord;
 
 	///	<summary>
+	///		Vector containing a single value (zero) corresponding to REta
+	///		at the surface.
+	///	</summary>
+	DataArray1D<double> m_dREtaSurface;
+
+	///	<summary>
 	///		Vector of vertical reference points
 	///	</summary>
 	DataArray1D<double> m_dREtaCoord;
@@ -204,6 +210,11 @@ protected:
 	///	</summary>
 	std::vector<NcVar *> m_vecTracersVar;
 
+	///	<summary>
+	///		Vector of user data variables.
+	///	</summary>
+	std::vector<NcVar *> m_vecUserData2DVar;
+
 private:
 	///	<summary>
 	///		Topography output variable.
@@ -230,6 +241,11 @@ private:
 	///		Interpolated tracers data on the reference grid.
 	///	</summary>
 	DataArray3D<double> m_dataTracers;
+
+	///	<summary>
+	///		Interpolated user data on the reference grid.
+	///	</summary>
+	DataArray3D<double> m_dataUserData2D;
 
 private:
 	///	<summary>

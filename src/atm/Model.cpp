@@ -57,6 +57,27 @@ Model::Model(
 	m_pVerticalDynamics(NULL),
 	m_pTestCase(NULL),
 	m_eqn(eqn),
+	m_metaUserData(),
+	m_time()
+{
+	// Initialize staggering from equation set
+	m_stag.Initialize(m_eqn);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+Model::Model(
+	const EquationSet & eqn,
+	const UserDataMeta & metaUserData
+) :
+	m_fGridFromRestartFile(false),
+	m_pGrid(NULL),
+	m_pTimestepScheme(NULL),
+	m_pHorizontalDynamics(NULL),
+	m_pVerticalDynamics(NULL),
+	m_pTestCase(NULL),
+	m_eqn(eqn),
+	m_metaUserData(metaUserData),
 	m_time()
 {
 	// Initialize staggering from equation set

@@ -883,6 +883,15 @@ void Grid::ReduceInterpolate(
 		_EXCEPTIONT("InterpData dimension mismatch (0)");
 	}
 
+	const int nAuxiliary2D =
+		m_model.GetUserDataMeta().GetUserData2DItemCount();
+
+	if ((eDataType == DataType_Auxiliary2D) &&
+		(dInterpData.GetRows() != nAuxiliary2D)
+	) {
+		_EXCEPTIONT("InterpData dimension mismatch (0)");
+	}
+
 	if ((eDataType == DataType_Topography) &&
 		(dInterpData.GetRows() != 1)
 	) {

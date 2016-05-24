@@ -19,6 +19,7 @@
 
 #include "TimeObj.h"
 #include "EquationSet.h"
+#include "UserDataMeta.h"
 #include "PhysicalConstants.h"
 #include "GridStaggering.h"
 #include "Grid.h"
@@ -46,6 +47,13 @@ public:
 	///		Constructor that specifies an EquationSet
 	///	</summary>
 	Model(const EquationSet & eqn);
+
+	///	<summary>
+	///		Constructor that specifies an EquationSet and UserDataMeta
+	///	</summary>
+	Model(
+		const EquationSet & eqn,
+		const UserDataMeta & metaUserData);
 
 public:
 	///	<summary>
@@ -235,6 +243,13 @@ public:
 		return m_eqn;
 	}
 
+	///	<summary>
+	///		Get the user data metadata.
+	///	</summary>
+	const UserDataMeta & GetUserDataMeta() const {
+		return m_metaUserData;
+	}
+
 public:
 	///	<summary>
 	///		Get the current time of the simulation.
@@ -343,6 +358,11 @@ protected:
 	///		Equation set to solve.
 	///	</summary>
 	EquationSet m_eqn;
+
+	///	<summary>
+	///		User data item metadata.
+	///	</summary>
+	UserDataMeta m_metaUserData;
 
 	///	<summary>
 	///		Type of staggering used for each variable.

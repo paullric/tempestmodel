@@ -198,15 +198,15 @@ try {
 	// Parse the command line
 	BeginTempestCommandLine("TropicalCycloneTest");
 		SetDefaultResolution(20);
-		SetDefaultLevels(10);
-		SetDefaultOutputDeltaT("1500000u");
-		SetDefaultDeltaT("1500000u");
-		SetDefaultEndTime("1500000u");
+		SetDefaultLevels(30);
+		SetDefaultOutputDeltaT("1h");
+		SetDefaultDeltaT("200s");
+		SetDefaultEndTime("10d");
 		SetDefaultHorizontalOrder(4);
 		SetDefaultVerticalOrder(1);
 
-		CommandLineDouble(dZtop, "ztop", 10000.0);
-		CommandLineDouble(dEarthScaling, "X", 125.0);
+		CommandLineDouble(dZtop, "ztop", 30000.0);
+		CommandLineDouble(dEarthScaling, "X", 1.0);
 
 		ParseCommandLine(argc, argv);
 	EndTempestCommandLine(argv)

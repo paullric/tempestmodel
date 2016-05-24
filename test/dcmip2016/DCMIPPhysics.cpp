@@ -495,10 +495,10 @@ void DCMIPPhysics::Perform(
 			int iTest = 0;
 
 			// Activate Reed Jablonowski precipitation
-			int iRJ2012_precip = 0;
+			int iRJ2012_precip = 1;
 
 			// Boundary layer modification
-			int iTC_PBL_mod = 0;
+			int iTC_PBL_mod = 1;
 
 			// Call simple_physics
 			simple_physics(

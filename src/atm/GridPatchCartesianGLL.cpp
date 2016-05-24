@@ -1609,6 +1609,11 @@ void GridPatchCartesianGLL::InterpolateData(
 	} else if (eDataType == DataType_Temperature) {
 		nComponents = 1;
 
+	// 2D User Data
+	} else if (eDataType == DataType_Auxiliary2D) {
+		nComponents = m_dataUserData2D.GetSize(0);
+		nRElements = 1;
+
 	} else {
 		_EXCEPTIONT("Invalid DataType");
 	}
@@ -1722,6 +1727,9 @@ void GridPatchCartesianGLL::InterpolateData(
 
 		} else if (eDataType == DataType_Temperature) {
 			pData.AttachToData(&(m_dataTemperature[0][0][0]));
+
+		} else if (eDataType == DataType_Auxiliary2D) {
+			pData.AttachToData(&(m_dataUserData2D[c][0][0]));
 
 		} else {
 			_EXCEPTIONT("Invalid DataType");

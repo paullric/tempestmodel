@@ -98,6 +98,10 @@ OutputManagerReference::OutputManagerReference(
 				dDeltaREta * (static_cast<double>(k) + 0.5);
 		}
 	}
+
+	// REta at surface
+	m_dREtaSurface.Allocate(1);
+	m_dREtaSurface[0] = 0.0;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -154,6 +158,12 @@ bool OutputManagerReference::CalculatePatchCoordinates() {
 	// Recalculate patch coordinates
 	Announce("..Recalculating patch coordinates");
 
+	// Equation set
+	const EquationSet & eqn = m_grid.GetModel().GetEquationSet();
+
+	// User data metadata
+	const UserDataMeta & metaUserData = m_grid.GetModel().GetUserDataMeta();
+
 	// Construct array of reference coordinates
 	DataArray1D<double> dXReference(m_nXReference * m_nYReference);
 	DataArray1D<double> dYReference(m_nXReference * m_nYReference);
@@ -196,10 +206,17 @@ bool OutputManagerReference::CalculatePatchCoordinates() {
 			m_nXReference * m_nYReference);
 	}
 
-	if (m_grid.GetModel().GetEquationSet().GetTracers() != 0) {
+	if (eqn.GetTracers() != 0) {
 		m_dataTracers.Allocate(
 			m_grid.GetModel().GetEquationSet().GetTracers(),
 			m_dREtaCoord.GetRows(),
+			m_nXReference * m_nYReference);
+	}
+
+	if (metaUserData.GetUserData2DItemCount() != 0) {
+		m_dataUserData2D.Allocate(
+			metaUserData.GetUserData2DItemCount(),
+			1,
 			m_nXReference * m_nYReference);
 	}
 
@@ -225,11 +242,9 @@ bool OutputManagerReference::CalculatePatchCoordinates() {
 	}
 
 	// Reduce/Interpolate topography array
-	DataArray1D<double> dREtaSurace(1);
-
 	m_grid.ReduceInterpolate(
 		DataType_Topography,
-		dREtaSurace,
+		m_dREtaSurface,
 		m_dAlpha,
 		m_dBeta,
 		m_iPatch,
@@ -383,6 +398,17 @@ bool OutputManagerReference::OpenFile(
 					"T", ncDouble, dimTime, dimLev, dimLat, dimLon);
 		}
 
+		// User data variables
+		const UserDataMeta & metaUserData = model.GetUserDataMeta();
+
+		m_vecUserData2DVar.resize(metaUserData.GetUserData2DItemCount());
+		for (int i = 0; i < metaUserData.GetUserData2DItemCount(); i++) {
+			m_vecUserData2DVar[i] =
+				m_pActiveNcOutput->add_var(
+					metaUserData.GetUserData2DItemName(i).c_str(),
+					ncDouble, dimTime, dimLat, dimLon);
+		}
+
 		// Output longitudes and latitudes
 		NcVar * varLon = m_pActiveNcOutput->add_var("lon", ncDouble, dimLon);
 		NcVar * varLat = m_pActiveNcOutput->add_var("lat", ncDouble, dimLat);
@@ -476,6 +502,9 @@ void OutputManagerReference::Output(
 	// Equation set
 	const EquationSet & eqn = m_grid.GetModel().GetEquationSet();
 
+	// User data metadata
+	const UserDataMeta & metaUserData = m_grid.GetModel().GetUserDataMeta();
+
 	// Add new time
 	if (nRank == 0) {
 #pragma message "FIX: Doesn't give correct count of days"
@@ -533,6 +562,19 @@ void OutputManagerReference::Output(
 			m_dataTracers,
 			DataLocation_None,
 			true);
+	}
+
+	// Perform Interpolate / Reduction on user data
+	if (metaUserData.GetUserData2DItemCount() != 0) {
+		m_dataUserData2D.Zero();
+
+		m_grid.ReduceInterpolate(
+			DataType_Auxiliary2D,
+			m_dREtaSurface,
+			m_dAlpha,
+			m_dBeta,
+			m_iPatch,
+			m_dataUserData2D);
 	}
 
 	// Perform Interpolate / Reduction on computed vorticity
@@ -598,13 +640,26 @@ void OutputManagerReference::Output(
 		}
 
 		// Store tracer variable data
-		if (m_grid.GetModel().GetEquationSet().GetTracers() != 0) {
+		if (eqn.GetTracers() != 0) {
 			for (int c = 0; c < eqn.GetTracers(); c++) {
 				m_vecTracersVar[c]->set_cur(m_ixOutputTime, 0, 0, 0);
 				m_vecTracersVar[c]->put(
 					&(m_dataTracers[c][0][0]),
 					1,
 					m_dataTracers.GetColumns(),
+					m_dYCoord.GetRows(),
+					m_dXCoord.GetRows());
+			}
+		}
+
+		// Store user data
+		if (metaUserData.GetUserData2DItemCount() != 0) {
+			for (int c = 0; c < metaUserData.GetUserData2DItemCount(); c++) {
+				m_vecUserData2DVar[c]->set_cur(m_ixOutputTime, 0, 0);
+				m_vecUserData2DVar[c]->put(
+					&(m_dataUserData2D[c][0][0]),
+					1,
+					1,
 					m_dYCoord.GetRows(),
 					m_dXCoord.GetRows());
 			}

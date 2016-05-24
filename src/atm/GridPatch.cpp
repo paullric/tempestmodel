@@ -77,6 +77,9 @@ void GridPatch::InitializeDataLocal(
 	// Get the equation set
 	const EquationSet & eqn = model.GetEquationSet();
 
+	// 2D user data metadata
+	const UserDataMeta & metaUserData = model.GetUserDataMeta();
+
 	// Geometric patch index
 	m_iGeometricPatchIx.SetSize(1);
 
@@ -460,6 +463,19 @@ void GridPatch::InitializeDataLocal(
 	m_dcAuxiliary.PushDataChunk(&m_dataDivergence);
 	m_dcAuxiliary.PushDataChunk(&m_dataTemperature);
 
+	// 2D User data
+	if (metaUserData.GetUserData2DItemCount() != 0) {
+		m_dataUserData2D.SetDataType(DataType_Auxiliary2D);
+		m_dataUserData2D.SetDataLocation(DataLocation_None);
+		m_dataUserData2D.SetSize(
+			metaUserData.GetUserData2DItemCount(),
+			m_box.GetATotalWidth(),
+			m_box.GetBTotalWidth());
+
+		m_dcAuxiliary.PushDataChunk(&m_dataUserData2D);
+	}
+
+	// Allocate auxiliary data
 	if (fAllocateAuxiliary) {
 		m_dcAuxiliary.Allocate();
 	}
