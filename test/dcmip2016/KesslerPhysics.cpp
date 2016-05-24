@@ -177,6 +177,21 @@ void KesslerPhysics::Perform(
 
 				// Water vapor (RhoQv / Rho)
 				m_dQv[k] = dataTracer[0][k][i][j] / dataNode[RIx][k][i][j];
+				if (m_dQv[k] < 0.0) {
+					m_dQv[k] = 0.0;
+				}
+
+				// Cloud water (RhoQc / Rho)
+				m_dQc[k] = dataTracer[1][k][i][j] / dataNode[RIx][k][i][j];
+				if (m_dQc[k] < 0.0) {
+					m_dQc[k] = 0.0;
+				}
+
+				// Rain water (RhoQr / Rho)
+				m_dQr[k] = dataTracer[2][k][i][j] / dataNode[RIx][k][i][j];
+				if (m_dQr[k] < 0.0) {
+					m_dQr[k] = 0.0;
+				}
 
 				// Cloud water (RhoQc / Rho)
 				m_dQc[k] = dataTracer[1][k][i][j] / dataNode[RIx][k][i][j];
