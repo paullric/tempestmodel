@@ -193,12 +193,6 @@ void KesslerPhysics::Perform(
 					m_dQr[k] = 0.0;
 				}
 
-				// Cloud water (RhoQc / Rho)
-				m_dQc[k] = dataTracer[1][k][i][j] / dataNode[RIx][k][i][j];
-
-				// Rain water (RhoQr / Rho)
-				m_dQr[k] = dataTracer[2][k][i][j] / dataNode[RIx][k][i][j];
-
 				// Potential temperature
 				m_dTheta[k] = m_dThetaVNode[k] / (1.0 + 0.61 * m_dQv[k]);
 
