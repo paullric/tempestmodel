@@ -290,26 +290,58 @@ protected:
 	///	</summary>
 	bool m_fForceMassFluxOnLevels;
 
+protected:
 	///	<summary>
 	///		Hypervis coefficient.
 	///	</summary>
 	double m_dHypervisCoeff;
 
 	///	<summary>
-	///		Upwinding coefficient.
+	///		Upwind coefficient.
 	///	</summary>
 	double m_dUpwindCoeff;
 
 	///	<summary>
 	///		Variables to upwind.
 	///	</summary>
-	DataArray1D<bool> m_fUpwind;
+	DataArray1D<bool> m_fUpwindVar;
+
+	///	<summary>
+	///		Variables to target with hyperviscosity.
+	///	</summary>
+	DataArray1D<bool> m_fHypervisVar;
+
+	///	<summary>
+	///		Variables to target with uniform diffusion.
+	///	</summary>
+	DataArray1D<bool> m_fUniformDiffusionVar;
+
+	///	<summary>
+	///		Finite element upwinding weights.
+	///	</summary>
+	DataArray1D<double> m_dUpwindWeights;
 
 	///	<summary>
 	///		Order of hyperdiffusion to apply (must be even).
 	///	</summary>
 	int m_nHypervisOrder;
 
+	///	<summary>
+	///		Auxiliary storage for second derivatives of the state
+	///	</summary>
+	DataArray2D<double> m_dDiffDiffStateUpwind;
+
+	///	<summary>
+	///		Auxiliary storage for second derivatives of the state
+	///	</summary>
+	DataArray2D<double> m_dDiffDiffStateHypervis;
+
+	///	<summary>
+	///		Auxiliary storage for second derivatives of the state
+	///	</summary>
+	DataArray2D<double> m_dDiffDiffStateUniform;
+
+protected:
 	///	<summary>
 	///		Timestep size.
 	///	</summary>
@@ -341,11 +373,6 @@ protected:
 	int m_nColumnStateSize;
 
 protected:
-	///	<summary>
-	///		Finite element upwinding weights.
-	///	</summary>
-	DataArray1D<double> m_dUpwindWeights;
-
 	///	<summary>
 	///		State variable column.
 	///	</summary>
@@ -415,21 +442,6 @@ protected:
 	///		Auxiliary storage for derivative of pressure on interfaces.
 	///	</summary>
 	DataArray1D<double> m_dDiffPREdge;
-
-	///	<summary>
-	///		Auxiliary storage for second derivatives of the state
-	///	</summary>
-	DataArray2D<double> m_dUpwindDiffDiffState;
-
-	///	<summary>
-	///		Auxiliary storage for second derivatives of the state
-	///	</summary>
-	DataArray2D<double> m_dUniformDiffDiffState;
-
-	///	<summary>
-	///		Auxiliary storage for higher derivatives of the state
-	///	</summary>
-	DataArray2D<double> m_dHyperDiffState;
 
 	///	<summary>
 	///		Auxiliary storage for derivative of theta on nodes.
