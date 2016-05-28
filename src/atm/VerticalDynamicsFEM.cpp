@@ -2788,6 +2788,12 @@ void VerticalDynamicsFEM::BuildF(
 						"VO1 supported");
 				}
 
+				// No upwinding on W on domain boundaries
+				if (c == WIx) {
+					m_dDiffDiffStateUpwind[c][0] = 0.0;
+					m_dDiffDiffStateUpwind[c][nRElements] = 0.0;
+				}
+
 				for (int k = 0; k <= nRElements; k++) {
 					dF[VecFIx(FIxFromCIx(c), k)] -=
 						m_dUpwindCoeff
@@ -3984,7 +3990,7 @@ void VerticalDynamicsFEM::UpdateColumnTracers(
 				m_dStateAuxDiff);
 
 			for (int k = 1; k < nRElements; k++) {
-				m_dMassFluxREdge[k] +=
+				m_dMassFluxREdge[k] -=
 					UNIFORM_SCALAR_DIFFUSION_COEFF
 					* m_dStateREdge[RIx][k]
 					* m_dStateAuxDiff[k];

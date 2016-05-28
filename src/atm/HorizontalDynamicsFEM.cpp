@@ -925,13 +925,13 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 							  dContraMetricB[k][iA][iB][0] * dCovDaQ
 							+ dContraMetricB[k][iA][iB][1] * dCovDbQ;
 
-						m_dAlphaTracerFlux[c][i][j] +=
+						m_dAlphaTracerFlux[c][i][j] -=
 							UNIFORM_SCALAR_DIFFUSION_COEFF
 							* dJacobian[k][iA][iB]
 							* dataInitialNode[RIx][k][iA][iB]
 							* dConDaQ;
 
-						m_dBetaTracerFlux[c][i][j] +=
+						m_dBetaTracerFlux[c][i][j] -=
 							UNIFORM_SCALAR_DIFFUSION_COEFF
 							* dJacobian[k][iA][iB]
 							* dataInitialNode[RIx][k][iA][iB]
