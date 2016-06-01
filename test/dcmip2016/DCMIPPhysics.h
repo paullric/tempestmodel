@@ -85,6 +85,11 @@ protected:
 	DataArray1D<double> m_dZc;
 
 	///	<summary>
+	///		Column model interfaces.
+	///	</summary>
+	DataArray1D<double> m_dZi;
+
+	///	<summary>
 	///		Pressure on model levels.
 	///	</summary>
 	DataArray1D<double> m_dPmid;
@@ -121,6 +126,11 @@ protected:
 	DataArray1D<double> m_dV;
 
 	///	<summary>
+	///		Column virtual potential temperature on levels.
+	///	</summary>
+	DataArray1D<double> m_dThetaVNode;
+
+	///	<summary>
 	///		Column potential temperature.
 	///	</summary>
 	DataArray1D<double> m_dTheta;
@@ -141,6 +151,16 @@ protected:
 	DataArray2D<double> m_dBLJacobian;
 
 	///	<summary>
+	///		Altitude of each model level.
+	///	</summary>
+	DataArray1D<double> m_dZNode;
+
+	///	<summary>
+	///		Altitude of each model interface.
+	///	</summary>
+	DataArray1D<double> m_dZREdge;
+
+	///	<summary>
 	///		Column eddy fluxes on model levels.
 	///	</summary>
 	DataArray2D<double> m_dEddyStateNode;
@@ -159,6 +179,42 @@ protected:
 	///		Column eddy fluxes on model interfaces.
 	///	</summary>
 	DataArray2D<double> m_dEddyTracerREdge;
+
+protected:
+	///	<summary>
+	///		Column turbulent mixing strength of velocity on interfaces.
+	///	</summary>
+	DataArray1D<double> m_dKm;
+
+	///	<summary>
+	///		Column turbulent mixing strength of scalars on interfaces.
+	///	</summary>
+	DataArray1D<double> m_dKE;
+
+	///	<summary>
+	///		Column E coefficients for boundary layer parameterization.
+	///	</summary>
+	DataArray1D<double> m_dEm;
+
+	///	<summary>
+	///		Column E coefficients for boundary layer parameterization.
+	///	</summary>
+	DataArray1D<double> m_dEE;
+
+	///	<summary>
+	///		Column F coefficients for boundary layer parameterization.
+	///	</summary>
+	DataArray2D<double> m_dF;
+
+	///	<summary>
+	///		Column density on interfaces.
+	///	</summary>
+	DataArray1D<double> m_dRhoREdge;
+
+	///	<summary>
+	///		Column potential temperature on interfaces.
+	///	</summary>
+	DataArray1D<double> m_dThetaREdge;
 
 };
 

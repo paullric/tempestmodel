@@ -217,10 +217,14 @@ try {
 	EquationSet eqn(EquationSet::PrimitiveNonhydrostaticEquations);
  
 	eqn.InsertTracer("RhoQv", "RhoQv");
-	//eqn.InsertTracer("RhoQc", "RhoQc");
-	//eqn.InsertTracer("RhoQr", "RhoQr");
+	eqn.InsertTracer("RhoQc", "RhoQc");
+	eqn.InsertTracer("RhoQr", "RhoQr");
 
-	Model model(eqn);
+	UserDataMeta metaUserData;
+
+	metaUserData.InsertDataItem2D("PRECT");
+
+	Model model(eqn, metaUserData);
 
 	TempestSetupCubedSphereModel(model);
 

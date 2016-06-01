@@ -60,8 +60,7 @@
 !
 !=======================================================================
 
-SUBROUTINE KESSLER(theta, qv, qc, qr, rho, pk, dt, z, nz, rainnc) &
-  BIND(c, name = "kessler")
+SUBROUTINE KESSLER(theta, qv, qc, qr, rho, pk, dt, z, nz, rainnc)
 
   IMPLICIT NONE
 
@@ -73,7 +72,9 @@ SUBROUTINE KESSLER(theta, qv, qc, qr, rho, pk, dt, z, nz, rainnc) &
             theta   ,     & ! Potential temperature (K)
             qv      ,     & ! Water vapor mixing ratio (gm/gm)
             qc      ,     & ! Cloud water mixing ratio (gm/gm)
-            qr      ,     & ! Rain  water mixing ratio (gm/gm)
+            qr              ! Rain  water mixing ratio (gm/gm)
+
+  REAL(8), DIMENSION(nz), INTENT(IN) :: &
             rho             ! Dry air density (not mean state as in KW) (kg/m^3)
 
   REAL(8), INTENT(INOUT) :: &

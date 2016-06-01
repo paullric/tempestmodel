@@ -24,7 +24,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 extern "C" {
-	void kessler(
+	void kessler_(
 		double * t,
 		double * qv,
 		double * qc,
@@ -207,7 +207,7 @@ void KesslerPhysics::Perform(
 			}
 
 			double dRainNc = 0.0;
-			kessler(
+			kessler_(
 				&(m_dTheta[0]),
 				&(m_dQv[0]),
 				&(m_dQc[0]),
