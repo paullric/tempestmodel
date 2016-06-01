@@ -1076,7 +1076,7 @@ void VerticalDynamicsFEM::StepExplicit(
 
 #if defined(EXPLICIT_THERMO)
 				// Apply upwinding to thermodynamic variable
-				if ((m_fUpwind[PIx]) && (!m_fFullyExplicit)) {
+				if ((m_fUpwindVar[PIx]) && (!m_fFullyExplicit)) {
 					if (pGrid->GetVarLocation(PIx) == DataLocation_REdge) {
 						_EXCEPTIONT("Not implemented: Upwinding of thermo"
 							   " on interfaces");
@@ -3063,7 +3063,7 @@ void VerticalDynamicsFEM::BuildJacobianF(
 #if defined(VERTICAL_HYPERVISCOSITY)
 	// Check upwinding
 	for (int c = 2; c < 5; c++) {
-		if (m_fUpwind[c]) {
+		if (m_fHypervisVar[c]) {
 			_EXCEPTIONT("Hyperviscosity not implemented in BuildJacobian");
 		}
 	}
