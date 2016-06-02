@@ -34,7 +34,7 @@ extern "C" {
 		double * dt,
 		double * z,
 		int * nz,
-		double * rainnc);
+		double * precl);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -206,7 +206,7 @@ void KesslerPhysics::Perform(
 				m_dPk[k] = dTv / m_dThetaVNode[k];
 			}
 
-			double dRainNc = 0.0;
+			double dPrecL = 0.0;
 			kessler_(
 				&(m_dTheta[0]),
 				&(m_dQv[0]),
@@ -217,10 +217,10 @@ void KesslerPhysics::Perform(
 				&(dDeltaT),
 				&(m_dZc[0]),
 				&(nRElements),
-				&(dRainNc));
+				&(dPrecL));
 
 			// Store accumualted precipitation
-			dataUserData2D[0][i][j] += dRainNc;
+			dataUserData2D[0][i][j] += dPrecL * dDeltaT;
 
 			// Remap virtual potential temperature tendency to interfaces
 			if (pGridGLL->GetVarLocation(TIx) == DataLocation_REdge) {

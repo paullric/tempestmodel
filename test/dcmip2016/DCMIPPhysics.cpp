@@ -39,7 +39,7 @@ extern "C" {
 		double * dt,
 		double * z,
 		int * nz,
-		double * rainnc);
+		double * precl);
 
 	void simple_physics(
 		int * pcols,
@@ -324,8 +324,8 @@ void DCMIPPhysics::Perform(
 				&(m_iPBLType),
 				&(m_iPrecType));
 
-			// Store precipitation
-			dataUserData2D[0][i][j] += dPrecL;
+			// Store accumulated precipitation
+			dataUserData2D[0][i][j] += dPrecL * dDeltaT;
 /*
 			// Remap virtual potential temperature tendency to interfaces
 			if (pGridGLL->GetVarLocation(TIx) == DataLocation_REdge) {
