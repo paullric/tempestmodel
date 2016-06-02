@@ -45,7 +45,8 @@ end subroutine k_vals
 !  Tendencies of cl and cl2
 !===============================================================================
 
-subroutine tendency_Terminator( lat, lon, cl, cl2, dt, cl_f, cl2_f )
+subroutine tendency_Terminator( lat, lon, cl, cl2, dt, cl_f, cl2_f ) &
+BIND(c, name = "tendency_Terminator")
 
 !-----------------------------------------------------------------------
 ! Arguments:
@@ -90,7 +91,8 @@ end subroutine tendency_Terminator
 !  Compute initial values
 !===============================================================================
 
-subroutine initial_value_Terminator( lat, lon, cl, cl2 )
+subroutine initial_value_Terminator( lat, lon, cl, cl2 ) &
+BIND(c, name = "initial_value_Terminator")
 
 !-----------------------------------------------------------------------
 ! Arguments:

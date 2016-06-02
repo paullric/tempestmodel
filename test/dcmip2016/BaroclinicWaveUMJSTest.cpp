@@ -16,7 +16,8 @@
 
 #include "Tempest.h"
 
-#include "KesslerPhysics.h"
+#include "DCMIPPhysics.h"
+#include "TerminatorPhysics.h"
 
 extern "C" {
 	void baroclinic_wave_test(
@@ -37,6 +38,12 @@ extern "C" {
 		double * dPs,
 		double * dRho,
 		double * dQ);
+
+	void initial_value_Terminator(
+		double * lat,
+		double * lon,
+		double * cl,
+		double * cl2);
 }
 
 
@@ -176,6 +183,19 @@ public:
 			&dRho,
 			&dQ);
 
+		// Terminator test
+		double dQCl = 0.0;
+		double dQCl2 = 0.0;
+
+		double dLatDeg = dLat * 180.0 / M_PI;
+		double dLonDeg = dLon * 180.0 / M_PI;
+
+		initial_value_Terminator(
+			&dLatDeg,
+			&dLonDeg,
+			&dQCl,
+			&dQCl2);
+
 		// Store the state
 		dState[0] = dU;
 		dState[1] = dV;
@@ -183,9 +203,12 @@ public:
 		dState[3] = 0.0;
 		dState[4] = dRho;
 		
-		dTracer[0] = dQ*dRho;
+		dTracer[0] = dQ * dRho;
 		dTracer[1] = 0;
 		dTracer[2] = 0;
+
+		dTracer[3] = dQCl * dRho;
+		dTracer[4] = dQCl2 * dRho;
 	}
 };
 
@@ -227,8 +250,15 @@ try {
 	eqn.InsertTracer("RhoQv", "RhoQv");
 	eqn.InsertTracer("RhoQc", "RhoQc");
 	eqn.InsertTracer("RhoQr", "RhoQr");
-	
-	Model model(eqn);
+
+	eqn.InsertTracer("RhoQCl", "RhoQCl");
+	eqn.InsertTracer("RhoQCl2", "RhoQCl2");
+
+	UserDataMeta metaUserData;
+
+	metaUserData.InsertDataItem2D("PRECT");
+
+	Model model(eqn, metaUserData);
 
 	TempestSetupCubedSphereModel(model);
 
@@ -241,9 +271,18 @@ try {
 			dEarthScaling));
 	AnnounceEndBlock("Done");
 
-	// Add Kessler physics
+	// Add DCMIP physics
 	model.AttachWorkflowProcess(
-		new KesslerPhysics(
+		new DCMIPPhysics(
+			model,
+			model.GetDeltaT(),
+			1,
+			0,
+			0));
+
+	// Add Terminator physics
+	model.AttachWorkflowProcess(
+		new TerminatorPhysics(
 			model,
 			model.GetDeltaT()));
 

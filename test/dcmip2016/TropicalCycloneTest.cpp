@@ -240,7 +240,10 @@ try {
 	model.AttachWorkflowProcess(
 		new DCMIPPhysics(
 			model,
-			model.GetDeltaT()));
+			model.GetDeltaT(),
+			2,
+			0,
+			0));
 
 	// Begin execution
 	AnnounceBanner("SIMULATION");

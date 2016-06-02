@@ -83,11 +83,17 @@ extern "C" {
 
 DCMIPPhysics::DCMIPPhysics(
 	Model & model,
-	const Time & timeFrequency
+	const Time & timeFrequency,
+	int iTestCase,
+	int iPBLType,
+	int iPrecType
 ) :
-WorkflowProcess(
-	model,
-	timeFrequency)
+	WorkflowProcess(
+		model,
+		timeFrequency),
+	m_iTestCase(iTestCase),
+	m_iPBLType(iPBLType),
+	m_iPrecType(iPrecType)
 { }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -95,18 +101,16 @@ WorkflowProcess(
 void DCMIPPhysics::Initialize(
 	const Time & timeStart
 ) {
-		// Indices of EquationSet variables
-		const int UIx = 0;
-		const int VIx = 1;
-		const int TIx = 2;
-		const int WIx = 3;
-		const int RIx = 4;
-
 		// Get a copy of the GLL grid
 		Grid * pGrid = m_model.GetGrid();
 
 		// Check position of variables
 		int nRElements = pGrid->GetRElements();
+
+		m_dThetaVNode.Allocate(nRElements);
+
+		m_dU.Allocate(nRElements);
+		m_dV.Allocate(nRElements);
 
 		m_dQv.Allocate(nRElements);
 		m_dQc.Allocate(nRElements);
@@ -115,28 +119,24 @@ void DCMIPPhysics::Initialize(
 		m_dZc.Allocate(nRElements);
 		m_dZi.Allocate(nRElements+1);
 		m_dPmid.Allocate(nRElements);
+
+/*
 		m_dPint.Allocate(nRElements+1);
 		m_dPdel.Allocate(nRElements);
 		m_dRPdel.Allocate(nRElements);
 		m_dT.Allocate(nRElements);
-		m_dThetaVNode.Allocate(nRElements);
 		m_dTheta.Allocate(nRElements);
-
-		m_dU.Allocate(nRElements);
-		m_dV.Allocate(nRElements);
 
 		m_dTvNode.Allocate(nRElements);
 		m_dTvREdge.Allocate(nRElements+1);
-
-		m_dZNode.Allocate(nRElements);
-		m_dZREdge.Allocate(nRElements+1);
 
 		m_dEddyStateNode.Allocate(5, nRElements);
 		m_dEddyStateREdge.Allocate(5, nRElements+1);
 
 		m_dEddyTracerNode.Allocate(3, nRElements);
 		m_dEddyTracerREdge.Allocate(3, nRElements+1);
-
+*/
+/*
 		m_dKm.Allocate(nRElements+1);
 		m_dKE.Allocate(nRElements+1);
 
@@ -147,6 +147,7 @@ void DCMIPPhysics::Initialize(
 
 		m_dRhoREdge.Allocate(nRElements);
 		m_dThetaREdge.Allocate(nRElements+1);
+*/
 }
 	
 ///////////////////////////////////////////////////////////////////////////////
@@ -290,9 +291,6 @@ void DCMIPPhysics::Perform(
 					m_dQr[k] = 0.0;
 				}
 
-				// Potential temperature
-				m_dTheta[k] = m_dThetaVNode[k] / (1.0 + 0.61 * m_dQv[k]);
-
 				// Dry air density
 				m_dRho[k] = dRhoD;
  
@@ -306,14 +304,10 @@ void DCMIPPhysics::Perform(
 				m_dZi[k] = dataZInterfaces[k][i][j];
 			}
 
-			int test = 1;
-			int pbl_type = 0;
-			int prec_type = 1;
-
 			double dPrecL = 0.0;
 
 			dcmip2016_physics_(
-				&(test),
+				&(m_iTestCase),
 				&(m_dU[0]),
 				&(m_dV[0]),
 				&(m_dPmid[0]),
@@ -327,8 +321,8 @@ void DCMIPPhysics::Perform(
 				&(dLat),
 				&(nRElements),
 				&(dPrecL),
-				&(pbl_type),
-				&(prec_type));
+				&(m_iPBLType),
+				&(m_iPrecType));
 
 			// Store precipitation
 			dataUserData2D[0][i][j] += dPrecL;
@@ -595,17 +589,17 @@ void DCMIPPhysics::Perform(
 
 				m_dTheta[k] = dataNode[TIx][k][i][j] / (1.0 + 0.61 * m_dQv[k]);
 
-				m_dZNode[k] = dataZNode[k][i][j];
+				m_dZc[k] = dataZNode[k][i][j];
 			}
 
 			// Altitude of lowest model level
-			double dZa = m_dZNode[0];
+			double dZa = m_dZc[0];
 
 			// Quantities on interfaces
 			for (int k = 0; k <= nRElements; k++) {
 				m_dRhoREdge[k] = dataREdge[RIx][k][i][j];
 
-				m_dZREdge[k] = dataZREdge[k][i][j];
+				m_dZi[k] = dataZREdge[k][i][j];
 
 				double dPint =
 					phys.PressureFromRhoTheta(
@@ -658,14 +652,14 @@ void DCMIPPhysics::Perform(
 
 				if (k != 0) {
 					dA = m_dRhoREdge[k] / m_dRho[k] * dDeltaT
-						/ (m_dZNode[k] - m_dZNode[k-1])
-						/ (m_dZREdge[k+1] - m_dZREdge[k]);
+						/ (m_dZc[k] - m_dZc[k-1])
+						/ (m_dZi[k+1] - m_dZi[k]);
 				}
 
 				if (k != nRElements-1) {
 					dC = m_dRhoREdge[k+1] / m_dRho[k] * dDeltaT
-						/ (m_dZNode[k+1] - m_dZNode[k])
-						/ (m_dZREdge[k+1] - m_dZREdge[k]);
+						/ (m_dZc[k+1] - m_dZc[k])
+						/ (m_dZi[k+1] - m_dZi[k]);
 				}
 
 				double dAm = dA * m_dKm[k];

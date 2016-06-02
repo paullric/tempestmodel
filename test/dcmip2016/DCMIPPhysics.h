@@ -41,7 +41,10 @@ public:
 	///	</summary>
 	DCMIPPhysics(
 		Model & model,
-		const Time & timeFrequency);
+		const Time & timeFrequency,
+		int iTestCase,
+		int iPBLType,
+		int iPrecType);
 	
 public:
   	///	<summary>
@@ -57,8 +60,43 @@ public:
 	virtual void Perform(
 		const Time & time
 	);
-	
+
 protected:
+	///	<summary>
+	///		Test case index (1,2,3).
+	///	</summary>
+	int m_iTestCase;
+
+	///	<summary>
+	///		Planetary boundary layer type:
+	///		0 = Standard Reed-Jablonowski PBL
+	///		1 = Bryan modified PBL
+	///	</summary>
+	int m_iPBLType;
+
+	///	<summary>
+	///		Large-scale precipitation parameterization:
+	///		0 = Kessler physics
+	///		1 = Reed-Jablonowski Large-Scale Precipitation
+	///	</summary>
+	int m_iPrecType;
+
+protected:
+	///	<summary>
+	///		Column virtual potential temperature on levels.
+	///	</summary>
+	DataArray1D<double> m_dThetaVNode;
+
+	///	<summary>
+	///		Column zonal velocity.
+	///	</summary>
+	DataArray1D<double> m_dU;
+
+	///	<summary>
+	///		Column meridional velocity.
+	///	</summary>
+	DataArray1D<double> m_dV;
+
 	///	<summary>
 	///		Column water vapor mixing ratio.
 	///	</summary>
@@ -94,6 +132,8 @@ protected:
 	///	</summary>
 	DataArray1D<double> m_dPmid;
 
+/*
+protected:
 	///	<summary>
 	///		Pressure on model interfaces.
 	///	</summary>
@@ -116,21 +156,6 @@ protected:
 	DataArray1D<double> m_dT;
 
 	///	<summary>
-	///		Column zonal velocity.
-	///	</summary>
-	DataArray1D<double> m_dU;
-
-	///	<summary>
-	///		Column meridional velocity.
-	///	</summary>
-	DataArray1D<double> m_dV;
-
-	///	<summary>
-	///		Column virtual potential temperature on levels.
-	///	</summary>
-	DataArray1D<double> m_dThetaVNode;
-
-	///	<summary>
 	///		Column potential temperature.
 	///	</summary>
 	DataArray1D<double> m_dTheta;
@@ -144,21 +169,6 @@ protected:
 	///		Column virtual potential temperature on model interfaces.
 	///	</summary>
 	DataArray1D<double> m_dTvREdge;
-
-	///	<summary>
-	///		Jacobian coefficients for implicit solve in the boundary layer.
-	///	</summary>
-	DataArray2D<double> m_dBLJacobian;
-
-	///	<summary>
-	///		Altitude of each model level.
-	///	</summary>
-	DataArray1D<double> m_dZNode;
-
-	///	<summary>
-	///		Altitude of each model interface.
-	///	</summary>
-	DataArray1D<double> m_dZREdge;
 
 	///	<summary>
 	///		Column eddy fluxes on model levels.
@@ -179,7 +189,8 @@ protected:
 	///		Column eddy fluxes on model interfaces.
 	///	</summary>
 	DataArray2D<double> m_dEddyTracerREdge;
-
+*/
+/*
 protected:
 	///	<summary>
 	///		Column turbulent mixing strength of velocity on interfaces.
@@ -215,6 +226,7 @@ protected:
 	///		Column potential temperature on interfaces.
 	///	</summary>
 	DataArray1D<double> m_dThetaREdge;
+*/
 
 };
 

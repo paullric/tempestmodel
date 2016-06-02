@@ -1,8 +1,8 @@
 !-----------------------------------------------------------------------
 !
-!  Version:  1.0
+!  Version:  1.1
 !
-!  Date:  May 31st, 2016
+!  Date:  June 1st, 2016
 !
 !  Change log:
 !
@@ -274,13 +274,14 @@ SUBROUTINE DCMIP2016_PHYSICS(test, u, v, p, qv, qc, qr, rho, &
       nz,           &
       precl)
 
-    ! Convert qv to qsv and theta to pressure
+    ! Convert qv to qsv and theta to pressure and temperature
     do k = 1,nz
       qsv(k) = qv(k) / (one + qv(k))
       rhom(k) = rho(k) / (one - qsv(k))
 
       thetav = theta(k) * (one + zvir * qv(k))
       p(k) = p0 * (rhom(k) * rair * thetav / p0)**(cpair/(cpair-rair))
+      t(k) = p(k) / (rhom(k) * rair * (one + zvir * qv(k)))
     enddo
 
   else
