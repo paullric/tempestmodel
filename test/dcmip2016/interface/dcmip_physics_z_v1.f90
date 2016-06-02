@@ -23,7 +23,7 @@
 !     zi        (IN) heights of model interfaces levels in the grid column (m)
 !     lat       (IN) latitude of column
 !     nz        (IN) number of levels in the column
-!     precl     (IN) large-scale precip beneath the grid column (mm)
+!     precl     (IN) large-scale precip rate (m/s)
 !     pbl_type  (IN) type of planetary boundary layer to use (0,1)
 !                    0 = Default Reed-Jablonowski boundary layer
 !                    1 = Modified Bryan boundary layer
@@ -237,6 +237,8 @@ SUBROUTINE DCMIP2016_PHYSICS(test, u, v, p, qv, qc, qr, rho, &
   ! Large-scale precipitation (Reed-Jablonowski)
   !------------------------------------------------
   if (prec_type .eq. 1) then
+    precl = 0.d0
+
     do k=1, nz
       dz = zi(k+1) - zi(k)
       qsat = epsilo * e0 / p(k) * exp(-(latvap/rh2o) * ((one/t(k))-(one/T0)))
@@ -245,7 +247,7 @@ SUBROUTINE DCMIP2016_PHYSICS(test, u, v, p, qv, qc, qr, rho, &
           / (one + (latvap/cpair) * epsilo * latvap * qsat / (rair*t(k)**2))
         t(k) = t(k) + latvap / cpair * deltaqsv
         qsv(k) = qsv(k) - deltaqsv
-        precl = precl + deltaqsv * rhom(k) * dz / rhow
+        precl = precl + deltaqsv * rhom(k) * dz / (dt * rhow)
 
         qv(k) = qsv(k) / (1.0 - qsv(k))
         rhom(k) = rho(k) / (1.0 - qsv(k))
