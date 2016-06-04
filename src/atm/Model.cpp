@@ -360,6 +360,15 @@ void Model::Go() {
 
 	// Initial output
 	for (int om = 0; om < m_vecOutMan.size(); om++) {
+/* COMMENT IN FOR MASS, ENERGY, AND MOMENTUM OUTPUTS
+		if (om == 0) {
+			Announce("%s %1.15e %1.15e %1.15e",
+			"Energy:",
+			m_pGrid->ComputeTotalEnergy(0),
+			m_pGrid->ComputeTotalPotentialEnstrophy(0),
+			m_pGrid->ComputeTotalVerticalMomentum(0));
+		}
+*/
 		m_vecOutMan[om]->InitialOutput(m_time);
 	}
 
@@ -462,9 +471,27 @@ void Model::Go() {
 		// Check for output
 		for (int om = 0; om < m_vecOutMan.size(); om++) {
 			if (fLastStep) {
+/* COMMENT IN FOR MASS, ENERGY, AND MOMENTUM OUTPUTS
+				if (om == 0) {
+						Announce("%s %1.15e %1.15e %1.15e",
+						"Energy:",
+						m_pGrid->ComputeTotalEnergy(0),
+						m_pGrid->ComputeTotalPotentialEnstrophy(0),
+						m_pGrid->ComputeTotalVerticalMomentum(0));
+				}
+*/
 				m_vecOutMan[om]->FinalOutput(m_time);
 
 			} else if (m_vecOutMan[om]->IsOutputNeeded(m_time)) {
+/* COMMENT IN FOR MASS, ENERGY, AND MOMENTUM OUTPUTS
+				if (om == 0) {
+						Announce("%s %1.15e %1.15e %1.15e",
+						"Energy:",
+						m_pGrid->ComputeTotalEnergy(0),
+						m_pGrid->ComputeTotalPotentialEnstrophy(0),
+						m_pGrid->ComputeTotalVerticalMomentum(0));
+				}
+*/
 				m_vecOutMan[om]->ManageOutput(m_time);
 			}
 		}
