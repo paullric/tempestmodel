@@ -137,20 +137,58 @@ void GridCartesianGLL::ApplyDefaultPatchLayout(
 	int nDistributedPatches = nProcsPerDirection;
 
 	// Determine arrangement of elements on processors
-	if (GetABaseResolution() % nProcsPerDirection != 0) {
-		_EXCEPTIONT("\n(UNIMPLEMENTED) Currently elements must be "
+	// SINGLE RECTANGULAR PATCH
+	if (GetABaseResolution() * GetBBaseResolution() % nProcsPerDirection != 0) {
+		_EXCEPTIONT("\n(UNIMPLEMENTED) Currently Alpha-Beta elements must be "
 			"equally divided among processors.");
 	}
 
-	int nElementsPerDirection = GetABaseResolution() / nProcsPerDirection;
-	DataArray1D<int> iBoxBegin(nProcsPerDirection + 1);
-
-	iBoxBegin[0] = 0;
-	for (int n = 1; n < nProcsPerDirection; n++) {
-		iBoxBegin[n] = n * nElementsPerDirection;
+	bool fCartXZ = GetIsCartesianXZ();
+	int nProcsADirection = 0;
+	int nProcsBDirection = 0;
+	// Handle special case of 2 or 3 processors (laptop testing)
+	if (fCartXZ || (nDistributedPatches < 4)) {
+		nProcsADirection = nProcsPerDirection;
+		nProcsBDirection = 1;
 	}
-	iBoxBegin[nProcsPerDirection] = GetABaseResolution();
+	// Allow 3D cases to split the Beta elements once (EVEN NUMBER OF PROCESSORS)
+	else if (!fCartXZ && (nProcsPerDirection % 2 == 0)) {
+		# pragma message "No-flux BC's DO NOT WORK IN parallel 3D Cartesian cases"
+		nProcsADirection = (int) (nProcsPerDirection / 2);
+		nProcsBDirection = 2;
+	}
+	else if (!fCartXZ && 
+			 (nProcsADirection * nProcsBDirection != nDistributedPatches)) {
+		_EXCEPTIONT("Even number of processors required"
+			"for 3D Cartesian cases.");
+	}
+	// Default to alpha wise strips
+	else {
+		nProcsADirection = nProcsPerDirection;
+		nProcsBDirection = 1;
+	}
 
+	int nElementsPerDirectionA = GetABaseResolution() / nProcsPerDirection;
+	DataArray1D<int> iBoxBeginA(nProcsPerDirection + 1);
+
+	int nElementsPerDirectionB = GetBBaseResolution() / nProcsPerDirection;
+	DataArray1D<int> iBoxBeginB(nProcsPerDirection + 1);
+
+	// Set the patch array for Alpha
+	iBoxBeginA[0] = 0;
+	for (int n = 1; n < nProcsADirection; n++) {
+		iBoxBeginA[n] = n * nElementsPerDirectionA;
+	}
+	iBoxBeginA[nProcsADirection] = GetABaseResolution();
+
+	// Set the patch array for Beta
+	iBoxBeginB[0] = 0;
+	for (int n = 1; n < nProcsBDirection; n++) {
+		iBoxBeginB[n] = n * nElementsPerDirectionB;
+	}
+	iBoxBeginB[nProcsBDirection] = GetBBaseResolution();
+
+/*
 	// Single panel 0 implementation (Cartesian Grid)
 	// Rectangular alpha-wise patches that span all of the beta direction
 	// (as many as there are processors available)
@@ -164,8 +202,25 @@ void GridCartesianGLL::ApplyDefaultPatchLayout(
 			0,
 			m_nHorizontalOrder * GetBBaseResolution());
 	}
+*/
+	// Create master patch for each panel
+	int ixPatch = 0;
 
-	m_nInitializedPatchBoxes = nProcsPerDirection;
+	for (int i = 0; i < nProcsADirection; i++) {
+	for (int j = 0; j < nProcsBDirection; j++) {
+
+		m_aPatchBoxes[ixPatch] = PatchBox(
+			0, 0, m_model.GetHaloElements(),
+			m_nHorizontalOrder * iBoxBeginA[i],
+			m_nHorizontalOrder * iBoxBeginA[i+1],
+			m_nHorizontalOrder * iBoxBeginB[j],
+			m_nHorizontalOrder * iBoxBeginB[j+1]);
+
+		ixPatch++;
+	}
+	}
+
+	m_nInitializedPatchBoxes = ixPatch;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -296,6 +351,8 @@ void GridCartesianGLL::GetPatchFromCoordinateIndex(
 		nVectorLength = vecIxA.GetRows();
 	}
 
+std::cout << GetPatchCount() << '\n';
+
 	// Check arguments
 	if ((vecIxA.GetRows() < nVectorLength) ||
 		(vecIxB.GetRows() < nVectorLength) ||
@@ -313,14 +370,12 @@ void GridCartesianGLL::GetPatchFromCoordinateIndex(
 	int nLocalResolutionB =
 		m_nHorizontalOrder * GetBBaseResolution(iRefinementLevel);
 	
-	//std::cout << m_eBoundaryCondition[Direction_Bottom] << '\n';
 	// Loop through all entries
 	int iLastPatch = GridPatch::InvalidIndex;
 	for (int i = 0; i < nVectorLength; i++) {
-
 		int iA = vecIxA[i];
 		int iB = vecIxB[i];
-		int iP = vecPanel[i];
+		int iP = 0;
 
 		// Wrap global indices
 		if (iA < 0) {

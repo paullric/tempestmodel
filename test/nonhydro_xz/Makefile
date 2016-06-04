@@ -12,6 +12,7 @@ include $(TEMPESTBASEDIR)/mk/framework.make
 
 FILES= InertialGravityCartesianXZTest.cpp \
        ThermalBubbleCartesianTest.cpp \
+       ThermalBubbleCartesian3DTest.cpp \
        ScharMountainCartesianTest.cpp \
        HydrostaticMountainCartesianTest.cpp \
        NonHydroMountainCartesianTest.cpp \

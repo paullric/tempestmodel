@@ -3059,7 +3059,7 @@ void VerticalDynamicsFEM::BuildJacobianF(
 	if (fMassFluxOnLevels) {
 		_EXCEPTIONT("Mass flux on levels -- not implemented");
 	}
-
+/*
 #if defined(VERTICAL_HYPERVISCOSITY)
 	// Check upwinding
 	for (int c = 2; c < 5; c++) {
@@ -3068,7 +3068,7 @@ void VerticalDynamicsFEM::BuildJacobianF(
 		}
 	}
 #endif
-
+*/
 //////////////////////////////////////////////
 // Prognostic thermodynamic variable pressure
 #if defined(FORMULATION_PRESSURE)

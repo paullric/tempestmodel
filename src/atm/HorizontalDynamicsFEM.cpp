@@ -2102,7 +2102,7 @@ void HorizontalDynamicsFEM::ApplyVectorHyperdiffusion(
 
 ///////////////////////////////////////////////////////////////////////////////
 
-#pragma message "jeguerra: Clean up this function"
+//#pragma message "jeguerra: Clean up this function"
 
 void HorizontalDynamicsFEM::ApplyRayleighFriction(
 	int iDataUpdate,
@@ -2114,9 +2114,35 @@ void HorizontalDynamicsFEM::ApplyRayleighFriction(
 	// Number of components to hit with friction
 	int nComponents = m_model.GetEquationSet().GetComponents();
 
+	// Equation set being solved
+	int nEqSet = m_model.GetEquationSet().GetType();
+
+	bool fCartXZ = pGrid->GetIsCartesianXZ();
+
+	int nEffectiveC[nComponents];
+	// 3D primitive nonhydro models with no density treatment
+	if ((nEqSet == 2) && !fCartXZ) {
+		nEffectiveC[0] = 0; nEffectiveC[1] = 1; 
+		nEffectiveC[3] = 2; nEffectiveC[3] = 3;
+		nComponents = nComponents - 1;
+	}
+	// 2D Cartesian XZ primitive nonhydro models with no density treatment
+	else if ((nEqSet == 2) && fCartXZ) {
+		nEffectiveC[0] = 0;
+		nEffectiveC[1] = 2; 
+		nEffectiveC[2] = 3;
+		nComponents = nComponents - 2;
+	}
+	// Other model types (advection, shallow water, mass coord)
+	else {
+		for (int nc = 0; nc < nComponents; nc++) {
+			nEffectiveC[nc] = nc;
+		}
+	}
+ 
 	// Subcycle the rayleigh update
-	int NSCR = 10;
-	double SCRF = 1.0 / NSCR;
+	int nRayleighCycles = 10;
+	double dRayleighFactor = 1.0 / nRayleighCycles;
 
 	// Perform local update
 	for (int n = 0; n < pGrid->GetActivePatchCount(); n++) {
@@ -2162,21 +2188,16 @@ void HorizontalDynamicsFEM::ApplyRayleighFriction(
 
 				double dNuNode = 1.0 / (1.0 + dDeltaT * dNu);
 
-				// Loop over all components NOT DENSITY
+				// Loop over all effective components
 				for (int c = 0; c < nComponents; c++) {
-					if ((m_model.GetEquationSet().GetComponentShortName(c) == "U") ||
-					((m_model.GetEquationSet().GetComponentShortName(c) == "V") && 
-					 (pGrid->GetIsCartesianXZ() == false)) ||
-					(m_model.GetEquationSet().GetComponentShortName(c) == "W") ||
-					(m_model.GetEquationSet().GetComponentShortName(c) == "Theta")) {
-						for (int si = 0; si < NSCR; si++) { 
-						dNuNode = 1.0 / (1.0 + SCRF * dDeltaT * dNu);
-						if (pGrid->GetVarLocation(c) == DataLocation_Node) {
-							dataUpdateNode[c][k][i][j] = 
-								dNuNode * dataUpdateNode[c][k][i][j]
+					for (int si = 0; si < nRayleighCycles; si++) { 
+						dNuNode = 1.0 / (1.0 + dRayleighFactor * dDeltaT * dNu);
+						if (pGrid->GetVarLocation(nEffectiveC[c]) == 
+							DataLocation_Node) {
+							dataUpdateNode[nEffectiveC[c]][k][i][j] = 
+								dNuNode * dataUpdateNode[nEffectiveC[c]][k][i][j]
 								+ (1.0 - dNuNode)
-								* dataReferenceNode[c][k][i][j];
-						}
+								* dataReferenceNode[nEffectiveC[c]][k][i][j];
 						}
 					}
 				}
@@ -2194,21 +2215,16 @@ void HorizontalDynamicsFEM::ApplyRayleighFriction(
 
 				double dNuREdge = 1.0 / (1.0 + dDeltaT * dNu);
 
-				// Loop over all components NOT DENSITY
+				// Loop over all effective components
 				for (int c = 0; c < nComponents; c++) {
-					if ((m_model.GetEquationSet().GetComponentShortName(c) == "U") ||
-					((m_model.GetEquationSet().GetComponentShortName(c) == "V") && 
-					 (pGrid->GetIsCartesianXZ() == false)) ||
-					(m_model.GetEquationSet().GetComponentShortName(c) == "W") ||
-					(m_model.GetEquationSet().GetComponentShortName(c) == "Theta")) {
-						for (int si = 0; si < NSCR; si++) {
-						if (pGrid->GetVarLocation(c) == DataLocation_REdge) {
-							dNuREdge = 1.0 / (1.0 + SCRF * dDeltaT * dNu);
-							dataUpdateREdge[c][k][i][j] = 
-								dNuREdge * dataUpdateREdge[c][k][i][j]
+					for (int si = 0; si < nRayleighCycles; si++) { 
+						dNuREdge = 1.0 / (1.0 + dRayleighFactor * dDeltaT * dNu);
+						if (pGrid->GetVarLocation(nEffectiveC[c]) == 
+							DataLocation_REdge) {
+								dataUpdateREdge[nEffectiveC[c]][k][i][j] = 
+								dNuREdge * dataUpdateREdge[nEffectiveC[c]][k][i][j]
 								+ (1.0 - dNuREdge)
-								* dataReferenceREdge[c][k][i][j];
-						}
+								* dataReferenceREdge[nEffectiveC[c]][k][i][j];
 						}
 					}
 				}
