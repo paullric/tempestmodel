@@ -2850,6 +2850,19 @@ void VerticalDynamicsFEM::BuildF(
 		}
 	}
 
+	if (dF[VecFIx(FWIx, 0)] != 0.0) {
+		dF[VecFIx(FWIx, 0)] = 0.0;
+	}
+	if (pGrid->GetVarLocation(WIx) == DataLocation_REdge) {
+		if (dF[VecFIx(FWIx, nRElements)] != 0.0) {
+			dF[VecFIx(FWIx, nRElements)] = 0.0;
+		}
+	} else {
+		if (dF[VecFIx(FWIx, nRElements-1)] != 0.0) {
+			dF[VecFIx(FWIx, nRElements-1)] = 0.0;
+		}
+	}
+
 #ifdef DEBUG
 	if (dF[VecFIx(FWIx, 0)] != 0.0) {
 		_EXCEPTIONT("No updates to W at bottom boundary allowed");

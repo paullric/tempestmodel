@@ -351,7 +351,7 @@ void GridCartesianGLL::GetPatchFromCoordinateIndex(
 		nVectorLength = vecIxA.GetRows();
 	}
 
-std::cout << GetPatchCount() << '\n';
+//std::cout << GetPatchCount() << '\n';
 
 	// Check arguments
 	if ((vecIxA.GetRows() < nVectorLength) ||
@@ -447,7 +447,6 @@ std::cout << GetPatchCount() << '\n';
 
 		if (n == GetPatchCount()) {
 			vecPatchIndex[i] = GridPatch::InvalidIndex;
-
 			_EXCEPTIONT("(LOGIC ERROR) Invalid global coordinate");
 		}
 	}

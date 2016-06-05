@@ -488,14 +488,14 @@ try {
 	// Create a new instance of the test
 	Baroclinic3DCartesianTest * test =
 		new Baroclinic3DCartesianTest(dbC,
-		        dU0,
-        		dUp,
-	        	ddTdz,
-        		dT0,
-	        	dLpC,
-	        	dXC,
-	        	dYC,
-	        	fNoRayleighFriction);
+				dU0,
+				dUp,
+				ddTdz,
+				dT0,
+				dLpC,
+				dXC,
+				dYC,
+				fNoRayleighFriction);
 
 	// Setup the Model
 	AnnounceBanner("MODEL SETUP");
