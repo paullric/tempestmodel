@@ -153,7 +153,7 @@ void GridCartesianGLL::ApplyDefaultPatchLayout(
 	}
 	// Allow 3D cases to split the Beta elements once (EVEN NUMBER OF PROCESSORS)
 	else if (!fCartXZ && (nProcsPerDirection % 2 == 0)) {
-		# pragma message "No-flux BC's DO NOT WORK IN parallel 3D Cartesian cases"
+		# pragma message "3D Cartesian processor layout..."
 		nProcsADirection = (int) (nProcsPerDirection / 2);
 		nProcsBDirection = 2;
 	}
@@ -168,11 +168,11 @@ void GridCartesianGLL::ApplyDefaultPatchLayout(
 		nProcsBDirection = 1;
 	}
 
-	int nElementsPerDirectionA = GetABaseResolution() / nProcsPerDirection;
-	DataArray1D<int> iBoxBeginA(nProcsPerDirection + 1);
+	int nElementsPerDirectionA = GetABaseResolution() / nProcsADirection;
+	DataArray1D<int> iBoxBeginA(nProcsADirection + 1);
 
-	int nElementsPerDirectionB = GetBBaseResolution() / nProcsPerDirection;
-	DataArray1D<int> iBoxBeginB(nProcsPerDirection + 1);
+	int nElementsPerDirectionB = GetBBaseResolution() / nProcsBDirection;
+	DataArray1D<int> iBoxBeginB(nProcsBDirection + 1);
 
 	// Set the patch array for Alpha
 	iBoxBeginA[0] = 0;
