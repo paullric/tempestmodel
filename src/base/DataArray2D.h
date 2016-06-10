@@ -81,10 +81,22 @@ public:
 		m_eDataType(DataType_Default),
 		m_eDataLocation(DataLocation_Default)
 	{
-		m_sSize[0] = 0;
-		m_sSize[1] = 0;
+		if (da.IsAttached()) {
+			m_sSize[0] = 0;
+			m_sSize[1] = 0;
 
-		Assign(da);
+			Assign(da);
+
+		} else {
+			m_sSize[0] = da.m_sSize[0];
+			m_sSize[1] = da.m_sSize[1];
+
+			m_fOwnsData = true;
+			m_eDataType = da.m_eDataType;
+			m_eDataLocation = da.m_eDataLocation;
+
+			m_data1D = NULL;
+		}
 	}
 
 	///	<summary>
