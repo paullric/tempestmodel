@@ -235,6 +235,32 @@ protected:
 
 protected:
 	///	<summary>
+	///		2D Jacobian within an element (buffer).
+	///	</summary>
+	DataArray2D<double> m_dLocalJacobian2D;
+
+	///	<summary>
+	///		2D Jacobian within an element (buffer).
+	///	</summary>
+	DataArray2D<double> m_dLocalCoriolisF;
+
+	///	<summary>
+	///		Jacobian within an element (buffer).
+	///	</summary>
+	DataArray3D<double> m_dLocalJacobian;
+
+	///	<summary>
+	///		Derivative of R with respect to xi within an element (buffer).
+	///	</summary>
+	DataArray4D<double> m_dLocalDerivR;
+
+	///	<summary>
+	///		Contravariant metric terms within an element (buffer).
+	///	</summary>
+	DataArray4D<double> m_dLocalContraMetric;
+
+protected:
+	///	<summary>
 	///		Viscosity / hyperviscosity order.
 	///	</summary>
 	int m_nHyperviscosityOrder;

@@ -118,6 +118,32 @@ void HorizontalDynamicsFEM::Initialize() {
 		m_nHorizontalOrder,
 		m_nHorizontalOrder);
 
+	// Contravariant metric terms
+	m_dLocalCoriolisF.Allocate(
+		m_nHorizontalOrder,
+		m_nHorizontalOrder);
+
+	m_dLocalJacobian2D.Allocate(
+		m_nHorizontalOrder,
+		m_nHorizontalOrder);
+
+	m_dLocalJacobian.Allocate(
+		nRElements,
+		m_nHorizontalOrder,
+		m_nHorizontalOrder);
+
+	m_dLocalDerivR.Allocate(
+		nRElements,
+		m_nHorizontalOrder,
+		m_nHorizontalOrder,
+		3);
+
+	m_dLocalContraMetric.Allocate(
+		nRElements,
+		m_nHorizontalOrder,
+		m_nHorizontalOrder,
+		6);
+
 	// Initialize buffers for derivatives of Jacobian
 	m_dJGradientA.Allocate(
 		m_nHorizontalOrder,
@@ -643,6 +669,17 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 		for (int a = 0; a < nElementCountA; a++) {
 		for (int b = 0; b < nElementCountB; b++) {
 
+			// Store 2D Jacobian
+			for (int i = 0; i < m_nHorizontalOrder; i++) {
+			for (int j = 0; j < m_nHorizontalOrder; j++) {
+				int iA = a * m_nHorizontalOrder + i + box.GetHaloElements();
+				int iB = b * m_nHorizontalOrder + j + box.GetHaloElements();
+
+				m_dLocalCoriolisF[i][j] = dCoriolisF[iA][iB];
+				m_dLocalJacobian2D[i][j] = dJacobian2D[iA][iB];
+			}
+			}
+
 			// Compute auxiliary data in element
 			for (int k = 0; k < nRElements; k++) {
 			for (int i = 0; i < m_nHorizontalOrder; i++) {
@@ -655,28 +692,48 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 				double dCovUa = dataInitialNode[UIx][k][iA][iB];
 				double dCovUb = dataInitialNode[VIx][k][iA][iB];
 
+				// Store metric quantities
+				m_dLocalJacobian[k][i][j] = dJacobian[k][iA][iB];
+
+				m_dLocalDerivR[k][i][j][0] = dDerivRNode[k][iA][iB][0];
+				m_dLocalDerivR[k][i][j][1] = dDerivRNode[k][iA][iB][1];
+				m_dLocalDerivR[k][i][j][2] = dDerivRNode[k][iA][iB][2];
+
+				m_dLocalContraMetric[k][i][j][0] =
+					dContraMetricA[k][iA][iB][0];
+				m_dLocalContraMetric[k][i][j][1] =
+					dContraMetricA[k][iA][iB][1];
+				m_dLocalContraMetric[k][i][j][2] =
+					dContraMetricA[k][iA][iB][2];
+				m_dLocalContraMetric[k][i][j][3] =
+					dContraMetricB[k][iA][iB][1];
+				m_dLocalContraMetric[k][i][j][4] =
+					dContraMetricB[k][iA][iB][2];
+				m_dLocalContraMetric[k][i][j][5] =
+					dContraMetricXi[k][iA][iB][2];
+
 				// Calculate covariant xi velocity and store
 				double dCovUx =
 					  dataInitialNode[WIx][k][iA][iB]
-					* dDerivRNode[k][iA][iB][2];
+					* m_dLocalDerivR[k][i][j][2];
 
 				m_dAuxDataNode[CovUxIx][k][i][j] = dCovUx;
 
 				// Contravariant velocities
 				m_dAuxDataNode[ConUaIx][k][i][j] =
-					  dContraMetricA[k][iA][iB][0] * dCovUa
-					+ dContraMetricA[k][iA][iB][1] * dCovUb
-					+ dContraMetricA[k][iA][iB][2] * dCovUx;
+					  m_dLocalContraMetric[k][i][j][0] * dCovUa
+					+ m_dLocalContraMetric[k][i][j][1] * dCovUb
+					+ m_dLocalContraMetric[k][i][j][2] * dCovUx;
 
 				m_dAuxDataNode[ConUbIx][k][i][j] =
-					  dContraMetricB[k][iA][iB][0] * dCovUa
-					+ dContraMetricB[k][iA][iB][1] * dCovUb
-					+ dContraMetricB[k][iA][iB][2] * dCovUx;
+					  m_dLocalContraMetric[k][i][j][1] * dCovUa
+					+ m_dLocalContraMetric[k][i][j][3] * dCovUb
+					+ m_dLocalContraMetric[k][i][j][4] * dCovUx;
 
 				m_dAuxDataNode[ConUxIx][k][i][j] =
-					  dContraMetricXi[k][iA][iB][0] * dCovUa
-					+ dContraMetricXi[k][iA][iB][1] * dCovUb
-					+ dContraMetricXi[k][iA][iB][2] * dCovUx;
+					  m_dLocalContraMetric[k][i][j][2] * dCovUa
+					+ m_dLocalContraMetric[k][i][j][4] * dCovUb
+					+ m_dLocalContraMetric[k][i][j][5] * dCovUx;
 
 				// Specific kinetic energy
 				m_dAuxDataNode[KIx][k][i][j] = 0.5 * (
@@ -703,6 +760,7 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 						  dataInitialNode[RIx][k][iA][iB]
 						* dataInitialNode[PIx][k][iA][iB]);
 #endif
+
 			}
 			}
 			}
@@ -783,18 +841,11 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 
 				m_dAuxDataNode[UCrossZetaXIx][k][i][j] =
 					- dConUa * dCovDaUx - dConUb * dCovDbUx;
-
-/*
-				if ((n == 5) && (k == 3) && (iA == 5) && (iB == 5)) {
-					printf("%1.5e : %1.5e %1.5e %1.5e %1.5e \n", dCovUCrossZetaX, dConUa, dJZetaB, dConUb, dJZetaA);
-					printf("%1.5e %1.5e %1.5e\n", dataInitialNode[UIx][k][iA][iB] / phys.GetEarthRadius(), dCovDxUa / phys.GetEarthRadius(), dCovDaUx);
-					//printf("%1.5e %1.5e\n", dCovUCrossZetaX, dDxKE);
-				}
-*/
 			}
 			}
 			}
 
+#pragma message "Move to VerticalDynamicsFEM"
 			// Interpolate U cross Zeta to interfaces
 			if (pGrid->GetVarLocation(WIx) == DataLocation_REdge) {
 				for (int k = 0; k <= nRElements; k++) {
@@ -810,25 +861,6 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 				}
 				}
 				}
-/*
-				// DEBUG
-				if (box.GetPanel() == 5) {
-					int k = 3;
-					for (int i = 0; i < m_nHorizontalOrder; i++) {
-					for (int j = 0; j < m_nHorizontalOrder; j++) {
-
-						int iA = a * m_nHorizontalOrder + i + box.GetHaloElements();
-						int iB = b * m_nHorizontalOrder + j + box.GetHaloElements();
-
-						if ((iA == 5) && (iB == 5)) {
-							printf("H: %1.5e\n",
-								m_dAuxDataREdge[UCrossZetaXIx][k][i][j]
-								/ dDerivRREdge[k][iA][iB][2]);
-						}
-					}
-					}
-				}
-*/
 			}
 
 			// Update quantities on nodes
@@ -848,11 +880,11 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 
 					// Base fluxes (area times velocity)
 					double dAlphaBaseFlux =
-						dJacobian[k][iA][iB]
+						m_dLocalJacobian[k][i][j]
 						* m_dAuxDataNode[ConUaIx][k][i][j];
 
 					double dBetaBaseFlux =
-						dJacobian[k][iA][iB]
+						m_dLocalJacobian[k][i][j]
 						* m_dAuxDataNode[ConUbIx][k][i][j];
 
 					// Density flux
@@ -918,22 +950,22 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 
 						// Gradient of tracer mixing ratio
 						double dConDaQ =
-							  dContraMetricA[k][iA][iB][0] * dCovDaQ
-							+ dContraMetricA[k][iA][iB][1] * dCovDbQ;
+							  m_dLocalContraMetric[k][i][j][0] * dCovDaQ
+							+ m_dLocalContraMetric[k][i][j][1] * dCovDbQ;
 
 						double dConDbQ =
-							  dContraMetricB[k][iA][iB][0] * dCovDaQ
-							+ dContraMetricB[k][iA][iB][1] * dCovDbQ;
+							  m_dLocalContraMetric[k][i][j][1] * dCovDaQ
+							+ m_dLocalContraMetric[k][i][j][3] * dCovDbQ;
 
 						m_dAlphaTracerFlux[c][i][j] -=
 							UNIFORM_SCALAR_DIFFUSION_COEFF
-							* dJacobian[k][iA][iB]
+							* m_dLocalJacobian[k][i][j]
 							* dataInitialNode[RIx][k][iA][iB]
 							* dConDaQ;
 
 						m_dBetaTracerFlux[c][i][j] -=
 							UNIFORM_SCALAR_DIFFUSION_COEFF
-							* dJacobian[k][iA][iB]
+							* m_dLocalJacobian[k][i][j]
 							* dataInitialNode[RIx][k][iA][iB]
 							* dConDbQ;
 #endif
@@ -948,13 +980,13 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 					for (int s = 0; s < m_nHorizontalOrder; s++) {
 						// Alpha derivative of J U^a
 						dDaJUa +=
-							dJacobian[k][iElementA+s][iB]
+							m_dLocalJacobian[k][s][j]
 							* m_dAuxDataNode[ConUaIx][k][s][j]
 							* dDxBasis1D[s][i]; 
 
 						// Beta derivative of J U^b
 						dDbJUb +=
-							dJacobian[k][iA][iElementB+s]
+							m_dLocalJacobian[k][i][s]
 							* m_dAuxDataNode[ConUbIx][k][i][s]
 							* dDxBasis1D[s][j];
 					}
@@ -963,7 +995,7 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 					dDbJUb *= dInvElementDeltaB;
 
 					m_dDivergence[k][i][j] =
-						(dDaJUa + dDbJUb) / dJacobian[k][iA][iB];
+						(dDaJUa + dDbJUb) / m_dLocalJacobian[k][i][j];
 #endif
 				}
 				}
@@ -979,7 +1011,8 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 					int iElementB = b * m_nHorizontalOrder + box.GetHaloElements();
 
 					// Inverse Jacobian
-					const double dInvJacobian = 1.0 / dJacobian[k][iA][iB];
+					const double dInvJacobian =
+						1.0 / m_dLocalJacobian[k][i][j];
 
 					// Aliases for alpha and beta velocities
 					const double dConUa = m_dAuxDataNode[ConUaIx][k][i][j];
@@ -1141,10 +1174,14 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 
 					// Coriolis terms
 					dLocalUpdateUa +=
-						dCoriolisF[iA][iB] * dJacobian2D[iA][iB] * dConUb;
+						m_dLocalCoriolisF[i][j]
+						* m_dLocalJacobian2D[i][j]
+						* dConUb;
 
 					dLocalUpdateUb -=
-						dCoriolisF[iA][iB] * dJacobian2D[iA][iB] * dConUa;
+						m_dLocalCoriolisF[i][j]
+						* m_dLocalJacobian2D[i][j]
+						* dConUa;
 
 					// Pressure gradient force
 #if defined(FORMULATION_PRESSURE) || defined(FORMULATION_RHOTHETA_P)
@@ -1169,8 +1206,8 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 #endif
 
 					// Gravity
-					double dDaPhi = phys.GetG() * dDerivRNode[k][iA][iB][0];
-					double dDbPhi = phys.GetG() * dDerivRNode[k][iA][iB][1];
+					double dDaPhi = phys.GetG() * m_dLocalDerivR[k][i][j][0];
+					double dDbPhi = phys.GetG() * m_dLocalDerivR[k][i][j][1];
 
 					// Horizontal updates due to gradient terms
 					double dDaUpdate =
@@ -1234,14 +1271,16 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 						// Calculate vertical velocity update
 						double dLocalUpdateUr =
 							m_dAuxDataNode[UCrossZetaXIx][k][i][j]
-							/ dDerivRNode[k][iA][iB][2];
+							/ m_dLocalDerivR[k][i][j][2];
 
 						if (k == 0) {
 							dLocalUpdateUr =
-								- ( dContraMetricXi[0][iA][iB][0] * dLocalUpdateUa
-								  + dContraMetricXi[0][iA][iB][1] * dLocalUpdateUb)
-								/ dContraMetricXi[0][iA][iB][2]
-								/ dDerivRNode[0][iA][iB][2];
+								- ( m_dLocalContraMetric[0][iA][iB][2]
+										* dLocalUpdateUa
+								  + m_dLocalContraMetric[0][iA][iB][4]
+								  		* dLocalUpdateUb)
+								/ m_dLocalContraMetric[0][iA][iB][5]
+								/ m_dLocalDerivR[0][i][j][2];
 
 						} else if (k == nRElements-1) {
 							dLocalUpdateUr = 0.0;
@@ -1250,46 +1289,6 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 						// Update vertical velocity
 						dataUpdateNode[WIx][k][iA][iB] +=
 							dDeltaT * dLocalUpdateUr;
-/*
-						// Check boundary condition
-						if (k == 0) {
-							double dConUxInitial =
-								dContraMetricXi[0][iA][iB][0]
-									* dataInitialNode[UIx][k][iA][iB]
-								+ dContraMetricXi[0][iA][iB][1]
-									* dataInitialNode[VIx][k][iA][iB]
-								+ dContraMetricXi[0][iA][iB][2]
-									* dDerivRNode[0][iA][iB][2]
-									* dataInitialNode[WIx][k][iA][iB];
-
-							if (fabs(dConUxInitial) > 1.0e-10) {
-								printf("%1.15e\n", dConUxInitial);
-								printf("%1.15e %1.15e %1.15e\n",
-									dataUpdateNode[UIx][k][iA][iB],
-									dataUpdateNode[VIx][k][iA][iB],
-									dataUpdateNode[WIx][k][iA][iB]);
-								_EXCEPTIONT("Boundary condition failure (initial)");
-							}
-
-							double dConUxUpdate =
-								  dContraMetricXi[0][iA][iB][0]
-									* dataUpdateNode[UIx][k][iA][iB]
-								+ dContraMetricXi[0][iA][iB][1]
-									* dataUpdateNode[VIx][k][iA][iB]
-								+ dContraMetricXi[0][iA][iB][2]
-									* dDerivRNode[0][iA][iB][2]
-									* dataUpdateNode[WIx][k][iA][iB];
-
-							if (fabs(dConUxUpdate) > 1.0e-10) {
-								printf("%1.15e\n", dConUxUpdate);
-								printf("%1.15e %1.15e %1.15e\n",
-									dataUpdateNode[UIx][k][iA][iB],
-									dataUpdateNode[VIx][k][iA][iB],
-									dataUpdateNode[WIx][k][iA][iB]);
-								_EXCEPTIONT("Boundary condition failure (update)");
-							}
-						}
-*/
 					}
 
 #ifdef FORMULATION_THETA
@@ -1331,23 +1330,23 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 
 						for (int s = 0; s < m_nHorizontalOrder; s++) {
 							dDaJUa +=
-								dJacobian[k][iElementA+s][iB]
+								m_dLocalJacobian[k][s][j]
 								* m_dAuxDataNode[ConUaIx][k][s][j]
 								* dDxBasis1D[s][i];
 
 							dDbJUb +=
-								dJacobian[k][iA][iElementB+s]
+								m_dLocalJacobian[k][i][s]
 								* m_dAuxDataNode[ConUbIx][k][i][s]
 								* dDxBasis1D[s][j];
 
 							dDaJThetaUa +=
-								dJacobian[k][iElementA+s][iB]
+								m_dLocalJacobian[k][s][j]
 								* dataInitialNode[PIx][k][iElementA+s][iB]
 								* m_dAuxDataNode[ConUaIx][k][s][j]
 								* dDxBasis1D[s][i];
 
 							dDbJThetaUb +=
-								dJacobian[k][iA][iElementB+s]
+								m_dLocalJacobian[k][i][s]
 								* dataInitialNode[PIx][k][iA][iElementB+s]
 								* m_dAuxDataNode[ConUbIx][k][i][s]
 								* dDxBasis1D[s][j];
