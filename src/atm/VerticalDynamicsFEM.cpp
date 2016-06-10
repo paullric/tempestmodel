@@ -181,23 +181,43 @@ void VerticalDynamicsFEM::Initialize() {
 		_EXCEPTIONT("Diagonal Jacobian only implemented for "
 			"Hypervis order <= 2");
 	}
-	if (m_nVerticalOrder == 1) {
-		m_nJacobianFKL = 4;
-		m_nJacobianFKU = 4;
-	} else if (m_nVerticalOrder == 2) {
-		m_nJacobianFKL = 9;
-		m_nJacobianFKU = 9;
-	} else if (m_nVerticalOrder == 3) {
-		m_nJacobianFKL = 15;
-		m_nJacobianFKU = 15;
-	} else if (m_nVerticalOrder == 4) {
-		m_nJacobianFKL = 22;
-		m_nJacobianFKU = 22;
-	} else if (m_nVerticalOrder == 5) {
-		m_nJacobianFKL = 30;
-		m_nJacobianFKU = 30;
+
+	// Upwind weights
+	if (pGrid->GetVerticalDiscretization() ==
+	    Grid::VerticalDiscretization_FiniteVolume
+	) {
+		if (m_nVerticalOrder <= 2) {
+			m_nJacobianFKL = 4;
+			m_nJacobianFKU = 4;
+		} else if (m_nVerticalOrder == 4) {
+			m_nJacobianFKL = 7;
+			m_nJacobianFKU = 7;
+		} else if (m_nVerticalOrder == 6) {
+			m_nJacobianFKL = 10;
+			m_nJacobianFKU = 10;
+		} else {
+			_EXCEPTIONT("UNIMPLEMENTED: At this vertical order");
+		}
+
 	} else {
-		_EXCEPTIONT("UNIMPLEMENTED: At this vertical order");
+		if (m_nVerticalOrder == 1) {
+			m_nJacobianFKL = 4;
+			m_nJacobianFKU = 4;
+		} else if (m_nVerticalOrder == 2) {
+			m_nJacobianFKL = 9;
+			m_nJacobianFKU = 9;
+		} else if (m_nVerticalOrder == 3) {
+			m_nJacobianFKL = 15;
+			m_nJacobianFKU = 15;
+		} else if (m_nVerticalOrder == 4) {
+			m_nJacobianFKL = 22;
+			m_nJacobianFKU = 22;
+		} else if (m_nVerticalOrder == 5) {
+			m_nJacobianFKL = 30;
+			m_nJacobianFKU = 30;
+		} else {
+			_EXCEPTIONT("UNIMPLEMENTED: At this vertical order");
+		}
 	}
 #endif
 #endif
@@ -2783,10 +2803,10 @@ void VerticalDynamicsFEM::BuildF(
 			// Upwinding on interfaces (use flow-dependent constant
 			// coefficient hyperviscosity at second order)
 			if (pGrid->GetVarLocation(c) == DataLocation_REdge) {
-				if (m_nVerticalOrder != 1) {
-					_EXCEPTIONT("Upwinding on interfaces only at "
-						"VO1 supported");
-				}
+				//if (m_nVerticalOrder != 1) {
+				//	_EXCEPTIONT("Upwinding on interfaces only at "
+				//		"VO1 supported");
+				//}
 
 				// No upwinding on W on domain boundaries
 				if (c == WIx) {
