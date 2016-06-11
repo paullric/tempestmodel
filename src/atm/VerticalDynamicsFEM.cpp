@@ -17,6 +17,7 @@
 #include "Defines.h"
 #include "VerticalDynamicsFEM.h"
 #include "TimestepScheme.h"
+#include "FunctionTimer.h"
 
 #include "Announce.h"
 #include "Model.h"
@@ -655,6 +656,9 @@ void VerticalDynamicsFEM::StepExplicit(
 	const Time & time,
 	double dDeltaT
 ) {
+	// Start the function timer
+	FunctionTimer timer("VerticalStepExplicit");
+
 	// Get a copy of the grid
 	GridGLL * pGrid = dynamic_cast<GridGLL *>(m_model.GetGrid());
 
@@ -1290,6 +1294,9 @@ void VerticalDynamicsFEM::StepImplicit(
 	const Time & time,
 	double dDeltaT
 ) {
+	// Start the function timer
+	FunctionTimer timer("VerticalStepImplicit");
+
 	// If fully explicit do nothing
 	if (m_fFullyExplicit) {
 		return;

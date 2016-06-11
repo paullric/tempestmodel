@@ -64,6 +64,13 @@ public:
 	FunctionTimer(const char *szGroup = NULL);
 
 	///	<summary>
+	///		Destructor.
+	///	</summary>
+	virtual ~FunctionTimer() {
+		StopTime();
+	}
+
+	///	<summary>
 	///		Reset the timer.
 	///	</summary>
 	void Reset();

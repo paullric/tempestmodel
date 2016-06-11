@@ -19,6 +19,7 @@
 #include "PhysicalConstants.h"
 #include "Model.h"
 #include "Grid.h"
+#include "FunctionTimer.h"
 
 #include "Announce.h"
 #include "GridGLL.h"
@@ -528,6 +529,9 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 	const Time & time,
 	double dDeltaT
 ) {
+	// Start the function timer
+	FunctionTimer timer("HorizontalStepNonhydrostaticPrimitive");
+
 	// Get a copy of the GLL grid
 	GridGLL * pGrid = dynamic_cast<GridGLL*>(m_model.GetGrid());
 
