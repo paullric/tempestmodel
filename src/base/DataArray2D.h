@@ -398,17 +398,28 @@ public:
 	///	<summary>
 	///		Subscript DSEL operator.
 	///	</summary>
+#if defined(__INTEL_COMPILER)
+	inline Subscript<DataArray2D<T> const, 1, 2>
+	operator[](std::ptrdiff_t idx) const
+#else
 	inline Subscript<DataArray2D<T> const, 1, 2>
 	operator[](std::ptrdiff_t idx) const noexcept
+#endif
 	{
 		Subscript<DataArray2D<T> const, 2, 2> s(*this);
 		return s[idx];
 	}
+
 	///	<summary>
 	///		Subscript DSEL operator.
 	///	</summary>
+#if defined(__INTEL_COMPILER)
+	inline Subscript<DataArray2D<T>, 1, 2>
+	operator[](std::ptrdiff_t idx)
+#else
 	inline Subscript<DataArray2D<T>, 1, 2>
 	operator[](std::ptrdiff_t idx) noexcept
+#endif
 	{
 		Subscript<DataArray2D<T>, 2, 2> s(*this);
 		return s[idx];
@@ -417,16 +428,26 @@ public:
 	///	<summary>
 	///		Parenthetical array accessor.
 	///	</summary>
+#if defined(__INTEL_COMPILER)
+	inline T const&
+	operator()(std::array<std::ptrdiff_t, 2> indices) const
+#else
 	inline T const&
 	operator()(std::array<std::ptrdiff_t, 2> indices) const noexcept
+#endif
 	{
 		return (*this)(indices[0], indices[1]);
 	}
 	///	<summary>
 	///		Parenthetical array accessor.
 	///	</summary>
+#if defined(__INTEL_COMPILER)
+	inline T&
+	operator()(std::array<std::ptrdiff_t, 2> indices)
+#else
 	inline T&
 	operator()(std::array<std::ptrdiff_t, 2> indices) noexcept
+#endif
 	{
 		return (*this)(indices[0], indices[1]);
 	}
@@ -434,29 +455,47 @@ public:
 	///	<summary>
 	///		Parenthetical array accessor.
 	///	</summary>
+#if defined(__INTEL_COMPILER)
+	inline const T & operator()(size_t i, size_t j) const {
+#else
 	inline const T & operator()(size_t i, size_t j) const noexcept {
+#endif
 		return (*(m_data1D + i * m_sSize[1] + j));
 	}
 	///	<summary>
 	///		Parenthetical array accessor.
 	///	</summary>
+#if defined(__INTEL_COMPILER)
+	inline T & operator()(size_t i, size_t j) {
+#else
 	inline T & operator()(size_t i, size_t j) noexcept {
+#endif
 		return (*(m_data1D + i * m_sSize[1] + j));
 	}
 
 	///	<summary>
 	///		Parenthetical array accessor (unit-stride slicer).
 	///	</summary>
+#if defined(__INTEL_COMPILER)
+	inline T const*
+	operator()(std::array<std::ptrdiff_t, 1> indices) const
+#else
 	inline T const*
 	operator()(std::array<std::ptrdiff_t, 1> indices) const noexcept
+#endif
 	{
 		return (*this)(indices[0]);
 	}
 	///	<summary>
 	///		Parenthetical array accessor (unit-stride slicer).
 	///	</summary>
+#if defined(__INTEL_COMPILER)
+	inline T*
+	operator()(std::array<std::ptrdiff_t, 1> indices)
+#else
 	inline T*
 	operator()(std::array<std::ptrdiff_t, 1> indices) noexcept
+#endif
 	{
 		return (*this)(indices[0]);
 	}
@@ -464,13 +503,21 @@ public:
 	///	<summary>
 	///		Parenthetical array accessor (unit-stride slicer).
 	///	</summary>
+#if defined(__INTEL_COMPILER)
+	inline T const* operator()(size_t i) const {
+#else
 	inline T const* operator()(size_t i) const noexcept {
+#endif
 		return m_data1D + i * m_sSize[1];
 	}
 	///	<summary>
 	///		Parenthetical array accessor (unit-stride slicer).
 	///	</summary>
+#if defined(__INTEL_COMPILER)
+	inline T* operator()(size_t i) {
+#else
 	inline T* operator()(size_t i) noexcept {
+#endif
 		return m_data1D + i * m_sSize[1];
 	}
 
