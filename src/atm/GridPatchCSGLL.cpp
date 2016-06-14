@@ -1272,6 +1272,10 @@ void GridPatchCSGLL::InterpolateData(
 	int nComponents = 0;
 	int nRElements = m_grid.GetRElements();
 
+	// Discretization type
+	Grid::VerticalDiscretization eVerticalDiscType =
+		m_grid.GetVerticalDiscretization();
+
 	// State Data: Perform interpolation on all variables
 	if (eDataType == DataType_State) {
 		nComponents = m_datavecStateNode[0].GetSize(0);
@@ -1339,24 +1343,42 @@ void GridPatchCSGLL::InterpolateData(
 		LinearColumnInterpFEM opInterp;
 
 		if (nRElements != 1) {
-			if (eDataLocation == DataLocation_Node) {
-				opInterp.Initialize(
-					LinearColumnInterpFEM::InterpSource_Levels,
-					m_nVerticalOrder,
-					m_grid.GetREtaLevels(),
-					m_grid.GetREtaInterfaces(),
-					dREta);
 
-			} else if (eDataLocation == DataLocation_REdge) {
-				opInterp.Initialize(
-					LinearColumnInterpFEM::InterpSource_Interfaces,
-					m_nVerticalOrder,
-					m_grid.GetREtaLevels(),
-					m_grid.GetREtaInterfaces(),
-					dREta);
+			// Finite element interpolation
+			if (eVerticalDiscType ==
+				Grid::VerticalDiscretization_FiniteElement
+			) {
+				if (eDataLocation == DataLocation_Node) {
+					opInterp.Initialize(
+						LinearColumnInterpFEM::InterpSource_Levels,
+						m_nVerticalOrder,
+						m_grid.GetREtaLevels(),
+						m_grid.GetREtaInterfaces(),
+						dREta);
 
+				} else if (eDataLocation == DataLocation_REdge) {
+					opInterp.Initialize(
+						LinearColumnInterpFEM::InterpSource_Interfaces,
+						m_nVerticalOrder,
+						m_grid.GetREtaLevels(),
+						m_grid.GetREtaInterfaces(),
+						dREta);
+
+				} else {
+					_EXCEPTIONT("Invalid DataLocation");
+				}
+
+			// Finite volume interpolation
+			} else if (
+				eVerticalDiscType ==
+				Grid::VerticalDiscretization_FiniteVolume
+			) {
+#pragma message "Finite volume interpolation not implemented correctly"
+				opInterp.InitializeIdentity(nRElements);
+
+			// Invalid vertical discretization type
 			} else {
-				_EXCEPTIONT("Invalid DataLocation");
+				_EXCEPTIONT("Invalid VerticalDiscretization");
 			}
 
 		} else {

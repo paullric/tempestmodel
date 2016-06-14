@@ -158,16 +158,6 @@ public:
 	);
 
 	///	<summary>
-	///		Force a full explicit update one time only
-	///	</summary>
-	virtual void ForceStepExplicit(
-		int iDataInitial,
-		int iDataUpdate,
-		const Time & time,
-		double dDeltaT
-	);
-
-	///	<summary>
 	///		Build the Jacobian matrix.
 	///	</summary>
 	void BootstrapJacobian();
