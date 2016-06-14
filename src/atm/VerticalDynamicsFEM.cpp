@@ -1073,7 +1073,7 @@ void VerticalDynamicsFEM::StepExplicit(
 
 #if defined(EXPLICIT_THERMO)
 				// Apply upwinding to thermodynamic variable
-				if ((m_fUpwindVar[PIx]) && (!m_fFullyExplicit)) {
+				if (m_fUpwindVar[PIx]) {
 					if (pGrid->GetVarLocation(PIx) == DataLocation_REdge) {
 						_EXCEPTIONT("Not implemented: Upwinding of thermo"
 							   " on interfaces");
@@ -1082,6 +1082,32 @@ void VerticalDynamicsFEM::StepExplicit(
 							&(m_dUpwindWeights[0]),
 							&(dataInitialNode[PIx][0][i][j]),
 							&(dataUpdateNode[PIx][0][i][j]),
+							nUpwindStride,
+							nUpwindStride);
+					}
+				}
+#endif
+#if defined(EXPLICIT_VERTICAL_VELOCITY_ADVECTION)
+				// Apply upwinding to vertical velocity
+				if (m_fUpwindVar[WIx]) {
+					if (pGrid->GetVarLocation(WIx) == DataLocation_REdge) {
+
+						pGrid->DiffDiffREdgeToREdge(
+							m_dStateREdge[WIx],
+							m_dDiffDiffStateUpwind[WIx]);
+
+						for (int k = 1; k < nRElements; k++) {
+							dataUpdateNode[WIx][k][i][j] +=
+								m_dUpwindCoeff
+								* fabs(m_dXiDotREdge[k])
+								* m_dDiffDiffStateUpwind[WIx][k];
+						}
+
+					} else {
+						opPenalty.Apply(
+							&(m_dUpwindWeights[0]),
+							&(dataInitialNode[WIx][0][i][j]),
+							&(dataUpdateNode[WIx][0][i][j]),
 							nUpwindStride,
 							nUpwindStride);
 					}
@@ -1513,7 +1539,7 @@ void VerticalDynamicsFEM::StepImplicit(
 			}
 #endif
 
-#ifdef EXPLICIT_THERMO
+#if defined(EXPLICIT_THERMO)
 			// Verify thermodynamic closure is untouched by update
 			if (pGrid->GetVarLocation(PIx) == DataLocation_REdge) {
 				for (int k = 0; k <= pGrid->GetRElements(); k++) {
@@ -1544,6 +1570,25 @@ void VerticalDynamicsFEM::StepImplicit(
 				}
 			}
 #endif
+
+#if defined(EXPLICIT_VERTICAL_VELOCITY_ADVECTION)
+			// Verify vertical velocity is untouched by update
+			if (pGrid->GetVarLocation(WIx) == DataLocation_REdge) {
+				for (int k = 0; k <= pGrid->GetRElements(); k++) {
+					if (fabs(m_dSoln[VecFIx(FWIx, k)] - dataInitialREdge[WIx][k][iA][iB]) > 1.0e-12) {
+						_EXCEPTIONT("Logic error");
+					}
+				}
+
+			} else {
+				for (int k = 0; k < pGrid->GetRElements(); k++) {
+					if (fabs(m_dSoln[VecFIx(FWIx, k)] - dataInitialNode[WIx][k][iA][iB]) > 1.0e-12) {
+						_EXCEPTIONT("Logic error");
+					}
+				}
+			}
+
+#else
 			// Copy over W
 			if (pGrid->GetVarLocation(WIx) == DataLocation_REdge) {
 				for (int k = 0; k <= pGrid->GetRElements(); k++) {
@@ -1556,6 +1601,7 @@ void VerticalDynamicsFEM::StepImplicit(
 						m_dSoln[VecFIx(FWIx, k)];
 				}
 			}
+#endif
 
 			// Copy over Rho
 			if (pGrid->GetVarLocation(RIx) == DataLocation_REdge) {
