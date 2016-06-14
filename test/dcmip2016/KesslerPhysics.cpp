@@ -155,11 +155,12 @@ void KesslerPhysics::Perform(
 #if defined(FORMULATION_THETA)
 					m_dThetaVNode[k] =
 						dataNode[TIx][k][i][j];
-#endif
-#if defined(FORMULATION_RHOTHETA_PI)
-					m_dThetaVREdge[k] =
+#elif defined(FORMULATION_RHOTHETA_PI)
+					m_dThetaVNode[k] =
 						dataNode[TIx][k][i][j]
 						/ dataNode[RIx][k][i][j];
+#else
+					_EXCEPTIONT("Invalid FORMULATION");
 #endif
 				}
 			}
@@ -269,11 +270,12 @@ void KesslerPhysics::Perform(
 #if defined(FORMULATION_THETA)
 					dataNode[TIx][k][i][j] =
 						m_dTheta[k] * (1.0 + 0.61 * m_dQv[k]);
-#endif
-#if defined(FORMULATION_RHOTHETA_PI)
+#elif defined(FORMULATION_RHOTHETA_PI)
 					dataNode[TIx][k][i][j] =
 						dataNode[RIx][k][i][j]
 						* m_dTheta[k] * (1.0 + 0.61 * m_dQv[k]);
+#else
+					_EXCEPTIONT("Invalid FORMULATION");
 #endif
 				}
 			}
