@@ -3215,7 +3215,91 @@ void VerticalDynamicsFEM::BuildJacobianF(
 
 #endif
 #if defined(FORMULATION_RHOTHETA_PI)
+
+#if defined(EXPLICIT_THERMO)
 	_EXCEPTIONT("Not implemented");
+#endif
+
+	// Charney-Phillips staggering
+	if (pGrid->GetVarLocation(PIx) == DataLocation_REdge) {
+		_EXCEPTIONT("Not implemented");
+	}
+
+	// RhoTheta flux Jacobian is the same as it is for Rho
+	for (int k = 0; k < nRElements; k++) {
+
+		// dP_k/dW_l and dP_k/dP_n
+		int m = iDiffREdgeToNodeBegin[k];
+		for (; m < iDiffREdgeToNodeEnd[k]; m++) {
+
+			if ((m != 0) && (m != nRElements)) {
+				dDG[MatFIx(FWIx, m, FPIx, k)] +=
+					dDiffREdgeToNode[k][m]
+					* m_dColumnInvJacobianREdge[m]
+					* m_dColumnJacobianNode[k]
+					* m_dStateREdge[PIx][m]
+					* m_dColumnContraMetricXiREdge[m][2]
+					* m_dColumnDerivRREdge[m][2];
+			}
+
+			int n = iInterpNodeToREdgeBegin[m];
+			for (; n < iInterpNodeToREdgeEnd[m]; n++) {
+
+				dDG[MatFIx(FPIx, n, FPIx, k)] +=
+					dDiffREdgeToNode[k][m]
+					* m_dColumnJacobianREdge[m]
+					* m_dColumnInvJacobianNode[k]
+					* dInterpNodeToREdge[m][n]
+					* m_dXiDotREdge[m];
+			}
+		}
+	}
+
+	// dW_k/dP_m (in pressure gradient)
+	for (int k = 1; k < nRElements; k++) {
+
+		double dRHSWCoeff = 
+			1.0 / m_dColumnDerivRNode[k][2]
+			* m_dStateREdge[PIx][k]
+			/ m_dStateREdge[RIx][k]
+			* phys.GetR()
+			/ phys.GetCv();
+
+		int m = iDiffNodeToREdgeBegin[k];
+		for (; m < iDiffNodeToREdgeEnd[k]; m++) {
+			dDG[MatFIx(FPIx, m, FWIx, k)] +=
+				dRHSWCoeff 
+				* dDiffNodeToREdge[k][m]
+				* m_dExnerNode[m]
+				/ m_dStateNode[PIx][m];
+		}
+	}
+
+	// dW_k/dR_l (first rho in RHS)
+	for (int k = 1; k < nRElements; k++) {
+		int l = iInterpNodeToREdgeBegin[k];
+		for (; l < iInterpNodeToREdgeEnd[k]; l++) {
+			dDG[MatFIx(FRIx, l, FWIx, k)] +=
+				 - 1.0 / m_dColumnDerivRREdge[k][2]
+				 * dInterpNodeToREdge[k][l]
+				 * m_dStateREdge[PIx][k]
+				 / (m_dStateREdge[RIx][k] * m_dStateREdge[RIx][k])
+				 * m_dDiffPREdge[k];
+		}
+	}
+
+	// dW_k/dP_l (first rhotheta in RHS)
+	for (int k = 1; k < nRElements; k++) {
+		int l = iInterpNodeToREdgeBegin[k];
+		for (; l < iInterpNodeToREdgeEnd[k]; l++) {
+			dDG[MatFIx(FPIx, l, FWIx, k)] +=
+				 1.0 / m_dColumnDerivRREdge[k][2]
+				 * dInterpNodeToREdge[k][l]
+				 / m_dStateREdge[RIx][k]
+				 * m_dDiffPREdge[k];
+		}
+	}
+
 #endif
 #if defined(FORMULATION_RHOTHETA_P)
 	_EXCEPTIONT("Not implemented");
