@@ -56,10 +56,10 @@ public:
 		Model & model,
 		int nHorizontalOrder,
 		int nVerticalOrder,
-		int nHypervisOrder = 0,
-		bool fFullyExplicit = false,
-		bool fUseReferenceState = true,
-		bool fForceMassFluxOnLevels = false
+		int nHypervisOrder,
+		bool fFullyExplicit,
+		bool fUseReferenceState,
+		bool fForceMassFluxOnLevels
 	);
 
 	///	<summary>

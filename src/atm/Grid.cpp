@@ -70,6 +70,9 @@ void Grid::DefineParameters() {
 	m_dcGridParameters.PushDataChunk(&m_dZtop);
 	m_dcGridParameters.PushDataChunk(&m_fHasReferenceState);
 	m_dcGridParameters.PushDataChunk(&m_fHasRayleighFriction);
+	m_dcGridParameters.PushDataChunk(&m_fHasUniformDiffusion);
+	m_dcGridParameters.PushDataChunk(&m_dScalarUniformDiffusionCoeff);
+	m_dcGridParameters.PushDataChunk(&m_dVectorUniformDiffusionCoeff);
 
 	m_dcGridParameters.Allocate();
 }
@@ -102,6 +105,9 @@ void Grid::SetParameters(
 	m_dZtop = 1.0;
 	m_fHasReferenceState = false;
 	m_fHasRayleighFriction = false;
+	m_fHasUniformDiffusion = false;
+	m_dScalarUniformDiffusionCoeff = 0.0;
+	m_dVectorUniformDiffusionCoeff = 0.0;
 
 	// Set boundary conditions
 	for (int i = 0; i < 4; i++) {
@@ -386,6 +392,25 @@ void Grid::EvaluateTestCase(
 
 	// Store the Rayleigh friction flag
 	m_fHasRayleighFriction = test.HasRayleighFriction();
+
+	// Store the uniform diffusion coefficients
+	double dScalarUniformDiffusionCoeff;
+	double dVectorUniformDiffusionCoeff;
+
+	test.GetUniformDiffusionCoeffs(
+		dScalarUniformDiffusionCoeff,
+		dVectorUniformDiffusionCoeff);
+
+	m_dScalarUniformDiffusionCoeff = dScalarUniformDiffusionCoeff;
+	m_dVectorUniformDiffusionCoeff = dVectorUniformDiffusionCoeff;
+
+	if ((m_dScalarUniformDiffusionCoeff == 0.0) &&
+		(m_dVectorUniformDiffusionCoeff == 0.0)
+	) {
+		m_fHasUniformDiffusion = false;
+	} else {
+		m_fHasUniformDiffusion = true;
+	}
 
 	// Evaluate the topography and state/tracer values of the test
 	for (int n = 0; n < m_vecActiveGridPatches.size(); n++) {

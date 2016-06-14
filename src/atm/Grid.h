@@ -865,6 +865,27 @@ public:
 		return m_fHasRayleighFriction;
 	}
 
+	///	<summary>
+	///		Get the active uniform diffusion flag.
+	///	</summary>
+	bool HasUniformDiffusion() const {
+		return m_fHasUniformDiffusion;
+	}
+
+	///	<summary>
+	///		Get the scalar uniform diffusion coefficient.
+	///	</summary>
+	bool GetScalarUniformDiffusionCoeff() const {
+		return m_dScalarUniformDiffusionCoeff;
+	}
+
+	///	<summary>
+	///		Get the vector uniform diffusion coefficient.
+	///	</summary>
+	bool GetVectorUniformDiffusionCoeff() const {
+		return m_dVectorUniformDiffusionCoeff;
+	}
+
 protected:
 	///	<summary>
 	///		Initialization flag.
@@ -1061,6 +1082,21 @@ protected:
 	///		Flag indicating whether or not Rayleigh friction is used.
 	///	</summary>
 	DataStruct<bool> m_fHasRayleighFriction;
+
+	///	<summary>
+	///		Flag indicating whether or not uniform diffusion is used.
+	///	</summary>
+	DataStruct<bool> m_fHasUniformDiffusion;
+
+	///	<summary>
+	///		Uniform diffusion strength for scalars.
+	///	</summary>
+	DataStruct<double> m_dScalarUniformDiffusionCoeff;
+
+	///	<summary>
+	///		Uniform diffusion strength for scalars.
+	///	</summary>
+	DataStruct<double> m_dVectorUniformDiffusionCoeff;
 };
 
 ///////////////////////////////////////////////////////////////////////////////

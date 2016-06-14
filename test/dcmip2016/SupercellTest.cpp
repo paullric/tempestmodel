@@ -106,6 +106,17 @@ public:
 	}
 
 	///	<summary>
+	///		Strength of the uniform diffusion (m^2/s)
+	///	</summary>
+	virtual void GetUniformDiffusionCoeffs(
+		double & dScalarUniformDiffusionCoeff,
+		double & dVectorUniformDiffusionCoeff
+	) const {
+		dScalarUniformDiffusionCoeff = 500.0;
+		dVectorUniformDiffusionCoeff = 1500.0;
+	}
+
+	///	<summary>
 	///		Evaluate the topography at the given point.
 	///	</summary>
 	virtual double EvaluateTopography(

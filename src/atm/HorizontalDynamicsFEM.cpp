@@ -931,49 +931,54 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 						m_dBetaTracerFlux[c][i][j] =
 							dBetaBaseFlux
 							* dataInitialTracer[c][k][iA][iB];
+					}
 
-#if defined(UNIFORM_DIFFUSION)
-						// Derivatives of tracer mixing ratio
-						double dCovDaQ = 0.0;
-						double dCovDbQ = 0.0;
+					////////////////////////////////////////////////////////
+					// Apply uniform diffusion to tracers
+					if (pGrid->HasUniformDiffusion()) {
 
-						for (int s = 0; s < m_nHorizontalOrder; s++) {
-							dCovDaQ +=
-								dataInitialTracer[c][k][iElementA+s][iB]
-								/ dataInitialNode[RIx][k][iElementA+s][iB]
-								* dDxBasis1D[s][i];
+						for (int c = 0; c < nTracerCount; c++) {
 
-							dCovDbQ +=
-								dataInitialTracer[c][k][iA][iElementB+s]
-								/ dataInitialNode[RIx][k][iA][iElementB+s]
-								* dDxBasis1D[s][j];
+							// Derivatives of tracer mixing ratio
+							double dCovDaQ = 0.0;
+							double dCovDbQ = 0.0;
+
+							for (int s = 0; s < m_nHorizontalOrder; s++) {
+								dCovDaQ +=
+									dataInitialTracer[c][k][iElementA+s][iB]
+									/ dataInitialNode[RIx][k][iElementA+s][iB]
+									* dDxBasis1D[s][i];
+
+								dCovDbQ +=
+									dataInitialTracer[c][k][iA][iElementB+s]
+									/ dataInitialNode[RIx][k][iA][iElementB+s]
+									* dDxBasis1D[s][j];
+							}
+
+							dCovDaQ *= dInvElementDeltaA;
+							dCovDbQ *= dInvElementDeltaB;
+
+							// Gradient of tracer mixing ratio
+							double dConDaQ =
+								  m_dLocalContraMetric[k][i][j][0] * dCovDaQ
+								+ m_dLocalContraMetric[k][i][j][1] * dCovDbQ;
+
+							double dConDbQ =
+								  m_dLocalContraMetric[k][i][j][1] * dCovDaQ
+								+ m_dLocalContraMetric[k][i][j][3] * dCovDbQ;
+
+							m_dAlphaTracerFlux[c][i][j] -=
+								pGrid->GetScalarUniformDiffusionCoeff()
+								* m_dLocalJacobian[k][i][j]
+								* dataInitialNode[RIx][k][iA][iB]
+								* dConDaQ;
+
+							m_dBetaTracerFlux[c][i][j] -=
+								pGrid->GetScalarUniformDiffusionCoeff()
+								* m_dLocalJacobian[k][i][j]
+								* dataInitialNode[RIx][k][iA][iB]
+								* dConDbQ;
 						}
-
-						dCovDaQ *= dInvElementDeltaA;
-						dCovDbQ *= dInvElementDeltaB;
-
-						// Gradient of tracer mixing ratio
-						double dConDaQ =
-							  m_dLocalContraMetric[k][i][j][0] * dCovDaQ
-							+ m_dLocalContraMetric[k][i][j][1] * dCovDbQ;
-
-						double dConDbQ =
-							  m_dLocalContraMetric[k][i][j][1] * dCovDaQ
-							+ m_dLocalContraMetric[k][i][j][3] * dCovDbQ;
-
-						m_dAlphaTracerFlux[c][i][j] -=
-							UNIFORM_SCALAR_DIFFUSION_COEFF
-							* m_dLocalJacobian[k][i][j]
-							* dataInitialNode[RIx][k][iA][iB]
-							* dConDaQ;
-
-						m_dBetaTracerFlux[c][i][j] -=
-							UNIFORM_SCALAR_DIFFUSION_COEFF
-							* m_dLocalJacobian[k][i][j]
-							* dataInitialNode[RIx][k][iA][iB]
-							* dConDbQ;
-#endif
-
 					}
 
 #ifdef INSTEP_DIVERGENCE_DAMPING
@@ -1598,6 +1603,9 @@ void HorizontalDynamicsFEM::StepExplicit(
 			"HorizontalDynamics Step must have iDataInitial != iDataUpdate");
 	}
 
+	// Get a copy of the GLL grid
+	GridGLL * pGrid = dynamic_cast<GridGLL*>(m_model.GetGrid());
+
 	// Equation set
 	const EquationSet & eqn = m_model.GetEquationSet();
 
@@ -1614,47 +1622,47 @@ void HorizontalDynamicsFEM::StepExplicit(
 		_EXCEPTIONT("Invalid EquationSet");
 	}
 
-#ifdef UNIFORM_DIFFUSION
-	// Uniform diffusion of U and V with UNIFORM_VECTOR_DIFFUSION_COEFF
-	ApplyVectorHyperdiffusion(
-		iDataInitial,
-		iDataUpdate,
-		dDeltaT,
-		- UNIFORM_VECTOR_DIFFUSION_COEFF,
-		- UNIFORM_VECTOR_DIFFUSION_COEFF,
-		false);
-
-	ApplyVectorHyperdiffusion(
-		DATA_INDEX_REFERENCE,
-		iDataUpdate,
-		dDeltaT,
-		UNIFORM_VECTOR_DIFFUSION_COEFF,
-		UNIFORM_VECTOR_DIFFUSION_COEFF,
-		false);
-
-	if (eqn.GetType() == EquationSet::PrimitiveNonhydrostaticEquations) {
-
-		// Uniform diffusion of Theta with UNIFORM_SCALAR_DIFFUSION_COEFF
-		ApplyScalarHyperdiffusion(
+	// Uniform diffusion of U and V with vector diffusion coeff
+	if (pGrid->HasUniformDiffusion()) {
+		ApplyVectorHyperdiffusion(
 			iDataInitial,
 			iDataUpdate,
 			dDeltaT,
-			UNIFORM_SCALAR_DIFFUSION_COEFF,
-			false,
-			2,
-			true);
+			- pGrid->GetVectorUniformDiffusionCoeff(),
+			- pGrid->GetVectorUniformDiffusionCoeff(),
+			false);
 
-		// Uniform diffusion of W with UNIFORM_VECTOR_DIFFUSION_COEFF
-		ApplyScalarHyperdiffusion(
-			iDataInitial,
+		ApplyVectorHyperdiffusion(
+			DATA_INDEX_REFERENCE,
 			iDataUpdate,
 			dDeltaT,
-			UNIFORM_VECTOR_DIFFUSION_COEFF,
-			false,
-			3,
-			true);
+			pGrid->GetVectorUniformDiffusionCoeff(),
+			pGrid->GetVectorUniformDiffusionCoeff(),
+			false);
+
+		if (eqn.GetType() == EquationSet::PrimitiveNonhydrostaticEquations) {
+
+			// Uniform diffusion of Theta with scalar diffusion coeff
+			ApplyScalarHyperdiffusion(
+				iDataInitial,
+				iDataUpdate,
+				dDeltaT,
+				pGrid->GetScalarUniformDiffusionCoeff(),
+				false,
+				2,
+				true);
+
+			// Uniform diffusion of W with vector diffusion coeff
+			ApplyScalarHyperdiffusion(
+				iDataInitial,
+				iDataUpdate,
+				dDeltaT,
+				pGrid->GetVectorUniformDiffusionCoeff(),
+				false,
+				3,
+				true);
+		}
 	}
-#endif
 
 	// Apply positive definite filter to tracers
 	FilterNegativeTracers(iDataUpdate);

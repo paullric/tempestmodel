@@ -815,11 +815,9 @@ void GridPatchCSGLL::EvaluateTestCase(
 				m_dataRefStateNode[c][k][i][j] = dPointwiseRefState[c];
 			}
 
-#if defined(TRACER_REFERENCE_STATE)
 			for (int c = 0; c < dPointwiseRefTracers.GetRows(); c++) {
 				m_dataRefTracers[c][k][i][j] = dPointwiseRefTracers[c];
 			}
-#endif
 
 			// Transform reference velocities
 			dUlon = m_dataRefStateNode[0][k][i][j];

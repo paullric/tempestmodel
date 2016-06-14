@@ -39,12 +39,10 @@
 #define UPWIND_VERTICAL_VELOCITY
 #define UPWIND_RHO_AND_TRACERS
 
-#if defined(UNIFORM_DIFFUSION)
 #define UNIFORM_DIFFUSION_HORIZONTAL_VELOCITIES
 #define UNIFORM_DIFFUSION_THERMO
 #define UNIFORM_DIFFUSION_VERTICAL_VELOCITY
 #define UNIFORM_DIFFUSION_TRACERS
-#endif
 
 //#define EXPLICIT_THERMO
 //#define EXPLICIT_VERTICAL_VELOCITY_ADVECTION
@@ -264,21 +262,29 @@ void VerticalDynamicsFEM::Initialize() {
 #endif
 
 #if defined(UNIFORM_DIFFUSION_HORIZONTAL_VELOCITIES)
-	Announce("Uniform diffusion on horizontal velocities");
-	m_fUniformDiffusionVar[UIx] = true;
-	m_fUniformDiffusionVar[VIx] = true;
+	if (pGrid->HasUniformDiffusion()) {
+		Announce("Uniform diffusion on horizontal velocities");
+		m_fUniformDiffusionVar[UIx] = true;
+		m_fUniformDiffusionVar[VIx] = true;
+	}
 #endif
 #if defined(UNIFORM_DIFFUSION_THERMO)
-	Announce("Uniform diffusion on thermodynamic variable");
-	m_fUniformDiffusionVar[PIx] = true;
+	if (pGrid->HasUniformDiffusion()) {
+		Announce("Uniform diffusion on thermodynamic variable");
+		m_fUniformDiffusionVar[PIx] = true;
+	}
 #endif
 #if defined(UNIFORM_DIFFUSION_VERTICAL_VELOCITY)
-	Announce("Uniform diffusion on vertical velocity");
-	m_fUniformDiffusionVar[WIx] = true;
+	if (pGrid->HasUniformDiffusion()) {
+		Announce("Uniform diffusion on vertical velocity");
+		m_fUniformDiffusionVar[WIx] = true;
+	}
 #endif
 #if defined(UNIFORM_DIFFUSION_TRACERS)
-	Announce("Uniform diffusion on tracers");
-	m_fUniformDiffusionVar[TracerIx] = true;
+	if (pGrid->HasUniformDiffusion()) {
+		Announce("Uniform diffusion on tracers");
+		m_fUniformDiffusionVar[TracerIx] = true;
+	}
 #endif
 
 #if defined(EXPLICIT_THERMO)
@@ -1135,7 +1141,8 @@ void VerticalDynamicsFEM::StepExplicit(
 					double dZtop = pGrid->GetZtop();
 
 					double dUniformDiffusionCoeff =
-						UNIFORM_VECTOR_DIFFUSION_COEFF / (dZtop * dZtop);
+						pGrid->GetVectorUniformDiffusionCoeff()
+						/ (dZtop * dZtop);
 
 					for (int k = 0; k < nRElements; k++) {
 						m_dStateRefNode[UIx][k] = dataRefNode[UIx][k][i][j];
@@ -1844,9 +1851,8 @@ void VerticalDynamicsFEM::SetupReferenceColumn(
 		}
 	}
 
-#if defined(UNIFORM_DIFFUSION)
 	// Construct reference column
-	if (m_fUseReferenceState) {
+	if ((pGrid->HasUniformDiffusion()) && (m_fUseReferenceState)) {
 		for (int k = 0; k < pGrid->GetRElements(); k++) {
 			m_dStateRefNode[RIx][k] = dataRefNode[RIx][k][iA][iB];
 			m_dStateRefNode[WIx][k] = dataRefNode[WIx][k][iA][iB];
@@ -1858,7 +1864,6 @@ void VerticalDynamicsFEM::SetupReferenceColumn(
 			m_dStateRefREdge[PIx][k] = dataRefREdge[PIx][k][iA][iB];
 		}
 	}
-#endif
 
 	// Metric terms
 	const DataArray3D<double> & dJacobian =
@@ -2714,11 +2719,11 @@ void VerticalDynamicsFEM::BuildF(
 		double dUniformDiffusionCoeff = 0.0;
 		if (c == PIx) {
 			dUniformDiffusionCoeff =
-				UNIFORM_SCALAR_DIFFUSION_COEFF / (dZtop * dZtop);
+				pGrid->GetScalarUniformDiffusionCoeff() / (dZtop * dZtop);
 		}
 		if (c == WIx) {
 			dUniformDiffusionCoeff =
-				UNIFORM_VECTOR_DIFFUSION_COEFF / (dZtop * dZtop);
+				pGrid->GetVectorUniformDiffusionCoeff() / (dZtop * dZtop);
 		}
 
 		// Uniform diffusion on interfaces
@@ -4027,11 +4032,9 @@ void VerticalDynamicsFEM::UpdateColumnTracers(
 					m_dTracerDensityNode[k]
 					/ m_dStateNode[RIx][k];
 
-#if defined(TRACER_REFERENCE_STATE)
 				m_dStateAux[k] -=
 					dataRefTracer[c][k][m_iA][m_iB]
 					/ m_dStateRefNode[RIx][k];
-#endif
 			}
 
 			pGrid->DifferentiateNodeToREdge(
@@ -4040,7 +4043,7 @@ void VerticalDynamicsFEM::UpdateColumnTracers(
 
 			for (int k = 1; k < nRElements; k++) {
 				m_dMassFluxREdge[k] -=
-					UNIFORM_SCALAR_DIFFUSION_COEFF
+					pGrid->GetScalarUniformDiffusionCoeff()
 					* m_dStateREdge[RIx][k]
 					* m_dStateAuxDiff[k];
 			}

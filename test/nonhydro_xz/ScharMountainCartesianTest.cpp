@@ -178,6 +178,17 @@ public:
 	}
 
 	///	<summary>
+	///		Strength of the uniform diffusion (m^2/s)
+	///	</summary>
+	virtual void GetUniformDiffusionCoeffs(
+		double & dScalarUniformDiffusionCoeff,
+		double & dVectorUniformDiffusionCoeff
+	) const {
+		dScalarUniformDiffusionCoeff = 300.0;
+		dVectorUniformDiffusionCoeff = 300.0;
+	}
+
+	///	<summary>
 	///		Evaluate the Rayleigh friction strength at the given point.
 	///	</summary>
 	virtual double EvaluateRayleighStrength(
