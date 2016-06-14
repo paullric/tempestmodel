@@ -19,6 +19,7 @@
 #include "CubedSphereTrans.h"
 #include "Model.h"
 #include "GridGLL.h"
+#include "Defines.h"
 
 #include "Announce.h" 
 
@@ -238,8 +239,15 @@ void DCMIPPhysics::Perform(
 			// Calculate quantities on model levels
 			for (int k = 0; k < nRElements; k++) {
 
+#if defined(FORMULATION_RHOTHETA_PI)
+				// Virtual potential temperature
+				m_dThetaVNode[k] =
+					dataNode[TIx][k][i][j] / dataNode[RIx][k][i][j];
+#endif
+#if defined(FORMULATION_THETA)
 				// Virtual potential temperature
 				m_dThetaVNode[k] = dataNode[TIx][k][i][j];
+#endif
 
 				// Zonal velocity
 				double dUalpha =
@@ -368,6 +376,10 @@ void DCMIPPhysics::Perform(
 				// Virtual potential temperature
 				dataNode[TIx][k][i][j] =
 					dTv * pow(phys.GetP0() / m_dPmid[k], phys.GetKappa());
+
+#if defined(FORMULATION_RHOTHETA_PI)
+				dataNode[TIx][k][i][j] *= dataNode[RIx][k][i][j];
+#endif
 
 				// Tracers
 				dataTracer[0][k][i][j] = m_dQv[k] * dataNode[RIx][k][i][j];
