@@ -875,14 +875,14 @@ public:
 	///	<summary>
 	///		Get the scalar uniform diffusion coefficient.
 	///	</summary>
-	bool GetScalarUniformDiffusionCoeff() const {
+	double GetScalarUniformDiffusionCoeff() const {
 		return m_dScalarUniformDiffusionCoeff;
 	}
 
 	///	<summary>
 	///		Get the vector uniform diffusion coefficient.
 	///	</summary>
-	bool GetVectorUniformDiffusionCoeff() const {
+	double GetVectorUniformDiffusionCoeff() const {
 		return m_dVectorUniformDiffusionCoeff;
 	}
 
