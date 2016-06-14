@@ -18,6 +18,7 @@
 
 #include "Model.h"
 #include "GridGLL.h"
+#include "Defines.h"
 
 #include "Announce.h" 
 
@@ -151,7 +152,15 @@ void KesslerPhysics::Perform(
 			// Store virtual potential temperature on levels
 			} else {
 				for (int k = 0; k < nRElements; k++) {
-					m_dThetaVNode[k] = dataNode[TIx][k][i][j];
+#if defined(FORMULATION_THETA)
+					m_dThetaVNode[k] =
+						dataNode[TIx][k][i][j];
+#endif
+#if defined(FORMULATION_RHOTHETA_PI)
+					m_dThetaVREdge[k] =
+						dataNode[TIx][k][i][j]
+						/ dataNode[RIx][k][i][j];
+#endif
 				}
 			}
 
@@ -222,6 +231,19 @@ void KesslerPhysics::Perform(
 			// Store accumualted precipitation
 			dataUserData2D[0][i][j] += dPrecL * dDeltaT;
 
+			// Update mass variables
+			for (int k = 0; k < nRElements; k++) {
+
+				// Moist density
+				dataNode[RIx][k][i][j] =
+					m_dRho[k] / (1.0 - m_dQv[k] - m_dQc[k] - m_dQr[k]);
+
+				// Virtual potential temperature
+				dataTracer[0][k][i][j] = m_dQv[k] * dataNode[RIx][k][i][j];
+				dataTracer[1][k][i][j] = m_dQc[k] * dataNode[RIx][k][i][j];
+				dataTracer[2][k][i][j] = m_dQr[k] * dataNode[RIx][k][i][j];
+			}
+
 			// Remap virtual potential temperature tendency to interfaces
 			if (pGridGLL->GetVarLocation(TIx) == DataLocation_REdge) {
 
@@ -241,25 +263,19 @@ void KesslerPhysics::Perform(
 					dataREdge[TIx][k][i][j] -= m_dThetaVREdge[k];
 				}
 
-			// Update thetaV on nodes
+			// Update thetaV on levels
 			} else {
 				for (int k = 0; k < nRElements; k++) {
+#if defined(FORMULATION_THETA)
 					dataNode[TIx][k][i][j] =
 						m_dTheta[k] * (1.0 + 0.61 * m_dQv[k]);
+#endif
+#if defined(FORMULATION_RHOTHETA_PI)
+					dataNode[TIx][k][i][j] =
+						dataNode[RIx][k][i][j]
+						* m_dTheta[k] * (1.0 + 0.61 * m_dQv[k]);
+#endif
 				}
-			}
-
-			// Update mass variables
-			for (int k = 0; k < nRElements; k++) {
-
-				// Moist density
-				dataNode[RIx][k][i][j] =
-					m_dRho[k] / (1.0 - m_dQv[k] - m_dQc[k] - m_dQr[k]);
-
-				// Virtual potential temperature
-				dataTracer[0][k][i][j] = m_dQv[k] * dataNode[RIx][k][i][j];
-				dataTracer[1][k][i][j] = m_dQc[k] * dataNode[RIx][k][i][j];
-				dataTracer[2][k][i][j] = m_dQr[k] * dataNode[RIx][k][i][j];
 			}
 		}
 		}
