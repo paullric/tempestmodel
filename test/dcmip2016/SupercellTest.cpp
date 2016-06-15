@@ -112,8 +112,8 @@ public:
 		double & dScalarUniformDiffusionCoeff,
 		double & dVectorUniformDiffusionCoeff
 	) const {
-		dScalarUniformDiffusionCoeff = 500.0;
-		dVectorUniformDiffusionCoeff = 1500.0;
+		dScalarUniformDiffusionCoeff = 1500.0;
+		dVectorUniformDiffusionCoeff = 500.0;
 	}
 
 	///	<summary>
