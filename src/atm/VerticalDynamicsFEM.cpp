@@ -1578,24 +1578,6 @@ void VerticalDynamicsFEM::StepImplicit(
 			}
 #endif
 
-#if defined(EXPLICIT_VERTICAL_VELOCITY_ADVECTION)
-			// Verify vertical velocity is untouched by update
-			if (pGrid->GetVarLocation(WIx) == DataLocation_REdge) {
-				for (int k = 0; k <= pGrid->GetRElements(); k++) {
-					if (fabs(m_dSoln[VecFIx(FWIx, k)] - dataInitialREdge[WIx][k][iA][iB]) > 1.0e-12) {
-						_EXCEPTIONT("Logic error");
-					}
-				}
-
-			} else {
-				for (int k = 0; k < pGrid->GetRElements(); k++) {
-					if (fabs(m_dSoln[VecFIx(FWIx, k)] - dataInitialNode[WIx][k][iA][iB]) > 1.0e-12) {
-						_EXCEPTIONT("Logic error");
-					}
-				}
-			}
-
-#else
 			// Copy over W
 			if (pGrid->GetVarLocation(WIx) == DataLocation_REdge) {
 				for (int k = 0; k <= pGrid->GetRElements(); k++) {
@@ -1608,7 +1590,6 @@ void VerticalDynamicsFEM::StepImplicit(
 						m_dSoln[VecFIx(FWIx, k)];
 				}
 			}
-#endif
 
 			// Copy over Rho
 			if (pGrid->GetVarLocation(RIx) == DataLocation_REdge) {
