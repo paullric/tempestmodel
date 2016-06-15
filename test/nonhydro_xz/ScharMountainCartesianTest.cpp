@@ -178,17 +178,6 @@ public:
 	}
 
 	///	<summary>
-	///		Strength of the uniform diffusion (m^2/s)
-	///	</summary>
-	virtual void GetUniformDiffusionCoeffs(
-		double & dScalarUniformDiffusionCoeff,
-		double & dVectorUniformDiffusionCoeff
-	) const {
-		dScalarUniformDiffusionCoeff = 300.0;
-		dVectorUniformDiffusionCoeff = 300.0;
-	}
-
-	///	<summary>
 	///		Evaluate the Rayleigh friction strength at the given point.
 	///	</summary>
 	virtual double EvaluateRayleighStrength(
@@ -300,7 +289,7 @@ public:
 		dState[0] = m_dU0;
 		dState[1] = 0.0;
 		dState[3] = 0.0;
-		//dState[3] = sin(M_PI * dZp / m_dGDim[5]);
+		//dState[3] = sin(2.0 * M_PI * dZp / m_dGDim[5]);
 
 		// Set the initial density based on the Exner pressure
 		double dExnerP = (dG * dG) / (dCp * m_dTheta0 * m_dNbar * m_dNbar);
