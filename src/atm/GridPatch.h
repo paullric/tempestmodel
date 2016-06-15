@@ -178,6 +178,13 @@ public:
 		DataLocation loc = DataLocation_Node
 	);
 
+	///	<summary>
+	///		Compute temperature on the GridPatch.
+	///	</summary>
+	virtual void ComputeSurfacePressure(
+		int iDataIndex
+	);
+
 public:
 	///	<summary>
 	///		Add local masses to checksum total.
@@ -1058,6 +1065,20 @@ public:
 	}
 
 	///	<summary>
+	///		Get the surface pressure data.
+	///	</summary>
+	DataArray2D<double> & GetDataSurfacePressure() {
+		return m_dataSurfacePressure;
+	}
+
+	///	<summary>
+	///		Get the surface pressure data.
+	///	</summary>
+	const DataArray2D<double> & GetDataSurfacePressure() const {
+		return m_dataSurfacePressure;
+	}
+
+	///	<summary>
 	///		Get the Rayleigh friction strength.
 	///	</summary>
 	DataArray3D<double> & GetRayleighStrength(
@@ -1378,6 +1399,11 @@ public:
 	///		Computed temperature (Auxiliary).
 	///	</summary>
 	DataArray3D<double> m_dataTemperature;
+
+	///	<summary>
+	///		Computed surface pressure (Auxiliary).
+	///	</summary>
+	DataArray2D<double> m_dataSurfacePressure;
 
 public:
 	///	<summary>

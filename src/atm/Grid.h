@@ -343,6 +343,13 @@ public:
 	);
 
 	///	<summary>
+	///		Compute surface pressure on the grid.
+	///	</summary>
+	virtual void ComputeSurfacePressure(
+		int iDataIndex
+	);
+
+	///	<summary>
 	///		Interpolate data vertically from Nodes to REdges.
 	///	</summary>
 	void InterpolateNodeToREdge(

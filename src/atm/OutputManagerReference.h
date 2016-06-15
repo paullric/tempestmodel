@@ -91,6 +91,14 @@ public:
 		bool fOutputTemperature = true
 	);
 
+	///	<summary>
+	///		Modify the flag which indicates whether surface pressure should be
+	///		computed and output.
+	///	</summary>
+	void OutputSurfacePressure(
+		bool fOutputSurfacePressure = true
+	);
+
 private:
 	///	<summary>
 	///		Calculate the patch coordinates of the reference points.
@@ -292,6 +300,22 @@ private:
 	///		Computed temperature on the reference grid.
 	///	</summary>
 	DataArray3D<double> m_dataTemperature;
+
+	///	<summary>
+	///		Flag indicating whether surface pressure should be computed
+	///		and output.
+	///	</summary>
+	bool m_fOutputSurfacePressure;
+
+	///	<summary>
+	///		Surface pressure output variable.
+	///	</summary>
+	NcVar * m_varSurfacePressure;
+
+	///	<summary>
+	///		Computed surface pressure on the reference grid.
+	///	</summary>
+	DataArray3D<double> m_dataSurfacePressure;
 
 };
 

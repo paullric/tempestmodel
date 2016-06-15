@@ -70,6 +70,7 @@ struct _TempestCommandLineVariables {
 	bool fOutputVorticity;
 	bool fOutputDivergence;
 	bool fOutputTemperature;
+	bool fOutputSurfacePressure;
 	bool fNoReferenceState;
 	bool fNoTracers;
 	bool fNoHyperviscosity;
@@ -108,6 +109,7 @@ struct _TempestCommandLineVariables {
 	CommandLineBool(_tempestvars.fOutputVorticity, "output_vort"); \
 	CommandLineBool(_tempestvars.fOutputDivergence, "output_div"); \
 	CommandLineBool(_tempestvars.fOutputTemperature, "output_temp"); \
+	CommandLineBool(_tempestvars.fOutputSurfacePressure, "output_ps"); \
 	CommandLineBool(_tempestvars.fNoReferenceState, "norefstate"); \
 	CommandLineBool(_tempestvars.fNoTracers, "notracers"); \
 	CommandLineBool(_tempestvars.fNoHyperviscosity, "nohypervis"); \
@@ -338,6 +340,9 @@ void _TempestSetupOutputManagers(
 		}
 		if (vars.fOutputTemperature) {
 			pOutmanRef->OutputTemperature();
+		}
+		if (vars.fOutputSurfacePressure) {
+			pOutmanRef->OutputSurfacePressure();
 		}
 
 		model.AttachOutputManager(pOutmanRef);

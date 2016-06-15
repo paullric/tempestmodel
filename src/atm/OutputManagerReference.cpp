@@ -60,6 +60,7 @@ OutputManagerReference::OutputManagerReference(
 	m_fOutputVorticity(false),
 	m_fOutputDivergence(false),
 	m_fOutputTemperature(false),
+	m_fOutputSurfacePressure(false),
 	m_fOutputAllVarsOnNodes(fOutputAllVarsOnNodes),
 	m_fRemoveReferenceProfile(fRemoveReferenceProfile)
 {
@@ -144,6 +145,18 @@ void OutputManagerReference::OutputTemperature(
 
 	if (!fOutputTemperature) {
 		m_dataTemperature.Deallocate();
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void OutputManagerReference::OutputSurfacePressure(
+	bool fOutputSurfacePressure
+) {
+	m_fOutputSurfacePressure = fOutputSurfacePressure;
+
+	if (!fOutputSurfacePressure) {
+		m_dataSurfacePressure.Deallocate();
 	}
 }
 
@@ -238,6 +251,13 @@ bool OutputManagerReference::CalculatePatchCoordinates() {
 		m_dataTemperature.Allocate(
 			1,
 			m_dREtaCoord.GetRows(),
+			m_nXReference * m_nYReference);
+	}
+
+	if (m_fOutputSurfacePressure) {
+		m_dataSurfacePressure.Allocate(
+			1,
+			1,
 			m_nXReference * m_nYReference);
 	}
 
@@ -396,6 +416,13 @@ bool OutputManagerReference::OpenFile(
 			m_varTemperature =
 				m_pActiveNcOutput->add_var(
 					"T", ncDouble, dimTime, dimLev, dimLat, dimLon);
+		}
+
+		// Surface pressure variable
+		if (m_fOutputSurfacePressure) {
+			m_varSurfacePressure =
+				m_pActiveNcOutput->add_var(
+					"PS", ncDouble, dimTime, dimLat, dimLon);
 		}
 
 		// User data variables
@@ -614,6 +641,19 @@ void OutputManagerReference::Output(
 			m_dataTemperature);
 	}
 
+	// Perform Interpolate / Reduction on temperature
+	if (m_fOutputSurfacePressure) {
+		m_grid.ComputeSurfacePressure(0);
+
+		m_grid.ReduceInterpolate(
+			DataType_SurfacePressure,
+			m_dREtaSurface,
+			m_dAlpha,
+			m_dBeta,
+			m_iPatch,
+			m_dataSurfacePressure);
+	}
+
 	// Store state variable data
 	if (nRank == 0) {
 		for (int c = 0; c < eqn.GetComponents(); c++) {
@@ -697,6 +737,15 @@ void OutputManagerReference::Output(
 				m_dXCoord.GetRows());
 		}
 
+		// Store surface pressure data
+		if (m_fOutputSurfacePressure) {
+			m_varSurfacePressure->set_cur(m_ixOutputTime, 0, 0);
+			m_varSurfacePressure->put(
+				&(m_dataSurfacePressure[0][0][0]),
+				1,
+				m_dYCoord.GetRows(),
+				m_dXCoord.GetRows());
+		}
 	}
 
 	// No longer fresh file

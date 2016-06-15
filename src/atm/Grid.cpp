@@ -847,6 +847,17 @@ void Grid::ComputeTemperature(
 
 ///////////////////////////////////////////////////////////////////////////////
 
+void Grid::ComputeSurfacePressure(
+	int iDataIndex
+) {
+	// Loop over all grid patches
+	for (int n = 0; n < m_vecActiveGridPatches.size(); n++) {
+		m_vecActiveGridPatches[n]->ComputeSurfacePressure(iDataIndex);
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
 void Grid::InterpolateNodeToREdge(
 	int iVar,
 	int iDataIndex

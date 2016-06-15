@@ -38,6 +38,7 @@ enum DataType {
 	DataType_Latitude,
 	DataType_Z,
 	DataType_Pressure,
+	DataType_SurfacePressure,
 	DataType_KineticEnergy,
 	DataType_Vorticity,
 	DataType_Divergence,
