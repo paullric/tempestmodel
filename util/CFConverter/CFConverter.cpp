@@ -352,8 +352,6 @@ try {
 
 	ParseVariableList(strInputFile, vecConfigStrings);
 
-	std::cout << vecConfigStrings.size() << (7 or 8) << std::endl;
-
 	if ((vecConfigStrings.size() < 7) ||
 	    (vecConfigStrings.size() > 8) ||
 		(vecConfigStrings[vecConfigStrings.size()-1] != "nc")
@@ -419,26 +417,44 @@ try {
 	varLon->set_cur((long)0);
 	varLon->get(&(dLon[0]), nLon);
 
+	// Load Ztop parameter
+	NcAtt * attZtop = ncdf_in.get_att("Ztop");
+	if (attZtop == NULL) {
+		_EXCEPTIONT("Attribute \"Ztop\" not found");
+	}
+	double dZtop = attZtop->as_double(0);
+
 	// Load level array
 	Announce("Level");
+	NcDim * dimLev = ncdf_in.get_dim("lev");
+	if (dimLev == NULL) {
+		_EXCEPTIONT("Dimension \"lev\" not found");
+	}
 	NcVar * varLev = ncdf_in.get_var("lev");
 	if (varLev == NULL) {
-		_EXCEPTION1("File \"%s\" does not contain variable \"lev\"",
-			strInputFile.c_str());
+		_EXCEPTIONT("Variable \"lev\" not found");
 	}
-	int nLev = varLev->get_dim(0)->size();
+	int nLev = dimLev->size();
 
 	DataArray1D<double> dLev(nLev);
 	varLev->set_cur((long)0);
 	varLev->get(&(dLev[0]), nLev);
 
+	for (int k = 0; k < nLev; k++) {
+		dLev[k] *= dZtop;
+	}
+
 	// Load level interface array
 	Announce("Interface");
+	NcDim * dimILev = ncdf_in.get_dim("ilev");
+	if (dimILev == NULL) {
+		_EXCEPTIONT("Dimension \"ilev\" not found");
+	}
 	NcVar * varILev = ncdf_in.get_var("ilev");
 	int nILev = 0;
 	DataArray1D<double> dILev;
 	if (varILev == NULL) {
-		Announce("Warning: Variable \"ilev\" not found");
+		_EXCEPTIONT("Variable \"ilev\" not found");
 	} else {
 		nILev = varILev->get_dim(0)->size();
 		if (nILev != nLev + 1) {
@@ -449,6 +465,10 @@ try {
 		varILev->get(&(dILev[0]), nILev);
 	}
 
+	for (int k = 0; k < nILev; k++) {
+		dILev[k] *= dZtop;
+	}
+/*
 	// Load topography
 	Announce("Topography");
 	NcVar * varZs = ncdf_in.get_var("Zs");
@@ -462,6 +482,41 @@ try {
 	varZs->get(&(dZs[0][0]), nLat, nLon);
 
 	AnnounceEndBlock("Done");
+*/
+	// Load density
+	Announce("Density");
+	bool fHasDensity = false;
+	NcVar * varRho = ncdf_in.get_var("Rho");
+	DataArray1D<double> dRho;
+	if (varRho != NULL) {
+		fHasDensity = true;
+		if (varRho->get_dim(0)->size() != nTime) {
+			_EXCEPTION2("Invalid dim 0 size on Rho: %i %i",
+				varRho->get_dim(0)->size(), nTime);
+		}
+		if (varRho->get_dim(1)->size() != nLev) {
+			_EXCEPTION2("Invalid dim 1 size on Rho: %i %i",
+				varRho->get_dim(1)->size(), nLev);
+		}
+		if (varRho->get_dim(2)->size() != nLat) {
+			_EXCEPTION2("Invalid dim 2 size on Rho: %i %i",
+				varRho->get_dim(2)->size(), nLat);
+		}
+		if (varRho->get_dim(3)->size() != nLon) {
+			_EXCEPTION2("Invalid dim 3 size on Rho: %i %i",
+				varRho->get_dim(3)->size(), nLon);
+		}
+
+		dRho.Allocate(nTime * nLev * nLon * nLat);
+		varRho->set_cur(0, 0, 0, 0);
+		varRho->get(&(dRho[0]), nTime, nLev, nLat, nLon);
+
+		for (int i = 0; i < dRho.GetRows(); i++) {
+			if (dRho[i] == 0.0) {
+				_EXCEPTIONT("Zero density detected");
+			}
+		}
+	}
 
 	// Open output file
 	AnnounceStartBlock("Constructing output files");
@@ -469,9 +524,97 @@ try {
 	// Loop through all variables
 	for (int v = 0; v < vecVariableStrings.size(); v++) {
 
+		// Start block
+		AnnounceStartBlock(vecVariableStrings[v].c_str());
+
+		// Input variable
+		NcVar * varIn = NULL;
+		int nDim = 0;
+		DataArray1D<double> data;
+
+		bool f2D = false;
+		bool fOnLevels = false;
+		bool fOnInterfaces = false;
+
+		// Tracers
+		if (vecVariableStrings[v][0] == 'Q') {
+			std::string strQ = vecVariableStrings[v];
+			if (strQ == "Q") {
+				strQ = "Qv";
+			}
+			varIn = ncdf_in.get_var(strQ.c_str());
+			if (varIn == NULL) {
+				std::string strRhoQ = "Rho" + strQ;
+				if (!fHasDensity) {
+					_EXCEPTION1("Cannot find variable \"%s\" and density "
+						"not available", strQ.c_str());
+				}
+				varIn = ncdf_in.get_var(strRhoQ.c_str());
+				if (varIn == NULL) {
+					_EXCEPTION2("Cannot find variable \"%s\" or \"%s\"",
+						strQ.c_str(), strRhoQ.c_str());
+				}
+			}
+			nDim = varIn->num_dims();
+			if (nDim != 4) {
+				_EXCEPTION1("Invalid number of dimensions for variable \"%s\"",
+					strQ.c_str());
+			}
+			data.Allocate(nTime * nLev * nLat * nLon);
+			varIn->get(&(data[0]), nTime, nLev, nLat, nLon);
+
+			for (int i = 0; i < data.GetRows(); i++) {
+				data[i] /= dRho[i];
+			}
+
+			fOnLevels = true;
+
+		// Non-tracers
+		} else {
+			varIn = ncdf_in.get_var(vecVariableStrings[v].c_str());
+			if (varIn == NULL) {
+				_EXCEPTION1("Unable to load variable \"%s\"",
+					vecVariableStrings[v].c_str());
+			}
+
+			// Number of dimensions
+			nDim = varIn->num_dims();
+			if (nDim == 3) {
+				f2D = true;
+			} else if (nDim == 4) {
+				NcDim * dimLev = varIn->get_dim(1);
+				if (strcmp(dimLev->name(), "lev") == 0) {
+					fOnLevels = true;
+				}
+				if (strcmp(dimLev->name(), "ilev") == 0) {
+					fOnInterfaces = true;
+				}
+			} else {
+				_EXCEPTION1("Invalid number of dimensions for variable \"%s\"",
+					vecVariableStrings[v].c_str());
+			}
+
+			if (f2D) {
+				data.Allocate(nTime * nLat * nLon);
+				varIn->get(&(data[0]), nTime, nLat, nLon);
+			}
+			if (fOnLevels) {
+				data.Allocate(nTime * nLev * nLat * nLon);
+				varIn->get(&(data[0]), nTime, nLev, nLat, nLon);
+			}
+			if (fOnInterfaces) {
+				data.Allocate(nTime * nILev * nLat * nLon);
+				varIn->get(&(data[0]), nTime, nILev, nLat, nLon);
+			}
+		}
+
+		if (varIn == NULL) {
+			_EXCEPTIONT("Logic error");
+		}
+
 		// Open output file
 		std::string strOutputFile;
-		for (int k = 0; k < vecConfigStrings.size(); k++) {
+		for (int k = 0; k < vecConfigStrings.size()-1; k++) {
 			strOutputFile += vecConfigStrings[k];
 			strOutputFile += ".";
 		}
@@ -488,556 +631,184 @@ try {
 
 		// Add ESMF indexing attributes
 		{
-			NcAtt * att
+			ncdf_out.add_att("Conventions", "CF-1.0");
+			ncdf_out.add_att("project_id", strProjectId.c_str());
+			ncdf_out.add_att("institute_id", "UCD/LBNL");
+			ncdf_out.add_att("experiment_id", vecConfigStrings[1].c_str());
+			ncdf_out.add_att("model_id", vecConfigStrings[0].c_str());
+			ncdf_out.add_att("frequency", "unknown");
+			ncdf_out.add_att("modeling_realm", "atmos");
+			ncdf_out.add_att("horizontal_resolution", vecConfigStrings[2].c_str());
+			ncdf_out.add_att("levels", vecConfigStrings[3].c_str());
+			ncdf_out.add_att("grid", vecConfigStrings[4].c_str());
+			ncdf_out.add_att("equation", vecConfigStrings[5].c_str());
 
-- Conventions = “CF-1.0”
-- project_id = “DCMIP2016”
-- institute_id
-- experiment_id  (replaces test_case)
-- model_id
-- frequency  (replaces time_frequency)
-- modeling_realm = “atmos"
-- horizontal_resolution
-- levels
-- grid
-- equation
-- description
-				
+			if (vecConfigStrings.size() == 8) {
+				ncdf_out.add_att("description", vecConfigStrings[6].c_str());
+			}
 		}
 
-	// Output time array
-	Announce("Time");
-	NcDim * dimOutTime = ncdf_out.add_dim("time");
-	NcVar * varOutTime = ncdf_out.add_var("time", ncDouble, dimOutTime);
-	varOutTime->set_cur((long)0);
-	varOutTime->put(&(dTime[0]), nTime);
+		// Output time array
+		Announce("Time");
+		NcDim * dimOutTime = ncdf_out.add_dim("time");
+		NcVar * varOutTime = ncdf_out.add_var("time", ncDouble, dimOutTime);
+		varOutTime->set_cur((long)0);
+		varOutTime->put(&(dTime[0]), nTime);
 
-	CopyNcVarAttributes(varTime, varOutTime);
+		CopyNcVarAttributes(varTime, varOutTime);
 
-	// Output pressure array
-	NcDim * dimOutP = NULL;
-	NcVar * varOutP = NULL;
-	if (nPressureLevels > 0) {
-		Announce("Pressure");
-		dimOutP = ncdf_out.add_dim("p", nPressureLevels);
-		varOutP = ncdf_out.add_var("p", ncDouble, dimOutP);
-		varOutP->set_cur((long)0);
-		varOutP->put(&(vecPressureLevels[0]), nPressureLevels);
-	}
+		// Output height array
+		NcDim * dimOutZ = NULL;
+		NcVar * varOutZ = NULL;
+		if (fOnLevels) {
+			Announce("Altitude");
+			dimOutZ = ncdf_out.add_dim("z", nLev);
+			varOutZ = ncdf_out.add_var("z", ncDouble, dimOutZ);
+			varOutZ->set_cur((long)0);
+			varOutZ->put(&(dLev[0]), nLev);
+			varOutZ->add_att("long_name", "altitude");
+			varOutZ->add_att("units", "m");
+		}
+		if (fOnInterfaces) {
+			Announce("Altitude");
+			dimOutZ = ncdf_out.add_dim("z", nILev);
+			varOutZ = ncdf_out.add_var("z", ncDouble, dimOutZ);
+			varOutZ->set_cur((long)0);
+			varOutZ->put(&(dILev[0]), nILev);
+			varOutZ->add_att("long_name", "altitude");
+			varOutZ->add_att("units", "m");
+		}
 
-	// Output height array
-	NcDim * dimOutZ = NULL;
-	NcVar * varOutZ = NULL;
-	if (nHeightLevels > 0) {
-		Announce("Height");
-		dimOutZ = ncdf_out.add_dim("z", nHeightLevels);
-		varOutZ = ncdf_out.add_var("z", ncDouble, dimOutZ);
-		varOutZ->set_cur((long)0);
-		varOutZ->put(&(vecHeightLevels[0]), nHeightLevels);
-	}
+		// Output latitude and longitude array
+		Announce("Latitude");
+		NcDim * dimOutLat = ncdf_out.add_dim("lat", nLat);
+		NcVar * varOutLat = ncdf_out.add_var("lat", ncDouble, dimOutLat);
+		varOutLat->set_cur((long)0);
+		varOutLat->put(&(dLat[0]), nLat);
 
-	// Output latitude and longitude array
-	Announce("Latitude");
-	NcDim * dimOutLat = ncdf_out.add_dim("lat", nLat);
-	NcVar * varOutLat = ncdf_out.add_var("lat", ncDouble, dimOutLat);
-	varOutLat->set_cur((long)0);
-	varOutLat->put(&(dLat[0]), nLat);
+		CopyNcVarAttributes(varLat, varOutLat);
 
-	CopyNcVarAttributes(varLat, varOutLat);
+		Announce("Longitude");
+		NcDim * dimOutLon = ncdf_out.add_dim("lon", nLon);
+		NcVar * varOutLon = ncdf_out.add_var("lon", ncDouble, dimOutLon);
+		varOutLon->set_cur((long)0);
+		varOutLon->put(&(dLon[0]), nLon);
 
-	Announce("Longitude");
-	NcDim * dimOutLon = ncdf_out.add_dim("lon", nLon);
-	NcVar * varOutLon = ncdf_out.add_var("lon", ncDouble, dimOutLon);
-	varOutLon->set_cur((long)0);
-	varOutLon->put(&(dLon[0]), nLon);
+		CopyNcVarAttributes(varLon, varOutLon);
 
-	CopyNcVarAttributes(varLon, varOutLon);
+		// Copy over data
+		Announce("Variable data");
+		NcVar * varOut = NULL;
+		if (f2D) {
+	   		varOut =
+				ncdf_out.add_var(
+					vecVariableStrings[v].c_str(),
+					ncDouble,
+					dimOutTime,
+					dimOutLat,
+					dimOutLon);
 
-	// Output topography
-	Announce("Topography");
-	NcVar * varOutZs = ncdf_out.add_var(
-		"Zs", ncDouble, dimOutLat, dimOutLon);
+			varOut->put(&(data[0]), nTime, nLat, nLon);
+		}
+		if (fOnLevels) {
+	   		varOut =
+				ncdf_out.add_var(
+					vecVariableStrings[v].c_str(),
+					ncDouble,
+					dimOutTime,
+					dimOutZ,
+					dimOutLat,
+					dimOutLon);
 
-	varOutZs->set_cur((long)0, (long)0);
-	varOutZs->put(&(dZs[0][0]), nLat, nLon);
+			varOut->put(&(data[0]), nTime, nLev, nLat, nLon);
+		}
+		if (fOnInterfaces) {
+	   		varOut =
+				ncdf_out.add_var(
+					vecVariableStrings[v].c_str(),
+					ncDouble,
+					dimOutTime,
+					dimOutZ,
+					dimOutLat,
+					dimOutLon);
 
-	AnnounceEndBlock("Done");
+			varOut->put(&(data[0]), nTime, nILev, nLat, nLon);
+		}
+		if (varOut == NULL) {
+			_EXCEPTIONT("Logic error");
+		}
 
-	// Done
-	AnnounceEndBlock("Done");
+		// Add long names
+		if (vecVariableStrings[v] == "U") {
+			varOut->add_att("units", "m/s");
+			varOut->add_att("long_name", "eastward_wind");
 
-	// Load all variables
-	Announce("Loading variables");
+		} else if (vecVariableStrings[v] == "V") {
+			varOut->add_att("units", "m/s");
+			varOut->add_att("long_name", "northward_wind");
 
-	std::vector<NcVar *> vecNcVar;
-	for (int v = 0; v < vecVariableStrings.size(); v++) {
-		vecNcVar.push_back(ncdf_in.get_var(vecVariableStrings[v].c_str()));
-		if (vecNcVar[v] == NULL) {
-			_EXCEPTION1("Unable to load variable \"%s\" from file",
+		} else if (vecVariableStrings[v] == "W") {
+			varOut->add_att("units", "m/s");
+			varOut->add_att("long_name", "upward_air_velocity");
+
+		} else if (vecVariableStrings[v] == "Rho") {
+			varOut->add_att("units", "kg/m^3");
+			varOut->add_att("long_name", "air_density");
+
+		} else if (vecVariableStrings[v] == "Theta") {
+			varOut->add_att("units", "K");
+			varOut->add_att("long_name", "potential_temperature");
+
+		} else if (vecVariableStrings[v] == "ThetaV") {
+			varOut->add_att("units", "K");
+			varOut->add_att("long_name", "virtual_potential_temperature");
+
+		} else if (vecVariableStrings[v] == "T") {
+			varOut->add_att("units", "K");
+			varOut->add_att("long_name", "temperature");
+
+		} else if (vecVariableStrings[v] == "TV") {
+			varOut->add_att("units", "K");
+			varOut->add_att("long_name", "virtual_temperature");
+
+		} else if (vecVariableStrings[v] == "DELTA") {
+			varOut->add_att("units", "1/s");
+			varOut->add_att("long_name", "divergence");
+
+		} else if (vecVariableStrings[v] == "ZETA") {
+			varOut->add_att("units", "1/s");
+			varOut->add_att("long_name", "relative_vorticity");
+
+		} else if (vecVariableStrings[v] == "Q") {
+			varOut->add_att("units", "kg/m^3");
+			varOut->add_att("long_name", "specific_humidity");
+
+		} else if (vecVariableStrings[v] == "Qc") {
+			varOut->add_att("units", "kg/m^3");
+			varOut->add_att("long_name", "cloud_water_mixing_ratio");
+
+		} else if (vecVariableStrings[v] == "Qr") {
+			varOut->add_att("units", "kg/m^3");
+			varOut->add_att("long_name", "rain_water_mixing_ratio");
+
+		} else if (vecVariableStrings[v] == "QCl") {
+			varOut->add_att("units", "kg/m^3");
+			varOut->add_att("long_name", "singlet_chlorine_mixing_ratio");
+
+		} else if (vecVariableStrings[v] == "QCl2") {
+			varOut->add_att("units", "kg/m^3");
+			varOut->add_att("long_name", "chlorine_gas_mixing_ratio");
+
+		} else if (vecVariableStrings[v] == "PS") {
+			varOut->add_att("units", "Pa");
+			varOut->add_att("long_name", "surface_pressure");
+
+		} else {
+			printf("WARNING: No CF-Compliant version of variable \"%s\" known",
 				vecVariableStrings[v].c_str());
 		}
-	}
 
-	// Physical constants
-	Announce("Initializing thermodynamic variables");
-
-	NcAtt * attEarthRadius = ncdf_in.get_att("earth_radius");
-	double dEarthRadius = attEarthRadius->as_double(0);
-
-	NcAtt * attRd = ncdf_in.get_att("Rd");
-	double dRd = attRd->as_double(0);
-
-	NcAtt * attCp = ncdf_in.get_att("Cp");
-	double dCp = attCp->as_double(0);
-
-	double dGamma = dCp / (dCp - dRd);
-
-	NcAtt * attP0 = ncdf_in.get_att("P0");
-	double dP0 = attP0->as_double(0);
-
-	double dPressureScaling = dP0 * std::pow(dRd / dP0, dGamma);
-
-	NcAtt * attZtop = ncdf_in.get_att("Ztop");
-	double dZtop = attZtop->as_double(0);
-
-	// Input data
-	DataArray3D<double> dataIn(nLev, nLat, nLon);
-	DataArray3D<double> dataInt(nILev, nLat, nLon);
-
-	// Output data
-	DataArray2D<double> dataOut(nLat, nLon);
-
-	// Pressure in column
-	DataArray1D<double> dataColumnP(nLev);
-
-	// Height in column
-	DataArray1D<double> dataColumnZ(nLev);
-	DataArray1D<double> dataColumnIZ(nILev);
-
-	// Column weights
-	DataArray1D<double> dW(nLev);
-	DataArray1D<double> dIW(nILev);
-
-	// Loop through all times, pressure levels and variables
-	AnnounceStartBlock("Interpolating");
-
-	// Add energy variable
-	NcVar * varEnergy;
-	if (fExtractTotalEnergy) {
-		varEnergy = ncdf_out.add_var("TE", ncDouble, dimOutTime);
-	}
-
-	// Create output pressure variables
-	std::vector<NcVar *> vecOutNcVarP;
-	if (nPressureLevels > 0) {
-		for (int v = 0; v < vecVariableStrings.size(); v++) {
-			vecOutNcVarP.push_back(
-				ncdf_out.add_var(
-					vecVariableStrings[v].c_str(), ncDouble,
-						dimOutTime, dimOutP, dimOutLat, dimOutLon));
-
-			// Copy attributes
-			CopyNcVarAttributes(vecNcVar[v], vecOutNcVarP[v]);
-		}
-	}
-
-	// Create output height variables
-	std::vector<NcVar *> vecOutNcVarZ;
-	if (nHeightLevels > 0) {
-		for (int v = 0; v < vecVariableStrings.size(); v++) {
-			std::string strVarName = vecVariableStrings[v];
-			if (nPressureLevels > 0) {
-				strVarName += "z";
-			}
-			vecOutNcVarZ.push_back(
-				ncdf_out.add_var(
-					strVarName.c_str(), ncDouble,
-						dimOutTime, dimOutZ, dimOutLat, dimOutLon));
-
-			// Copy attributes
-			CopyNcVarAttributes(vecNcVar[v], vecOutNcVarZ[v]);
-		}
-	}
-
-	// Create output surface variable
-	std::vector<NcVar *> vecOutNcVarS;
-	if (fExtractSurface) {
-		for (int v = 0; v < vecVariableStrings.size(); v++) {
-			std::string strVarName = vecVariableStrings[v];
-			strVarName += "S";
-
-			vecOutNcVarS.push_back(
-				ncdf_out.add_var(
-					strVarName.c_str(), ncDouble,
-						dimOutTime, dimOutLat, dimOutLon));
-
-			// Copy attributes
-			CopyNcVarAttributes(vecNcVar[v], vecOutNcVarS[v]);
-		}
-	}
-
-	// Loop over all times
-	for (int t = 0; t < nTime; t++) {
-
-		char szAnnounce[256];
-		sprintf(szAnnounce, "Time %i", t); 
-		AnnounceStartBlock(szAnnounce);
-
-		// Rho
-		DataArray3D<double> dataRho(nLev, nLat, nLon);
-
-		NcVar * varRho = ncdf_in.get_var("Rho");
-		if (varRho == NULL) {
-			_EXCEPTIONT("Unable to load variable \"Rho\" from file");
-		}
-		varRho->set_cur(t, 0, 0, 0);
-		varRho->get(&(dataRho[0][0][0]), 1, nLev, nLat, nLon);
-
-		// Pressure
-		DataArray3D<double> dataP(nLev, nLat, nLon);
-
-		if (nPressureLevels != 0) {
-			NcVar * varP = ncdf_in.get_var("P");
-			if (varP == NULL) {
-				_EXCEPTIONT("Unable to load variable \"P\" from file");
-			}
-			varP->set_cur(t, 0, 0, 0);
-			varP->get(&(dataP[0][0][0]), 1, nLev, nLat, nLon);
-		}
-/*
-		// Populate pressure array
-		if (nPressureLevels > 0) {
-
-			// Calculate pointwise pressure
-			for (int k = 0; k < nLev; k++) {
-			for (int i = 0; i < nLat; i++) {
-			for (int j = 0; j < nLon; j++) {
-				dataP[k][i][j] = dPressureScaling
-					* exp(log(dataRho[k][i][j] * dataP[k][i][j]) * dGamma);
-			}
-			}
-			}
-		}
-*/
-		// Height everywhere
-		DataArray3D<double> dataZ(nLev, nLat, nLon);
-		DataArray3D<double> dataIZ;
-		if (nILev != 0) {
-			dataIZ.Allocate(nILev, nLat, nLon);
-		}
-
-		// Populate height array
-		if ((nHeightLevels > 0) || (fGeopotentialHeight)) {
-			for (int k = 0; k < nLev; k++) {
-			for (int i = 0; i < nLat; i++) {
-			for (int j = 0; j < nLon; j++) {
-				dataZ[k][i][j] = dZs[i][j] + dLev[k] * (dZtop - dZs[i][j]);
-			}
-			}
-			}
-
-			for (int k = 0; k < nILev; k++) {
-			for (int i = 0; i < nLat; i++) {
-			for (int j = 0; j < nLon; j++) {
-				dataIZ[k][i][j] = dZs[i][j] + dILev[k] * (dZtop - dZs[i][j]);
-			}
-			}
-			}
-		}
-
-		// Loop through all pressure levels and variables
-		for (int v = 0; v < vecNcVar.size(); v++) {
-
-			bool fOnInterfaces = false;
-
-			// Load in the data array
-			vecNcVar[v]->set_cur(t, 0, 0, 0);
-
-			if (vecNcVar[v]->get_dim(1)->size() == nLev) {
-				vecNcVar[v]->get(&(dataIn[0][0][0]), 1, nLev, nLat, nLon);
-
-				Announce("%s (n)", vecVariableStrings[v].c_str());
-
-			} else if (vecNcVar[v]->get_dim(1)->size() == nILev) {
-				vecNcVar[v]->get(&(dataInt[0][0][0]), 1, nILev, nLat, nLon);
-				fOnInterfaces = true;
-
-				Announce("%s (i)", vecVariableStrings[v].c_str());
-			} else {
-				_EXCEPTION1("Variable \"%s\" has invalid level dimension",
-					vecVariableStrings[v].c_str());
-			}
-
-			// At the physical surface
-			if (fExtractSurface) {
-
-				if (fOnInterfaces) {
-					for (int i = 0; i < nLat; i++) {
-					for (int j = 0; j < nLon; j++) {
-						dataOut[i][j] = dataInt[0][i][j];
-					}
-					}
-
-				} else {
-
-					int kBegin = 0;
-					int kEnd = 3;
-
-					PolynomialInterp::LagrangianPolynomialCoeffs(
-						3, dLev, dW, 0.0);
-
-					// Loop thorugh all latlon indices
-					for (int i = 0; i < nLat; i++) {
-					for (int j = 0; j < nLon; j++) {
-
-						// Interpolate in the vertical
-						dataOut[i][j] = 0.0;
-						for (int k = kBegin; k < kEnd; k++) {
-							dataOut[i][j] += dW[k] * dataIn[k][i][j];
-						}
-					}
-					}
-				}
-
-				// Write variable
-				vecOutNcVarS[v]->set_cur(t, 0, 0);
-				vecOutNcVarS[v]->put(&(dataOut[0][0]), 1, nLat, nLon);
-
-			}
-
-			// Loop through all pressure levels
-			for (int p = 0; p < nPressureLevels; p++) {
-
-				// Loop thorugh all latlon indices
-				for (int i = 0; i < nLat; i++) {
-				for (int j = 0; j < nLon; j++) {
-
-					// Store column pressure
-					for (int k = 0; k < nLev; k++) {
-						dataColumnP[k] = dataP[k][i][j];
-					}
-
-					// Find weights
-					int kBegin = 0;
-					int kEnd = 0;
-
-					// On a pressure surface
-					InterpolationWeightsLinear(
-						vecPressureLevels[p],
-						dataColumnP,
-						kBegin,
-						kEnd,
-						dW);
-
-					// Interpolate in the vertical
-					dataOut[i][j] = 0.0;
-					for (int k = kBegin; k < kEnd; k++) {
-						dataOut[i][j] += dW[k] * dataIn[k][i][j];
-					}
-
-				}
-				}
-
-				// Write variable
-				vecOutNcVarP[v]->set_cur(t, p, 0, 0);
-				vecOutNcVarP[v]->put(&(dataOut[0][0]), 1, 1, nLat, nLon);
-			}
-
-			// Loop through all height levels
-			for (int z = 0; z < nHeightLevels; z++) {
-
-				// Loop thorugh all latlon indices
-				for (int i = 0; i < nLat; i++) {
-				for (int j = 0; j < nLon; j++) {
-
-					// Find weights
-					int kBegin = 0;
-					int kEnd = 0;
-
-					// Interpolate from levels to z surfaces
-					if (!fOnInterfaces) {
-						for (int k = 0; k < nLev; k++) {
-							dataColumnZ[k] = dataZ[k][i][j];
-						}
-
-						InterpolationWeightsLinear(
-							vecHeightLevels[z],
-							dataColumnZ,
-							kBegin,
-							kEnd,
-							dW);
-
-						dataOut[i][j] = 0.0;
-						for (int k = kBegin; k < kEnd; k++) {
-							dataOut[i][j] += dW[k] * dataIn[k][i][j];
-						}
-
-					// Interpolate from interfaces to z surfaces
-					} else {
-						for (int k = 0; k < nILev; k++) {
-							dataColumnIZ[k] = dataIZ[k][i][j];
-						}
-
-						InterpolationWeightsLinear(
-							vecHeightLevels[z],
-							dataColumnIZ,
-							kBegin,
-							kEnd,
-							dIW);
-
-						dataOut[i][j] = 0.0;
-						for (int k = kBegin; k < kEnd; k++) {
-							dataOut[i][j] += dIW[k] * dataInt[k][i][j];
-						}
-					}
-				}
-				}
-
-				// Write variable
-				vecOutNcVarZ[v]->set_cur(t, z, 0, 0);
-				vecOutNcVarZ[v]->put(&(dataOut[0][0]), 1, 1, nLat, nLon);
-			}
-		}
-
-		// Output geopotential height
-		if (fGeopotentialHeight) {
-
-			Announce("Geopotential height");
-
-			// Output variables
-			NcVar * varOutZ;
-			NcVar * varOutZs;
-
-			if (nPressureLevels > 0) {
-				varOutZ = ncdf_out.add_var(
-					"PHIZ", ncDouble, dimOutTime, dimOutP, dimOutLat, dimOutLon);
-			}
-			if (fExtractSurface) {
-				varOutZs = ncdf_out.add_var(
-					"PHIZS", ncDouble, dimOutTime, dimOutLat, dimOutLon);
-			}
-
-			// Interpolate onto pressure levels
-			for (int p = 0; p < nPressureLevels; p++) {
-
-				// Loop thorugh all latlon indices
-				for (int i = 0; i < nLat; i++) {
-				for (int j = 0; j < nLon; j++) {
-
-					int kBegin = 0;
-					int kEnd = 0;
-
-					for (int k = 0; k < nLev; k++) {
-						dataColumnP[k] = dataP[k][i][j];
-					}
-
-					InterpolationWeightsLinear(
-						vecPressureLevels[p],
-						dataColumnP,
-						kBegin,
-						kEnd,
-						dW);
-
-					// Interpolate in the vertical
-					dataOut[i][j] = 0.0;
-					for (int k = kBegin; k < kEnd; k++) {
-						dataOut[i][j] += dW[k] * dataZ[k][i][j];
-					}
-				}
-				}
-
-				// Write variable
-				varOutZ->set_cur(t, p, 0, 0);
-				varOutZ->put(&(dataOut[0][0]), 1, 1, nLat, nLon);
-
-			}
-
-			// Interpolate onto the physical surface
-			if (fExtractSurface) {
-
-				int kBegin = 0;
-				int kEnd = 3;
-
-				PolynomialInterp::LagrangianPolynomialCoeffs(
-					3, dLev, dW, 0.0);
-
-				// Loop thorugh all latlon indices
-				for (int i = 0; i < nLat; i++) {
-				for (int j = 0; j < nLon; j++) {
-
-					// Interpolate in the vertical
-					dataOut[i][j] = 0.0;
-					for (int k = kBegin; k < kEnd; k++) {
-						dataOut[i][j] += dW[k] * dataZ[k][i][j];
-					}
-				}
-				}
-
-				// Write variable
-				varOutZs->set_cur(t, 0, 0);
-				varOutZs->put(&(dataOut[0][0]), 1, nLat, nLon);
-
-			}
-		}
-
-		// Extract total energy
-		if (fExtractTotalEnergy) {
-			Announce("Total Energy");
-
-			// Zonal velocity
-			DataArray3D<double> dataU(nLev, nLat, nLon);
-
-			NcVar * varU = ncdf_in.get_var("U");
-			varU->set_cur(t, 0, 0, 0);
-			varU->get(&(dataU[0][0][0]), 1, nLev, nLat, nLon);
-
-			// Meridional velocity
-			DataArray3D<double> dataV(nLev, nLat, nLon);
-
-			NcVar * varV = ncdf_in.get_var("V");
-			varV->set_cur(t, 0, 0, 0);
-			varV->get(&(dataV[0][0][0]), 1, nLev, nLat, nLon);
-
-			// Vertical velocity
-			DataArray3D<double> dataW(nLev, nLat, nLon);
-
-			NcVar * varW = ncdf_in.get_var("W");
-			varW->set_cur(t, 0, 0, 0);
-			varW->get(&(dataW[0][0][0]), 1, nLev, nLat, nLon);
-
-			// Calculate total energy
-			double dTotalEnergy = 0.0;
-
-			double dElementRefArea =
-				dEarthRadius * dEarthRadius
-				* M_PI / static_cast<double>(nLat)
-				* 2.0 * M_PI / static_cast<double>(nLon);
-
-			for (int k = 0; k < nLev; k++) {
-			for (int i = 0; i < nLat; i++) {
-			for (int j = 0; j < nLon; j++) {
-				double dKineticEnergy =
-					0.5 * dataRho[k][i][j] *
-						( dataU[k][i][j] * dataU[k][i][j]
-						+ dataV[k][i][j] * dataV[k][i][j]
-						+ dataW[k][i][j] * dataW[k][i][j]);
-
-				double dInternalEnergy =
-					dataP[k][i][j] / (dGamma - 1.0);
-
-				dTotalEnergy +=
-					(dKineticEnergy + dInternalEnergy)
-						* std::cos(M_PI * dLat[i] / 180.0) * dElementRefArea
-						* (dZtop - dZs[i][j]) / static_cast<double>(nLev);
-			}
-			}
-			}
-
-			// Put total energy into file
-			varEnergy->set_cur(t);
-			varEnergy->put(&dTotalEnergy, 1);
-		}
-
+		// Done with variable
 		AnnounceEndBlock("Done");
 	}
 
