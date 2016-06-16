@@ -356,8 +356,9 @@ try {
 	    (vecConfigStrings.size() > 8) ||
 		(vecConfigStrings[vecConfigStrings.size()-1] != "nc")
 	) {
-		_EXCEPTIONT("Invalid input filename.  Expected:\n"
-			"model.experiment_id.resolution.levels.grid.equation.description.variable.nc");
+		_EXCEPTIONT("\nInvalid input filename.  Expected:\n"
+			"model.experiment_id.resolution.levels.grid.equation[.description].nc\n"
+			"with optional [.description]");
 	}
 
 	// Parse variable string
