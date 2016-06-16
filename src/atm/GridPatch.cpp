@@ -152,7 +152,7 @@ void GridPatch::InitializeDataLocal(
 		m_box.GetATotalWidth(),
 		m_box.GetBTotalWidth(),
 		3);
-
+/*
 	// Covariant metric components at each node
 	m_dataCovMetricA.SetSize(
 		m_grid.GetRElements(),
@@ -171,7 +171,7 @@ void GridPatch::InitializeDataLocal(
 		m_box.GetATotalWidth(),
 		m_box.GetBTotalWidth(),
 		3);
-
+*/
 	// Xi contravariant metric on interfaces
 	m_dataContraMetricAREdge.SetSize(
 		m_grid.GetRElements()+1,
@@ -315,9 +315,11 @@ void GridPatch::InitializeDataLocal(
 	m_dcGeometric.PushDataChunk(&m_dataContraMetricA);
 	m_dcGeometric.PushDataChunk(&m_dataContraMetricB);
 	m_dcGeometric.PushDataChunk(&m_dataContraMetricXi);
+/*
 	m_dcGeometric.PushDataChunk(&m_dataCovMetricA);
 	m_dcGeometric.PushDataChunk(&m_dataCovMetricB);
 	m_dcGeometric.PushDataChunk(&m_dataCovMetricXi);
+*/
 	m_dcGeometric.PushDataChunk(&m_dataContraMetricAREdge);
 	m_dcGeometric.PushDataChunk(&m_dataContraMetricBREdge);
 	m_dcGeometric.PushDataChunk(&m_dataContraMetricXiREdge);

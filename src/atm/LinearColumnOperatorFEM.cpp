@@ -101,8 +101,8 @@ void LinearColumnInterpFEM::Initialize(
 
 			if (fOnREdge) {
 				m_dCoeff[l][(a+1) * nVerticalOrder] = 1.0;
-				m_iBegin[l] = l;
-				m_iEnd[l] = l+1;
+				m_iBegin[l] = (a+1) * nVerticalOrder;
+				m_iEnd[l] = (a+1) * nVerticalOrder + 1;
 
 			} else {
 				PolynomialInterp::LagrangianPolynomialCoeffs(

@@ -468,7 +468,7 @@ void GridPatchCSGLL::EvaluateGeometricTerms() {
 				- 1.0 / dDxR * (
 					  m_dataContraMetricXi[k][iA][iB][0] * dDaR
 					+ m_dataContraMetricXi[k][iA][iB][1] * dDbR);
-
+/*
 			// Covariant metric components
 			m_dataCovMetricA[k][iA][iB][0] =
 				m_dataCovMetric2DA[iA][iB][0] + dDaR * dDaR;
@@ -552,7 +552,7 @@ void GridPatchCSGLL::EvaluateGeometricTerms() {
 				    "22: %1.15e\n 23: %1.15e\n 33: %1.15e",
 					dI11, dI12, dI13, dI22, dI23, dI33);
 			}
-
+*/
 			// Derivatives of the vertical coordinate transform
 			m_dataDerivRNode[k][iA][iB][0] = dDaR;
 			m_dataDerivRNode[k][iA][iB][1] = dDbR;

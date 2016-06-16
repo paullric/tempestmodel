@@ -416,7 +416,7 @@ void GridPatchCartesianGLL::EvaluateGeometricTerms() {
 					m_dataContraMetricB[k][iA][iB][2];
 				m_dataContraMetricXi[k][iA][iB][2] =
 					(1.0 + dDaZ * dDaZ + dDbZ * dDbZ) / (dDxZ * dDxZ);
-
+/*
 				// Covariant metric components
 				m_dataCovMetricA[k][iA][iB][0] =
 					m_dataCovMetric2DA[iA][iB][0] + dDaZ * dDaZ;
@@ -438,7 +438,7 @@ void GridPatchCartesianGLL::EvaluateGeometricTerms() {
 					dDbZ * dDxZ;
 				m_dataCovMetricXi[k][iA][iB][2] =
 					dDxZ * dDxZ;
-
+*/
 				// Derivatives of the vertical coordinate transform
 				m_dataDerivRNode[k][iA][iB][0] = dDaZ;
 				m_dataDerivRNode[k][iA][iB][1] = dDbZ;
