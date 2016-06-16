@@ -83,7 +83,7 @@ public:
 		double & dREtaStretch,
 		double & dDxREtaStretch
 	) {
-		const double dConstS1 = 0.5;
+		const double dConstS1 = 0.1;
 		const double dConstS2 = 2.0;
 
 		dREtaStretch =
