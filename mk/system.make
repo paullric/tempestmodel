@@ -40,7 +40,7 @@ else ifeq ($(UNAME),Linux)
     SYSTEM= YELLOWSTONE
     SYSTEM_MAKEFILE= yellowstone.make
   endif
-  ifeq ($(SYSTEM),"")
+  ifeq ($(SYSTEM),)
     SYSTEM= AGRI
     SYSTEM_MAKEFILE= agri.make
   endif   
