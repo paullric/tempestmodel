@@ -838,7 +838,6 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 			}
 			}
 
-#pragma message "Move to VerticalDynamicsFEM"
 			// Interpolate U cross Zeta to interfaces
 			if (pGrid->GetVarLocation(WIx) == DataLocation_REdge) {
 				for (int k = 0; k <= nRElements; k++) {
