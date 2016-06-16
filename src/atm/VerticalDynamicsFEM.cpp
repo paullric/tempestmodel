@@ -861,13 +861,49 @@ void VerticalDynamicsFEM::StepExplicit(
 				pGrid->InterpolateREdgeToNode(
 					m_dXiDotREdge,
 					m_dXiDotNode);
+
+/*
+				for (int k = 0; k < nRElements; k++) {
+					double dCovUa = m_dStateNode[UIx][k];
+					double dCovUb = m_dStateNode[VIx][k];
+					double dCovUx =
+						  m_dStateNode[WIx][k]
+						* m_dColumnDerivRNode[k][2];
+
+					m_dXiDotNode[k] =
+						  m_dColumnContraMetricXi[k][0] * dCovUa
+						+ m_dColumnContraMetricXi[k][1] * dCovUb
+						+ m_dColumnContraMetricXi[k][2] * dCovUx;
+				}
+*/
 			}
+
+			//////////////////////////////////////////////////////////////
+			// Explicit vertical horizontal velocity advection
+			for (int k = 0; k < nRElements; k++) {
+
+				double dCovDxUa =
+					pGrid->DifferentiateNodeToNode(
+						m_dStateNode[UIx], k);
+
+				double dCovDxUb =
+					pGrid->DifferentiateNodeToNode(
+						m_dStateNode[VIx], k);
+
+				dataUpdateNode[UIx][k][i][j] -=
+					dDeltaT * m_dXiDotNode[k] * dCovDxUa;
+
+				dataUpdateNode[VIx][k][i][j] -=
+					dDeltaT * m_dXiDotNode[k] * dCovDxUb;
+
+			}
+
+			//////////////////////////////////////////////////////////////
+			// Explicit vertical velocity advection (Clark form)
 
 #if defined(EXPLICIT_VERTICAL_VELOCITY_ADVECTION)
 #if defined(VERTICAL_VELOCITY_ADVECTION_CLARK)
 
-			//////////////////////////////////////////////////////////////
-			// Explicit vertical velocity advection (Clark form)
 			{
 				// Calculate specific kinetic energy on model levels
 				for (int k = 0; k < nRElements; k++) {

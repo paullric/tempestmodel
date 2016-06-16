@@ -780,17 +780,6 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 				int iElementA = a * m_nHorizontalOrder + box.GetHaloElements();
 				int iElementB = b * m_nHorizontalOrder + box.GetHaloElements();
 
-				// Vertical derivatives
-				double dCovDxUa =
-					pGrid->DifferentiateNodeToNode(
-						&(dataInitialNode[UIx][0][iA][iB]),
-						k, nVerticalStateStride);
-
-				double dCovDxUb =
-					pGrid->DifferentiateNodeToNode(
-						&(dataInitialNode[VIx][0][iA][iB]),
-						k, nVerticalStateStride);
-
 				// Derivatives of the covariant velocity field
 				double dCovDaUb = 0.0;
 				double dCovDaUx = 0.0;
@@ -832,8 +821,8 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 				double dConUx = m_dAuxDataNode[ConUxIx][k][i][j];
 
 				// Relative vorticity (contravariant)
-				double dJZetaA = (dCovDbUx - dCovDxUb);
-				double dJZetaB = (dCovDxUa - dCovDaUx);
+				double dJZetaA = (dCovDbUx           );
+				double dJZetaB = (         - dCovDaUx);
 				double dJZetaX = (dCovDaUb - dCovDbUa);
 
 				// U cross Relative Vorticity (contravariant)
