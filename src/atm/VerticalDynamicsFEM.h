@@ -205,6 +205,24 @@ public:
 	);
 
 	///	<summary>
+	///		Build the Jacobian matrix associated with the diffusive terms
+	///		in the zero equations.
+	///	</summary>
+	void BuildJacobianF_Diffusion(
+		const double * dX,
+		double * dDG
+	);
+
+	///	<summary>
+	///		Build the Jacobian matrix associated with the zero equations
+	///		for LOR vertical staggering and RhoTheta_Pi formulation.
+	///	</summary>
+	void BuildJacobianF_LOR_RhoTheta_Pi(
+		const double * dX,
+		double * dDG
+	);
+
+	///	<summary>
 	///		Build the Jacobian matrix associated with the zero equations.
 	///	</summary>
 	void BuildJacobianF(

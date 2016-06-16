@@ -34,10 +34,10 @@
 //#define HYPERVISC_THERMO
 //#define HYPERVISC_VERTICAL_VELOCITY
 
-#define UPWIND_HORIZONTAL_VELOCITIES
-#define UPWIND_THERMO
-#define UPWIND_VERTICAL_VELOCITY
-#define UPWIND_RHO_AND_TRACERS
+//#define UPWIND_HORIZONTAL_VELOCITIES
+//#define UPWIND_THERMO
+//#define UPWIND_VERTICAL_VELOCITY
+//#define UPWIND_RHO_AND_TRACERS
 
 #define UNIFORM_DIFFUSION_HORIZONTAL_VELOCITIES
 #define UNIFORM_DIFFUSION_THERMO
@@ -2878,7 +2878,210 @@ void VerticalDynamicsFEM::BuildF(
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void VerticalDynamicsFEM::BuildJacobianF(
+void VerticalDynamicsFEM::BuildJacobianF_Diffusion(
+	const double * dX,
+	double * dDG
+) {
+	// Indices of EquationSet variables
+	const int UIx = 0;
+	const int VIx = 1;
+	const int PIx = 2;
+	const int WIx = 3;
+	const int RIx = 4;
+
+	// Finite element grid
+	const GridGLL * pGrid = dynamic_cast<const GridGLL *>(m_model.GetGrid());
+
+	// Physical constants
+	const PhysicalConstants & phys = m_model.GetPhysicalConstants();
+
+	// Number of radial elements
+	const int nRElements = pGrid->GetRElements();
+
+	// Number of finite elements in the vertical
+	int nFiniteElements = nRElements / m_nVerticalOrder;
+	int nNodesPerFiniteElement = m_nVerticalOrder;
+
+	if (pGrid->GetVerticalDiscretization() ==
+	    Grid::VerticalDiscretization_FiniteVolume
+	) {
+		nFiniteElements = nRElements;
+		nNodesPerFiniteElement = 1;
+	}
+
+	// Get the column penalization coefficients (for vertical upwinding)
+	const LinearColumnDiscPenaltyFEM & opPenalty =
+		pGrid->GetOpPenaltyNodeToNode();
+	const LinearColumnOperator & opPenaltyLeft =
+		opPenalty.GetLeftOp();
+	const LinearColumnOperator & opPenaltyRight =
+		opPenalty.GetRightOp();
+
+	const DataArray2D<double> & dPenaltyLeft =
+		opPenaltyLeft.GetCoeffs();
+	const DataArray2D<double> & dPenaltyRight =
+		opPenaltyRight.GetCoeffs();
+
+	const DataArray1D<int> & iPenaltyLeftBegin =
+		opPenaltyLeft.GetIxBegin();
+	const DataArray1D<int> & iPenaltyRightBegin =
+		opPenaltyRight.GetIxBegin();
+
+	const DataArray1D<int> & iPenaltyLeftEnd =
+		opPenaltyLeft.GetIxEnd();
+	const DataArray1D<int> & iPenaltyRightEnd =
+		opPenaltyRight.GetIxEnd();
+
+	// Second derivative coefficients (for vertical hyperviscosity)
+	const LinearColumnDiffDiffFEM & opDiffDiffNodeToNode =
+		pGrid->GetOpDiffDiffNodeToNode();
+	const LinearColumnDiffDiffFEM & opDiffDiffREdgeToREdge =
+		pGrid->GetOpDiffDiffREdgeToREdge();
+
+	const DataArray2D<double> & dDiffDiffNodeToNode =
+		opDiffDiffNodeToNode.GetCoeffs();
+	const DataArray2D<double> & dDiffDiffREdgeToREdge =
+		opDiffDiffREdgeToREdge.GetCoeffs();
+
+	const DataArray1D<int> & iDiffDiffNodeToNodeBegin =
+		opDiffDiffNodeToNode.GetIxBegin();
+	const DataArray1D<int> & iDiffDiffREdgeToREdgeBegin =
+		opDiffDiffREdgeToREdge.GetIxBegin();
+
+	const DataArray1D<int> & iDiffDiffNodeToNodeEnd =
+		opDiffDiffNodeToNode.GetIxEnd();
+	const DataArray1D<int> & iDiffDiffREdgeToREdgeEnd =
+		opDiffDiffREdgeToREdge.GetIxEnd();
+
+	/////////////////////////////////////////////////////////////////////
+	// Vertical upwinding
+	for (int c = 2; c < 5; c++) {
+
+#if defined(EXPLICIT_THERMO)
+		// Don't upwind thermodynamic variable if explicit
+		if (c == PIx) {
+			continue;
+		}
+#endif
+
+#if defined(EXPLICIT_VERTICAL_VELOCITY_ADVECTION)
+		// Don't upwind vertical velocity if explicit
+		if (c == WIx) {
+			continue;
+		}
+#endif
+
+		// Check upwinding
+		if (!m_fUpwindVar[c]) {
+			continue;
+		}
+		if (pGrid->GetVarLocation(WIx) != DataLocation_REdge) {
+			_EXCEPTIONT("Upwinding DIRECTSOLVE requires W on interfaces");
+		}
+
+		// Upwinding on interfaces (velocity-weighted hyperviscosity)
+		if (pGrid->GetVarLocation(c) == DataLocation_REdge) {
+
+			// dC_k/dW_k
+			for (int k = 0; k <= nRElements; k++) {
+				double dSignWeight;
+				if (m_dXiDotREdge[k] > 0.0) {
+					dSignWeight = 1.0;
+				} else if (m_dXiDotREdge[k] < 0.0) {
+					dSignWeight = -1.0;
+				} else {
+					dSignWeight = 0.0;
+				}
+
+				dDG[MatFIx(FWIx, k, FIxFromCIx(c), k)] -=
+					m_dUpwindCoeff
+					* dSignWeight
+					/ m_dColumnDerivRREdge[k][2]
+					* m_dDiffDiffStateUpwind[c][k];
+			}
+
+			// dC_k/dC_n
+			for (int k = 0; k <= nRElements; k++) {
+				int n = iDiffDiffREdgeToREdgeBegin[k];
+				for (; n < iDiffDiffREdgeToREdgeEnd[k]; n++) {
+					dDG[MatFIx(FIxFromCIx(c), n, FIxFromCIx(c), k)] -=
+						m_dUpwindCoeff
+						* fabs(m_dXiDotREdge[k])
+						* dDiffDiffREdgeToREdge[k][n];
+				}
+			}
+
+		// Upwinding on levels
+		} else {
+
+			for (int a = 1; a < nFiniteElements; a++) {
+				double dWeight =
+					fabs(m_dXiDotREdge[a * nNodesPerFiniteElement]);
+
+				double dSignWeight;
+				if (m_dXiDotREdge[a * nNodesPerFiniteElement] > 0.0) {
+					dSignWeight = 1.0;
+				} else if (m_dXiDotREdge[a * nNodesPerFiniteElement] < 0.0) {
+					dSignWeight = -1.0;
+				} else {
+					dSignWeight = 0.0;
+				}
+
+				int kLeftBegin = (a-1) * nNodesPerFiniteElement;
+				int kLeftEnd = a * nNodesPerFiniteElement;
+
+				int kRightBegin = a * nNodesPerFiniteElement;
+				int kRightEnd = (a+1) * nNodesPerFiniteElement;
+
+				// dC_k/dW_a (left operator)
+				for (int k = kLeftBegin; k < kLeftEnd; k++) {
+					int n = iPenaltyLeftBegin[k];
+					for (; n < iPenaltyLeftEnd[k]; n++) {
+						dDG[MatFIx(FWIx, kLeftEnd, FIxFromCIx(c), k)] -=
+							dSignWeight
+							/ m_dColumnDerivRREdge[kLeftEnd][2]
+							* dPenaltyLeft[k][n]
+							* m_dStateNode[c][n];
+					}
+				}
+
+				// dC_k/dW_a (right operator)
+				for (int k = kRightBegin; k < kRightEnd; k++) {
+					int n = iPenaltyRightBegin[k];
+					for (; n < iPenaltyRightEnd[k]; n++) {
+						dDG[MatFIx(FWIx, kRightBegin, FIxFromCIx(c), k)] -=
+							dSignWeight
+							/ m_dColumnDerivRREdge[kRightBegin][2]
+							* dPenaltyRight[k][n]
+							* m_dStateNode[c][n];
+					}
+				}
+
+				// dC_k/dC_n (left operator)
+				for (int k = kLeftBegin; k < kLeftEnd; k++) {
+					int n = iPenaltyLeftBegin[k];
+					for (; n < iPenaltyLeftEnd[k]; n++) {
+						dDG[MatFIx(FIxFromCIx(c), n, FIxFromCIx(c), k)] -=
+							dWeight * dPenaltyLeft[k][n];
+					}
+				}
+
+				// dC_k/dC_n (right operator)
+				for (int k = kRightBegin; k < kRightEnd; k++) {
+					int n = iPenaltyRightBegin[k];
+					for (; n < iPenaltyRightEnd[k]; n++) {
+						dDG[MatFIx(FIxFromCIx(c), n, FIxFromCIx(c), k)] -=
+							dWeight * dPenaltyRight[k][n];
+					}
+				}
+			}
+		}
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void VerticalDynamicsFEM::BuildJacobianF_LOR_RhoTheta_Pi(
 	const double * dX,
 	double * dDG
 ) {
@@ -2945,66 +3148,241 @@ void VerticalDynamicsFEM::BuildJacobianF(
 	const DataArray1D<int> & iDiffREdgeToREdgeEnd =
 		opDiffREdgeToREdge.GetIxEnd();
 
-	// Get the column penalization coefficients (for vertical upwinding)
-	const LinearColumnDiscPenaltyFEM & opPenalty =
-		pGrid->GetOpPenaltyNodeToNode();
-	const LinearColumnOperator & opPenaltyLeft =
-		opPenalty.GetLeftOp();
-	const LinearColumnOperator & opPenaltyRight =
-		opPenalty.GetRightOp();
-
-	const DataArray2D<double> & dPenaltyLeft =
-		opPenaltyLeft.GetCoeffs();
-	const DataArray2D<double> & dPenaltyRight =
-		opPenaltyRight.GetCoeffs();
-
-	const DataArray1D<int> & iPenaltyLeftBegin =
-		opPenaltyLeft.GetIxBegin();
-	const DataArray1D<int> & iPenaltyRightBegin =
-		opPenaltyRight.GetIxBegin();
-
-	const DataArray1D<int> & iPenaltyLeftEnd =
-		opPenaltyLeft.GetIxEnd();
-	const DataArray1D<int> & iPenaltyRightEnd =
-		opPenaltyRight.GetIxEnd();
-
-	// Second derivative coefficients (for vertical upwinding)
-	const LinearColumnDiffDiffFEM & opDiffDiffNodeToNode =
-		pGrid->GetOpDiffDiffNodeToNode();
-	const LinearColumnDiffDiffFEM & opDiffDiffREdgeToREdge =
-		pGrid->GetOpDiffDiffREdgeToREdge();
-
-	const DataArray2D<double> & dDiffDiffNodeToNode =
-		opDiffDiffNodeToNode.GetCoeffs();
-	const DataArray2D<double> & dDiffDiffREdgeToREdge =
-		opDiffDiffREdgeToREdge.GetCoeffs();
-
-	const DataArray1D<int> & iDiffDiffNodeToNodeBegin =
-		opDiffDiffNodeToNode.GetIxBegin();
-	const DataArray1D<int> & iDiffDiffREdgeToREdgeBegin =
-		opDiffDiffREdgeToREdge.GetIxBegin();
-
-	const DataArray1D<int> & iDiffDiffNodeToNodeEnd =
-		opDiffDiffNodeToNode.GetIxEnd();
-	const DataArray1D<int> & iDiffDiffREdgeToREdgeEnd =
-		opDiffDiffREdgeToREdge.GetIxEnd();
-
 	// Physical constants
 	const PhysicalConstants & phys = m_model.GetPhysicalConstants();
 
 	// Number of radial elements
 	const int nRElements = pGrid->GetRElements();
 
-	// Number of finite elements in the vertical
-	int nFiniteElements = nRElements / m_nVerticalOrder;
-	int nNodesPerFiniteElement = m_nVerticalOrder;
+	// Zero DG
+	memset(dDG, 0,
+		m_nColumnStateSize * m_nColumnStateSize * sizeof(double));
 
-	if (pGrid->GetVerticalDiscretization() ==
-	    Grid::VerticalDiscretization_FiniteVolume
-	) {
-		nFiniteElements = nRElements;
-		nNodesPerFiniteElement = 1;
+#if defined(EXPLICIT_THERMO)
+	// Only support implicit thermodynamics
+	_EXCEPTIONT("Not implemented");
+#endif
+#if !defined(FORMULATION_RHOTHETA_PI)
+	// Only support FORMULATION_RHOTHETA_PI
+	_EXCEPTIONT("Invalid call to BuildJacobianF_LOR_RhoTheta_Pi");
+#endif
+
+	// Only support Lorenz staggering
+	if (pGrid->GetVarLocation(PIx) == DataLocation_REdge) {
+		_EXCEPTIONT("Invalid call to BuildJacobianF_LOR_RhoTheta_Pi");
 	}
+
+	// Jacobian terms for Rho and RhoTheta updates
+	for (int k = 0; k < nRElements; k++) {
+
+		// Conservative flux terms
+		int m = iDiffREdgeToNodeBegin[k];
+		for (; m < iDiffREdgeToNodeEnd[k]; m++) {
+
+			if ((m != 0) && (m != nRElements)) {
+				double dMassFluxCoeff =
+					dDiffREdgeToNode[k][m]
+					* m_dColumnJacobianREdge[m]
+					* m_dColumnInvJacobianNode[k]
+					* m_dColumnContraMetricXiREdge[m][2]
+					* m_dColumnDerivRREdge[m][2];
+
+				// dP_k/dW_l
+				dDG[MatFIx(FWIx, m, FPIx, k)] +=
+					dMassFluxCoeff * m_dStateREdge[PIx][m];
+
+				// dR_k/dW_l
+				dDG[MatFIx(FWIx, m, FRIx, k)] +=
+					dMassFluxCoeff * m_dStateREdge[RIx][m];
+			}
+
+			// dR_k/dR_n
+			int n = iInterpNodeToREdgeBegin[m];
+			for (; n < iInterpNodeToREdgeEnd[m]; n++) {
+
+				double dCoeffVerticalFlux = 
+					dDiffREdgeToNode[k][m]
+					* m_dColumnJacobianREdge[m]
+					* m_dColumnInvJacobianNode[k]
+					* dInterpNodeToREdge[m][n]
+					* m_dXiDotREdge[m];
+
+				dDG[MatFIx(FRIx, n, FRIx, k)] += dCoeffVerticalFlux;
+
+				dDG[MatFIx(FPIx, n, FPIx, k)] += dCoeffVerticalFlux;
+			}
+		}
+	}
+
+	// Jacobian terms for W updates
+	for (int k = 1; k < nRElements; k++) {
+
+		// dW_k/dP_m (in pressure gradient)
+		double dRHSWCoeffA = 
+			m_dStateREdge[PIx][k]
+			* phys.GetR()
+			/ (m_dColumnDerivRNode[k][2]
+				* m_dStateREdge[RIx][k]
+				* phys.GetCv());
+
+		int m = iDiffNodeToREdgeBegin[k];
+		for (; m < iDiffNodeToREdgeEnd[k]; m++) {
+			dDG[MatFIx(FPIx, m, FWIx, k)] +=
+				dRHSWCoeffA 
+				* dDiffNodeToREdge[k][m]
+				* m_dExnerNode[m]
+				/ m_dStateNode[PIx][m];
+		}
+
+		// Rhotheta/rho term in front of pressure gradient
+		double dRHSWCoeffB = 
+			1.0 / m_dColumnDerivRREdge[k][2]
+			/ (m_dStateREdge[RIx][k] * m_dStateREdge[RIx][k])
+			* m_dDiffPREdge[k];
+
+		int n = iInterpNodeToREdgeBegin[k];
+		for (; n < iInterpNodeToREdgeEnd[k]; n++) {
+
+			double dRHSWCoeffC = dRHSWCoeffB * dInterpNodeToREdge[k][n];
+
+			// dW_k/dP_n (first rhotheta in RHS)
+			dDG[MatFIx(FPIx, n, FWIx, k)] +=
+				dRHSWCoeffC * m_dStateREdge[RIx][k];
+
+			// dW_k/dR_l (first rho in RHS)
+			dDG[MatFIx(FRIx, n, FWIx, k)] +=
+				- dRHSWCoeffC * m_dStateREdge[PIx][k];
+		}
+	}
+
+#if !defined(EXPLICIT_VERTICAL_VELOCITY_ADVECTION)
+
+	// dW_k/dW_m (Clark form)
+	for (int k = 1; k < nRElements; k++) {
+
+		int l = iDiffNodeToREdgeBegin[k];
+		for (; l < iDiffNodeToREdgeEnd[k]; l++) {
+
+			int m = iInterpREdgeToNodeBegin[l];
+			for (; m < iInterpREdgeToNodeEnd[l]; m++) {
+				dDG[MatFIx(FWIx, m, FWIx, k)] +=
+					dInterpREdgeToNode[l][m]
+					* dDiffNodeToREdge[k][l]
+					/ m_dColumnDerivRREdge[k][2]
+					* m_dColumnDerivRNode[l][2]
+					* m_dXiDotNode[l];
+			}
+		}
+	}
+#endif
+
+	// Add the diffusion terms
+	BuildJacobianF_Diffusion(dX, dDG);
+
+	// Add the identity components
+	for (int k = 0; k <= nRElements; k++) {
+		dDG[MatFIx(FPIx, k, FPIx, k)] += 1.0 / m_dDeltaT;
+		dDG[MatFIx(FWIx, k, FWIx, k)] += 1.0 / m_dDeltaT;
+		dDG[MatFIx(FRIx, k, FRIx, k)] += 1.0 / m_dDeltaT;
+	}
+
+	// Boundary conditions for W
+	if (pGrid->GetVerticalStaggering() ==
+	    Grid::VerticalStaggering_Interfaces
+	) {
+		dDG[MatFIx(FWIx, 0, FWIx, 0)] =
+			m_dColumnDerivRNode[0][2]
+			* m_dColumnContraMetricXi[0][2];
+		dDG[MatFIx(FWIx, nRElements-1, FWIx, nRElements-1)] =
+			m_dColumnDerivRNode[nRElements-1][2]
+			* m_dColumnContraMetricXi[nRElements-1][2];
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void VerticalDynamicsFEM::BuildJacobianF(
+	const double * dX,
+	double * dDG
+) {
+
+	// Indices of EquationSet variables
+	const int UIx = 0;
+	const int VIx = 1;
+	const int PIx = 2;
+	const int WIx = 3;
+	const int RIx = 4;
+
+	// Finite element grid
+	const GridGLL * pGrid = dynamic_cast<const GridGLL *>(m_model.GetGrid());
+
+#if defined(FORMULATION_RHOTHETA_PI)
+#if !defined(EXPLICIT_THERMO)
+	if (pGrid->GetVarLocation(PIx) == DataLocation_Node) {
+		BuildJacobianF_LOR_RhoTheta_Pi(dX, dDG);
+		return;
+	}
+#endif
+#endif
+
+	// Get the column interpolation and differentiation coefficients
+	const LinearColumnInterpFEM & opInterpNodeToREdge =
+		pGrid->GetOpInterpNodeToREdge();
+	const LinearColumnInterpFEM & opInterpREdgeToNode =
+		pGrid->GetOpInterpREdgeToNode();
+	const LinearColumnDiffFEM & opDiffNodeToNode =
+		pGrid->GetOpDiffNodeToNode();
+	const LinearColumnDiffFEM & opDiffNodeToREdge =
+		pGrid->GetOpDiffNodeToREdge();
+	const LinearColumnDiffFEM & opDiffREdgeToNode =
+		pGrid->GetOpDiffREdgeToNode();
+	const LinearColumnDiffFEM & opDiffREdgeToREdge =
+		pGrid->GetOpDiffREdgeToREdge();
+
+	const DataArray2D<double> & dInterpNodeToREdge =
+		opInterpNodeToREdge.GetCoeffs();
+	const DataArray2D<double> & dInterpREdgeToNode =
+		opInterpREdgeToNode.GetCoeffs();
+	const DataArray2D<double> & dDiffNodeToNode =
+		opDiffNodeToNode.GetCoeffs();
+	const DataArray2D<double> & dDiffNodeToREdge =
+		opDiffNodeToREdge.GetCoeffs();
+	const DataArray2D<double> & dDiffREdgeToNode =
+		opDiffREdgeToNode.GetCoeffs();
+	const DataArray2D<double> & dDiffREdgeToREdge =
+		opDiffREdgeToREdge.GetCoeffs();
+
+	const DataArray1D<int> & iInterpNodeToREdgeBegin =
+		opInterpNodeToREdge.GetIxBegin();
+	const DataArray1D<int> & iInterpREdgeToNodeBegin =
+		opInterpREdgeToNode.GetIxBegin();
+	const DataArray1D<int> & iDiffNodeToNodeBegin =
+		opDiffNodeToNode.GetIxBegin();
+	const DataArray1D<int> & iDiffNodeToREdgeBegin =
+		opDiffNodeToREdge.GetIxBegin();
+	const DataArray1D<int> & iDiffREdgeToNodeBegin =
+		opDiffREdgeToNode.GetIxBegin();
+	const DataArray1D<int> & iDiffREdgeToREdgeBegin =
+		opDiffREdgeToREdge.GetIxBegin();
+
+	const DataArray1D<int> & iInterpNodeToREdgeEnd =
+		opInterpNodeToREdge.GetIxEnd();
+	const DataArray1D<int> & iInterpREdgeToNodeEnd =
+		opInterpREdgeToNode.GetIxEnd();
+	const DataArray1D<int> & iDiffNodeToNodeEnd =
+		opDiffNodeToNode.GetIxEnd();
+	const DataArray1D<int> & iDiffNodeToREdgeEnd =
+		opDiffNodeToREdge.GetIxEnd();
+	const DataArray1D<int> & iDiffREdgeToNodeEnd =
+		opDiffREdgeToNode.GetIxEnd();
+	const DataArray1D<int> & iDiffREdgeToREdgeEnd =
+		opDiffREdgeToREdge.GetIxEnd();
+
+	// Physical constants
+	const PhysicalConstants & phys = m_model.GetPhysicalConstants();
+
+	// Number of radial elements
+	const int nRElements = pGrid->GetRElements();
 
 	// Zero DG
 	memset(dDG, 0,
@@ -3507,130 +3885,8 @@ void VerticalDynamicsFEM::BuildJacobianF(
 		}
 	}
 
-	/////////////////////////////////////////////////////////////////////
-	// Vertical upwinding
-	for (int c = 2; c < 5; c++) {
-
-#if defined(EXPLICIT_THERMO)
-		// Don't upwind thermodynamic variable if explicit
-		if (c == PIx) {
-			continue;
-		}
-#endif
-
-#if defined(EXPLICIT_VERTICAL_VELOCITY_ADVECTION)
-		// Don't upwind vertical velocity if explicit
-		if (c == WIx) {
-			continue;
-		}
-#endif
-
-		// Check upwinding
-		if (!m_fUpwindVar[c]) {
-			continue;
-		}
-		if (pGrid->GetVarLocation(WIx) != DataLocation_REdge) {
-			_EXCEPTIONT("Upwinding DIRECTSOLVE requires W on interfaces");
-		}
-
-		// Upwinding on interfaces (velocity-weighted hyperviscosity)
-		if (pGrid->GetVarLocation(c) == DataLocation_REdge) {
-
-			// dC_k/dW_k
-			for (int k = 0; k <= nRElements; k++) {
-				double dSignWeight;
-				if (m_dXiDotREdge[k] > 0.0) {
-					dSignWeight = 1.0;
-				} else if (m_dXiDotREdge[k] < 0.0) {
-					dSignWeight = -1.0;
-				} else {
-					dSignWeight = 0.0;
-				}
-
-				dDG[MatFIx(FWIx, k, FIxFromCIx(c), k)] -=
-					m_dUpwindCoeff
-					* dSignWeight
-					/ m_dColumnDerivRREdge[k][2]
-					* m_dDiffDiffStateUpwind[c][k];
-			}
-
-			// dC_k/dC_n
-			for (int k = 0; k <= nRElements; k++) {
-				int n = iDiffDiffREdgeToREdgeBegin[k];
-				for (; n < iDiffDiffREdgeToREdgeEnd[k]; n++) {
-					dDG[MatFIx(FIxFromCIx(c), n, FIxFromCIx(c), k)] -=
-						m_dUpwindCoeff
-						* fabs(m_dXiDotREdge[k])
-						* dDiffDiffREdgeToREdge[k][n];
-				}
-			}
-
-		// Upwinding on levels
-		} else {
-
-			for (int a = 1; a < nFiniteElements; a++) {
-				double dWeight =
-					fabs(m_dXiDotREdge[a * nNodesPerFiniteElement]);
-
-				double dSignWeight;
-				if (m_dXiDotREdge[a * nNodesPerFiniteElement] > 0.0) {
-					dSignWeight = 1.0;
-				} else if (m_dXiDotREdge[a * nNodesPerFiniteElement] < 0.0) {
-					dSignWeight = -1.0;
-				} else {
-					dSignWeight = 0.0;
-				}
-
-				int kLeftBegin = (a-1) * nNodesPerFiniteElement;
-				int kLeftEnd = a * nNodesPerFiniteElement;
-
-				int kRightBegin = a * nNodesPerFiniteElement;
-				int kRightEnd = (a+1) * nNodesPerFiniteElement;
-
-				// dC_k/dW_a (left operator)
-				for (int k = kLeftBegin; k < kLeftEnd; k++) {
-					int n = iPenaltyLeftBegin[k];
-					for (; n < iPenaltyLeftEnd[k]; n++) {
-						dDG[MatFIx(FWIx, kLeftEnd, FIxFromCIx(c), k)] -=
-							dSignWeight
-							/ m_dColumnDerivRREdge[kLeftEnd][2]
-							* dPenaltyLeft[k][n]
-							* m_dStateNode[c][n];
-					}
-				}
-
-				// dC_k/dW_a (right operator)
-				for (int k = kRightBegin; k < kRightEnd; k++) {
-					int n = iPenaltyRightBegin[k];
-					for (; n < iPenaltyRightEnd[k]; n++) {
-						dDG[MatFIx(FWIx, kRightBegin, FIxFromCIx(c), k)] -=
-							dSignWeight
-							/ m_dColumnDerivRREdge[kRightBegin][2]
-							* dPenaltyRight[k][n]
-							* m_dStateNode[c][n];
-					}
-				}
-
-				// dC_k/dC_n (left operator)
-				for (int k = kLeftBegin; k < kLeftEnd; k++) {
-					int n = iPenaltyLeftBegin[k];
-					for (; n < iPenaltyLeftEnd[k]; n++) {
-						dDG[MatFIx(FIxFromCIx(c), n, FIxFromCIx(c), k)] -=
-							dWeight * dPenaltyLeft[k][n];
-					}
-				}
-
-				// dC_k/dC_n (right operator)
-				for (int k = kRightBegin; k < kRightEnd; k++) {
-					int n = iPenaltyRightBegin[k];
-					for (; n < iPenaltyRightEnd[k]; n++) {
-						dDG[MatFIx(FIxFromCIx(c), n, FIxFromCIx(c), k)] -=
-							dWeight * dPenaltyRight[k][n];
-					}
-				}
-			}
-		}
-	}
+	// Add the diffusion terms
+	BuildJacobianF_Diffusion(dX, dDG);
 
 	// Add the identity components
 	for (int k = 0; k <= nRElements; k++) {
@@ -3650,6 +3906,7 @@ void VerticalDynamicsFEM::BuildJacobianF(
 			m_dColumnDerivRNode[nRElements-1][2]
 			* m_dColumnContraMetricXi[nRElements-1][2];
 	}
+
 }
 
 ///////////////////////////////////////////////////////////////////////////////

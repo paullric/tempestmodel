@@ -113,9 +113,21 @@ const FunctionTimer::TimerGroupData & FunctionTimer::GetGroupTimeRecord(
 ///////////////////////////////////////////////////////////////////////////////
 
 unsigned long FunctionTimer::GetAverageGroupTime(const char *szName) {
-	const TimerGroupData &tgd = GetGroupTimeRecord(szName);
 
-	return (tgd.iTotalTime / tgd.nEntries);
+	GroupDataMap::iterator iter;
+
+	iter = m_mapGroupData.find(szName);
+
+	// Retrieve existing group record
+	if (iter != m_mapGroupData.end()) {
+		const TimerGroupData & tgd = iter->second;
+
+		return (tgd.iTotalTime / tgd.nEntries);
+
+	// Group record does not exist
+	} else {
+		return 0;
+	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////
