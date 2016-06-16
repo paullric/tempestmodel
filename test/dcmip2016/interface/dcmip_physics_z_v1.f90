@@ -324,7 +324,7 @@ SUBROUTINE DCMIP2016_PHYSICS(test, u, v, p, qv, qc, qr, rho, &
 
   ! Bryan Planetary Boundary Layer
   elseif (pbl_type .eq. 1) then
-    do k = 1, nz+1
+    do k = 2, nz
       if (zi(k) .le. zpbltop) then
         Km(k) = kappa * sqrt(Cd) * wind * zi(k) &
               * (one - zi(k)/zpbltop) * (one - zi(k)/zpbltop)
@@ -334,6 +334,7 @@ SUBROUTINE DCMIP2016_PHYSICS(test, u, v, p, qv, qc, qr, rho, &
         Km(k) = 0.d0
         Ke(k) = 0.d0
       endif
+
     enddo
 
   ! Invalid PBL

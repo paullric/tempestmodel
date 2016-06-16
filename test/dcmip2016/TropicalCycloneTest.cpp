@@ -195,6 +195,12 @@ try {
 	// Earth radius scaling parameter.
 	double dEarthScaling;
 
+	// Bryan Boundary Layer
+	bool fBryanPBL;
+
+	// Reed-Jablonowksi precipitation
+	bool fReedJablonowskiPrecip;
+
 	// Parse the command line
 	BeginTempestCommandLine("TropicalCycloneTest");
 		SetDefaultResolution(20);
@@ -207,6 +213,8 @@ try {
 
 		CommandLineDouble(dZtop, "ztop", 30000.0);
 		CommandLineDouble(dEarthScaling, "X", 1.0);
+		CommandLineBool(fBryanPBL, "bryanpbl");
+		CommandLineBool(fReedJablonowskiPrecip, "rjprecip");
 
 		ParseCommandLine(argc, argv);
 	EndTempestCommandLine(argv)
@@ -242,8 +250,8 @@ try {
 			model,
 			model.GetDeltaT(),
 			2,
-			0,
-			0));
+			(fBryanPBL)?(1):(0),
+			(fReedJablonowskiPrecip)?(1):(0)));
 
 	// Begin execution
 	AnnounceBanner("SIMULATION");
