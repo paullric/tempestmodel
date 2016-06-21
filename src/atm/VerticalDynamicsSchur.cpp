@@ -1648,13 +1648,15 @@ void VerticalDynamicsSchur::StepImplicit(
 				for (int i = ibegin; i < iend; i++) {
 
 					m_dSolnSchur[VecFIx(FPIx,k)] -=
-						dDG[MatFIx(FWIx, i, FPIx, k)]
-						/ dDG[MatFIx(FWIx, i, FWIx, i)]
+						dDeltaT
+						* dDG[MatFIx(FWIx, i, FPIx, k)]
+						// dDG[MatFIx(FWIx, i, FWIx, i)]
 						* m_dSoln[VecFIx(FWIx,i)];
 
 					m_dSolnSchur[VecFIx(FRIx,k)] -=
-						dDG[MatFIx(FWIx, i, FRIx, k)]
-						/ dDG[MatFIx(FWIx, i, FWIx, i)]
+						dDeltaT
+						* dDG[MatFIx(FWIx, i, FRIx, k)]
+						// dDG[MatFIx(FWIx, i, FWIx, i)]
 						* m_dSoln[VecFIx(FWIx,i)];
 
 					int lbegin = i - m_nOffDiagonals;
@@ -1681,23 +1683,27 @@ void VerticalDynamicsSchur::StepImplicit(
 
 					for (int l = lbegin; l < lend; l++) {
 						dDGSchur[MatSIx(FPIx, l, FPIx, k)] -=
-							dDG[MatFIx(FWIx, i, FPIx, k)]
-							/ dDG[MatFIx(FWIx, i, FWIx, i)]
+							dDeltaT
+							* dDG[MatFIx(FWIx, i, FPIx, k)]
+							// dDG[MatFIx(FWIx, i, FWIx, i)]
 							* dDG[MatFIx(FPIx, l, FWIx, i)];
 
 						dDGSchur[MatSIx(FPIx, l, FRIx, k)] -=
-							dDG[MatFIx(FWIx, i, FRIx, k)]
-							/ dDG[MatFIx(FWIx, i, FWIx, i)]
+							dDeltaT
+							* dDG[MatFIx(FWIx, i, FRIx, k)]
+							// dDG[MatFIx(FWIx, i, FWIx, i)]
 							* dDG[MatFIx(FPIx, l, FWIx, i)];
 
 						dDGSchur[MatSIx(FRIx, l, FPIx, k)] -=
-							dDG[MatFIx(FWIx, i, FPIx, k)]
-							/ dDG[MatFIx(FWIx, i, FWIx, i)]
+							dDeltaT
+							* dDG[MatFIx(FWIx, i, FPIx, k)]
+							// dDG[MatFIx(FWIx, i, FWIx, i)]
 							* dDG[MatFIx(FRIx, l, FWIx, i)];
 
 						dDGSchur[MatSIx(FRIx, l, FRIx, k)] -=
-							dDG[MatFIx(FWIx, i, FRIx, k)]
-							/ dDG[MatFIx(FWIx, i, FWIx, i)]
+							dDeltaT
+							* dDG[MatFIx(FWIx, i, FRIx, k)]
+							// dDG[MatFIx(FWIx, i, FWIx, i)]
 							* dDG[MatFIx(FRIx, l, FWIx, i)];
 					}
 				}
