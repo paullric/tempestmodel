@@ -311,6 +311,11 @@ SUBROUTINE DCMIP2016_PHYSICS(test, u, v, p, qv, qc, qr, rho, &
 
   ! Reed-Jablonowski Boundary layer
   if (pbl_type .eq. 0) then
+    Km(1) = 0.d0
+    Ke(1) = 0.d0
+    Km(nz+1) = 0.d0
+    Ke(nz+1) = 0.d0
+
     do k = 2, nz
       presi = 0.5d0 * (p(k-1) + p(k))
       if (presi .ge. pbltop) then
@@ -324,6 +329,11 @@ SUBROUTINE DCMIP2016_PHYSICS(test, u, v, p, qv, qc, qr, rho, &
 
   ! Bryan Planetary Boundary Layer
   elseif (pbl_type .eq. 1) then
+    Km(1) = 0.d0
+    Ke(1) = 0.d0
+    Km(nz+1) = 0.d0
+    Ke(nz+1) = 0.d0
+
     do k = 2, nz
       if (zi(k) .le. zpbltop) then
         Km(k) = kappa * sqrt(Cd) * wind * zi(k) &
