@@ -1376,8 +1376,25 @@ void GridPatchCSGLL::InterpolateData(
 				eVerticalDiscType ==
 				Grid::VerticalDiscretization_FiniteVolume
 			) {
-#pragma message "Finite volume interpolation not implemented correctly"
-				opInterp.InitializeIdentity(nRElements);
+				if (eDataLocation == DataLocation_Node) {
+					opInterp.Initialize(
+						LinearColumnInterpFEM::InterpSource_Levels,
+						1,
+						m_grid.GetREtaLevels(),
+						m_grid.GetREtaInterfaces(),
+						dREta);
+
+				} else if (eDataLocation == DataLocation_REdge) {
+					opInterp.Initialize(
+						LinearColumnInterpFEM::InterpSource_Interfaces,
+						1,
+						m_grid.GetREtaLevels(),
+						m_grid.GetREtaInterfaces(),
+						dREta);
+
+				} else {
+					_EXCEPTIONT("Invalid DataLocation");
+				}
 
 			// Invalid vertical discretization type
 			} else {
