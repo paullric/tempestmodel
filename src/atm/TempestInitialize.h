@@ -32,6 +32,7 @@
 #include "HorizontalDynamicsDG.h"
 #include "VerticalDynamicsStub.h"
 #include "VerticalDynamicsFEM.h"
+#include "VerticalDynamicsSchur.h"
 #include "OutputManagerComposite.h"
 #include "OutputManagerReference.h"
 #include "OutputManagerChecksum.h"
@@ -87,6 +88,7 @@ struct _TempestCommandLineVariables {
 	int nVerticalHyperdiffOrder;
 	std::string strTimestepScheme;
 	std::string strHorizontalDynamics;
+	std::string strVerticalDynamics;
 	int nResolutionX;
 	int nResolutionY;
 	int nLevels;
@@ -125,7 +127,8 @@ struct _TempestCommandLineVariables {
 	CommandLineString(_tempestvars.strVerticalStretch, "vstretch", "uniform"); \
 	CommandLineInt(_tempestvars.nVerticalHyperdiffOrder, "vhypervisorder", 0); \
 	CommandLineString(_tempestvars.strTimestepScheme, "timescheme", "strang"); \
-	CommandLineStringD(_tempestvars.strHorizontalDynamics, "method", "SE", "(SE | DG)");
+	CommandLineStringD(_tempestvars.strHorizontalDynamics, "method", "SE", "(SE | DG)"); \
+	CommandLineStringD(_tempestvars.strVerticalDynamics, "vmethod", "DEFAULT", "(DEFAULT | SCHUR)");
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -278,15 +281,29 @@ void _TempestSetupMethodOfLines(
 	// Vertical staggering
 	STLStringHelper::ToLower(vars.strVerticalStaggering);
 
+	// Vertical method
+	STLStringHelper::ToLower(vars.strVerticalDynamics);
+
 	// Set the vertical dynamics
 	AnnounceStartBlock("Initializing vertical dynamics");
 	if (vars.nLevels == 1) {
 		model.SetVerticalDynamics(
 			new VerticalDynamicsStub(model));
 
-	} else if (vars.strVerticalStaggering == "int") {
+	} else if (vars.strVerticalDynamics == "default") {
 		model.SetVerticalDynamics(
 			new VerticalDynamicsFEM(
+				model,
+				vars.nHorizontalOrder,
+				vars.nVerticalOrder,
+				vars.nVerticalHyperdiffOrder,
+				vars.fExplicitVertical,
+				!vars.fNoReferenceState,
+				vars.fForceMassFluxOnLevels));
+
+	} else if (vars.strVerticalDynamics == "schur") {
+		model.SetVerticalDynamics(
+			new VerticalDynamicsSchur(
 				model,
 				vars.nHorizontalOrder,
 				vars.nVerticalOrder,
@@ -296,15 +313,7 @@ void _TempestSetupMethodOfLines(
 				vars.fForceMassFluxOnLevels));
 
 	} else {
-		model.SetVerticalDynamics(
-			new VerticalDynamicsFEM(
-				model,
-				vars.nHorizontalOrder,
-				vars.nVerticalOrder,
-				vars.nVerticalHyperdiffOrder,
-				vars.fExplicitVertical,
-				!vars.fNoReferenceState,
-				vars.fForceMassFluxOnLevels));
+		_EXCEPTIONT("Invalid --vmethod");
 	}
 
 	AnnounceEndBlock("Done");
