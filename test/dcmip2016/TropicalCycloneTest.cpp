@@ -195,6 +195,9 @@ try {
 	// Earth radius scaling parameter.
 	double dEarthScaling;
 
+	// Deactivate physics
+	bool fNoPhysics;
+
 	// Bryan Boundary Layer
 	bool fBryanPBL;
 
@@ -213,6 +216,7 @@ try {
 
 		CommandLineDouble(dZtop, "ztop", 30000.0);
 		CommandLineDouble(dEarthScaling, "X", 1.0);
+		CommandLineBool(fNoPhysics, "nophys");
 		CommandLineBool(fBryanPBL, "bryanpbl");
 		CommandLineBool(fReedJablonowskiPrecip, "rjprecip");
 
@@ -245,13 +249,15 @@ try {
 	AnnounceEndBlock("Done");
 
 	// Add DCMIP physics
-	model.AttachWorkflowProcess(
-		new DCMIPPhysics(
-			model,
-			model.GetDeltaT(),
-			2,
-			(fBryanPBL)?(1):(0),
-			(fReedJablonowskiPrecip)?(1):(0)));
+	if (!fNoPhysics) {
+		model.AttachWorkflowProcess(
+			new DCMIPPhysics(
+				model,
+				model.GetDeltaT(),
+				2,
+				(fBryanPBL)?(1):(0),
+				(fReedJablonowskiPrecip)?(1):(0)));
+	}
 
 	// Begin execution
 	AnnounceBanner("SIMULATION");
