@@ -161,16 +161,20 @@ int LAPACK::DGBSV(
 	int nKU
 ) {
 	// Check dimensions
-	if ((dA.GetRows() != dA.GetColumns()) ||
-		(dA.GetColumns() != dBX.GetRows())
-	) {
-		_EXCEPTIONT("Invalid matrix / vector dimensions");
+	if (dA.GetRows() < 2 * nKL + nKU + 1) {
+		_EXCEPTIONT("Matrix A has insufficient rows for DGBSV");
+	}
+	if (dBX.GetRows() < dA.GetRows()) {
+		_EXCEPTIONT("Matrix A / B dimension mismatch in DGBSV");
+	}
+	if (iPIV.GetRows() < dA.GetRows()) {
+		_EXCEPTIONT("Matrix A / IPIV dimension mismatch in DGBSV");
 	}
 
 	// Store CLAPACK parameters
 	int n     = dA.GetRows();
 	int nRHS  = 1;
-	int nLDAB = n;
+	int nLDAB = dA.GetColumns();
 	int nLDB  = n;
 
 	int nInfo;

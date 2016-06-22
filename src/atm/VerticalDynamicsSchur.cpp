@@ -161,22 +161,8 @@ void VerticalDynamicsSchur::Initialize() {
 	InitializeJFNK(m_nColumnStateSize, m_nColumnStateSize, 1.0e-5);
 #endif
 
-	// Initialize Jacobian matrix
-	m_matJacobianF.Allocate(m_nColumnStateSize, m_nColumnStateSize);
-
-	// Initialize pivot vector
-	m_vecIPiv.Allocate(m_nColumnStateSize);
-
-	// Initialize Schur complement Jacobian matrix
-	m_matJacobianFSchur.Allocate(
-		2 * (m_nRElements + 1),
-		2 * (m_nRElements + 1));
-
-	// Initialize solution in Schur complement
-	m_dSolnSchur.Allocate(2 * (m_nRElements + 1));
-
 #if defined(USE_DIRECTSOLVE_APPROXJ) || defined(USE_DIRECTSOLVE)
-#ifdef USE_JACOBIAN_DIAGONAL
+#if defined(USE_JACOBIAN_DIAGONAL)
 	if (m_nHypervisOrder > 2) {
 		_EXCEPTIONT("Diagonal Jacobian only implemented for "
 			"Hypervis order <= 2");
@@ -187,34 +173,26 @@ void VerticalDynamicsSchur::Initialize() {
 	    Grid::VerticalDiscretization_FiniteVolume
 	) {
 		if (m_nVerticalOrder <= 2) {
-			m_nJacobianFKL = 4;
-			m_nJacobianFKU = 4;
+			m_nJacobianFOffD = 4;
 		} else if (m_nVerticalOrder == 4) {
-			m_nJacobianFKL = 7;
-			m_nJacobianFKU = 7;
+			m_nJacobianFOffD = 7;
 		} else if (m_nVerticalOrder == 6) {
-			m_nJacobianFKL = 10;
-			m_nJacobianFKU = 10;
+			m_nJacobianFOffD = 10;
 		} else {
 			_EXCEPTIONT("UNIMPLEMENTED: At this vertical order");
 		}
 
 	} else {
 		if (m_nVerticalOrder == 1) {
-			m_nJacobianFKL = 4;
-			m_nJacobianFKU = 4;
+			m_nJacobianFOffD = 4;
 		} else if (m_nVerticalOrder == 2) {
-			m_nJacobianFKL = 9;
-			m_nJacobianFKU = 9;
+			m_nJacobianFOffD = 9;
 		} else if (m_nVerticalOrder == 3) {
-			m_nJacobianFKL = 15;
-			m_nJacobianFKU = 15;
+			m_nJacobianFOffD = 15;
 		} else if (m_nVerticalOrder == 4) {
-			m_nJacobianFKL = 22;
-			m_nJacobianFKU = 22;
+			m_nJacobianFOffD = 22;
 		} else if (m_nVerticalOrder == 5) {
-			m_nJacobianFKL = 30;
-			m_nJacobianFKU = 30;
+			m_nJacobianFOffD = 30;
 		} else {
 			_EXCEPTIONT("UNIMPLEMENTED: At this vertical order");
 		}
@@ -226,11 +204,44 @@ void VerticalDynamicsSchur::Initialize() {
 	if (pGrid->GetVerticalDiscretization() ==
 	    Grid::VerticalDiscretization_FiniteVolume
 	) {
-		m_nOffDiagonals = m_nVerticalOrder/2+1;
+		m_nOffDiagonals = m_nVerticalOrder / 2;
+		m_nJacobianFSchurOffD = m_nVerticalOrder + 1;
+		m_nJacobianFBandwidth = 2 * m_nJacobianFOffD + 1;
+		m_nJacobianFSchurWidth = 3 * m_nJacobianFSchurOffD + 1;
 
 	} else {
 		_EXCEPTIONT("Not implemented");
 	}
+
+#if defined(USE_JACOBIAN_DIAGONAL)
+	// Initialize Jacobian matrix
+	m_matJacobianF.Allocate(m_nColumnStateSize, m_nJacobianFBandwidth);
+
+	// Initialize Schur complement Jacobian matrix
+	m_matJacobianFSchur.Allocate(
+		STot * m_nRElements,
+		m_nJacobianFSchurWidth);
+
+#elif defined(USE_JACOBIAN_GENERAL)
+	// Initialize Jacobian matrix
+	m_matJacobianF.Allocate(
+		m_nColumnStateSize,
+		m_nColumnStateSize);
+
+	// Initialize Schur complement Jacobian matrix
+	m_matJacobianFSchur.Allocate(
+		STot * m_nRElements,
+		STot * m_nRElements);
+
+#else
+	_EXCEPTIONT("Not implemented");
+#endif
+
+	// Initialize pivot vector
+	m_vecIPiv.Allocate(m_nColumnStateSize);
+
+	// Initialize solution in Schur complement
+	m_dSolnSchur.Allocate(STot * m_nRElements);
 
 	// Announce vertical dynamics configuration
 	AnnounceStartBlock("Configuring VerticalDynamicsSchur");
@@ -1293,8 +1304,8 @@ void VerticalDynamicsSchur::DebugJacobian() {
 
 			{
 				FILE * fp = fopen("DG.txt", "w");
-				for (int i = 0; i < m_nColumnStateSize; i++) {
-					for (int j = 0; j < m_nColumnStateSize; j++) {
+				for (int i = 0; i < m_matJacobianF.GetRows(); i++) {
+					for (int j = 0; j < m_matJacobianF.GetColumns(); j++) {
 						fprintf(fp, "%1.15e", m_matJacobianF[i][j]);
 						if (j != m_nColumnStateSize-1) {
 							fprintf(fp, " ");
@@ -1307,9 +1318,9 @@ void VerticalDynamicsSchur::DebugJacobian() {
 
 			{
 				FILE * fp = fopen("FSchur.txt", "w");
-				for (int i = 0; i < 2*(m_nRElements+1); i++) {
+				for (int i = 0; i < m_dSolnSchur.GetRows(); i++) {
 					fprintf(fp, "%1.15e", m_dSolnSchur[i]);
-					if (i != 2*(m_nRElements+1)-1) {
+					if (i != m_dSolnSchur.GetRows()-1) {
 						fprintf(fp, "\n");
 					}
 				}
@@ -1318,10 +1329,10 @@ void VerticalDynamicsSchur::DebugJacobian() {
 
 			{
 				FILE * fp = fopen("DGSchur.txt", "w");
-				for (int i = 0; i < 2*(m_nRElements+1); i++) {
-					for (int j = 0; j < 2*(m_nRElements+1); j++) {
+				for (int i = 0; i < m_matJacobianFSchur.GetRows(); i++) {
+					for (int j = 0; j < m_matJacobianFSchur.GetColumns(); j++) {
 						fprintf(fp, "%1.15e", m_matJacobianFSchur[i][j]);
-						if (j != 2*(m_nRElements+1)-1) {
+						if (j != m_matJacobianFSchur.GetColumns()-1) {
 							fprintf(fp, " ");
 						}
 					}
@@ -1561,44 +1572,6 @@ void VerticalDynamicsSchur::StepImplicit(
 	    	}
 
 #endif
-#ifdef USE_DIRECTSOLVE_APPROXJ
-			static const double Epsilon = 1.0e-5;
-
-			// Prepare the column
-			PrepareColumn(m_dColumnState);
-
-			// Build the F vector
-			BuildF(m_dColumnState, m_dSoln);
-
-			DataArray1D<double> dJC;
-			dJC.Allocate(m_dColumnState.GetRows());
-
-			DataArray1D<double> dG;
-			dG.Allocate(m_dColumnState.GetRows());
-
-			DataArray1D<double> dJCref;
-			dJCref.Allocate(m_dColumnState.GetRows());
-
-			Evaluate(m_dColumnState, dJCref);
-
-			for (int i = 0; i < m_dColumnState.GetRows(); i++) {
-				dG = m_dColumnState;
-				dG[i] = dG[i] + Epsilon;
-
-				Evaluate(dG, dJC);
-
-				for (int j = 0; j < m_dColumnState.GetRows(); j++) {
-					m_matJacobianF[i][j] = (dJC[j] - dJCref[j]) / Epsilon;
-				}
-			}
-
-			// Use direct solver
-			LAPACK::DGESV(m_matJacobianF, m_dSoln, m_vecIPiv);
-
-			for (int k = 0; k < m_dSoln.GetRows(); k++) {
-				m_dSoln[k] = m_dColumnState[k] - m_dSoln[k];
-			}
-#endif
 #ifdef USE_DIRECTSOLVE
 			// Prepare the column
 			PrepareColumn(m_dColumnState);
@@ -1618,21 +1591,14 @@ void VerticalDynamicsSchur::StepImplicit(
 
 			double * dDGSchur = &(m_matJacobianFSchur[0][0]);
 
-			memcpy(&(m_dSolnSchur[0]), &(m_dSoln[0]), 
-				2 * (m_nRElements + 1) * sizeof(double));
-/*
-			for (int k = 0; k < 2 * (m_nRElements + 1); k++) {
-				memcpy(&(m_matJacobianFSchur[k][0]),
-					&(m_matJacobianF[k][0]), 
-					2 * (m_nRElements + 1) * sizeof(double));
-			}
-*/
 			m_matJacobianFSchur.Zero();
 
-			dDGSchur[MatSIx(FPIx, m_nRElements, FPIx, m_nRElements)] =
-				dDG[MatFIx(FPIx, m_nRElements, FPIx, m_nRElements)];
-			dDGSchur[MatSIx(FRIx, m_nRElements, FRIx, m_nRElements)] =
-				dDG[MatFIx(FRIx, m_nRElements, FRIx, m_nRElements)];
+			for (int k = 0; k < m_nRElements; k++) {
+				m_dSolnSchur[VecSIx(SPIx,k)] =
+					m_dSoln[VecFIx(FPIx,k)];
+				m_dSolnSchur[VecSIx(SRIx,k)] =
+					m_dSoln[VecFIx(FRIx,k)];
+			}
 
 			for (int k = 0; k < m_nRElements; k++) {
 
@@ -1647,13 +1613,13 @@ void VerticalDynamicsSchur::StepImplicit(
 
 				for (int i = ibegin; i < iend; i++) {
 
-					m_dSolnSchur[VecFIx(FPIx,k)] -=
+					m_dSolnSchur[VecSIx(SPIx,k)] -=
 						dDeltaT
 						* dDG[MatFIx(FWIx, i, FPIx, k)]
 						// dDG[MatFIx(FWIx, i, FWIx, i)]
 						* m_dSoln[VecFIx(FWIx,i)];
 
-					m_dSolnSchur[VecFIx(FRIx,k)] -=
+					m_dSolnSchur[VecSIx(SRIx,k)] -=
 						dDeltaT
 						* dDG[MatFIx(FWIx, i, FRIx, k)]
 						// dDG[MatFIx(FWIx, i, FWIx, i)]
@@ -1664,43 +1630,43 @@ void VerticalDynamicsSchur::StepImplicit(
 					if (lbegin < 0) {
 						lbegin = 0;
 					}
-					if (lend > m_nRElements + 1) {
-						lend = m_nRElements + 1;
+					if (lend > m_nRElements) {
+						lend = m_nRElements;
 					}
 
 					if (i == ibegin) {
 						for (int l = lbegin; l < lend; l++) {
-							dDGSchur[MatSIx(FPIx, l, FPIx, k)] =
+							dDGSchur[MatSIx(SPIx, l, SPIx, k)] =
 								dDG[MatFIx(FPIx, l, FPIx, k)];
-							dDGSchur[MatSIx(FPIx, l, FRIx, k)] =
+							dDGSchur[MatSIx(SPIx, l, SRIx, k)] =
 								dDG[MatFIx(FPIx, l, FRIx, k)];
-							dDGSchur[MatSIx(FRIx, l, FPIx, k)] =
+							dDGSchur[MatSIx(SRIx, l, SPIx, k)] =
 								dDG[MatFIx(FRIx, l, FPIx, k)];
-							dDGSchur[MatSIx(FRIx, l, FRIx, k)] =
+							dDGSchur[MatSIx(SRIx, l, SRIx, k)] =
 								dDG[MatFIx(FRIx, l, FRIx, k)];
 						}
 					}
 
 					for (int l = lbegin; l < lend; l++) {
-						dDGSchur[MatSIx(FPIx, l, FPIx, k)] -=
+						dDGSchur[MatSIx(SPIx, l, SPIx, k)] -=
 							dDeltaT
 							* dDG[MatFIx(FWIx, i, FPIx, k)]
 							// dDG[MatFIx(FWIx, i, FWIx, i)]
 							* dDG[MatFIx(FPIx, l, FWIx, i)];
 
-						dDGSchur[MatSIx(FPIx, l, FRIx, k)] -=
+						dDGSchur[MatSIx(SPIx, l, SRIx, k)] -=
 							dDeltaT
 							* dDG[MatFIx(FWIx, i, FRIx, k)]
 							// dDG[MatFIx(FWIx, i, FWIx, i)]
 							* dDG[MatFIx(FPIx, l, FWIx, i)];
 
-						dDGSchur[MatSIx(FRIx, l, FPIx, k)] -=
+						dDGSchur[MatSIx(SRIx, l, SPIx, k)] -=
 							dDeltaT
 							* dDG[MatFIx(FWIx, i, FPIx, k)]
 							// dDG[MatFIx(FWIx, i, FWIx, i)]
 							* dDG[MatFIx(FRIx, l, FWIx, i)];
 
-						dDGSchur[MatSIx(FRIx, l, FRIx, k)] -=
+						dDGSchur[MatSIx(SRIx, l, SRIx, k)] -=
 							dDeltaT
 							* dDG[MatFIx(FWIx, i, FRIx, k)]
 							// dDG[MatFIx(FWIx, i, FWIx, i)]
@@ -1711,7 +1677,38 @@ void VerticalDynamicsSchur::StepImplicit(
 
 			// Debug
 			//DebugJacobian();
-
+/*
+			{
+				FILE * fp = fopen("DG.txt", "w");
+				for (int i = 0; i < m_matJacobianF.GetRows(); i++) {
+					for (int j = 0; j < m_matJacobianF.GetColumns(); j++) {
+						fprintf(fp, "%1.15e", m_matJacobianF[i][j]);
+						if (j != m_matJacobianF.GetColumns()-1) {
+							fprintf(fp, " ");
+						}
+					}
+					fprintf(fp, "\n");
+				}
+				fclose(fp);
+			}
+			_EXCEPTION();
+*/
+/*
+			{
+				FILE * fp = fopen("DGSchur.txt", "w");
+				for (int i = 0; i < m_matJacobianFSchur.GetRows(); i++) {
+					for (int j = 0; j < m_matJacobianFSchur.GetColumns(); j++) {
+						fprintf(fp, "%1.15e", m_matJacobianFSchur[i][j]);
+						if (j != m_matJacobianFSchur.GetColumns()-1) {
+							fprintf(fp, " ");
+						}
+					}
+					fprintf(fp, "\n");
+				}
+				fclose(fp);
+			}
+			_EXCEPTION();
+*/
 #if defined(USE_JACOBIAN_GENERAL)
 			// Solve using the general matrix solver
 			int iInfo = LAPACK::DGESV(
@@ -1725,13 +1722,57 @@ void VerticalDynamicsSchur::StepImplicit(
 			// Solve using the diagonal matrix solver
 			int iInfo = LAPACK::DGBSV(
 				m_matJacobianFSchur, m_dSolnSchur, m_vecIPiv,
-				m_nOffDiagonals, m_nOffDiagonals);
+				m_nJacobianFSchurOffD, m_nJacobianFSchurOffD);
 
 			if (iInfo != 0) {
 				_EXCEPTION1("Solution failed: %i", iInfo);
 			}
 #endif
 
+			// Back out the full solution
+			for (int k = 0; k < m_nRElements; k++) {
+				m_dSoln[VecFIx(FPIx,k)] = m_dSolnSchur[VecSIx(SPIx,k)];
+				m_dSoln[VecFIx(FRIx,k)] = m_dSolnSchur[VecSIx(SRIx,k)];
+
+				m_dSoln[VecFIx(FWIx,k)] *= dDeltaT;
+					// 1.0 /dDG[MatFIx(FWIx, i, FWIx, i)];
+			}
+			m_dSoln[VecFIx(FWIx,m_nRElements)] = 0.0;
+
+			for (int i = 1; i < m_nRElements; i++) {
+
+				int lbegin = i - m_nOffDiagonals;
+				int lend = i + m_nOffDiagonals + 1;
+				if (lbegin < 0) {
+					lbegin = 0;
+				}
+				if (lend > m_nRElements) {
+					lend = m_nRElements;
+				}
+
+				for (int l = lbegin; l < lend; l++) {
+					m_dSoln[VecFIx(FWIx,i)] -=
+						dDeltaT
+						* dDG[MatFIx(FPIx, l, FWIx, i)]
+						// dDG[MatFIx(FWIx, k, FWIx, k)]
+						* m_dSolnSchur[VecSIx(SPIx,l)];
+
+					m_dSoln[VecFIx(FWIx,i)] -=
+						dDeltaT
+						* dDG[MatFIx(FRIx, l, FWIx, i)]
+						// dDG[MatFIx(FWIx, k, FWIx, k)]
+						* m_dSolnSchur[VecSIx(SRIx,l)];
+				}
+			}
+/*
+			for (int k = 0; k <= m_nRElements; k++) {
+				printf("%1.10e %1.10e %1.10e\n",
+					m_dSoln[VecFIx(FPIx,k)],
+					m_dSoln[VecFIx(FRIx,k)],
+					m_dSoln[VecFIx(FWIx,k)]);
+			}
+			_EXCEPTION();
+*/
 			// DEBUG (check for NANs in output)
 			if (!(m_dSoln[0] == m_dSoln[0])) {
 				DataArray1D<double> dEval;
@@ -1748,28 +1789,6 @@ void VerticalDynamicsSchur::StepImplicit(
 						m_dExnerRefREdge[p], dataRefREdge[RIx][p][iA][iB]);
 				}
 				_EXCEPTIONT("Inversion failure");
-			}
-
-			// Back out the full solution
-			memcpy(&(m_dSoln[0]), &(m_dSolnSchur[0]),
-				2 * (m_nRElements+1) * sizeof(double));
-
-			for (int i = 0; i <= m_nRElements; i++) {
-				m_dSoln[VecFIx(FWIx,i)] /= dDG[MatFIx(FWIx, i, FWIx, i)];
-			}
-
-			for (int i = 0; i <= m_nRElements; i++) {
-				for (int l = 0; l < m_nRElements; l++) {
-					m_dSoln[VecFIx(FWIx,i)] -=
-						dDG[MatFIx(FPIx, l, FWIx, i)]
-						/ dDG[MatFIx(FWIx, i, FWIx, i)]
-						* m_dSolnSchur[VecFIx(FPIx,l)];
-
-					m_dSoln[VecFIx(FWIx,i)] -=
-						dDG[MatFIx(FRIx, l, FWIx, i)]
-						/ dDG[MatFIx(FWIx, i, FWIx, i)]
-						* m_dSolnSchur[VecFIx(FRIx,l)];
-				}
 			}
 
 			// Update the solution
@@ -3394,7 +3413,7 @@ void VerticalDynamicsSchur::BuildJacobianF(
 
 	// Zero DG
 	memset(dDG, 0,
-		m_nColumnStateSize * m_nColumnStateSize * sizeof(double));
+		m_nColumnStateSize * m_nJacobianFBandwidth * sizeof(double));
 
 #if defined(EXPLICIT_THERMO)
 	// Only support implicit thermodynamics

@@ -79,26 +79,22 @@ protected:
 	///	</summary>
 	typedef int FComp;
 	static const FComp FPIx = 0;
-	static const FComp FWIx = 2;
-	static const FComp FRIx = 1;
+	static const FComp FWIx = 1;
+	static const FComp FRIx = 2;
 
 	static const FComp FTot = 3;
+
+	typedef int SComp;
+	static const SComp SPIx = 0;
+	static const SComp SRIx = 1;
+
+	static const SComp STot = 2;
 
 	///	<summary>
 	///		Convert from standard state indices to component indices.
 	///	</summary>
 	FComp FIxFromCIx(int iC) {
-		const int PIx = 2;
-		const int WIx = 3;
-		const int RIx = 4;
-
-		if (iC == WIx) {
-			return FWIx;
-		} else if (iC == RIx) {
-			return FRIx;
-		} else {
-			return FPIx;
-		}
+		return (iC - 2);
 	}
 
 	///	<summary>
@@ -106,12 +102,26 @@ protected:
 	///	</summary>
 	inline int VecFIx(FComp c, int k) {
 		int nREdges = m_nRElements + 1;
-#if defined(USE_JACOBIAN_DEBUG)
+#if defined(USE_JACOBIAN_GENERAL)
 		return (nREdges * c + k);
-#elif defined(USE_JACOBIAN_GENERAL)
-		return (nREdges * c + k);
-#else
+#elif defined(USE_JACOBIAN_DIAGONAL)
 		return (FTot*k + c);
+#else
+		_EXCEPTION();
+#endif
+	}
+
+	///	<summary>
+	///		Get the index of the component and level of the F vector.
+	///	</summary>
+	inline int VecSIx(SComp c, int k) {
+		int nREdges = m_nRElements + 1;
+#if defined(USE_JACOBIAN_GENERAL)
+		return (nREdges * c + k);
+#elif defined(USE_JACOBIAN_DIAGONAL)
+		return (STot*k + c);
+#else
+		_EXCEPTION();
 #endif
 	}
 
@@ -119,15 +129,14 @@ protected:
 	///		Get the index of for the component / level pair of the F Jacobian.
 	///		Note:  Is composed using Fortran ordering.
 	///	</summary>
-	inline int MatSIx(FComp c0, int k0, FComp c1, int k1) {
-		const int STot = 2;
-		int nREdges = m_nRElements + 1;
-		int nColumnStateSize = 2 * nREdges;
+	inline int MatSIx(SComp c0, int k0, SComp c1, int k1) {
 #if defined(USE_JACOBIAN_GENERAL)
-		return (nColumnStateSize * (nREdges * c0 + k0) + (nREdges * c1 + k1));
+		int nREdges = m_nRElements + 1;
+		int nSchurColumnStateSize = 2 * nREdges;
+		return (nSchurColumnStateSize * (nREdges * c0 + k0) + (nREdges * c1 + k1));
 #elif defined(USE_JACOBIAN_DIAGONAL)
-		return (2 * m_nOffDiagonals + (STot*k1 + c1) - (STot*k0 + c0))
-			+ nColumnStateSize * (STot*k0 + c0);
+		return (2 * m_nJacobianFSchurOffD + (STot*k1 + c1) - (STot*k0 + c0))
+			+ m_nJacobianFSchurWidth * (STot*k0 + c0);
 #else
 		_EXCEPTION();
 #endif
@@ -142,8 +151,8 @@ protected:
 		int nREdges = m_nRElements + 1;
 		return (m_nColumnStateSize * (nREdges * c0 + k0) + (nREdges * c1 + k1));
 #elif defined(USE_JACOBIAN_DIAGONAL)
-		return (2 * m_nOffDiagonals + (FTot*k1 + c1) - (FTot*k0 + c0))
-			+ m_nColumnStateSize * (FTot*k0 + c0);
+		return (m_nJacobianFOffD + (FTot*k1 + c1) - (FTot*k0 + c0))
+			+ m_nJacobianFBandwidth * (FTot*k0 + c0);
 #else
 		_EXCEPTION();
 #endif
@@ -767,18 +776,26 @@ private:
 	DataArray1D<double> m_dSolnSchur;
 
 #endif
-#ifdef USE_JACOBIAN_DIAGONAL
 private:
 	///	<summary>
-	///		Number of sub-diagonals in Jacobian.
+	///		Number of off-diagonals in Jacobian.
 	///	</summary>
-	int m_nJacobianFKL;
+	int m_nJacobianFOffD;
 
 	///	<summary>
-	///		Number of super-diagonals in Jacobian.
+	///		Total bandwidth of Jacobian.
 	///	</summary>
-	int m_nJacobianFKU;
-#endif
+	int m_nJacobianFBandwidth;
+
+	///	<summary>
+	///		Number of off-diagonals in Schur complement of Jacobian.
+	///	</summary>
+	int m_nJacobianFSchurOffD;
+
+	///	<summary>
+	///		Total width of Schur complement.
+	///	</summary>
+	int m_nJacobianFSchurWidth;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
