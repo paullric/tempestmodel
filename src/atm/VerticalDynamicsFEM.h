@@ -114,8 +114,8 @@ protected:
 #elif defined(USE_JACOBIAN_GENERAL)
 		return (m_nColumnStateSize * (FTot*k0 + c0) + (FTot*k1 + c1));
 #elif defined(USE_JACOBIAN_DIAGONAL)
-		return (2 * m_nJacobianFKL + (FTot*k1 + c1) - (FTot*k0 + c0))
-			+ m_nColumnStateSize * (FTot*k0 + c0);
+		return (2 * m_nJacobianFOffD + (FTot*k1 + c1) - (FTot*k0 + c0))
+			+ m_nJacobianFWidth * (FTot*k0 + c0);
 #else
 		_EXCEPTION();
 #endif
@@ -726,14 +726,14 @@ private:
 #ifdef USE_JACOBIAN_DIAGONAL
 private:
 	///	<summary>
-	///		Number of sub-diagonals in Jacobian.
+	///		Number of off-diagonals in Jacobian.
 	///	</summary>
-	int m_nJacobianFKL;
+	int m_nJacobianFOffD;
 
 	///	<summary>
-	///		Number of super-diagonals in Jacobian.
+	///		Total bandwidth of Jacobian.
 	///	</summary>
-	int m_nJacobianFKU;
+	int m_nJacobianFWidth;
 #endif
 };
 

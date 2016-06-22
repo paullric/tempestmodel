@@ -160,20 +160,6 @@ void VerticalDynamicsFEM::Initialize() {
 	// Initialize JFNK
 	InitializeJFNK(m_nColumnStateSize, m_nColumnStateSize, 1.0e-5);
 #endif
-#ifdef USE_DIRECTSOLVE_APPROXJ
-	// Initialize Jacobian matrix
-	m_matJacobianF.Allocate(m_nColumnStateSize, m_nColumnStateSize);
-
-	// Initialize pivot vector
-	m_vecIPiv.Allocate(m_nColumnStateSize);
-#endif
-#ifdef USE_DIRECTSOLVE
-	// Initialize Jacobian matrix
-	m_matJacobianF.Allocate(m_nColumnStateSize, m_nColumnStateSize);
-
-	// Initialize pivot vector
-	m_vecIPiv.Allocate(m_nColumnStateSize);
-#endif
 #if defined(USE_DIRECTSOLVE_APPROXJ) || defined(USE_DIRECTSOLVE)
 #ifdef USE_JACOBIAN_DIAGONAL
 	if (m_nHypervisOrder > 2) {
@@ -186,40 +172,47 @@ void VerticalDynamicsFEM::Initialize() {
 	    Grid::VerticalDiscretization_FiniteVolume
 	) {
 		if (m_nVerticalOrder <= 2) {
-			m_nJacobianFKL = 4;
-			m_nJacobianFKU = 4;
+			m_nJacobianFOffD = 4;
 		} else if (m_nVerticalOrder == 4) {
-			m_nJacobianFKL = 7;
-			m_nJacobianFKU = 7;
+			m_nJacobianFOffD = 7;
 		} else if (m_nVerticalOrder == 6) {
-			m_nJacobianFKL = 10;
-			m_nJacobianFKU = 10;
+			m_nJacobianFOffD = 10;
 		} else {
 			_EXCEPTIONT("UNIMPLEMENTED: At this vertical order");
 		}
 
 	} else {
 		if (m_nVerticalOrder == 1) {
-			m_nJacobianFKL = 4;
-			m_nJacobianFKU = 4;
+			m_nJacobianFOffD = 4;
 		} else if (m_nVerticalOrder == 2) {
-			m_nJacobianFKL = 9;
-			m_nJacobianFKU = 9;
+			m_nJacobianFOffD = 9;
 		} else if (m_nVerticalOrder == 3) {
-			m_nJacobianFKL = 15;
-			m_nJacobianFKU = 15;
+			m_nJacobianFOffD = 15;
 		} else if (m_nVerticalOrder == 4) {
-			m_nJacobianFKL = 22;
-			m_nJacobianFKU = 22;
+			m_nJacobianFOffD = 22;
 		} else if (m_nVerticalOrder == 5) {
-			m_nJacobianFKL = 30;
-			m_nJacobianFKU = 30;
+			m_nJacobianFOffD = 30;
 		} else {
 			_EXCEPTIONT("UNIMPLEMENTED: At this vertical order");
 		}
 	}
+
+	// Total bandwidth
+	m_nJacobianFWidth = 3 * m_nJacobianFOffD + 1;
 #endif
 #endif
+
+#if defined(USE_JACOBIAN_DIAGONAL)
+	// Initialize Jacobian matrix
+	m_matJacobianF.Allocate(m_nColumnStateSize, m_nJacobianFWidth);
+#else
+	// Initialize Jacobian matrix
+	m_matJacobianF.Allocate(m_nColumnStateSize, m_nColumnStateSize);
+#endif
+	
+	// Initialize pivot vector
+	m_vecIPiv.Allocate(m_nColumnStateSize);
+
 
 	// Announce vertical dynamics configuration
 	AnnounceStartBlock("Configuring VerticalDynamicsFEM");
@@ -1556,7 +1549,7 @@ void VerticalDynamicsFEM::StepImplicit(
 			// Use diagonal solver
 			int iInfo = LAPACK::DGBSV(
 				m_matJacobianF, m_dSoln, m_vecIPiv,
-				m_nJacobianFKL, m_nJacobianFKU);
+				m_nJacobianFOffD, m_nJacobianFOffD);
 
 			if (iInfo != 0) {
 				_EXCEPTION1("Solution failed: %i", iInfo);
@@ -3194,8 +3187,13 @@ void VerticalDynamicsFEM::BuildJacobianF_LOR_RhoTheta_Pi(
 	const int nRElements = pGrid->GetRElements();
 
 	// Zero DG
+#if defined(USE_JACOBIAN_DIAGONAL)
+	memset(dDG, 0,
+		m_nColumnStateSize * m_nJacobianFWidth * sizeof(double));
+#else
 	memset(dDG, 0,
 		m_nColumnStateSize * m_nColumnStateSize * sizeof(double));
+#endif
 
 #if defined(EXPLICIT_THERMO)
 	// Only support implicit thermodynamics
