@@ -1717,6 +1717,14 @@ void VerticalDynamicsSchur::StepImplicit(
 			if (iInfo != 0) {
 				_EXCEPTION1("Solution failed: %i", iInfo);
 			}
+/*
+			// Use direct solver
+			LAPACK::DGESV(m_matJacobianF, m_dSoln, m_vecIPiv);
+
+			if (iInfo != 0) {
+				_EXCEPTION1("Solution failed: %i", iInfo);
+			}
+*/
 #endif
 #if defined(USE_JACOBIAN_DIAGONAL)
 			// Solve using the diagonal matrix solver
@@ -1764,6 +1772,7 @@ void VerticalDynamicsSchur::StepImplicit(
 						* m_dSolnSchur[VecSIx(SRIx,l)];
 				}
 			}
+
 /*
 			for (int k = 0; k <= m_nRElements; k++) {
 				printf("%1.10e %1.10e %1.10e\n",

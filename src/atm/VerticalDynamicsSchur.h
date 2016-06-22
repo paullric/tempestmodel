@@ -101,9 +101,10 @@ protected:
 	///		Get the index of the component and level of the F vector.
 	///	</summary>
 	inline int VecFIx(FComp c, int k) {
-		int nREdges = m_nRElements + 1;
 #if defined(USE_JACOBIAN_GENERAL)
-		return (nREdges * c + k);
+		//int nREdges = m_nRElements + 1;
+		//return (nREdges * c + k);
+		return (FTot*k + c);
 #elif defined(USE_JACOBIAN_DIAGONAL)
 		return (FTot*k + c);
 #else
@@ -115,9 +116,8 @@ protected:
 	///		Get the index of the component and level of the F vector.
 	///	</summary>
 	inline int VecSIx(SComp c, int k) {
-		int nREdges = m_nRElements + 1;
 #if defined(USE_JACOBIAN_GENERAL)
-		return (nREdges * c + k);
+		return (m_nRElements * c + k);
 #elif defined(USE_JACOBIAN_DIAGONAL)
 		return (STot*k + c);
 #else
@@ -131,9 +131,8 @@ protected:
 	///	</summary>
 	inline int MatSIx(SComp c0, int k0, SComp c1, int k1) {
 #if defined(USE_JACOBIAN_GENERAL)
-		int nREdges = m_nRElements + 1;
-		int nSchurColumnStateSize = 2 * nREdges;
-		return (nSchurColumnStateSize * (nREdges * c0 + k0) + (nREdges * c1 + k1));
+		int nSchurColumnStateSize = 2 * m_nRElements;
+		return (nSchurColumnStateSize * (m_nRElements * c0 + k0) + (m_nRElements * c1 + k1));
 #elif defined(USE_JACOBIAN_DIAGONAL)
 		return (2 * m_nJacobianFSchurOffD + (STot*k1 + c1) - (STot*k0 + c0))
 			+ m_nJacobianFSchurWidth * (STot*k0 + c0);
@@ -148,8 +147,9 @@ protected:
 	///	</summary>
 	inline int MatFIx(FComp c0, int k0, FComp c1, int k1) {
 #if defined(USE_JACOBIAN_GENERAL)
-		int nREdges = m_nRElements + 1;
-		return (m_nColumnStateSize * (nREdges * c0 + k0) + (nREdges * c1 + k1));
+		return (m_nColumnStateSize * (FTot*k0 + c0) + (FTot*k1 + c1));
+		//int nREdges = m_nRElements + 1;
+		//return (m_nColumnStateSize * (nREdges * c0 + k0) + (nREdges * c1 + k1));
 #elif defined(USE_JACOBIAN_DIAGONAL)
 		return (m_nJacobianFOffD + (FTot*k1 + c1) - (FTot*k0 + c0))
 			+ m_nJacobianFBandwidth * (FTot*k0 + c0);

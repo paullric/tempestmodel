@@ -1546,7 +1546,11 @@ void VerticalDynamicsFEM::StepImplicit(
 
 #ifdef USE_JACOBIAN_GENERAL
 			// Use direct solver
-			LAPACK::DGESV(m_matJacobianF, m_dSoln, m_vecIPiv);
+			int iInfo = LAPACK::DGESV(m_matJacobianF, m_dSoln, m_vecIPiv);
+
+			if (iInfo != 0) {
+				_EXCEPTION1("Solution failed: %i", iInfo);
+			}
 #endif
 #ifdef USE_JACOBIAN_DIAGONAL
 			// Use diagonal solver
@@ -1557,6 +1561,7 @@ void VerticalDynamicsFEM::StepImplicit(
 			if (iInfo != 0) {
 				_EXCEPTION1("Solution failed: %i", iInfo);
 			}
+#endif
 
 			// DEBUG (check for NANs in output)
 			if (!(m_dSoln[0] == m_dSoln[0])) {
@@ -1574,8 +1579,6 @@ void VerticalDynamicsFEM::StepImplicit(
 				}
 				_EXCEPTIONT("Inversion failure");
 			}
-
-#endif
 
 			for (int k = 0; k < m_dSoln.GetRows(); k++) {
 				m_dSoln[k] = m_dColumnState[k] - m_dSoln[k];
