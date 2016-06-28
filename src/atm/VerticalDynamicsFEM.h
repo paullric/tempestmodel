@@ -710,8 +710,7 @@ private:
 	///	</summary>
 	Vec m_vecR;
 #endif
-#if defined(USE_DIRECTSOLVE_APPROXJ) \
- || defined(USE_DIRECTSOLVE)
+
 private:
 	///	<summary>
 	///		Jacobian matrix used in direct solve.
@@ -722,7 +721,7 @@ private:
 	///		Pivot matrix used in direct solve.
 	///	</summary>
 	DataArray1D<int> m_vecIPiv;
-#endif
+
 #ifdef USE_JACOBIAN_DIAGONAL
 private:
 	///	<summary>

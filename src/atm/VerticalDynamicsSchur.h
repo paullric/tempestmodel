@@ -752,8 +752,7 @@ private:
 	///	</summary>
 	Vec m_vecR;
 #endif
-#if defined(USE_DIRECTSOLVE_APPROXJ) \
- || defined(USE_DIRECTSOLVE)
+
 private:
 	///	<summary>
 	///		Jacobian matrix used in direct solve.
@@ -775,7 +774,6 @@ private:
 	///	</summary>
 	DataArray1D<double> m_dSolnSchur;
 
-#endif
 private:
 	///	<summary>
 	///		Number of off-diagonals in Jacobian.
