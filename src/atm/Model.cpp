@@ -41,8 +41,6 @@ Model::Model(
 	m_eqn(eEquationSetType),
 	m_time()
 {
-	// Initialize staggering from equation set
-	m_stag.Initialize(m_eqn);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -60,8 +58,6 @@ Model::Model(
 	m_metaUserData(),
 	m_time()
 {
-	// Initialize staggering from equation set
-	m_stag.Initialize(m_eqn);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -80,8 +76,6 @@ Model::Model(
 	m_metaUserData(metaUserData),
 	m_time()
 {
-	// Initialize staggering from equation set
-	m_stag.Initialize(m_eqn);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
