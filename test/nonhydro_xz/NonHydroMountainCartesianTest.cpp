@@ -102,9 +102,9 @@ public:
 	{
 		// Set the dimensions of the box
 		m_dGDim[0] = 0.0;
-		m_dGDim[1] = 240000.0;
-		m_dGDim[2] = -1000.0;
-		m_dGDim[3] = 1000.0;
+		m_dGDim[1] = 150000.0;
+		m_dGDim[2] = -100.0;
+		m_dGDim[3] = 100.0;
 		m_dGDim[4] = 0.0;
 		m_dGDim[5] = 30000.0;
 
@@ -148,10 +148,10 @@ public:
 	   double dXp,
 	   double dYp
 	) const {
-		// Specify the Hydrostatic Mountain (case 6 from Giraldo et al. 2008)
+		// Specify the Linear Mountain (case 6 from Giraldo et al. 2008)
 		double hsm = m_dhC / (1.0 + ((dXp - m_dxC)/m_daC) *
-                                    ((dXp - m_dxC)/m_daC));
-        //std::cout << hsm << "\n";
+									((dXp - m_dxC)/m_daC));
+		//std::cout << hsm << "\n";
 		return hsm;
 	}
 
@@ -170,9 +170,10 @@ public:
 		double dXp,
 		double dYp
 	) const {
-		const double dRayleighStrength = 8.0e-3;
-		const double dRayleighDepth = 10000.0;
-		const double dRayleighWidth = 20000.0;
+		const double dRayleighStrengthZ = 5.0E-3;//8.0e-3;
+		const double dRayleighStrengthX = 1.0 * dRayleighStrengthZ;
+		const double dRayleighDepth = 5000.0;
+		const double dRayleighWidth = 5000.0;
 
 		double dNuDepth = 0.0;
 		double dNuRight = 0.0;
@@ -180,17 +181,18 @@ public:
 
 		if (dZ > m_dGDim[5] - dRayleighDepth) {
 			double dNormZ = (m_dGDim[5] - dZ) / dRayleighDepth;
-			dNuDepth = 0.5 * dRayleighStrength * (1.0 + cos(M_PI * dNormZ));
+			dNuDepth = 0.5 * dRayleighStrengthZ * (1.0 + cos(M_PI * dNormZ));
 		}
 		if (dXp > m_dGDim[1] - dRayleighWidth) {
 			double dNormX = (m_dGDim[1] - dXp) / dRayleighWidth;
-			dNuRight = 0.5 * dRayleighStrength * (1.0 + cos(M_PI * dNormX));
+			dNuRight = 0.5 * dRayleighStrengthX * (1.0 + cos(M_PI * dNormX));
 		}
 		if (dXp < m_dGDim[0] + dRayleighWidth) {
-			double dNormX = 1.0 - (dXp - m_dGDim[0]) / dRayleighWidth;
-			dNuLeft = 0.5 * dRayleighStrength * (1.0 + cos(M_PI * dNormX));
+			double dNormX = (dXp - m_dGDim[0]) / dRayleighWidth;
+			dNuLeft = 0.5 * dRayleighStrengthX * (1.0 + cos(M_PI * dNormX));
 		}
-
+		
+		//std::cout << dXp << ' ' << dZ << ' ' << dNuDepth << std::endl;
 		if ((dNuDepth >= dNuRight) && (dNuDepth >= dNuLeft)) {
 			return dNuDepth;
 		}
