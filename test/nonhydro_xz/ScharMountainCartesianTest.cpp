@@ -165,9 +165,9 @@ public:
 	///		Evaluate the topography at the given point. (cartesian version)
 	///	</summary>
 	virtual double EvaluateTopography(
-       const PhysicalConstants & phys,
-	   double dXp,
-	   double dYp
+		const PhysicalConstants & phys,
+		double dXp,
+		double dYp
 	) const {
 		// Specify the Schar Mountain (Test case 5 from Giraldo et al. 2008)
 		double hsm = m_dhC * exp(-dXp/m_daC * dXp/m_daC) *

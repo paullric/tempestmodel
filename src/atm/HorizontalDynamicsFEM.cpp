@@ -2120,16 +2120,19 @@ void HorizontalDynamicsFEM::ApplyRayleighFriction(
 
 	int nEffectiveC[nComponents];
 	// 3D primitive nonhydro models with no density treatment
-	if ((nEqSet == 2) && !fCartXZ) {
+	if ((nEqSet == EquationSet::PrimitiveNonhydrostaticEquations) && !fCartXZ) {
 		nEffectiveC[0] = 0; nEffectiveC[1] = 1; 
-		nEffectiveC[3] = 2; nEffectiveC[3] = 3;
+		nEffectiveC[2] = 2; nEffectiveC[3] = 3;
+		nEffectiveC[nComponents - 1] = 0;
 		nComponents = nComponents - 1;
 	}
 	// 2D Cartesian XZ primitive nonhydro models with no density treatment
-	else if ((nEqSet == 2) && fCartXZ) {
+	else if ((nEqSet == EquationSet::PrimitiveNonhydrostaticEquations) && fCartXZ) {
 		nEffectiveC[0] = 0;
 		nEffectiveC[1] = 2; 
 		nEffectiveC[2] = 3;
+		nEffectiveC[nComponents - 2] = 0;
+		nEffectiveC[nComponents - 1] = 0;
 		nComponents = nComponents - 2;
 	}
 	// Other model types (advection, shallow water, mass coord)
@@ -2189,10 +2192,10 @@ void HorizontalDynamicsFEM::ApplyRayleighFriction(
 
 				// Loop over all effective components
 				for (int c = 0; c < nComponents; c++) {
-					for (int si = 0; si < nRayleighCycles; si++) { 
-						dNuNode = 1.0 / (1.0 + dRayleighFactor * dDeltaT * dNu);
-						if (pGrid->GetVarLocation(nEffectiveC[c]) == 
-							DataLocation_Node) {
+					if (pGrid->GetVarLocation(nEffectiveC[c]) == 
+						DataLocation_Node) {
+						for (int si = 0; si < nRayleighCycles; si++) { 
+							dNuNode = 1.0 / (1.0 + dRayleighFactor * dDeltaT * dNu);
 							dataUpdateNode[nEffectiveC[c]][k][i][j] = 
 								dNuNode * dataUpdateNode[nEffectiveC[c]][k][i][j]
 								+ (1.0 - dNuNode)
@@ -2216,14 +2219,14 @@ void HorizontalDynamicsFEM::ApplyRayleighFriction(
 
 				// Loop over all effective components
 				for (int c = 0; c < nComponents; c++) {
-					for (int si = 0; si < nRayleighCycles; si++) { 
-						dNuREdge = 1.0 / (1.0 + dRayleighFactor * dDeltaT * dNu);
-						if (pGrid->GetVarLocation(nEffectiveC[c]) == 
-							DataLocation_REdge) {
-								dataUpdateREdge[nEffectiveC[c]][k][i][j] = 
-								dNuREdge * dataUpdateREdge[nEffectiveC[c]][k][i][j]
-								+ (1.0 - dNuREdge)
-								* dataReferenceREdge[nEffectiveC[c]][k][i][j];
+					if (pGrid->GetVarLocation(nEffectiveC[c]) == 
+						DataLocation_REdge) {
+						for (int si = 0; si < nRayleighCycles; si++) { 
+							dNuREdge = 1.0 / (1.0 + dRayleighFactor * dDeltaT * dNu);
+							dataUpdateREdge[nEffectiveC[c]][k][i][j] = 
+							dNuREdge * dataUpdateREdge[nEffectiveC[c]][k][i][j]
+							+ (1.0 - dNuREdge)
+							* dataReferenceREdge[nEffectiveC[c]][k][i][j];
 						}
 					}
 				}
@@ -2380,10 +2383,10 @@ void HorizontalDynamicsFEM::StepAfterSubCycle(
 	}
 
 #ifdef APPLY_RAYLEIGH_WITH_HYPERVIS
-	// Apply Rayleigh damping
-	if (pGrid->HasRayleighFriction()) {
-		ApplyRayleighFriction(iDataUpdate, dDeltaT);
-	}
+		// Apply Rayleigh damping
+		if (pGrid->HasRayleighFriction()) {
+			ApplyRayleighFriction(iDataUpdate, dDeltaT);
+		}
 #endif
 }
 
