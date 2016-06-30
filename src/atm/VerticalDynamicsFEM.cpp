@@ -3422,8 +3422,13 @@ void VerticalDynamicsFEM::BuildJacobianF(
 	const int nRElements = pGrid->GetRElements();
 
 	// Zero DG
+#if defined(USE_JACOBIAN_DIAGONAL)
+	memset(dDG, 0,
+		m_nColumnStateSize * m_nJacobianFWidth * sizeof(double));
+#else
 	memset(dDG, 0,
 		m_nColumnStateSize * m_nColumnStateSize * sizeof(double));
+#endif
 
 	// Mass flux on levels
 	bool fMassFluxOnLevels = false;
