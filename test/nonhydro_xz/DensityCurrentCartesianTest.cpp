@@ -156,8 +156,8 @@ public:
 	///		Evaluate the topography at the given point. (cartesian version)
 	///	</summary>
 	virtual double EvaluateTopography(
-	   double dXp,
-	   double dYp
+		double dXp,
+		double dYp
 	) const {
 		// This test case has no topography associated with it
 		return 0.0;

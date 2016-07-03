@@ -162,6 +162,17 @@ public:
 	}
 
 	///	<summary>
+	///		Strength of the uniform diffusion (m^2/s)
+	///	</summary>
+	virtual void GetUniformDiffusionCoeffs(
+		double & dScalarUniformDiffusionCoeff,
+		double & dVectorUniformDiffusionCoeff
+	) const {
+		dScalarUniformDiffusionCoeff = 0.0;
+		dVectorUniformDiffusionCoeff = 0.0;
+	}
+
+	///	<summary>
 	///		Evaluate the Rayleigh friction strength at the given point.
 	///	</summary>
 	virtual double EvaluateRayleighStrength(
@@ -203,8 +214,8 @@ public:
 	///		Evaluate the topography at the given point. (cartesian version)
 	///	</summary>
 	virtual double EvaluateTopography(
-	   double dxp,
-	   double dyp
+		double dxp,
+		double dyp
 	) const {
 		// This test case has no topography associated with it
 		return 0.0;

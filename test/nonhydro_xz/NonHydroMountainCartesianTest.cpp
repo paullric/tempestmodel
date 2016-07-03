@@ -141,12 +141,23 @@ public:
 	}
 
 	///	<summary>
+	///		Strength of the uniform diffusion (m^2/s)
+	///	</summary>
+	virtual void GetUniformDiffusionCoeffs(
+		double & dScalarUniformDiffusionCoeff,
+		double & dVectorUniformDiffusionCoeff
+	) const {
+		dScalarUniformDiffusionCoeff = 0.0;
+		dVectorUniformDiffusionCoeff = 0.0;
+	}
+
+	///	<summary>
 	///		Evaluate the topography at the given point. (cartesian version)
 	///	</summary>
 	virtual double EvaluateTopography(
-       const PhysicalConstants & phys,
-	   double dXp,
-	   double dYp
+		const PhysicalConstants & phys,
+		double dXp,
+		double dYp
 	) const {
 		// Specify the Linear Mountain (case 6 from Giraldo et al. 2008)
 		double hsm = m_dhC / (1.0 + ((dXp - m_dxC)/m_daC) *
@@ -170,7 +181,7 @@ public:
 		double dXp,
 		double dYp
 	) const {
-		const double dRayleighStrengthZ = 5.0E-3;//8.0e-3;
+		const double dRayleighStrengthZ = 1.0E-2;//8.0e-3;
 		const double dRayleighStrengthX = 1.0 * dRayleighStrengthZ;
 		const double dRayleighDepth = 5000.0;
 		const double dRayleighWidth = 5000.0;
@@ -346,7 +357,7 @@ try {
 		CommandLineDouble(dTheta0, "Theta0", 280.0);
 		CommandLineDouble(dhC, "hC", 1.0);
 		CommandLineDouble(daC, "aC", 1000.0);
-		CommandLineDouble(dxC, "xC", 7.2E+4);
+		CommandLineDouble(dxC, "xC", 5.0E+4);
 		CommandLineDouble(dpiC, "piC", 3.14159265);
 		CommandLineBool(fNoRayleighFriction, "norayleigh");
 

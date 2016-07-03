@@ -139,11 +139,22 @@ public:
 	}
 
 	///	<summary>
+	///		Strength of the uniform diffusion (m^2/s)
+	///	</summary>
+	virtual void GetUniformDiffusionCoeffs(
+		double & dScalarUniformDiffusionCoeff,
+		double & dVectorUniformDiffusionCoeff
+	) const {
+		dScalarUniformDiffusionCoeff = 0.0;
+		dVectorUniformDiffusionCoeff = 0.0;
+	}
+
+	///	<summary>
 	///		Evaluate the topography at the given point. (cartesian version)
 	///	</summary>
 	virtual double EvaluateTopography(
-	   double dXp,
-	   double dYp
+		double dXp,
+		double dYp
 	) const {
 		// This test case has no topography associated with it
 		return 0.0;
@@ -183,7 +194,7 @@ public:
 		double dYp,
 		double * dState
 	) const {
-	    const double dG = phys.GetG();
+		const double dG = phys.GetG();
 		const double dCv = phys.GetCv();
 		const double dCp = phys.GetCp();
 		const double dRd = phys.GetR();

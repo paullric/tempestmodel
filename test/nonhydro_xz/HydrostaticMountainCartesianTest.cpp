@@ -134,16 +134,27 @@ public:
 	}
 
 	///	<summary>
+	///		Strength of the uniform diffusion (m^2/s)
+	///	</summary>
+	virtual void GetUniformDiffusionCoeffs(
+		double & dScalarUniformDiffusionCoeff,
+		double & dVectorUniformDiffusionCoeff
+	) const {
+		dScalarUniformDiffusionCoeff = 0.0;
+		dVectorUniformDiffusionCoeff = 0.0;
+	}
+
+	///	<summary>
 	///		Evaluate the topography at the given point. (cartesian version)
 	///	</summary>
 	virtual double EvaluateTopography(
-       const PhysicalConstants & phys,
-	   double dXp,
-	   double dYp
+		const PhysicalConstants & phys,
+		double dXp,
+		double dYp
 	) const {
 		// Specify the Hydrostatic Mountain (case 6 from Giraldo et al. 2008)
 		double hsm = m_dhC / (1.0 + ((dXp - m_dxC)/m_daC) *
-                                    ((dXp - m_dxC)/m_daC));
+									((dXp - m_dxC)/m_daC));
         //std::cout << hsm << "\n";
 		return hsm;
 	}

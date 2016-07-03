@@ -27,7 +27,7 @@
 class Baroclinic3DCartesianRidgeTest : public TestCase {
 
 public:
-        /// <summary>
+	/// <summary>
 	///		Lateral BC array (FOR CARTESIAN GRIDS).
 	///	</summary>
 	int m_iLatBC[4];
@@ -190,6 +190,17 @@ public:
 		PhysicalConstants & phys
 	) const {
 		// Do nothing to the PhysicalConstants for global simulations
+	}
+
+	///	<summary>
+	///		Strength of the uniform diffusion (m^2/s)
+	///	</summary>
+	virtual void GetUniformDiffusionCoeffs(
+		double & dScalarUniformDiffusionCoeff,
+		double & dVectorUniformDiffusionCoeff
+	) const {
+		dScalarUniformDiffusionCoeff = 0.0;
+		dVectorUniformDiffusionCoeff = 0.0;
 	}
 
 	///	<summary>

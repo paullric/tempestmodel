@@ -26,6 +26,7 @@
 #include "TimestepSchemeGARK2.h"
 #include "TimestepSchemeARS343.h"
 #include "TimestepSchemeARS443.h"
+#include "TimestepSchemeSSP3332.h"
 #include "TimestepSchemeSplitExp.h"
 #include "HorizontalDynamicsStub.h"
 #include "HorizontalDynamicsFEM.h"
@@ -218,7 +219,7 @@ void _TempestSetupMethodOfLines(
 		model.SetTimestepScheme(
 			new TimestepSchemeARK232(model));
 
-        } else if (vars.strTimestepScheme == "gark2") {
+		} else if (vars.strTimestepScheme == "gark2") {
 		model.SetTimestepScheme(
 			new TimestepSchemeGARK2(model));
 
@@ -230,14 +231,18 @@ void _TempestSetupMethodOfLines(
 		model.SetTimestepScheme(
 			new TimestepSchemeARS443(model));
 
-        } else if (vars.strTimestepScheme == "spex") {
+	} else if (vars.strTimestepScheme == "ssp3_332") {
+		model.SetTimestepScheme(
+			new TimestepSchemeSSP3332(model));
+
+	} else if (vars.strTimestepScheme == "spex") {
 		model.SetTimestepScheme(
 			new TimestepSchemeSplitExp(model));
 
 	} else {
 		_EXCEPTIONT("Invalid timescheme: Expected "
 			"\"Strang\", \"ARS222\", \"ARS232\", \"ARK232\", "
-                        "\"ARS343\", \"ARS443\"");
+			"\"ARS343\", \"ARS443\", \"SSP3_332\"");
 	}
 	AnnounceEndBlock("Done");
 
@@ -339,7 +344,7 @@ void _TempestSetupOutputManagers(
 				vars.nOutputResY,
 				vars.nOutputResZ,
 				false,
-				false);
+				true);
 
 		if (vars.fOutputVorticity) {
 			pOutmanRef->OutputVorticity();
