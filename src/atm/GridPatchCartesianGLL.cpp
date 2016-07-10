@@ -955,7 +955,7 @@ void GridPatchCartesianGLL::ApplyBoundaryConditions(
 			int j = m_box.GetBTotalWidth() - 1;
 
 			for (int k = 0; k < m_grid.GetRElements(); k++) {
-			for (int i = 1; i < m_box.GetATotalWidth()-1; i++) {
+			for (int i = 0; i < m_box.GetATotalWidth(); i++) {
 				if (eBoundaryTop != Grid::BoundaryCondition_NoSlip) {
 					m_datavecStateNode[iDataIndex][UIx][k][i][j] =
 						- m_datavecStateNode[iDataIndex][UIx][k][i][j-1];
@@ -1000,7 +1000,7 @@ void GridPatchCartesianGLL::ApplyBoundaryConditions(
 			int i = 0;
 
 			for (int k = 0; k < m_grid.GetRElements(); k++) {
-			for (int j = 1; j < m_box.GetBTotalWidth()-1; j++) {
+			for (int j = 0; j < m_box.GetBTotalWidth(); j++) {
 				if (eBoundaryLeft == Grid::BoundaryCondition_NoSlip) {
 					m_datavecStateNode[iDataIndex][UIx][k][i][j] =
 						- m_datavecStateNode[iDataIndex][UIx][k][i+1][j];
@@ -1044,7 +1044,7 @@ void GridPatchCartesianGLL::ApplyBoundaryConditions(
 			int j = 0;
 
 			for (int k = 0; k < m_grid.GetRElements(); k++) {
-			for (int i = 1; i < m_box.GetATotalWidth()-1; i++) {
+			for (int i = 0; i < m_box.GetATotalWidth(); i++) {
 				if (eBoundaryBottom == Grid::BoundaryCondition_NoSlip) {
 					m_datavecStateNode[iDataIndex][UIx][k][i][j] =
 						- m_datavecStateNode[iDataIndex][UIx][k][i][j+1];
@@ -1089,7 +1089,7 @@ void GridPatchCartesianGLL::ApplyBoundaryConditions(
 			(m_box.GetAGlobalEnd() == nGlobalAEndIndex)) {
 			int i = m_box.GetATotalWidth() - 1;
 			
-			for (int j = 1; j < m_box.GetBTotalWidth()-1; j++) {
+			for (int j = 0; j < m_box.GetBTotalWidth(); j++) {
 			for (int k = 0; k < m_grid.GetRElements(); k++) {
 				if (eBoundaryRight == Grid::BoundaryCondition_NoSlip) {
 					m_datavecStateNode[iDataIndex][UIx][k][i][j] =
@@ -1167,7 +1167,12 @@ void GridPatchCartesianGLL::ApplyBoundaryConditions(
 			(m_box.GetBGlobalEnd() == nGlobalBEndIndex)) {
 			int j = m_box.GetBTotalWidth() - 1;
 
-			for (int i = 1; i < m_box.GetATotalWidth()-1; i++) {
+//Announce("%1.15e %1.15e %1.15e",
+//						m_box.GetBGlobalEnd(),
+//						nGlobalBEndIndex,
+//						m_box.GetBTotalWidth() - 1);
+
+			for (int i = 0; i < m_box.GetATotalWidth(); i++) {
 			for (int k = 0; k < m_grid.GetRElements(); k++) {
 				if (eBoundaryTop == Grid::BoundaryCondition_NoSlip) {
 					m_datavecStateNode[iDataIndex][UIx][k][i][j] =
@@ -1245,7 +1250,7 @@ void GridPatchCartesianGLL::ApplyBoundaryConditions(
 			(m_box.GetAGlobalBegin() == nGlobalABeginIndex)) {
 			int i = 0;
 			
-			for (int j = 1; j < m_box.GetBTotalWidth()-1; j++) {
+			for (int j = 0; j < m_box.GetBTotalWidth(); j++) {
 			for (int k = 0; k < m_grid.GetRElements(); k++) {
 				if (eBoundaryLeft == Grid::BoundaryCondition_NoSlip) {
 					m_datavecStateNode[iDataIndex][UIx][k][i][j] =
@@ -1323,7 +1328,7 @@ void GridPatchCartesianGLL::ApplyBoundaryConditions(
 			(m_box.GetBGlobalBegin() == nGlobalBBeginIndex)) {
 			int j = 0;
 			
-			for (int i = 1; i < m_box.GetATotalWidth()-1; i++) {
+			for (int i = 0; i < m_box.GetATotalWidth(); i++) {
 			for (int k = 0; k < m_grid.GetRElements(); k++) {
 				if (eBoundaryBottom == Grid::BoundaryCondition_NoSlip) {
 					m_datavecStateNode[iDataIndex][UIx][k][i][j] =

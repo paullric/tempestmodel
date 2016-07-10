@@ -146,11 +146,13 @@ void GridCartesianGLL::ApplyDefaultPatchLayout(
 	bool fCartXZ = GetIsCartesianXZ();
 	int nProcsADirection = 0;
 	int nProcsBDirection = 0;
+
 	// Handle special case of 2 or 3 processors (laptop testing)
 	if (fCartXZ || (nDistributedPatches < 4)) {
 		nProcsADirection = nProcsPerDirection;
 		nProcsBDirection = 1;
 	}
+/*
 	// Allow 3D cases to split the Beta elements once (EVEN NUMBER OF PROCESSORS)
 	else if (!fCartXZ && (nProcsPerDirection % 2 == 0)) {
 		# pragma message "3D Cartesian processor layout..."
@@ -162,11 +164,15 @@ void GridCartesianGLL::ApplyDefaultPatchLayout(
 		_EXCEPTIONT("Even number of processors required"
 			"for 3D Cartesian cases.");
 	}
+*/
 	// Default to alpha wise strips
 	else {
 		nProcsADirection = nProcsPerDirection;
 		nProcsBDirection = 1;
 	}
+
+	//nProcsADirection = nProcsPerDirection;
+	//nProcsBDirection = 1;
 
 	int nElementsPerDirectionA = GetABaseResolution() / nProcsADirection;
 	DataArray1D<int> iBoxBeginA(nProcsADirection + 1);
