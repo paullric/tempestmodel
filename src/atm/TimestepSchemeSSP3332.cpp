@@ -122,9 +122,9 @@ void TimestepSchemeSSP3332::Step(
 	pGrid->CopyData(7, 3, DataType_Tracers);
 
 	pHorizontalDynamics->StepExplicit(
-		0, 3, time, m_dExpCf[1][0] * dDeltaT);
+		2, 3, time, m_dExpCf[1][0] * dDeltaT);
 	pVerticalDynamics->StepExplicit(
-		0, 3, time, m_dExpCf[1][0] * dDeltaT);
+		2, 3, time, m_dExpCf[1][0] * dDeltaT);
 	pGrid->PostProcessSubstage(3, DataType_State);
 	pGrid->PostProcessSubstage(3, DataType_Tracers);
 

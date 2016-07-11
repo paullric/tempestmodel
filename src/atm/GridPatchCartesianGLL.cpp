@@ -1167,11 +1167,6 @@ void GridPatchCartesianGLL::ApplyBoundaryConditions(
 			(m_box.GetBGlobalEnd() == nGlobalBEndIndex)) {
 			int j = m_box.GetBTotalWidth() - 1;
 
-//Announce("%1.15e %1.15e %1.15e",
-//						m_box.GetBGlobalEnd(),
-//						nGlobalBEndIndex,
-//						m_box.GetBTotalWidth() - 1);
-
 			for (int i = 0; i < m_box.GetATotalWidth(); i++) {
 			for (int k = 0; k < m_grid.GetRElements(); k++) {
 				if (eBoundaryTop == Grid::BoundaryCondition_NoSlip) {
