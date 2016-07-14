@@ -26,7 +26,7 @@
 class ScharMountainCartesianTest : public TestCase {
 
 public:
-        /// <summary>
+	/// <summary>
 	///		Lateral BC array (FOR CARTESIAN GRIDS).
 	///	</summary>
 	int m_iLatBC[4];

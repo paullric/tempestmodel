@@ -11,6 +11,7 @@ TEMPESTBASEDIR= ../..
 include $(TEMPESTBASEDIR)/mk/framework.make
 
 FILES= InertialGravityCartesianXZTest.cpp \
+       ShearJetMtnWave2DCartesianTest.cpp \
        ThermalBubbleCartesianTest.cpp \
        ThermalBubbleCartesian3DTest.cpp \
        ScharMountainCartesianTest.cpp \

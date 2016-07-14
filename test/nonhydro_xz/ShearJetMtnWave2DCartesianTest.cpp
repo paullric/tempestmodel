@@ -1,6 +1,6 @@
 ///////////////////////////////////////////////////////////////////////////////
 ///
-///	\file    Baroclinic3DCartesianTest.cpp
+///	\file    ShearJetMtnWave2DCartesianTest.cpp
 ///	\author  Paul Ullrich, Jorge Guerra
 ///	\version January 13, 2015
 ///
@@ -24,7 +24,7 @@
 ///
 ///		Thermal rising bubble test case.
 ///	</summary>
-class Baroclinic3DCartesianTest : public TestCase {
+class ShearJetMtnWave2DCartesianTest : public TestCase {
 
 public:
 	/// <summary>
@@ -37,10 +37,10 @@ public:
 	///	</summary>
 	double m_dGDim[6];
 
-	/// <summary>
-	///		Reference latitude for "large" domains
+	///	<summary>
+	///		Parameter reference height for topography disturbance
 	///	</summary>
-	double m_dRefLat;
+	double m_dhC;
 
 private:
 
@@ -57,12 +57,17 @@ private:
 	///	<summary>
 	///		Reference zonal wind perturbation.
 	///	</summary>
-	double m_dUp;
+	double m_dUj;
 
 	///	<summary>
 	///		Assumed lapse rate of absolute temperature
 	///	</summary>
 	double m_ddTdz;
+
+	///	<summary>
+	///		Assumed lapse rate of absolute temperature (stratosphere)
+	///	</summary>
+	double m_ddTdzSTR;
 	
 	///	<summary>
 	///		Reference constant surface absolute temperature
@@ -70,24 +75,19 @@ private:
 	double m_dT0;
 
 	///	<summary>
-	///		Parameter reference length x for temperature disturbance
+	///		Parameter reference length a for temperature disturbance
 	///	</summary>
-	double m_dXC;
+	double m_daC;
 
 	///	<summary>
-	///		Parameter reference length y for temperature disturbance
+	///		Parameter reference length for mountain profile
 	///	</summary>
-	double m_dYC;
+	double m_dlC;
 
 	///	<summary>
 	///		Parameter for the center of the y domain
 	///	</summary>
 	double m_dY0;
-
-	///	<summary>
-	///		Parameter reference width for perturtion gaussian
-	///	</summary>
-	double m_dLpC;
 
 	///	<summary>
 	///		Parameter Archimede's Constant (essentially Pi but to some digits)
@@ -99,52 +99,91 @@ private:
 	///	</summary>
 	bool m_fNoRayleighFriction;
 
+	///	<summary>
+	///		Elevation at the tropopause (m) USER SPECIFIED.
+	///	</summary>
+	double m_dTPHeight;
+
+	///	<summary>
+	///		Thickness of the mixed layer above tropopause (m) USER SPECIFIED.
+	///	</summary>
+	double m_dTPMixedLayerH;
+
+	///	<summary>
+	///		Temperature at the tropopause (K) DERIVED.
+	///	</summary>
+	double m_dTPTemp;
+
+	///	<summary>
+	///		Sigma coordinate value at the tropopause DERIVED.
+	///	</summary>
+	double m_dTPEta;
+
 public:
 	///	<summary>
 	///		Constructor. (with physical constants defined privately here)
 	///	</summary>
-	Baroclinic3DCartesianTest(
+	ShearJetMtnWave2DCartesianTest(
+		const PhysicalConstants & phys,
 		double dbC,
 		double dU0,
-		double dUp,
+		double dUj,
 		double ddTdz,
+		double ddTdzSTR,
 		double dT0,
-		double dLpC,
-		double dXC,
-		double dYC,
+		double dhC,
+		double daC,
+		double dlC,
 		bool fNoRayleighFriction
 	) :
 		m_dbC(dbC),
 		m_dU0(dU0),
-		m_dUp(dUp),
+		m_dUj(dUj),
 		m_ddTdz(ddTdz),
+		m_ddTdzSTR(ddTdzSTR),
 		m_dT0(dT0),
-		m_dLpC(dLpC),
-		m_dXC(dXC),
-		m_dYC(dYC),
+		m_dhC(dhC),
+		m_daC(daC),
+		m_dlC(dlC),
 		m_fNoRayleighFriction(fNoRayleighFriction)
 	{
 		m_dpiC = M_PI;
 
 		// Set the dimensions of the box
-		m_dGDim[0] = 0.0;
-		m_dGDim[1] = 30000000.0;
-		m_dGDim[2] = 0.0;
-		m_dGDim[3] = 6000000.0;
+		m_dGDim[0] = -40000.0;
+		m_dGDim[1] = 40000.0;
+		m_dGDim[2] = -500.0;
+		m_dGDim[3] = 500.0;
 		m_dGDim[4] = 0.0;
 		m_dGDim[5] = 30000.0;
-
-		// Set the reference latitude
-		m_dRefLat = 45.0 / 180.0 * m_dpiC;
 
 		// Set the center of the domain in Y
 		m_dY0 = 0.5 * (m_dGDim[3] - m_dGDim[2]);
 
-		// Set the boundary conditions for this test (no-flux in Y)
+		// Set the tropopause elevation and mixed layer depth in meters
+		m_dTPHeight = 12000.0;
+		m_dTPMixedLayerH = 3000.0;
+
+		// Find and set the tropopause temperature here before initializing the test
+		double dGeopotential;
+		double dTemperature;
+
+		// Get the temperature at the tropopause
+		double dEta = EtaFromRLL(
+			phys, m_dTPHeight, 0.0, 0.0, dGeopotential, dTemperature);
+		m_dTPTemp = dTemperature;
+
+		// Get the pressure level at the top of the mixed layer
+		dEta = EtaFromRLL(
+			phys, m_dTPHeight + m_dTPMixedLayerH, 0.0, 0.0, 
+			dGeopotential, dTemperature);
+		m_dTPEta = dEta;
+
+		// Set the boundary conditions for this test
 		m_iLatBC[0] = Grid::BoundaryCondition_Periodic;
-		m_iLatBC[1] = Grid::BoundaryCondition_NoFlux;
+		m_iLatBC[1] = Grid::BoundaryCondition_Periodic;
 		m_iLatBC[2] = Grid::BoundaryCondition_Periodic;
-		m_iLatBC[3] = Grid::BoundaryCondition_NoFlux;
+		m_iLatBC[3] = Grid::BoundaryCondition_Periodic;
 	}
 
 public:
@@ -188,18 +227,39 @@ public:
 		dScalarUniformDiffusionCoeff = 0.0;
 		dVectorUniformDiffusionCoeff = 0.0;
 	}
-
+//
 	///	<summary>
 	///		Evaluate the topography at the given point. (cartesian version)
 	///	</summary>
 	virtual double EvaluateTopography(
+		const PhysicalConstants & phys,
 		double dXp,
 		double dYp
 	) const {
-		// This test case has no topography associated with it
-		return 0.0;
-	}
+		// Specify the Schar Mountain (Test case 5 from Giraldo et al. 2008)
+		double hsm = m_dhC * exp(-dXp/m_daC * dXp/m_daC) *
+					 cos(M_PI * dXp / m_dlC) * cos(M_PI * dXp / m_dlC);
+		//std::cout << hsm << "\n";
 
+		return hsm;
+	}
+//
+/*
+	///	<summary>
+	///		Evaluate the topography at the given point. (cartesian version)
+	///	</summary>
+	virtual double EvaluateTopography(
+		const PhysicalConstants & phys,
+		double dXp,
+		double dYp
+	) const {
+		// Specify the Linear Mountain (case 6 from Giraldo et al. 2008)
+		double hsm = m_dhC / (1.0 + ((dXp - 0.0)/m_daC) * ((dXp - 0.0)/m_daC) *
+									((dXp - 0.0)/m_daC) * ((dXp - 0.0)/m_daC));
+		//std::cout << hsm << "\n";
+		return hsm;
+	}
+*/
 	///	<summary>
 	///		Flag indicating whether or not Rayleigh friction strength is given.
 	///	</summary>
@@ -215,9 +275,10 @@ public:
 		double dXp,
 		double dYp
 	) const {
-		const double dRayleighStrength = 5.0E-3;
-		const double dRayleighDepth = 5000.0;
-		const double dRayleighWidth = 5.0E7;
+		const double dRayleighStrengthZ = 1.0E-2;//8.0e-3;
+		const double dRayleighStrengthX = 1.0 * dRayleighStrengthZ;
+		const double dRayleighDepth = 7500.0;
+		const double dRayleighWidth = 10000.0;
 
 		double dNuDepth = 0.0;
 		double dNuRight = 0.0;
@@ -225,18 +286,18 @@ public:
 
 		if (dZ > m_dGDim[5] - dRayleighDepth) {
 			double dNormZ = (m_dGDim[5] - dZ) / dRayleighDepth;
-			dNuDepth = 0.5 * dRayleighStrength * (1.0 + cos(M_PI * dNormZ));
-			//dNuDepth = 0.0;
+			dNuDepth = 0.5 * dRayleighStrengthZ * (1.0 + cos(M_PI * dNormZ));
 		}
-		if (dXp > m_dGDim[3] - dRayleighWidth) {
-			double dNormY = (m_dGDim[3] - dYp) / dRayleighWidth;
-			dNuRight = 0.5 * dRayleighStrength * (1.0 + cos(M_PI * dNormY));
+		if (dXp > m_dGDim[1] - dRayleighWidth) {
+			double dNormX = (m_dGDim[1] - dXp) / dRayleighWidth;
+			dNuRight = 0.5 * dRayleighStrengthX * (1.0 + cos(M_PI * dNormX));
 		}
-		if (dXp < m_dGDim[2] + dRayleighWidth) {
-			double dNormY = (dYp - m_dGDim[2]) / dRayleighWidth;
-			dNuLeft = 0.5 * dRayleighStrength * (1.0 + cos(M_PI * dNormY));
+		if (dXp < m_dGDim[0] + dRayleighWidth) {
+			double dNormX = (dXp - m_dGDim[0]) / dRayleighWidth;
+			dNuLeft = 0.5 * dRayleighStrengthX * (1.0 + cos(M_PI * dNormX));
 		}
-
+		
+		//std::cout << dXp << ' ' << dZ << ' ' << dNuDepth << std::endl;
 		if ((dNuDepth >= dNuRight) && (dNuDepth >= dNuLeft)) {
 			return dNuDepth;
 		}
@@ -254,14 +315,7 @@ public:
 		double dXp,
 		double dYp
 	) const {
-
-		// Gaussian perturbation for the zonal jet
-		double xL2 = (dXp - m_dXC) * (dXp - m_dXC);
-		double yL2 = (dYp - m_dYC) * (dYp - m_dYC);
-
-		double dUpert = m_dUp * exp(-(xL2 + yL2) / (m_dLpC * m_dLpC));
- 
-		return dUpert;
+		return 0.0;
 	}
 
 	///	<summary>
@@ -270,6 +324,7 @@ public:
 	void CalculateGeopotentialTemperature(
 		const PhysicalConstants & phys,
 		double dEta,
+		double dZp,
 		double dXp,
 		double dYp,
 		double & dGeopotential,
@@ -282,15 +337,21 @@ public:
 		const double dRd = phys.GetR();
 		const double dP0 = phys.GetP0();
 		const double dae = phys.GetEarthRadius();
-		const double df0 = 2 * phys.GetOmega() * sin(m_dRefLat);
-		//const double df0 = 0.0;
-		const double dbeta0 = 2 * phys.GetOmega() * cos(m_dRefLat) / dae;
-		//const double dbeta0 = 0.0;
+		const double df0 = 0.0;
+		const double dbeta0 = 0.0;
 		const double dLy = m_dGDim[3] - m_dGDim[2];
 
-		// Horizontally averaged temperature
-		double dAvgTemperature =
-			m_dT0 * pow(dEta, dRd * m_ddTdz / dG);
+		// Horizontally averaged temperature profile (piecewise continuous)
+		double dAvgTemperature = 0.0;
+		if (dZp <= m_dTPHeight) {
+			dAvgTemperature = m_dT0 * pow(dEta, dRd * m_ddTdz / dG);
+		}
+		else if ((dZp > m_dTPHeight)&&(dZp <= m_dTPHeight + m_dTPMixedLayerH)) {
+			dAvgTemperature = m_dTPTemp;
+		}
+		else if (dZp > m_dTPHeight + m_dTPMixedLayerH) {
+			dAvgTemperature = m_dTPTemp * pow((dEta / m_dTPEta), dRd * m_ddTdzSTR / dG);
+		}
 
 		// Horizontally averaged geopotential
 		double dAvgGeopotential =
@@ -298,13 +359,7 @@ public:
 			(1.0 - pow(dEta, dRd * m_ddTdz / dG));
 
 		// Horizontal variation geopotential function
-		double dXYGeopotential = 0.5 * m_dU0 * 
-			((df0 - dbeta0 * m_dY0) * (dYp - m_dY0 - 
-			m_dY0 / m_dpiC * sin(2 * m_dpiC * dYp / dLy)) + 
-			0.5 * dbeta0 * 
-			(dYp * dYp - dLy * dYp / m_dpiC * sin(2 * m_dpiC * dYp / dLy) - 
-			0.5 * dLy * dLy / (m_dpiC * m_dpiC) * cos(2 * m_dpiC * dYp / dLy) -
-			dLy * dLy / 3 - 0.5 * dLy * dLy / (m_dpiC * m_dpiC)));
+		double dXYGeopotential = 0.0;
 
 		double dExpDecay = exp(-(log(dEta) / m_dbC) * (log(dEta) / m_dbC));
 		double dRefProfile1 = log(dEta);
@@ -332,7 +387,7 @@ public:
 		double & dGeopotential,
 		double & dTemperature
 	) const {
-		const int MaxIterations  = 50;
+		const int MaxIterations  = 100;
 		const double InitialEta  = 1.0e-5;
 		const double Convergence = 1.0e-13;
 
@@ -348,7 +403,7 @@ public:
 		for (; i < MaxIterations; i++) {
 
 			CalculateGeopotentialTemperature(
-				phys, dEta, dXp, dYp, dGeopotential, dTemperature);
+				phys, dEta, dZp, dXp, dYp, dGeopotential, dTemperature);
 
 			dF     = - phys.GetG() * dZp + dGeopotential;
 			dDiffF = - phys.GetR() / dEta * dTemperature;
@@ -395,11 +450,9 @@ public:
 
 		// Calculate zonal velocity and set other velocity components
 		double dExpDecay = exp(-(log(dEta) / m_dbC) * (log(dEta) / m_dbC));
-		double dUlon =
-			-m_dU0 * sin(m_dpiC * dYp / dLy) * sin(m_dpiC * dYp / dLy) *
-			 log(dEta) * dExpDecay;
+		double dUlon = -m_dUj * 0.5 * log(dEta) * dExpDecay;
 
-		dState[0] = dUlon;
+		dState[0] = dUlon + m_dU0;
 		dState[1] = 0.0;
 		dState[3] = 0.0;
 
@@ -432,8 +485,8 @@ public:
 		EvaluateReferenceState(phys, dZp, dXp, dYp, dState);
 
 		// Add perturbation in zonal velocity
-		//dState[0] += 0.0;
-		dState[0] += EvaluateUPrime(phys, dXp, dYp);
+		dState[0] += 0.0;
+		//dState[0] += EvaluateUPrime(phys, dXp, dYp);
 	}
 };
 
@@ -451,29 +504,32 @@ try {
 	// Uniform zonal velocity
 	double dU0;
 
-	// Magnitude of the zonal wind perturbation
-	double dUp;
+	// Magnitude of the zonal wind jet
+	double dUj;
 
-	// Lapse rate
+	// Lapse rate troposphere
 	double ddTdz;
+
+	// Lapse rate stratosphere
+	double ddTdzSTR;
 
 	// Reference absolute temperature
 	double dT0;
 
-	// Width parameter for the perturbation
-	double dLpC;
+	// Parameter reference height for temperature disturbance
+	double dhC;
 
-	// Center position of the perturbation
-	double dXC;
+	// Parameter reference length a for temperature disturbance
+	double daC;
 
-	// Center position of the perturbation
-	double dYC;
+	// Parameter reference length for mountain profile
+	double dlC;
 
 	// No Rayleigh friction
 	bool fNoRayleighFriction;
 
 	// Parse the command line
-	BeginTempestCommandLine("Baroclinic3DCartesianTest");
+	BeginTempestCommandLine("ShearJetMtnWave2DCartesianTest");
 		SetDefaultResolutionX(288);
 		SetDefaultResolutionY(48);
 		SetDefaultLevels(32);
@@ -484,38 +540,43 @@ try {
 		SetDefaultVerticalOrder(1);
 
 		CommandLineDouble(dbC, "b", 2.0);
-		CommandLineDouble(dU0, "u0", 35.0);
-		CommandLineDouble(dUp, "up", 1.0);
-		CommandLineDouble(ddTdz, "gamma", 0.005);
-		CommandLineDouble(dT0, "T0", 288.0);
-		CommandLineDouble(dLpC, "Lp", 600000.0);
-		CommandLineDouble(dXC, "Xc", 2000000.0);
-		CommandLineDouble(dYC, "Yc", 2500000.0);
+		CommandLineDouble(dU0, "u0", 10.0);
+		CommandLineDouble(dUj, "uj", 5.0);
+		CommandLineDouble(ddTdz, "gamma", 0.0065);
+		CommandLineDouble(ddTdzSTR, "gamma_str", -0.002);
+		CommandLineDouble(dT0, "T0", 280.0);
+		CommandLineDouble(dhC, "hC", 250.0);
+		CommandLineDouble(daC, "aC", 5000.0);
+		CommandLineDouble(dlC, "lC", 4000.0);
 		CommandLineBool(fNoRayleighFriction, "norayleigh");
 
 		ParseCommandLine(argc, argv);
 	EndCommandLine(argv)
 
-	// Create a new instance of the test
-	Baroclinic3DCartesianTest * test =
-		new Baroclinic3DCartesianTest(dbC,
-				dU0,
-				dUp,
-				ddTdz,
-				dT0,
-				dLpC,
-				dXC,
-				dYC,
-				fNoRayleighFriction);
-
 	// Setup the Model
 	AnnounceBanner("MODEL SETUP");
 
 	Model model(EquationSet::PrimitiveNonhydrostaticEquations);
-	
+
+	// Physical constants
+	const PhysicalConstants & phys = model.GetPhysicalConstants();
+
+	// Create a new instance of the test
+	ShearJetMtnWave2DCartesianTest * test =
+		new ShearJetMtnWave2DCartesianTest(phys, dbC,
+				dU0,
+				dUj,
+				ddTdz,
+				ddTdzSTR,
+				dT0,
+				dhC,
+				daC,
+				dlC,
+				fNoRayleighFriction);
+
 	// Setup the cartesian model with dimensions and reference latitude
-	TempestSetupCartesianModel(model, test->m_dGDim, test->m_dRefLat, 
-								test->m_iLatBC, false);
+	TempestSetupCartesianModel(model, test->m_dGDim, 0.0, 
+								test->m_iLatBC, true);
 
 	// Set the reference length to reduce diffusion relative to global scale
 	const double XL = std::abs(test->m_dGDim[1] - test->m_dGDim[0]);
@@ -543,7 +604,7 @@ try {
 
 } catch(Exception & e) {
 	std::cout << e.ToString() << std::endl;
-        std::cout << "Try/catch block in the main program!" << std::endl;
+	std::cout << "Try/catch block in the main program!" << std::endl;
 }
 
 	// Deinitialize Tempest
