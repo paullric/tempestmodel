@@ -72,6 +72,16 @@ private:
 	///	</summary>
 	double m_dpiC;
 
+        ///     <summary>
+        ///             Uniform diffusion coefficient for scalars.
+        ///     </summary>
+        double m_dUCoeffS;
+
+        ///     <summary>
+        ///             Uniform diffusion coefficient for vectors.
+        ///     </summary>
+        double m_dUCoeffV;
+
 	///	<summary>
 	///		Flag indicating that Rayleigh friction is inactive.
 	///	</summary>
@@ -89,6 +99,8 @@ public:
 		double dxC,
 		double daC,
 		double dpiC,
+		double dUCoeffS,
+		double dUCoeffV,
 		bool fNoRayleighFriction
 	) :
 		m_dU0(dU0),
@@ -98,11 +110,13 @@ public:
 		m_dxC(dxC),
 		m_daC(daC),
 		m_dpiC(dpiC),
+		m_dUCoeffS(dUCoeffS),
+		m_dUCoeffV(dUCoeffV),
 		m_fNoRayleighFriction(fNoRayleighFriction)
 	{
 		// Set the dimensions of the box
 		m_dGDim[0] = 0.0;
-		m_dGDim[1] = 150000.0;
+		m_dGDim[1] = 120000.0;
 		m_dGDim[2] = -100.0;
 		m_dGDim[3] = 100.0;
 		m_dGDim[4] = 0.0;
@@ -147,10 +161,10 @@ public:
 		double & dScalarUniformDiffusionCoeff,
 		double & dVectorUniformDiffusionCoeff
 	) const {
-		dScalarUniformDiffusionCoeff = 0.0;
-		dVectorUniformDiffusionCoeff = 0.0;
+		dScalarUniformDiffusionCoeff = m_dUCoeffS;
+		dVectorUniformDiffusionCoeff = m_dUCoeffV;
 	}
-
+/*
 	///	<summary>
 	///		Evaluate the topography at the given point. (cartesian version)
 	///	</summary>
@@ -161,10 +175,27 @@ public:
 	) const {
 		// Specify the Linear Mountain (case 6 from Giraldo et al. 2008)
 		double hsm = m_dhC / (1.0 + ((dXp - m_dxC)/m_daC) *
-									((dXp - m_dxC)/m_daC));
+	  				    ((dXp - m_dxC)/m_daC));
 		//std::cout << hsm << "\n";
 		return hsm;
 	}
+*/
+        ///     <summary>
+        ///             Evaluate the topography at the given point. (cartesian version)
+        ///     </summary>
+        virtual double EvaluateTopography(
+                const PhysicalConstants & phys,
+                double dXp,
+                double dYp
+        ) const {
+                // Specify the mountain (modified, broader, finite profile)
+                double hsm = m_dhC / (1.0 + ((dXp - m_dxC)/m_daC) *
+                                            ((dXp - m_dxC)/m_daC) *
+					    ((dXp - m_dxC)/m_daC) *
+					    ((dXp - m_dxC)/m_daC));
+                //std::cout << hsm << "\n";
+                return hsm;
+        }
 
 	///	<summary>
 	///		Flag indicating whether or not Rayleigh friction strength is given.
@@ -337,6 +368,12 @@ try {
 	// Parameter Archimede's Constant (essentially Pi but to some digits)
 	double dpiC;
 
+        // Uniform diffusion coefficient scalars
+        double dUCoeffS;
+
+        // Uniform diffusion coefficient vectors
+        double dUCoeffV;
+
 	// No Rayleigh friction
 	bool fNoRayleighFriction;
 
@@ -359,6 +396,8 @@ try {
 		CommandLineDouble(daC, "aC", 1000.0);
 		CommandLineDouble(dxC, "xC", 5.0E+4);
 		CommandLineDouble(dpiC, "piC", 3.14159265);
+                CommandLineDouble(dUCoeffS, "nuDiffS", 0.0);
+                CommandLineDouble(dUCoeffV, "nuDiffV", 0.0);
 		CommandLineBool(fNoRayleighFriction, "norayleigh");
 
 		ParseCommandLine(argc, argv);
@@ -374,6 +413,8 @@ try {
 			dxC,
 			daC,
 			dpiC,
+			dUCoeffS,
+			dUCoeffV,
 			fNoRayleighFriction);
 
 	// Setup the Model

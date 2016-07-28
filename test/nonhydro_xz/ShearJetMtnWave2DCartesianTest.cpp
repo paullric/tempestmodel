@@ -119,6 +119,16 @@ private:
 	///	</summary>
 	double m_dTPEta;
 
+        ///     <summary>
+        ///             Uniform diffusion coefficient for scalars.
+        ///     </summary>
+        double m_dUCoeffS;
+
+        ///     <summary>
+        ///             Uniform diffusion coefficient for vectors.
+        ///     </summary>
+        double m_dUCoeffV;
+
 public:
 	///	<summary>
 	///		Constructor. (with physical constants defined privately here)
@@ -134,6 +144,8 @@ public:
 		double dhC,
 		double daC,
 		double dlC,
+		double dUCoeffS,
+		double dUCoeffV,
 		bool fNoRayleighFriction
 	) :
 		m_dbC(dbC),
@@ -145,6 +157,8 @@ public:
 		m_dhC(dhC),
 		m_daC(daC),
 		m_dlC(dlC),
+		m_dUCoeffS(dUCoeffS),
+		m_dUCoeffV(dUCoeffV),
 		m_fNoRayleighFriction(fNoRayleighFriction)
 	{
 		m_dpiC = M_PI;
@@ -224,8 +238,8 @@ public:
 		double & dScalarUniformDiffusionCoeff,
 		double & dVectorUniformDiffusionCoeff
 	) const {
-		dScalarUniformDiffusionCoeff = 0.0;
-		dVectorUniformDiffusionCoeff = 0.0;
+		dScalarUniformDiffusionCoeff = m_dUCoeffS;
+		dVectorUniformDiffusionCoeff = m_dUCoeffV;
 	}
 //
 	///	<summary>
@@ -277,8 +291,8 @@ public:
 	) const {
 		const double dRayleighStrengthZ = 1.0E-2;//8.0e-3;
 		const double dRayleighStrengthX = 1.0 * dRayleighStrengthZ;
-		const double dRayleighDepth = 7500.0;
-		const double dRayleighWidth = 10000.0;
+		const double dRayleighDepth = 5000.0;
+		const double dRayleighWidth = 5000.0;
 
 		double dNuDepth = 0.0;
 		double dNuRight = 0.0;
@@ -525,6 +539,12 @@ try {
 	// Parameter reference length for mountain profile
 	double dlC;
 
+	// Uniform diffusion coefficient scalars
+	double dUCoeffS;
+
+	// Uniform diffusion coefficient vectors
+	double dUCoeffV;
+
 	// No Rayleigh friction
 	bool fNoRayleighFriction;
 
@@ -548,6 +568,8 @@ try {
 		CommandLineDouble(dhC, "hC", 250.0);
 		CommandLineDouble(daC, "aC", 5000.0);
 		CommandLineDouble(dlC, "lC", 4000.0);
+		CommandLineDouble(dUCoeffS, "nuDiffS", 0.0);
+		CommandLineDouble(dUCoeffV, "nuDiffV", 0.0);
 		CommandLineBool(fNoRayleighFriction, "norayleigh");
 
 		ParseCommandLine(argc, argv);
@@ -572,6 +594,8 @@ try {
 				dhC,
 				daC,
 				dlC,
+				dUCoeffS,
+				dUCoeffV,
 				fNoRayleighFriction);
 
 	// Setup the cartesian model with dimensions and reference latitude
