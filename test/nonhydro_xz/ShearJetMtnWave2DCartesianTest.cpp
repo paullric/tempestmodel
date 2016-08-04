@@ -110,24 +110,44 @@ private:
 	double m_dTPMixedLayerH;
 
 	///	<summary>
+	///		Geopotential at the tropopause (m) DERIVED.
+	///	</summary>
+	double m_dTPPhi1;
+
+	///	<summary>
+	///		Geopotential at the top of the mixed layer (m) DERIVED.
+	///	</summary>
+	double m_dTPPhi2;
+
+	///	<summary>
 	///		Temperature at the tropopause (K) DERIVED.
 	///	</summary>
-	double m_dTPTemp;
+	double m_dTPTemp1;
+
+	///	<summary>
+	///		Temperature at the top of the mixed layer (K) DERIVED.
+	///	</summary>
+	double m_dTPTemp2;
 
 	///	<summary>
 	///		Sigma coordinate value at the tropopause DERIVED.
 	///	</summary>
-	double m_dTPEta;
+	double m_dTPEta1;
 
-        ///     <summary>
-        ///             Uniform diffusion coefficient for scalars.
-        ///     </summary>
-        double m_dUCoeffS;
+	///	<summary>
+	///		Sigma coordinate value at the top of the mixed layer DERIVED.
+	///	</summary>
+	double m_dTPEta2;
 
-        ///     <summary>
-        ///             Uniform diffusion coefficient for vectors.
-        ///     </summary>
-        double m_dUCoeffV;
+	///<summary>
+	///		Uniform diffusion coefficient for scalars.
+	///</summary>
+	double m_dUCoeffS;
+
+	///<summary>
+	///		Uniform diffusion coefficient for vectors.
+	///	</summary>
+	double m_dUCoeffV;
 
 public:
 	///	<summary>
@@ -185,13 +205,17 @@ public:
 		// Get the temperature at the tropopause
 		double dEta = EtaFromRLL(
 			phys, m_dTPHeight, 0.0, 0.0, dGeopotential, dTemperature);
-		m_dTPTemp = dTemperature;
+		m_dTPTemp1 = dTemperature;
+		m_dTPEta1 = dEta;
+		m_dTPPhi1 = dGeopotential;
 
 		// Get the pressure level at the top of the mixed layer
 		dEta = EtaFromRLL(
 			phys, m_dTPHeight + m_dTPMixedLayerH, 0.0, 0.0, 
 			dGeopotential, dTemperature);
-		m_dTPEta = dEta;
+		m_dTPTemp2 = dTemperature;
+		m_dTPEta2 = dEta;
+		m_dTPPhi2 = dGeopotential;
 
 		// Set the boundary conditions for this test
 		m_iLatBC[0] = Grid::BoundaryCondition_Periodic;
@@ -356,21 +380,26 @@ public:
 		const double dLy = m_dGDim[3] - m_dGDim[2];
 
 		// Horizontally averaged temperature profile (piecewise continuous)
+		// Horizontally averaged geopotential
+		double dAvgGeopotential = 0.0;
 		double dAvgTemperature = 0.0;
 		if (dZp <= m_dTPHeight) {
 			dAvgTemperature = m_dT0 * pow(dEta, dRd * m_ddTdz / dG);
+			dAvgGeopotential =
+					m_dT0 * dG / m_ddTdz * 
+					(1.0 - pow(dEta, dRd * m_ddTdz / dG));
 		}
 		else if ((dZp > m_dTPHeight)&&(dZp <= m_dTPHeight + m_dTPMixedLayerH)) {
-			dAvgTemperature = m_dTPTemp;
+			dAvgTemperature = m_dTPTemp1;
+			dAvgGeopotential = -dRd * m_dTPTemp1 * log(dEta) + 
+								dRd * m_dTPTemp1 * log(m_dTPEta1) + m_dTPPhi1;
 		}
 		else if (dZp > m_dTPHeight + m_dTPMixedLayerH) {
-			dAvgTemperature = m_dTPTemp * pow((dEta / m_dTPEta), dRd * m_ddTdzSTR / dG);
+			dAvgTemperature = m_dTPTemp1 * pow((dEta / m_dTPEta2), dRd * m_ddTdzSTR / dG);
+			dAvgGeopotential =
+					m_dTPTemp1 * dG / m_ddTdzSTR * 
+					(1.0 - pow((dEta / m_dTPEta2), dRd * m_ddTdzSTR / dG))  + m_dTPPhi2;
 		}
-
-		// Horizontally averaged geopotential
-		double dAvgGeopotential =
-			m_dT0 * dG / m_ddTdz * 
-			(1.0 - pow(dEta, dRd * m_ddTdz / dG));
 
 		// Horizontal variation geopotential function
 		double dXYGeopotential = 0.0;
@@ -401,7 +430,7 @@ public:
 		double & dGeopotential,
 		double & dTemperature
 	) const {
-		const int MaxIterations  = 100;
+		const int MaxIterations  = 200;
 		const double InitialEta  = 1.0e-5;
 		const double Convergence = 1.0e-13;
 
