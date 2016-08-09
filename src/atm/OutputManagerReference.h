@@ -99,6 +99,14 @@ public:
 		bool fOutputSurfacePressure = true
 	);
 
+	///	<summary>
+	///		Modify the flag which indicates whether Richardson number should be
+	///		computed and output.
+	///	</summary>
+	void OutputRichardson(
+		bool fOutputRichardson = true
+	);
+
 private:
 	///	<summary>
 	///		Calculate the patch coordinates of the reference points.
@@ -316,6 +324,21 @@ private:
 	///		Computed surface pressure on the reference grid.
 	///	</summary>
 	DataArray3D<double> m_dataSurfacePressure;
+
+	///	<summary>
+	///		Flag indicating whether Richardson should be computed and output.
+	///	</summary>
+	bool m_fOutputRichardson;
+
+	///	<summary>
+	///		Richardson number output variable.
+	///	</summary>
+	NcVar * m_varRichardson;
+
+	///	<summary>
+	///		Computed Richardson number on the reference grid.
+	///	</summary>
+	DataArray3D<double> m_dataRichardson;
 
 };
 

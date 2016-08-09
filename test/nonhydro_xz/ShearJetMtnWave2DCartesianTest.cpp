@@ -395,10 +395,12 @@ public:
 								dRd * m_dTPTemp1 * log(m_dTPEta1) + m_dTPPhi1;
 		}
 		else if (dZp > m_dTPHeight + m_dTPMixedLayerH) {
-			dAvgTemperature = m_dTPTemp1 * pow((dEta / m_dTPEta2), dRd * m_ddTdzSTR / dG);
+			dAvgTemperature = m_dTPTemp1 * 
+					pow((dEta / m_dTPEta2), dRd * m_ddTdzSTR / dG);
 			dAvgGeopotential =
 					m_dTPTemp1 * dG / m_ddTdzSTR * 
-					(1.0 - pow((dEta / m_dTPEta2), dRd * m_ddTdzSTR / dG))  + m_dTPPhi2;
+					(1.0 - pow((dEta / m_dTPEta2), dRd * m_ddTdzSTR / dG)) 
+					+ m_dTPPhi2;
 		}
 
 		// Horizontal variation geopotential function

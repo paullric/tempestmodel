@@ -333,8 +333,8 @@ void GridPatchCartesianGLL::EvaluateGeometricTerms() {
 						std::sin(0.5 * M_PI * dREta) +
 					0.25 * std::sin(0.5 * M_PI * dREta) +
 					M_PI / 8.0 * dREta * std::cos(0.5 * M_PI * dREta)));
-//
-//printf("%.10E %.10E %.10E %.10E %.10E %.10E \n",m_dataLon[iA][iB],m_dataLat[iA][iB],dZ,dDaZ,dDbZ,dDxZ);
+
+//printf("%.16E %.16E %.16E %.16E %.16E %.16E \n",m_dataLon[iA][iB],m_dataLat[iA][iB],dZ,dDaZ,dDbZ,dDxZ);
 
 				// Calculate pointwise Jacobian
 				m_dataJacobian[k][iA][iB] =
@@ -434,7 +434,7 @@ void GridPatchCartesianGLL::EvaluateGeometricTerms() {
 						std::sin(0.5 * M_PI * dREta) +
 					0.25 * std::sin(0.5 * M_PI * dREta) +
 					M_PI / 8.0 * dREta * std::cos(0.5 * M_PI * dREta)));
-//
+
 //printf("%.16E %.16E %.16E %.16E %.16E %.16E \n",m_dataLon[iA][iB],m_dataLat[iA][iB],dZ,dDaZ,dDbZ,dDxZ);
 
 				// Calculate pointwise Jacobian
@@ -1462,6 +1462,10 @@ void GridPatchCartesianGLL::InterpolateData(
 		nComponents = 1;
 		nRElements = 1;
 
+	// Richardson number Data
+	} else if (eDataType == DataType_Richardson) {
+		nComponents = 1;
+
 	// 2D User Data
 	} else if (eDataType == DataType_Auxiliary2D) {
 		nComponents = m_dataUserData2D.GetSize(0);
@@ -1601,6 +1605,9 @@ void GridPatchCartesianGLL::InterpolateData(
 
 		} else if (eDataType == DataType_SurfacePressure) {
 			pData.AttachToData(&(m_dataSurfacePressure[0][0]));
+
+		} else if (eDataType == DataType_Richardson) {
+			pData.AttachToData(&(m_dataRichardson[0][0][0]));
 
 		} else if (eDataType == DataType_Auxiliary2D) {
 			pData.AttachToData(&(m_dataUserData2D[c][0][0]));

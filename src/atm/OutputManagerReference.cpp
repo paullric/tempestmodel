@@ -61,6 +61,7 @@ OutputManagerReference::OutputManagerReference(
 	m_fOutputDivergence(false),
 	m_fOutputTemperature(false),
 	m_fOutputSurfacePressure(false),
+	m_fOutputRichardson(false),
 	m_fOutputAllVarsOnNodes(fOutputAllVarsOnNodes),
 	m_fRemoveReferenceProfile(fRemoveReferenceProfile)
 {
@@ -162,6 +163,18 @@ void OutputManagerReference::OutputSurfacePressure(
 
 ///////////////////////////////////////////////////////////////////////////////
 
+void OutputManagerReference::OutputRichardson(
+	bool fOutputRichardson
+) {
+	m_fOutputRichardson = fOutputRichardson;
+
+	if (!fOutputRichardson) {
+		m_dataRichardson.Deallocate();
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
 bool OutputManagerReference::CalculatePatchCoordinates() {
 
 	if (m_grid.GetGridStamp() == m_iGridStamp) {
@@ -258,6 +271,13 @@ bool OutputManagerReference::CalculatePatchCoordinates() {
 		m_dataSurfacePressure.Allocate(
 			1,
 			1,
+			m_nXReference * m_nYReference);
+	}
+
+	if (m_fOutputRichardson) {
+		m_dataRichardson.Allocate(
+			1,
+			m_dREtaCoord.GetRows(),
 			m_nXReference * m_nYReference);
 	}
 
@@ -423,6 +443,13 @@ bool OutputManagerReference::OpenFile(
 			m_varSurfacePressure =
 				m_pActiveNcOutput->add_var(
 					"PS", ncDouble, dimTime, dimLat, dimLon);
+		}
+
+		// Richardson number variable
+		if (m_fOutputRichardson) {
+			m_varRichardson =
+				m_pActiveNcOutput->add_var(
+					"Ri", ncDouble, dimTime, dimLev, dimLat, dimLon);
 		}
 
 		// User data variables
@@ -654,6 +681,19 @@ void OutputManagerReference::Output(
 			m_dataSurfacePressure);
 	}
 
+	// Perform Interpolate / Reduction on Richardson number
+	if (m_fOutputRichardson) {
+		m_grid.ComputeRichardson(0);
+
+		m_grid.ReduceInterpolate(
+			DataType_Richardson,
+			m_dREtaCoord,
+			m_dAlpha,
+			m_dBeta,
+			m_iPatch,
+			m_dataRichardson);
+	}
+
 	// Store state variable data
 	if (nRank == 0) {
 		for (int c = 0; c < eqn.GetComponents(); c++) {
@@ -743,6 +783,17 @@ void OutputManagerReference::Output(
 			m_varSurfacePressure->put(
 				&(m_dataSurfacePressure[0][0][0]),
 				1,
+				m_dYCoord.GetRows(),
+				m_dXCoord.GetRows());
+		}
+
+		// Store Richardson data
+		if (m_fOutputRichardson) {
+			m_varRichardson->set_cur(m_ixOutputTime, 0, 0, 0);
+			m_varRichardson->put(
+				&(m_dataRichardson[0][0][0]),
+				1,
+				m_dataRichardson.GetColumns(),
 				m_dYCoord.GetRows(),
 				m_dXCoord.GetRows());
 		}

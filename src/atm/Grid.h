@@ -350,6 +350,13 @@ public:
 	);
 
 	///	<summary>
+	///		Compute Richardson number on the grid.
+	///	</summary>
+	virtual void ComputeRichardson(
+		int iDataIndex
+	);
+
+	///	<summary>
 	///		Interpolate data vertically from Nodes to REdges.
 	///	</summary>
 	void InterpolateNodeToREdge(
@@ -366,15 +373,15 @@ public:
 	);
 
 public:
-    ///	<summary>
+	///	<summary>
 	///		Get the bounds on the reference grid.
 	///	</summary>
 	virtual void GetReferenceGridBounds(
-        double & dX0,
-        double & dX1,
-        double & dY0,
-        double & dY1
-    ) {
+		double & dX0,
+		double & dX1,
+		double & dY0,
+		double & dY1
+	) {
 		_EXCEPTIONT("Not implemented");
 	}
 

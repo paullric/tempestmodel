@@ -102,6 +102,15 @@ public:
 		return m_dElementDeltaB;
 	}
 
+public:
+	///	<summary>
+	///		Compute the local gradient Richardson number (AMS version)
+	///	</summary>
+	virtual void ComputeRichardson(
+		int iDataIndex,
+		DataLocation loc = DataLocation_REdge
+	);
+
 protected:
 	///	<summary>
 	///		Order of accuracy of this patch.

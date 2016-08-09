@@ -453,6 +453,14 @@ void GridPatch::InitializeDataLocal(
 		m_box.GetATotalWidth(),
 		m_box.GetBTotalWidth());
 
+	// Richardson number data
+	m_dataRichardson.SetDataType(DataType_Richardson);
+	m_dataRichardson.SetDataLocation(DataLocation_Node);
+	m_dataRichardson.SetSize(
+		m_grid.GetRElements(),
+		m_box.GetATotalWidth(),
+		m_box.GetBTotalWidth());
+
 	// Surface pressure data
 	m_dataSurfacePressure.SetDataType(DataType_SurfacePressure);
 	m_dataSurfacePressure.SetDataLocation(DataLocation_None);
@@ -466,6 +474,7 @@ void GridPatch::InitializeDataLocal(
 	m_dcAuxiliary.PushDataChunk(&m_dataVorticity);
 	m_dcAuxiliary.PushDataChunk(&m_dataDivergence);
 	m_dcAuxiliary.PushDataChunk(&m_dataTemperature);
+	m_dcAuxiliary.PushDataChunk(&m_dataRichardson);
 	m_dcAuxiliary.PushDataChunk(&m_dataSurfacePressure);
 
 	// 2D User data
@@ -1211,6 +1220,11 @@ void GridPatch::Send(
 		m_connect.Pack(m_dataTemperature);
 		m_connect.Send();
 
+	// Richardson data
+	} else if (eDataType == DataType_Richardson) {
+		m_connect.Pack(m_dataRichardson);
+		m_connect.Send();
+
 	// Topography derivative data
 	} else if (eDataType == DataType_TopographyDeriv) {
 		m_connect.Pack(m_dataTopographyDeriv);
@@ -1270,6 +1284,13 @@ void GridPatch::Receive(
 		Neighbor * pNeighbor;
 		while ((pNeighbor = m_connect.WaitReceive()) != NULL) {
 			pNeighbor->Unpack(m_dataTemperature);
+		}
+
+	// Richardson data
+	} else if (eDataType == DataType_Richardson) {
+		Neighbor * pNeighbor;
+		while ((pNeighbor = m_connect.WaitReceive()) != NULL) {
+			pNeighbor->Unpack(m_dataRichardson);
 		}
 
 	// Topographic derivatives
