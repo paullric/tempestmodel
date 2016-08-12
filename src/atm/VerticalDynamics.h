@@ -71,7 +71,7 @@ public:
 		double dDeltaT
 	) {
 	}
-
+/*
 	///	<summary>
 	///		Force a full explicit update one time only
 	///	</summary>
@@ -81,7 +81,19 @@ public:
 		const Time & time,
 		double dDeltaT
 	) {
-        }
+		}
+*/
+	///	<summary>
+	///		Apply the residual based viscosity update explicitly
+	///	</summary>
+	virtual void StepResidualDiffusionExplicitly(
+		int iDataInitial,
+		int iDataUpdate,
+		int iDataResidual,
+		const Time & time,
+		double dDeltaT
+	) {
+		}
 
 	///	<summary>
 	///		Advance an explicit update of implicit terms one time
@@ -92,7 +104,7 @@ public:
 		const Time & time,
 		double dDeltaT
 	) {
-        }
+		}
 
 	///	<summary>
 	///		Perform one implicit time step.

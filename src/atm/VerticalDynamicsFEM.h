@@ -158,6 +158,17 @@ public:
 	);
 
 	///	<summary>
+	///		Apply the residual based viscosity update explicitly
+	///	</summary>
+	virtual void StepResidualDiffusionExplicitly(
+		int iDataInitial,
+		int iDataUpdate,
+		int iDataResidual,
+		const Time & time,
+		double dDeltaT
+	);
+
+	///	<summary>
 	///		Build the Jacobian matrix.
 	///	</summary>
 	void BootstrapJacobian();
@@ -323,6 +334,11 @@ protected:
 	///		Variables to target with uniform diffusion.
 	///	</summary>
 	DataArray1D<bool> m_fUniformDiffusionVar;
+
+	///	<summary>
+	///		Variables to target with uniform diffusion.
+	///	</summary>
+	DataArray1D<bool> m_fResidualDiffusionVar;
 
 	///	<summary>
 	///		Finite element upwinding weights.

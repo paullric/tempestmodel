@@ -60,14 +60,14 @@ public:
 	///		Get the number of component data instances.
 	///	</summary>
 	virtual int GetComponentDataInstances() const {
-		return 5;
+		return 6;
 	}
 
 	///	<summary>
 	///		Get the number of tracer data instances.
 	///	</summary>
 	virtual int GetTracerDataInstances() const {
-		return 5;
+		return 6;
 	}
 
 	///	<summary>
@@ -156,6 +156,16 @@ private:
 	///		Linear combination coefficients used by KGU35.
 	///	</summary>
 	DataArray1D<double> m_dKinnmarkGrayUllrichCombination;
+
+	///	<summary>
+	///		Linear combination coefficients used by KGU35 to store F.
+	///	</summary>
+	DataArray1D<double> m_dKinnmarkGrayUllrichCombinationF;
+
+	///	<summary>
+	///		Linear combination coefficients used by KGU35 to store Residual.
+	///	</summary>
+	DataArray1D<double> m_dKinnmarkGrayUllrichCombinationR;
 
 	///	<summary>
 	///		Linear combination coefficients used by SSPRK53 (combination A).

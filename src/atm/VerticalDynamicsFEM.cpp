@@ -35,14 +35,18 @@
 //#define HYPERVISC_VERTICAL_VELOCITY
 
 #define UPWIND_HORIZONTAL_VELOCITIES
-#define UPWIND_THERMO
-#define UPWIND_VERTICAL_VELOCITY
-#define UPWIND_RHO_AND_TRACERS
+//#define UPWIND_THERMO
+//#define UPWIND_VERTICAL_VELOCITY
+//#define UPWIND_RHO_AND_TRACERS
 
-#define UNIFORM_DIFFUSION_HORIZONTAL_VELOCITIES
-#define UNIFORM_DIFFUSION_THERMO
-#define UNIFORM_DIFFUSION_VERTICAL_VELOCITY
-#define UNIFORM_DIFFUSION_TRACERS
+//#define UNIFORM_DIFFUSION_HORIZONTAL_VELOCITIES
+//#define UNIFORM_DIFFUSION_THERMO
+//#define UNIFORM_DIFFUSION_VERTICAL_VELOCITY
+//#define UNIFORM_DIFFUSION_TRACERS
+
+#define RESIDUAL_DIFFUSION_HORIZONTAL_VELOCITIES
+#define RESIDUAL_DIFFUSION_THERMO
+#define RESIDUAL_DIFFUSION_VERTICAL_VELOCITY
 
 //#define EXPLICIT_THERMO
 //#define EXPLICIT_VERTICAL_VELOCITY_ADVECTION
@@ -169,7 +173,7 @@ void VerticalDynamicsFEM::Initialize() {
 
 	// Upwind weights
 	if (pGrid->GetVerticalDiscretization() ==
-	    Grid::VerticalDiscretization_FiniteVolume
+		Grid::VerticalDiscretization_FiniteVolume
 	) {
 		if (m_nVerticalOrder <= 2) {
 			m_nJacobianFOffD = 4;
@@ -220,6 +224,7 @@ void VerticalDynamicsFEM::Initialize() {
 	m_fHypervisVar.Allocate(6);
 	m_fUpwindVar.Allocate(6);
 	m_fUniformDiffusionVar.Allocate(6);
+	m_fResidualDiffusionVar.Allocate(6);
 
 #if defined(HYPERVISC_HORIZONTAL_VELOCITIES)
 	Announce("Hyperviscosity on horizontal velocities");
@@ -280,6 +285,32 @@ void VerticalDynamicsFEM::Initialize() {
 	}
 #endif
 
+#if defined(RESIDUAL_DIFFUSION_HORIZONTAL_VELOCITIES)
+	if (pGrid->HasUniformDiffusion()) {
+		Announce("Residual diffusion on horizontal velocities");
+		m_fResidualDiffusionVar[UIx] = true;
+		m_fResidualDiffusionVar[VIx] = true;
+	}
+#endif
+#if defined(RESIDUAL_DIFFUSION_THERMO)
+	if (pGrid->HasUniformDiffusion()) {
+		Announce("Residual diffusion on thermodynamic variable");
+		m_fResidualDiffusionVar[PIx] = true;
+	}
+#endif
+#if defined(RESIDUAL_DIFFUSION_VERTICAL_VELOCITY)
+	if (pGrid->HasUniformDiffusion()) {
+		Announce("Residual diffusion on vertical velocity");
+		m_fResidualDiffusionVar[WIx] = true;
+	}
+#endif
+#if defined(UNIFORM_DIFFUSION_TRACERS)
+	if (pGrid->HasUniformDiffusion()) {
+		Announce("Residual diffusion on tracers");
+		m_fResidualDiffusionVar[TracerIx] = true;
+	}
+#endif
+
 #if defined(EXPLICIT_THERMO)
 	Announce("Explicit thermodynamic advection");
 #else
@@ -301,7 +332,7 @@ void VerticalDynamicsFEM::Initialize() {
 
 	// Upwind weights
 	if (pGrid->GetVerticalDiscretization() ==
-	    Grid::VerticalDiscretization_FiniteVolume
+		Grid::VerticalDiscretization_FiniteVolume
 	) {
 		m_dUpwindWeights.Allocate(nRElements-1);
 
@@ -543,7 +574,7 @@ void VerticalDynamicsFEM::StepImplicitTermsExplicitly(
 #endif
 #if defined(EXPLICIT_THERMO) \
  || (defined(EXPLICIT_VERTICAL_VELOCITY_ADVECTION) \
-     && defined(VERTICAL_VELOCITY_ADVECTION_CLARK))
+	 && defined(VERTICAL_VELOCITY_ADVECTION_CLARK))
 		// Interpolate W to levels
 		pPatch->InterpolateREdgeToNode(WIx, iDataInitial);
 #endif
@@ -617,8 +648,251 @@ void VerticalDynamicsFEM::StepImplicitTermsExplicitly(
 				dataUpdateTracer);
 		}
 		}
-	}	     
+	}
 }
+
+///////////////////////////////////////////////////////////////////////////////
+
+void VerticalDynamicsFEM::StepResidualDiffusionExplicitly(
+	int iDataInitial,
+	int iDataUpdate,
+	int iDataResidual,
+	const Time & time,
+	double dDeltaT
+) {
+	// Start the function timer
+	FunctionTimer timer("VerticalStepExplicit");
+
+	// Get a copy of the grid
+	GridGLL * pGrid = dynamic_cast<GridGLL *>(m_model.GetGrid());
+
+	// Physical constants
+	const PhysicalConstants & phys = m_model.GetPhysicalConstants();
+
+	// Indices of EquationSet variables
+	const int UIx = 0;
+	const int VIx = 1;
+	const int PIx = 2;
+	const int WIx = 3;
+	const int RIx = 4;
+
+	// Number of elements
+	const int nRElements = pGrid->GetRElements();
+
+	// Number of finite elements in the vertical
+	int nFiniteElements = nRElements / m_nVerticalOrder;
+	int nNodesPerFiniteElement = m_nVerticalOrder;
+
+	if (pGrid->GetVerticalDiscretization() ==
+		Grid::VerticalDiscretization_FiniteVolume
+	) {
+		nFiniteElements = nRElements;
+		nNodesPerFiniteElement = 1;
+	}
+
+	// Store timestep size
+	m_dDeltaT = dDeltaT;
+
+	// Reset the reference state
+	memset(m_dStateRefNode[WIx],  0,  nRElements   *sizeof(double));
+	memset(m_dStateRefREdge[WIx], 0, (nRElements+1)*sizeof(double));
+
+	// Perform local update
+	for (int n = 0; n < pGrid->GetActivePatchCount(); n++) {
+		GridPatch * pPatch = pGrid->GetActivePatch(n);
+
+		const PatchBox & box = pPatch->GetPatchBox();
+
+		// State Data
+		const DataArray4D<double> & dataRefNode =
+			pPatch->GetReferenceState(DataLocation_Node);
+
+		const DataArray4D<double> & dataInitialNode =
+			pPatch->GetDataState(iDataInitial, DataLocation_Node);
+
+		DataArray4D<double> & dataUpdateNode =
+			pPatch->GetDataState(iDataUpdate, DataLocation_Node);
+
+		const DataArray4D<double> & dataRefREdge =
+			pPatch->GetReferenceState(DataLocation_REdge);
+
+		const DataArray4D<double> & dataInitialREdge =
+			pPatch->GetDataState(iDataInitial, DataLocation_REdge);
+
+		DataArray4D<double> & dataUpdateREdge =
+			pPatch->GetDataState(iDataUpdate, DataLocation_REdge);
+
+		DataArray4D<double> & dataReferenceTracer =
+			pPatch->GetReferenceTracers();
+
+		DataArray4D<double> & dataInitialTracer =
+			pPatch->GetDataTracers(iDataInitial);
+
+		DataArray4D<double> & dataUpdateTracer =
+			pPatch->GetDataTracers(iDataUpdate);
+
+		// Metric quantities
+		const DataArray4D<double> & dDerivRNode =
+			pPatch->GetDerivRNode();
+
+		const DataArray4D<double> & dContraMetricXi =
+			pPatch->GetContraMetricXi();
+
+		const DataArray4D<double> & dDerivRREdge =
+			pPatch->GetDerivRREdge();
+
+		const DataArray4D<double> & dContraMetricXiREdge =
+			pPatch->GetContraMetricXiREdge();
+
+		const DataArray4D<double> & dContraMetricA =
+			pPatch->GetContraMetricA();
+
+		const DataArray4D<double> & dContraMetricB =
+			pPatch->GetContraMetricB();
+
+		const DataArray4D<double> & dContraMetricAREdge =
+			pPatch->GetContraMetricAREdge();
+
+		const DataArray4D<double> & dContraMetricBREdge =
+			pPatch->GetContraMetricBREdge();
+
+		// Loop over all nodes
+		for (int i = box.GetAInteriorBegin(); i < box.GetAInteriorEnd(); i++) {
+		for (int j = box.GetBInteriorBegin(); j < box.GetBInteriorEnd(); j++) {
+
+			// Setup the reference column:  Store U and V in m_dState arrays
+			// and interpolate U and V from levels to interfaces.
+			SetupReferenceColumn(
+				pPatch, i, j,
+				dataRefNode,
+				dataInitialNode,
+				dataRefREdge,
+				dataInitialREdge);
+
+			// Store W in m_dState structure on levels and interfaces
+			if (pGrid->GetVarLocation(WIx) == DataLocation_Node) {
+				for (int k = 0; k < nRElements; k++) {
+					m_dStateNode[WIx][k] = dataInitialNode[WIx][k][i][j];
+				}
+
+				pGrid->InterpolateNodeToREdge(
+					m_dStateNode[WIx],
+					m_dStateREdge[WIx]);
+
+			} else {
+				for (int k = 0; k <= nRElements; k++) {
+					m_dStateREdge[WIx][k] = dataInitialREdge[WIx][k][i][j];
+				}
+
+				pGrid->InterpolateREdgeToNode(
+					m_dStateREdge[WIx],
+					m_dStateNode[WIx]);
+			}
+
+			// Update thermodynamic variables
+			if (m_fFullyExplicit) {
+
+			//////////////////////////////////////////////////////////////
+			// Apply hyperviscosity or uniform diffusion to U and V
+			if (m_fResidualDiffusionVar[UIx]) {
+
+				// Second derivatives of horizontal velocity on model levels
+				pGrid->DiffDiffNodeToNode(
+					m_dStateNode[UIx],
+					m_dDiffDiffStateHypervis[UIx]);
+
+				pGrid->DiffDiffNodeToNode(
+					m_dStateNode[VIx],
+					m_dDiffDiffStateHypervis[VIx]);
+
+				// Apply uniform diffusion in the vertical
+				double dZtop = pGrid->GetZtop();
+
+				double dUniformDiffusionCoeff =
+					pGrid->GetVectorUniformDiffusionCoeff()
+					/ (dZtop * dZtop);
+
+				for (int k = 0; k < nRElements; k++) {
+					m_dStateRefNode[UIx][k] = dataRefNode[UIx][k][i][j];
+					m_dStateRefNode[VIx][k] = dataRefNode[VIx][k][i][j];
+				}
+
+				pGrid->DiffDiffNodeToNode(
+					m_dStateRefNode[UIx],
+					m_dDiffDiffStateUniform[UIx]);
+
+				pGrid->DiffDiffNodeToNode(
+					m_dStateRefNode[VIx],
+					m_dDiffDiffStateUniform[VIx]);
+
+				for (int k = 0; k < nRElements; k++) {
+					dataUpdateNode[UIx][k][i][j] +=
+						dDeltaT
+						* dUniformDiffusionCoeff
+						* (m_dDiffDiffStateHypervis[UIx][k]
+							- m_dDiffDiffStateUniform[UIx][k]);
+
+					dataUpdateNode[VIx][k][i][j] +=
+						dDeltaT
+						* dUniformDiffusionCoeff
+						* (m_dDiffDiffStateHypervis[VIx][k]
+							- m_dDiffDiffStateUniform[VIx][k]);
+				}
+			}
+
+			///////////////////////////////////////////////////////////////////
+			// Apply uniform diffusion to theta and vertical velocity
+			for (int c = 2; c < 4; c++) {
+
+				// Only upwind select variables
+				if (!m_fResidualDiffusionVar[c]) {
+					continue;
+				}
+
+				double dZtop = pGrid->GetZtop();
+
+				// Do not diffusion vertical velocity on boundaries
+				if (c == WIx) {
+					m_dDiffDiffStateUniform[c][0] = 0.0;
+					m_dDiffDiffStateUniform[c][nRElements] = 0.0;
+				}
+
+				// Residual based diffusion coefficients
+				double dResidualDiffusionCoeff = 0.0;
+				if (c == PIx) {
+					dResidualDiffusionCoeff =
+						pGrid->GetScalarUniformDiffusionCoeff() / (dZtop * dZtop);
+				}
+				if (c == WIx) {
+					dResidualDiffusionCoeff =
+						pGrid->GetVectorUniformDiffusionCoeff() / (dZtop * dZtop);
+				}
+
+				// Uniform diffusion on interfaces
+				if (pGrid->GetVarLocation(c) == DataLocation_REdge) {
+					for (int k = 0; k <= nRElements; k++) {
+						dataUpdateREdge[c][k][i][j] +=
+							dDeltaT
+							* dResidualDiffusionCoeff
+							* m_dDiffDiffStateUniform[c][k];
+					}
+
+				// Uniform diffusion on levels
+				} else {
+					for (int k = 0; k < nRElements; k++) {
+						dataUpdateNode[c][k][i][j] +=
+							dDeltaT
+							* dResidualDiffusionCoeff
+							* m_dDiffDiffStateUniform[c][k];
+					}
+				}
+			}
+			}
+		}
+		}
+	}
+}
+
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -652,7 +926,7 @@ void VerticalDynamicsFEM::StepExplicit(
 	int nNodesPerFiniteElement = m_nVerticalOrder;
 
 	if (pGrid->GetVerticalDiscretization() ==
-	    Grid::VerticalDiscretization_FiniteVolume
+		Grid::VerticalDiscretization_FiniteVolume
 	) {
 		nFiniteElements = nRElements;
 		nNodesPerFiniteElement = 1;
@@ -1153,7 +1427,7 @@ void VerticalDynamicsFEM::StepExplicit(
 			//////////////////////////////////////////////////////////////
 			// Apply hyperviscosity or uniform diffusion to U and V
 			if ((m_fHypervisVar[UIx]) ||
-			    (m_fUniformDiffusionVar[UIx])
+				(m_fUniformDiffusionVar[UIx])
 			) {
 
 				// Second derivatives of horizontal velocity on model levels

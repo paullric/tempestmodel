@@ -89,7 +89,7 @@ void TimestepSchemeARS443::Step(
 	m_du3fCombo[7] = -m_dExpCf[2][1] / m_dExpCf[1][1];
 	m_du3fCombo[8] = 0.0;
 	
-        // u4 explicit evaluation combination
+	// u4 explicit evaluation combination
 	m_du4fCombo[0] = 1.0 - m_dExpCf[3][0] / m_dExpCf[0][0];
 	m_du4fCombo[1] = m_dExpCf[3][0] / m_dExpCf[0][0] - 
 	m_dImpCf[3][0] / m_dImpCf[0][0];

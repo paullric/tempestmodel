@@ -86,13 +86,17 @@ TimestepSchemeStrang::TimestepSchemeStrang(
 	m_dSSPRK3CombinationB[3] = 0.0;
 	m_dSSPRK3CombinationB[4] = 0.0;
 
-	// KGU 3-5 combination
-	m_dKinnmarkGrayUllrichCombination.Allocate(5);
+	// KGU 3-5 combination (modified for residual computation)
+	m_dKinnmarkGrayUllrichCombination.Allocate(6);
 	m_dKinnmarkGrayUllrichCombination[0] = - 1.0 / 4.0;
 	m_dKinnmarkGrayUllrichCombination[1] =   5.0 / 4.0;
 	m_dKinnmarkGrayUllrichCombination[2] =   0.0;
 	m_dKinnmarkGrayUllrichCombination[3] =   0.0;
 	m_dKinnmarkGrayUllrichCombination[4] =   0.0;
+	m_dKinnmarkGrayUllrichCombination[5] =   0.0;
+
+	m_dKinnmarkGrayUllrichCombinationF.Allocate(6);
+	m_dKinnmarkGrayUllrichCombinationR.Allocate(6);
 
 	// SSPRK53 combination A
 	m_dSSPRK53CombinationA.Allocate(4);
@@ -553,6 +557,20 @@ void TimestepSchemeStrang::Step(
 		pGrid->PostProcessSubstage(1, DataType_State);
 		pGrid->PostProcessSubstage(1, DataType_Tracers);
 
+		// Compute the function evaluation F(u^n) and store it
+		m_dKinnmarkGrayUllrichCombinationF[0] = - 1.0 / (5.0 * dDeltaT);
+		m_dKinnmarkGrayUllrichCombinationF[1] =   1.0 / (5.0 * dDeltaT);
+		m_dKinnmarkGrayUllrichCombinationF[2] =   0.0;
+		m_dKinnmarkGrayUllrichCombinationF[3] =   0.0;
+		m_dKinnmarkGrayUllrichCombinationF[4] =   0.0;
+		//m_dKinnmarkGrayUllrichCombinationF[5] =   0.0;
+
+		//std::cout << "Store RHS for Residual Viscosity calculation.." << "\n";
+		pGrid->LinearCombineData(
+			m_dKinnmarkGrayUllrichCombinationF, 5, DataType_State);
+		pGrid->LinearCombineData(
+			m_dKinnmarkGrayUllrichCombinationF, 5, DataType_Tracers);
+
 		pGrid->CopyData(0, 2, DataType_State);
 		pGrid->CopyData(0, 2, DataType_Tracers);
 		pHorizontalDynamics->StepExplicit(1, 2, time, dDeltaT / 5.0);
@@ -639,11 +657,32 @@ void TimestepSchemeStrang::Step(
 	pGrid->CopyData(4, 1, DataType_Tracers);
 	pHorizontalDynamics->StepAfterSubCycle(4, 1, 2, time, dDeltaT);
 
+	// Make an estimate of the state residual (after hypervis is applied)
+	if (m_eExplicitDiscretization == KinnmarkGrayUllrich35) {
+		m_dKinnmarkGrayUllrichCombinationR[0] = - 1.0 / dDeltaT;
+		m_dKinnmarkGrayUllrichCombinationR[1] =   1.0 / dDeltaT;
+		m_dKinnmarkGrayUllrichCombinationR[2] =   0.0;
+		m_dKinnmarkGrayUllrichCombinationR[3] =   0.0;
+		m_dKinnmarkGrayUllrichCombinationR[4] =   0.0;
+		m_dKinnmarkGrayUllrichCombinationR[5] = - 1.0;
+
+		pGrid->LinearCombineData(
+			m_dKinnmarkGrayUllrichCombinationR, 2, DataType_State);
+		pGrid->LinearCombineData(
+			m_dKinnmarkGrayUllrichCombinationR, 2, DataType_Tracers);
+
+		pGrid->CopyData(1, 4, DataType_State);
+		pGrid->CopyData(1, 4, DataType_Tracers);
+		pVerticalDynamics->StepResidualDiffusionExplicitly(1, 4, 2, time, dDeltaT);
+	}
+
 	// Vertical timestep
 	double dOffCenterDeltaT = 0.5 * (1.0 + m_dOffCentering) * dDeltaT;
 
-	pGrid->CopyData(1, 0, DataType_State);
-	pGrid->CopyData(1, 0, DataType_Tracers);
+	//pGrid->CopyData(1, 0, DataType_State);
+	//pGrid->CopyData(1, 0, DataType_Tracers);
+	pGrid->CopyData(4, 0, DataType_State);
+	pGrid->CopyData(4, 0, DataType_Tracers);
 	pVerticalDynamics->StepImplicit(0, 0, time, dOffCenterDeltaT);
 
 	pGrid->LinearCombineData(m_dOffCenteringCombination, 0, DataType_State);

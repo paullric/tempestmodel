@@ -1609,7 +1609,7 @@ void HorizontalDynamicsFEM::StepExplicit(
 	} else {
 		_EXCEPTIONT("Invalid EquationSet");
 	}
-
+/*
 	// Uniform diffusion of U and V with vector diffusion coeff
 	if (pGrid->HasUniformDiffusion()) {
 		ApplyVectorHyperdiffusion(
@@ -1651,7 +1651,7 @@ void HorizontalDynamicsFEM::StepExplicit(
 				true);
 		}
 	}
-
+*/
 	// Apply positive definite filter to tracers
 	FilterNegativeTracers(iDataUpdate);
 }
