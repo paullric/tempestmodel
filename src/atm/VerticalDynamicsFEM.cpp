@@ -707,14 +707,20 @@ void VerticalDynamicsFEM::StepResidualDiffusionExplicitly(
 		const DataArray4D<double> & dataRefNode =
 			pPatch->GetReferenceState(DataLocation_Node);
 
-		const DataArray4D<double> & dataInitialNode =
-			pPatch->GetDataState(iDataInitial, DataLocation_Node);
+		const DataArray4D<double> & dataResidualNode =
+			pPatch->GetDataState(iDataResidual, DataLocation_Node);
 
 		DataArray4D<double> & dataUpdateNode =
 			pPatch->GetDataState(iDataUpdate, DataLocation_Node);
 
+		const DataArray4D<double> & dataInitialNode =
+			pPatch->GetDataState(iDataInitial, DataLocation_Node);
+
 		const DataArray4D<double> & dataRefREdge =
 			pPatch->GetReferenceState(DataLocation_REdge);
+
+		const DataArray4D<double> & dataResidualREdge =
+			pPatch->GetDataState(iDataResidual, DataLocation_REdge);
 
 		const DataArray4D<double> & dataInitialREdge =
 			pPatch->GetDataState(iDataInitial, DataLocation_REdge);
@@ -857,29 +863,51 @@ void VerticalDynamicsFEM::StepResidualDiffusionExplicitly(
 					m_dDiffDiffStateUniform[c][nRElements] = 0.0;
 				}
 
-				// Residual based diffusion coefficients
+				// Residual based diffusion on interfaces
 				double dResidualDiffusionCoeff = 0.0;
-				if (c == PIx) {
-					dResidualDiffusionCoeff =
-						pGrid->GetScalarUniformDiffusionCoeff() / (dZtop * dZtop);
-				}
-				if (c == WIx) {
-					dResidualDiffusionCoeff =
-						pGrid->GetVectorUniformDiffusionCoeff() / (dZtop * dZtop);
-				}
-
-				// Uniform diffusion on interfaces
 				if (pGrid->GetVarLocation(c) == DataLocation_REdge) {
 					for (int k = 0; k <= nRElements; k++) {
+						// Residual based diffusion coefficients
+						if (c == PIx) {
+							//dResidualDiffusionCoeff =
+							//	pGrid->GetScalarUniformDiffusionCoeff() / 
+							//	(dZtop * dZtop);
+							dResidualDiffusionCoeff = 0.5 * 
+								(dataResidualREdge[c][k][i][j] / 
+								(dataInitialREdge[c][k][i][j] /
+								 dataRefREdge[c][k][i][j])) / (dZtop * dZtop);
+						}
+						if (c == WIx) {
+							dResidualDiffusionCoeff =
+								pGrid->GetVectorUniformDiffusionCoeff() / 
+								(dZtop * dZtop);
+						}
+
 						dataUpdateREdge[c][k][i][j] +=
 							dDeltaT
 							* dResidualDiffusionCoeff
 							* m_dDiffDiffStateUniform[c][k];
 					}
 
-				// Uniform diffusion on levels
+				// Residual based diffusion on levels
 				} else {
 					for (int k = 0; k < nRElements; k++) {
+						// Residual based diffusion coefficients
+						if (c == PIx) {
+							//dResidualDiffusionCoeff =
+							//	pGrid->GetScalarUniformDiffusionCoeff() / 
+							//	(dZtop * dZtop);
+							dResidualDiffusionCoeff = 0.5 * 
+								(dataResidualNode[c][k][i][j] / 
+								(dataInitialNode[c][k][i][j] /
+								 dataRefNode[c][k][i][j])) / (dZtop * dZtop);
+						}
+						if (c == WIx) {
+							dResidualDiffusionCoeff =
+								pGrid->GetVectorUniformDiffusionCoeff() / 
+								(dZtop * dZtop);
+						}
+
 						dataUpdateNode[c][k][i][j] +=
 							dDeltaT
 							* dResidualDiffusionCoeff

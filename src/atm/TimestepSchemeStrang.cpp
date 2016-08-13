@@ -565,7 +565,6 @@ void TimestepSchemeStrang::Step(
 		m_dKinnmarkGrayUllrichCombinationF[4] =   0.0;
 		//m_dKinnmarkGrayUllrichCombinationF[5] =   0.0;
 
-		//std::cout << "Store RHS for Residual Viscosity calculation.." << "\n";
 		pGrid->LinearCombineData(
 			m_dKinnmarkGrayUllrichCombinationF, 5, DataType_State);
 		pGrid->LinearCombineData(
@@ -657,7 +656,8 @@ void TimestepSchemeStrang::Step(
 	pGrid->CopyData(4, 1, DataType_Tracers);
 	pHorizontalDynamics->StepAfterSubCycle(4, 1, 2, time, dDeltaT);
 
-	// Make an estimate of the state residual (after hypervis is applied)
+	// Make an estimate of the state residual (after hypervis is applied) and
+	// apply residual based diffusion in vertical dynamics for KGU35 ONLY
 	if (m_eExplicitDiscretization == KinnmarkGrayUllrich35) {
 		m_dKinnmarkGrayUllrichCombinationR[0] = - 1.0 / dDeltaT;
 		m_dKinnmarkGrayUllrichCombinationR[1] =   1.0 / dDeltaT;
