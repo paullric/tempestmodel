@@ -131,7 +131,7 @@ void TimestepSchemeARK232::Step(
 	pHorizontalDynamics->StepExplicit(
 		3, 4, time, m_dExpCf[1][1] * dDeltaT);
 	pVerticalDynamics->StepExplicit(
-		3, 4, time, m_dExpCf[1][1] * dDeltaT);
+		3, 4, 0, time, m_dExpCf[1][1] * dDeltaT, false);
 	pGrid->PostProcessSubstage(4, DataType_State);
 	pGrid->PostProcessSubstage(4, DataType_Tracers);
 
@@ -150,7 +150,7 @@ void TimestepSchemeARK232::Step(
 	pHorizontalDynamics->StepExplicit(
 		5, 7, time, m_dExpCf[2][2] * dDeltaT);
 	pVerticalDynamics->StepExplicit(
-		5, 7, time, m_dExpCf[2][2] * dDeltaT);
+		5, 7, 0, time, m_dExpCf[2][2] * dDeltaT, false);
 	pGrid->PostProcessSubstage(7, DataType_State);
 	pGrid->PostProcessSubstage(7, DataType_Tracers);
 
@@ -182,7 +182,7 @@ void TimestepSchemeARK232::SubcycleStageExplicit(
 		pHorizontalDynamics->StepExplicit(
 			iinpIndex, ioutIndex, time, dStageCoeff * dDeltaT / iNS);
 		pVerticalDynamics->StepExplicit(
-			iinpIndex, ioutIndex, time, dStageCoeff * dDeltaT / iNS);
+			iinpIndex, ioutIndex, 0, time, dStageCoeff * dDeltaT / iNS, false);
 
 		pGrid->PostProcessSubstage(ioutIndex, DataType_State);
 		pGrid->PostProcessSubstage(ioutIndex, DataType_Tracers);

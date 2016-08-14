@@ -278,75 +278,75 @@ void TimestepSchemeARK4::Step(
 
 	// PRE-STAGE 1 - Implicit solve to start
 	Time timeSub0 = time;
-    double dtSub0 = m_dImpCf[0][0] * dDeltaT;
-    pGrid->CopyData(0, 1, DataType_State);
-    pHorizontalDynamics->StepImplicit(0, 1, timeSub0, dtSub0);
+	double dtSub0 = m_dImpCf[0][0] * dDeltaT;
+	pGrid->CopyData(0, 1, DataType_State);
+	pHorizontalDynamics->StepImplicit(0, 1, timeSub0, dtSub0);
 	pVerticalDynamics->StepImplicit(0, 1, timeSub0, dtSub0);
-    pGrid->PostProcessSubstage(1, DataType_State);
-    pGrid->PostProcessSubstage(1, DataType_Tracers);
+	pGrid->PostProcessSubstage(1, DataType_State);
+	pGrid->PostProcessSubstage(1, DataType_Tracers);
 
-    // Store the evaluation K1 to index 3
-    pGrid->LinearCombineData(m_dK0Combo, 3, DataType_State);
+	// Store the evaluation K1 to index 3
+	pGrid->LinearCombineData(m_dK0Combo, 3, DataType_State);
 
-    // SUBSTAGE 1
-    // Compute the explicit step to index 1
-    Time timeSub1 = time;
-    double dtSub1 = m_dExpCf[1][0] * dDeltaT;
-    pGrid->LinearCombineData(m_du1fCombo, 1, DataType_State);
-    pHorizontalDynamics->StepExplicit(0, 1, timeSub1, dtSub1);
-	pVerticalDynamics->StepExplicit(0, 1, timeSub1, dtSub1);
-    pGrid->PostProcessSubstage(1, DataType_State);
-    pGrid->PostProcessSubstage(1, DataType_Tracers);
+	// SUBSTAGE 1
+	// Compute the explicit step to index 1
+	Time timeSub1 = time;
+	double dtSub1 = m_dExpCf[1][0] * dDeltaT;
+	pGrid->LinearCombineData(m_du1fCombo, 1, DataType_State);
+	pHorizontalDynamics->StepExplicit(0, 1, timeSub1, dtSub1);
+	pVerticalDynamics->StepExplicit(0, 1, 0, timeSub1, dtSub1, false);
+	pGrid->PostProcessSubstage(1, DataType_State);
+	pGrid->PostProcessSubstage(1, DataType_Tracers);
 
-    // Store the evaluation Kh1 to index 4
-    pGrid->LinearCombineData(m_dKh1Combo, 4, DataType_State);
+	// Store the evaluation Kh1 to index 4
+	pGrid->LinearCombineData(m_dKh1Combo, 4, DataType_State);
 
-    // Compute implicit step based on known data to index 2
-    pGrid->CopyData(1, 2, DataType_State);
-    dtSub1 = m_dImpCf[1][1] * dDeltaT;
-    pVerticalDynamics->StepImplicit(1, 2, timeSub1, dtSub1);
-    pGrid->PostProcessSubstage(2, DataType_State);
-    pGrid->PostProcessSubstage(2, DataType_Tracers);
+	// Compute implicit step based on known data to index 2
+	pGrid->CopyData(1, 2, DataType_State);
+	dtSub1 = m_dImpCf[1][1] * dDeltaT;
+	pVerticalDynamics->StepImplicit(1, 2, timeSub1, dtSub1);
+	pGrid->PostProcessSubstage(2, DataType_State);
+	pGrid->PostProcessSubstage(2, DataType_Tracers);
 
-    // Store the evaluation K1 to index 3
-    pGrid->LinearCombineData(m_dK1Combo, 5, DataType_State);
+	// Store the evaluation K1 to index 3
+	pGrid->LinearCombineData(m_dK1Combo, 5, DataType_State);
 
-    //std::cout << "Substage 1 done ... \n";
+	//std::cout << "Substage 1 done ... \n";
 
-    // SUBSTAGE 2
-    // Compute uf2
-    Time timeSub2 = time;
-    double dtSub2 = m_dExpCf[2][1] * dDeltaT;
-    pGrid->LinearCombineData(m_du2fCombo, 1, DataType_State);
-    pHorizontalDynamics->StepExplicit(2, 1, timeSub2, dtSub2);
-    pVerticalDynamics->StepExplicit(2, 1, timeSub2, dtSub2);
-    pGrid->PostProcessSubstage(1, DataType_State);
-    pGrid->PostProcessSubstage(1, DataType_Tracers);
+	// SUBSTAGE 2
+	// Compute uf2
+	Time timeSub2 = time;
+	double dtSub2 = m_dExpCf[2][1] * dDeltaT;
+	pGrid->LinearCombineData(m_du2fCombo, 1, DataType_State);
+	pHorizontalDynamics->StepExplicit(2, 1, timeSub2, dtSub2);
+	pVerticalDynamics->StepExplicit(2, 1, 0, timeSub2, dtSub2, false);
+	pGrid->PostProcessSubstage(1, DataType_State);
+	pGrid->PostProcessSubstage(1, DataType_Tracers);
 
-    // Store the evaluation Kh2 to index 6
-    pGrid->LinearCombineData(m_dKh2Combo, 6, DataType_State);
+	// Store the evaluation Kh2 to index 6
+	pGrid->LinearCombineData(m_dKh2Combo, 6, DataType_State);
 
-    // Compute u2 from uf2 and store it to index 2 (over u1)
-    dtSub2 = m_dImpCf[2][2] * dDeltaT;
-    pGrid->CopyData(1, 2, DataType_State);
-    pVerticalDynamics->StepImplicit(1, 2, timeSub2, dtSub2);
-    pGrid->PostProcessSubstage(2, DataType_State);
-    pGrid->PostProcessSubstage(2, DataType_Tracers);
+	// Compute u2 from uf2 and store it to index 2 (over u1)
+	dtSub2 = m_dImpCf[2][2] * dDeltaT;
+	pGrid->CopyData(1, 2, DataType_State);
+	pVerticalDynamics->StepImplicit(1, 2, timeSub2, dtSub2);
+	pGrid->PostProcessSubstage(2, DataType_State);
+	pGrid->PostProcessSubstage(2, DataType_Tracers);
 
-    // Store the evaluation K2 to index 7
-    pGrid->LinearCombineData(m_dK2Combo, 7, DataType_State);
+	// Store the evaluation K2 to index 7
+	pGrid->LinearCombineData(m_dK2Combo, 7, DataType_State);
 
-    //std::cout << "Substage 2 done ... \n";
+	//std::cout << "Substage 2 done ... \n";
 
-    // SUBSTAGE 3
-    // Compute uf3
-    Time timeSub3 = time;
-    double dtSub3 = m_dExpCf[3][2] * dDeltaT;
-    pGrid->LinearCombineData(m_du3fCombo, 1, DataType_State);
-    pHorizontalDynamics->StepExplicit(2, 1, timeSub2, dtSub2);
-    pVerticalDynamics->StepExplicit(2, 1, timeSub2, dtSub2);
-    pGrid->PostProcessSubstage(1, DataType_State);
-    pGrid->PostProcessSubstage(1, DataType_Tracers);
+	// SUBSTAGE 3
+	// Compute uf3
+	Time timeSub3 = time;
+	double dtSub3 = m_dExpCf[3][2] * dDeltaT;
+	pGrid->LinearCombineData(m_du3fCombo, 1, DataType_State);
+	pHorizontalDynamics->StepExplicit(2, 1, timeSub2, dtSub2);
+	pVerticalDynamics->StepExplicit(2, 1, 0, timeSub2, dtSub2, false);
+	pGrid->PostProcessSubstage(1, DataType_State);
+	pGrid->PostProcessSubstage(1, DataType_Tracers);
 
     // Store the evaluation Kh3 to index 8
     pGrid->LinearCombineData(m_dKh3Combo, 8, DataType_State);
@@ -369,7 +369,7 @@ void TimestepSchemeARK4::Step(
     double dtSub4 = m_dExpCf[4][3] * dDeltaT;
     pGrid->LinearCombineData(m_du4fCombo, 1, DataType_State);
     pHorizontalDynamics->StepExplicit(2, 1, timeSub4, dtSub4);
-    pVerticalDynamics->StepExplicit(2, 1, timeSub4, dtSub4);
+    pVerticalDynamics->StepExplicit(2, 1, 0, timeSub4, dtSub4, false);
     pGrid->PostProcessSubstage(1, DataType_State);
     pGrid->PostProcessSubstage(1, DataType_Tracers);
 
@@ -396,7 +396,7 @@ void TimestepSchemeARK4::Step(
     double dtSub5 = m_dExpCf[5][4] * dDeltaT;
     pGrid->LinearCombineData(m_du5fCombo, 1, DataType_State);
     pHorizontalDynamics->StepExplicit(2, 1, timeSub5, dtSub5);
-    pVerticalDynamics->StepExplicit(2, 1, timeSub5, dtSub5);
+    pVerticalDynamics->StepExplicit(2, 1, 0, timeSub5, dtSub5, false);
     pGrid->PostProcessSubstage(1, DataType_State);
     pGrid->PostProcessSubstage(1, DataType_Tracers);
 
@@ -421,7 +421,7 @@ void TimestepSchemeARK4::Step(
     double dtSub6 = m_dExpCf[6][5] * dDeltaT;
     pGrid->LinearCombineData(m_du6fCombo, 1, DataType_State);
     pHorizontalDynamics->StepExplicit(2, 1, timeSub6, dtSub6);
-    pVerticalDynamics->StepExplicit(2, 1, timeSub6, dtSub6);
+    pVerticalDynamics->StepExplicit(2, 1, 0, timeSub6, dtSub6, false);
     pGrid->PostProcessSubstage(1, DataType_State);
     pGrid->PostProcessSubstage(1, DataType_Tracers);
 

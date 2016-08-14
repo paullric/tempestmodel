@@ -67,8 +67,10 @@ public:
 	virtual void StepExplicit(
 		int iDataInitial,
 		int iDataUpdate,
+		int iDataResidual,
 		const Time & time,
-		double dDeltaT
+		double dDeltaT,
+		bool fApplyDiffusion
 	) {
 	}
 /*

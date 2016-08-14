@@ -188,19 +188,19 @@ void TimestepSchemeSplitExp::Step(
 		pGrid->PostProcessSubstage(4, DataType_State);
 		pGrid->PostProcessSubstage(4, DataType_Tracers);
 */
-		pVerticalDynamics->StepExplicit(0, 1, time, dDeltaT / ns);
+		pVerticalDynamics->StepExplicit(0, 1, 0, time, dDeltaT / ns, false);
 		pGrid->PostProcessSubstage(1, DataType_State);
 		pGrid->PostProcessSubstage(1, DataType_Tracers);
 
 		pGrid->LinearCombineData(m_dSSPRK3CombinationA, 2, DataType_State);
 		pGrid->LinearCombineData(m_dSSPRK3CombinationA, 2, DataType_Tracers);
-		pVerticalDynamics->StepExplicit(1, 2, time, 0.25 * dDeltaT / ns);
+		pVerticalDynamics->StepExplicit(1, 2, 0, time, 0.25 * dDeltaT / ns, false);
 		pGrid->PostProcessSubstage(2, DataType_State);
 		pGrid->PostProcessSubstage(2, DataType_Tracers);
 
 		pGrid->LinearCombineData(m_dSSPRK3CombinationB, 4, DataType_State);
 		pGrid->LinearCombineData(m_dSSPRK3CombinationB, 4, DataType_Tracers);
-		pVerticalDynamics->StepExplicit(2, 4, time, (2.0/3.0) * dDeltaT / ns);
+		pVerticalDynamics->StepExplicit(2, 4, 0, time, (2.0/3.0) * dDeltaT / ns, false);
 		pGrid->PostProcessSubstage(4, DataType_State);
 		pGrid->PostProcessSubstage(4, DataType_Tracers);
 

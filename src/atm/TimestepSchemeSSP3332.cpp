@@ -124,7 +124,7 @@ void TimestepSchemeSSP3332::Step(
 	pHorizontalDynamics->StepExplicit(
 		2, 3, time, m_dExpCf[1][0] * dDeltaT);
 	pVerticalDynamics->StepExplicit(
-		2, 3, time, m_dExpCf[1][0] * dDeltaT);
+		2, 3, 0, time, m_dExpCf[1][0] * dDeltaT, false);
 	pGrid->PostProcessSubstage(3, DataType_State);
 	pGrid->PostProcessSubstage(3, DataType_Tracers);
 
@@ -145,7 +145,7 @@ void TimestepSchemeSSP3332::Step(
 	pHorizontalDynamics->StepExplicit(
 		4, 5, time, m_dExpCf[2][1] * dDeltaT);
 	pVerticalDynamics->StepExplicit(
-		4, 5, time, m_dExpCf[2][1] * dDeltaT);
+		4, 5, 0, time, m_dExpCf[2][1] * dDeltaT, false);
 	pGrid->PostProcessSubstage(5, DataType_State);
 	pGrid->PostProcessSubstage(5, DataType_Tracers);
 
@@ -164,7 +164,7 @@ void TimestepSchemeSSP3332::Step(
 	pHorizontalDynamics->StepExplicit(
 		6, 1, time, m_dExpCf[3][2] * dDeltaT);
 	pVerticalDynamics->StepExplicit(
-		6, 1, time, m_dExpCf[3][2] * dDeltaT);
+		6, 1, 0, time, m_dExpCf[3][2] * dDeltaT, false);
 	pGrid->PostProcessSubstage(1, DataType_State);
 	pGrid->PostProcessSubstage(1, DataType_Tracers);
 

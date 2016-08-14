@@ -143,8 +143,10 @@ public:
 	virtual void StepExplicit(
 		int iDataInitial,
 		int iDataUpdate,
+		int iDataResidual,
 		const Time & time,
-		double dDeltaT
+		double dDeltaT,
+		bool fApplyDiffusion
 	);
 
 	///	<summary>
@@ -338,7 +340,7 @@ protected:
 	///	<summary>
 	///		Variables to target with uniform diffusion.
 	///	</summary>
-	DataArray1D<bool> m_fResidualDiffusionVar;
+	DataArray1D<bool> m_fResdiffVar;
 
 	///	<summary>
 	///		Finite element upwinding weights.
@@ -349,6 +351,11 @@ protected:
 	///		Order of hyperdiffusion to apply (must be even).
 	///	</summary>
 	int m_nHypervisOrder;
+
+	///	<summary>
+	///		Order of hyperdiffusion to apply (must be even).
+	///	</summary>
+	int m_fResdiffOrder;
 
 	///	<summary>
 	///		Auxiliary storage for second derivatives of the state
@@ -421,6 +428,17 @@ protected:
 	///		State vector on model interfaces, used by StepImplicit.
 	///	</summary>
 	DataArray2D<double> m_dStateREdge;
+
+	///	<summary>
+	///		Residual of the state vector on model levels.
+	///	</summary>
+	DataArray2D<double> m_dResidualNode;
+
+	///	<summary>
+	///		Residual of the state vector on model interfaces.
+	///	</summary>
+	DataArray2D<double> m_dResidualREdge;
+
 
 	///	<summary>
 	///		Auxiliary state data.
