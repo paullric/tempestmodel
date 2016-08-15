@@ -1511,7 +1511,7 @@ void VerticalDynamicsFEM::StepExplicit(
 #endif
 			}
 
-		if (fApplyDiffusion) {
+		if (m_fApplyDiffusion) {
 			//////////////////////////////////////////////////////////////
 			// Apply hyperviscosity or uniform diffusion to U and V
 			if ((m_fHypervisVar[UIx]) ||
@@ -1567,13 +1567,8 @@ void VerticalDynamicsFEM::StepExplicit(
 				// Apply hyperviscosity in the vertical
 				if ((m_fHypervisVar[UIx]) || (m_fResdiffVar[UIx])) {
 
-					// No hyperviscosity from command line
-					if (m_nHypervisOrder == 0) {
-						continue;
-					}
-
-					// No residual based diffusion from command line
-					if (m_fResdiffOrder == 0) {
+					// Only W hypervis select variables
+					if ((m_nHypervisOrder == 0) && (m_fResdiffOrder == 0)) {
 						continue;
 					}
 
@@ -2596,7 +2591,8 @@ void VerticalDynamicsFEM::PrepareColumn(
 	for (int c = 2; c < 5; c++) {
 
 		// Only apply hypervis or uniform diffusion to select variables
-		if ((!m_fHypervisVar[c]) && (!m_fUniformDiffusionVar[c])) {
+		if ((!m_fHypervisVar[c]) && (!m_fResdiffVar[c]) && 
+			(!m_fUniformDiffusionVar[c])) {
 			continue;
 		}
 
@@ -3173,6 +3169,7 @@ void VerticalDynamicsFEM::BuildF(
 	}
 
 	if (m_fApplyDiffusion) {
+
 		///////////////////////////////////////////////////////////////////
 		// Apply uniform diffusion to theta and vertical velocity
 		for (int c = 2; c < 4; c++) {
@@ -3224,12 +3221,7 @@ void VerticalDynamicsFEM::BuildF(
 			for (int c = 2; c < 5; c++) {
 
 				// Only W hypervis select variables
-				if (!m_fHypervisVar[c]) {
-					continue;
-				}
-
-				// Only Residual hypervis select variables
-				if (!m_fResdiffVar[c]) {
+				if ((!m_fHypervisVar[c]) && (!m_fResdiffVar[c])) {
 					continue;
 				}
 
