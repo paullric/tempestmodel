@@ -44,9 +44,9 @@
 //#define UNIFORM_DIFFUSION_VERTICAL_VELOCITY
 //#define UNIFORM_DIFFUSION_TRACERS
 
-#define RESIDUAL_DIFFUSION_HORIZONTAL_VELOCITIES
+//#define RESIDUAL_DIFFUSION_HORIZONTAL_VELOCITIES
 #define RESIDUAL_DIFFUSION_THERMO
-#define RESIDUAL_DIFFUSION_VERTICAL_VELOCITY
+//#define RESIDUAL_DIFFUSION_VERTICAL_VELOCITY
 
 //#define EXPLICIT_THERMO
 //#define EXPLICIT_VERTICAL_VELOCITY_ADVECTION
@@ -284,31 +284,25 @@ void VerticalDynamicsFEM::Initialize() {
 		m_fUniformDiffusionVar[TracerIx] = true;
 	}
 #endif
-
-#if defined(RESIDUAL_DIFFUSION_HORIZONTAL_VELOCITIES)
-	if (pGrid->HasUniformDiffusion()) {
-		Announce("Residual diffusion on horizontal velocities");
-		m_fResdiffVar[UIx] = true;
-		m_fResdiffVar[VIx] = true;
-	}
-#endif
-#if defined(RESIDUAL_DIFFUSION_THERMO)
-	if (pGrid->HasUniformDiffusion()) {
-		Announce("Residual diffusion on thermodynamic variable");
-		m_fResdiffVar[PIx] = true;
-	}
-#endif
-#if defined(RESIDUAL_DIFFUSION_VERTICAL_VELOCITY)
-	if (pGrid->HasUniformDiffusion()) {
-		Announce("Residual diffusion on vertical velocity");
-		m_fResdiffVar[WIx] = true;
-	}
-#endif
 #if defined(UNIFORM_DIFFUSION_TRACERS)
 	if (pGrid->HasUniformDiffusion()) {
 		Announce("Residual diffusion on tracers");
 		m_fResdiffVar[TracerIx] = true;
 	}
+#endif
+
+#if defined(RESIDUAL_DIFFUSION_HORIZONTAL_VELOCITIES)
+	Announce("Residual diffusion on horizontal velocities");
+	m_fResdiffVar[UIx] = true;
+	m_fResdiffVar[VIx] = true;
+#endif
+#if defined(RESIDUAL_DIFFUSION_THERMO)
+	Announce("Residual diffusion on thermodynamic variable");
+	m_fResdiffVar[PIx] = true;
+#endif
+#if defined(RESIDUAL_DIFFUSION_VERTICAL_VELOCITY)
+	Announce("Residual diffusion on vertical velocity");
+	m_fResdiffVar[WIx] = true;
 #endif
 
 #if defined(EXPLICIT_THERMO)
