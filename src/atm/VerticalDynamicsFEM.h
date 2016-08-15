@@ -403,6 +403,11 @@ protected:
 	///	</summary>
 	int m_nColumnStateSize;
 
+	///	<summary>
+	///		Flag setting to apply diffusion (uniform, W-hypervis, Rth-hypervis)
+	///	</summary>
+	int m_fApplyDiffusion;
+
 protected:
 	///	<summary>
 	///		State variable column.

@@ -991,6 +991,9 @@ void VerticalDynamicsFEM::StepExplicit(
 	// Store timestep size
 	m_dDeltaT = dDeltaT;
 
+	// Store apply diffusion flag
+	m_fApplyDiffusion = fApplyDiffusion;
+
 	// Reset the reference state
 	memset(m_dStateRefNode[WIx],  0,  nRElements   *sizeof(double));
 	memset(m_dStateRefREdge[WIx], 0, (nRElements+1)*sizeof(double));
@@ -1049,7 +1052,7 @@ void VerticalDynamicsFEM::StepExplicit(
 			pPatch->GetContraMetricXiREdge();
 
 #if defined(EXPLICIT_VERTICAL_VELOCITY_ADVECTION) && \
-    defined(VERTICAL_VELOCITY_ADVECTION_CLARK)
+	defined(VERTICAL_VELOCITY_ADVECTION_CLARK)
 		const DataArray4D<double> & dContraMetricA =
 			pPatch->GetContraMetricA();
 
@@ -1508,6 +1511,7 @@ void VerticalDynamicsFEM::StepExplicit(
 #endif
 			}
 
+		if (fApplyDiffusion) {
 			//////////////////////////////////////////////////////////////
 			// Apply hyperviscosity or uniform diffusion to U and V
 			if ((m_fHypervisVar[UIx]) ||
@@ -1618,6 +1622,7 @@ void VerticalDynamicsFEM::StepExplicit(
 						}
 					}
 				}
+			}
 			}
 		}
 		}
@@ -3084,52 +3089,6 @@ void VerticalDynamicsFEM::BuildF(
 	}
 
 	///////////////////////////////////////////////////////////////////
-	// Apply uniform diffusion to theta and vertical velocity
-	for (int c = 2; c < 4; c++) {
-
-		// Only upwind select variables
-		if (!m_fUniformDiffusionVar[c]) {
-			continue;
-		}
-
-		double dZtop = pGrid->GetZtop();
-
-		// Do not diffusion vertical velocity on boundaries
-		if (c == WIx) {
-			m_dDiffDiffStateUniform[c][0] = 0.0;
-			m_dDiffDiffStateUniform[c][nRElements] = 0.0;
-		}
-
-		// Uniform diffusion coefficient
-		double dUniformDiffusionCoeff = 0.0;
-		if (c == PIx) {
-			dUniformDiffusionCoeff =
-				pGrid->GetScalarUniformDiffusionCoeff() / (dZtop * dZtop);
-		}
-		if (c == WIx) {
-			dUniformDiffusionCoeff =
-				pGrid->GetVectorUniformDiffusionCoeff() / (dZtop * dZtop);
-		}
-
-		// Uniform diffusion on interfaces
-		if (pGrid->GetVarLocation(c) == DataLocation_REdge) {
-			for (int k = 0; k <= nRElements; k++) {
-				dF[VecFIx(FIxFromCIx(c), k)] -=
-					dUniformDiffusionCoeff
-					* m_dDiffDiffStateUniform[c][k];
-			}
-
-		// Uniform diffusion on levels
-		} else {
-			for (int k = 0; k < nRElements; k++) {
-				dF[VecFIx(FIxFromCIx(c), k)] -=
-					dUniformDiffusionCoeff
-					* m_dDiffDiffStateUniform[c][k];
-			}
-		}
-	}
-
-	///////////////////////////////////////////////////////////////////
 	// Apply vertical upwinding
 	{
 		// Get penalty operator
@@ -3213,64 +3172,112 @@ void VerticalDynamicsFEM::BuildF(
 		}
 	}
 
-	// Apply flow-dependent or residual hyperviscosity
-	if (m_nHypervisOrder > 0) {
-		for (int c = 2; c < 5; c++) {
+	if (m_fApplyDiffusion) {
+		///////////////////////////////////////////////////////////////////
+		// Apply uniform diffusion to theta and vertical velocity
+		for (int c = 2; c < 4; c++) {
 
-			// Only W hypervis select variables
-			if (!m_fHypervisVar[c]) {
+			// Only upwind select variables
+			if (!m_fUniformDiffusionVar[c]) {
 				continue;
 			}
 
-			// Only Residual hypervis select variables
-			if (!m_fResdiffVar[c]) {
-				continue;
+			double dZtop = pGrid->GetZtop();
+
+			// Do not diffusion vertical velocity on boundaries
+			if (c == WIx) {
+				m_dDiffDiffStateUniform[c][0] = 0.0;
+				m_dDiffDiffStateUniform[c][nRElements] = 0.0;
 			}
 
-			double dResidualDiffusionCoeff = 0.0;
-			// Flow-dependent hyperviscosity on interfaces
+			// Uniform diffusion coefficient
+			double dUniformDiffusionCoeff = 0.0;
+			if (c == PIx) {
+				dUniformDiffusionCoeff =
+					pGrid->GetScalarUniformDiffusionCoeff() / (dZtop * dZtop);
+			}
+			if (c == WIx) {
+				dUniformDiffusionCoeff =
+					pGrid->GetVectorUniformDiffusionCoeff() / (dZtop * dZtop);
+			}
+
+			// Uniform diffusion on interfaces
 			if (pGrid->GetVarLocation(c) == DataLocation_REdge) {
-
 				for (int k = 0; k <= nRElements; k++) {
-					if (m_fHypervisVar[c]) {
-						dF[VecFIx(FIxFromCIx(c), k)] -=
-							m_dHypervisCoeff
-							* fabs(m_dXiDotREdge[k])
-							* m_dDiffDiffStateHypervis[c][k];
-					}
-					if (m_fResdiffVar[c]) {
-						// Compute the local diffusion coefficient
-						dResidualDiffusionCoeff = 0.5 * 
-							(m_dResidualREdge[c][k] / 
-							(m_dStateREdge[c][k] -
-							 m_dStateRefREdge[c][k])) / (dZtop * dZtop);
-
-						dF[VecFIx(FIxFromCIx(c), k)] -=
-							dResidualDiffusionCoeff
-							* m_dDiffDiffStateHypervis[c][k];
-					}
+					dF[VecFIx(FIxFromCIx(c), k)] -=
+						dUniformDiffusionCoeff
+						* m_dDiffDiffStateUniform[c][k];
 				}
 
-			// Flow-dependent hyperviscosity on levels
+			// Uniform diffusion on levels
 			} else {
-
 				for (int k = 0; k < nRElements; k++) {
-					if (m_fHypervisVar[c]) {
-						dF[VecFIx(FIxFromCIx(c), k)] -=
-							m_dHypervisCoeff
-							* fabs(m_dXiDotNode[k])
-							* m_dDiffDiffStateHypervis[c][k];
-					}
-					if (m_fResdiffVar[c]) {
-						// Compute the local diffusion coefficient
-						dResidualDiffusionCoeff = 0.5 * 
-							(m_dResidualNode[c][k] / 
-							(m_dStateNode[c][k] -
-							 m_dStateRefNode[c][k])) / (dZtop * dZtop);
+					dF[VecFIx(FIxFromCIx(c), k)] -=
+						dUniformDiffusionCoeff
+						* m_dDiffDiffStateUniform[c][k];
+				}
+			}
+		}
 
-						dF[VecFIx(FIxFromCIx(c), k)] -=
-							dResidualDiffusionCoeff
-							* m_dDiffDiffStateHypervis[c][k];
+		// Apply flow-dependent or residual hyperviscosity
+		if (m_nHypervisOrder > 0) {
+			for (int c = 2; c < 5; c++) {
+
+				// Only W hypervis select variables
+				if (!m_fHypervisVar[c]) {
+					continue;
+				}
+
+				// Only Residual hypervis select variables
+				if (!m_fResdiffVar[c]) {
+					continue;
+				}
+
+				double dResidualDiffusionCoeff = 0.0;
+				// Flow-dependent hyperviscosity on interfaces
+				if (pGrid->GetVarLocation(c) == DataLocation_REdge) {
+
+					for (int k = 0; k <= nRElements; k++) {
+						if (m_fHypervisVar[c]) {
+							dF[VecFIx(FIxFromCIx(c), k)] -=
+								m_dHypervisCoeff
+								* fabs(m_dXiDotREdge[k])
+								* m_dDiffDiffStateHypervis[c][k];
+						}
+						if (m_fResdiffVar[c]) {
+							// Compute the local diffusion coefficient
+							dResidualDiffusionCoeff = 0.5 * 
+								(m_dResidualREdge[c][k] / 
+								(m_dStateREdge[c][k] -
+								 m_dStateRefREdge[c][k])) / (dZtop * dZtop);
+
+							dF[VecFIx(FIxFromCIx(c), k)] -=
+								dResidualDiffusionCoeff
+								* m_dDiffDiffStateHypervis[c][k];
+						}
+					}
+
+				// Flow-dependent hyperviscosity on levels
+				} else {
+
+					for (int k = 0; k < nRElements; k++) {
+						if (m_fHypervisVar[c]) {
+							dF[VecFIx(FIxFromCIx(c), k)] -=
+								m_dHypervisCoeff
+								* fabs(m_dXiDotNode[k])
+								* m_dDiffDiffStateHypervis[c][k];
+						}
+						if (m_fResdiffVar[c]) {
+							// Compute the local diffusion coefficient
+							dResidualDiffusionCoeff = 0.5 * 
+								(m_dResidualNode[c][k] / 
+								(m_dStateNode[c][k] -
+								 m_dStateRefNode[c][k])) / (dZtop * dZtop);
+
+							dF[VecFIx(FIxFromCIx(c), k)] -=
+								dResidualDiffusionCoeff
+								* m_dDiffDiffStateHypervis[c][k];
+						}
 					}
 				}
 			}
