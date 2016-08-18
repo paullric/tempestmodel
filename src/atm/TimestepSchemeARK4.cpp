@@ -294,7 +294,7 @@ void TimestepSchemeARK4::Step(
 	double dtSub1 = m_dExpCf[1][0] * dDeltaT;
 	pGrid->LinearCombineData(m_du1fCombo, 1, DataType_State);
 	pHorizontalDynamics->StepExplicit(0, 1, timeSub1, dtSub1);
-	pVerticalDynamics->StepExplicit(0, 1, 0, timeSub1, dtSub1, false);
+	pVerticalDynamics->StepExplicit(0, 1, timeSub1, dtSub1);
 	pGrid->PostProcessSubstage(1, DataType_State);
 	pGrid->PostProcessSubstage(1, DataType_Tracers);
 
@@ -319,7 +319,7 @@ void TimestepSchemeARK4::Step(
 	double dtSub2 = m_dExpCf[2][1] * dDeltaT;
 	pGrid->LinearCombineData(m_du2fCombo, 1, DataType_State);
 	pHorizontalDynamics->StepExplicit(2, 1, timeSub2, dtSub2);
-	pVerticalDynamics->StepExplicit(2, 1, 0, timeSub2, dtSub2, false);
+	pVerticalDynamics->StepExplicit(2, 1, timeSub2, dtSub2);
 	pGrid->PostProcessSubstage(1, DataType_State);
 	pGrid->PostProcessSubstage(1, DataType_Tracers);
 
@@ -344,7 +344,7 @@ void TimestepSchemeARK4::Step(
 	double dtSub3 = m_dExpCf[3][2] * dDeltaT;
 	pGrid->LinearCombineData(m_du3fCombo, 1, DataType_State);
 	pHorizontalDynamics->StepExplicit(2, 1, timeSub2, dtSub2);
-	pVerticalDynamics->StepExplicit(2, 1, 0, timeSub2, dtSub2, false);
+	pVerticalDynamics->StepExplicit(2, 1, timeSub2, dtSub2);
 	pGrid->PostProcessSubstage(1, DataType_State);
 	pGrid->PostProcessSubstage(1, DataType_Tracers);
 
@@ -369,7 +369,7 @@ void TimestepSchemeARK4::Step(
     double dtSub4 = m_dExpCf[4][3] * dDeltaT;
     pGrid->LinearCombineData(m_du4fCombo, 1, DataType_State);
     pHorizontalDynamics->StepExplicit(2, 1, timeSub4, dtSub4);
-    pVerticalDynamics->StepExplicit(2, 1, 0, timeSub4, dtSub4, false);
+    pVerticalDynamics->StepExplicit(2, 1, timeSub4, dtSub4);
     pGrid->PostProcessSubstage(1, DataType_State);
     pGrid->PostProcessSubstage(1, DataType_Tracers);
 
@@ -396,7 +396,7 @@ void TimestepSchemeARK4::Step(
     double dtSub5 = m_dExpCf[5][4] * dDeltaT;
     pGrid->LinearCombineData(m_du5fCombo, 1, DataType_State);
     pHorizontalDynamics->StepExplicit(2, 1, timeSub5, dtSub5);
-    pVerticalDynamics->StepExplicit(2, 1, 0, timeSub5, dtSub5, false);
+    pVerticalDynamics->StepExplicit(2, 1, timeSub5, dtSub5);
     pGrid->PostProcessSubstage(1, DataType_State);
     pGrid->PostProcessSubstage(1, DataType_Tracers);
 
@@ -421,7 +421,7 @@ void TimestepSchemeARK4::Step(
     double dtSub6 = m_dExpCf[6][5] * dDeltaT;
     pGrid->LinearCombineData(m_du6fCombo, 1, DataType_State);
     pHorizontalDynamics->StepExplicit(2, 1, timeSub6, dtSub6);
-    pVerticalDynamics->StepExplicit(2, 1, 0, timeSub6, dtSub6, false);
+    pVerticalDynamics->StepExplicit(2, 1, timeSub6, dtSub6);
     pGrid->PostProcessSubstage(1, DataType_State);
     pGrid->PostProcessSubstage(1, DataType_Tracers);
 

@@ -97,7 +97,7 @@ void TimestepSchemeGARK2::Step(
 	pHorizontalDynamics->StepExplicit(
 		0, 1, time, m_dIECf[0][0] * dDeltaT);
 	pVerticalDynamics->StepExplicit(
-		0, 1, 0, time, m_dIECf[0][0] * dDeltaT, false);
+		0, 1, time, m_dIECf[0][0] * dDeltaT);
 	pGrid->PostProcessSubstage(1, DataType_State);
 	pGrid->PostProcessSubstage(1, DataType_Tracers);
 
@@ -120,7 +120,7 @@ void TimestepSchemeGARK2::Step(
 	pHorizontalDynamics->StepExplicit(
 		3, 4, time, m_dIECf[1][1] * dDeltaT);
 	pVerticalDynamics->StepExplicit(
-		3, 4, 0, time, m_dIECf[1][1] * dDeltaT, false);
+		3, 4, time, m_dIECf[1][1] * dDeltaT);
 	pGrid->PostProcessSubstage(4, DataType_State);
 	pGrid->PostProcessSubstage(4, DataType_Tracers);
 

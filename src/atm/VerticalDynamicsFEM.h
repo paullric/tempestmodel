@@ -143,10 +143,8 @@ public:
 	virtual void StepExplicit(
 		int iDataInitial,
 		int iDataUpdate,
-		int iDataResidual,
 		const Time & time,
-		double dDeltaT,
-		bool fApplyDiffusion
+		double dDeltaT
 	);
 
 	///	<summary>
@@ -162,7 +160,7 @@ public:
 	///	<summary>
 	///		Apply the residual based viscosity update explicitly
 	///	</summary>
-	virtual void StepResidualDiffusionExplicitly(
+	virtual void StepDiffusionExplicit(
 		int iDataInitial,
 		int iDataUpdate,
 		int iDataResidual,
@@ -355,7 +353,7 @@ protected:
 	///	<summary>
 	///		Order of hyperdiffusion to apply (must be even).
 	///	</summary>
-	int m_fResdiffOrder;
+	int m_nResdiffOrder;
 
 	///	<summary>
 	///		Auxiliary storage for second derivatives of the state
@@ -402,11 +400,6 @@ protected:
 	///		Number of degrees of freedom in vertical solution vector.
 	///	</summary>
 	int m_nColumnStateSize;
-
-	///	<summary>
-	///		Flag setting to apply diffusion (uniform, W-hypervis, Rth-hypervis)
-	///	</summary>
-	int m_fApplyDiffusion;
 
 protected:
 	///	<summary>

@@ -67,10 +67,8 @@ public:
 	virtual void StepExplicit(
 		int iDataInitial,
 		int iDataUpdate,
-		int iDataResidual,
 		const Time & time,
-		double dDeltaT,
-		bool fApplyDiffusion
+		double dDeltaT
 	) {
 	}
 /*
@@ -88,7 +86,7 @@ public:
 	///	<summary>
 	///		Apply the residual based viscosity update explicitly
 	///	</summary>
-	virtual void StepResidualDiffusionExplicitly(
+	virtual void StepDiffusionExplicit(
 		int iDataInitial,
 		int iDataUpdate,
 		int iDataResidual,

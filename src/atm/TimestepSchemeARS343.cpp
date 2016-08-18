@@ -137,7 +137,7 @@ void TimestepSchemeARS343::Step(
 	pHorizontalDynamics->StepExplicit(
 		0, 1, time, m_dExpCf[0][0] * dDeltaT);
 	pVerticalDynamics->StepExplicit(
-		0, 1, 0, time, m_dExpCf[0][0] * dDeltaT, false);
+		0, 1, time, m_dExpCf[0][0] * dDeltaT);
 	pGrid->PostProcessSubstage(1, DataType_State);
 	pGrid->PostProcessSubstage(1, DataType_Tracers);
 
@@ -158,7 +158,7 @@ void TimestepSchemeARS343::Step(
 	pHorizontalDynamics->StepExplicit(
 		2, 3, time, m_dExpCf[1][1] * dDeltaT);
 	pVerticalDynamics->StepExplicit(
-		2, 3, 0, time, m_dExpCf[1][1] * dDeltaT, false);
+		2, 3, time, m_dExpCf[1][1] * dDeltaT);
 	pGrid->PostProcessSubstage(3, DataType_State);
 	pGrid->PostProcessSubstage(3, DataType_Tracers);
 
@@ -179,7 +179,7 @@ void TimestepSchemeARS343::Step(
 	pHorizontalDynamics->StepExplicit(
 		4, 5, time, m_dExpCf[2][2] * dDeltaT);
 	pVerticalDynamics->StepExplicit(
-		4, 5, 0, time, m_dExpCf[2][2] * dDeltaT, false);
+		4, 5, time, m_dExpCf[2][2] * dDeltaT);
 	pGrid->PostProcessSubstage(5, DataType_State);
 	pGrid->PostProcessSubstage(5, DataType_Tracers);
 
@@ -198,7 +198,7 @@ void TimestepSchemeARS343::Step(
 	pHorizontalDynamics->StepExplicit(
 		6, 9, time, m_dExpCf[3][3] * dDeltaT);
 	pVerticalDynamics->StepExplicit(
-		6, 9, 0, time, m_dExpCf[3][3] * dDeltaT, false);
+		6, 9, time, m_dExpCf[3][3] * dDeltaT);
 	pGrid->PostProcessSubstage(9, DataType_State);
 	pGrid->PostProcessSubstage(9, DataType_Tracers);
 

@@ -79,7 +79,7 @@ void TimestepSchemeARS222::Step(
 	pHorizontalDynamics->StepExplicit(
 		0, 1, time, m_dExpCf[0][0] * dDeltaT);
 	pVerticalDynamics->StepExplicit(
-		0, 1, 0, time, m_dExpCf[0][0] * dDeltaT, false);
+		0, 1, time, m_dExpCf[0][0] * dDeltaT);
 	pGrid->PostProcessSubstage(1, DataType_State);
 	pGrid->PostProcessSubstage(1, DataType_Tracers);
 
@@ -98,7 +98,7 @@ void TimestepSchemeARS222::Step(
 	pHorizontalDynamics->StepExplicit(
 		2, 3, time, m_dExpCf[1][1] * dDeltaT);
 	pVerticalDynamics->StepExplicit(
-		2, 3, 0, time, m_dExpCf[1][1] * dDeltaT, false);
+		2, 3, time, m_dExpCf[1][1] * dDeltaT);
 	pGrid->PostProcessSubstage(3, DataType_State);
 	pGrid->PostProcessSubstage(3, DataType_Tracers);
 

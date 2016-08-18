@@ -267,10 +267,11 @@ void GridPatchGLL::ComputeRichardson(
 			fZeroBoundaries);
 
 			for (k = 0; k < nRElements; k++) {
-				m_dataRichardson[k][i][j] = phys.GetG() / dDensityNode[k] * 
-				dDiffDensityNode[k] / 
-				((dDiffUXNode[k] * dDiffUXNode[k]) + 
-				 (dDiffVYNode[k] * dDiffVYNode[k]) + dRiEpsilon);
+				m_dataRichardson[k][i][j] = dDiffUXNode[k];
+				//m_dataRichardson[k][i][j] = phys.GetG() / dDensityNode[k] * 
+				//dDiffDensityNode[k] / 
+				//((dDiffUXNode[k] * dDiffUXNode[k]) + 
+				// (dDiffVYNode[k] * dDiffVYNode[k]) + dRiEpsilon);
 
 //printf("%i %.16E \n",k,m_dataRichardson[k][i][j]);
 			}
@@ -321,10 +322,11 @@ void GridPatchGLL::ComputeRichardson(
 			dDiffVYREdge);
 
 			for (k = 0; k <= nRElements; k++) {
-				m_dataRichardson[k][i][j] = phys.GetG() * 
-				(dDiffDensityREdge[k] / dDensityREdge[k]) / 
-				((dDiffUXREdge[k] * dDiffUXREdge[k]) + 
-				 (dDiffVYREdge[k] * dDiffVYREdge[k]) + dRiEpsilon);
+				m_dataRichardson[k][i][j] = dDiffUXREdge[k];
+				//m_dataRichardson[k][i][j] = phys.GetG() * 
+				//(dDiffDensityREdge[k] / dDensityREdge[k]) / 
+				//((dDiffUXREdge[k] * dDiffUXREdge[k]) + 
+				// (dDiffVYREdge[k] * dDiffVYREdge[k]) + dRiEpsilon);
 			}
 		}
 		}

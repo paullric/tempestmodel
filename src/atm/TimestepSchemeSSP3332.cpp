@@ -118,6 +118,7 @@ void TimestepSchemeSSP3332::Step(
 	// Compute uf1 from u0 (index 2) into index 7
 	pGrid->LinearCombineData(m_du2fCombo, 7, DataType_State);
 	pGrid->LinearCombineData(m_du2fCombo, 7, DataType_Tracers);
+/*
 	pGrid->CopyData(7, 3, DataType_State);
 	pGrid->CopyData(7, 3, DataType_Tracers);
 
@@ -127,6 +128,15 @@ void TimestepSchemeSSP3332::Step(
 		2, 3, 0, time, m_dExpCf[1][0] * dDeltaT, false);
 	pGrid->PostProcessSubstage(3, DataType_State);
 	pGrid->PostProcessSubstage(3, DataType_Tracers);
+*/
+
+	pGrid->CopyData(7, 8, DataType_State);
+	pGrid->CopyData(7, 8, DataType_Tracers);
+	// Subscycle on the first explicit step (5 substeps)
+	SubcycleStageExplicit(time, m_dExpCf[0][0], dDeltaT, 5, 2, 8, 
+		pHorizontalDynamics, pVerticalDynamics, pGrid);
+	pGrid->CopyData(8, 3, DataType_State);
+	pGrid->CopyData(8, 3, DataType_Tracers);
 
 	// Compute u2 from uf2 (index 3) into index 4
 	pGrid->CopyData(3, 4, DataType_State);
@@ -145,7 +155,7 @@ void TimestepSchemeSSP3332::Step(
 	pHorizontalDynamics->StepExplicit(
 		4, 5, time, m_dExpCf[2][1] * dDeltaT);
 	pVerticalDynamics->StepExplicit(
-		4, 5, 0, time, m_dExpCf[2][1] * dDeltaT, false);
+		4, 5, time, m_dExpCf[2][1] * dDeltaT);
 	pGrid->PostProcessSubstage(5, DataType_State);
 	pGrid->PostProcessSubstage(5, DataType_Tracers);
 
@@ -164,7 +174,7 @@ void TimestepSchemeSSP3332::Step(
 	pHorizontalDynamics->StepExplicit(
 		6, 1, time, m_dExpCf[3][2] * dDeltaT);
 	pVerticalDynamics->StepExplicit(
-		6, 1, 0, time, m_dExpCf[3][2] * dDeltaT, false);
+		6, 1, time, m_dExpCf[3][2] * dDeltaT);
 	pGrid->PostProcessSubstage(1, DataType_State);
 	pGrid->PostProcessSubstage(1, DataType_Tracers);
 
@@ -179,4 +189,34 @@ void TimestepSchemeSSP3332::Step(
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+
+void TimestepSchemeSSP3332::SubcycleStageExplicit(
+	const Time & time,
+	double dStageCoeff,
+	double dDeltaT,
+	int iNS,
+	int iinpIndex,
+	int ioutIndex,
+	HorizontalDynamics * pHorizontalDynamics,
+	VerticalDynamics * pVerticalDynamics,
+	Grid * pGrid
+) {
+	for (int n = 0; n < iNS; n++) {
+		pGrid->CopyData(iinpIndex, ioutIndex, DataType_State);
+		pGrid->CopyData(iinpIndex, ioutIndex, DataType_Tracers);
+
+		pHorizontalDynamics->StepExplicit(
+			iinpIndex, ioutIndex, time, dStageCoeff * dDeltaT / iNS);
+		pVerticalDynamics->StepExplicit(
+			iinpIndex, ioutIndex, time, dStageCoeff * dDeltaT / iNS);
+
+		pGrid->PostProcessSubstage(ioutIndex, DataType_State);
+		pGrid->PostProcessSubstage(ioutIndex, DataType_Tracers);
+
+		if (n < iNS - 1) {
+			pGrid->CopyData(ioutIndex, iinpIndex, DataType_State);
+			pGrid->CopyData(ioutIndex, iinpIndex, DataType_Tracers);
+		}
+	}
+}
 

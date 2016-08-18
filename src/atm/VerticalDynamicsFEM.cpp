@@ -75,6 +75,7 @@ VerticalDynamicsFEM::VerticalDynamicsFEM(
 	m_fUseReferenceState(fUseReferenceState),
 	m_fForceMassFluxOnLevels(fForceMassFluxOnLevels),
 	m_nHypervisOrder(nHypervisOrder),
+	m_nResdiffOrder(nHypervisOrder),
 	m_dHypervisCoeff(0.0)
 {
 	if (nHypervisOrder % 2 == 1) {
@@ -657,7 +658,7 @@ void VerticalDynamicsFEM::StepImplicitTermsExplicitly(
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void VerticalDynamicsFEM::StepResidualDiffusionExplicitly(
+void VerticalDynamicsFEM::StepDiffusionExplicit(
 	int iDataInitial,
 	int iDataUpdate,
 	int iDataResidual,
@@ -665,7 +666,7 @@ void VerticalDynamicsFEM::StepResidualDiffusionExplicitly(
 	double dDeltaT
 ) {
 	// Start the function timer
-	FunctionTimer timer("VerticalStepExplicit");
+	FunctionTimer timer("VerticalDiffusionStepExplicit");
 
 	// Get a copy of the grid
 	GridGLL * pGrid = dynamic_cast<GridGLL *>(m_model.GetGrid());
@@ -779,6 +780,9 @@ void VerticalDynamicsFEM::StepResidualDiffusionExplicitly(
 				dataRefREdge,
 				dataInitialREdge);
 
+			// Prepare the column
+			PrepareColumn(m_dColumnState);
+
 			// Store W in m_dState structure on levels and interfaces
 			if (pGrid->GetVarLocation(WIx) == DataLocation_Node) {
 				for (int k = 0; k < nRElements; k++) {
@@ -821,12 +825,12 @@ void VerticalDynamicsFEM::StepResidualDiffusionExplicitly(
 			}
 #endif
 
-			// Update thermodynamic variables
-			if (m_fFullyExplicit) {
-
 			//////////////////////////////////////////////////////////////
 			// Apply hyperviscosity or uniform diffusion to U and V
-			if (m_fResdiffVar[UIx]) {
+			if ((m_fHypervisVar[UIx]) ||
+				(m_fUniformDiffusionVar[UIx]) ||
+				(m_fResdiffVar[UIx])
+			) {
 
 				// Second derivatives of horizontal velocity on model levels
 				pGrid->DiffDiffNodeToNode(
@@ -838,37 +842,93 @@ void VerticalDynamicsFEM::StepResidualDiffusionExplicitly(
 					m_dDiffDiffStateHypervis[VIx]);
 
 				// Apply uniform diffusion in the vertical
-				double dZtop = pGrid->GetZtop();
+				if (m_fUniformDiffusionVar[UIx]) {
+					double dZtop = pGrid->GetZtop();
 
-				double dUniformDiffusionCoeff =
-					pGrid->GetVectorUniformDiffusionCoeff()
-					/ (dZtop * dZtop);
+					double dUniformDiffusionCoeff =
+						pGrid->GetVectorUniformDiffusionCoeff()
+						/ (dZtop * dZtop);
 
-				for (int k = 0; k < nRElements; k++) {
-					m_dStateRefNode[UIx][k] = dataRefNode[UIx][k][i][j];
-					m_dStateRefNode[VIx][k] = dataRefNode[VIx][k][i][j];
+					for (int k = 0; k < nRElements; k++) {
+						m_dStateRefNode[UIx][k] = dataRefNode[UIx][k][i][j];
+						m_dStateRefNode[VIx][k] = dataRefNode[VIx][k][i][j];
+					}
+
+					pGrid->DiffDiffNodeToNode(
+						m_dStateRefNode[UIx],
+						m_dDiffDiffStateUniform[UIx]);
+
+					pGrid->DiffDiffNodeToNode(
+						m_dStateRefNode[VIx],
+						m_dDiffDiffStateUniform[VIx]);
+
+					for (int k = 0; k < nRElements; k++) {
+						dataUpdateNode[UIx][k][i][j] +=
+							dDeltaT
+							* dUniformDiffusionCoeff
+							* (m_dDiffDiffStateHypervis[UIx][k]
+								- m_dDiffDiffStateUniform[UIx][k]);
+
+						dataUpdateNode[VIx][k][i][j] +=
+							dDeltaT
+							* dUniformDiffusionCoeff
+							* (m_dDiffDiffStateHypervis[VIx][k]
+								- m_dDiffDiffStateUniform[VIx][k]);
+					}
 				}
 
-				pGrid->DiffDiffNodeToNode(
-					m_dStateRefNode[UIx],
-					m_dDiffDiffStateUniform[UIx]);
+				// Apply hyperviscosity in the vertical
+				if ((m_fHypervisVar[UIx]) || (m_fResdiffVar[UIx])) {
 
-				pGrid->DiffDiffNodeToNode(
-					m_dStateRefNode[VIx],
-					m_dDiffDiffStateUniform[VIx]);
+					// Only W hypervis select variables
+					if ((m_nHypervisOrder == 0) && (m_nResdiffOrder == 0)) {
+						continue;
+					}
 
-				for (int k = 0; k < nRElements; k++) {
-					dataUpdateNode[UIx][k][i][j] +=
-						dDeltaT
-						* dUniformDiffusionCoeff
-						* (m_dDiffDiffStateHypervis[UIx][k]
-							- m_dDiffDiffStateUniform[UIx][k]);
+					// Compute higher derivatives of U and V used for
+					// all forms of hyperviscosity
+					for (int h = 2; h < m_nHypervisOrder; h += 2) {
+						memcpy(
+							m_dStateAux,
+							m_dDiffDiffStateHypervis[UIx],
+							nRElements * sizeof(double));
 
-					dataUpdateNode[VIx][k][i][j] +=
-						dDeltaT
-						* dUniformDiffusionCoeff
-						* (m_dDiffDiffStateHypervis[VIx][k]
-							- m_dDiffDiffStateUniform[VIx][k]);
+						pGrid->DiffDiffNodeToNode(
+							m_dStateAux,
+							m_dDiffDiffStateHypervis[UIx]
+						);
+
+						memcpy(
+							m_dStateAux,
+							m_dDiffDiffStateHypervis[VIx],
+							nRElements * sizeof(double));
+
+						pGrid->DiffDiffNodeToNode(
+							m_dStateAux,
+							m_dDiffDiffStateHypervis[VIx]
+						);
+					}
+
+					// Apply hyperviscosity W or Residual based
+					for (int k = 0; k < nRElements; k++) {
+						if (m_fHypervisVar[UIx]) {
+							dataUpdateNode[UIx][k][i][j] +=
+								dDeltaT
+								* m_dHypervisCoeff
+								* fabs(m_dXiDotNode[k])
+								* m_dDiffDiffStateHypervis[UIx][k];
+
+							dataUpdateNode[VIx][k][i][j] +=
+								dDeltaT
+								* m_dHypervisCoeff
+								* fabs(m_dXiDotNode[k])
+								* m_dDiffDiffStateHypervis[VIx][k];
+						}
+						if (m_fResdiffVar[UIx]) {
+							_EXCEPTIONT("Residual based diffusion of U and V"
+										" not implemented yet...");
+						}
+					}
 				}
 			}
 
@@ -877,7 +937,7 @@ void VerticalDynamicsFEM::StepResidualDiffusionExplicitly(
 			for (int c = 2; c < 4; c++) {
 
 				// Only upwind select variables
-				if (!m_fResdiffVar[c]) {
+				if (!m_fUniformDiffusionVar[c]) {
 					continue;
 				}
 
@@ -889,59 +949,115 @@ void VerticalDynamicsFEM::StepResidualDiffusionExplicitly(
 					m_dDiffDiffStateUniform[c][nRElements] = 0.0;
 				}
 
-				// Residual based diffusion on interfaces
-				double dResidualDiffusionCoeff = 0.0;
+				// Uniform diffusion coefficient
+				double dUniformDiffusionCoeff = 0.0;
+				if (c == PIx) {
+					dUniformDiffusionCoeff =
+						pGrid->GetScalarUniformDiffusionCoeff() / 
+						(dZtop * dZtop);
+				}
+				if (c == WIx) {
+					dUniformDiffusionCoeff =
+						pGrid->GetVectorUniformDiffusionCoeff() / 
+						(dZtop * dZtop);
+				}
+
+				// Uniform diffusion on interfaces
 				if (pGrid->GetVarLocation(c) == DataLocation_REdge) {
 					for (int k = 0; k <= nRElements; k++) {
-						// Residual based diffusion coefficients
-						if (c == PIx) {
-							//dResidualDiffusionCoeff =
-							//	pGrid->GetScalarUniformDiffusionCoeff() / 
-							//	(dZtop * dZtop);
-							dResidualDiffusionCoeff = 0.5 * 
-								(dataResidualREdge[c][k][i][j] / 
-								(dataInitialREdge[c][k][i][j] -
-								 dataRefREdge[c][k][i][j])) / (dZtop * dZtop);
-						}
-						if (c == WIx) {
-							dResidualDiffusionCoeff =
-								pGrid->GetVectorUniformDiffusionCoeff() / 
-								(dZtop * dZtop);
-						}
-
 						dataUpdateREdge[c][k][i][j] +=
-							dDeltaT
-							* dResidualDiffusionCoeff
+							dUniformDiffusionCoeff
 							* m_dDiffDiffStateUniform[c][k];
 					}
 
-				// Residual based diffusion on levels
+				// Uniform diffusion on levels
 				} else {
 					for (int k = 0; k < nRElements; k++) {
-						// Residual based diffusion coefficients
-						if (c == PIx) {
-							//dResidualDiffusionCoeff =
-							//	pGrid->GetScalarUniformDiffusionCoeff() / 
-							//	(dZtop * dZtop);
-							dResidualDiffusionCoeff = 0.5 * 
-								(dataResidualNode[c][k][i][j] / 
-								(dataInitialNode[c][k][i][j] -
-								 dataRefNode[c][k][i][j])) / (dZtop * dZtop);
-						}
-						if (c == WIx) {
-							dResidualDiffusionCoeff =
-								pGrid->GetVectorUniformDiffusionCoeff() / 
-								(dZtop * dZtop);
-						}
-
 						dataUpdateNode[c][k][i][j] +=
-							dDeltaT
-							* dResidualDiffusionCoeff
+							dUniformDiffusionCoeff
 							* m_dDiffDiffStateUniform[c][k];
 					}
 				}
 			}
+
+			// Apply flow-dependent or residual hyperviscosity
+			if (m_nHypervisOrder > 0) {
+				for (int c = 2; c < 5; c++) {
+
+					// Only W hypervis select variables
+					if ((!m_fHypervisVar[c]) && (!m_fResdiffVar[c])) {
+						continue;
+					}
+
+					double dZtop = pGrid->GetZtop();
+					double dResidualDiffusionCoeff = 0.0;
+
+					// Flow-dependent hyperviscosity on interfaces
+					if (pGrid->GetVarLocation(c) == DataLocation_REdge) {
+
+						for (int k = 0; k <= nRElements; k++) {
+							if (m_fHypervisVar[c]) {
+								dataUpdateREdge[c][k][i][j] +=
+									m_dHypervisCoeff
+									* fabs(m_dXiDotREdge[k])
+									* m_dDiffDiffStateHypervis[c][k];
+							}
+							if (m_fResdiffVar[c]) {
+								// Compute the local diffusion coefficient
+								dResidualDiffusionCoeff = 0.5 * 
+									(m_dResidualREdge[c][k] / 
+									(m_dStateREdge[c][k] -
+									 m_dStateRefREdge[c][k])) / (dZtop * dZtop);
+
+								dataUpdateREdge[c][k][i][j] +=
+									dResidualDiffusionCoeff
+									* m_dDiffDiffStateHypervis[c][k];
+							}
+						}
+
+					// Flow-dependent hyperviscosity on levels
+					} else {
+
+						for (int k = 0; k < nRElements; k++) {
+							if (m_fHypervisVar[c]) {
+								dataUpdateNode[c][k][i][j] +=
+									m_dHypervisCoeff
+									* fabs(m_dXiDotNode[k])
+									* m_dDiffDiffStateHypervis[c][k];
+							}
+							if (m_fResdiffVar[c]) {
+								// Compute the local diffusion coefficient
+								dResidualDiffusionCoeff = 0.5 * 
+									(m_dResidualNode[c][k] / 
+									(m_dStateNode[c][k] -
+									 m_dStateRefNode[c][k])) / (dZtop * dZtop);
+
+								dataUpdateNode[c][k][i][j] +=
+									dResidualDiffusionCoeff
+									* m_dDiffDiffStateHypervis[c][k];
+							}
+						}
+					}
+				}
 			}
+
+			// Check for any updates to boundary conditions
+			if (dataUpdateNode[WIx][0][i][j] != 0.0) {
+				dataUpdateNode[WIx][0][i][j] = 0.0;
+			}
+			if (dataUpdateREdge[WIx][0][i][j] != 0.0) {
+				dataUpdateREdge[WIx][0][i][j] = 0.0;
+			}
+			if (pGrid->GetVarLocation(WIx) == DataLocation_REdge) {
+				if (dataUpdateREdge[WIx][nRElements][i][j] != 0.0) {
+					dataUpdateREdge[WIx][nRElements][i][j] = 0.0;
+				}
+			} else {
+				if (dataUpdateNode[WIx][nRElements-1][i][j] != 0.0) {
+					dataUpdateNode[WIx][nRElements-1][i][j] = 0.0;
+				}
+			}
+
 		}
 		}
 	}
@@ -953,10 +1069,8 @@ void VerticalDynamicsFEM::StepResidualDiffusionExplicitly(
 void VerticalDynamicsFEM::StepExplicit(
 	int iDataInitial,
 	int iDataUpdate,
-	int iDataResidual,
 	const Time & time,
-	double dDeltaT,
-	bool fApplyDiffusion
+	double dDeltaT
 ) {
 	// Start the function timer
 	FunctionTimer timer("VerticalStepExplicit");
@@ -991,9 +1105,6 @@ void VerticalDynamicsFEM::StepExplicit(
 	// Store timestep size
 	m_dDeltaT = dDeltaT;
 
-	// Store apply diffusion flag
-	m_fApplyDiffusion = fApplyDiffusion;
-
 	// Reset the reference state
 	memset(m_dStateRefNode[WIx],  0,  nRElements   *sizeof(double));
 	memset(m_dStateRefREdge[WIx], 0, (nRElements+1)*sizeof(double));
@@ -1011,9 +1122,6 @@ void VerticalDynamicsFEM::StepExplicit(
 		const DataArray4D<double> & dataInitialNode =
 			pPatch->GetDataState(iDataInitial, DataLocation_Node);
 
-		const DataArray4D<double> & dataResidualNode =
-			pPatch->GetDataState(iDataResidual, DataLocation_Node);
-
 		DataArray4D<double> & dataUpdateNode =
 			pPatch->GetDataState(iDataUpdate, DataLocation_Node);
 
@@ -1022,9 +1130,6 @@ void VerticalDynamicsFEM::StepExplicit(
 
 		const DataArray4D<double> & dataInitialREdge =
 			pPatch->GetDataState(iDataInitial, DataLocation_REdge);
-
-		const DataArray4D<double> & dataResidualREdge =
-			pPatch->GetDataState(iDataResidual, DataLocation_REdge);
 
 		DataArray4D<double> & dataUpdateREdge =
 			pPatch->GetDataState(iDataUpdate, DataLocation_REdge);
@@ -1111,28 +1216,6 @@ void VerticalDynamicsFEM::StepExplicit(
 					m_dStateREdge[WIx],
 					m_dStateNode[WIx]);
 			}
-
-#if defined(FORMULATION_THETA)
-			// Store residual of thermodynamic variable in m_dState structure on levels and interfaces
-			if (pGrid->GetVarLocation(PIx) == DataLocation_Node) {
-				for (int k = 0; k < nRElements; k++) {
-					m_dResidualNode[PIx][k] = dataResidualNode[PIx][k][i][j];
-				}
-
-				pGrid->InterpolateNodeToREdge(
-					m_dResidualNode[PIx],
-					m_dResidualREdge[PIx]);
-
-			} else {
-				for (int k = 0; k <= nRElements; k++) {
-					m_dResidualREdge[PIx][k] = dataResidualREdge[PIx][k][i][j];
-				}
-
-				pGrid->InterpolateREdgeToNode(
-					m_dResidualREdge[WIx],
-					m_dResidualNode[WIx]);
-			}
-#endif
 
 			// Update thermodynamic variables
 			if (m_fFullyExplicit) {
@@ -1510,8 +1593,8 @@ void VerticalDynamicsFEM::StepExplicit(
 				}
 #endif
 			}
-
-		if (m_fApplyDiffusion) {
+/*
+			if (m_fApplyDiffusion) {
 			//////////////////////////////////////////////////////////////
 			// Apply hyperviscosity or uniform diffusion to U and V
 			if ((m_fHypervisVar[UIx]) ||
@@ -1568,7 +1651,7 @@ void VerticalDynamicsFEM::StepExplicit(
 				if ((m_fHypervisVar[UIx]) || (m_fResdiffVar[UIx])) {
 
 					// Only W hypervis select variables
-					if ((m_nHypervisOrder == 0) && (m_fResdiffOrder == 0)) {
+					if ((m_nHypervisOrder == 0) && (m_nResdiffOrder == 0)) {
 						continue;
 					}
 
@@ -1619,6 +1702,7 @@ void VerticalDynamicsFEM::StepExplicit(
 				}
 			}
 			}
+*/
 		}
 		}
 	}
@@ -3168,6 +3252,7 @@ void VerticalDynamicsFEM::BuildF(
 		}
 	}
 
+/*
 	if (m_fApplyDiffusion) {
 
 		///////////////////////////////////////////////////////////////////
@@ -3275,6 +3360,7 @@ void VerticalDynamicsFEM::BuildF(
 			}
 		}
 	}
+*/
 
 	if (dF[VecFIx(FWIx, 0)] != 0.0) {
 		dF[VecFIx(FWIx, 0)] = 0.0;
