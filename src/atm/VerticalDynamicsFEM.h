@@ -316,6 +316,11 @@ protected:
 	double m_dHypervisCoeff;
 
 	///	<summary>
+	///		Residual hyperdiffusion coefficient.
+	///	</summary>
+	double m_dResdiffCoeff;
+
+	///	<summary>
 	///		Upwind coefficient.
 	///	</summary>
 	double m_dUpwindCoeff;

@@ -435,22 +435,35 @@ void VerticalDynamicsFEM::Initialize() {
 	// Compute hyperviscosity coefficient
 	if (m_nHypervisOrder == 0) {
 		m_dHypervisCoeff = 0.0;
+		m_dResdiffCoeff = 0.0;
 
 	} else if (m_nHypervisOrder == 2) {
 		m_dHypervisCoeff = (1.0 / 2.0)
 			* pow(1.0 / static_cast<double>(nRElements), 1.0);
 
+		m_dResdiffCoeff = (1.0 / 2.0)
+			* pow(1.0 / static_cast<double>(nRElements), 2.0);
+
 	} else if (m_nHypervisOrder == 4) {
-		m_dHypervisCoeff = - (1.0 / 6.0) //(1.0 / 12.0)
+		m_dHypervisCoeff = - (1.0 / 12.0) //(1.0 / 6.0)
 			* pow(1.0 / static_cast<double>(nRElements), 3.0);
+
+		m_dResdiffCoeff = - (1.0 / 12.0) //(1.0 / 6.0)
+			* pow(1.0 / static_cast<double>(nRElements), 4.0);
 
 	} else if (m_nHypervisOrder == 6) {
 		m_dHypervisCoeff = (1.0 / 60.0)
 			* pow(1.0 / static_cast<double>(nRElements), 5.0);
 
+		m_dResdiffCoeff = (1.0 / 60.0)
+			* pow(1.0 / static_cast<double>(nRElements), 6.0);
+
 	} else if (m_nHypervisOrder == 8) {
 		m_dHypervisCoeff = - (3.0 / 840.0)
 			* pow(1.0 / static_cast<double>(nRElements), 7.0);
+
+		m_dResdiffCoeff = - (3.0 / 840.0)
+			* pow(1.0 / static_cast<double>(nRElements), 8.0);
 
 	} else {
 		_EXCEPTIONT("UNIMPLEMENTED: Vertical hyperdiffusion order > 8");
@@ -990,7 +1003,7 @@ void VerticalDynamicsFEM::StepDiffusionExplicit(
 					}
 
 					double dZtop = pGrid->GetZtop();
-					double dResidualDiffusionCoeff = 0.0;
+					double dResidualDiffusionCoeff = m_dResdiffCoeff;
 
 					// Flow-dependent hyperviscosity on interfaces
 					if (pGrid->GetVarLocation(c) == DataLocation_REdge) {
@@ -1004,10 +1017,10 @@ void VerticalDynamicsFEM::StepDiffusionExplicit(
 							}
 							if (m_fResdiffVar[c]) {
 								// Compute the local diffusion coefficient
-								dResidualDiffusionCoeff = 0.5 * 
+								dResidualDiffusionCoeff *= 
 									(m_dResidualREdge[c][k] / 
 									(m_dStateREdge[c][k] -
-									 m_dStateRefREdge[c][k])) / (dZtop * dZtop);
+									 m_dStateRefREdge[c][k]));
 
 								dataUpdateREdge[c][k][i][j] +=
 									dResidualDiffusionCoeff
@@ -1027,10 +1040,10 @@ void VerticalDynamicsFEM::StepDiffusionExplicit(
 							}
 							if (m_fResdiffVar[c]) {
 								// Compute the local diffusion coefficient
-								dResidualDiffusionCoeff = 0.5 * 
+								dResidualDiffusionCoeff *= 
 									(m_dResidualNode[c][k] / 
 									(m_dStateNode[c][k] -
-									 m_dStateRefNode[c][k])) / (dZtop * dZtop);
+									 m_dStateRefNode[c][k]));
 
 								dataUpdateNode[c][k][i][j] +=
 									dResidualDiffusionCoeff
@@ -1040,7 +1053,7 @@ void VerticalDynamicsFEM::StepDiffusionExplicit(
 					}
 				}
 			}
-
+/*
 			// Check for any updates to boundary conditions
 			if (dataUpdateNode[WIx][0][i][j] != 0.0) {
 				dataUpdateNode[WIx][0][i][j] = 0.0;
@@ -1048,6 +1061,7 @@ void VerticalDynamicsFEM::StepDiffusionExplicit(
 			if (dataUpdateREdge[WIx][0][i][j] != 0.0) {
 				dataUpdateREdge[WIx][0][i][j] = 0.0;
 			}
+
 			if (pGrid->GetVarLocation(WIx) == DataLocation_REdge) {
 				if (dataUpdateREdge[WIx][nRElements][i][j] != 0.0) {
 					dataUpdateREdge[WIx][nRElements][i][j] = 0.0;
@@ -1058,6 +1072,16 @@ void VerticalDynamicsFEM::StepDiffusionExplicit(
 				}
 			}
 
+			if (pGrid->GetVarLocation(PIx) == DataLocation_REdge) {
+				if (dataUpdateREdge[PIx][0][i][j] != 0.0) {
+					dataUpdateREdge[PIx][0][i][j] = 0.0;
+				}
+
+				if (dataUpdateREdge[PIx][nRElements][i][j] != 0.0) {
+					dataUpdateREdge[PIx][nRElements][i][j] = 0.0;
+				}
+			}
+*/
 		}
 		}
 	}

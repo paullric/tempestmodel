@@ -650,12 +650,12 @@ void TimestepSchemeStrang::Step(
 	} else {
 		_EXCEPTIONT("Invalid explicit discretization");
 	}
-
+/*
 	// Apply hyperdiffusion
 	pGrid->CopyData(4, 1, DataType_State);
 	pGrid->CopyData(4, 1, DataType_Tracers);
 	pHorizontalDynamics->StepAfterSubCycle(4, 1, 2, time, dDeltaT);
-
+*/
 	// Make an estimate of the state residual (after hypervis is applied) and
 	// apply residual based diffusion in vertical dynamics for KGU35 ONLY
 	if (m_eExplicitDiscretization == KinnmarkGrayUllrich35) {
@@ -671,10 +671,15 @@ void TimestepSchemeStrang::Step(
 		pGrid->LinearCombineData(
 			m_dKinnmarkGrayUllrichCombinationR, 2, DataType_Tracers);
 
-		pGrid->CopyData(1, 4, DataType_State);
-		pGrid->CopyData(1, 4, DataType_Tracers);
-		pVerticalDynamics->StepDiffusionExplicit(1, 4, 2, time, dDeltaT);
+		pGrid->CopyData(4, 1, DataType_State);
+		pGrid->CopyData(4, 1, DataType_Tracers);
+		pVerticalDynamics->StepDiffusionExplicit(4, 1, 2, time, dDeltaT);
 	}
+
+	// Apply hyperdiffusion
+	pGrid->CopyData(1, 4, DataType_State);
+	pGrid->CopyData(1, 4, DataType_Tracers);
+	pHorizontalDynamics->StepAfterSubCycle(1, 4, 2, time, dDeltaT);
 
 	// Vertical timestep
 	double dOffCenterDeltaT = 0.5 * (1.0 + m_dOffCentering) * dDeltaT;
