@@ -31,7 +31,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 //#define HYPERVISC_HORIZONTAL_VELOCITIES
-//#define HYPERVISC_THERMO
+#define HYPERVISC_THERMO
 //#define HYPERVISC_VERTICAL_VELOCITY
 
 #define UPWIND_HORIZONTAL_VELOCITIES
@@ -45,7 +45,7 @@
 //#define UNIFORM_DIFFUSION_TRACERS
 
 //#define RESIDUAL_DIFFUSION_HORIZONTAL_VELOCITIES
-#define RESIDUAL_DIFFUSION_THERMO
+//#define RESIDUAL_DIFFUSION_THERMO
 //#define RESIDUAL_DIFFUSION_VERTICAL_VELOCITY
 
 //#define EXPLICIT_THERMO
@@ -85,6 +85,22 @@ VerticalDynamicsFEM::VerticalDynamicsFEM(
 	if (nHypervisOrder < 0) {
 		_EXCEPTIONT("Vertical hyperdiffusion order must be nonnegative.");
 	}
+
+#if defined(RESIDUAL_DIFFUSION_THERMO)
+	if (nHypervisOrder < 2) {
+		_EXCEPTIONT("Vertical hyperdiffusion order must be specified.");
+	}
+#endif
+#if defined(RESIDUAL_DIFFUSION_VERTICAL_VELOCITY)
+	if (nHypervisOrder < 2) {
+		_EXCEPTIONT("Vertical hyperdiffusion order must be specified.");
+	}
+#endif
+#if defined(RESIDUAL_DIFFUSION_HORIZONTAL_VELOCITIES)
+	if (nHypervisOrder < 2) {
+			_EXCEPTIONT("Vertical hyperdiffusion order must be specified.");
+		}
+#endif
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -839,11 +855,8 @@ void VerticalDynamicsFEM::StepDiffusionExplicit(
 #endif
 
 			//////////////////////////////////////////////////////////////
-			// Apply hyperviscosity or uniform diffusion to U and V
-			if ((m_fHypervisVar[UIx]) ||
-				(m_fUniformDiffusionVar[UIx]) ||
-				(m_fResdiffVar[UIx])
-			) {
+			// Apply residual hyperviscosity or uniform diffusion to U and V
+			if ((m_fUniformDiffusionVar[UIx]) || (m_fResdiffVar[UIx])) {
 
 				// Second derivatives of horizontal velocity on model levels
 				pGrid->DiffDiffNodeToNode(
@@ -891,16 +904,16 @@ void VerticalDynamicsFEM::StepDiffusionExplicit(
 				}
 
 				// Apply hyperviscosity in the vertical
-				if ((m_fHypervisVar[UIx]) || (m_fResdiffVar[UIx])) {
+				if (m_fResdiffVar[UIx]) {
 
 					// Only W hypervis select variables
-					if ((m_nHypervisOrder == 0) && (m_nResdiffOrder == 0)) {
+					if (m_nResdiffOrder == 0) {
 						continue;
 					}
 
 					// Compute higher derivatives of U and V used for
 					// all forms of hyperviscosity
-					for (int h = 2; h < m_nHypervisOrder; h += 2) {
+					for (int h = 2; h < m_nResdiffOrder; h += 2) {
 						memcpy(
 							m_dStateAux,
 							m_dDiffDiffStateHypervis[UIx],
@@ -922,21 +935,8 @@ void VerticalDynamicsFEM::StepDiffusionExplicit(
 						);
 					}
 
-					// Apply hyperviscosity W or Residual based
+					// Apply hyperviscosity Residual based
 					for (int k = 0; k < nRElements; k++) {
-						if (m_fHypervisVar[UIx]) {
-							dataUpdateNode[UIx][k][i][j] +=
-								dDeltaT
-								* m_dHypervisCoeff
-								* fabs(m_dXiDotNode[k])
-								* m_dDiffDiffStateHypervis[UIx][k];
-
-							dataUpdateNode[VIx][k][i][j] +=
-								dDeltaT
-								* m_dHypervisCoeff
-								* fabs(m_dXiDotNode[k])
-								* m_dDiffDiffStateHypervis[VIx][k];
-						}
 						if (m_fResdiffVar[UIx]) {
 							_EXCEPTIONT("Residual based diffusion of U and V"
 										" not implemented yet...");
@@ -993,12 +993,12 @@ void VerticalDynamicsFEM::StepDiffusionExplicit(
 				}
 			}
 
-			// Apply flow-dependent or residual hyperviscosity
-			if (m_nHypervisOrder > 0) {
+			// Apply residual hyperviscosity
+			if (m_nResdiffOrder > 0) {
 				for (int c = 2; c < 5; c++) {
 
 					// Only W hypervis select variables
-					if ((!m_fHypervisVar[c]) && (!m_fResdiffVar[c])) {
+					if (!m_fResdiffVar[c]) {
 						continue;
 					}
 
@@ -1009,12 +1009,6 @@ void VerticalDynamicsFEM::StepDiffusionExplicit(
 					if (pGrid->GetVarLocation(c) == DataLocation_REdge) {
 
 						for (int k = 0; k <= nRElements; k++) {
-							if (m_fHypervisVar[c]) {
-								dataUpdateREdge[c][k][i][j] +=
-									m_dHypervisCoeff
-									* fabs(m_dXiDotREdge[k])
-									* m_dDiffDiffStateHypervis[c][k];
-							}
 							if (m_fResdiffVar[c]) {
 								// Compute the local diffusion coefficient
 								dResidualDiffusionCoeff *= 
@@ -1032,12 +1026,6 @@ void VerticalDynamicsFEM::StepDiffusionExplicit(
 					} else {
 
 						for (int k = 0; k < nRElements; k++) {
-							if (m_fHypervisVar[c]) {
-								dataUpdateNode[c][k][i][j] +=
-									m_dHypervisCoeff
-									* fabs(m_dXiDotNode[k])
-									* m_dDiffDiffStateHypervis[c][k];
-							}
 							if (m_fResdiffVar[c]) {
 								// Compute the local diffusion coefficient
 								dResidualDiffusionCoeff *= 
@@ -1617,14 +1605,10 @@ void VerticalDynamicsFEM::StepExplicit(
 				}
 #endif
 			}
-/*
-			if (m_fApplyDiffusion) {
+
 			//////////////////////////////////////////////////////////////
 			// Apply hyperviscosity or uniform diffusion to U and V
-			if ((m_fHypervisVar[UIx]) ||
-				(m_fUniformDiffusionVar[UIx]) ||
-				(m_fResdiffVar[UIx])
-			) {
+			if (m_fHypervisVar[UIx]) {
 
 				// Second derivatives of horizontal velocity on model levels
 				pGrid->DiffDiffNodeToNode(
@@ -1634,7 +1618,7 @@ void VerticalDynamicsFEM::StepExplicit(
 				pGrid->DiffDiffNodeToNode(
 					m_dStateNode[VIx],
 					m_dDiffDiffStateHypervis[VIx]);
-
+/*
 				// Apply uniform diffusion in the vertical
 				if (m_fUniformDiffusionVar[UIx]) {
 					double dZtop = pGrid->GetZtop();
@@ -1670,12 +1654,12 @@ void VerticalDynamicsFEM::StepExplicit(
 								- m_dDiffDiffStateUniform[VIx][k]);
 					}
 				}
-
+*/
 				// Apply hyperviscosity in the vertical
-				if ((m_fHypervisVar[UIx]) || (m_fResdiffVar[UIx])) {
+				if (m_fHypervisVar[UIx]) {
 
 					// Only W hypervis select variables
-					if ((m_nHypervisOrder == 0) && (m_nResdiffOrder == 0)) {
+					if (m_nHypervisOrder == 0) {
 						continue;
 					}
 
@@ -1718,15 +1702,9 @@ void VerticalDynamicsFEM::StepExplicit(
 								* fabs(m_dXiDotNode[k])
 								* m_dDiffDiffStateHypervis[VIx][k];
 						}
-						if (m_fResdiffVar[UIx]) {
-							_EXCEPTIONT("Residual based diffusion of U and V"
-										" not implemented yet...");
-						}
 					}
 				}
 			}
-			}
-*/
 		}
 		}
 	}
@@ -3275,10 +3253,7 @@ void VerticalDynamicsFEM::BuildF(
 			}
 		}
 	}
-
 /*
-	if (m_fApplyDiffusion) {
-
 		///////////////////////////////////////////////////////////////////
 		// Apply uniform diffusion to theta and vertical velocity
 		for (int c = 2; c < 4; c++) {
@@ -3324,13 +3299,13 @@ void VerticalDynamicsFEM::BuildF(
 				}
 			}
 		}
-
-		// Apply flow-dependent or residual hyperviscosity
+*/
+		// Apply flow-dependent hyperviscosity
 		if (m_nHypervisOrder > 0) {
 			for (int c = 2; c < 5; c++) {
 
 				// Only W hypervis select variables
-				if ((!m_fHypervisVar[c]) && (!m_fResdiffVar[c])) {
+				if (!m_fHypervisVar[c]) {
 					continue;
 				}
 
@@ -3383,8 +3358,6 @@ void VerticalDynamicsFEM::BuildF(
 				}
 			}
 		}
-	}
-*/
 
 	if (dF[VecFIx(FWIx, 0)] != 0.0) {
 		dF[VecFIx(FWIx, 0)] = 0.0;
