@@ -152,7 +152,7 @@ void GridPatchGLL::InterpolateREdgeToNode(
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void GridPatchGLL::ComputeRichardson(
+void GridPatchGLL::ComputeZonalShear(
 	int iDataIndex,
 	DataLocation loc
 ) {
@@ -195,6 +195,147 @@ void GridPatchGLL::ComputeRichardson(
 	dDiffUXNode.Allocate(nRElements);
 	dUXREdge.Allocate(nRElements+1);
 	dDiffUXREdge.Allocate(nRElements+1);
+
+	// Under this configuration, set fluxes at boundaries to zero
+	bool fZeroBoundaries =
+		(m_grid.GetVarLocation(WIx) == DataLocation_REdge);
+
+	if (m_grid.GetModel().GetEquationSet().GetComponents() < 5) {
+		_EXCEPTIONT("Invalid EquationSet.");
+	}
+
+	// Parent grid, containing the vertical remapping information
+	GridGLL * pGLLGrid = dynamic_cast<GridGLL*>(&m_grid);
+	if (pGLLGrid == NULL) {
+		_EXCEPTIONT("Logic error");
+	}
+
+	int k;
+	int i;
+	int j;
+
+	// Calculate Zonal shear number on nodes
+	if (loc == DataLocation_Node) {
+		if (m_grid.GetVarLocation(PIx) == DataLocation_REdge) {
+			InterpolateREdgeToNode(PIx, iDataIndex);
+		}
+		if (m_grid.GetVarLocation(RIx) == DataLocation_REdge) {
+			InterpolateREdgeToNode(RIx, iDataIndex);
+		}
+		if (m_grid.GetVarLocation(WIx) == DataLocation_REdge) {
+			InterpolateREdgeToNode(WIx, iDataIndex);
+		}
+
+		const DataArray4D<double> & dataNode = m_datavecStateNode[iDataIndex];
+
+		for (i = m_box.GetAInteriorBegin(); i < m_box.GetAInteriorEnd(); i++) {
+		for (j = m_box.GetBInteriorBegin(); j < m_box.GetBInteriorEnd(); j++) {
+
+			for (k = 0; k < nRElements; k++) {
+				dDensityNode[k] = dataNode[RIx][k][i][j];
+
+				// Convert U_alpha and V_beta to X and Y (Lon, Lat)
+				dUXNode[k] = dataNode[UIx][k][i][j] - 
+							dDerivRNode[k][i][j][0] * dataNode[WIx][k][i][j];
+			}
+
+			pGLLGrid->DifferentiateNodeToNode(
+			dDensityNode,
+			dDiffDensityNode,
+			fZeroBoundaries);
+
+			pGLLGrid->DifferentiateNodeToNode(
+			dUXNode,
+			dDiffUXNode,
+			fZeroBoundaries);
+
+			for (k = 0; k < nRElements; k++) {
+				m_dataShearUx[k][i][j] = dDiffUXNode[k];
+
+			}
+		}
+		}
+	}
+
+	// Calculate Zonal shear on interfaces
+	if (loc == DataLocation_REdge) {
+		//_EXCEPTIONT("Richardson number not implemented on interfaces");
+
+		if (m_grid.GetVarLocation(PIx) == DataLocation_Node) {
+			InterpolateNodeToREdge(PIx, iDataIndex);
+		}
+		if (m_grid.GetVarLocation(RIx) == DataLocation_Node) {
+			InterpolateNodeToREdge(RIx, iDataIndex);
+		}
+		if (m_grid.GetVarLocation(WIx) == DataLocation_Node) {
+			InterpolateNodeToREdge(WIx, iDataIndex);
+		}
+
+		const DataArray4D<double> & dataREdge = m_datavecStateREdge[iDataIndex];
+
+		for (i = m_box.GetAInteriorBegin(); i < m_box.GetAInteriorEnd(); i++) {
+		for (j = m_box.GetBInteriorBegin(); j < m_box.GetBInteriorEnd(); j++) {
+
+			for (k = 0; k <= nRElements; k++) {
+				dDensityREdge[k] = dataREdge[RIx][k][i][j];
+
+				// Convert U_alpha and V_beta to X and Y (Lon, Lat)
+				dUXREdge[k] = dataREdge[UIx][k][i][j] - 
+							dDerivRREdge[k][i][j][0] * dataREdge[WIx][k][i][j];
+			}
+
+			pGLLGrid->DifferentiateREdgeToREdge(
+			dDensityREdge,
+			dDiffDensityREdge);
+
+			pGLLGrid->DifferentiateREdgeToREdge(
+			dUXREdge,
+			dDiffUXREdge);
+
+			for (k = 0; k <= nRElements; k++) {
+				m_dataShearUx[k][i][j] = dDiffUXREdge[k];
+			}
+		}
+		}
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void GridPatchGLL::ComputeMeridionalShear(
+	int iDataIndex,
+	DataLocation loc
+) {
+	const PhysicalConstants & phys = m_grid.GetModel().GetPhysicalConstants();
+
+	// Number of radial elements
+	int nRElements = m_grid.GetRElements();
+
+	// Get metric quantities
+	const DataArray4D<double> & dDerivRNode =
+		GetDerivRNode();
+	const DataArray4D<double> & dDerivRREdge =
+		GetDerivRREdge();
+
+	// Add a fudge to compute the denominator of the Ri number
+	double dRiEpsilon = 1.0e-3;
+
+	// Indices of EquationSet variables
+	const int UIx = 0;
+	const int VIx = 1;
+	const int PIx = 2;
+	const int WIx = 3;
+	const int RIx = 4;
+
+// Column array of density and density gradient
+	DataArray1D<double> dDensityNode;
+	DataArray1D<double> dDensityREdge;
+	DataArray1D<double> dDiffDensityNode;
+	DataArray1D<double> dDiffDensityREdge;
+	dDensityNode.Allocate(nRElements);
+	dDiffDensityNode.Allocate(nRElements);
+	dDensityREdge.Allocate(nRElements+1);
+	dDiffDensityREdge.Allocate(nRElements+1);
 // Column array of V_y and shear in the meridional wind
 	DataArray1D<double> dVYNode;
 	DataArray1D<double> dVYREdge;
@@ -223,7 +364,7 @@ void GridPatchGLL::ComputeRichardson(
 	int i;
 	int j;
 
-	// Calculate Richardson number on nodes
+	// Calculate Meridional shear number on nodes
 	if (loc == DataLocation_Node) {
 		if (m_grid.GetVarLocation(PIx) == DataLocation_REdge) {
 			InterpolateREdgeToNode(PIx, iDataIndex);
@@ -243,10 +384,6 @@ void GridPatchGLL::ComputeRichardson(
 			for (k = 0; k < nRElements; k++) {
 				dDensityNode[k] = dataNode[RIx][k][i][j];
 
-				// Convert U_alpha and V_beta to X and Y (Lon, Lat)
-				dUXNode[k] = dataNode[UIx][k][i][j] - 
-							dDerivRNode[k][i][j][0] * dataNode[WIx][k][i][j];
-
 				dVYNode[k] = dataNode[VIx][k][i][j] - 
 							dDerivRNode[k][i][j][1] * dataNode[WIx][k][i][j];
 			}
@@ -257,29 +394,20 @@ void GridPatchGLL::ComputeRichardson(
 			fZeroBoundaries);
 
 			pGLLGrid->DifferentiateNodeToNode(
-			dUXNode,
-			dDiffUXNode,
-			fZeroBoundaries);
-
-			pGLLGrid->DifferentiateNodeToNode(
 			dVYNode,
 			dDiffVYNode,
 			fZeroBoundaries);
 
 			for (k = 0; k < nRElements; k++) {
-				m_dataRichardson[k][i][j] = dDiffUXNode[k];
-				//m_dataRichardson[k][i][j] = phys.GetG() / dDensityNode[k] * 
-				//dDiffDensityNode[k] / 
-				//((dDiffUXNode[k] * dDiffUXNode[k]) + 
-				// (dDiffVYNode[k] * dDiffVYNode[k]) + dRiEpsilon);
+				m_dataShearVy[k][i][j] = dDiffVYNode[k];
 
-//printf("%i %.16E \n",k,m_dataRichardson[k][i][j]);
+//printf("%i %.16E \n",k,m_dataShearVy[k][i][j]);
 			}
 		}
 		}
 	}
 
-	// Calculate Richardson on interfaces
+	// Calculate Meridional shear on interfaces
 	if (loc == DataLocation_REdge) {
 		//_EXCEPTIONT("Richardson number not implemented on interfaces");
 
@@ -301,10 +429,6 @@ void GridPatchGLL::ComputeRichardson(
 			for (k = 0; k <= nRElements; k++) {
 				dDensityREdge[k] = dataREdge[RIx][k][i][j];
 
-				// Convert U_alpha and V_beta to X and Y (Lon, Lat)
-				dUXREdge[k] = dataREdge[UIx][k][i][j] - 
-							dDerivRREdge[k][i][j][0] * dataREdge[WIx][k][i][j];
-
 				dVYREdge[k] = dataREdge[VIx][k][i][j] - 
 							dDerivRREdge[k][i][j][1] * dataREdge[WIx][k][i][j];
 			}
@@ -314,19 +438,11 @@ void GridPatchGLL::ComputeRichardson(
 			dDiffDensityREdge);
 
 			pGLLGrid->DifferentiateREdgeToREdge(
-			dUXREdge,
-			dDiffUXREdge);
-
-			pGLLGrid->DifferentiateREdgeToREdge(
 			dVYREdge,
 			dDiffVYREdge);
 
 			for (k = 0; k <= nRElements; k++) {
-				m_dataRichardson[k][i][j] = dDiffUXREdge[k];
-				//m_dataRichardson[k][i][j] = phys.GetG() * 
-				//(dDiffDensityREdge[k] / dDensityREdge[k]) / 
-				//((dDiffUXREdge[k] * dDiffUXREdge[k]) + 
-				// (dDiffVYREdge[k] * dDiffVYREdge[k]) + dRiEpsilon);
+				m_dataShearVy[k][i][j] = dDiffVYREdge[k];
 			}
 		}
 		}

@@ -44,7 +44,8 @@ enum DataType {
 	DataType_Divergence,
 	DataType_Temperature,
 	DataType_RayleighStrength,
-	DataType_Richardson,
+	DataType_ShearUx,
+	DataType_ShearVy,
 	DataType_None
 };
 

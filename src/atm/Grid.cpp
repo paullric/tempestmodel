@@ -859,7 +859,7 @@ void Grid::ComputeSurfacePressure(
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void Grid::ComputeRichardson(
+void Grid::ComputeShearUx(
 	int iDataIndex
 ) {
 	// Loop over all grid patches
@@ -870,8 +870,24 @@ void Grid::ComputeRichardson(
 			if (pGLLGrid == NULL) {
 				_EXCEPTIONT("Logic error");
 			}
-		pGLLGrid->ComputeRichardson(iDataIndex);
-		//m_vecActiveGridPatches[n]->ComputeRichardson(iDataIndex);
+		pGLLGrid->ComputeZonalShear(iDataIndex);
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void Grid::ComputeShearVy(
+	int iDataIndex
+) {
+	// Loop over all grid patches
+	for (int n = 0; n < m_vecActiveGridPatches.size(); n++) {
+
+		GridPatchGLL * pGLLGrid = 
+					dynamic_cast<GridPatchGLL*>(m_vecActiveGridPatches[n]);
+			if (pGLLGrid == NULL) {
+				_EXCEPTIONT("Logic error");
+			}
+		pGLLGrid->ComputeMeridionalShear(iDataIndex);
 	}
 }
 

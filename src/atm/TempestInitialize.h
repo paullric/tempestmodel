@@ -73,7 +73,8 @@ struct _TempestCommandLineVariables {
 	bool fOutputDivergence;
 	bool fOutputTemperature;
 	bool fOutputSurfacePressure;
-	bool fOutputRichardson;
+	bool fOutputShearUx;
+	bool fOutputShearVy;
 	bool fNoReferenceState;
 	bool fNoTracers;
 	bool fNoHyperviscosity;
@@ -114,7 +115,8 @@ struct _TempestCommandLineVariables {
 	CommandLineBool(_tempestvars.fOutputDivergence, "output_div"); \
 	CommandLineBool(_tempestvars.fOutputTemperature, "output_temp"); \
 	CommandLineBool(_tempestvars.fOutputSurfacePressure, "output_ps"); \
-	CommandLineBool(_tempestvars.fOutputRichardson, "output_Ri"); \
+	CommandLineBool(_tempestvars.fOutputShearUx, "output_dUdZ"); \
+	CommandLineBool(_tempestvars.fOutputShearVy, "output_dVdZ"); \
 	CommandLineBool(_tempestvars.fNoReferenceState, "norefstate"); \
 	CommandLineBool(_tempestvars.fNoTracers, "notracers"); \
 	CommandLineBool(_tempestvars.fNoHyperviscosity, "nohypervis"); \
@@ -360,8 +362,11 @@ void _TempestSetupOutputManagers(
 		if (vars.fOutputSurfacePressure) {
 			pOutmanRef->OutputSurfacePressure();
 		}
-		if (vars.fOutputRichardson) {
-			pOutmanRef->OutputRichardson();
+		if (vars.fOutputShearUx) {
+			pOutmanRef->OutputShearUx();
+		}
+		if (vars.fOutputShearVy) {
+			pOutmanRef->OutputShearVy();
 		}
 
 		model.AttachOutputManager(pOutmanRef);

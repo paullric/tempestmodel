@@ -100,11 +100,19 @@ public:
 	);
 
 	///	<summary>
-	///		Modify the flag which indicates whether Richardson number should be
+	///		Modify the flag which indicates whether Zonal shear should be
 	///		computed and output.
 	///	</summary>
-	void OutputRichardson(
-		bool fOutputRichardson = true
+	void OutputShearUx(
+		bool fOutputShearUx = true
+	);
+
+	///	<summary>
+	///		Modify the flag which indicates whether Meridional shear should be
+	///		computed and output.
+	///	</summary>
+	void OutputShearVy(
+		bool fOutputShearVy = true
 	);
 
 private:
@@ -326,19 +334,34 @@ private:
 	DataArray3D<double> m_dataSurfacePressure;
 
 	///	<summary>
-	///		Flag indicating whether Richardson should be computed and output.
+	///		Flag indicating whether ShearUx should be computed and output.
 	///	</summary>
-	bool m_fOutputRichardson;
+	bool m_fOutputShearUx;
 
 	///	<summary>
-	///		Richardson number output variable.
+	///		ShearUx number output variable.
 	///	</summary>
-	NcVar * m_varRichardson;
+	NcVar * m_varShearUx;
 
 	///	<summary>
-	///		Computed Richardson number on the reference grid.
+	///		Computed ShearUx number on the reference grid.
 	///	</summary>
-	DataArray3D<double> m_dataRichardson;
+	DataArray3D<double> m_dataShearUx;
+
+	///	<summary>
+	///		Flag indicating whether ShearVy should be computed and output.
+	///	</summary>
+	bool m_fOutputShearVy;
+
+	///	<summary>
+	///		ShearVy number output variable.
+	///	</summary>
+	NcVar * m_varShearVy;
+
+	///	<summary>
+	///		Computed ShearVy number on the reference grid.
+	///	</summary>
+	DataArray3D<double> m_dataShearVy;
 
 };
 

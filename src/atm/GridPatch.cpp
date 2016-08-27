@@ -453,10 +453,17 @@ void GridPatch::InitializeDataLocal(
 		m_box.GetATotalWidth(),
 		m_box.GetBTotalWidth());
 
-	// Richardson number data
-	m_dataRichardson.SetDataType(DataType_Richardson);
-	m_dataRichardson.SetDataLocation(DataLocation_Node);
-	m_dataRichardson.SetSize(
+	// Vertical shear data number data
+	m_dataShearUx.SetDataType(DataType_ShearUx);
+	m_dataShearUx.SetDataLocation(DataLocation_Node);
+	m_dataShearUx.SetSize(
+		m_grid.GetRElements(),
+		m_box.GetATotalWidth(),
+		m_box.GetBTotalWidth());
+
+	m_dataShearVy.SetDataType(DataType_ShearVy);
+	m_dataShearVy.SetDataLocation(DataLocation_Node);
+	m_dataShearVy.SetSize(
 		m_grid.GetRElements(),
 		m_box.GetATotalWidth(),
 		m_box.GetBTotalWidth());
@@ -474,7 +481,8 @@ void GridPatch::InitializeDataLocal(
 	m_dcAuxiliary.PushDataChunk(&m_dataVorticity);
 	m_dcAuxiliary.PushDataChunk(&m_dataDivergence);
 	m_dcAuxiliary.PushDataChunk(&m_dataTemperature);
-	m_dcAuxiliary.PushDataChunk(&m_dataRichardson);
+	m_dcAuxiliary.PushDataChunk(&m_dataShearUx);
+	m_dcAuxiliary.PushDataChunk(&m_dataShearVy);
 	m_dcAuxiliary.PushDataChunk(&m_dataSurfacePressure);
 
 	// 2D User data
@@ -1220,9 +1228,14 @@ void GridPatch::Send(
 		m_connect.Pack(m_dataTemperature);
 		m_connect.Send();
 
-	// Richardson data
-	} else if (eDataType == DataType_Richardson) {
-		m_connect.Pack(m_dataRichardson);
+	// ShearUx data
+	} else if (eDataType == DataType_ShearUx) {
+		m_connect.Pack(m_dataShearUx);
+		m_connect.Send();
+
+	// ShearVy data
+	} else if (eDataType == DataType_ShearVy) {
+		m_connect.Pack(m_dataShearVy);
 		m_connect.Send();
 
 	// Topography derivative data
@@ -1286,11 +1299,18 @@ void GridPatch::Receive(
 			pNeighbor->Unpack(m_dataTemperature);
 		}
 
-	// Richardson data
-	} else if (eDataType == DataType_Richardson) {
+	// ShearUx data
+	} else if (eDataType == DataType_ShearUx) {
 		Neighbor * pNeighbor;
 		while ((pNeighbor = m_connect.WaitReceive()) != NULL) {
-			pNeighbor->Unpack(m_dataRichardson);
+			pNeighbor->Unpack(m_dataShearUx);
+		}
+
+	// ShearVy data
+	} else if (eDataType == DataType_ShearVy) {
+		Neighbor * pNeighbor;
+		while ((pNeighbor = m_connect.WaitReceive()) != NULL) {
+			pNeighbor->Unpack(m_dataShearVy);
 		}
 
 	// Topographic derivatives

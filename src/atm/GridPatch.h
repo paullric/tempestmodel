@@ -184,15 +184,7 @@ public:
 	virtual void ComputeSurfacePressure(
 		int iDataIndex
 	);
-/*
-	///	<summary>
-	///		Compute Richardson number on the GridPatch.
-	///	</summary>
-	virtual void ComputeRichardson(
-		int iDataIndex,
-		DataLocation loc = DataLocation_Node
-	);
-*/
+
 public:
 	///	<summary>
 	///		Add local masses to checksum total.
@@ -1409,9 +1401,14 @@ public:
 	DataArray3D<double> m_dataTemperature;
 
 	///	<summary>
-	///		Computed Richardson number (Auxiliary).
+	///		Computed Zonal shear field (Auxiliary).
 	///	</summary>
-	DataArray3D<double> m_dataRichardson;
+	DataArray3D<double> m_dataShearUx;
+
+	///	<summary>
+	///		Computed Meridional shear field (Auxiliary).
+	///	</summary>
+	DataArray3D<double> m_dataShearVy;
 
 	///	<summary>
 	///		Computed surface pressure (Auxiliary).

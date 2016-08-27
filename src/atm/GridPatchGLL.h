@@ -104,9 +104,17 @@ public:
 
 public:
 	///	<summary>
-	///		Compute the local gradient Richardson number (AMS version)
+	///		Compute the local Zonal shear in elevation
 	///	</summary>
-	virtual void ComputeRichardson(
+	virtual void ComputeZonalShear(
+		int iDataIndex,
+		DataLocation loc = DataLocation_REdge
+	);
+
+	///	<summary>
+	///		Compute the local Meridional shear in elevation
+	///	</summary>
+	virtual void ComputeMeridionalShear(
 		int iDataIndex,
 		DataLocation loc = DataLocation_REdge
 	);

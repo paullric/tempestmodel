@@ -1462,8 +1462,12 @@ void GridPatchCartesianGLL::InterpolateData(
 		nComponents = 1;
 		nRElements = 1;
 
-	// Richardson number Data
-	} else if (eDataType == DataType_Richardson) {
+	// ShearUx Data
+	} else if (eDataType == DataType_ShearUx) {
+		nComponents = 1;
+
+	// ShearVy Data
+	} else if (eDataType == DataType_ShearVy) {
 		nComponents = 1;
 
 	// 2D User Data
@@ -1606,8 +1610,11 @@ void GridPatchCartesianGLL::InterpolateData(
 		} else if (eDataType == DataType_SurfacePressure) {
 			pData.AttachToData(&(m_dataSurfacePressure[0][0]));
 
-		} else if (eDataType == DataType_Richardson) {
-			pData.AttachToData(&(m_dataRichardson[0][0][0]));
+		} else if (eDataType == DataType_ShearUx) {
+			pData.AttachToData(&(m_dataShearUx[0][0][0]));
+
+		} else if (eDataType == DataType_ShearVy) {
+			pData.AttachToData(&(m_dataShearVy[0][0][0]));
 
 		} else if (eDataType == DataType_Auxiliary2D) {
 			pData.AttachToData(&(m_dataUserData2D[c][0][0]));

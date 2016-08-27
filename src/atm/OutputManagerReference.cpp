@@ -61,7 +61,8 @@ OutputManagerReference::OutputManagerReference(
 	m_fOutputDivergence(false),
 	m_fOutputTemperature(false),
 	m_fOutputSurfacePressure(false),
-	m_fOutputRichardson(false),
+	m_fOutputShearUx(false),
+	m_fOutputShearVy(false),
 	m_fOutputAllVarsOnNodes(fOutputAllVarsOnNodes),
 	m_fRemoveReferenceProfile(fRemoveReferenceProfile)
 {
@@ -89,7 +90,7 @@ OutputManagerReference::OutputManagerReference(
 	}
 
 	if (nZReference == 0) {
-		m_dREtaCoord = grid.GetREtaLevels();
+		m_dREtaCoord = grid.GetREtaInterfaces();
 
 	} else {
 		m_fOutputAllVarsOnNodes = true;
@@ -163,13 +164,25 @@ void OutputManagerReference::OutputSurfacePressure(
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void OutputManagerReference::OutputRichardson(
-	bool fOutputRichardson
+void OutputManagerReference::OutputShearUx(
+	bool fOutputShearUx
 ) {
-	m_fOutputRichardson = fOutputRichardson;
+	m_fOutputShearUx = fOutputShearUx;
 
-	if (!fOutputRichardson) {
-		m_dataRichardson.Deallocate();
+	if (!fOutputShearUx) {
+		m_dataShearUx.Deallocate();
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void OutputManagerReference::OutputShearVy(
+	bool fOutputShearVy
+) {
+	m_fOutputShearVy = fOutputShearVy;
+
+	if (!fOutputShearVy) {
+		m_dataShearVy.Deallocate();
 	}
 }
 
@@ -274,8 +287,15 @@ bool OutputManagerReference::CalculatePatchCoordinates() {
 			m_nXReference * m_nYReference);
 	}
 
-	if (m_fOutputRichardson) {
-		m_dataRichardson.Allocate(
+	if (m_fOutputShearUx) {
+		m_dataShearUx.Allocate(
+			1,
+			m_dREtaCoord.GetRows(),
+			m_nXReference * m_nYReference);
+	}
+
+	if (m_fOutputShearVy) {
+		m_dataShearVy.Allocate(
 			1,
 			m_dREtaCoord.GetRows(),
 			m_nXReference * m_nYReference);
@@ -445,11 +465,18 @@ bool OutputManagerReference::OpenFile(
 					"PS", ncDouble, dimTime, dimLat, dimLon);
 		}
 
-		// Richardson number variable
-		if (m_fOutputRichardson) {
-			m_varRichardson =
+		// ShearUx number variable
+		if (m_fOutputShearUx) {
+			m_varShearUx =
 				m_pActiveNcOutput->add_var(
-					"Ri", ncDouble, dimTime, dimLev, dimLat, dimLon);
+					"dUdZ", ncDouble, dimTime, dimLev, dimLat, dimLon);
+		}
+
+		// ShearVy number variable
+		if (m_fOutputShearVy) {
+			m_varShearVy =
+				m_pActiveNcOutput->add_var(
+					"", ncDouble, dimTime, dimLev, dimLat, dimLon);
 		}
 
 		// User data variables
@@ -681,17 +708,30 @@ void OutputManagerReference::Output(
 			m_dataSurfacePressure);
 	}
 
-	// Perform Interpolate / Reduction on Richardson number
-	if (m_fOutputRichardson) {
-		m_grid.ComputeRichardson(0);
+	// Perform Interpolate / Reduction on ShearUx number
+	if (m_fOutputShearUx) {
+		m_grid.ComputeShearUx(0);
 
 		m_grid.ReduceInterpolate(
-			DataType_Richardson,
+			DataType_ShearUx,
 			m_dREtaCoord,
 			m_dAlpha,
 			m_dBeta,
 			m_iPatch,
-			m_dataRichardson);
+			m_dataShearUx);
+	}
+
+	// Perform Interpolate / Reduction on ShearVy number
+	if (m_fOutputShearVy) {
+		m_grid.ComputeShearVy(0);
+
+		m_grid.ReduceInterpolate(
+			DataType_ShearVy,
+			m_dREtaCoord,
+			m_dAlpha,
+			m_dBeta,
+			m_iPatch,
+			m_dataShearVy);
 	}
 
 	// Store state variable data
@@ -787,13 +827,24 @@ void OutputManagerReference::Output(
 				m_dXCoord.GetRows());
 		}
 
-		// Store Richardson data
-		if (m_fOutputRichardson) {
-			m_varRichardson->set_cur(m_ixOutputTime, 0, 0, 0);
-			m_varRichardson->put(
-				&(m_dataRichardson[0][0][0]),
+		// Store ShearUx data
+		if (m_fOutputShearUx) {
+			m_varShearUx->set_cur(m_ixOutputTime, 0, 0, 0);
+			m_varShearUx->put(
+				&(m_dataShearUx[0][0][0]),
 				1,
-				m_dataRichardson.GetColumns(),
+				m_dataShearUx.GetColumns(),
+				m_dYCoord.GetRows(),
+				m_dXCoord.GetRows());
+		}
+
+		// Store ShearVy data
+		if (m_fOutputShearVy) {
+			m_varShearVy->set_cur(m_ixOutputTime, 0, 0, 0);
+			m_varShearVy->put(
+				&(m_dataShearVy[0][0][0]),
+				1,
+				m_dataShearVy.GetColumns(),
 				m_dYCoord.GetRows(),
 				m_dXCoord.GetRows());
 		}

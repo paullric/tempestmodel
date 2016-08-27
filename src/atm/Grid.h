@@ -350,9 +350,16 @@ public:
 	);
 
 	///	<summary>
-	///		Compute Richardson number on the grid.
+	///		Compute Zonal shear on the grid.
 	///	</summary>
-	virtual void ComputeRichardson(
+	virtual void ComputeShearUx(
+		int iDataIndex
+	);
+
+	///	<summary>
+	///		Compute Meridional shear on the grid.
+	///	</summary>
+	virtual void ComputeShearVy(
 		int iDataIndex
 	);
 
