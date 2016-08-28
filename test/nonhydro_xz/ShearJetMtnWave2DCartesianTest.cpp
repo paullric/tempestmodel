@@ -139,6 +139,11 @@ private:
 	///	</summary>
 	double m_dTPEta2;
 
+	///	<summary>
+	///		Sigma coordinate value at the top of the domain.
+	///	</summary>
+	double m_dZtEta;
+
 	///<summary>
 	///		Uniform diffusion coefficient for scalars.
 	///</summary>
@@ -189,7 +194,7 @@ public:
 		m_dGDim[2] = -500.0;
 		m_dGDim[3] = 500.0;
 		m_dGDim[4] = 0.0;
-		m_dGDim[5] = 30000.0;
+		m_dGDim[5] = 50000.0;
 
 		// Set the center of the domain in Y
 		m_dY0 = 0.5 * (m_dGDim[3] - m_dGDim[2]);
@@ -216,6 +221,12 @@ public:
 		m_dTPTemp2 = dTemperature;
 		m_dTPEta2 = dEta;
 		m_dTPPhi2 = dGeopotential;
+
+		// Get the eta level at the very top of the domain
+		dEta = EtaFromRLL(
+			phys, m_dGDim[5], 0.0, 0.0, 
+			dGeopotential, dTemperature);
+		m_dZtEta = dEta;
 
 		// Set the boundary conditions for this test
 		m_iLatBC[0] = Grid::BoundaryCondition_Periodic;
@@ -494,10 +505,22 @@ public:
 			phys, dZp, dXp, dYp, dGeopotential, dTemperature);
 
 		// Calculate zonal velocity and set other velocity components
-		double dExpDecay = exp(-(log(dEta) / m_dbC) * (log(dEta) / m_dbC));
-		double dUlon = -m_dUj * 0.5 * log(dEta) * dExpDecay;
 
-		dState[0] = dUlon + m_dU0;
+		// Tropospheric branch of the jet
+		double dExpDecay = exp(-(log(dEta) / m_dbC) * (log(dEta) / m_dbC));
+		double dUlon = -m_dUj * pow(log(dEta), 1.0) * dExpDecay;
+
+		dState[0] = m_dU0 + dUlon;
+
+		// Stratospheric branch of the jet (10% width)
+		double dZSJ = dZp - (0.7 * m_dGDim[5]);
+		double dJW = 0.1 * m_dGDim[5];
+		dExpDecay = m_dUj * exp(-(dZSJ / dJW) * (dZSJ / dJW));
+		dUlon = dExpDecay;
+
+		//std::cout << m_dZtEta << std::endl;
+
+		dState[0] += dUlon;
 		dState[1] = 0.0;
 		dState[3] = 0.0;
 
