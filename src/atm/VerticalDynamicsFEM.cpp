@@ -1081,7 +1081,6 @@ void VerticalDynamicsFEM::StepDiffusionExplicit(
 						for (int k = 0; k < nRElements; k++) {
 							if (m_fResdiffVar[c]) {
 								// Compute the local diffusion coefficient
-								// Compute the local diffusion coefficient
 								dResU = std::abs(m_dResidualNode[UIx][k] / 
 									(m_dStateNode[UIx][k] -
 									 m_dStateRefNode[UIx][k]));
