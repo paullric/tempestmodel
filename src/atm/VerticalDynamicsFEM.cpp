@@ -23,6 +23,7 @@
 #include "Model.h"
 #include "Grid.h"
 #include "GridCSGLL.h"
+#include "GridCartesianGLL.h"
 #include "EquationSet.h"
 #include "TimeObj.h"
 #include "PolynomialInterp.h"
@@ -700,6 +701,9 @@ void VerticalDynamicsFEM::StepDiffusionExplicit(
 	// Get a copy of the grid
 	GridGLL * pGrid = dynamic_cast<GridGLL *>(m_model.GetGrid());
 
+	GridCartesianGLL * gridCartesianGLL =
+		dynamic_cast<GridCartesianGLL *>(m_model.GetGrid());
+
 	// Physical constants
 	const PhysicalConstants & phys = m_model.GetPhysicalConstants();
 
@@ -1037,6 +1041,7 @@ void VerticalDynamicsFEM::StepDiffusionExplicit(
 					}
 
 					double dZtop = pGrid->GetZtop();
+					bool fCartesianXZ = gridCartesianGLL->GetIsCartesianXZ();
 					double dResidualDiffusionCoeff = m_dResdiffCoeff;
 					double dResW = 0.0;
 					double dResP = 0.0;
@@ -1053,9 +1058,11 @@ void VerticalDynamicsFEM::StepDiffusionExplicit(
 								dResU = std::abs(m_dResidualREdge[UIx][k] / 
 									(m_dStateREdge[UIx][k] -
 									 m_dStateRefREdge[UIx][k]));
-								dResV = std::abs(m_dResidualREdge[VIx][k] / 
-									(m_dStateREdge[VIx][k] -
-									 m_dStateRefREdge[VIx][k]));
+								if (!fCartesianXZ) {
+									dResV = std::abs(m_dResidualREdge[VIx][k] / 
+										(m_dStateREdge[VIx][k] -
+										 m_dStateRefREdge[VIx][k]));
+								}
 								dResW = std::abs(m_dResidualREdge[WIx][k] / 
 									(m_dStateREdge[WIx][k] -
 									 m_dStateRefREdge[WIx][k]));
@@ -1084,9 +1091,11 @@ void VerticalDynamicsFEM::StepDiffusionExplicit(
 								dResU = std::abs(m_dResidualNode[UIx][k] / 
 									(m_dStateNode[UIx][k] -
 									 m_dStateRefNode[UIx][k]));
-								dResV = std::abs(m_dResidualNode[VIx][k] / 
-									(m_dStateNode[VIx][k] -
-									 m_dStateRefNode[VIx][k]));
+								if (!fCartesianXZ) {
+									dResV = std::abs(m_dResidualNode[VIx][k] / 
+										(m_dStateNode[VIx][k] -
+										 m_dStateRefNode[VIx][k]));
+								}
 								dResW = std::abs(m_dResidualNode[WIx][k] / 
 									(m_dStateNode[WIx][k] -
 									 m_dStateRefNode[WIx][k]));
