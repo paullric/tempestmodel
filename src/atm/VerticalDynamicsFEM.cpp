@@ -31,7 +31,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 //#define HYPERVISC_HORIZONTAL_VELOCITIES
-#define HYPERVISC_THERMO
+//#define HYPERVISC_THERMO
 //#define HYPERVISC_VERTICAL_VELOCITY
 
 #define UPWIND_HORIZONTAL_VELOCITIES
@@ -45,7 +45,7 @@
 //#define UNIFORM_DIFFUSION_TRACERS
 
 //#define RESIDUAL_DIFFUSION_HORIZONTAL_VELOCITIES
-//#define RESIDUAL_DIFFUSION_THERMO
+#define RESIDUAL_DIFFUSION_THERMO
 //#define RESIDUAL_DIFFUSION_VERTICAL_VELOCITY
 
 //#define EXPLICIT_THERMO
@@ -833,7 +833,41 @@ void VerticalDynamicsFEM::StepDiffusionExplicit(
 			}
 
 #if defined(FORMULATION_THETA)
-			// Store residual of thermodynamic variable in m_dState structure on levels and interfaces
+			// Store residual for U and V
+			for (int k = 0; k < nRElements; k++) {
+					m_dResidualNode[UIx][k] = dataResidualNode[UIx][k][i][j];
+					m_dResidualNode[VIx][k] = dataResidualNode[VIx][k][i][j];
+				}
+
+			pGrid->InterpolateNodeToREdge(
+				m_dResidualNode[UIx],
+				m_dResidualREdge[UIx]);
+
+			pGrid->InterpolateNodeToREdge(
+				m_dResidualNode[VIx],
+				m_dResidualREdge[VIx]);
+
+			// Store residual for W
+			if (pGrid->GetVarLocation(WIx) == DataLocation_Node) {
+				for (int k = 0; k < nRElements; k++) {
+					m_dResidualNode[WIx][k] = dataResidualNode[WIx][k][i][j];
+				}
+
+				pGrid->InterpolateNodeToREdge(
+					m_dResidualNode[WIx],
+					m_dResidualREdge[WIx]);
+
+			} else {
+				for (int k = 0; k <= nRElements; k++) {
+					m_dResidualREdge[WIx][k] = dataResidualREdge[WIx][k][i][j];
+				}
+
+				pGrid->InterpolateREdgeToNode(
+					m_dResidualREdge[WIx],
+					m_dResidualNode[WIx]);
+			}
+
+			// Store residual for theta
 			if (pGrid->GetVarLocation(PIx) == DataLocation_Node) {
 				for (int k = 0; k < nRElements; k++) {
 					m_dResidualNode[PIx][k] = dataResidualNode[PIx][k][i][j];
@@ -849,8 +883,8 @@ void VerticalDynamicsFEM::StepDiffusionExplicit(
 				}
 
 				pGrid->InterpolateREdgeToNode(
-					m_dResidualREdge[WIx],
-					m_dResidualNode[WIx]);
+					m_dResidualREdge[PIx],
+					m_dResidualNode[PIx]);
 			}
 #endif
 
@@ -1004,6 +1038,11 @@ void VerticalDynamicsFEM::StepDiffusionExplicit(
 
 					double dZtop = pGrid->GetZtop();
 					double dResidualDiffusionCoeff = m_dResdiffCoeff;
+					double dResW = 0.0;
+					double dResP = 0.0;
+					double dResU = 0.0;
+					double dResV = 0.0;
+					double dResMax = 0.0;
 
 					// Flow-dependent hyperviscosity on interfaces
 					if (pGrid->GetVarLocation(c) == DataLocation_REdge) {
@@ -1011,10 +1050,24 @@ void VerticalDynamicsFEM::StepDiffusionExplicit(
 						for (int k = 0; k <= nRElements; k++) {
 							if (m_fResdiffVar[c]) {
 								// Compute the local diffusion coefficient
-								dResidualDiffusionCoeff *= 
-									(m_dResidualREdge[c][k] / 
-									(m_dStateREdge[c][k] -
-									 m_dStateRefREdge[c][k]));
+								dResU = std::abs(m_dResidualREdge[UIx][k] / 
+									(m_dStateREdge[UIx][k] -
+									 m_dStateRefREdge[UIx][k]));
+								dResV = std::abs(m_dResidualREdge[VIx][k] / 
+									(m_dStateREdge[VIx][k] -
+									 m_dStateRefREdge[VIx][k]));
+								dResW = std::abs(m_dResidualREdge[WIx][k] / 
+									(m_dStateREdge[WIx][k] -
+									 m_dStateRefREdge[WIx][k]));
+								dResP = std::abs(m_dResidualREdge[PIx][k] / 
+									(m_dStateREdge[PIx][k] -
+									 m_dStateRefREdge[PIx][k]));
+
+								dResMax = std::max(dResU, dResV);
+								dResMax = std::max(dResMax, dResW);
+								dResMax = std::max(dResMax, dResP);
+
+								dResidualDiffusionCoeff *= dResMax;
 
 								dataUpdateREdge[c][k][i][j] +=
 									dResidualDiffusionCoeff
@@ -1028,10 +1081,25 @@ void VerticalDynamicsFEM::StepDiffusionExplicit(
 						for (int k = 0; k < nRElements; k++) {
 							if (m_fResdiffVar[c]) {
 								// Compute the local diffusion coefficient
-								dResidualDiffusionCoeff *= 
-									(m_dResidualNode[c][k] / 
-									(m_dStateNode[c][k] -
-									 m_dStateRefNode[c][k]));
+								// Compute the local diffusion coefficient
+								dResU = std::abs(m_dResidualNode[UIx][k] / 
+									(m_dStateNode[UIx][k] -
+									 m_dStateRefNode[UIx][k]));
+								dResV = std::abs(m_dResidualNode[VIx][k] / 
+									(m_dStateNode[VIx][k] -
+									 m_dStateRefNode[VIx][k]));
+								dResW = std::abs(m_dResidualNode[WIx][k] / 
+									(m_dStateNode[WIx][k] -
+									 m_dStateRefNode[WIx][k]));
+								dResP = std::abs(m_dResidualNode[PIx][k] / 
+									(m_dStateNode[PIx][k] -
+									 m_dStateRefNode[PIx][k]));
+
+								dResMax = std::max(dResU, dResV);
+								dResMax = std::max(dResMax, dResW);
+								dResMax = std::max(dResMax, dResP);
+
+								dResidualDiffusionCoeff *= dResMax;
 
 								dataUpdateNode[c][k][i][j] +=
 									dResidualDiffusionCoeff
