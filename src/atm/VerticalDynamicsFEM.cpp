@@ -458,28 +458,28 @@ void VerticalDynamicsFEM::Initialize() {
 		m_dHypervisCoeff = (1.0 / 2.0)
 			* pow(1.0 / static_cast<double>(nRElements), 1.0);
 
-		m_dResdiffCoeff = (1.0 / 2.0)
+		m_dResdiffCoeff = 1.0
 			* pow(1.0 / static_cast<double>(nRElements), 2.0);
 
 	} else if (m_nHypervisOrder == 4) {
 		m_dHypervisCoeff = - (1.0 / 12.0) //(1.0 / 6.0)
 			* pow(1.0 / static_cast<double>(nRElements), 3.0);
 
-		m_dResdiffCoeff = - (1.0 / 12.0) //(1.0 / 6.0)
+		m_dResdiffCoeff = - 1.0
 			* pow(1.0 / static_cast<double>(nRElements), 4.0);
 
 	} else if (m_nHypervisOrder == 6) {
 		m_dHypervisCoeff = (1.0 / 60.0)
 			* pow(1.0 / static_cast<double>(nRElements), 5.0);
 
-		m_dResdiffCoeff = (1.0 / 60.0)
+		m_dResdiffCoeff = 1.0
 			* pow(1.0 / static_cast<double>(nRElements), 6.0);
 
 	} else if (m_nHypervisOrder == 8) {
 		m_dHypervisCoeff = - (3.0 / 840.0)
 			* pow(1.0 / static_cast<double>(nRElements), 7.0);
 
-		m_dResdiffCoeff = - (3.0 / 840.0)
+		m_dResdiffCoeff = 1.0
 			* pow(1.0 / static_cast<double>(nRElements), 8.0);
 
 	} else {
@@ -1066,7 +1066,7 @@ void VerticalDynamicsFEM::StepDiffusionExplicit(
 								dResW = std::abs(m_dResidualREdge[WIx][k] / 
 									(m_dStateREdge[WIx][k] -
 									 m_dStateRefREdge[WIx][k]));
-								dResP = std::abs(m_dResidualREdge[PIx][k] / 
+								dResP = 0.875 * std::abs(m_dResidualREdge[PIx][k] / 
 									(m_dStateREdge[PIx][k] -
 									 m_dStateRefREdge[PIx][k]));
 
