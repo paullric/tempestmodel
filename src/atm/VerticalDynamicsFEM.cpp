@@ -1055,24 +1055,33 @@ void VerticalDynamicsFEM::StepDiffusionExplicit(
 						for (int k = 0; k <= nRElements; k++) {
 							if (m_fResdiffVar[c]) {
 								// Compute the local diffusion coefficient
-								dResU = std::abs(m_dResidualREdge[UIx][k] / 
-									(m_dStateREdge[UIx][k] -
-									 m_dStateRefREdge[UIx][k]));
+								dResU = std::abs(m_dResidualREdge[UIx][k]);
 								if (!fCartesianXZ) {
-									dResV = std::abs(m_dResidualREdge[VIx][k] / 
-										(m_dStateREdge[VIx][k] -
-										 m_dStateRefREdge[VIx][k]));
+									dResV = std::abs(m_dResidualREdge[VIx][k]);
 								}
-								dResW = std::abs(m_dResidualREdge[WIx][k] / 
-									(m_dStateREdge[WIx][k] -
-									 m_dStateRefREdge[WIx][k]));
-								dResP = 0.875 * std::abs(m_dResidualREdge[PIx][k] / 
-									(m_dStateREdge[PIx][k] -
-									 m_dStateRefREdge[PIx][k]));
+								dResW = std::abs(m_dResidualREdge[WIx][k]);
+								dResP = 0.875 * 
+										std::abs(m_dResidualREdge[PIx][k]);
 
 								dResMax = std::max(dResU, dResV);
 								dResMax = std::max(dResMax, dResW);
 								dResMax = std::max(dResMax, dResP);
+
+								if (dResMax == dResU) {
+									dResMax /= std::abs(m_dStateREdge[UIx][k] -
+									 m_dStateRefREdge[UIx][k]);
+								} else if (dResMax == dResV) {
+									dResMax /= std::abs(m_dStateREdge[VIx][k] -
+									 m_dStateRefREdge[VIx][k]);
+								} else if (dResMax == dResW) {
+									dResMax /= std::abs(m_dStateREdge[WIx][k] -
+									 m_dStateRefREdge[WIx][k]);
+								} else if (dResMax == dResP) {
+									dResMax /= std::abs(m_dStateREdge[PIx][k] -
+									 m_dStateRefREdge[PIx][k]);
+								} else {
+									dResMax = 0.0;
+								}
 
 								dResidualDiffusionCoeff *= dResMax;
 
@@ -1088,24 +1097,33 @@ void VerticalDynamicsFEM::StepDiffusionExplicit(
 						for (int k = 0; k < nRElements; k++) {
 							if (m_fResdiffVar[c]) {
 								// Compute the local diffusion coefficient
-								dResU = std::abs(m_dResidualNode[UIx][k] / 
-									(m_dStateNode[UIx][k] -
-									 m_dStateRefNode[UIx][k]));
+								dResU = std::abs(m_dResidualNode[UIx][k]);
 								if (!fCartesianXZ) {
-									dResV = std::abs(m_dResidualNode[VIx][k] / 
-										(m_dStateNode[VIx][k] -
-										 m_dStateRefNode[VIx][k]));
+									dResV = std::abs(m_dResidualNode[VIx][k]);
 								}
-								dResW = std::abs(m_dResidualNode[WIx][k] / 
-									(m_dStateNode[WIx][k] -
-									 m_dStateRefNode[WIx][k]));
-								dResP = std::abs(m_dResidualNode[PIx][k] / 
-									(m_dStateNode[PIx][k] -
-									 m_dStateRefNode[PIx][k]));
+								dResW = std::abs(m_dResidualNode[WIx][k]);
+								dResP = 0.875 * 
+										std::abs(m_dResidualNode[PIx][k]);
 
 								dResMax = std::max(dResU, dResV);
 								dResMax = std::max(dResMax, dResW);
 								dResMax = std::max(dResMax, dResP);
+
+								if (dResMax == dResU) {
+									dResMax /= std::abs(m_dStateNode[UIx][k] -
+									 m_dStateRefNode[UIx][k]);
+								} else if (dResMax == dResV) {
+									dResMax /= std::abs(m_dStateNode[VIx][k] -
+									 m_dStateRefNode[VIx][k]);
+								} else if (dResMax == dResW) {
+									dResMax /= std::abs(m_dStateNode[WIx][k] -
+									 m_dStateRefNode[WIx][k]);
+								} else if (dResMax == dResP) {
+									dResMax /= std::abs(m_dStateNode[PIx][k] -
+									 m_dStateRefNode[PIx][k]);
+								} else {
+									dResMax = 0.0;
+								}
 
 								dResidualDiffusionCoeff *= dResMax;
 
