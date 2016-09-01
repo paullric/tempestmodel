@@ -847,8 +847,8 @@ void VerticalDynamicsFEM::StepDiffusionExplicit(
 					m_dResidualNode[VIx][k] = dataResidualNode[VIx][k][i][j];
 
 					// Sum U and V over the column
-					dColAvgU += dataResidualNode[UIx][k][i][j];
-					dColAvgV += dataResidualNode[VIx][k][i][j];
+					dColAvgU += dataInitialNode[UIx][k][i][j];
+					dColAvgV += dataInitialNode[VIx][k][i][j];
 			}
 
 			dColAvgU /= nRElements;
@@ -882,7 +882,7 @@ void VerticalDynamicsFEM::StepDiffusionExplicit(
 					m_dResidualREdge[WIx][k] = dataResidualREdge[WIx][k][i][j];
 
 					// Sum W over the column
-					dColAvgW += dataResidualREdge[WIx][k][i][j];
+					dColAvgW += dataInitialREdge[WIx][k][i][j];
 				}
 
 				dColAvgW /= nRElements + 1;
@@ -898,7 +898,7 @@ void VerticalDynamicsFEM::StepDiffusionExplicit(
 					m_dResidualNode[PIx][k] = dataResidualNode[PIx][k][i][j];
 
 					// Sum P over the column
-					dColAvgP += dataResidualNode[PIx][k][i][j];
+					dColAvgP += dataInitialNode[PIx][k][i][j];
 				}
 
 				dColAvgP /= nRElements;
@@ -912,7 +912,7 @@ void VerticalDynamicsFEM::StepDiffusionExplicit(
 					m_dResidualREdge[PIx][k] = dataResidualREdge[PIx][k][i][j];
 
 					// Sum P over the column
-					dColAvgP += dataResidualREdge[PIx][k][i][j];
+					dColAvgP += dataInitialREdge[PIx][k][i][j];
 				}
 
 				dColAvgP /= nRElements + 1;
@@ -922,6 +922,18 @@ void VerticalDynamicsFEM::StepDiffusionExplicit(
 					m_dResidualNode[PIx]);
 			}
 #endif
+
+			// Check for tiny values in the column averages
+			double dTolAvg = 1.0E-6;
+			if (dColAvgU < dTolAvg) {
+				dColAvgU = 1.0;
+			} else if (dColAvgV < dTolAvg) {
+				dColAvgV = 1.0;
+			} else if (dColAvgW < dTolAvg) {
+				dColAvgW = 1.0;
+			} else if (dColAvgP < dTolAvg) {
+				dColAvgP = 1.0;
+			}
 
 			//////////////////////////////////////////////////////////////
 			// Apply residual hyperviscosity or uniform diffusion to U and V
@@ -1129,7 +1141,7 @@ void VerticalDynamicsFEM::StepDiffusionExplicit(
 									dResV = std::abs(m_dResidualNode[VIx][k]);
 								}
 								dResW = std::abs(m_dResidualNode[WIx][k]);
-								dResP =	std::abs(m_dResidualNode[PIx][k]);
+								dResP = std::abs(m_dResidualNode[PIx][k]);
 
 								dResMax = std::max(dResU, dResV);
 								dResMax = std::max(dResMax, dResW);
