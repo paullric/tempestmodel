@@ -922,7 +922,7 @@ void VerticalDynamicsFEM::StepDiffusionExplicit(
 					m_dResidualNode[PIx]);
 			}
 #endif
-
+/*
 			// Check for tiny values in the column averages
 			double dTolAvg = 1.0E-6;
 			if (dColAvgU < dTolAvg) {
@@ -934,7 +934,7 @@ void VerticalDynamicsFEM::StepDiffusionExplicit(
 			} else if (dColAvgP < dTolAvg) {
 				dColAvgP = 1.0;
 			}
-
+*/
 			//////////////////////////////////////////////////////////////
 			// Apply residual hyperviscosity or uniform diffusion to U and V
 			if ((m_fUniformDiffusionVar[UIx]) || (m_fResdiffVar[UIx])) {
@@ -1111,13 +1111,13 @@ void VerticalDynamicsFEM::StepDiffusionExplicit(
 
 								// Scale using the mean state ignoring boundary conditions
 								if ((dResMax == dResU) && (k > 0) && (k < nRElements)) {
-									dResMax /= std::abs(dColAvgU);
+									dResMax /= std::abs(dataInitialREdge[UIx][k][i][j] - dColAvgU);
 								} else if ((dResMax == dResV) && (k > 0) && (k < nRElements)) {
-									dResMax /= std::abs(dColAvgV);
+									dResMax /= std::abs(dataInitialREdge[VIx][k][i][j] - dColAvgV);
 								} else if ((dResMax == dResW) && (k > 0) && (k < nRElements)) {
-									dResMax /= std::abs(dColAvgW);
+									dResMax /= std::abs(dataInitialREdge[WIx][k][i][j] - dColAvgW);
 								} else if (dResMax == dResP) {
-									dResMax /= std::abs(dColAvgP);
+									dResMax /= std::abs(dataInitialREdge[PIx][k][i][j] - dColAvgP);
 								} else {
 									dResMax = 0.0;
 								}
@@ -1148,13 +1148,13 @@ void VerticalDynamicsFEM::StepDiffusionExplicit(
 								dResMax = std::max(dResMax, dResP);
 
 								if (dResMax == dResU) {
-									dResMax /= std::abs(dColAvgU);
+									dResMax /= std::abs(dataInitialNode[UIx][k][i][j] - dColAvgU);
 								} else if (dResMax == dResV) {
-									dResMax /= std::abs(dColAvgV);
+									dResMax /= std::abs(dataInitialNode[VIx][k][i][j] - dColAvgV);
 								} else if (dResMax == dResW) {
-									dResMax /= std::abs(dColAvgW);
+									dResMax /= std::abs(dataInitialNode[WIx][k][i][j] - dColAvgW);
 								} else if (dResMax == dResP) {
-									dResMax /= std::abs(dColAvgP);
+									dResMax /= std::abs(dataInitialNode[PIx][k][i][j] - dColAvgP);
 								} else {
 									dResMax = 0.0;
 								}
