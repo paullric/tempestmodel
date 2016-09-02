@@ -399,7 +399,7 @@ void Model::Go() {
 		}
 
 		// Perform one time step
-		Announce("Step %s", m_time.ToString().c_str());
+		//Announce("Step %s", m_time.ToString().c_str());
 		m_pTimestepScheme->Step(fFirstStep, fLastStep, m_time, dDeltaT);
 
 		// Energy and enstrophy

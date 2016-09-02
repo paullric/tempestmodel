@@ -556,7 +556,7 @@ void TimestepSchemeStrang::Step(
 		pVerticalDynamics->StepExplicit(0, 1, time, dDeltaT / 5.0);
 		pGrid->PostProcessSubstage(1, DataType_State);
 		pGrid->PostProcessSubstage(1, DataType_Tracers);
-
+/*
 		// Compute the function evaluation F(u^n) and store it
 		m_dKinnmarkGrayUllrichCombinationF[0] = - 1.0 / (5.0 * dDeltaT);
 		m_dKinnmarkGrayUllrichCombinationF[1] =   1.0 / (5.0 * dDeltaT);
@@ -569,25 +569,6 @@ void TimestepSchemeStrang::Step(
 			m_dKinnmarkGrayUllrichCombinationF, 5, DataType_State);
 		pGrid->LinearCombineData(
 			m_dKinnmarkGrayUllrichCombinationF, 5, DataType_Tracers);
-/*
-		// Make a stage estimate of the residual of the state
-		m_dKinnmarkGrayUllrichCombinationR[0] = - 1.0 / dDeltaT;
-		m_dKinnmarkGrayUllrichCombinationR[1] =   1.0 / dDeltaT;
-		m_dKinnmarkGrayUllrichCombinationR[2] =   0.0;
-		m_dKinnmarkGrayUllrichCombinationR[3] =   0.0;
-		m_dKinnmarkGrayUllrichCombinationR[4] =   0.0;
-		m_dKinnmarkGrayUllrichCombinationR[5] = - 1.0;
-
-		pGrid->LinearCombineData(
-			m_dKinnmarkGrayUllrichCombinationR, 2, DataType_State);
-		pGrid->LinearCombineData(
-			m_dKinnmarkGrayUllrichCombinationR, 2, DataType_Tracers);
-
-		// Apply diffusion on the first stage
-		SubcycleStageExplicit(time, 1.0, dDeltaT / 5.0, 1, 1, 2, 2, 
-							  pVerticalDynamics, pGrid);
-		pGrid->CopyData(2, 1, DataType_State);
-		pGrid->CopyData(2, 1, DataType_Tracers);
 */
 		pGrid->CopyData(0, 2, DataType_State);
 		pGrid->CopyData(0, 2, DataType_Tracers);
@@ -595,39 +576,21 @@ void TimestepSchemeStrang::Step(
 		pVerticalDynamics->StepExplicit(1, 2, time, dDeltaT / 5.0);
 		pGrid->PostProcessSubstage(2, DataType_State);
 		pGrid->PostProcessSubstage(2, DataType_Tracers);
-/*
-		// Apply diffusion on the second stage
-		SubcycleStageExplicit(time, 1.0, dDeltaT / 5.0, 1, 2, 3, 2, 
-							  pVerticalDynamics, pGrid);
-		pGrid->CopyData(3, 2, DataType_State);
-		pGrid->CopyData(3, 2, DataType_Tracers);
-*/
+
 		pGrid->CopyData(0, 3, DataType_State);
 		pGrid->CopyData(0, 3, DataType_Tracers);
 		pHorizontalDynamics->StepExplicit(2, 3, time, dDeltaT / 3.0);
 		pVerticalDynamics->StepExplicit(2, 3, time, dDeltaT / 3.0);
 		pGrid->PostProcessSubstage(3, DataType_State);
 		pGrid->PostProcessSubstage(3, DataType_Tracers);
-/*
-		// Apply diffusion on the third stage
-		SubcycleStageExplicit(time, 1.0, dDeltaT / 3.0, 1, 3, 4, 2, 
-							  pVerticalDynamics, pGrid);
-		pGrid->CopyData(4, 3, DataType_State);
-		pGrid->CopyData(4, 3, DataType_Tracers);
-*/
+
 		pGrid->CopyData(0, 2, DataType_State);
 		pGrid->CopyData(0, 2, DataType_Tracers);
 		pHorizontalDynamics->StepExplicit(3, 2, time, 2.0 * dDeltaT / 3.0);
 		pVerticalDynamics->StepExplicit(3, 2, time, 2.0 * dDeltaT / 3.0);
 		pGrid->PostProcessSubstage(2, DataType_State);
 		pGrid->PostProcessSubstage(2, DataType_Tracers);
-/*
-		// Apply diffusion on the fourth stage
-		SubcycleStageExplicit(time, 1.0, 2.0 * dDeltaT / 3.0, 1, 2, 4, 2, 
-							  pVerticalDynamics, pGrid);
-		pGrid->CopyData(4, 2, DataType_State);
-		pGrid->CopyData(4, 2, DataType_Tracers);
-*/
+
 		pGrid->LinearCombineData(
 			m_dKinnmarkGrayUllrichCombination, 4, DataType_State);
 		pGrid->LinearCombineData(
@@ -637,23 +600,18 @@ void TimestepSchemeStrang::Step(
 		pGrid->PostProcessSubstage(4, DataType_State);
 		pGrid->PostProcessSubstage(4, DataType_Tracers);
 
-		// Make a stage estimate of the residual of the state
-		m_dKinnmarkGrayUllrichCombinationR[0] = - 1.0 / dDeltaT;
-		m_dKinnmarkGrayUllrichCombinationR[1] =   1.0 / dDeltaT;
-		m_dKinnmarkGrayUllrichCombinationR[2] =   0.0;
-		m_dKinnmarkGrayUllrichCombinationR[3] =   0.0;
-		m_dKinnmarkGrayUllrichCombinationR[4] =   0.0;
-		m_dKinnmarkGrayUllrichCombinationR[5] = - 1.0;
-		pGrid->LinearCombineData(
-			m_dKinnmarkGrayUllrichCombinationR, 2, DataType_State);
-		pGrid->LinearCombineData(
-			m_dKinnmarkGrayUllrichCombinationR, 2, DataType_Tracers);
+		// Compute the function evaluation F(u^n4) and store it
+		m_dKinnmarkGrayUllrichCombinationF[0] = + 1.0 / (3.0 * dDeltaT);
+		m_dKinnmarkGrayUllrichCombinationF[1] = - 5.0 / (3.0 * dDeltaT);
+		m_dKinnmarkGrayUllrichCombinationF[2] =   0.0;
+		m_dKinnmarkGrayUllrichCombinationF[3] =   0.0;
+		m_dKinnmarkGrayUllrichCombinationF[4] =   4.0 / (3.0 * dDeltaT);
+		m_dKinnmarkGrayUllrichCombinationF[5] =   0.0;
 
-		pGrid->CopyData(4, 1, DataType_State);
-		pGrid->CopyData(4, 1, DataType_Tracers);
-		SubcycleStageExplicit(time, 1.0, dDeltaT, 1, 1, 4, 2, 
-							  pVerticalDynamics, pGrid);
-		//pVerticalDynamics->StepDiffusionExplicit(4, 1, 2, time, dDeltaT);
+		pGrid->LinearCombineData(
+			m_dKinnmarkGrayUllrichCombinationF, 5, DataType_State);
+		pGrid->LinearCombineData(
+			m_dKinnmarkGrayUllrichCombinationF, 5, DataType_Tracers);
 
 	// Explicit strong stability preserving five-stage third-order Runge-Kutta
 	} else if (m_eExplicitDiscretization == RungeKuttaSSPRK53) {
@@ -704,6 +662,26 @@ void TimestepSchemeStrang::Step(
 	// Invalid explicit discretization
 	} else {
 		_EXCEPTIONT("Invalid explicit discretization");
+	}
+
+	if (m_eExplicitDiscretization == KinnmarkGrayUllrich35) {
+		// Make a stage estimate of the residual of the state
+		m_dKinnmarkGrayUllrichCombinationR[0] = - 1.0 / dDeltaT;
+		m_dKinnmarkGrayUllrichCombinationR[1] =   0.0;
+		m_dKinnmarkGrayUllrichCombinationR[2] =   0.0;
+		m_dKinnmarkGrayUllrichCombinationR[3] =   0.0;
+		m_dKinnmarkGrayUllrichCombinationR[4] =   1.0 / dDeltaT;
+		m_dKinnmarkGrayUllrichCombinationR[5] = - 1.0;
+		pGrid->LinearCombineData(
+			m_dKinnmarkGrayUllrichCombinationR, 2, DataType_State);
+		pGrid->LinearCombineData(
+			m_dKinnmarkGrayUllrichCombinationR, 2, DataType_Tracers);
+
+		pGrid->CopyData(4, 1, DataType_State);
+		pGrid->CopyData(4, 1, DataType_Tracers);
+		SubcycleStageExplicit(time, 1.0, dDeltaT, 1, 1, 4, 2, 
+							  pVerticalDynamics, pGrid);
+		//pVerticalDynamics->StepDiffusionExplicit(4, 1, 2, time, dDeltaT);
 	}
 
 	// Apply hyperdiffusion
