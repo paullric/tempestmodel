@@ -841,18 +841,22 @@ void VerticalDynamicsFEM::StepDiffusionExplicit(
 			double dColAvgV = 0.0;
 			double dColAvgW = 0.0;
 			double dColAvgP = 0.0;
+			double dColAvgR = 0.0;
 			// Store residual for U and V
 			for (int k = 0; k < nRElements; k++) {
-					m_dResidualNode[UIx][k] = dataResidualNode[UIx][k][i][j];
-					m_dResidualNode[VIx][k] = dataResidualNode[VIx][k][i][j];
+				m_dResidualNode[UIx][k] = dataResidualNode[UIx][k][i][j];
+				m_dResidualNode[VIx][k] = dataResidualNode[VIx][k][i][j];
+				m_dResidualNode[RIx][k] = dataResidualNode[RIx][k][i][j];
 
-					// Sum U and V over the column
-					dColAvgU += dataInitialNode[UIx][k][i][j];
-					dColAvgV += dataInitialNode[VIx][k][i][j];
+				// Sum U and V over the column
+				dColAvgU += dataInitialNode[UIx][k][i][j];
+				dColAvgV += dataInitialNode[VIx][k][i][j];
+				dColAvgR += dataInitialNode[RIx][k][i][j];
 			}
 
 			dColAvgU /= nRElements;
 			dColAvgV /= nRElements;
+			dColAvgR /= nRElements;
 
 			pGrid->InterpolateNodeToREdge(
 				m_dResidualNode[UIx],
@@ -861,6 +865,10 @@ void VerticalDynamicsFEM::StepDiffusionExplicit(
 			pGrid->InterpolateNodeToREdge(
 				m_dResidualNode[VIx],
 				m_dResidualREdge[VIx]);
+
+			pGrid->InterpolateNodeToREdge(
+				m_dResidualNode[RIx],
+				m_dResidualREdge[RIx]);
 
 			// Store residual for W
 			if (pGrid->GetVarLocation(WIx) == DataLocation_Node) {
@@ -922,19 +930,7 @@ void VerticalDynamicsFEM::StepDiffusionExplicit(
 					m_dResidualNode[PIx]);
 			}
 #endif
-/*
-			// Check for tiny values in the column averages
-			double dTolAvg = 1.0E-6;
-			if (dColAvgU < dTolAvg) {
-				dColAvgU = 1.0;
-			} else if (dColAvgV < dTolAvg) {
-				dColAvgV = 1.0;
-			} else if (dColAvgW < dTolAvg) {
-				dColAvgW = 1.0;
-			} else if (dColAvgP < dTolAvg) {
-				dColAvgP = 1.0;
-			}
-*/
+
 			//////////////////////////////////////////////////////////////
 			// Apply residual hyperviscosity or uniform diffusion to U and V
 			if ((m_fUniformDiffusionVar[UIx]) || (m_fResdiffVar[UIx])) {
@@ -1086,10 +1082,11 @@ void VerticalDynamicsFEM::StepDiffusionExplicit(
 					double dZtop = pGrid->GetZtop();
 					bool fCartesianXZ = gridCartesianGLL->GetIsCartesianXZ();
 					double dResidualDiffusionCoeff = m_dResdiffCoeff;
-					double dResW = 0.0;
-					double dResP = 0.0;
 					double dResU = 0.0;
 					double dResV = 0.0;
+					double dResW = 0.0;
+					double dResP = 0.0;
+					double dResR = 0.0;
 					double dResMax = 0.0;
 
 					// Flow-dependent hyperviscosity on interfaces
@@ -1104,20 +1101,33 @@ void VerticalDynamicsFEM::StepDiffusionExplicit(
 								}
 								dResW = std::abs(m_dResidualREdge[WIx][k]);
 								dResP = std::abs(m_dResidualREdge[PIx][k]);
+								dResR = std::abs(m_dResidualREdge[RIx][k]);
 
+								// Select the maximum residual
 								dResMax = std::max(dResU, dResV);
 								dResMax = std::max(dResMax, dResW);
 								dResMax = std::max(dResMax, dResP);
+								dResMax = std::max(dResMax, dResR);
 
-								// Scale using the mean state ignoring boundary conditions
-								if ((dResMax == dResU) && (k > 0) && (k < nRElements)) {
-									dResMax /= std::abs(dataInitialREdge[UIx][k][i][j] - dColAvgU);
-								} else if ((dResMax == dResV) && (k > 0) && (k < nRElements)) {
-									dResMax /= std::abs(dataInitialREdge[VIx][k][i][j] - dColAvgV);
-								} else if ((dResMax == dResW) && (k > 0) && (k < nRElements)) {
-									dResMax /= std::abs(dataInitialREdge[WIx][k][i][j] - dColAvgW);
+								// Normalize maximum residual (ignore BCs)
+								if ((dResMax == dResU) && 
+									(k > 0) && (k < nRElements)) {
+									dResMax /= std::abs(
+									dataInitialREdge[UIx][k][i][j] - dColAvgU);
+								} else if ((dResMax == dResV) && 
+											(k > 0) && (k < nRElements)) {
+									dResMax /= std::abs(
+									dataInitialREdge[VIx][k][i][j] - dColAvgV);
+								} else if ((dResMax == dResW) && 
+											(k > 0) && (k < nRElements)) {
+									dResMax /= std::abs(
+									dataInitialREdge[WIx][k][i][j] - dColAvgW);
 								} else if (dResMax == dResP) {
-									dResMax /= std::abs(dataInitialREdge[PIx][k][i][j] - dColAvgP);
+									dResMax /= std::abs(
+									dataInitialREdge[PIx][k][i][j] - dColAvgP);
+								} else if (dResMax == dResR) {
+									dResMax /= std::abs(
+									dataInitialREdge[RIx][k][i][j] - dColAvgR);
 								} else {
 									dResMax = 0.0;
 								}
@@ -1142,19 +1152,30 @@ void VerticalDynamicsFEM::StepDiffusionExplicit(
 								}
 								dResW = std::abs(m_dResidualNode[WIx][k]);
 								dResP = std::abs(m_dResidualNode[PIx][k]);
+								dResR = std::abs(m_dResidualNode[RIx][k]);
 
+								// Select the maximum residual
 								dResMax = std::max(dResU, dResV);
 								dResMax = std::max(dResMax, dResW);
 								dResMax = std::max(dResMax, dResP);
+								dResMax = std::max(dResMax, dResR);
 
+								// Normalize maximum residual
 								if (dResMax == dResU) {
-									dResMax /= std::abs(dataInitialNode[UIx][k][i][j] - dColAvgU);
+									dResMax /= std::abs(
+									dataInitialNode[UIx][k][i][j] - dColAvgU);
 								} else if (dResMax == dResV) {
-									dResMax /= std::abs(dataInitialNode[VIx][k][i][j] - dColAvgV);
+									dResMax /= std::abs(
+									dataInitialNode[VIx][k][i][j] - dColAvgV);
 								} else if (dResMax == dResW) {
-									dResMax /= std::abs(dataInitialNode[WIx][k][i][j] - dColAvgW);
+									dResMax /= std::abs(
+									dataInitialNode[WIx][k][i][j] - dColAvgW);
 								} else if (dResMax == dResP) {
-									dResMax /= std::abs(dataInitialNode[PIx][k][i][j] - dColAvgP);
+									dResMax /= std::abs(
+									dataInitialNode[PIx][k][i][j] - dColAvgP);
+								} else if (dResMax == dResR) {
+									dResMax /= std::abs(
+									dataInitialNode[RIx][k][i][j] - dColAvgR);
 								} else {
 									dResMax = 0.0;
 								}
