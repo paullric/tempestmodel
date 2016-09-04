@@ -1190,35 +1190,6 @@ void VerticalDynamicsFEM::StepDiffusionExplicit(
 					}
 				}
 			}
-/*
-			// Check for any updates to boundary conditions
-			if (dataUpdateNode[WIx][0][i][j] != 0.0) {
-				dataUpdateNode[WIx][0][i][j] = 0.0;
-			}
-			if (dataUpdateREdge[WIx][0][i][j] != 0.0) {
-				dataUpdateREdge[WIx][0][i][j] = 0.0;
-			}
-
-			if (pGrid->GetVarLocation(WIx) == DataLocation_REdge) {
-				if (dataUpdateREdge[WIx][nRElements][i][j] != 0.0) {
-					dataUpdateREdge[WIx][nRElements][i][j] = 0.0;
-				}
-			} else {
-				if (dataUpdateNode[WIx][nRElements-1][i][j] != 0.0) {
-					dataUpdateNode[WIx][nRElements-1][i][j] = 0.0;
-				}
-			}
-
-			if (pGrid->GetVarLocation(PIx) == DataLocation_REdge) {
-				if (dataUpdateREdge[PIx][0][i][j] != 0.0) {
-					dataUpdateREdge[PIx][0][i][j] = 0.0;
-				}
-
-				if (dataUpdateREdge[PIx][nRElements][i][j] != 0.0) {
-					dataUpdateREdge[PIx][nRElements][i][j] = 0.0;
-				}
-			}
-*/
 		}
 		}
 	}

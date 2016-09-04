@@ -680,8 +680,10 @@ void TimestepSchemeStrang::Step(
 		pGrid->CopyData(4, 1, DataType_State);
 		pGrid->CopyData(4, 1, DataType_Tracers);
 		SubcycleStageExplicit(time, 1.0, dDeltaT, 1, 1, 4, 2, 
-							  pVerticalDynamics, pGrid);
-		//pVerticalDynamics->StepDiffusionExplicit(4, 1, 2, time, dDeltaT);
+							  pVerticalDynamics, pHorizontalDynamics, pGrid);
+		//pGrid->CopyData(4, 1, DataType_State);
+		//pGrid->CopyData(4, 1, DataType_Tracers);
+		//pHorizontalDynamics->StepDiffusionExplicit(1, 4, 2, time, dDeltaT);
 	}
 
 	// Apply hyperdiffusion
@@ -732,6 +734,7 @@ void TimestepSchemeStrang::SubcycleStageExplicit(
 	int ioutIndex,
 	int iresIndex,
 	VerticalDynamics * pVerticalDynamics,
+	HorizontalDynamics * pHorizontalDynamics,
 	Grid * pGrid
 ) {
 	for (int n = 0; n < iNS; n++) {
@@ -739,6 +742,9 @@ void TimestepSchemeStrang::SubcycleStageExplicit(
 		pGrid->CopyData(iinpIndex, ioutIndex, DataType_Tracers);
 
 		pVerticalDynamics->StepDiffusionExplicit(
+			iinpIndex, ioutIndex, iresIndex, time, dTimeCoeff * dDeltaT / iNS);
+
+		pHorizontalDynamics->StepDiffusionExplicit(
 			iinpIndex, ioutIndex, iresIndex, time, dTimeCoeff * dDeltaT / iNS);
 
 		pGrid->PostProcessSubstage(ioutIndex, DataType_State);

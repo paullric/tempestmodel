@@ -122,6 +122,7 @@ private:
 		int ioutIndex,
 		int iresIndex,
 		VerticalDynamics * pVerticalDynamics,
+		HorizontalDynamics * pHorizontalDynamics,
 		Grid * pGrid
 	);
 

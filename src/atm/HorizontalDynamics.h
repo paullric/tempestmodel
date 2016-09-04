@@ -75,6 +75,18 @@ public:
 	}
 
 	///	<summary>
+	///		Perform one horizontal Forward Euler step for diffusion only.
+	///	</summary>
+	virtual void StepDiffusionExplicit(
+	int iDataInitial,
+	int iDataUpdate,
+	int iDataResidual,
+	const Time & time,
+	double dDeltaT
+	) {
+	}
+
+	///	<summary>
 	///		Perform one implicit time step.
 	///	</summary>
 	virtual void StepImplicit(

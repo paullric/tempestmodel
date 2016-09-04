@@ -103,6 +103,17 @@ public:
 		double dDeltaT
 	);
 
+	///	<summary>
+	///		Perform one horizontal Forward Euler step for diffusion only.
+	///	</summary>
+	virtual void StepDiffusionExplicit(
+	int iDataInitial,
+	int iDataUpdate,
+	int iDataResidual,
+	const Time & time,
+	double dDeltaT
+	);
+
 protected:
 	///	<summary>
 	///		Apply the scalar Laplacian operator.
@@ -115,6 +126,18 @@ protected:
 		bool fScaleNuLocally,
 		int iComponent = (-1),
 		bool fRemoveRefState = false
+	);
+
+	///	<summary>
+	///		Apply the scalar Laplacian operator with residual coefficients.
+	///	</summary>
+	void ApplyScalarHyperdiffusionResidual(
+	int iDataInitial,
+	int iDataUpdate,
+	int iDataResidual,
+	double dDeltaT,
+	int iComponent = (-1),
+	bool fRemoveRefState = false
 	);
 
 	///	<summary>

@@ -24,6 +24,7 @@
 #include "Announce.h"
 #include "GridGLL.h"
 #include "GridPatchGLL.h"
+#include "GridCartesianGLL.h"
 
 //#define DIFFERENTIAL_FORM
 
@@ -32,6 +33,15 @@
 #endif
 
 //#define INSTEP_DIVERGENCE_DAMPING
+
+//#define UNIFORM_DIFFUSION_HORIZONTAL_VELOCITIES
+//#define UNIFORM_DIFFUSION_THERMO
+//#define UNIFORM_DIFFUSION_VERTICAL_VELOCITY
+//#define UNIFORM_DIFFUSION_TRACERS
+
+//#define RESIDUAL_DIFFUSION_HORIZONTAL_VELOCITIES
+#define RESIDUAL_DIFFUSION_THERMO
+//#define RESIDUAL_DIFFUSION_VERTICAL_VELOCITY
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -1658,6 +1668,97 @@ void HorizontalDynamicsFEM::StepExplicit(
 
 ///////////////////////////////////////////////////////////////////////////////
 
+void HorizontalDynamicsFEM::StepDiffusionExplicit(
+	int iDataInitial,
+	int iDataUpdate,
+	int iDataResidual,
+	const Time & time,
+	double dDeltaT
+) {
+	if (iDataInitial == iDataUpdate) {
+		_EXCEPTIONT(
+			"HorizontalDynamics Step must have iDataInitial != iDataUpdate");
+	}
+
+	// Get a copy of the GLL grid
+	GridGLL * pGrid = dynamic_cast<GridGLL*>(m_model.GetGrid());
+
+	// Equation set
+	const EquationSet & eqn = m_model.GetEquationSet();
+
+	// Uniform diffusion of U and V with vector diffusion coeff
+	if (pGrid->HasUniformDiffusion()) {
+#if defined(UNIFORM_DIFFUSION_HORIZONTAL_VELOCITIES)
+		ApplyVectorHyperdiffusion(
+			iDataInitial,
+			iDataUpdate,
+			dDeltaT,
+			- pGrid->GetVectorUniformDiffusionCoeff(),
+			- pGrid->GetVectorUniformDiffusionCoeff(),
+			false);
+
+		ApplyVectorHyperdiffusion(
+			DATA_INDEX_REFERENCE,
+			iDataUpdate,
+			dDeltaT,
+			pGrid->GetVectorUniformDiffusionCoeff(),
+			pGrid->GetVectorUniformDiffusionCoeff(),
+			false);
+#endif
+#if defined(RESIDUAL_DIFFUSION_HORIZONTAL_VELOCITIES)
+	_EXCEPTIONT(
+			"Residual diffusion not implemented for U and V yet...");
+#endif
+		if (eqn.GetType() == EquationSet::PrimitiveNonhydrostaticEquations) {
+
+#if defined(UNIFORM_DIFFUSION_THERMO)
+			// Uniform diffusion of Theta with scalar diffusion coeff
+			ApplyScalarHyperdiffusion(
+				iDataInitial,
+				iDataUpdate,
+				dDeltaT,
+				pGrid->GetScalarUniformDiffusionCoeff(),
+				false,
+				2,
+				true);
+#endif
+#if defined(RESIDUAL_DIFFUSION_THERMO)
+			// Residual diffusion of Theta with residual based diffusion coeff
+			ApplyScalarHyperdiffusionResidual(
+				iDataInitial,
+				iDataUpdate,
+				iDataResidual,
+				dDeltaT,
+				2,
+				true);
+#endif
+#if defined (UNIFORM_DIFFUSION_VERTICAL_VELOCITY)
+			// Uniform diffusion of W with vector diffusion coeff
+			ApplyScalarHyperdiffusion(
+				iDataInitial,
+				iDataUpdate,
+				dDeltaT,
+				pGrid->GetVectorUniformDiffusionCoeff(),
+				false,
+				3,
+				true);
+#endif
+#if defined(RESIDUAL_DIFFUSION_VERTICAL_VELOCITY)
+			// Residual diffusion of W with residual based diffusion coeff
+			ApplyScalarHyperdiffusionResidual(
+				iDataInitial,
+				iDataUpdate,
+				iDataResidual,
+				dDeltaT,
+				3,
+				true);
+#endif
+		}
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
 void HorizontalDynamicsFEM::ApplyScalarHyperdiffusion(
 	int iDataInitial,
 	int iDataUpdate,
@@ -1877,6 +1978,397 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusion(
 					for (int j = 0; j < m_nHorizontalOrder; j++) {
 						int iA = iElementA + i;
 						int iB = iElementB + j;
+
+						double dInvJacobian = 1.0 / (*pJacobian)[k][iA][iB];
+
+						// Compute integral term
+						double dUpdateA = 0.0;
+						double dUpdateB = 0.0;
+
+						for (int s = 0; s < m_nHorizontalOrder; s++) {
+							dUpdateA +=
+								m_dJGradientA[s][j]
+								* dStiffness1D[i][s];
+
+							dUpdateB +=
+								m_dJGradientB[i][s]
+								* dStiffness1D[j][s];
+						}
+
+						dUpdateA *= dInvElementDeltaA;
+						dUpdateB *= dInvElementDeltaB;
+
+						// Apply update
+						(*pDataUpdate)[c][k][iA][iB] -=
+							dDeltaT * dInvJacobian * dLocalNu
+								* (dUpdateA + dUpdateB);
+					}
+					}
+				}
+				}
+				}
+			}
+		}
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void HorizontalDynamicsFEM::ApplyScalarHyperdiffusionResidual(
+	int iDataInitial,
+	int iDataUpdate,
+	int iDataResidual,
+	double dDeltaT,
+	int iComponent,
+	bool fRemoveRefState
+) {
+	// Get a copy of the GLL grid
+	GridGLL * pGrid = dynamic_cast<GridGLL*>(m_model.GetGrid());
+
+	GridCartesianGLL * gridCartesianGLL =
+		dynamic_cast<GridCartesianGLL *>(m_model.GetGrid());
+
+	bool fCartesianXZ = gridCartesianGLL->GetIsCartesianXZ();
+
+	// Number of radial elements in grid
+	int nRElements = pGrid->GetRElements();
+
+	// Check argument
+	if (iComponent < (-1)) {
+		_EXCEPTIONT("Invalid component index");
+	}
+
+	// Indices of EquationSet variables
+	const int UIx = 0;
+	const int VIx = 1;
+	const int PIx = 2;
+	const int WIx = 3;
+	const int RIx = 4;
+
+	// Perform local update
+	for (int n = 0; n < pGrid->GetActivePatchCount(); n++) {
+		GridPatchGLL * pPatch =
+			dynamic_cast<GridPatchGLL*>(pGrid->GetActivePatch(n));
+
+		const PatchBox & box = pPatch->GetPatchBox();
+
+		const DataArray3D<double> & dJacobianNode =
+			pPatch->GetJacobian();
+		const DataArray3D<double> & dJacobianREdge =
+			pPatch->GetJacobianREdge();
+		const DataArray3D<double> & dContraMetricA =
+			pPatch->GetContraMetric2DA();
+		const DataArray3D<double> & dContraMetricB =
+			pPatch->GetContraMetric2DB();
+
+		// Grid data
+		DataArray4D<double> & dataInitialNode =
+			pPatch->GetDataState(iDataInitial, DataLocation_Node);
+
+		DataArray4D<double> & dataInitialREdge =
+			pPatch->GetDataState(iDataInitial, DataLocation_REdge);
+
+		DataArray4D<double> & dataResidualNode =
+			pPatch->GetDataState(iDataResidual, DataLocation_Node);
+
+		DataArray4D<double> & dataResidualREdge =
+			pPatch->GetDataState(iDataResidual, DataLocation_REdge);
+
+		DataArray4D<double> & dataUpdateNode =
+			pPatch->GetDataState(iDataUpdate, DataLocation_Node);
+
+		DataArray4D<double> & dataUpdateREdge =
+			pPatch->GetDataState(iDataUpdate, DataLocation_REdge);
+
+		const DataArray4D<double> & dataRefNode =
+			pPatch->GetReferenceState(DataLocation_Node);
+
+		const DataArray4D<double> & dataRefREdge =
+			pPatch->GetReferenceState(DataLocation_REdge);
+
+		// Tracer data
+		DataArray4D<double> & dataInitialTracer =
+			pPatch->GetDataTracers(iDataInitial);
+
+		DataArray4D<double> & dataUpdateTracer =
+			pPatch->GetDataTracers(iDataUpdate);
+
+		// Element grid spacing and derivative coefficients
+		const double dElementDeltaA = pPatch->GetElementDeltaA();
+		const double dElementDeltaB = pPatch->GetElementDeltaB();
+
+		const double dInvElementDeltaA = 1.0 / dElementDeltaA;
+		const double dInvElementDeltaB = 1.0 / dElementDeltaB;
+
+		const DataArray2D<double> & dDxBasis1D = pGrid->GetDxBasis1D();
+		const DataArray2D<double> & dStiffness1D = pGrid->GetStiffness1D();
+
+		// Number of finite elements
+		int nElementCountA = pPatch->GetElementCountA();
+		int nElementCountB = pPatch->GetElementCountB();
+
+		// Initialize new hyperviscosity coefficient
+		double dLocalNu = 0.0;
+
+		// State variables and tracers
+		for (int iType = 0; iType < 2; iType++) {
+
+			int nComponentStart;
+			int nComponentEnd;
+
+			if (iType == 0) {
+				nComponentStart = 2;
+				nComponentEnd = m_model.GetEquationSet().GetComponents();
+
+				if (iComponent != (-1)) {
+					if (iComponent >= nComponentEnd) {
+						_EXCEPTIONT("Invalid component index");
+					}
+
+					nComponentStart = iComponent;
+					nComponentEnd = iComponent+1;
+				}
+
+			} else {
+				nComponentStart = 0;
+				nComponentEnd = m_model.GetEquationSet().GetTracers();
+
+				if (iComponent != (-1)) {
+					continue;
+				}
+			}
+
+			// Loop over all components
+			for (int c = nComponentStart; c < nComponentEnd; c++) {
+
+				int nElementCountR;
+
+				const DataArray4D<double> * pDataInitial;
+				DataArray4D<double> * pDataUpdate;
+				const DataArray4D<double> * pDataRef;
+				const DataArray3D<double> * pJacobian;
+
+				if (iType == 0) {
+					if (pGrid->GetVarLocation(c) == DataLocation_Node) {
+						pDataInitial = &dataInitialNode;
+						pDataUpdate  = &dataUpdateNode;
+						pDataRef = &dataRefNode;
+						nElementCountR = nRElements;
+						pJacobian = &dJacobianNode;
+
+					} else if (pGrid->GetVarLocation(c) == DataLocation_REdge) {
+						pDataInitial = &dataInitialREdge;
+						pDataUpdate  = &dataUpdateREdge;
+						pDataRef = &dataRefREdge;
+						nElementCountR = nRElements + 1;
+						pJacobian = &dJacobianREdge;
+
+					} else {
+						_EXCEPTIONT("UNIMPLEMENTED");
+					}
+
+				} else {
+					pDataInitial = &dataInitialTracer;
+					pDataUpdate = &dataUpdateTracer;
+					nElementCountR = nRElements;
+					pJacobian = &dJacobianNode;
+				}
+
+				// Loop over all finite elements
+				for (int k = 0; k < nElementCountR; k++) {
+				for (int a = 0; a < nElementCountA; a++) {
+				for (int b = 0; b < nElementCountB; b++) {
+
+					int iElementA =
+						a * m_nHorizontalOrder + box.GetHaloElements();
+					int iElementB =
+						b * m_nHorizontalOrder + box.GetHaloElements();
+
+					// Store the buffer state
+					for (int i = 0; i < m_nHorizontalOrder; i++) {
+					for (int j = 0; j < m_nHorizontalOrder; j++) {
+						int iA = iElementA + i;
+						int iB = iElementB + j;
+
+						m_dBufferState[i][j] = (*pDataInitial)[c][k][iA][iB];
+					}
+					}
+
+					// Remove the reference state from the buffer state
+					if (fRemoveRefState) {
+						for (int i = 0; i < m_nHorizontalOrder; i++) {
+						for (int j = 0; j < m_nHorizontalOrder; j++) {
+							int iA = iElementA + i;
+							int iB = iElementB + j;
+
+							m_dBufferState[i][j] -=
+								(*pDataRef)[c][k][iA][iB];
+						}
+						}
+					}
+
+					// Calculate the pointwise gradient of the scalar field
+					for (int i = 0; i < m_nHorizontalOrder; i++) {
+					for (int j = 0; j < m_nHorizontalOrder; j++) {
+						int iA = iElementA + i;
+						int iB = iElementB + j;
+
+						double dDaPsi = 0.0;
+						double dDbPsi = 0.0;
+						for (int s = 0; s < m_nHorizontalOrder; s++) {
+							dDaPsi +=
+								m_dBufferState[s][j]
+								* dDxBasis1D[s][i];
+
+							dDbPsi +=
+								m_dBufferState[i][s]
+								* dDxBasis1D[s][j];
+						}
+
+						dDaPsi *= dInvElementDeltaA;
+						dDbPsi *= dInvElementDeltaB;
+
+						m_dJGradientA[i][j] = (*pJacobian)[k][iA][iB] * (
+							+ dContraMetricA[iA][iB][0] * dDaPsi
+							+ dContraMetricA[iA][iB][1] * dDbPsi);
+
+						m_dJGradientB[i][j] = (*pJacobian)[k][iA][iB] * (
+							+ dContraMetricB[iA][iB][0] * dDaPsi
+							+ dContraMetricB[iA][iB][1] * dDbPsi);
+					}
+					}
+
+					double dResU = 0.0;
+					double dResV = 0.0;
+					double dResW = 0.0;
+					double dResP = 0.0;
+					double dResR = 0.0;
+					double dResMax = 0.0;
+
+					// Pointwise updates
+					for (int i = 0; i < m_nHorizontalOrder; i++) {
+					for (int j = 0; j < m_nHorizontalOrder; j++) {
+						int iA = iElementA + i;
+						int iB = iElementB + j;
+
+						// Compute average of q in the element
+						double dAvgA = 0.0;
+						double dAvgB = 0.0;
+						double dEAvgU = 0.0;
+						double dEAvgV = 0.0;
+						double dEAvgW = 0.0;
+						double dEAvgP = 0.0;
+						double dEAvgR = 0.0;
+
+						for (int c = 0; c < m_model.GetEquationSet().GetComponents(); c++) {
+							for (int s = 0; s < m_nHorizontalOrder; s++) {
+								if (pGrid->GetVarLocation(c) == DataLocation_Node) {
+									dAvgA +=
+										dataResidualNode[c][k][s][j]
+										* dStiffness1D[i][s];
+
+									dAvgB +=
+										dataResidualNode[c][k][i][s]
+										* dStiffness1D[j][s];
+								} else {
+									dAvgA +=
+										dataResidualREdge[c][k][s][j]
+										* dStiffness1D[i][s];
+
+									dAvgB +=
+										dataResidualREdge[c][k][i][s]
+										* dStiffness1D[j][s];
+								}
+							}
+
+							dAvgA *= dInvElementDeltaA;
+							dAvgB *= dInvElementDeltaB;
+
+							switch (c) {
+								case 0: dEAvgU = dAvgA + dAvgB;
+								case 1: dEAvgV = dAvgA + dAvgB;
+								case 2: dEAvgW = dAvgA + dAvgB;
+								case 3: dEAvgP = dAvgA + dAvgB;
+								case 4: dEAvgR = dAvgA + dAvgB;
+							}
+						}
+
+						if (pGrid->GetVarLocation(c) == DataLocation_Node) {
+							// Compute the local diffusion coefficient
+							dResU = std::abs(dataResidualNode[UIx][k][i][j]);
+							if (!fCartesianXZ) {
+								dResV = std::abs(dataResidualNode[VIx][k][i][j]);
+							}
+							dResW = std::abs(dataResidualNode[WIx][k][i][j]);
+							dResP = std::abs(dataResidualNode[PIx][k][i][j]);
+							dResR = std::abs(dataResidualNode[RIx][k][i][j]);
+
+							// Select the maximum residual
+							dResMax = std::max(dResU, dResV);
+							dResMax = std::max(dResMax, dResW);
+							dResMax = std::max(dResMax, dResP);
+							dResMax = std::max(dResMax, dResR);
+
+							// Normalize maximum residual (ignore BCs)
+							if (dResMax == dResU) {
+								dResMax /= std::abs(
+								dataInitialNode[UIx][k][i][j] - dEAvgU);
+							} else if (dResMax == dResV) {
+								dResMax /= std::abs(
+								dataInitialNode[VIx][k][i][j] - dEAvgV);
+							} else if (dResMax == dResW) {
+								dResMax /= std::abs(
+								dataInitialNode[WIx][k][i][j] - dEAvgW);
+							} else if (dResMax == dResP) {
+								dResMax /= std::abs(
+								dataInitialNode[PIx][k][i][j] - dEAvgP);
+							} else if (dResMax == dResR) {
+								dResMax /= std::abs(
+								dataInitialNode[RIx][k][i][j] - dEAvgR);
+							} else {
+								dResMax = 0.0;
+							}
+						} else {
+							// Compute the local diffusion coefficient
+							dResU = std::abs(dataResidualREdge[UIx][k][i][j]);
+							if (!fCartesianXZ) {
+								dResV = std::abs(dataResidualREdge[VIx][k][i][j]);
+							}
+							dResW = std::abs(dataResidualREdge[WIx][k][i][j]);
+							dResP = std::abs(dataResidualREdge[PIx][k][i][j]);
+							dResR = std::abs(dataResidualREdge[RIx][k][i][j]);
+
+							// Select the maximum residual
+							dResMax = std::max(dResU, dResV);
+							dResMax = std::max(dResMax, dResW);
+							dResMax = std::max(dResMax, dResP);
+							dResMax = std::max(dResMax, dResR);
+
+							// Normalize maximum residual (ignore BCs)
+							if ((dResMax == dResU) && 
+								(k > 0) && (k < nRElements)) {
+								dResMax /= std::abs(
+								dataInitialREdge[UIx][k][i][j] - dEAvgU);
+							} else if ((dResMax == dResV) && 
+										(k > 0) && (k < nRElements)) {
+								dResMax /= std::abs(
+								dataInitialREdge[VIx][k][i][j] - dEAvgV);
+							} else if ((dResMax == dResW) && 
+										(k > 0) && (k < nRElements)) {
+								dResMax /= std::abs(
+								dataInitialREdge[WIx][k][i][j] - dEAvgW);
+							} else if (dResMax == dResP) {
+								dResMax /= std::abs(
+								dataInitialREdge[PIx][k][i][j] - dEAvgP);
+							} else if (dResMax == dResR) {
+								dResMax /= std::abs(
+								dataInitialREdge[RIx][k][i][j] - dEAvgR);
+							} else {
+								dResMax = 0.0;
+							}
+						}
+
+						dLocalNu = dResMax;
 
 						double dInvJacobian = 1.0 / (*pJacobian)[k][iA][iB];
 
