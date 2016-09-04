@@ -41,7 +41,7 @@
 
 //#define RESIDUAL_DIFFUSION_HORIZONTAL_VELOCITIES
 #define RESIDUAL_DIFFUSION_THERMO
-//#define RESIDUAL_DIFFUSION_VERTICAL_VELOCITY
+#define RESIDUAL_DIFFUSION_VERTICAL_VELOCITY
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -2368,7 +2368,9 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusionResidual(
 							}
 						}
 
-						dLocalNu = dResMax;
+						dLocalNu = 0.5 * (dElementDeltaA + dElementDeltaB) *
+									0.5 * (dElementDeltaA + dElementDeltaB) *
+									dResMax;
 
 						double dInvJacobian = 1.0 / (*pJacobian)[k][iA][iB];
 

@@ -194,7 +194,7 @@ public:
 		m_dGDim[2] = -500.0;
 		m_dGDim[3] = 500.0;
 		m_dGDim[4] = 0.0;
-		m_dGDim[5] = 55000.0;
+		m_dGDim[5] = 45000.0;
 
 		// Set the center of the domain in Y
 		m_dY0 = 0.5 * (m_dGDim[3] - m_dGDim[2]);
@@ -326,8 +326,8 @@ public:
 	) const {
 		const double dRayleighStrengthZ = 2.0E-2;//8.0e-3;
 		const double dRayleighStrengthX = 1.0 * dRayleighStrengthZ;
-		const double dRayleighDepth = 7500.0;
-		const double dRayleighWidth = 7500.0;
+		const double dRayleighDepth = 5000.0;
+		const double dRayleighWidth = 5000.0;
 
 		double dNuDepth = 0.0;
 		double dNuRight = 0.0;
@@ -513,7 +513,7 @@ public:
 		dState[0] = m_dU0 + dUlon;
 
 		// Stratospheric branch of the jet (10% width)
-		double dZSJ = dZp - (0.7 * m_dGDim[5]);
+		double dZSJ = dZp - (0.6 * m_dGDim[5]);
 		double dJW = 0.1 * m_dGDim[5];
 		dExpDecay = m_dUj * exp(-(dZSJ / dJW) * (dZSJ / dJW));
 		dUlon = dExpDecay;
