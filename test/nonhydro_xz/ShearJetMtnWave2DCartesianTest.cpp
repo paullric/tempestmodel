@@ -332,7 +332,8 @@ public:
 		double dNuDepth = 0.0;
 		double dNuRight = 0.0;
 		double dNuLeft  = 0.0;
-
+/*
+		// Using cosine ramp up
 		if (dZ > m_dGDim[5] - dRayleighDepth) {
 			double dNormZ = (m_dGDim[5] - dZ) / dRayleighDepth;
 			dNuDepth = 0.5 * dRayleighStrengthZ * (1.0 + cos(M_PI * dNormZ));
@@ -345,7 +346,28 @@ public:
 			double dNormX = (dXp - m_dGDim[0]) / dRayleighWidth;
 			dNuLeft = 0.5 * dRayleighStrengthX * (1.0 + cos(M_PI * dNormX));
 		}
-		
+*/
+		// Using high order cosine ramp up
+		int nPower = 3;
+		if (dZ > m_dGDim[5] - dRayleighDepth) {
+			double dNormZ = (m_dGDim[5] - dZ - dRayleighDepth) /
+							dRayleighDepth;
+			dNuDepth = dRayleighStrengthZ * (1.0 - 
+					pow(0.5, nPower) * pow(1.0 + cos(M_PI * dNormZ), nPower));
+		}
+		if (dXp > m_dGDim[1] - dRayleighWidth) {
+			double dNormX = (m_dGDim[1] - dXp - dRayleighWidth) /
+							dRayleighWidth;
+			dNuRight = dRayleighStrengthX * (1.0 - 
+					pow(0.5, nPower) * pow(1.0 + cos(M_PI * dNormX), nPower));
+		}
+		if (dXp < m_dGDim[0] + dRayleighWidth) {
+			double dNormX = (dXp - m_dGDim[0] - 2.0 * dRayleighWidth) /
+							dRayleighWidth;
+			dNuLeft = dRayleighStrengthX * (1.0 - 
+					pow(0.5, nPower) * pow(1.0 + cos(M_PI * dNormX), nPower));
+		}
+
 		//std::cout << dXp << ' ' << dZ << ' ' << dNuDepth << std::endl;
 		if ((dNuDepth >= dNuRight) && (dNuDepth >= dNuLeft)) {
 			return dNuDepth;
