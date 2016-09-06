@@ -38,7 +38,7 @@
 #define UPWIND_HORIZONTAL_VELOCITIES
 //#define UPWIND_THERMO
 //#define UPWIND_VERTICAL_VELOCITY
-//#define UPWIND_RHO_AND_TRACERS
+#define UPWIND_RHO_AND_TRACERS
 
 //#define UNIFORM_DIFFUSION_HORIZONTAL_VELOCITIES
 //#define UNIFORM_DIFFUSION_THERMO
@@ -800,6 +800,13 @@ void VerticalDynamicsFEM::StepDiffusionExplicit(
 		const DataArray4D<double> & dContraMetricBREdge =
 			pPatch->GetContraMetricBREdge();
 
+		// Rayleigh friction strength
+		const DataArray3D<double> & dataRayleighStrengthNode =
+			pPatch->GetRayleighStrength(DataLocation_Node);
+
+		const DataArray3D<double> & dataRayleighStrengthREdge =
+			pPatch->GetRayleighStrength(DataLocation_REdge);
+
 		// Loop over all nodes
 		for (int i = box.GetAInteriorBegin(); i < box.GetAInteriorEnd(); i++) {
 		for (int j = box.GetBInteriorBegin(); j < box.GetBInteriorEnd(); j++) {
@@ -1015,8 +1022,8 @@ void VerticalDynamicsFEM::StepDiffusionExplicit(
 					// Apply hyperviscosity Residual based
 					for (int k = 0; k < nRElements; k++) {
 						if (m_fResdiffVar[UIx]) {
-							_EXCEPTIONT("Residual based diffusion of U and V"
-										" not implemented yet...");
+							_EXCEPTIONT("Residual based vertical diffusion of "
+										"U and V not implemented yet...");
 						}
 					}
 				}
@@ -1074,7 +1081,7 @@ void VerticalDynamicsFEM::StepDiffusionExplicit(
 			if (m_nResdiffOrder > 0) {
 				for (int c = 2; c < 5; c++) {
 
-					// Only W hypervis select variables
+					// Only diffuse select variables
 					if (!m_fResdiffVar[c]) {
 						continue;
 					}
@@ -1089,7 +1096,20 @@ void VerticalDynamicsFEM::StepDiffusionExplicit(
 					double dResR = 0.0;
 					double dResMax = 0.0;
 
-					// Flow-dependent hyperviscosity on interfaces
+					// Uniform diffusion coefficient (in the Rayleigh layer)
+					double dUniformDiffusionCoeff = 0.0;
+					if (c == PIx) {
+						dUniformDiffusionCoeff =
+							pGrid->GetScalarUniformDiffusionCoeff() / 
+							(dZtop * dZtop);
+					}
+					if (c == WIx) {
+						dUniformDiffusionCoeff =
+							pGrid->GetVectorUniformDiffusionCoeff() / 
+							(dZtop * dZtop);
+					}
+
+					// Residual hyperviscosity on interfaces
 					if (pGrid->GetVarLocation(c) == DataLocation_REdge) {
 
 						for (int k = 0; k <= nRElements; k++) {
@@ -1134,13 +1154,20 @@ void VerticalDynamicsFEM::StepDiffusionExplicit(
 
 								dResidualDiffusionCoeff *= dResMax;
 
-								dataUpdateREdge[c][k][i][j] +=
-									dResidualDiffusionCoeff
-									* m_dDiffDiffStateHypervis[c][k];
+								// Uniform diffusion in the Rayleigh layer
+								if (dataRayleighStrengthREdge[k][i][j] < 0) {
+									dataUpdateREdge[c][k][i][j] +=
+										dUniformDiffusionCoeff
+										* m_dDiffDiffStateHypervis[c][k];
+								} else {
+									dataUpdateREdge[c][k][i][j] +=
+										dResidualDiffusionCoeff
+										* m_dDiffDiffStateHypervis[c][k];
+								}
 							}
 						}
 
-					// Flow-dependent hyperviscosity on levels
+					// Residual hyperviscosity on levels
 					} else {
 
 						for (int k = 0; k < nRElements; k++) {
@@ -1182,9 +1209,16 @@ void VerticalDynamicsFEM::StepDiffusionExplicit(
 
 								dResidualDiffusionCoeff *= dResMax;
 
-								dataUpdateNode[c][k][i][j] +=
-									dResidualDiffusionCoeff
-									* m_dDiffDiffStateHypervis[c][k];
+								// Uniform diffusion in the Rayleigh layer
+								if (dataRayleighStrengthNode[k][i][j] < 0) {
+									dataUpdateNode[c][k][i][j] +=
+										dUniformDiffusionCoeff
+										* m_dDiffDiffStateHypervis[c][k];
+								} else {
+									dataUpdateNode[c][k][i][j] +=
+										dResidualDiffusionCoeff
+										* m_dDiffDiffStateHypervis[c][k];
+								}
 							}
 						}
 					}
