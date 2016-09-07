@@ -35,13 +35,13 @@
 //#define INSTEP_DIVERGENCE_DAMPING
 
 //#define UNIFORM_DIFFUSION_HORIZONTAL_VELOCITIES
-#define UNIFORM_DIFFUSION_THERMO
-#define UNIFORM_DIFFUSION_VERTICAL_VELOCITY
+//#define UNIFORM_DIFFUSION_THERMO
+//#define UNIFORM_DIFFUSION_VERTICAL_VELOCITY
 //#define UNIFORM_DIFFUSION_TRACERS
 
 //#define RESIDUAL_DIFFUSION_HORIZONTAL_VELOCITIES
-//#define RESIDUAL_DIFFUSION_THERMO
-//#define RESIDUAL_DIFFUSION_VERTICAL_VELOCITY
+#define RESIDUAL_DIFFUSION_THERMO
+#define RESIDUAL_DIFFUSION_VERTICAL_VELOCITY
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -2155,23 +2155,29 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusionResidual(
 
 				const DataArray4D<double> * pDataInitial;
 				DataArray4D<double> * pDataUpdate;
+				const DataArray4D<double> * pDataResidual;
 				const DataArray4D<double> * pDataRef;
 				const DataArray3D<double> * pJacobian;
+				const DataArray3D<double> * pDataRayleigh;
 
 				if (iType == 0) {
 					if (pGrid->GetVarLocation(c) == DataLocation_Node) {
 						pDataInitial = &dataInitialNode;
 						pDataUpdate  = &dataUpdateNode;
+						pDataResidual = &dataResidualNode;
 						pDataRef = &dataRefNode;
 						nElementCountR = nRElements;
 						pJacobian = &dJacobianNode;
+						pDataRayleigh = &dataRayleighStrengthNode;
 
 					} else if (pGrid->GetVarLocation(c) == DataLocation_REdge) {
 						pDataInitial = &dataInitialREdge;
 						pDataUpdate  = &dataUpdateREdge;
+						pDataResidual = &dataResidualREdge;
 						pDataRef = &dataRefREdge;
 						nElementCountR = nRElements + 1;
 						pJacobian = &dJacobianREdge;
+						pDataRayleigh = &dataRayleighStrengthREdge;
 
 					} else {
 						_EXCEPTIONT("UNIMPLEMENTED");
@@ -2272,23 +2278,13 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusionResidual(
 
 						for (int c = 0; c < m_model.GetEquationSet().GetComponents(); c++) {
 							for (int s = 0; s < m_nHorizontalOrder; s++) {
-								if (pGrid->GetVarLocation(c) == DataLocation_Node) {
-									dAvgA +=
-										dataInitialNode[c][k][s][j]
-										* dStiffness1D[i][s];
+								dAvgA +=
+									*(pDataInitial)[c][k][s][iB]
+									* dStiffness1D[i][s];
 
-									dAvgB +=
-										dataInitialNode[c][k][i][s]
-										* dStiffness1D[j][s];
-								} else {
-									dAvgA +=
-										dataInitialREdge[c][k][s][j]
-										* dStiffness1D[i][s];
-
-									dAvgB +=
-										dataInitialREdge[c][k][i][s]
-										* dStiffness1D[j][s];
-								}
+								dAvgB +=
+									*(pDataInitial)[c][k][iA][s]
+									* dStiffness1D[j][s];
 							}
 
 							dAvgA *= dInvElementDeltaA;
@@ -2303,98 +2299,55 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusionResidual(
 							}
 						}
 
-						if (pGrid->GetVarLocation(c) == DataLocation_Node) {
-							// Compute the local diffusion coefficient
-							dResU = std::abs(dataResidualNode[UIx][k][iA][iB]);
-							if (!fCartesianXZ) {
-								dResV = std::abs(dataResidualNode[VIx][k][iA][iB]);
-							}
-							dResW = std::abs(dataResidualNode[WIx][k][iA][iB]);
-							dResP = std::abs(dataResidualNode[PIx][k][iA][iB]);
-							dResR = std::abs(dataResidualNode[RIx][k][iA][iB]);
+//						std::cout << iA << " " << iB << " " << k << std::endl;
 
-							// Select the maximum residual
-							dResMax = std::max(dResU, dResV);
-							dResMax = std::max(dResMax, dResW);
-							dResMax = std::max(dResMax, dResP);
-							dResMax = std::max(dResMax, dResR);
-
-							// Normalize maximum residual (ignore BCs)
-							if (dResMax == dResU) {
-								dResMax /= std::abs(
-								dataInitialNode[UIx][k][iA][iB] - dEAvgU);
-							} else if (dResMax == dResV) {
-								dResMax /= std::abs(
-								dataInitialNode[VIx][k][iA][iB] - dEAvgV);
-							} else if (dResMax == dResW) {
-								dResMax /= std::abs(
-								dataInitialNode[WIx][k][iA][iB] - dEAvgW);
-							} else if (dResMax == dResP) {
-								dResMax /= std::abs(
-								dataInitialNode[PIx][k][iA][iB] - dEAvgP);
-							} else if (dResMax == dResR) {
-								dResMax /= std::abs(
-								dataInitialNode[RIx][k][iA][iB] - dEAvgR);
-							} else {
-								dResMax = 0.0;
-							}
-
-							dLocalNu = 0.5 * (dElementDeltaA + dElementDeltaB) *
-									0.5 * (dElementDeltaA + dElementDeltaB) *
-									dResMax;
-
-							if (dataRayleighStrengthNode[k][iA][iB] > 0) {
-								dLocalNu = dNuRayleigh;
-							}
-
-						} else {
-							// Compute the local diffusion coefficient
-							dResU = std::abs(dataResidualREdge[UIx][k][iA][iB]);
-							if (!fCartesianXZ) {
-								dResV = std::abs(dataResidualREdge[VIx][k][iA][iB]);
-							}
-							dResW = std::abs(dataResidualREdge[WIx][k][iA][iB]);
-							dResP = std::abs(dataResidualREdge[PIx][k][iA][iB]);
-							dResR = std::abs(dataResidualREdge[RIx][k][iA][iB]);
-
-							// Select the maximum residual
-							dResMax = std::max(dResU, dResV);
-							dResMax = std::max(dResMax, dResW);
-							dResMax = std::max(dResMax, dResP);
-							dResMax = std::max(dResMax, dResR);
-
-							// Normalize maximum residual (ignore BCs)
-							if ((dResMax == dResU) && 
-								(k > 0) && (k < nRElements)) {
-								dResMax /= std::abs(
-								dataInitialREdge[UIx][k][iA][iB] - dEAvgU);
-							} else if ((dResMax == dResV) && 
-										(k > 0) && (k < nRElements)) {
-								dResMax /= std::abs(
-								dataInitialREdge[VIx][k][iA][iB] - dEAvgV);
-							} else if ((dResMax == dResW) && 
-										(k > 0) && (k < nRElements)) {
-								dResMax /= std::abs(
-								dataInitialREdge[WIx][k][iA][iB] - dEAvgW);
-							} else if (dResMax == dResP) {
-								dResMax /= std::abs(
-								dataInitialREdge[PIx][k][iA][iB] - dEAvgP);
-							} else if (dResMax == dResR) {
-								dResMax /= std::abs(
-								dataInitialREdge[RIx][k][iA][iB] - dEAvgR);
-							} else {
-								dResMax = 0.0;
-							}
-
-							dLocalNu = 0.5 * (dElementDeltaA + dElementDeltaB) *
-									0.5 * (dElementDeltaA + dElementDeltaB) *
-									dResMax;
-
-							if (dataRayleighStrengthREdge[k][iA][iB] > 0) {
-								dLocalNu = dNuRayleigh;
-							}
-
+						// Compute the local diffusion coefficient
+						dResU = std::abs(*(pDataResidual)[UIx][k][iA][iB]);
+						if (!fCartesianXZ) {
+							dResV = std::abs(*(pDataResidual)[VIx][k][iA][iB]);
 						}
+						dResW = std::abs(*(pDataResidual)[WIx][k][iA][iB]);
+						dResP = std::abs(*(pDataResidual)[PIx][k][iA][iB]);
+						dResR = std::abs(*(pDataResidual)[RIx][k][iA][iB]);
+
+						// Select the maximum residual
+						dResMax = std::max(dResU, dResV);
+						dResMax = std::max(dResMax, dResW);
+						dResMax = std::max(dResMax, dResP);
+						dResMax = std::max(dResMax, dResR);
+
+//						std::cout << iA << " " << iB << " " << k << std::endl;
+
+						if (dResMax == dResU) {
+							dResMax /= std::abs(
+							*(pDataInitial)[UIx][k][iA][iB] - dEAvgU);
+						} else if (dResMax == dResV) {
+							dResMax /= std::abs(
+							*(pDataInitial)[VIx][k][iA][iB] - dEAvgV);
+						} else if (dResMax == dResW) {
+							dResMax /= std::abs(
+							*(pDataInitial)[WIx][k][iA][iB] - dEAvgW);
+						} else if (dResMax == dResP) {
+							dResMax /= std::abs(
+							*(pDataInitial)[PIx][k][iA][iB] - dEAvgP);
+						} else if (dResMax == dResR) {
+							dResMax /= std::abs(
+							*(pDataInitial)[RIx][k][iA][iB] - dEAvgR);
+						} else {
+							dResMax = 0.0;
+						}
+
+//						std::cout << iA << " " << iB << " " << k << std::endl;
+
+						dLocalNu = 0.5 * (dElementDeltaA + dElementDeltaB) *
+								0.5 * (dElementDeltaA + dElementDeltaB) *
+								dResMax;
+
+						if (*(pDataRayleigh)[k][iA][iB] > 0) {
+							dLocalNu = dNuRayleigh;
+						}
+
+						std::cout << iA << " " << iB << " " << k << std::endl;
 
 						double dInvJacobian = 1.0 / (*pJacobian)[k][iA][iB];
 
