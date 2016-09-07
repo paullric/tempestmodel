@@ -2096,6 +2096,9 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusionResidual(
 		DataArray4D<double> & dataUpdateTracer =
 			pPatch->GetDataTracers(iDataUpdate);
 
+		DataArray4D<double> & dataResidualTracer =
+			pPatch->GetDataTracers(iDataResidual);
+
 		// Rayleigh friction strength
 		const DataArray3D<double> & dataRayleighStrengthNode =
 			pPatch->GetRayleighStrength(DataLocation_Node);
@@ -2186,8 +2189,10 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusionResidual(
 				} else {
 					pDataInitial = &dataInitialTracer;
 					pDataUpdate = &dataUpdateTracer;
+					pDataResidual = &dataResidualTracer;
 					nElementCountR = nRElements;
 					pJacobian = &dJacobianNode;
+					pDataRayleigh = &dataRayleighStrengthNode;
 				}
 
 				// Loop over all finite elements
@@ -2254,6 +2259,44 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusionResidual(
 					}
 					}
 
+					double dAvgA = 0.0;
+					double dAvgB = 0.0;
+					double dEAvgU = 0.0;
+					double dEAvgV = 0.0;
+					double dEAvgW = 0.0;
+					double dEAvgP = 0.0;
+					double dEAvgR = 0.0;
+					// Calculate the element average of the scalar field
+					for (int i = 0; i < m_nHorizontalOrder; i++) {
+					for (int j = 0; j < m_nHorizontalOrder; j++) {
+						int iA = iElementA + i;
+						int iB = iElementB + j;
+
+						for (int o = 0; o < m_model.GetEquationSet().GetComponents(); o++) {
+							for (int s = 0; s < m_nHorizontalOrder; s++) {
+								dAvgA +=
+									*(pDataInitial)[o][k][s][iB]
+									* dStiffness1D[i][s];
+
+								dAvgB +=
+									*(pDataInitial)[o][k][iA][s]
+									* dStiffness1D[j][s];
+							}
+
+							dAvgA *= dInvElementDeltaA;
+							dAvgB *= dInvElementDeltaB;
+
+							switch (o) {
+								case 0: dEAvgU = dAvgA + dAvgB;
+								case 1: dEAvgV = dAvgA + dAvgB;
+								case 2: dEAvgW = dAvgA + dAvgB;
+								case 3: dEAvgP = dAvgA + dAvgB;
+								case 4: dEAvgR = dAvgA + dAvgB;
+							}
+						}
+					}
+					}
+
 					double dResU = 0.0;
 					double dResV = 0.0;
 					double dResW = 0.0;
@@ -2266,40 +2309,6 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusionResidual(
 					for (int j = 0; j < m_nHorizontalOrder; j++) {
 						int iA = iElementA + i;
 						int iB = iElementB + j;
-
-						// Compute average of q in the element
-						double dAvgA = 0.0;
-						double dAvgB = 0.0;
-						double dEAvgU = 0.0;
-						double dEAvgV = 0.0;
-						double dEAvgW = 0.0;
-						double dEAvgP = 0.0;
-						double dEAvgR = 0.0;
-
-						for (int c = 0; c < m_model.GetEquationSet().GetComponents(); c++) {
-							for (int s = 0; s < m_nHorizontalOrder; s++) {
-								dAvgA +=
-									*(pDataInitial)[c][k][s][iB]
-									* dStiffness1D[i][s];
-
-								dAvgB +=
-									*(pDataInitial)[c][k][iA][s]
-									* dStiffness1D[j][s];
-							}
-
-							dAvgA *= dInvElementDeltaA;
-							dAvgB *= dInvElementDeltaB;
-
-							switch (c) {
-								case 0: dEAvgU = dAvgA + dAvgB;
-								case 1: dEAvgV = dAvgA + dAvgB;
-								case 2: dEAvgW = dAvgA + dAvgB;
-								case 3: dEAvgP = dAvgA + dAvgB;
-								case 4: dEAvgR = dAvgA + dAvgB;
-							}
-						}
-
-//						std::cout << iA << " " << iB << " " << k << std::endl;
 
 						// Compute the local diffusion coefficient
 						dResU = std::abs(*(pDataResidual)[UIx][k][iA][iB]);
@@ -2315,8 +2324,6 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusionResidual(
 						dResMax = std::max(dResMax, dResW);
 						dResMax = std::max(dResMax, dResP);
 						dResMax = std::max(dResMax, dResR);
-
-//						std::cout << iA << " " << iB << " " << k << std::endl;
 
 						if (dResMax == dResU) {
 							dResMax /= std::abs(
@@ -2337,19 +2344,17 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusionResidual(
 							dResMax = 0.0;
 						}
 
-//						std::cout << iA << " " << iB << " " << k << std::endl;
-
 						dLocalNu = 0.5 * (dElementDeltaA + dElementDeltaB) *
 								0.5 * (dElementDeltaA + dElementDeltaB) *
 								dResMax;
 
-						if (*(pDataRayleigh)[k][iA][iB] > 0) {
+						if (*(pDataRayleigh)[k][iA][iB] > 0.0) {
 							dLocalNu = dNuRayleigh;
 						}
 
-						std::cout << iA << " " << iB << " " << k << std::endl;
-
 						double dInvJacobian = 1.0 / (*pJacobian)[k][iA][iB];
+
+						std::cout << iA << " " << iB << " " << k << std::endl;
 
 						// Compute integral term
 						double dUpdateA = 0.0;
@@ -2369,9 +2374,9 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusionResidual(
 						dUpdateB *= dInvElementDeltaB;
 
 						// Apply update
-						(*pDataUpdate)[c][k][iA][iB] -=
-							dDeltaT * dInvJacobian * dLocalNu
-								* (dUpdateA + dUpdateB);
+//						(*pDataUpdate)[c][k][iA][iB] -=
+//							dDeltaT * dInvJacobian * dLocalNu
+//								* (dUpdateA + dUpdateB);
 					}
 					}
 				}
