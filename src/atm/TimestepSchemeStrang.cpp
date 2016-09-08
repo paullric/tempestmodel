@@ -681,6 +681,8 @@ void TimestepSchemeStrang::Step(
 		pGrid->CopyData(4, 1, DataType_Tracers);
 		SubcycleStageExplicit(time, 1.0, dDeltaT, 1, 1, 4, 2, 
 							  pVerticalDynamics, pHorizontalDynamics, pGrid);
+		pGrid->PostProcessSubstage(4, DataType_State);
+		pGrid->PostProcessSubstage(4, DataType_Tracers);
 		//pGrid->CopyData(4, 1, DataType_State);
 		//pGrid->CopyData(4, 1, DataType_Tracers);
 		//pHorizontalDynamics->StepDiffusionExplicit(1, 4, 2, time, dDeltaT);

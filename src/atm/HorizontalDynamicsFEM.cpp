@@ -2275,11 +2275,11 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusionResidual(
 						for (int o = 0; o < m_model.GetEquationSet().GetComponents(); o++) {
 							for (int s = 0; s < m_nHorizontalOrder; s++) {
 								dAvgA +=
-									*(pDataInitial)[o][k][s][iB]
+									(*pDataInitial)[o][k][s][iB]
 									* dStiffness1D[i][s];
 
 								dAvgB +=
-									*(pDataInitial)[o][k][iA][s]
+									(*pDataInitial)[o][k][iA][s]
 									* dStiffness1D[j][s];
 							}
 
@@ -2287,11 +2287,11 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusionResidual(
 							dAvgB *= dInvElementDeltaB;
 
 							switch (o) {
-								case 0: dEAvgU = dAvgA + dAvgB;
-								case 1: dEAvgV = dAvgA + dAvgB;
-								case 2: dEAvgW = dAvgA + dAvgB;
-								case 3: dEAvgP = dAvgA + dAvgB;
-								case 4: dEAvgR = dAvgA + dAvgB;
+								case 0: dEAvgU = dAvgA + dAvgB; break;
+								case 1: dEAvgV = dAvgA + dAvgB; break;
+								case 2: dEAvgW = dAvgA + dAvgB; break;
+								case 3: dEAvgP = dAvgA + dAvgB; break;
+								case 4: dEAvgR = dAvgA + dAvgB; break;
 							}
 						}
 					}
@@ -2311,13 +2311,13 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusionResidual(
 						int iB = iElementB + j;
 
 						// Compute the local diffusion coefficient
-						dResU = std::abs(*(pDataResidual)[UIx][k][iA][iB]);
+						dResU = std::abs((*pDataResidual)[UIx][k][iA][iB]);
 						if (!fCartesianXZ) {
-							dResV = std::abs(*(pDataResidual)[VIx][k][iA][iB]);
+							dResV = std::abs((*pDataResidual)[VIx][k][iA][iB]);
 						}
-						dResW = std::abs(*(pDataResidual)[WIx][k][iA][iB]);
-						dResP = std::abs(*(pDataResidual)[PIx][k][iA][iB]);
-						dResR = std::abs(*(pDataResidual)[RIx][k][iA][iB]);
+						dResW = std::abs((*pDataResidual)[WIx][k][iA][iB]);
+						dResP = std::abs((*pDataResidual)[PIx][k][iA][iB]);
+						dResR = std::abs((*pDataResidual)[RIx][k][iA][iB]);
 
 						// Select the maximum residual
 						dResMax = std::max(dResU, dResV);
@@ -2327,19 +2327,19 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusionResidual(
 
 						if (dResMax == dResU) {
 							dResMax /= std::abs(
-							*(pDataInitial)[UIx][k][iA][iB] - dEAvgU);
+							(*pDataInitial)[UIx][k][iA][iB] - dEAvgU);
 						} else if (dResMax == dResV) {
 							dResMax /= std::abs(
-							*(pDataInitial)[VIx][k][iA][iB] - dEAvgV);
+							(*pDataInitial)[VIx][k][iA][iB] - dEAvgV);
 						} else if (dResMax == dResW) {
 							dResMax /= std::abs(
-							*(pDataInitial)[WIx][k][iA][iB] - dEAvgW);
+							(*pDataInitial)[WIx][k][iA][iB] - dEAvgW);
 						} else if (dResMax == dResP) {
 							dResMax /= std::abs(
-							*(pDataInitial)[PIx][k][iA][iB] - dEAvgP);
+							(*pDataInitial)[PIx][k][iA][iB] - dEAvgP);
 						} else if (dResMax == dResR) {
 							dResMax /= std::abs(
-							*(pDataInitial)[RIx][k][iA][iB] - dEAvgR);
+							(*pDataInitial)[RIx][k][iA][iB] - dEAvgR);
 						} else {
 							dResMax = 0.0;
 						}
@@ -2348,13 +2348,11 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusionResidual(
 								0.5 * (dElementDeltaA + dElementDeltaB) *
 								dResMax;
 
-						if (*(pDataRayleigh)[k][iA][iB] > 0.0) {
+						if ((*pDataRayleigh)[k][iA][iB] > 0.0) {
 							dLocalNu = dNuRayleigh;
 						}
 
 						double dInvJacobian = 1.0 / (*pJacobian)[k][iA][iB];
-
-						std::cout << iA << " " << iB << " " << k << std::endl;
 
 						// Compute integral term
 						double dUpdateA = 0.0;
@@ -2374,9 +2372,9 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusionResidual(
 						dUpdateB *= dInvElementDeltaB;
 
 						// Apply update
-//						(*pDataUpdate)[c][k][iA][iB] -=
-//							dDeltaT * dInvJacobian * dLocalNu
-//								* (dUpdateA + dUpdateB);
+						(*pDataUpdate)[c][k][iA][iB] -=
+							dDeltaT * dInvJacobian * dLocalNu
+								* (dUpdateA + dUpdateB);
 					}
 					}
 				}
