@@ -46,7 +46,7 @@
 //#define UNIFORM_DIFFUSION_TRACERS
 
 //#define RESIDUAL_DIFFUSION_HORIZONTAL_VELOCITIES
-#define RESIDUAL_DIFFUSION_THERMO
+//#define RESIDUAL_DIFFUSION_THERMO
 #define RESIDUAL_DIFFUSION_VERTICAL_VELOCITY
 
 //#define EXPLICIT_THERMO
@@ -1095,6 +1095,7 @@ void VerticalDynamicsFEM::StepDiffusionExplicit(
 					double dResP = 0.0;
 					double dResR = 0.0;
 					double dResMax = 0.0;
+					double dNuMax = 0.0;
 
 					// Uniform diffusion coefficient (in the Rayleigh layer)
 					double dUniformDiffusionCoeff = 0.0;
@@ -1154,8 +1155,14 @@ void VerticalDynamicsFEM::StepDiffusionExplicit(
 
 								dResidualDiffusionCoeff *= dResMax;
 
+								dNuMax = m_dHypervisCoeff * 
+											fabs(m_dXiDotNode[k]);
+								if (dResidualDiffusionCoeff > dNuMax) {
+									dResidualDiffusionCoeff = dNuMax;
+								}
+
 								// Uniform diffusion in the Rayleigh layer
-								if (dataRayleighStrengthREdge[k][i][j] < 0) {
+								if (dataRayleighStrengthREdge[k][i][j] > 0.0) {
 									dataUpdateREdge[c][k][i][j] +=
 										dUniformDiffusionCoeff
 										* m_dDiffDiffStateHypervis[c][k];
@@ -1209,8 +1216,14 @@ void VerticalDynamicsFEM::StepDiffusionExplicit(
 
 								dResidualDiffusionCoeff *= dResMax;
 
+								dNuMax = m_dHypervisCoeff * 
+											fabs(m_dXiDotREdge[k]);
+								if (dResidualDiffusionCoeff > dNuMax) {
+									dResidualDiffusionCoeff = dNuMax;
+								}
+
 								// Uniform diffusion in the Rayleigh layer
-								if (dataRayleighStrengthNode[k][i][j] < 0) {
+								if (dataRayleighStrengthNode[k][i][j] > 0.0) {
 									dataUpdateNode[c][k][i][j] +=
 										dUniformDiffusionCoeff
 										* m_dDiffDiffStateHypervis[c][k];

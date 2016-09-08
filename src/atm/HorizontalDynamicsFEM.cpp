@@ -40,7 +40,7 @@
 //#define UNIFORM_DIFFUSION_TRACERS
 
 //#define RESIDUAL_DIFFUSION_HORIZONTAL_VELOCITIES
-#define RESIDUAL_DIFFUSION_THERMO
+//#define RESIDUAL_DIFFUSION_THERMO
 #define RESIDUAL_DIFFUSION_VERTICAL_VELOCITY
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -2036,6 +2036,9 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusionResidual(
 	// Number of radial elements in grid
 	int nRElements = pGrid->GetRElements();
 
+	// Physical constants
+	const PhysicalConstants & phys = m_model.GetPhysicalConstants();
+
 	// Check argument
 	if (iComponent < (-1)) {
 		_EXCEPTIONT("Invalid component index");
@@ -2047,6 +2050,17 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusionResidual(
 	const int PIx = 2;
 	const int WIx = 3;
 	const int RIx = 4;
+
+	// Indices of auxiliary data variables
+	const int ConUaIx = 0;
+	const int ConUbIx = 1;
+	const int ConUxIx = 2;
+	const int CovUxIx = 3;
+	const int KIx = 4;
+	const int UCrossZetaAIx = 5;
+	const int UCrossZetaBIx = 6;
+	const int UCrossZetaXIx = 7;
+	const int ExnerIx = 8;
 
 	// Perform local update
 	for (int n = 0; n < pGrid->GetActivePatchCount(); n++) {
@@ -2109,6 +2123,8 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusionResidual(
 		// Element grid spacing and derivative coefficients
 		const double dElementDeltaA = pPatch->GetElementDeltaA();
 		const double dElementDeltaB = pPatch->GetElementDeltaB();
+
+		const double dElementLength = 0.5 * (dElementDeltaA + dElementDeltaB);
 
 		const double dInvElementDeltaA = 1.0 / dElementDeltaA;
 		const double dInvElementDeltaB = 1.0 / dElementDeltaB;
@@ -2259,6 +2275,38 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusionResidual(
 					}
 					}
 
+					// Compute maximum local wave speed in an element
+					for (int i = 0; i < m_nHorizontalOrder; i++) {
+					for (int j = 0; j < m_nHorizontalOrder; j++) {
+						int iA = iElementA + i;
+						int iB = iElementB + j;
+
+						// Contravariant velocities
+						double dCovUa = (*pDataInitial)[UIx][k][iA][iB];
+						double dCovUb = (*pDataInitial)[VIx][k][iA][iB];
+
+						// Contravariant velocities
+						m_dAuxDataNode[ConUaIx][k][i][j] =
+							  dContraMetricA[iA][iB][0] * dCovUa
+							+ dContraMetricA[iA][iB][1] * dCovUb;
+
+						m_dAuxDataNode[ConUbIx][k][i][j] =
+							  dContraMetricB[iA][iB][0] * dCovUa
+							+ dContraMetricB[iA][iB][1] * dCovUb;
+
+						double dRhoTheta = (*pDataInitial)[PIx][k][iA][iB] *
+											(*pDataInitial)[RIx][k][iA][iB];
+
+						// Maximum wave speed in this element
+						m_dAuxDataNode[KIx][k][i][j] = sqrt(
+							  m_dAuxDataNode[ConUaIx][k][i][j] * dCovUa
+							+ m_dAuxDataNode[ConUbIx][k][i][j] * dCovUb)
+							+ sqrt(phys.GetGamma() * 
+								   phys.PressureFromRhoTheta(dRhoTheta) / 
+								   (*pDataInitial)[RIx][k][iA][iB]);
+					}
+					}
+
 					double dAvgA = 0.0;
 					double dAvgB = 0.0;
 					double dEAvgU = 0.0;
@@ -2303,6 +2351,7 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusionResidual(
 					double dResP = 0.0;
 					double dResR = 0.0;
 					double dResMax = 0.0;
+					double dNuMax = 0.0;
 
 					// Pointwise updates
 					for (int i = 0; i < m_nHorizontalOrder; i++) {
@@ -2328,7 +2377,7 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusionResidual(
 						if (dResMax == dResU) {
 							dResMax /= std::abs(
 							(*pDataInitial)[UIx][k][iA][iB] - dEAvgU);
-						} else if (dResMax == dResV) {
+						} else if ((dResMax == dResV) && (!fCartesianXZ)){
 							dResMax /= std::abs(
 							(*pDataInitial)[VIx][k][iA][iB] - dEAvgV);
 						} else if (dResMax == dResW) {
@@ -2344,12 +2393,26 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusionResidual(
 							dResMax = 0.0;
 						}
 
-						dLocalNu = 0.5 * (dElementDeltaA + dElementDeltaB) *
-								0.5 * (dElementDeltaA + dElementDeltaB) *
-								dResMax;
+						// Scale to the average element length
+						dLocalNu = dElementLength * dElementLength * dResMax;
 
+						// Get the maximum possible coefficient (upwind)
+						dNuMax = 0.5 * dElementLength *
+									m_dAuxDataNode[KIx][k][i][j];
+
+						if (dLocalNu > dNuMax) {
+							dLocalNu = dNuMax;
+						}
+
+						// Uniform appliction in the Rayleigh layer
 						if ((*pDataRayleigh)[k][iA][iB] > 0.0) {
 							dLocalNu = dNuRayleigh;
+						}
+
+						// Check for Inf or NaN and adjust
+						if (!std::isfinite(dLocalNu)) {
+							//printf("%.16E %.16E \n",dLocalNu,dResMax);
+							dLocalNu = 0.0;
 						}
 
 						double dInvJacobian = 1.0 / (*pJacobian)[k][iA][iB];
