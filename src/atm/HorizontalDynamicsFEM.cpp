@@ -40,7 +40,7 @@
 //#define UNIFORM_DIFFUSION_TRACERS
 
 //#define RESIDUAL_DIFFUSION_HORIZONTAL_VELOCITIES
-//#define RESIDUAL_DIFFUSION_THERMO
+#define RESIDUAL_DIFFUSION_THERMO
 #define RESIDUAL_DIFFUSION_VERTICAL_VELOCITY
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1722,17 +1722,6 @@ void HorizontalDynamicsFEM::StepDiffusionExplicit(
 				2,
 				true);
 #endif
-#if defined(RESIDUAL_DIFFUSION_THERMO)
-			// Residual diffusion of Theta with residual based diffusion coeff
-			ApplyScalarHyperdiffusionResidual(
-				iDataInitial,
-				iDataUpdate,
-				iDataResidual,
-				pGrid->GetScalarUniformDiffusionCoeff(),
-				dDeltaT,
-				2,
-				true);
-#endif
 #if defined (UNIFORM_DIFFUSION_VERTICAL_VELOCITY)
 			// Uniform diffusion of W with vector diffusion coeff
 			ApplyScalarHyperdiffusion(
@@ -1753,6 +1742,17 @@ void HorizontalDynamicsFEM::StepDiffusionExplicit(
 				pGrid->GetVectorUniformDiffusionCoeff(),
 				dDeltaT,
 				3,
+				true);
+#endif
+#if defined(RESIDUAL_DIFFUSION_THERMO)
+			// Residual diffusion of Theta with residual based diffusion coeff
+			ApplyScalarHyperdiffusionResidual(
+				iDataInitial,
+				iDataUpdate,
+				iDataResidual,
+				pGrid->GetScalarUniformDiffusionCoeff(),
+				dDeltaT,
+				2,
 				true);
 #endif
 		}
@@ -2073,10 +2073,28 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusionResidual(
 			pPatch->GetJacobian();
 		const DataArray3D<double> & dJacobianREdge =
 			pPatch->GetJacobianREdge();
-		const DataArray3D<double> & dContraMetricA =
+		const DataArray3D<double> & dContraMetric2DA =
 			pPatch->GetContraMetric2DA();
-		const DataArray3D<double> & dContraMetricB =
+		const DataArray3D<double> & dContraMetric2DB =
 			pPatch->GetContraMetric2DB();
+
+		const DataArray4D<double> & dDerivRNode =
+			pPatch->GetDerivRNode();
+		const DataArray4D<double> & dDerivRREdge =
+			pPatch->GetDerivRREdge();
+
+		const DataArray4D<double> & dContraMetricA =
+			pPatch->GetContraMetricA();
+		const DataArray4D<double> & dContraMetricB =
+			pPatch->GetContraMetricB();
+		const DataArray4D<double> & dContraMetricXi =
+			pPatch->GetContraMetricXi();
+		const DataArray4D<double> & dContraMetricAREdge =
+			pPatch->GetContraMetricAREdge();
+		const DataArray4D<double> & dContraMetricBREdge =
+			pPatch->GetContraMetricBREdge();
+		const DataArray4D<double> & dContraMetricXiREdge =
+			pPatch->GetContraMetricXiREdge();
 
 		// Grid data
 		DataArray4D<double> & dataInitialNode =
@@ -2177,7 +2195,11 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusionResidual(
 				const DataArray4D<double> * pDataResidual;
 				const DataArray4D<double> * pDataRef;
 				const DataArray3D<double> * pJacobian;
+				const DataArray4D<double> * pDerivR;
 				const DataArray3D<double> * pDataRayleigh;
+				const DataArray4D<double> * pContraMetricA;
+				const DataArray4D<double> * pContraMetricB;
+				const DataArray4D<double> * pContraMetricXi;
 
 				if (iType == 0) {
 					if (pGrid->GetVarLocation(c) == DataLocation_Node) {
@@ -2187,7 +2209,11 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusionResidual(
 						pDataRef = &dataRefNode;
 						nElementCountR = nRElements;
 						pJacobian = &dJacobianNode;
+						pDerivR = &dDerivRNode;
 						pDataRayleigh = &dataRayleighStrengthNode;
+						pContraMetricA = &dContraMetricA;
+						pContraMetricB = &dContraMetricB;
+						pContraMetricXi = &dContraMetricXi;
 
 					} else if (pGrid->GetVarLocation(c) == DataLocation_REdge) {
 						pDataInitial = &dataInitialREdge;
@@ -2196,7 +2222,11 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusionResidual(
 						pDataRef = &dataRefREdge;
 						nElementCountR = nRElements + 1;
 						pJacobian = &dJacobianREdge;
+						pDerivR = &dDerivRREdge;
 						pDataRayleigh = &dataRayleighStrengthREdge;
+						pContraMetricA = &dContraMetricAREdge;
+						pContraMetricB = &dContraMetricBREdge;
+						pContraMetricXi = &dContraMetricXiREdge;
 
 					} else {
 						_EXCEPTIONT("UNIMPLEMENTED");
@@ -2266,12 +2296,12 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusionResidual(
 						dDbPsi *= dInvElementDeltaB;
 
 						m_dJGradientA[i][j] = (*pJacobian)[k][iA][iB] * (
-							+ dContraMetricA[iA][iB][0] * dDaPsi
-							+ dContraMetricA[iA][iB][1] * dDbPsi);
+							+ dContraMetric2DA[iA][iB][0] * dDaPsi
+							+ dContraMetric2DA[iA][iB][1] * dDbPsi);
 
 						m_dJGradientB[i][j] = (*pJacobian)[k][iA][iB] * (
-							+ dContraMetricB[iA][iB][0] * dDaPsi
-							+ dContraMetricB[iA][iB][1] * dDbPsi);
+							+ dContraMetric2DB[iA][iB][0] * dDaPsi
+							+ dContraMetric2DB[iA][iB][1] * dDbPsi);
 					}
 					}
 
@@ -2287,12 +2317,12 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusionResidual(
 
 						// Contravariant velocities
 						m_dAuxDataNode[ConUaIx][k][i][j] =
-							  dContraMetricA[iA][iB][0] * dCovUa
-							+ dContraMetricA[iA][iB][1] * dCovUb;
+							  dContraMetric2DA[iA][iB][0] * dCovUa
+							+ dContraMetric2DA[iA][iB][1] * dCovUb;
 
 						m_dAuxDataNode[ConUbIx][k][i][j] =
-							  dContraMetricB[iA][iB][0] * dCovUa
-							+ dContraMetricB[iA][iB][1] * dCovUb;
+							  dContraMetric2DB[iA][iB][0] * dCovUa
+							+ dContraMetric2DB[iA][iB][1] * dCovUb;
 
 						double dRhoTheta = (*pDataInitial)[PIx][k][iA][iB] *
 											(*pDataInitial)[RIx][k][iA][iB];
@@ -2397,8 +2427,25 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusionResidual(
 						dLocalNu = dElementLength * dElementLength * dResMax;
 
 						// Get the maximum possible coefficient (upwind)
-						dNuMax = 0.5 * dElementLength *
-									m_dAuxDataNode[KIx][k][i][j];
+						if (c != WIx) {
+							dNuMax = 0.5 * dElementLength *
+										m_dAuxDataNode[KIx][k][i][j];
+						} else {
+							// Contravariant velocities
+							double dCovUa = (*pDataInitial)[UIx][k][iA][iB];
+							double dCovUb = (*pDataInitial)[VIx][k][iA][iB];
+
+							// Calculate covariant xi velocity and store
+							double dCovUx =
+								  (*pDataInitial)[WIx][k][iA][iB]
+								* (*pDerivR)[k][iA][iB][2];
+
+							double dXiDot =
+								 (*pContraMetricA)[k][iA][iB][2] * dCovUa
+								+ (*pContraMetricB)[k][iA][iB][2] * dCovUb
+								+ (*pContraMetricXi)[k][iA][iB][2] * dCovUx;
+							dNuMax = 0.5 * dElementLength * dXiDot;
+						}
 
 						if (dLocalNu > dNuMax) {
 							dLocalNu = dNuMax;
@@ -2414,7 +2461,11 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusionResidual(
 							//printf("%.16E %.16E \n",dLocalNu,dResMax);
 							dLocalNu = 0.0;
 						}
-
+/*
+						if (c == WIx) {
+							dLocalNu = dNuRayleigh;
+						}
+*/
 						double dInvJacobian = 1.0 / (*pJacobian)[k][iA][iB];
 
 						// Compute integral term
