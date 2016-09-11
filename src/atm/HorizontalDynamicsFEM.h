@@ -154,6 +154,19 @@ protected:
 	);
 
 	///	<summary>
+	///		Apply the vector Laplacian operator with residual coefficients.
+	///	</summary>
+	void ApplyVectorHyperdiffusionResidual(
+		int iDataInitial,
+		int iDataUpdate,
+		int iDataResidual,
+		double dDeltaT,
+		double dNuDiff,
+		double dNuVort,
+		bool fScaleNuLocally
+	);
+
+	///	<summary>
 	///		Apply Rayleigh damping.
 	///	</summary>
 	void ApplyRayleighFriction(

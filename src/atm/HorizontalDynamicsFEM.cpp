@@ -39,7 +39,7 @@
 //#define UNIFORM_DIFFUSION_VERTICAL_VELOCITY
 //#define UNIFORM_DIFFUSION_TRACERS
 
-//#define RESIDUAL_DIFFUSION_HORIZONTAL_VELOCITIES
+#define RESIDUAL_DIFFUSION_HORIZONTAL_VELOCITIES
 #define RESIDUAL_DIFFUSION_THERMO
 #define RESIDUAL_DIFFUSION_VERTICAL_VELOCITY
 
@@ -1683,6 +1683,11 @@ void HorizontalDynamicsFEM::StepDiffusionExplicit(
 	// Get a copy of the GLL grid
 	GridGLL * pGrid = dynamic_cast<GridGLL*>(m_model.GetGrid());
 
+	GridCartesianGLL * gridCartesianGLL =
+		dynamic_cast<GridCartesianGLL *>(m_model.GetGrid());
+
+	bool fCartesianXZ = gridCartesianGLL->GetIsCartesianXZ();
+
 	// Equation set
 	const EquationSet & eqn = m_model.GetEquationSet();
 
@@ -1706,8 +1711,28 @@ void HorizontalDynamicsFEM::StepDiffusionExplicit(
 			false);
 #endif
 #if defined(RESIDUAL_DIFFUSION_HORIZONTAL_VELOCITIES)
-	_EXCEPTIONT(
-			"Residual diffusion not implemented for U and V yet...");
+//	_EXCEPTIONT(
+//			"Residual diffusion not implemented for U and V yet...");
+			// Residual diffusion of U with residual based diffusion coeff
+			ApplyScalarHyperdiffusionResidual(
+				iDataInitial,
+				iDataUpdate,
+				iDataResidual,
+				pGrid->GetVectorUniformDiffusionCoeff(),
+				dDeltaT,
+				0,
+				true);
+
+			if (!fCartesianXZ) {
+				ApplyScalarHyperdiffusionResidual(
+					iDataInitial,
+					iDataUpdate,
+					iDataResidual,
+					pGrid->GetVectorUniformDiffusionCoeff(),
+					dDeltaT,
+					1,
+					true);
+			}
 #endif
 		if (eqn.GetType() == EquationSet::PrimitiveNonhydrostaticEquations) {
 
@@ -2450,12 +2475,12 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusionResidual(
 						if (dLocalNu > dNuMax) {
 							dLocalNu = dNuMax;
 						}
-
+/*
 						// Uniform appliction in the Rayleigh layer
 						if ((*pDataRayleigh)[k][iA][iB] > 0.0) {
 							dLocalNu = dNuRayleigh;
 						}
-
+*/
 						// Check for Inf or NaN and adjust
 						if (!std::isfinite(dLocalNu)) {
 							//printf("%.16E %.16E \n",dLocalNu,dResMax);
@@ -2610,6 +2635,254 @@ void HorizontalDynamicsFEM::ApplyVectorHyperdiffusion(
 
 			int iElementA = a * m_nHorizontalOrder + box.GetHaloElements();
 			int iElementB = b * m_nHorizontalOrder + box.GetHaloElements();
+
+			// Pointwise update of horizontal velocities
+			for (int i = 0; i < m_nHorizontalOrder; i++) {
+			for (int j = 0; j < m_nHorizontalOrder; j++) {
+
+				int iA = iElementA + i;
+				int iB = iElementB + j;
+
+				// Compute hyperviscosity sums
+				double dDaDiv = 0.0;
+				double dDbDiv = 0.0;
+
+				double dDaCurl = 0.0;
+				double dDbCurl = 0.0;
+
+				for (int s = 0; s < m_nHorizontalOrder; s++) {
+					dDaDiv -=
+						  dStiffness1D[i][s]
+						* dataDiv[k][iElementA+s][iB];
+
+					dDbDiv -=
+						  dStiffness1D[j][s]
+						* dataDiv[k][iA][iElementB+s];
+
+					dDaCurl -=
+						  dStiffness1D[i][s]
+						* dataCurl[k][iElementA+s][iB];
+
+					dDbCurl -=
+						  dStiffness1D[j][s]
+						* dataCurl[k][iA][iElementB+s];
+				}
+
+				dDaDiv *= dInvElementDeltaA;
+				dDbDiv *= dInvElementDeltaB;
+
+				dDaCurl *= dInvElementDeltaA;
+				dDbCurl *= dInvElementDeltaB;
+
+				// Apply update
+				double dUpdateUa =
+					+ dLocalNuDiv * dDaDiv
+					- dLocalNuVort * dJacobian2D[iA][iB] * (
+						  dContraMetric2DB[iA][iB][0] * dDaCurl
+						+ dContraMetric2DB[iA][iB][1] * dDbCurl);
+
+				double dUpdateUb =
+					+ dLocalNuDiv * dDbDiv
+					+ dLocalNuVort * dJacobian2D[iA][iB] * (
+						  dContraMetric2DA[iA][iB][0] * dDaCurl
+						+ dContraMetric2DA[iA][iB][1] * dDbCurl);
+
+				dataUpdate[UIx][k][iA][iB] -= dDeltaT * dUpdateUa;
+
+				if (pGrid->GetIsCartesianXZ() == false) {
+					dataUpdate[VIx][k][iA][iB] -= dDeltaT * dUpdateUb;
+				}
+
+/*
+				if (k == 0) {
+					double dUpdateUr =
+						- ( dContraMetricXi[0][iA][iB][0] * dUpdateUa
+						  + dContraMetricXi[0][iA][iB][1] * dUpdateUb)
+						/ dContraMetricXi[0][iA][iB][2]
+						/ dDerivRNode[0][iA][iB][2];
+
+					dataUpdate[WIx][k][iA][iB] -= dDeltaT * dUpdateUr;
+				}
+*/
+			}
+			}
+		}
+		}
+		}
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void HorizontalDynamicsFEM::ApplyVectorHyperdiffusionResidual(
+	int iDataInitial,
+	int iDataUpdate,
+	int iDataResidual,
+	double dDeltaT,
+	double dNuDiv,
+	double dNuVort,
+	bool fScaleNuLocally
+) {
+	// Indices of EquationSet variables
+	const int UIx = 0;
+	const int VIx = 1;
+	const int PIx = 2;
+	const int WIx = 3;
+	const int RIx = 4;
+
+	// Indices of auxiliary data variables
+	const int ConUaIx = 0;
+	const int ConUbIx = 1;
+	const int ConUxIx = 2;
+	const int CovUxIx = 3;
+	const int KIx = 4;
+	const int UCrossZetaAIx = 5;
+	const int UCrossZetaBIx = 6;
+	const int UCrossZetaXIx = 7;
+	const int ExnerIx = 8;
+
+	// Get a copy of the GLL grid
+	GridGLL * pGrid = dynamic_cast<GridGLL*>(m_model.GetGrid());
+
+	GridCartesianGLL * gridCartesianGLL =
+		dynamic_cast<GridCartesianGLL *>(m_model.GetGrid());
+
+	bool fCartesianXZ = gridCartesianGLL->GetIsCartesianXZ();
+
+	// Number of radial elements in grid
+	int nRElements = pGrid->GetRElements();
+
+	// Physical constants
+	const PhysicalConstants & phys = m_model.GetPhysicalConstants();
+
+	// Apply viscosity to reference state
+	bool fApplyToRefState = false;
+	if (iDataInitial == DATA_INDEX_REFERENCE) {
+		iDataInitial = 0;
+		fApplyToRefState = true;
+	}
+
+	// Loop over all patches
+	for (int n = 0; n < pGrid->GetActivePatchCount(); n++) {
+		GridPatchGLL * pPatch =
+			dynamic_cast<GridPatchGLL*>(pGrid->GetActivePatch(n));
+
+		const PatchBox & box = pPatch->GetPatchBox();
+
+		const DataArray2D<double> & dJacobian2D =
+			pPatch->GetJacobian2D();
+		const DataArray3D<double> & dContraMetric2DA =
+			pPatch->GetContraMetric2DA();
+		const DataArray3D<double> & dContraMetric2DB =
+			pPatch->GetContraMetric2DB();
+
+		DataArray4D<double> & dataInitial =
+			pPatch->GetDataState(iDataInitial, DataLocation_Node);
+
+		DataArray4D<double> & dataUpdate =
+			pPatch->GetDataState(iDataUpdate, DataLocation_Node);
+
+		DataArray4D<double> & dataResidual =
+			pPatch->GetDataState(iDataResidual, DataLocation_Node);
+
+		DataArray4D<double> & dataRef =
+			pPatch->GetReferenceState(DataLocation_Node);
+
+		// Element grid spacing and derivative coefficients
+		const double dElementDeltaA = pPatch->GetElementDeltaA();
+		const double dElementDeltaB = pPatch->GetElementDeltaB();
+
+		const double dInvElementDeltaA = 1.0 / dElementDeltaA;
+		const double dInvElementDeltaB = 1.0 / dElementDeltaB;
+
+		const DataArray2D<double> & dDxBasis1D = pGrid->GetDxBasis1D();
+		const DataArray2D<double> & dStiffness1D = pGrid->GetStiffness1D();
+
+		// Compute curl and divergence of U on the grid
+		DataArray3D<double> dataUa;
+		dataUa.SetSize(
+			dataInitial.GetSize(1),
+			dataInitial.GetSize(2),
+			dataInitial.GetSize(3));
+
+		DataArray3D<double> dataUb;
+		dataUb.SetSize(
+			dataInitial.GetSize(1),
+			dataInitial.GetSize(2),
+			dataInitial.GetSize(3));
+
+		if (fApplyToRefState) {
+			dataUa.AttachToData(&(dataRef[UIx][0][0][0]));
+			dataUb.AttachToData(&(dataRef[VIx][0][0][0]));
+		} else {
+			dataUa.AttachToData(&(dataInitial[UIx][0][0][0]));
+			dataUb.AttachToData(&(dataInitial[VIx][0][0][0]));
+		}
+
+		// Compute curl and divergence of U on the grid
+		pPatch->ComputeCurlAndDiv(dataUa, dataUb);
+
+		// Get curl and divergence
+		const DataArray3D<double> & dataCurl = pPatch->GetDataVorticity();
+		const DataArray3D<double> & dataDiv  = pPatch->GetDataDivergence();
+
+		// Compute new hyperviscosity coefficient
+		double dLocalNuDiv  = dNuDiv;
+		double dLocalNuVort = dNuVort;
+
+		if (fScaleNuLocally) {
+			double dReferenceLength = pGrid->GetReferenceLength();
+			if (dReferenceLength != 0.0) {
+				dLocalNuDiv =
+					dLocalNuDiv  * pow(dElementDeltaA / dReferenceLength, 3.2);
+				dLocalNuVort =
+					dLocalNuVort * pow(dElementDeltaA / dReferenceLength, 3.2);
+			}
+		}
+
+		// Number of finite elements
+		int nElementCountA = pPatch->GetElementCountA();
+		int nElementCountB = pPatch->GetElementCountB();
+
+		// Loop over all finite elements
+		for (int k = 0; k < pGrid->GetRElements(); k++) {
+		for (int a = 0; a < nElementCountA; a++) {
+		for (int b = 0; b < nElementCountB; b++) {
+
+			int iElementA = a * m_nHorizontalOrder + box.GetHaloElements();
+			int iElementB = b * m_nHorizontalOrder + box.GetHaloElements();
+
+			// Compute maximum local wave speed in an element
+			for (int i = 0; i < m_nHorizontalOrder; i++) {
+			for (int j = 0; j < m_nHorizontalOrder; j++) {
+				int iA = iElementA + i;
+				int iB = iElementB + j;
+
+				// Contravariant velocities
+				double dCovUa = dataInitial[UIx][k][iA][iB];
+				double dCovUb = dataInitial[VIx][k][iA][iB];
+
+				// Contravariant velocities
+				m_dAuxDataNode[ConUaIx][k][i][j] =
+					  dContraMetric2DA[iA][iB][0] * dCovUa
+					+ dContraMetric2DA[iA][iB][1] * dCovUb;
+
+				m_dAuxDataNode[ConUbIx][k][i][j] =
+					  dContraMetric2DB[iA][iB][0] * dCovUa
+					+ dContraMetric2DB[iA][iB][1] * dCovUb;
+
+				double dRhoTheta = dataInitial[PIx][k][iA][iB] *
+									dataInitial[RIx][k][iA][iB];
+
+				// Maximum wave speed in this element
+				m_dAuxDataNode[KIx][k][i][j] = sqrt(
+					  m_dAuxDataNode[ConUaIx][k][i][j] * dCovUa
+					+ m_dAuxDataNode[ConUbIx][k][i][j] * dCovUb)
+					+ sqrt(phys.GetGamma() * 
+						   phys.PressureFromRhoTheta(dRhoTheta) / 
+						   dataInitial[RIx][k][iA][iB]);
+			}
+			}
 
 			// Pointwise update of horizontal velocities
 			for (int i = 0; i < m_nHorizontalOrder; i++) {
