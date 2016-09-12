@@ -189,19 +189,19 @@ public:
 		m_dpiC = M_PI;
 
 		// Set the dimensions of the box
-		m_dGDim[0] = -50000.0;
-		m_dGDim[1] = 50000.0;
+		m_dGDim[0] = -75000.0;
+		m_dGDim[1] = 75000.0;
 		m_dGDim[2] = -500.0;
 		m_dGDim[3] = 500.0;
 		m_dGDim[4] = 0.0;
-		m_dGDim[5] = 45000.0;
+		m_dGDim[5] = 50000.0;
 
 		// Set the center of the domain in Y
 		m_dY0 = 0.5 * (m_dGDim[3] - m_dGDim[2]);
 
 		// Set the tropopause elevation and mixed layer depth in meters
-		m_dTPHeight = 12000.0;
-		m_dTPMixedLayerH = 3000.0;
+		m_dTPHeight = 11000.0;
+		m_dTPMixedLayerH = 9000.0;
 
 		// Find and set the tropopause temperature here before initializing the test
 		double dGeopotential;
@@ -324,15 +324,15 @@ public:
 		double dXp,
 		double dYp
 	) const {
-		const double dRayleighStrengthZ = 2.0E-2;//8.0e-3;
+		const double dRayleighStrengthZ = 1.0E-2;//8.0e-3;
 		const double dRayleighStrengthX = 1.0 * dRayleighStrengthZ;
-		const double dRayleighDepth = 5000.0;
-		const double dRayleighWidth = 5000.0;
+		const double dRayleighDepth = 10000.0;
+		const double dRayleighWidth = 15000.0;
 
 		double dNuDepth = 0.0;
 		double dNuRight = 0.0;
 		double dNuLeft  = 0.0;
-/*
+
 		// Using cosine ramp up
 		if (dZ > m_dGDim[5] - dRayleighDepth) {
 			double dNormZ = (m_dGDim[5] - dZ) / dRayleighDepth;
@@ -346,7 +346,7 @@ public:
 			double dNormX = (dXp - m_dGDim[0]) / dRayleighWidth;
 			dNuLeft = 0.5 * dRayleighStrengthX * (1.0 + cos(M_PI * dNormX));
 		}
-*/
+/*
 		// Using high order cosine ramp up
 		int nPower = 3;
 		if (dZ > m_dGDim[5] - dRayleighDepth) {
@@ -367,7 +367,7 @@ public:
 			dNuLeft = dRayleighStrengthX * (1.0 - 
 					pow(0.5, nPower) * pow(1.0 + cos(M_PI * dNormX), nPower));
 		}
-
+*/
 		//std::cout << dXp << ' ' << dZ << ' ' << dNuDepth << std::endl;
 		if ((dNuDepth >= dNuRight) && (dNuDepth >= dNuLeft)) {
 			return dNuDepth;

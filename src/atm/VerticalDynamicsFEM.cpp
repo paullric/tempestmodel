@@ -36,7 +36,7 @@
 //#define HYPERVISC_VERTICAL_VELOCITY
 
 #define UPWIND_HORIZONTAL_VELOCITIES
-//#define UPWIND_THERMO
+#define UPWIND_THERMO
 //#define UPWIND_VERTICAL_VELOCITY
 #define UPWIND_RHO_AND_TRACERS
 
@@ -837,7 +837,7 @@ void VerticalDynamicsFEM::StepDiffusionExplicit(
 					m_dStateNode[WIx]);
 			}
 */
-#if defined(FORMULATION_THETA) || defined(FORMULATION_RHOTHETA_PI)
+
 			double dColAvgU = 0.0;
 			double dColAvgV = 0.0;
 			double dColAvgW = 0.0;
@@ -930,7 +930,6 @@ void VerticalDynamicsFEM::StepDiffusionExplicit(
 					m_dResidualREdge[PIx],
 					m_dResidualNode[PIx]);
 			}
-#endif
 
 			//////////////////////////////////////////////////////////////
 			// Apply residual hyperviscosity or uniform diffusion to U and V
@@ -1190,7 +1189,7 @@ void VerticalDynamicsFEM::StepDiffusionExplicit(
 									dResV = std::abs(m_dResidualREdge[VIx][k]);
 								}
 								dResW = std::abs(m_dResidualREdge[WIx][k]);
-								dResP = std::abs(m_dResidualREdge[PIx][k]);
+								//dResP = std::abs(m_dResidualREdge[PIx][k]);
 								dResR = std::abs(m_dResidualREdge[RIx][k]);
 
 								// Select the maximum residual
@@ -1254,7 +1253,7 @@ void VerticalDynamicsFEM::StepDiffusionExplicit(
 									dResV = std::abs(m_dResidualNode[VIx][k]);
 								}
 								dResW = std::abs(m_dResidualNode[WIx][k]);
-								dResP = std::abs(m_dResidualNode[PIx][k]);
+								//dResP = std::abs(m_dResidualNode[PIx][k]);
 								dResR = std::abs(m_dResidualNode[RIx][k]);
 
 								// Select the maximum residual
@@ -3544,7 +3543,7 @@ void VerticalDynamicsFEM::BuildF(
 			if (!m_fHypervisVar[c]) {
 				continue;
 			}
-#if !defined(FORMULATION_RHOTHETA_PI) && !defined(FORMULATION_RHOTHETA_P)
+
 			// Flow-dependent hyperviscosity on interfaces
 			if (pGrid->GetVarLocation(c) == DataLocation_REdge) {
 				for (int k = 0; k <= nRElements; k++) {
@@ -3566,73 +3565,6 @@ void VerticalDynamicsFEM::BuildF(
 					}
 				}
 			}
-#else
-			// Flow-dependent hyperviscosity on interfaces
-			if (pGrid->GetVarLocation(c) == DataLocation_REdge) {
-				if (c != PIx) {
-					for (int k = 0; k <= nRElements; k++) {
-						if (m_fHypervisVar[c]) {
-							dF[VecFIx(FIxFromCIx(c), k)] -=
-								m_dHypervisCoeff
-								* fabs(m_dXiDotREdge[k])
-								* m_dDiffDiffStateHypervis[c][k];
-						}
-					}
-				} else {
-					_EXCEPTIONT("Rho-Theta Formulation with LORENZ ONLY!");
-				}
-			} else {
-				if (c != PIx) {
-					for (int k = 0; k < nRElements; k++) {
-						if (m_fHypervisVar[c]) {
-							dF[VecFIx(FIxFromCIx(c), k)] -=
-								m_dHypervisCoeff
-								* fabs(m_dXiDotNode[k])
-								* m_dDiffDiffStateHypervis[c][k];
-						}
-					}
-				} else {
-					// Calculate the state without reference state
-					for (int k = 0; k < nRElements; k++) {
-						m_dStateAux[k] =
-							m_dStateNode[PIx][k]
-							/ m_dStateNode[RIx][k];
-
-						m_dStateAux[k] -=
-							m_dStateRefNode[PIx][k]
-							/ m_dStateRefNode[RIx][k];
-					}
-
-					pGrid->DifferentiateNodeToREdge(
-						m_dStateAux,
-						m_dStateAuxDiff);
-
-					// Update the mass flux with diffusion of theta
-					for (int k = 1; k < nRElements; k++) {
-						m_dMassFluxREdge[k] -=
-							m_dHypervisCoeff
-							* fabs(m_dXiDotNode[k])
-							* m_dStateREdge[RIx][k]
-							* m_dStateAuxDiff[k];
-					}
-
-					// Set boundary conditions and differentiate mass flux
-					m_dMassFluxREdge[0] = 0.0;
-					m_dMassFluxREdge[nRElements] = 0.0;
-
-					pGrid->DifferentiateREdgeToNode(
-						m_dMassFluxREdge,
-						m_dDiffMassFluxNode);
-
-					// Update RhoTheta
-					for (int k = 0; k < nRElements; k++) {
-						dF[VecFIx(FPIx, k)] -=
-							m_dDiffMassFluxNode[k]
-							* m_dColumnInvJacobianNode[k];
-					}
-				}
-			}
-#endif
 		}
 	}
 

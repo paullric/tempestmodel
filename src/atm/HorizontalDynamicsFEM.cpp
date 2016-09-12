@@ -39,9 +39,9 @@
 //#define UNIFORM_DIFFUSION_VERTICAL_VELOCITY
 //#define UNIFORM_DIFFUSION_TRACERS
 
-#define RESIDUAL_DIFFUSION_HORIZONTAL_VELOCITIES
-#define RESIDUAL_DIFFUSION_THERMO
-#define RESIDUAL_DIFFUSION_VERTICAL_VELOCITY
+//#define RESIDUAL_DIFFUSION_HORIZONTAL_VELOCITIES
+//#define RESIDUAL_DIFFUSION_THERMO
+//#define RESIDUAL_DIFFUSION_VERTICAL_VELOCITY
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -1758,17 +1758,6 @@ void HorizontalDynamicsFEM::StepDiffusionExplicit(
 				3,
 				true);
 #endif
-#if defined(RESIDUAL_DIFFUSION_VERTICAL_VELOCITY)
-			// Residual diffusion of W with residual based diffusion coeff
-			ApplyScalarHyperdiffusionResidual(
-				iDataInitial,
-				iDataUpdate,
-				iDataResidual,
-				pGrid->GetVectorUniformDiffusionCoeff(),
-				dDeltaT,
-				3,
-				true);
-#endif
 #if defined(RESIDUAL_DIFFUSION_THERMO)
 			// Residual diffusion of Theta with residual based diffusion coeff
 			ApplyScalarHyperdiffusionResidual(
@@ -1778,7 +1767,18 @@ void HorizontalDynamicsFEM::StepDiffusionExplicit(
 				pGrid->GetScalarUniformDiffusionCoeff(),
 				dDeltaT,
 				2,
-				true);
+				false);
+#endif
+#if defined(RESIDUAL_DIFFUSION_VERTICAL_VELOCITY)
+			// Residual diffusion of W with residual based diffusion coeff
+			ApplyScalarHyperdiffusionResidual(
+				iDataInitial,
+				iDataUpdate,
+				iDataResidual,
+				pGrid->GetVectorUniformDiffusionCoeff(),
+				dDeltaT,
+				3,
+				false);
 #endif
 		}
 	}
@@ -2349,8 +2349,15 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusionResidual(
 							  dContraMetric2DB[iA][iB][0] * dCovUa
 							+ dContraMetric2DB[iA][iB][1] * dCovUb;
 
-						double dRhoTheta = (*pDataInitial)[PIx][k][iA][iB] *
+					double dRhoTheta = 0.0;
+					#if defined(FORMULATION_THETA)
+						dRhoTheta = (*pDataInitial)[PIx][k][iA][iB] *
 											(*pDataInitial)[RIx][k][iA][iB];
+					#endif
+
+					#if defined(FORMULATION_RHOTHETA_P) || defined(FORMULATION_RHOTHETA_PI)
+						dRhoTheta = (*pDataInitial)[PIx][k][iA][iB];
+					#endif
 
 						// Maximum wave speed in this element
 						m_dAuxDataNode[KIx][k][i][j] = sqrt(
@@ -2452,7 +2459,8 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusionResidual(
 						dLocalNu = dElementLength * dElementLength * dResMax;
 
 						// Get the maximum possible coefficient (upwind)
-						if (c != WIx) {
+						if ((c != WIx) || (c != PIx)) {
+							// Use the total maximum wind speed
 							dNuMax = 0.5 * dElementLength *
 										m_dAuxDataNode[KIx][k][i][j];
 						} else {
@@ -2465,6 +2473,7 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusionResidual(
 								  (*pDataInitial)[WIx][k][iA][iB]
 								* (*pDerivR)[k][iA][iB][2];
 
+							// Use the vertical wind speed only
 							double dXiDot =
 								 (*pContraMetricA)[k][iA][iB][2] * dCovUa
 								+ (*pContraMetricB)[k][iA][iB][2] * dCovUb
@@ -2486,11 +2495,7 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusionResidual(
 							//printf("%.16E %.16E \n",dLocalNu,dResMax);
 							dLocalNu = 0.0;
 						}
-/*
-						if (c == WIx) {
-							dLocalNu = dNuRayleigh;
-						}
-*/
+
 						double dInvJacobian = 1.0 / (*pJacobian)[k][iA][iB];
 
 						// Compute integral term
@@ -2989,12 +2994,23 @@ void HorizontalDynamicsFEM::ApplyRayleighFriction(
 	}
 	// 2D Cartesian XZ primitive nonhydro models with no density treatment
 	else if ((nEqSet == EquationSet::PrimitiveNonhydrostaticEquations) && fCartXZ) {
+
 		nEffectiveC[0] = 0;
 		nEffectiveC[1] = 2; 
 		nEffectiveC[2] = 3;
 		nEffectiveC[nComponents - 2] = 0;
 		nEffectiveC[nComponents - 1] = 0;
 		nComponents = nComponents - 2;
+
+/*
+		nEffectiveC[0] = 0;
+		nEffectiveC[1] = 3; 
+		//nEffectiveC[2] = 3;
+		nEffectiveC[nComponents - 3] = 0;
+		nEffectiveC[nComponents - 2] = 0;
+		nEffectiveC[nComponents - 1] = 0;
+		nComponents = nComponents - 3;
+*/
 	}
 	// Other model types (advection, shallow water, mass coord)
 	else {
@@ -3004,7 +3020,7 @@ void HorizontalDynamicsFEM::ApplyRayleighFriction(
 	}
  
 	// Subcycle the rayleigh update
-	int nRayleighCycles = 10;
+	int nRayleighCycles = 20;
 	double dRayleighFactor = 1.0 / nRayleighCycles;
 
 	// Perform local update
