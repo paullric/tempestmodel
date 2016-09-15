@@ -39,9 +39,9 @@
 //#define UNIFORM_DIFFUSION_VERTICAL_VELOCITY
 //#define UNIFORM_DIFFUSION_TRACERS
 
-//#define RESIDUAL_DIFFUSION_HORIZONTAL_VELOCITIES
-//#define RESIDUAL_DIFFUSION_THERMO
-//#define RESIDUAL_DIFFUSION_VERTICAL_VELOCITY
+#define RESIDUAL_DIFFUSION_HORIZONTAL_VELOCITIES
+#define RESIDUAL_DIFFUSION_THERMO
+#define RESIDUAL_DIFFUSION_VERTICAL_VELOCITY
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -2430,12 +2430,19 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusionResidual(
 						dResP = std::abs((*pDataResidual)[PIx][k][iA][iB]);
 						dResR = std::abs((*pDataResidual)[RIx][k][iA][iB]);
 
+						//dResW = 0.0;
 						// Select the maximum residual
 						dResMax = std::max(dResU, dResV);
 						dResMax = std::max(dResMax, dResW);
 						dResMax = std::max(dResMax, dResP);
 						dResMax = std::max(dResMax, dResR);
-
+/*
+						// Select the maximum residual
+						dResMax = std::min(dResU, dResV);
+						dResMax = std::min(dResMax, dResW);
+						dResMax = std::min(dResMax, dResP);
+						dResMax = std::min(dResMax, dResR);
+*/
 						if (dResMax == dResU) {
 							dResMax /= std::abs(
 							(*pDataInitial)[UIx][k][iA][iB] - dEAvgU);
@@ -2459,10 +2466,11 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusionResidual(
 						dLocalNu = dElementLength * dElementLength * dResMax;
 
 						// Get the maximum possible coefficient (upwind)
-						if ((c != WIx) || (c != PIx)) {
+						if (c != WIx) {
 							// Use the total maximum wind speed
 							dNuMax = 0.5 * dElementLength *
-										m_dAuxDataNode[KIx][k][i][j];
+										m_dAuxDataNode[KIx][k][i][j] /
+										pGrid->GetReferenceLength();
 						} else {
 							// Contravariant velocities
 							double dCovUa = (*pDataInitial)[UIx][k][iA][iB];
@@ -2478,18 +2486,14 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusionResidual(
 								 (*pContraMetricA)[k][iA][iB][2] * dCovUa
 								+ (*pContraMetricB)[k][iA][iB][2] * dCovUb
 								+ (*pContraMetricXi)[k][iA][iB][2] * dCovUx;
-							dNuMax = 0.5 * dElementLength * dXiDot;
+							dNuMax = 0.5 * dElementLength * dXiDot /
+										pGrid->GetReferenceLength();
 						}
 
 						if (dLocalNu > dNuMax) {
 							dLocalNu = dNuMax;
 						}
-/*
-						// Uniform appliction in the Rayleigh layer
-						if ((*pDataRayleigh)[k][iA][iB] > 0.0) {
-							dLocalNu = dNuRayleigh;
-						}
-*/
+
 						// Check for Inf or NaN and adjust
 						if (!std::isfinite(dLocalNu)) {
 							//printf("%.16E %.16E \n",dLocalNu,dResMax);

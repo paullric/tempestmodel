@@ -3368,6 +3368,8 @@ void VerticalDynamicsFEM::BuildF(
 			dF[VecFIx(FWIx, k)] =
 				dPressureGradientForce / m_dColumnDerivRREdge[k][2];
 
+//printf("%i %.16E \n",k,dF[VecFIx(FWIx, k)]);
+
 			dF[VecFIx(FWIx, k)] +=
 				phys.GetG();
 
