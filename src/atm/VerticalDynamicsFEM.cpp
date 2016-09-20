@@ -410,6 +410,7 @@ void VerticalDynamicsFEM::Initialize() {
 
 	m_dHorizKineticEnergyNode.Allocate(nRElements);
 	m_dKineticEnergyNode.Allocate(nRElements);
+	m_dKineticEnergyREdge.Allocate(nRElements+1);
 	m_dDiffKineticEnergyNode.Allocate(nRElements);
 	m_dDiffKineticEnergyREdge.Allocate(nRElements+1);
 
@@ -1496,7 +1497,7 @@ void VerticalDynamicsFEM::StepExplicit(
 							dDeltaT * m_dSoln[VecFIx(FWIx, k)];
 					}
 				}
-
+/*
 				// Apply update to Rho
 				if (pGrid->GetVarLocation(RIx) == DataLocation_REdge) {
 					for (int k = 0; k <= nRElements; k++) {
@@ -1509,7 +1510,7 @@ void VerticalDynamicsFEM::StepExplicit(
 							dDeltaT * m_dSoln[VecFIx(FRIx, k)];
 					}
 				}
-
+*/
 				// Update tracers in column
 				UpdateColumnTracers(
 					dDeltaT,
@@ -1546,7 +1547,6 @@ void VerticalDynamicsFEM::StepExplicit(
 					m_dXiDotREdge,
 					m_dXiDotNode);
 
-/*
 				for (int k = 0; k < nRElements; k++) {
 					double dCovUa = m_dStateNode[UIx][k];
 					double dCovUb = m_dStateNode[VIx][k];
@@ -1559,7 +1559,25 @@ void VerticalDynamicsFEM::StepExplicit(
 						+ m_dColumnContraMetricXi[k][1] * dCovUb
 						+ m_dColumnContraMetricXi[k][2] * dCovUx;
 				}
-*/
+		}
+
+			//////////////////////////////////////////////////////////////
+			// Explicit density update explicitly to test
+			// Evaluate the time tendency equations
+
+			Evaluate(m_dColumnState, m_dSoln);
+
+			// Apply update to Rho
+			if (pGrid->GetVarLocation(RIx) == DataLocation_REdge) {
+				for (int k = 0; k <= nRElements; k++) {
+					dataUpdateREdge[RIx][k][i][j] -=
+						dDeltaT * m_dSoln[VecFIx(FRIx, k)];
+				}
+			} else {
+				for (int k = 0; k < nRElements; k++) {
+					dataUpdateNode[RIx][k][i][j] -=
+						dDeltaT * m_dSoln[VecFIx(FRIx, k)];
+				}
 			}
 
 			//////////////////////////////////////////////////////////////
@@ -2313,7 +2331,7 @@ void VerticalDynamicsFEM::StepImplicit(
 						m_dSoln[VecFIx(FWIx, k)];
 				}
 			}
-
+/*
 			// Copy over Rho
 			if (pGrid->GetVarLocation(RIx) == DataLocation_REdge) {
 				for (int k = 0; k <= pGrid->GetRElements(); k++) {
@@ -2326,7 +2344,7 @@ void VerticalDynamicsFEM::StepImplicit(
 						m_dSoln[VecFIx(FRIx, k)];
 				}
 			}
-
+*/
 			// Update tracers in column
 			UpdateColumnTracers(
 				dDeltaT,
@@ -2371,8 +2389,8 @@ void VerticalDynamicsFEM::StepImplicit(
 							= dataUpdateNode[PIx][k][iA+1][iB];
 						dataUpdateNode[WIx][k][iA][iB]
 							= dataUpdateNode[WIx][k][iA+1][iB];
-						dataUpdateNode[RIx][k][iA][iB]
-							= dataUpdateNode[RIx][k][iA+1][iB];
+						//dataUpdateNode[RIx][k][iA][iB]
+						//	= dataUpdateNode[RIx][k][iA+1][iB];
 
 						for (int c = 0; c < nTracerCount; c++) {
 							dataUpdateTracer[c][k][iA][iB]
@@ -2389,8 +2407,8 @@ void VerticalDynamicsFEM::StepImplicit(
 							= dataUpdateREdge[PIx][k][iA+1][iB];
 						dataUpdateREdge[WIx][k][iA][iB]
 							= dataUpdateREdge[WIx][k][iA+1][iB];
-						dataUpdateREdge[RIx][k][iA][iB]
-							= dataUpdateREdge[RIx][k][iA+1][iB];
+						//dataUpdateREdge[RIx][k][iA][iB]
+						//	= dataUpdateREdge[RIx][k][iA+1][iB];
 					}
 				}
 			}
@@ -2410,8 +2428,8 @@ void VerticalDynamicsFEM::StepImplicit(
 					= dataUpdateNode[PIx][k][i][iB+1];
 				dataUpdateNode[WIx][k][i][iB]
 					= dataUpdateNode[WIx][k][i][iB+1];
-				dataUpdateNode[RIx][k][i][iB]
-					= dataUpdateNode[RIx][k][i][iB+1];
+				//dataUpdateNode[RIx][k][i][iB]
+				//	= dataUpdateNode[RIx][k][i][iB+1];
 
 				for (int c = 0; c < nTracerCount; c++) {
 					dataUpdateTracer[c][k][i][iB]
@@ -2429,8 +2447,8 @@ void VerticalDynamicsFEM::StepImplicit(
 					= dataUpdateREdge[PIx][k][i][iB+1];
 				dataUpdateREdge[WIx][k][i][iB]
 					= dataUpdateREdge[WIx][k][i][iB+1];
-				dataUpdateREdge[RIx][k][i][iB]
-					= dataUpdateREdge[RIx][k][i][iB+1];
+				//dataUpdateREdge[RIx][k][i][iB]
+				//	= dataUpdateREdge[RIx][k][i][iB+1];
 			}
 		}
 		}
@@ -2658,7 +2676,7 @@ void VerticalDynamicsFEM::PrepareColumn(
 	// Number of radial elements
 	const int nRElements = pGrid->GetRElements();
 
-	// Store state data from this column in state vector
+	// Store state data from this column in state vector (levels)
 	for (int k = 0; k < nRElements; k++) {
 
 		// Store pressure
@@ -3244,6 +3262,7 @@ void VerticalDynamicsFEM::BuildF(
 
 #if !defined(EXPLICIT_VERTICAL_VELOCITY_ADVECTION)
 #if defined(VERTICAL_VELOCITY_ADVECTION_CLARK)
+/*
 	// Kinetic energy on model levels
 	for (int k = 0; k < nRElements; k++) {
 		double dCovUa = m_dStateNode[UIx][k];
@@ -3277,6 +3296,42 @@ void VerticalDynamicsFEM::BuildF(
 	} else {
 		pGrid->DifferentiateNodeToREdge(
 			m_dKineticEnergyNode,
+			m_dDiffKineticEnergyREdge);
+	}
+*/
+	// Kinetic energy on model interfaces
+	for (int k = 0; k <= nRElements; k++) {
+		double dCovUa = m_dStateREdge[UIx][k];
+		double dCovUb = m_dStateREdge[VIx][k];
+		double dCovUx = m_dStateREdge[WIx][k] * m_dColumnDerivRREdge[k][2];
+
+		double dConUa =
+			  m_dColumnContraMetricAREdge[k][0] * dCovUa
+			+ m_dColumnContraMetricAREdge[k][1] * dCovUb
+			+ m_dColumnContraMetricAREdge[k][2] * dCovUx;
+
+		double dConUb =
+			  m_dColumnContraMetricBREdge[k][0] * dCovUa
+			+ m_dColumnContraMetricBREdge[k][1] * dCovUb
+			+ m_dColumnContraMetricBREdge[k][2] * dCovUx;
+
+		double dConUx =
+			  m_dColumnContraMetricXiREdge[k][0] * dCovUa
+			+ m_dColumnContraMetricXiREdge[k][1] * dCovUb
+			+ m_dColumnContraMetricXiREdge[k][2] * dCovUx;
+
+		// Specific kinetic energy
+		m_dKineticEnergyREdge[k] =
+			  0.5 * (dConUa * dCovUa + dConUb * dCovUb + dConUx * dCovUx);
+	}
+
+	if (pGrid->GetVarLocation(WIx) == DataLocation_Node) {
+		pGrid->DifferentiateREdgeToNode(
+			m_dKineticEnergyREdge,
+			m_dDiffKineticEnergyNode);
+	} else {
+		pGrid->DifferentiateREdgeToREdge(
+			m_dKineticEnergyREdge,
 			m_dDiffKineticEnergyREdge);
 	}
 #endif

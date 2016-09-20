@@ -519,6 +519,11 @@ protected:
 	DataArray1D<double> m_dKineticEnergyNode;
 
 	///	<summary>
+	///		Kinetic energy on model interfaces.
+	///	</summary>
+	DataArray1D<double> m_dKineticEnergyREdge;
+
+	///	<summary>
 	///		Derivatives of kinetic energy on model levels.
 	///	</summary>
 	DataArray1D<double> m_dDiffKineticEnergyNode;
