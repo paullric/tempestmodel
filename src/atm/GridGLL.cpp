@@ -18,6 +18,8 @@
 #include "Model.h"
 #include "GridSpacing.h"
 #include "HorizontalDynamicsDG.h"
+#include "OutputManager.h"
+#include "Announce.h"
 
 #include "Direction.h"
 #include "FluxCorrectionFunction.h"
@@ -553,11 +555,25 @@ void GridGLL::PostProcessSubstage(
 		dynamic_cast<const HorizontalDynamicsDG *>(
 			m_model.GetHorizontalDynamics());
 
+	// Check total mass output before an ApplyDSS for state only
+	const OutputManagerVector pOutputM = m_model.GetOutputManagers();
+
+	//CHECKSUMS BEFORE DSS
+	if (pOutputM[1]->IsOutputNeeded(m_model.GetCurrentTime())) {
+		Announce("Checksums before ApplyDSS in GridGLL::PostProcessSubstage");
+		pOutputM[1]->ManageOutputStay(m_model.GetCurrentTime());
+	}
+
 	// If SpectralElement dynamics are used, apply direct stiffness summation
 	if (pHorizontalDynamics == NULL) {
 		ApplyDSS(iDataUpdate, eDataType);
 	}
 
+	//CHECKSUMS AFTER DSS
+	if (pOutputM[1]->IsOutputNeeded(m_model.GetCurrentTime())) {
+		Announce("Checksums after ApplyDSS in GridGLL::PostProcessSubstage");
+		pOutputM[1]->ManageOutput(m_model.GetCurrentTime());
+	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////

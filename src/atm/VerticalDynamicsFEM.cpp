@@ -38,7 +38,7 @@
 #define UPWIND_HORIZONTAL_VELOCITIES
 #define UPWIND_THERMO
 //#define UPWIND_VERTICAL_VELOCITY
-#define UPWIND_RHO_AND_TRACERS
+//#define UPWIND_RHO_AND_TRACERS
 
 //#define UNIFORM_DIFFUSION_HORIZONTAL_VELOCITIES
 //#define UNIFORM_DIFFUSION_THERMO
@@ -1497,7 +1497,7 @@ void VerticalDynamicsFEM::StepExplicit(
 							dDeltaT * m_dSoln[VecFIx(FWIx, k)];
 					}
 				}
-/*
+
 				// Apply update to Rho
 				if (pGrid->GetVarLocation(RIx) == DataLocation_REdge) {
 					for (int k = 0; k <= nRElements; k++) {
@@ -1510,7 +1510,7 @@ void VerticalDynamicsFEM::StepExplicit(
 							dDeltaT * m_dSoln[VecFIx(FRIx, k)];
 					}
 				}
-*/
+
 				// Update tracers in column
 				UpdateColumnTracers(
 					dDeltaT,
@@ -1560,25 +1560,6 @@ void VerticalDynamicsFEM::StepExplicit(
 						+ m_dColumnContraMetricXi[k][2] * dCovUx;
 				}
 		}
-
-			//////////////////////////////////////////////////////////////
-			// Explicit density update explicitly to test
-			// Evaluate the time tendency equations
-
-			Evaluate(m_dColumnState, m_dSoln);
-
-			// Apply update to Rho
-			if (pGrid->GetVarLocation(RIx) == DataLocation_REdge) {
-				for (int k = 0; k <= nRElements; k++) {
-					dataUpdateREdge[RIx][k][i][j] -=
-						dDeltaT * m_dSoln[VecFIx(FRIx, k)];
-				}
-			} else {
-				for (int k = 0; k < nRElements; k++) {
-					dataUpdateNode[RIx][k][i][j] -=
-						dDeltaT * m_dSoln[VecFIx(FRIx, k)];
-				}
-			}
 
 			//////////////////////////////////////////////////////////////
 			// Explicit vertical horizontal velocity advection
@@ -2331,7 +2312,7 @@ void VerticalDynamicsFEM::StepImplicit(
 						m_dSoln[VecFIx(FWIx, k)];
 				}
 			}
-/*
+
 			// Copy over Rho
 			if (pGrid->GetVarLocation(RIx) == DataLocation_REdge) {
 				for (int k = 0; k <= pGrid->GetRElements(); k++) {
@@ -2344,7 +2325,7 @@ void VerticalDynamicsFEM::StepImplicit(
 						m_dSoln[VecFIx(FRIx, k)];
 				}
 			}
-*/
+
 			// Update tracers in column
 			UpdateColumnTracers(
 				dDeltaT,
@@ -2389,8 +2370,8 @@ void VerticalDynamicsFEM::StepImplicit(
 							= dataUpdateNode[PIx][k][iA+1][iB];
 						dataUpdateNode[WIx][k][iA][iB]
 							= dataUpdateNode[WIx][k][iA+1][iB];
-						//dataUpdateNode[RIx][k][iA][iB]
-						//	= dataUpdateNode[RIx][k][iA+1][iB];
+						dataUpdateNode[RIx][k][iA][iB]
+							= dataUpdateNode[RIx][k][iA+1][iB];
 
 						for (int c = 0; c < nTracerCount; c++) {
 							dataUpdateTracer[c][k][iA][iB]
@@ -2407,8 +2388,8 @@ void VerticalDynamicsFEM::StepImplicit(
 							= dataUpdateREdge[PIx][k][iA+1][iB];
 						dataUpdateREdge[WIx][k][iA][iB]
 							= dataUpdateREdge[WIx][k][iA+1][iB];
-						//dataUpdateREdge[RIx][k][iA][iB]
-						//	= dataUpdateREdge[RIx][k][iA+1][iB];
+						dataUpdateREdge[RIx][k][iA][iB]
+							= dataUpdateREdge[RIx][k][iA+1][iB];
 					}
 				}
 			}
@@ -2428,8 +2409,8 @@ void VerticalDynamicsFEM::StepImplicit(
 					= dataUpdateNode[PIx][k][i][iB+1];
 				dataUpdateNode[WIx][k][i][iB]
 					= dataUpdateNode[WIx][k][i][iB+1];
-				//dataUpdateNode[RIx][k][i][iB]
-				//	= dataUpdateNode[RIx][k][i][iB+1];
+				dataUpdateNode[RIx][k][i][iB]
+					= dataUpdateNode[RIx][k][i][iB+1];
 
 				for (int c = 0; c < nTracerCount; c++) {
 					dataUpdateTracer[c][k][i][iB]
@@ -2447,8 +2428,8 @@ void VerticalDynamicsFEM::StepImplicit(
 					= dataUpdateREdge[PIx][k][i][iB+1];
 				dataUpdateREdge[WIx][k][i][iB]
 					= dataUpdateREdge[WIx][k][i][iB+1];
-				//dataUpdateREdge[RIx][k][i][iB]
-				//	= dataUpdateREdge[RIx][k][i][iB+1];
+				dataUpdateREdge[RIx][k][i][iB]
+					= dataUpdateREdge[RIx][k][i][iB+1];
 			}
 		}
 		}

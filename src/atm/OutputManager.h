@@ -89,6 +89,11 @@ public:
 	void ManageOutput(const Time & time);
 
 	///	<summary>
+	///		Perform an output without output time advance.
+	///	</summary>
+	void ManageOutputStay(const Time & time);
+
+	///	<summary>
 	///		Write the initial system state to a file.
 	///	</summary>
 	void InitialOutput(const Time & time);
@@ -177,6 +182,7 @@ protected:
 	///	</summary>
 	Time m_timeLastOutput;
 
+public:
 	///	<summary>
 	///		Next output time.
 	///	</summary>
@@ -187,6 +193,7 @@ protected:
 	///	</summary>
 	Time m_timeOutputFrequency;
 
+protected:
 	///	<summary>
 	///		Output directory.
 	///	</summary>

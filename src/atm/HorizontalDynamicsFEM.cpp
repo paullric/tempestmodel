@@ -1407,8 +1407,67 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 
 			// Update vertical velocity on interfaces
 			if (pGrid->GetVarLocation(WIx) == DataLocation_REdge) {
+/*
+				// Update W over levels (horizontal transport)
+				for (int i = 0; i < m_nHorizontalOrder; i++) {
+				for (int j = 0; j < m_nHorizontalOrder; j++) {
+					int iA = a * m_nHorizontalOrder + i + box.GetHaloElements();
+					int iB = b * m_nHorizontalOrder + j + box.GetHaloElements();
+					// Update vertical velocity over column on levels
+					for (int k = 0; k < nRElements; k++) {
+							// Calculate vertical velocity update
+							double dLocalUpdateUr =
+								m_dAuxDataNode[UCrossZetaXIx][k][i][j]
+								/ m_dLocalDerivR[k][i][j][2];
+							// Back out the local Ua and Ub updates
+							double dLocalUpdateUa = 1.0 / dDeltaT
+								* (dataUpdateNode[UIx][k][iA][iB]
+								- dataInitialNode[UIx][k][iA][iB]);
+							double dLocalUpdateUb = 1.0 / dDeltaT
+								* (dataUpdateNode[VIx][k][iA][iB]
+								- dataInitialNode[VIx][k][iA][iB]);
 
-				// Update vertical velocity at bottom boundary
+							if (k == 0) {
+								dLocalUpdateUr =
+									- ( m_dLocalContraMetric[0][iA][iB][2]
+											* dLocalUpdateUa
+									  + m_dLocalContraMetric[0][iA][iB][4]
+									  		* dLocalUpdateUb)
+									/ m_dLocalContraMetric[0][iA][iB][5]
+									/ m_dLocalDerivR[0][i][j][2];
+
+							} else if (k == nRElements-1) {
+								dLocalUpdateUr = 0.0;
+							}
+
+							// Update vertical velocity
+							dataUpdateNode[WIx][k][iA][iB] +=
+								dDeltaT * dLocalUpdateUr;
+					}
+				}
+				}
+
+				// Interpolate W update on levels to interfaces
+				pPatch->InterpolateNodeToREdge(WIx, iDataUpdate);
+				// Interpolate U cross Zeta to interfaces
+				for (int k = 0; k <= nRElements; k++) {
+				for (int i = 0; i < m_nHorizontalOrder; i++) {
+				for (int j = 0; j < m_nHorizontalOrder; j++) {
+					int iA = a * m_nHorizontalOrder + i + box.GetHaloElements();
+					int iB = b * m_nHorizontalOrder + j + box.GetHaloElements();
+
+					dataUpdateREdge[WIx][k][iA][iB] =
+						pGrid->InterpolateNodeToREdge(
+							&(dataUpdateNode[WIx][0][iA][iB]),
+							NULL,
+							k,
+							0.0,
+							nVerticalElementStride);
+				}
+				}
+				}
+*/
+				// Update vertical velocity at boundaries
 				for (int i = 0; i < m_nHorizontalOrder; i++) {
 				for (int j = 0; j < m_nHorizontalOrder; j++) {
 
@@ -1428,12 +1487,15 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 							NULL, 0, 0.0,
 							nVerticalStateStride);
 
-					// Update vertical velocity on boundary
+					// Update vertical velocity on bottom boundary
 					dataUpdateREdge[WIx][0][iA][iB] =
 						- ( dContraMetricXiREdge[0][iA][iB][0] * dU0
 						  + dContraMetricXiREdge[0][iA][iB][1] * dV0)
 							/ dContraMetricXiREdge[0][iA][iB][2]
 							/ dDerivRNode[0][iA][iB][2];
+
+					// Update vertical velocity on top boundary
+					dataUpdateREdge[WIx][nRElements][iA][iB] = 0.0;
 				}
 				}
 
@@ -1458,6 +1520,7 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 				}
 				}
 				}
+//
 			}
 
 #if defined(FORMULATION_THETA) || defined(FORMULATION_THETA_FLUX)

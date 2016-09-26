@@ -222,6 +222,13 @@ public:
 	}
 
 	///	<summary>
+	///		Get the vector of output manager pointers
+	///	</summary>
+	const OutputManagerVector GetOutputManagers() const {
+		return m_vecOutMan;
+	}
+
+	///	<summary>
 	///		Get the physical constants for this model.
 	///	</summary>
 	const PhysicalConstants & GetPhysicalConstants() const {
@@ -339,11 +346,6 @@ protected:
 	WorkflowProcessVector m_vecWorkflowProcess;
 
 	///	<summary>
-	///		Vector of OutputManagers.
-	///	</summary>
-	OutputManagerVector m_vecOutMan;
-
-	///	<summary>
 	///		Pointer to test case.
 	///	</summary>
 	TestCase * m_pTestCase;
@@ -364,6 +366,11 @@ protected:
 	UserDataMeta m_metaUserData;
 
 private:
+	///	<summary>
+	///		Vector of OutputManagers.
+	///	</summary>
+	OutputManagerVector m_vecOutMan;
+
 	///	<summary>
 	///		Current model time.
 	///	</summary>

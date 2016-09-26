@@ -148,6 +148,28 @@ void OutputManager::ManageOutput(
 
 ///////////////////////////////////////////////////////////////////////////////
 
+void OutputManager::ManageOutputStay(
+	const Time & time
+) {
+	// Notification
+	Announce("%s (%i/%i): %s",
+		GetName(),
+		m_ixOutputFile+1,
+		m_ixOutputTime+1,
+		time.ToString().c_str());
+
+	// Perform the output
+	PerformOutput(time);
+
+	// Update last output time
+	m_timeLastOutput = time;
+
+	// DO NOT Update next output time
+	//m_timeNextOutput += m_timeOutputFrequency;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
 void OutputManager::InitialOutput(
 	const Time & time
 ) {
