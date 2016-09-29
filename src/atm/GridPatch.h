@@ -807,12 +807,34 @@ public:
 	///	<summary>
 	///		Get the radial coordinate matrix on model levels.
 	///	</summary>
+	DataArray3D<double> & GetZLevels() {
+		if (!m_fContainsData) {
+			_EXCEPTIONT("Stub patch does not store data.");
+		}
+
+		return m_dataZLevels;
+	}
+
+	///	<summary>
+	///		Get the radial coordinate matrix on model levels.
+	///	</summary>
 	const DataArray3D<double> & GetZLevels() const {
 		if (!m_fContainsData) {
 			_EXCEPTIONT("Stub patch does not store data.");
 		}
 
 		return m_dataZLevels;
+	}
+
+	///	<summary>
+	///		Get the radial coordinate matrix on model interfaces.
+	///	</summary>
+	DataArray3D<double> & GetZInterfaces() {
+		if (!m_fContainsData) {
+			_EXCEPTIONT("Stub patch does not store data.");
+		}
+
+		return m_dataZInterfaces;
 	}
 
 	///	<summary>

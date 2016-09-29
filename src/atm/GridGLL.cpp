@@ -98,55 +98,85 @@ void GridGLL::Initialize() {
 
 	///////////////////////////////////////////////////////////////////////////
 	// Get quadrature points for Gauss-Lobatto quadrature (horizontal)
-	GaussLobattoQuadrature::GetPoints(m_nHorizontalOrder, 0.0, 1.0, dGL, dWL);
-
-	if (m_nHorizontalOrder == 4) {
-		dGL[0] = 0.0;
-		dGL[1] = 0.276393202250021;
-		dGL[2] = 0.723606797749979;
-		dGL[3] = 1.0;
-	}
 
 	// Derivatives of the 1D basis functions at each point on the reference
 	// element [0, 1]
 	m_dDxBasis1D.Allocate(m_nHorizontalOrder, m_nHorizontalOrder);
 	m_dStiffness1D.Allocate(m_nHorizontalOrder, m_nHorizontalOrder);
 
-	DataArray1D<double> dCoeffs(m_nHorizontalOrder);
+	// Exact fourth order coefficients to machine truncation
+	if (m_nHorizontalOrder == 4) {
+		dGL.Allocate(4);
+		dWL.Allocate(4);
 
-	for (int i = 0; i < m_nHorizontalOrder; i++) {
-		PolynomialInterp::DiffLagrangianPolynomialCoeffs(
-			m_nHorizontalOrder, dGL, dCoeffs, dGL[i]);
+		dGL[0] = 0.0;
+		dGL[1] = 2.76393202250021063903773210768E-1;
+		dGL[2] = 7.23606797749978936096226789232E-1;
+		dGL[3] = 1.0;
 
-		if (m_nHorizontalOrder == 4) {
-			if (i == 0) {
-				dCoeffs[0] = -6.0;
-				dCoeffs[1] =  8.09016994374947425;
-				dCoeffs[2] = -3.09016994374947425;
-				dCoeffs[3] =  1.0;
-			} else if (i == 1) {
-				dCoeffs[0] = -1.61803398874989485;
-				dCoeffs[1] =  0.0;
-				dCoeffs[2] =  2.23606797749978970;
-				dCoeffs[3] = -0.61803398874989485;
-			} else if (i == 2) {
-				dCoeffs[0] =  0.61803398874989485;
-				dCoeffs[1] = -2.23606797749978970;
-				dCoeffs[2] =  0.0;
-				dCoeffs[3] =  1.61803398874989485;
-			} else {
-				dCoeffs[0] = -1.0;
-				dCoeffs[1] =  3.09016994374947425;
-				dCoeffs[2] = -8.09016994374947425;
-				dCoeffs[3] =  6.0;
+		dWL[0] = 8.33333333333333148296162562474E-2;
+		dWL[1] = 4.16666666666666685170383743753E-1;
+		dWL[2] = 4.16666666666666685170383743753E-1;
+		dWL[3] = 8.33333333333333148296162562474E-2;
+
+		m_dDxBasis1D[0][0] = -6.0;
+		m_dDxBasis1D[1][0] =  8.09016994374947451262869435595E0;
+		m_dDxBasis1D[2][0] = -3.09016994374947451262869435595E0;
+		m_dDxBasis1D[3][0] =  1.0;
+
+		m_dDxBasis1D[0][1] = -1.61803398874989490252573887119E0;
+		m_dDxBasis1D[1][1] =  0.0;
+		m_dDxBasis1D[2][1] =  2.23606797749978980505147774238E0;
+		m_dDxBasis1D[3][1] = -6.18033988749894902525738871191E-1;
+
+		m_dDxBasis1D[0][2] =  6.18033988749894902525738871191E-1;
+		m_dDxBasis1D[1][2] = -2.23606797749978980505147774238E0;
+		m_dDxBasis1D[2][2] =  0.0;
+		m_dDxBasis1D[3][2] =  1.61803398874989490252573887119E0;
+
+		m_dDxBasis1D[0][3] = -1.0;
+		m_dDxBasis1D[1][3] =  3.09016994374947451262869435595E0;
+		m_dDxBasis1D[2][3] = -8.09016994374947451262869435595E0;
+		m_dDxBasis1D[3][3] =  6.0;
+
+		m_dStiffness1D[0][0] = -6.0;
+		m_dStiffness1D[1][0] =  1.61803398874989490252573887119E0;
+		m_dStiffness1D[2][0] = -6.18033988749894902525738871191E-1;
+		m_dStiffness1D[3][0] =  1.0;
+
+		m_dStiffness1D[0][1] = -8.09016994374947451262869435595E0;
+		m_dStiffness1D[1][1] =  0.0;
+		m_dStiffness1D[2][1] =  2.23606797749978980505147774238E0;
+		m_dStiffness1D[3][1] = -3.09016994374947451262869435595E0;
+
+		m_dStiffness1D[0][2] =  3.09016994374947451262869435595E0;
+		m_dStiffness1D[1][2] = -2.23606797749978980505147774238E0;
+		m_dStiffness1D[2][2] =  0.0;
+		m_dStiffness1D[3][2] =  8.09016994374947451262869435595E0;
+
+		m_dStiffness1D[0][3] = -1.0;
+		m_dStiffness1D[1][3] =  6.18033988749894902525738871191E-1;
+		m_dStiffness1D[2][3] = -1.61803398874989490252573887119E0;
+		m_dStiffness1D[3][3] =  6.0;
+
+	// Arbitrary order coefficients
+	} else {
+
+		GaussLobattoQuadrature::GetPoints(
+			m_nHorizontalOrder, 0.0, 1.0, dGL, dWL);
+
+		DataArray1D<double> dCoeffs(m_nHorizontalOrder);
+
+		for (int i = 0; i < m_nHorizontalOrder; i++) {
+
+			PolynomialInterp::DiffLagrangianPolynomialCoeffs(
+				m_nHorizontalOrder, dGL, dCoeffs, dGL[i]);
+
+			for (int m = 0; m < m_nHorizontalOrder; m++) {
+				m_dDxBasis1D[m][i] = dCoeffs[m];
+
+				m_dStiffness1D[m][i] = m_dDxBasis1D[m][i] * dWL[i] / dWL[m];
 			}
-		}
-
-#pragma message "Verify that DxBasis1D adds up to 0"
-		for (int m = 0; m < m_nHorizontalOrder; m++) {
-			m_dDxBasis1D[m][i] = dCoeffs[m];
-
-			m_dStiffness1D[m][i] = m_dDxBasis1D[m][i] * dWL[i] / dWL[m];
 		}
 	}
 
