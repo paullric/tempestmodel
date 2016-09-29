@@ -45,9 +45,9 @@
 //#define UNIFORM_DIFFUSION_VERTICAL_VELOCITY
 //#define UNIFORM_DIFFUSION_TRACERS
 
-#define RESIDUAL_DIFFUSION_HORIZONTAL_VELOCITIES
-#define RESIDUAL_DIFFUSION_THERMO
-#define RESIDUAL_DIFFUSION_VERTICAL_VELOCITY
+//#define RESIDUAL_DIFFUSION_HORIZONTAL_VELOCITIES
+//#define RESIDUAL_DIFFUSION_THERMO
+//#define RESIDUAL_DIFFUSION_VERTICAL_VELOCITY
 
 //#define EXPLICIT_THERMO
 //#define EXPLICIT_VERTICAL_VELOCITY_ADVECTION
@@ -1320,6 +1320,7 @@ void VerticalDynamicsFEM::StepExplicit(
 	const Time & time,
 	double dDeltaT
 ) {
+	return;
 	// Start the function timer
 	FunctionTimer timer("VerticalStepExplicit");
 
@@ -2019,6 +2020,7 @@ void VerticalDynamicsFEM::StepImplicit(
 	const Time & time,
 	double dDeltaT
 ) {
+	return;
 	// Start the function timer
 	FunctionTimer timer("VerticalStepImplicit");
 

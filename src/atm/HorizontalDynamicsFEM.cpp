@@ -32,6 +32,8 @@
 #pragma message "WARNING: DIFFERENTIAL_FORM will lose mass over topography"
 #endif
 
+#define FIX_ELEMENT_MASS_NONHYDRO
+
 //#define INSTEP_DIVERGENCE_DAMPING
 
 //#define UNIFORM_DIFFUSION_HORIZONTAL_VELOCITIES
@@ -39,9 +41,9 @@
 //#define UNIFORM_DIFFUSION_VERTICAL_VELOCITY
 //#define UNIFORM_DIFFUSION_TRACERS
 
-#define RESIDUAL_DIFFUSION_HORIZONTAL_VELOCITIES
-#define RESIDUAL_DIFFUSION_THERMO
-#define RESIDUAL_DIFFUSION_VERTICAL_VELOCITY
+//#define RESIDUAL_DIFFUSION_HORIZONTAL_VELOCITIES
+//#define RESIDUAL_DIFFUSION_THERMO
+//#define RESIDUAL_DIFFUSION_VERTICAL_VELOCITY
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -1403,6 +1405,49 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 					}
 				}
 				}
+
+#if defined(FIX_ELEMENT_MASS_NONHYDRO)
+// Check for element mass conservation and fix the mass
+				double dElMassInitial = 0.0;
+				double dElMassUpdate = 0.0;
+				double dElTotalArea = 0.0;
+				// Element wise mass calculation
+				for (int i = 0; i < m_nHorizontalOrder; i++) {
+				for (int j = 0; j < m_nHorizontalOrder; j++) {
+
+					int iA = a * m_nHorizontalOrder + i + box.GetHaloElements();
+					int iB = b * m_nHorizontalOrder + j + box.GetHaloElements();
+
+					dElMassInitial += dataInitialNode[RIx][k][iA][iB] * 
+										dElementArea[k][iA][iB];
+					dElMassUpdate += dataUpdateNode[RIx][k][iA][iB] *
+										dElementArea[k][iA][iB];
+					dElTotalArea += dElementArea[k][iA][iB];
+				}
+				}
+
+				double dElMassDiff = 0.0;
+				dElMassDiff = dElMassInitial - dElMassUpdate;
+				double dMassPerNode = dElMassDiff / dElTotalArea;
+				double dMassPerElement = dMassPerNode * m_nHorizontalOrder * 
+										m_nHorizontalOrder;
+
+				// Add back whatever mass change evenly over all nodes
+				for (int i = 0; i < m_nHorizontalOrder; i++) {
+				for (int j = 0; j < m_nHorizontalOrder; j++) {
+
+					int iA = a * m_nHorizontalOrder + i + box.GetHaloElements();
+					int iB = b * m_nHorizontalOrder + j + box.GetHaloElements();
+
+					dataUpdateNode[RIx][k][iA][iB] += dMassPerNode;
+				}
+				}
+/*
+				Announce("%i %i %i %1.16e %1.16e %1.16e %1.16e",
+				k, a, b,
+				dElMassInitial, dElMassUpdate, dMassPerNode, dMassPerElement);
+*/
+#endif
 			}
 
 			// Update vertical velocity on interfaces
@@ -1664,12 +1709,22 @@ void HorizontalDynamicsFEM::StepExplicit(
 			"HorizontalDynamics Step must have iDataInitial != iDataUpdate");
 	}
 
+	// Get the output manager vector of pointers
+	const OutputManagerVector pOutputM = m_model.GetOutputManagers();
+
 	// Get a copy of the GLL grid
 	GridGLL * pGrid = dynamic_cast<GridGLL*>(m_model.GetGrid());
 
 	// Equation set
 	const EquationSet & eqn = m_model.GetEquationSet();
 
+/*
+	//CHECKSUMS BEFORE DYNAMICS UPDATE
+	if (pOutputM[1]->IsOutputNeeded(m_model.GetCurrentTime())) {
+		Announce("Checksums before Euler step in HorizontalDynamicsFEM::StepExplicit");
+		pOutputM[1]->ManageOutputStay(m_model.GetCurrentTime());
+	}
+*/
 	// Step the primitive nonhydrostatic equations
 	if (eqn.GetType() == EquationSet::PrimitiveNonhydrostaticEquations) {
 		StepNonhydrostaticPrimitive(iDataInitial, iDataUpdate, time, dDeltaT);
@@ -1682,6 +1737,14 @@ void HorizontalDynamicsFEM::StepExplicit(
 	} else {
 		_EXCEPTIONT("Invalid EquationSet");
 	}
+/*
+	//CHECKSUMS AFTER DYNAMICS UPDATE
+	if (pOutputM[1]->IsOutputNeeded(m_model.GetCurrentTime())) {
+		Announce("Checksums after Euler step in HorizontalDynamicsFEM::StepExplicit");
+		pOutputM[1]->ManageOutput(m_model.GetCurrentTime());
+	}
+*/
+
 /*
 	// Uniform diffusion of U and V with vector diffusion coeff
 	if (pGrid->HasUniformDiffusion()) {

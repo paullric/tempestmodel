@@ -354,7 +354,7 @@ void Model::Go() {
 
 	// Initial output
 	for (int om = 0; om < m_vecOutMan.size(); om++) {
-/* COMMENT IN FOR ENERGY, ENSTROPHY, AND MOMENTUM OUTPUTS
+// COMMENT IN FOR ENERGY, ENSTROPHY, AND MOMENTUM OUTPUTS
 		if (om == 0) {
 			Announce("%s %1.15e %1.15e %1.15e",
 			"Energy:",
@@ -362,7 +362,7 @@ void Model::Go() {
 			m_pGrid->ComputeTotalPotentialEnstrophy(0),
 			m_pGrid->ComputeTotalVerticalMomentum(0));
 		}
-*/
+//
 		m_vecOutMan[om]->InitialOutput(m_time);
 	}
 
@@ -464,7 +464,7 @@ void Model::Go() {
 		// Check for output
 		for (int om = 0; om < m_vecOutMan.size(); om++) {
 			if (fLastStep) {
-/* COMMENT IN FOR ENERGY, ENSTROPHY, AND MOMENTUM OUTPUTS
+// COMMENT IN FOR ENERGY, ENSTROPHY, AND MOMENTUM OUTPUTS
 				if (om == 0) {
 					if (m_eqn.GetDimensionality() == 3) {
 						if (m_pGrid->GetVerticalStaggering() ==
@@ -486,11 +486,11 @@ void Model::Go() {
 					m_pGrid->ComputeTotalPotentialEnstrophy(0),
 					m_pGrid->ComputeTotalVerticalMomentum(0));
 				}
-*/
+//
 				m_vecOutMan[om]->FinalOutput(m_time);
 
 			} else if (m_vecOutMan[om]->IsOutputNeeded(m_time)) {
-/* COMMENT IN FOR ENERGY, ENSTROPHY, AND MOMENTUM OUTPUTS
+// COMMENT IN FOR ENERGY, ENSTROPHY, AND MOMENTUM OUTPUTS
 				if (om == 0) {
 					if (m_eqn.GetDimensionality() == 3) {
 						if (m_pGrid->GetVerticalStaggering() ==
@@ -512,8 +512,8 @@ void Model::Go() {
 					m_pGrid->ComputeTotalPotentialEnstrophy(0),
 					m_pGrid->ComputeTotalVerticalMomentum(0));
 				}
-*/
-				//m_vecOutMan[om]->ManageOutput(m_time);
+//
+				m_vecOutMan[om]->ManageOutput(m_time);
 			}
 		}
 
