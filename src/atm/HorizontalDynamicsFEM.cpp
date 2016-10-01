@@ -41,9 +41,9 @@
 //#define UNIFORM_DIFFUSION_VERTICAL_VELOCITY
 //#define UNIFORM_DIFFUSION_TRACERS
 
-//#define RESIDUAL_DIFFUSION_HORIZONTAL_VELOCITIES
-//#define RESIDUAL_DIFFUSION_THERMO
-//#define RESIDUAL_DIFFUSION_VERTICAL_VELOCITY
+#define RESIDUAL_DIFFUSION_HORIZONTAL_VELOCITIES
+#define RESIDUAL_DIFFUSION_THERMO
+#define RESIDUAL_DIFFUSION_VERTICAL_VELOCITY
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -88,6 +88,15 @@ void HorizontalDynamicsFEM::Initialize() {
 		m_nHorizontalOrder);
 
 	m_dBetaMassFlux.Allocate(
+		m_nHorizontalOrder,
+		m_nHorizontalOrder);
+
+	// Initialize the alpha and beta mass fluxes for mass fix
+	m_dAlphaElMassFlux.Allocate(
+		m_nHorizontalOrder,
+		m_nHorizontalOrder);
+
+	m_dBetaElMassFlux.Allocate(
 		m_nHorizontalOrder,
 		m_nHorizontalOrder);
 
@@ -1010,6 +1019,9 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 				}
 
 				// Pointwise update of quantities on model levels
+				double dElementMassFluxA = 0.0;
+				double dElementMassFluxB = 0.0;
+				double dElTotalArea = 0.0;
 				for (int i = 0; i < m_nHorizontalOrder; i++) {
 				for (int j = 0; j < m_nHorizontalOrder; j++) {
 
@@ -1249,11 +1261,24 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 					}
 #endif
 
+#ifdef FIX_ELEMENT_MASS_NONHYDRO
+					// Integrate element mass fluxes
+					dElementMassFluxA += dInvJacobian * 
+									dDaRhoFluxA * dElementArea[k][iA][iB];
+					dElementMassFluxB += dInvJacobian * 
+									dDbRhoFluxB * dElementArea[k][iA][iB];
+					dElTotalArea += dElementArea[k][iA][iB];
+
+					// Store the local element fluxes
+					m_dAlphaElMassFlux[i][j] = dDaRhoFluxA;
+					m_dBetaElMassFlux[i][j] = dDbRhoFluxB;
+#else
 					// Update density on model levels
 					dataUpdateNode[RIx][k][iA][iB] -=
 						dDeltaT * dInvJacobian * (
 							  dDaRhoFluxA
 							+ dDbRhoFluxB);
+#endif
 
 #ifdef FORMULATION_PRESSURE
 					// Update pressure on model levels
@@ -1406,6 +1431,39 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 				}
 				}
 
+#ifdef FIX_ELEMENT_MASS_NONHYDRO
+				double dMassFluxPerNodeA = dElementMassFluxA / dElTotalArea;
+				double dMassFluxPerNodeB = dElementMassFluxB / dElTotalArea;
+
+				// Compute the total element area
+				for (int i = 0; i < m_nHorizontalOrder; i++) {
+				for (int j = 0; j < m_nHorizontalOrder; j++) {
+
+					// Inverse Jacobian
+					const double dInvJacobian =
+						1.0 / m_dLocalJacobian[k][i][j];
+					const double dJacobian = m_dLocalJacobian[k][i][j];
+
+					int iA = a * m_nHorizontalOrder + i + box.GetHaloElements();
+					int iB = b * m_nHorizontalOrder + j + box.GetHaloElements();
+
+					m_dAlphaElMassFlux[i][j] -= dJacobian * dMassFluxPerNodeA;
+					m_dBetaElMassFlux[i][j] -= dJacobian * dMassFluxPerNodeB;
+
+					// Update density on model levels
+					dataUpdateNode[RIx][k][iA][iB] -=
+						dDeltaT * dInvJacobian * (
+							  m_dAlphaElMassFlux[i][j]
+							+ m_dBetaElMassFlux[i][j]);
+				}
+				}
+/*
+				Announce("%i %i %i %1.16e %1.16e %1.16e %1.16e",
+				k, a, b,
+				dElMassInitial, dElMassUpdate, dMassPerNode, dMassPerElement);
+*/
+#endif
+/*
 #if defined(FIX_ELEMENT_MASS_NONHYDRO)
 // Check for element mass conservation and fix the mass
 				double dElMassInitial = 0.0;
@@ -1442,12 +1500,13 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 					dataUpdateNode[RIx][k][iA][iB] += dMassPerNode;
 				}
 				}
-/*
+
 				Announce("%i %i %i %1.16e %1.16e %1.16e %1.16e",
 				k, a, b,
 				dElMassInitial, dElMassUpdate, dMassPerNode, dMassPerElement);
-*/
+
 #endif
+*/
 			}
 
 			// Update vertical velocity on interfaces
