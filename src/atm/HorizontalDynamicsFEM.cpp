@@ -1463,6 +1463,7 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 				dElMassInitial, dElMassUpdate, dMassPerNode, dMassPerElement);
 */
 #endif
+			}
 
 			// Update vertical velocity on interfaces
 			if (pGrid->GetVarLocation(WIx) == DataLocation_REdge) {
