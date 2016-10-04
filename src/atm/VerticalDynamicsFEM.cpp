@@ -35,8 +35,8 @@
 //#define HYPERVISC_THERMO
 //#define HYPERVISC_VERTICAL_VELOCITY
 
-#define UPWIND_HORIZONTAL_VELOCITIES
-#define UPWIND_THERMO
+//#define UPWIND_HORIZONTAL_VELOCITIES
+//#define UPWIND_THERMO
 //#define UPWIND_VERTICAL_VELOCITY
 //#define UPWIND_RHO_AND_TRACERS
 
@@ -691,7 +691,7 @@ void VerticalDynamicsFEM::StepDiffusionExplicit(
 	double dDeltaT
 ) {
 	// Start the function timer
-	FunctionTimer timer("VerticalDiffusionStepExplicit");
+	FunctionTimer timer("VerticalDiffusionStepDiffusionExplicit");
 
 	// Get a copy of the grid
 	GridGLL * pGrid = dynamic_cast<GridGLL *>(m_model.GetGrid());
@@ -1190,7 +1190,7 @@ void VerticalDynamicsFEM::StepDiffusionExplicit(
 									dResV = std::abs(m_dResidualREdge[VIx][k]);
 								}
 								dResW = std::abs(m_dResidualREdge[WIx][k]);
-								//dResP = std::abs(m_dResidualREdge[PIx][k]);
+								dResP = std::abs(m_dResidualREdge[PIx][k]);
 								dResR = std::abs(m_dResidualREdge[RIx][k]);
 
 								// Select the maximum residual
@@ -1254,7 +1254,7 @@ void VerticalDynamicsFEM::StepDiffusionExplicit(
 									dResV = std::abs(m_dResidualNode[VIx][k]);
 								}
 								dResW = std::abs(m_dResidualNode[WIx][k]);
-								//dResP = std::abs(m_dResidualNode[PIx][k]);
+								dResP = std::abs(m_dResidualNode[PIx][k]);
 								dResR = std::abs(m_dResidualNode[RIx][k]);
 
 								// Select the maximum residual

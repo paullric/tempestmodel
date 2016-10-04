@@ -1463,114 +1463,9 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 				dElMassInitial, dElMassUpdate, dMassPerNode, dMassPerElement);
 */
 #endif
-/*
-#if defined(FIX_ELEMENT_MASS_NONHYDRO)
-// Check for element mass conservation and fix the mass
-				double dElMassInitial = 0.0;
-				double dElMassUpdate = 0.0;
-				double dElTotalArea = 0.0;
-				// Element wise mass calculation
-				for (int i = 0; i < m_nHorizontalOrder; i++) {
-				for (int j = 0; j < m_nHorizontalOrder; j++) {
-
-					int iA = a * m_nHorizontalOrder + i + box.GetHaloElements();
-					int iB = b * m_nHorizontalOrder + j + box.GetHaloElements();
-
-					dElMassInitial += dataInitialNode[RIx][k][iA][iB] * 
-										dElementArea[k][iA][iB];
-					dElMassUpdate += dataUpdateNode[RIx][k][iA][iB] *
-										dElementArea[k][iA][iB];
-					dElTotalArea += dElementArea[k][iA][iB];
-				}
-				}
-
-				double dElMassDiff = 0.0;
-				dElMassDiff = dElMassInitial - dElMassUpdate;
-				double dMassPerNode = dElMassDiff / dElTotalArea;
-				double dMassPerElement = dMassPerNode * m_nHorizontalOrder * 
-										m_nHorizontalOrder;
-
-				// Add back whatever mass change evenly over all nodes
-				for (int i = 0; i < m_nHorizontalOrder; i++) {
-				for (int j = 0; j < m_nHorizontalOrder; j++) {
-
-					int iA = a * m_nHorizontalOrder + i + box.GetHaloElements();
-					int iB = b * m_nHorizontalOrder + j + box.GetHaloElements();
-
-					dataUpdateNode[RIx][k][iA][iB] += dMassPerNode;
-				}
-				}
-
-				Announce("%i %i %i %1.16e %1.16e %1.16e %1.16e",
-				k, a, b,
-				dElMassInitial, dElMassUpdate, dMassPerNode, dMassPerElement);
-
-#endif
-*/
-			}
 
 			// Update vertical velocity on interfaces
 			if (pGrid->GetVarLocation(WIx) == DataLocation_REdge) {
-/*
-				// Update W over levels (horizontal transport)
-				for (int i = 0; i < m_nHorizontalOrder; i++) {
-				for (int j = 0; j < m_nHorizontalOrder; j++) {
-					int iA = a * m_nHorizontalOrder + i + box.GetHaloElements();
-					int iB = b * m_nHorizontalOrder + j + box.GetHaloElements();
-					// Update vertical velocity over column on levels
-					for (int k = 0; k < nRElements; k++) {
-							// Calculate vertical velocity update
-							double dLocalUpdateUr =
-								m_dAuxDataNode[UCrossZetaXIx][k][i][j]
-								/ m_dLocalDerivR[k][i][j][2];
-							// Back out the local Ua and Ub updates
-							double dLocalUpdateUa = 1.0 / dDeltaT
-								* (dataUpdateNode[UIx][k][iA][iB]
-								- dataInitialNode[UIx][k][iA][iB]);
-							double dLocalUpdateUb = 1.0 / dDeltaT
-								* (dataUpdateNode[VIx][k][iA][iB]
-								- dataInitialNode[VIx][k][iA][iB]);
-
-							if (k == 0) {
-								dLocalUpdateUr =
-									- ( m_dLocalContraMetric[0][iA][iB][2]
-											* dLocalUpdateUa
-									  + m_dLocalContraMetric[0][iA][iB][4]
-									  		* dLocalUpdateUb)
-									/ m_dLocalContraMetric[0][iA][iB][5]
-									/ m_dLocalDerivR[0][i][j][2];
-
-							} else if (k == nRElements-1) {
-								dLocalUpdateUr = 0.0;
-							}
-
-							// Update vertical velocity
-							dataUpdateNode[WIx][k][iA][iB] +=
-								dDeltaT * dLocalUpdateUr;
-					}
-				}
-				}
-
-				// Interpolate W update on levels to interfaces
-				pPatch->InterpolateNodeToREdge(WIx, iDataUpdate);
-				// Interpolate U cross Zeta to interfaces
-				for (int k = 0; k <= nRElements; k++) {
-				for (int i = 0; i < m_nHorizontalOrder; i++) {
-				for (int j = 0; j < m_nHorizontalOrder; j++) {
-					int iA = a * m_nHorizontalOrder + i + box.GetHaloElements();
-					int iB = b * m_nHorizontalOrder + j + box.GetHaloElements();
-
-					dataUpdateREdge[WIx][k][iA][iB] =
-						pGrid->InterpolateNodeToREdge(
-							&(dataUpdateNode[WIx][0][iA][iB]),
-							NULL,
-							k,
-							0.0,
-							nVerticalElementStride);
-				}
-				}
-				}
-*/
 				// Update vertical velocity at boundaries
 				for (int i = 0; i < m_nHorizontalOrder; i++) {
 				for (int j = 0; j < m_nHorizontalOrder; j++) {
@@ -2615,19 +2510,12 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusionResidual(
 						dResP = std::abs((*pDataResidual)[PIx][k][iA][iB]);
 						dResR = std::abs((*pDataResidual)[RIx][k][iA][iB]);
 
-						//dResW = 0.0;
 						// Select the maximum residual
 						dResMax = std::max(dResU, dResV);
 						dResMax = std::max(dResMax, dResW);
 						dResMax = std::max(dResMax, dResP);
 						dResMax = std::max(dResMax, dResR);
-/*
-						// Select the maximum residual
-						dResMax = std::min(dResU, dResV);
-						dResMax = std::min(dResMax, dResW);
-						dResMax = std::min(dResMax, dResP);
-						dResMax = std::min(dResMax, dResR);
-*/
+
 						if (dResMax == dResU) {
 							dResMax /= std::abs(
 							(*pDataInitial)[UIx][k][iA][iB] - dEAvgU);
@@ -3156,8 +3044,6 @@ void HorizontalDynamicsFEM::ApplyVectorHyperdiffusionResidual(
 
 ///////////////////////////////////////////////////////////////////////////////
 
-//#pragma message "jeguerra: Clean up this function"
-
 void HorizontalDynamicsFEM::ApplyRayleighFriction(
 	int iDataUpdate,
 	double dDeltaT
@@ -3190,16 +3076,6 @@ void HorizontalDynamicsFEM::ApplyRayleighFriction(
 		nEffectiveC[nComponents - 2] = 0;
 		nEffectiveC[nComponents - 1] = 0;
 		nComponents = nComponents - 2;
-
-/*
-		nEffectiveC[0] = 0;
-		nEffectiveC[1] = 3; 
-		//nEffectiveC[2] = 3;
-		nEffectiveC[nComponents - 3] = 0;
-		nEffectiveC[nComponents - 2] = 0;
-		nEffectiveC[nComponents - 1] = 0;
-		nComponents = nComponents - 3;
-*/
 	}
 	// Other model types (advection, shallow water, mass coord)
 	else {
@@ -3209,8 +3085,10 @@ void HorizontalDynamicsFEM::ApplyRayleighFriction(
 	}
  
 	// Subcycle the rayleigh update
-	int nRayleighCycles = 20;
+	int nRayleighCycles = 10;
 	double dRayleighFactor = 1.0 / nRayleighCycles;
+	double dNuNode = 0.0;
+	double dNuREdge = 0.0;
 
 	// Perform local update
 	for (int n = 0; n < pGrid->GetActivePatchCount(); n++) {
@@ -3254,7 +3132,7 @@ void HorizontalDynamicsFEM::ApplyRayleighFriction(
 					continue;
 				}
 
-				double dNuNode = 1.0 / (1.0 + dDeltaT * dNu);
+				dNuNode = 1.0 / (1.0 + dDeltaT * dNu);
 
 				// Loop over all effective components
 				for (int c = 0; c < nComponents; c++) {
@@ -3281,7 +3159,7 @@ void HorizontalDynamicsFEM::ApplyRayleighFriction(
 					continue;
 				}
 
-				double dNuREdge = 1.0 / (1.0 + dDeltaT * dNu);
+				dNuREdge = 1.0 / (1.0 + dDeltaT * dNu);
 
 				// Loop over all effective components
 				for (int c = 0; c < nComponents; c++) {

@@ -1,6 +1,6 @@
 ///////////////////////////////////////////////////////////////////////////////
 ///
-///	\file    ShearJetMtnWave2DCartesianTest.cpp
+///	\file    ShearJetMtnWave3DCartesianTest.cpp
 ///	\author  Paul Ullrich, Jorge Guerra
 ///	\version January 13, 2015
 ///
@@ -20,11 +20,11 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 ///	<summary>
-///		Giraldo, Ullrich (2016)
+///		Guerra, Ullrich (2016)
 ///
 ///		Thermal rising bubble test case.
 ///	</summary>
-class ShearJetMtnWave2DCartesianTest : public TestCase {
+class ShearJetMtnWave3DCartesianTest : public TestCase {
 
 public:
 	/// <summary>
@@ -158,7 +158,7 @@ public:
 	///	<summary>
 	///		Constructor. (with physical constants defined privately here)
 	///	</summary>
-	ShearJetMtnWave2DCartesianTest(
+	ShearJetMtnWave3DCartesianTest(
 		const PhysicalConstants & phys,
 		double dbC,
 		double dU0,
@@ -191,8 +191,8 @@ public:
 		// Set the dimensions of the box
 		m_dGDim[0] = -35000.0;
 		m_dGDim[1] = 55000.0;
-		m_dGDim[2] = -100.0;
-		m_dGDim[3] = 100.0;
+		m_dGDim[2] = -25000.0;
+		m_dGDim[3] = 25000.0;
 		m_dGDim[4] = 0.0;
 		m_dGDim[5] = 35000.0;
 
@@ -285,9 +285,11 @@ public:
 		double dXp,
 		double dYp
 	) const {
-		// Specify the Schar Mountain (Test case 5 from Giraldo et al. 2008)
-		double hsm = m_dhC * exp(-dXp/m_daC * dXp/m_daC) *
-					 cos(M_PI * dXp / m_dlC) * cos(M_PI * dXp / m_dlC);
+		// Specify the Schar Mountain in 2D (Guerra and Ullrich, 2016)
+		double hsm = m_dhC * exp(-dXp/m_daC * dXp/m_daC) * 
+						exp(-dYp/m_daC * dYp/m_daC * dYp/m_daC * dYp/m_daC) * 
+						cos(M_PI * dXp / m_dlC) * cos(M_PI * dXp / m_dlC);
+					 //cos(M_PI * dYp / m_dlC) * cos(M_PI * dYp / m_dlC);
 		//std::cout << hsm << "\n";
 
 		return hsm;
@@ -516,6 +518,14 @@ public:
 		double dExpDecay = exp(-(log(dEta) / m_dbC) * (log(dEta) / m_dbC));
 		double dUlon = -m_dUj * pow(log(dEta), 1.0) * dExpDecay;
 
+		// Include a meridional variation
+		double dNormYp = dYp / (0.5 * dLy);
+		dUlon *= exp(-dNormYp * dNormYp) * cos(0.5 * M_PI * dNormYp)
+										 * cos(0.5 * M_PI * dNormYp)
+										 * cos(0.5 * M_PI * dNormYp)
+										 * cos(0.5 * M_PI * dNormYp);
+		//Announce("%1.16e %1.16e %1.16e", dXp, dNormYp, dUlon);
+
 		dState[0] = m_dU0 + dUlon;
 
 		// Stratospheric branch of the jet (10% width)
@@ -609,7 +619,7 @@ try {
 	bool fNoRayleighFriction;
 
 	// Parse the command line
-	BeginTempestCommandLine("ShearJetMtnWave2DCartesianTest");
+	BeginTempestCommandLine("ShearJetMtnWave3DCartesianTest");
 		SetDefaultResolutionX(288);
 		SetDefaultResolutionY(48);
 		SetDefaultLevels(32);
@@ -644,8 +654,8 @@ try {
 	const PhysicalConstants & phys = model.GetPhysicalConstants();
 
 	// Create a new instance of the test
-	ShearJetMtnWave2DCartesianTest * test =
-		new ShearJetMtnWave2DCartesianTest(phys, dbC,
+	ShearJetMtnWave3DCartesianTest * test =
+		new ShearJetMtnWave3DCartesianTest(phys, dbC,
 				dU0,
 				dUj,
 				ddTdz,
@@ -660,7 +670,7 @@ try {
 
 	// Setup the cartesian model with dimensions and reference latitude
 	TempestSetupCartesianModel(model, test->m_dGDim, 0.0, 
-								test->m_iLatBC, true);
+								test->m_iLatBC, false);
 
 	// Set the reference length to reduce diffusion relative to global scale
 	const double XL = std::abs(test->m_dGDim[1] - test->m_dGDim[0]);
