@@ -38,7 +38,7 @@
 //#define UPWIND_HORIZONTAL_VELOCITIES
 //#define UPWIND_THERMO
 //#define UPWIND_VERTICAL_VELOCITY
-//#define UPWIND_RHO_AND_TRACERS
+#define UPWIND_RHO_AND_TRACERS
 
 //#define UNIFORM_DIFFUSION_HORIZONTAL_VELOCITIES
 //#define UNIFORM_DIFFUSION_THERMO
@@ -1075,22 +1075,22 @@ void VerticalDynamicsFEM::StepDiffusionExplicit(
 								dResidualDiffusionCoeff = dNuMax;
 							}
 
-							// Uniform diffusion in the Rayleigh layer
-							if (dataRayleighStrengthNode[k][i][j] < 0.0) {
+							// Maximum upwind diffusion in the Rayleigh layer
+							if (dataRayleighStrengthNode[k][i][j] > 0.0) {
 								dataUpdateNode[UIx][k][i][j] +=
-									dUniformDiffusionCoeff
+									dNuMax
 									* m_dDiffDiffStateHypervis[UIx][k];
 
 								dataUpdateNode[VIx][k][i][j] +=
-									dUniformDiffusionCoeff
+									dNuMax
 									* m_dDiffDiffStateHypervis[VIx][k];
 							} else {
 								dataUpdateNode[UIx][k][i][j] +=
-									dResidualDiffusionCoeff
+									dNuMax
 									* m_dDiffDiffStateHypervis[UIx][k];
 
 								dataUpdateNode[VIx][k][i][j] +=
-									dResidualDiffusionCoeff
+									dNuMax
 									* m_dDiffDiffStateHypervis[VIx][k];
 							}
 						}
@@ -1230,14 +1230,14 @@ void VerticalDynamicsFEM::StepDiffusionExplicit(
 									dResidualDiffusionCoeff = dNuMax;
 								}
 
-								// Uniform diffusion in the Rayleigh layer
-								if (dataRayleighStrengthREdge[k][i][j] < 0.0) {
+								// Maximum upwind in the Rayleigh layer
+								if (dataRayleighStrengthREdge[k][i][j] > 0.0) {
 									dataUpdateREdge[c][k][i][j] +=
-										dUniformDiffusionCoeff
+										dNuMax
 										* m_dDiffDiffStateHypervis[c][k];
 								} else {
 									dataUpdateREdge[c][k][i][j] +=
-										dResidualDiffusionCoeff
+										dNuMax
 										* m_dDiffDiffStateHypervis[c][k];
 								}
 							}
@@ -1291,14 +1291,14 @@ void VerticalDynamicsFEM::StepDiffusionExplicit(
 									dResidualDiffusionCoeff = dNuMax;
 								}
 
-								// Uniform diffusion in the Rayleigh layer
-								if (dataRayleighStrengthNode[k][i][j] < 0.0) {
+								// Maximum upwind in the Rayleigh layer
+								if (dataRayleighStrengthNode[k][i][j] > 0.0) {
 									dataUpdateNode[c][k][i][j] +=
-										dUniformDiffusionCoeff
+										dNuMax
 										* m_dDiffDiffStateHypervis[c][k];
 								} else {
 									dataUpdateNode[c][k][i][j] +=
-										dResidualDiffusionCoeff
+										dNuMax
 										* m_dDiffDiffStateHypervis[c][k];
 								}
 							}

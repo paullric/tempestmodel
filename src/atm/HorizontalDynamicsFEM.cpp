@@ -2431,14 +2431,14 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusionResidual(
 							+ dContraMetric2DB[iA][iB][1] * dCovUb;
 
 					double dRhoTheta = 0.0;
-					#if defined(FORMULATION_THETA)
+#if defined(FORMULATION_THETA)
 						dRhoTheta = (*pDataInitial)[PIx][k][iA][iB] *
 											(*pDataInitial)[RIx][k][iA][iB];
-					#endif
+#endif
 
-					#if defined(FORMULATION_RHOTHETA_P) || defined(FORMULATION_RHOTHETA_PI)
+#if defined(FORMULATION_RHOTHETA_P) || defined(FORMULATION_RHOTHETA_PI)
 						dRhoTheta = (*pDataInitial)[PIx][k][iA][iB];
-					#endif
+#endif
 
 						// Maximum wave speed in this element
 						m_dAuxDataNode[KIx][k][i][j] = sqrt(
@@ -2564,7 +2564,13 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusionResidual(
 										pGrid->GetReferenceLength();
 						}
 
+						// Limit the coefficients to the upwind value
 						if (dLocalNu > dNuMax) {
+							dLocalNu = dNuMax;
+						}
+
+						// If inside the Rayleigh layer
+						if ((*pDataRayleigh)[k][iA][iB] > 0.0) {
 							dLocalNu = dNuMax;
 						}
 
