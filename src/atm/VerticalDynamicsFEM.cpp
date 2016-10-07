@@ -38,7 +38,7 @@
 //#define UPWIND_HORIZONTAL_VELOCITIES
 //#define UPWIND_THERMO
 //#define UPWIND_VERTICAL_VELOCITY
-#define UPWIND_RHO_AND_TRACERS
+//#define UPWIND_RHO_AND_TRACERS
 
 //#define UNIFORM_DIFFUSION_HORIZONTAL_VELOCITIES
 //#define UNIFORM_DIFFUSION_THERMO
@@ -46,7 +46,7 @@
 //#define UNIFORM_DIFFUSION_TRACERS
 
 #define RESIDUAL_DIFFUSION_HORIZONTAL_VELOCITIES
-//#define RESIDUAL_DIFFUSION_THERMO
+#define RESIDUAL_DIFFUSION_THERMO
 #define RESIDUAL_DIFFUSION_VERTICAL_VELOCITY
 
 //#define EXPLICIT_THERMO
@@ -1237,7 +1237,7 @@ void VerticalDynamicsFEM::StepDiffusionExplicit(
 										* m_dDiffDiffStateHypervis[c][k];
 								} else {
 									dataUpdateREdge[c][k][i][j] +=
-										dNuMax
+										dResidualDiffusionCoeff
 										* m_dDiffDiffStateHypervis[c][k];
 								}
 							}
@@ -1298,7 +1298,7 @@ void VerticalDynamicsFEM::StepDiffusionExplicit(
 										* m_dDiffDiffStateHypervis[c][k];
 								} else {
 									dataUpdateNode[c][k][i][j] +=
-										dNuMax
+										dResidualDiffusionCoeff
 										* m_dDiffDiffStateHypervis[c][k];
 								}
 							}
