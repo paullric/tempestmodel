@@ -41,9 +41,9 @@
 //#define UNIFORM_DIFFUSION_VERTICAL_VELOCITY
 //#define UNIFORM_DIFFUSION_TRACERS
 
-#define RESIDUAL_DIFFUSION_HORIZONTAL_VELOCITIES
-#define RESIDUAL_DIFFUSION_THERMO
-#define RESIDUAL_DIFFUSION_VERTICAL_VELOCITY
+//#define RESIDUAL_DIFFUSION_HORIZONTAL_VELOCITIES
+//#define RESIDUAL_DIFFUSION_THERMO
+//#define RESIDUAL_DIFFUSION_VERTICAL_VELOCITY
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -1802,7 +1802,7 @@ void HorizontalDynamicsFEM::StepDiffusionExplicit(
 				pGrid->GetVectorUniformDiffusionCoeff(),
 				dDeltaT,
 				0,
-				true);
+				false);
 
 			if (!fCartesianXZ) {
 				ApplyScalarHyperdiffusionResidual(
@@ -1812,7 +1812,7 @@ void HorizontalDynamicsFEM::StepDiffusionExplicit(
 					pGrid->GetVectorUniformDiffusionCoeff(),
 					dDeltaT,
 					1,
-					true);
+					false);
 			}
 #endif
 		if (eqn.GetType() == EquationSet::PrimitiveNonhydrostaticEquations) {

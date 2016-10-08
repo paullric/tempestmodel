@@ -31,7 +31,7 @@
 
 ///////////////////////////////////////////////////////////////////////////////
 
-//#define HYPERVISC_HORIZONTAL_VELOCITIES
+#define HYPERVISC_HORIZONTAL_VELOCITIES
 //#define HYPERVISC_THERMO
 //#define HYPERVISC_VERTICAL_VELOCITY
 
@@ -45,9 +45,9 @@
 //#define UNIFORM_DIFFUSION_VERTICAL_VELOCITY
 //#define UNIFORM_DIFFUSION_TRACERS
 
-#define RESIDUAL_DIFFUSION_HORIZONTAL_VELOCITIES
-#define RESIDUAL_DIFFUSION_THERMO
-#define RESIDUAL_DIFFUSION_VERTICAL_VELOCITY
+//#define RESIDUAL_DIFFUSION_HORIZONTAL_VELOCITIES
+//#define RESIDUAL_DIFFUSION_THERMO
+//#define RESIDUAL_DIFFUSION_VERTICAL_VELOCITY
 
 //#define EXPLICIT_THERMO
 //#define EXPLICIT_VERTICAL_VELOCITY_ADVECTION
@@ -1069,6 +1069,7 @@ void VerticalDynamicsFEM::StepDiffusionExplicit(
 
 							dResidualDiffusionCoeff *= dResMax;
 
+							// 
 							dNuMax = m_dHypervisCoeff * 
 										fabs(m_dXiDotREdge[k]);
 							if (dResidualDiffusionCoeff > dNuMax) {
@@ -1086,11 +1087,11 @@ void VerticalDynamicsFEM::StepDiffusionExplicit(
 									* m_dDiffDiffStateHypervis[VIx][k];
 							} else {
 								dataUpdateNode[UIx][k][i][j] +=
-									dNuMax
+									dResidualDiffusionCoeff
 									* m_dDiffDiffStateHypervis[UIx][k];
 
 								dataUpdateNode[VIx][k][i][j] +=
-									dNuMax
+									dResidualDiffusionCoeff
 									* m_dDiffDiffStateHypervis[VIx][k];
 							}
 						}
@@ -1148,7 +1149,7 @@ void VerticalDynamicsFEM::StepDiffusionExplicit(
 
 			// Apply residual hyperviscosity
 			if (m_nResdiffOrder > 0) {
-				for (int c = 2; c < 5; c++) {
+				for (int c = 2; c < 4; c++) {
 
 					// Only diffuse select variables
 					if (!m_fResdiffVar[c]) {
@@ -1183,63 +1184,61 @@ void VerticalDynamicsFEM::StepDiffusionExplicit(
 					if (pGrid->GetVarLocation(c) == DataLocation_REdge) {
 
 						for (int k = 0; k <= nRElements; k++) {
-							if (m_fResdiffVar[c]) {
-								// Compute the local diffusion coefficient
-								dResU = std::abs(m_dResidualREdge[UIx][k]);
-								if (!fCartesianXZ) {
-									dResV = std::abs(m_dResidualREdge[VIx][k]);
-								}
-								dResW = std::abs(m_dResidualREdge[WIx][k]);
-								dResP = std::abs(m_dResidualREdge[PIx][k]);
-								dResR = std::abs(m_dResidualREdge[RIx][k]);
+							// Compute the local diffusion coefficient
+							dResU = std::abs(m_dResidualREdge[UIx][k]);
+							if (!fCartesianXZ) {
+								dResV = std::abs(m_dResidualREdge[VIx][k]);
+							}
+							dResW = std::abs(m_dResidualREdge[WIx][k]);
+							dResP = std::abs(m_dResidualREdge[PIx][k]);
+							dResR = std::abs(m_dResidualREdge[RIx][k]);
 
-								// Select the maximum residual
-								dResMax = std::max(dResU, dResV);
-								dResMax = std::max(dResMax, dResW);
-								dResMax = std::max(dResMax, dResP);
-								dResMax = std::max(dResMax, dResR);
+							// Select the maximum residual
+							dResMax = std::max(dResU, dResV);
+							dResMax = std::max(dResMax, dResW);
+							dResMax = std::max(dResMax, dResP);
+							dResMax = std::max(dResMax, dResR);
 
-								// Normalize maximum residual (ignore BCs)
-								if ((dResMax == dResU) && 
-									(k > 0) && (k < nRElements)) {
-									dResMax /= std::abs(
-									dataInitialREdge[UIx][k][i][j] - dColAvgU);
-								} else if ((dResMax == dResV) && 
-											(k > 0) && (k < nRElements)) {
-									dResMax /= std::abs(
-									dataInitialREdge[VIx][k][i][j] - dColAvgV);
-								} else if ((dResMax == dResW) && 
-											(k > 0) && (k < nRElements)) {
-									dResMax /= std::abs(
-									dataInitialREdge[WIx][k][i][j] - dColAvgW);
-								} else if (dResMax == dResP) {
-									dResMax /= std::abs(
-									dataInitialREdge[PIx][k][i][j] - dColAvgP);
-								} else if (dResMax == dResR) {
-									dResMax /= std::abs(
-									dataInitialREdge[RIx][k][i][j] - dColAvgR);
-								} else {
-									dResMax = 0.0;
-								}
+							// Normalize maximum residual (ignore BCs)
+							if ((dResMax == dResU) && 
+								(k > 0) && (k < nRElements)) {
+								dResMax /= std::abs(
+								dataInitialREdge[UIx][k][i][j] - dColAvgU);
+							} else if ((dResMax == dResV) && 
+										(k > 0) && (k < nRElements)) {
+								dResMax /= std::abs(
+								dataInitialREdge[VIx][k][i][j] - dColAvgV);
+							} else if ((dResMax == dResW) && 
+										(k > 0) && (k < nRElements)) {
+								dResMax /= std::abs(
+								dataInitialREdge[WIx][k][i][j] - dColAvgW);
+							} else if (dResMax == dResP) {
+								dResMax /= std::abs(
+								dataInitialREdge[PIx][k][i][j] - dColAvgP);
+							} else if (dResMax == dResR) {
+								dResMax /= std::abs(
+								dataInitialREdge[RIx][k][i][j] - dColAvgR);
+							} else {
+								dResMax = 0.0;
+							}
 
-								dResidualDiffusionCoeff *= dResMax;
+							dResidualDiffusionCoeff *= dResMax;
 
-								dNuMax = m_dHypervisCoeff * 
-											fabs(m_dXiDotNode[k]);
-								if (dResidualDiffusionCoeff > dNuMax) {
-									dResidualDiffusionCoeff = dNuMax;
-								}
+							dNuMax = m_dHypervisCoeff * 
+										fabs(m_dXiDotNode[k]);
+							if (dResidualDiffusionCoeff > dNuMax) {
+								dResidualDiffusionCoeff = dNuMax;
+							}
 
-								// Maximum upwind in the Rayleigh layer
-								if (dataRayleighStrengthREdge[k][i][j] > 0.0) {
-									dataUpdateREdge[c][k][i][j] +=
-										dNuMax
-										* m_dDiffDiffStateHypervis[c][k];
-								} else {
-									dataUpdateREdge[c][k][i][j] +=
-										dResidualDiffusionCoeff
-										* m_dDiffDiffStateHypervis[c][k];
-								}
+							// Maximum upwind in the Rayleigh layer
+							if (dataRayleighStrengthREdge[k][i][j] > 0.0) {
+								dataUpdateREdge[c][k][i][j] +=
+									dNuMax
+									* m_dDiffDiffStateHypervis[c][k];
+							} else {
+								dataUpdateREdge[c][k][i][j] +=
+									dResidualDiffusionCoeff
+									* m_dDiffDiffStateHypervis[c][k];
 							}
 						}
 
@@ -1247,60 +1246,58 @@ void VerticalDynamicsFEM::StepDiffusionExplicit(
 					} else {
 
 						for (int k = 0; k < nRElements; k++) {
-							if (m_fResdiffVar[c]) {
-								// Compute the local diffusion coefficient
-								dResU = std::abs(m_dResidualNode[UIx][k]);
-								if (!fCartesianXZ) {
-									dResV = std::abs(m_dResidualNode[VIx][k]);
-								}
-								dResW = std::abs(m_dResidualNode[WIx][k]);
-								dResP = std::abs(m_dResidualNode[PIx][k]);
-								dResR = std::abs(m_dResidualNode[RIx][k]);
+							// Compute the local diffusion coefficient
+							dResU = std::abs(m_dResidualNode[UIx][k]);
+							if (!fCartesianXZ) {
+								dResV = std::abs(m_dResidualNode[VIx][k]);
+							}
+							dResW = std::abs(m_dResidualNode[WIx][k]);
+							dResP = std::abs(m_dResidualNode[PIx][k]);
+							dResR = std::abs(m_dResidualNode[RIx][k]);
 
-								// Select the maximum residual
-								dResMax = std::max(dResU, dResV);
-								dResMax = std::max(dResMax, dResW);
-								dResMax = std::max(dResMax, dResP);
-								dResMax = std::max(dResMax, dResR);
+							// Select the maximum residual
+							dResMax = std::max(dResU, dResV);
+							dResMax = std::max(dResMax, dResW);
+							dResMax = std::max(dResMax, dResP);
+							dResMax = std::max(dResMax, dResR);
 
-								// Normalize maximum residual
-								if (dResMax == dResU) {
-									dResMax /= std::abs(
-									dataInitialNode[UIx][k][i][j] - dColAvgU);
-								} else if (dResMax == dResV) {
-									dResMax /= std::abs(
-									dataInitialNode[VIx][k][i][j] - dColAvgV);
-								} else if (dResMax == dResW) {
-									dResMax /= std::abs(
-									dataInitialNode[WIx][k][i][j] - dColAvgW);
-								} else if (dResMax == dResP) {
-									dResMax /= std::abs(
-									dataInitialNode[PIx][k][i][j] - dColAvgP);
-								} else if (dResMax == dResR) {
-									dResMax /= std::abs(
-									dataInitialNode[RIx][k][i][j] - dColAvgR);
-								} else {
-									dResMax = 0.0;
-								}
+							// Normalize maximum residual
+							if (dResMax == dResU) {
+								dResMax /= std::abs(
+								dataInitialNode[UIx][k][i][j] - dColAvgU);
+							} else if (dResMax == dResV) {
+								dResMax /= std::abs(
+								dataInitialNode[VIx][k][i][j] - dColAvgV);
+							} else if (dResMax == dResW) {
+								dResMax /= std::abs(
+								dataInitialNode[WIx][k][i][j] - dColAvgW);
+							} else if (dResMax == dResP) {
+								dResMax /= std::abs(
+								dataInitialNode[PIx][k][i][j] - dColAvgP);
+							} else if (dResMax == dResR) {
+								dResMax /= std::abs(
+								dataInitialNode[RIx][k][i][j] - dColAvgR);
+							} else {
+								dResMax = 0.0;
+							}
 
-								dResidualDiffusionCoeff *= dResMax;
+							dResidualDiffusionCoeff *= dResMax;
 
-								dNuMax = m_dHypervisCoeff * 
-											fabs(m_dXiDotREdge[k]);
-								if (dResidualDiffusionCoeff > dNuMax) {
-									dResidualDiffusionCoeff = dNuMax;
-								}
+							dNuMax = m_dHypervisCoeff * 
+										fabs(m_dXiDotREdge[k]);
+							if (dResidualDiffusionCoeff > dNuMax) {
+								dResidualDiffusionCoeff = dNuMax;
+							}
 
-								// Maximum upwind in the Rayleigh layer
-								if (dataRayleighStrengthNode[k][i][j] > 0.0) {
-									dataUpdateNode[c][k][i][j] +=
-										dNuMax
-										* m_dDiffDiffStateHypervis[c][k];
-								} else {
-									dataUpdateNode[c][k][i][j] +=
-										dResidualDiffusionCoeff
-										* m_dDiffDiffStateHypervis[c][k];
-								}
+							// Maximum upwind in the Rayleigh layer
+							if (dataRayleighStrengthNode[k][i][j] > 0.0) {
+								dataUpdateNode[c][k][i][j] +=
+									dNuMax
+									* m_dDiffDiffStateHypervis[c][k];
+							} else {
+								dataUpdateNode[c][k][i][j] +=
+									dResidualDiffusionCoeff
+									* m_dDiffDiffStateHypervis[c][k];
 							}
 						}
 					}
