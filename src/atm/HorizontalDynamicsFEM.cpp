@@ -41,9 +41,9 @@
 //#define UNIFORM_DIFFUSION_VERTICAL_VELOCITY
 //#define UNIFORM_DIFFUSION_TRACERS
 
-//#define RESIDUAL_DIFFUSION_HORIZONTAL_VELOCITIES
+#define RESIDUAL_DIFFUSION_HORIZONTAL_VELOCITIES
 //#define RESIDUAL_DIFFUSION_THERMO
-//#define RESIDUAL_DIFFUSION_VERTICAL_VELOCITY
+#define RESIDUAL_DIFFUSION_VERTICAL_VELOCITY
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -2478,11 +2478,11 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusionResidual(
 							dAvgB *= dInvElementDeltaB;
 
 							switch (o) {
-								case 0: dEAvgU = dAvgA + dAvgB; break;
-								case 1: dEAvgV = dAvgA + dAvgB; break;
-								case 2: dEAvgW = dAvgA + dAvgB; break;
-								case 3: dEAvgP = dAvgA + dAvgB; break;
-								case 4: dEAvgR = dAvgA + dAvgB; break;
+								case 0: dEAvgU = 0.5 * (dAvgA + dAvgB); break;
+								case 1: dEAvgV = 0.5 * (dAvgA + dAvgB); break;
+								case 2: dEAvgW = 0.5 * (dAvgA + dAvgB); break;
+								case 3: dEAvgP = 0.5 * (dAvgA + dAvgB); break;
+								case 4: dEAvgR = 0.5 * (dAvgA + dAvgB); break;
 							}
 						}
 					}
@@ -2495,6 +2495,8 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusionResidual(
 					double dResR = 0.0;
 					double dResMax = 0.0;
 					double dNuMax = 0.0;
+					double dGridLength = dElementLength 
+											/ (m_nHorizontalOrder - 1);
 
 					// Pointwise updates
 					for (int i = 0; i < m_nHorizontalOrder; i++) {
@@ -2537,12 +2539,12 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusionResidual(
 						}
 
 						// Scale to the average element length
-						dLocalNu = dElementLength * dElementLength * dResMax;
+						dLocalNu = dGridLength * dGridLength * dResMax;
 
 						// Get the maximum possible coefficient (upwind)
 						if (c != WIx) {
 							// Use the total maximum wind speed
-							dNuMax = 0.5 * dElementLength *
+							dNuMax = 0.5 * dGridLength *
 										m_dAuxDataNode[KIx][k][i][j] /
 										pGrid->GetReferenceLength();
 						} else {
@@ -2560,7 +2562,7 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusionResidual(
 								 (*pContraMetricA)[k][iA][iB][2] * dCovUa
 								+ (*pContraMetricB)[k][iA][iB][2] * dCovUb
 								+ (*pContraMetricXi)[k][iA][iB][2] * dCovUx;
-							dNuMax = 0.5 * dElementLength * dXiDot /
+							dNuMax = 0.5 * dGridLength * dXiDot /
 										pGrid->GetReferenceLength();
 						}
 

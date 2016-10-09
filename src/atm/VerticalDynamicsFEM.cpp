@@ -31,7 +31,7 @@
 
 ///////////////////////////////////////////////////////////////////////////////
 
-#define HYPERVISC_HORIZONTAL_VELOCITIES
+//#define HYPERVISC_HORIZONTAL_VELOCITIES
 //#define HYPERVISC_THERMO
 //#define HYPERVISC_VERTICAL_VELOCITY
 
@@ -45,9 +45,9 @@
 //#define UNIFORM_DIFFUSION_VERTICAL_VELOCITY
 //#define UNIFORM_DIFFUSION_TRACERS
 
-//#define RESIDUAL_DIFFUSION_HORIZONTAL_VELOCITIES
+#define RESIDUAL_DIFFUSION_HORIZONTAL_VELOCITIES
 //#define RESIDUAL_DIFFUSION_THERMO
-//#define RESIDUAL_DIFFUSION_VERTICAL_VELOCITY
+#define RESIDUAL_DIFFUSION_VERTICAL_VELOCITY
 
 //#define EXPLICIT_THERMO
 //#define EXPLICIT_VERTICAL_VELOCITY_ADVECTION
@@ -1024,11 +1024,6 @@ void VerticalDynamicsFEM::StepDiffusionExplicit(
 					double dResMax = 0.0;
 					double dNuMax = 0.0;
 
-					// Uniform diffusion coefficient (in the Rayleigh layer)
-					double dUniformDiffusionCoeff = 
-							pGrid->GetVectorUniformDiffusionCoeff() / 
-							(dZtop * dZtop);
-
 					// Apply hyperviscosity Residual based
 					for (int k = 0; k < nRElements; k++) {
 						if (m_fResdiffVar[UIx]) {
@@ -1069,9 +1064,9 @@ void VerticalDynamicsFEM::StepDiffusionExplicit(
 
 							dResidualDiffusionCoeff *= dResMax;
 
-							// 
+							// Upwind coefficient
 							dNuMax = m_dHypervisCoeff * 
-										fabs(m_dXiDotREdge[k]);
+										fabs(m_dXiDotNode[k]);
 							if (dResidualDiffusionCoeff > dNuMax) {
 								dResidualDiffusionCoeff = dNuMax;
 							}
@@ -1156,7 +1151,6 @@ void VerticalDynamicsFEM::StepDiffusionExplicit(
 						continue;
 					}
 
-					double dZtop = pGrid->GetZtop();
 					bool fCartesianXZ = gridCartesianGLL->GetIsCartesianXZ();
 					double dResidualDiffusionCoeff = m_dResdiffCoeff;
 					double dResU = 0.0;
@@ -1166,19 +1160,6 @@ void VerticalDynamicsFEM::StepDiffusionExplicit(
 					double dResR = 0.0;
 					double dResMax = 0.0;
 					double dNuMax = 0.0;
-
-					// Uniform diffusion coefficient (in the Rayleigh layer)
-					double dUniformDiffusionCoeff = 0.0;
-					if (c == PIx) {
-						dUniformDiffusionCoeff =
-							pGrid->GetScalarUniformDiffusionCoeff() / 
-							(dZtop * dZtop);
-					}
-					if (c == WIx) {
-						dUniformDiffusionCoeff =
-							pGrid->GetVectorUniformDiffusionCoeff() / 
-							(dZtop * dZtop);
-					}
 
 					// Residual hyperviscosity on interfaces
 					if (pGrid->GetVarLocation(c) == DataLocation_REdge) {
@@ -1205,11 +1186,11 @@ void VerticalDynamicsFEM::StepDiffusionExplicit(
 								dResMax /= std::abs(
 								dataInitialREdge[UIx][k][i][j] - dColAvgU);
 							} else if ((dResMax == dResV) && 
-										(k > 0) && (k < nRElements)) {
+								(k > 0) && (k < nRElements)) {
 								dResMax /= std::abs(
 								dataInitialREdge[VIx][k][i][j] - dColAvgV);
 							} else if ((dResMax == dResW) && 
-										(k > 0) && (k < nRElements)) {
+								(k > 0) && (k < nRElements)) {
 								dResMax /= std::abs(
 								dataInitialREdge[WIx][k][i][j] - dColAvgW);
 							} else if (dResMax == dResP) {
@@ -1284,7 +1265,7 @@ void VerticalDynamicsFEM::StepDiffusionExplicit(
 							dResidualDiffusionCoeff *= dResMax;
 
 							dNuMax = m_dHypervisCoeff * 
-										fabs(m_dXiDotREdge[k]);
+										fabs(m_dXiDotNode[k]);
 							if (dResidualDiffusionCoeff > dNuMax) {
 								dResidualDiffusionCoeff = dNuMax;
 							}
