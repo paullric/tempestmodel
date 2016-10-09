@@ -712,6 +712,10 @@ void VerticalDynamicsFEM::StepDiffusionExplicit(
 	// Number of elements
 	const int nRElements = pGrid->GetRElements();
 
+	double dZtop = pGrid->GetZtop();
+	bool fCartesianXZ = gridCartesianGLL->GetIsCartesianXZ();
+	double dResidualDiffusionCoeff = m_dResdiffCoeff;
+
 	// Number of finite elements in the vertical
 	int nFiniteElements = nRElements / m_nVerticalOrder;
 	int nNodesPerFiniteElement = m_nVerticalOrder;
@@ -817,34 +821,13 @@ void VerticalDynamicsFEM::StepDiffusionExplicit(
 
 			// Prepare the column
 			PrepareColumn(m_dColumnState);
-/*
-			// Store W in m_dState structure on levels and interfaces
-			if (pGrid->GetVarLocation(WIx) == DataLocation_Node) {
-				for (int k = 0; k < nRElements; k++) {
-					m_dStateNode[WIx][k] = dataInitialNode[WIx][k][i][j];
-				}
-
-				pGrid->InterpolateNodeToREdge(
-					m_dStateNode[WIx],
-					m_dStateREdge[WIx]);
-
-			} else {
-				for (int k = 0; k <= nRElements; k++) {
-					m_dStateREdge[WIx][k] = dataInitialREdge[WIx][k][i][j];
-				}
-
-				pGrid->InterpolateREdgeToNode(
-					m_dStateREdge[WIx],
-					m_dStateNode[WIx]);
-			}
-*/
 
 			double dColAvgU = 0.0;
 			double dColAvgV = 0.0;
 			double dColAvgW = 0.0;
 			double dColAvgP = 0.0;
 			double dColAvgR = 0.0;
-			// Store residual for U and V
+			// Store residual for all variables
 			for (int k = 0; k < nRElements; k++) {
 				m_dResidualNode[UIx][k] = dataResidualNode[UIx][k][i][j];
 				m_dResidualNode[VIx][k] = dataResidualNode[VIx][k][i][j];
@@ -947,8 +930,6 @@ void VerticalDynamicsFEM::StepDiffusionExplicit(
 
 				// Apply uniform diffusion in the vertical
 				if (m_fUniformDiffusionVar[UIx]) {
-					double dZtop = pGrid->GetZtop();
-
 					double dUniformDiffusionCoeff =
 						pGrid->GetVectorUniformDiffusionCoeff()
 						/ (dZtop * dZtop);
@@ -1013,9 +994,6 @@ void VerticalDynamicsFEM::StepDiffusionExplicit(
 						);
 					}
 
-					double dZtop = pGrid->GetZtop();
-					bool fCartesianXZ = gridCartesianGLL->GetIsCartesianXZ();
-					double dResidualDiffusionCoeff = m_dResdiffCoeff;
 					double dResU = 0.0;
 					double dResV = 0.0;
 					double dResW = 0.0;
@@ -1103,8 +1081,6 @@ void VerticalDynamicsFEM::StepDiffusionExplicit(
 					continue;
 				}
 
-				double dZtop = pGrid->GetZtop();
-
 				// Do not diffusion vertical velocity on boundaries
 				if (c == WIx) {
 					m_dDiffDiffStateUniform[c][0] = 0.0;
@@ -1151,8 +1127,6 @@ void VerticalDynamicsFEM::StepDiffusionExplicit(
 						continue;
 					}
 
-					bool fCartesianXZ = gridCartesianGLL->GetIsCartesianXZ();
-					double dResidualDiffusionCoeff = m_dResdiffCoeff;
 					double dResU = 0.0;
 					double dResV = 0.0;
 					double dResW = 0.0;

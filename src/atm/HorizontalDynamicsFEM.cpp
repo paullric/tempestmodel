@@ -1848,7 +1848,7 @@ void HorizontalDynamicsFEM::StepDiffusionExplicit(
 				pGrid->GetScalarUniformDiffusionCoeff(),
 				dDeltaT,
 				2,
-				false);
+				true);
 #endif
 #if defined(RESIDUAL_DIFFUSION_VERTICAL_VELOCITY)
 			// Residual diffusion of W with residual based diffusion coeff
@@ -1859,7 +1859,7 @@ void HorizontalDynamicsFEM::StepDiffusionExplicit(
 				pGrid->GetVectorUniformDiffusionCoeff(),
 				dDeltaT,
 				3,
-				false);
+				true);
 #endif
 		}
 	}
