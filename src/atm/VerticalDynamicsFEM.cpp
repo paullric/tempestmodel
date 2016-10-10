@@ -45,9 +45,9 @@
 //#define UNIFORM_DIFFUSION_VERTICAL_VELOCITY
 //#define UNIFORM_DIFFUSION_TRACERS
 
-//#define RESIDUAL_DIFFUSION_HORIZONTAL_VELOCITIES
+#define RESIDUAL_DIFFUSION_HORIZONTAL_VELOCITIES
 #define RESIDUAL_DIFFUSION_THERMO
-//#define RESIDUAL_DIFFUSION_VERTICAL_VELOCITY
+#define RESIDUAL_DIFFUSION_VERTICAL_VELOCITY
 
 //#define EXPLICIT_THERMO
 //#define EXPLICIT_VERTICAL_VELOCITY_ADVECTION
@@ -1185,17 +1185,9 @@ void VerticalDynamicsFEM::StepDiffusionExplicit(
 								dResidualDiffusionCoeff = dNuMax;
 							}
 
-							// Maximum upwind in the Rayleigh layer
-							if ((dataRayleighStrengthREdge[k][i][j] > 0.0) && 
-								(c == WIx)) {
-								dataUpdateREdge[c][k][i][j] +=
-									dNuMax
-									* m_dDiffDiffStateHypervis[c][k];
-							} else {
-								dataUpdateREdge[c][k][i][j] +=
-									dResidualDiffusionCoeff
-									* m_dDiffDiffStateHypervis[c][k];
-							}
+							dataUpdateREdge[c][k][i][j] +=
+								dResidualDiffusionCoeff
+								* m_dDiffDiffStateHypervis[c][k];
 						}
 
 					// Residual hyperviscosity on levels
@@ -1245,18 +1237,9 @@ void VerticalDynamicsFEM::StepDiffusionExplicit(
 								dResidualDiffusionCoeff = dNuMax;
 							}
 
-							// Maximum upwind in the Rayleigh layer
-							// MOMENTUM ONLY
-							if ((dataRayleighStrengthNode[k][i][j] > 0.0) && 
-								(c == WIx)){
-								dataUpdateNode[c][k][i][j] +=
-									dNuMax
-									* m_dDiffDiffStateHypervis[c][k];
-							} else {
-								dataUpdateNode[c][k][i][j] +=
-									dResidualDiffusionCoeff
-									* m_dDiffDiffStateHypervis[c][k];
-							}
+							dataUpdateNode[c][k][i][j] +=
+								dResidualDiffusionCoeff
+								* m_dDiffDiffStateHypervis[c][k];
 						}
 					}
 				}

@@ -41,9 +41,9 @@
 //#define UNIFORM_DIFFUSION_VERTICAL_VELOCITY
 //#define UNIFORM_DIFFUSION_TRACERS
 
-//#define RESIDUAL_DIFFUSION_HORIZONTAL_VELOCITIES
+#define RESIDUAL_DIFFUSION_HORIZONTAL_VELOCITIES
 #define RESIDUAL_DIFFUSION_THERMO
-//#define RESIDUAL_DIFFUSION_VERTICAL_VELOCITY
+#define RESIDUAL_DIFFUSION_VERTICAL_VELOCITY
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -2571,8 +2571,10 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusionResidual(
 							dLocalNu = dNuMax;
 						}
 
-						// If inside the Rayleigh layer MOMENTUM ONLY
-						if (((*pDataRayleigh)[k][iA][iB] > 0.0) && (c != PIx)) {
+						// If inside the Rayleigh layer alpha/beta MOMENTUM ONLY
+						if (((*pDataRayleigh)[k][iA][iB] > 0.0) 
+							&& (c != PIx)
+							&& (c != WIx)) {
 							dLocalNu = dNuMax;
 						}
 
