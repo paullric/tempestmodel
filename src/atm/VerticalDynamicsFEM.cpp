@@ -1404,6 +1404,15 @@ void VerticalDynamicsFEM::StepExplicit(
 					m_dStateNode[WIx]);
 			}
 
+			// Store rho in m_dState structure
+			for (int k = 0; k < nRElements; k++) {
+				m_dStateNode[RIx][k] = dataInitialNode[RIx][k][i][j];
+			}
+
+			pGrid->InterpolateNodeToREdge(
+				m_dStateNode[RIx],
+				m_dStateREdge[RIx]);
+
 			// Update thermodynamic variables
 			if (m_fFullyExplicit) {
 
@@ -1499,7 +1508,7 @@ void VerticalDynamicsFEM::StepExplicit(
 						+ m_dColumnContraMetricXi[k][2] * dCovUx;
 				}
 		}
-
+/*
 			//////////////////////////////////////////////////////////////
 			// Explicit vertical horizontal velocity advection
 			for (int k = 0; k < nRElements; k++) {
@@ -1517,7 +1526,49 @@ void VerticalDynamicsFEM::StepExplicit(
 
 				dataUpdateNode[VIx][k][i][j] -=
 					dDeltaT * m_dXiDotNode[k] * dCovDxUb;
+			}
+*/
+			//////////////////////////////////////////////////////////////
+			// Explicit vertical horizontal velocity advection
+			const LinearColumnInterpFEM & opInterpNodeToREdge =
+				pGrid->GetOpInterpNodeToREdge();
+			const DataArray2D<double> & dInterpNodeToREdge =
+				opInterpNodeToREdge.GetCoeffs();
 
+			for (int k = 0; k < nRElements; k++) {
+				double dDeltaU = 0.0;
+				double dDeltaV = 0.0;
+
+				for (int l = 0; l < nRElements; l++) {
+
+					double dCovDxUa =
+						pGrid->DifferentiateNodeToREdge(
+								m_dStateNode[UIx], l);
+
+					double dCovDxUb =
+						pGrid->DifferentiateNodeToREdge(
+								m_dStateNode[VIx], l);
+
+					dDeltaU -=
+						m_dStateREdge[RIx][l]
+						* m_dColumnJacobianREdge[l]
+						* m_dXiDotREdge[l]
+						* dInterpNodeToREdge[l][k]
+						* dCovDxUa;
+
+					dDeltaV -=
+						m_dStateREdge[RIx][l]
+						* m_dColumnJacobianREdge[l]
+						* m_dXiDotREdge[l]
+						* dInterpNodeToREdge[l][k]
+						* dCovDxUb;
+				}
+
+				dDeltaU /= (m_dStateNode[RIx][k] * m_dColumnJacobianNode[k]);
+				dDeltaV /= (m_dStateNode[RIx][k] * m_dColumnJacobianNode[k]);
+
+				dataUpdateNode[UIx][k][i][j] += dDeltaT * dDeltaU;
+				dataUpdateNode[VIx][k][i][j] += dDeltaT * dDeltaV;
 			}
 
 			//////////////////////////////////////////////////////////////
