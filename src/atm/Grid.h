@@ -754,6 +754,20 @@ public:
 	}
 
 	///	<summary>
+	///		Get the Rayleigh layer depth.
+	///	</summary>
+	double GetRayleighDepth() const {
+		return m_dRayleighDepth;
+	}
+
+	///	<summary>
+	///		Get the Rayleigh layer strength.
+	///	</summary>
+	double GetRayleighStrength() const {
+		return m_dRayleighStrength;
+	}
+
+	///	<summary>
 	///		Get the type of vertical discretization.
 	///	</summary>
 	VerticalDiscretization GetVerticalDiscretization() const {
@@ -1103,6 +1117,16 @@ protected:
 	///		Flag indicating whether or not Rayleigh friction is used.
 	///	</summary>
 	DataStruct<bool> m_fHasRayleighFriction;
+
+	///	<summary>
+	///		Rayleigh layer depth
+	///	</summary>
+	DataStruct<double> m_dRayleighDepth;
+
+	///	<summary>
+	///		Rayleigh layer strength
+	///	</summary>
+	DataStruct<double> m_dRayleighStrength;
 
 	///	<summary>
 	///		Flag indicating whether or not uniform diffusion is used.

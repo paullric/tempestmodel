@@ -42,6 +42,16 @@ public:
 	///	</summary>
 	double m_dhC;
 
+	///	<summary>
+	///		Rayleigh layer depth.
+	///	</summary>
+	double m_dRayleighDepth;
+
+	///	<summary>
+	///		Rayleigh layer nominal strength.
+	///	</summary>
+	double m_dRayleighStrength;
+
 private:
 
 	///	<summary>
@@ -196,6 +206,10 @@ public:
 		m_dGDim[4] = 0.0;
 		m_dGDim[5] = 35000.0;
 
+		// Set the Rayleigh layer depth and nominal strength
+		m_dRayleighDepth = 7500.0;
+		m_dRayleighStrength = 5.0E-3;
+
 		// Set the center of the domain in Y
 		m_dY0 = 0.5 * (m_dGDim[3] - m_dGDim[2]);
 
@@ -298,6 +312,28 @@ public:
 	///	</summary>
 	virtual bool HasRayleighFriction() const {
 		return !m_fNoRayleighFriction;
+	}
+
+	///	<summary>
+	///		Get the depth of the Rayleigh layer
+	///	</summary>
+	virtual double GetRayleighDepth() const {
+		if (!m_fNoRayleighFriction) {
+			return m_dRayleighDepth;
+		} else {
+			return 0.0;
+		}
+	}
+
+	///	<summary>
+	///		Get the strength of the Rayleigh layer
+	///	</summary>
+	virtual double GetRayleighStrength() const {
+		if (!m_fNoRayleighFriction) {
+			return m_dRayleighStrength;
+		} else {
+			return 0.0;
+		}
 	}
 
 	///	<summary>

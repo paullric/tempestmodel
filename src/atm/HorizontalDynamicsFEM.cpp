@@ -626,7 +626,7 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 			pPatch->GetTopography();
 
 		const double dZtop = pGrid->GetZtop();
-		
+
 		// Get the coordinates to check force balance externally
 		const DataArray2D<double> & dLongitude  = pPatch->GetLongitude();
 		const DataArray2D<double> & dLatitude   = pPatch->GetLatitude();
@@ -3059,6 +3059,13 @@ void HorizontalDynamicsFEM::ApplyRayleighFriction(
 	int iDataUpdate,
 	double dDeltaT
 ) {
+	// Indices of EquationSet variables
+	const int UIx = 0;
+	const int VIx = 1;
+	const int PIx = 2;
+	const int WIx = 3;
+	const int RIx = 4;
+
 	// Get a copy of the GLL grid
 	GridGLL * pGrid = dynamic_cast<GridGLL*>(m_model.GetGrid());
 
@@ -3069,6 +3076,9 @@ void HorizontalDynamicsFEM::ApplyRayleighFriction(
 	int nEqSet = m_model.GetEquationSet().GetType();
 
 	bool fCartXZ = pGrid->GetIsCartesianXZ();
+	const double dZtop = pGrid->GetZtop();
+	const double dRayDepth = pGrid->GetRayleighDepth();
+	const double dRayStrength = pGrid->GetRayleighStrength();
 
 	int nEffectiveC[nComponents];
 	// 3D primitive nonhydro models with no density treatment
@@ -3133,6 +3143,29 @@ void HorizontalDynamicsFEM::ApplyRayleighFriction(
 		const DataArray3D<double> & dataRayleighStrengthREdge =
 			pPatch->GetRayleighStrength(DataLocation_REdge);
 
+		const DataArray4D<double> & dDerivRNode =
+			pPatch->GetDerivRNode();
+		const DataArray4D<double> & dDerivRREdge =
+			pPatch->GetDerivRREdge();
+
+		const DataArray3D<double> & dZLevels =
+			pPatch->GetZLevels();
+		const DataArray3D<double> & dZInterfaces =
+			pPatch->GetZInterfaces();
+
+		const DataArray4D<double> & dContraMetricA =
+			pPatch->GetContraMetricA();
+		const DataArray4D<double> & dContraMetricB =
+			pPatch->GetContraMetricB();
+		const DataArray4D<double> & dContraMetricXi =
+			pPatch->GetContraMetricXi();
+		const DataArray4D<double> & dContraMetricAREdge =
+			pPatch->GetContraMetricAREdge();
+		const DataArray4D<double> & dContraMetricBREdge =
+			pPatch->GetContraMetricBREdge();
+		const DataArray4D<double> & dContraMetricXiREdge =
+			pPatch->GetContraMetricXiREdge();
+
 		// Loop over all nodes in patch
 		for (int i = box.GetAInteriorBegin(); i < box.GetAInteriorEnd(); i++) {
 		for (int j = box.GetBInteriorBegin(); j < box.GetBInteriorEnd(); j++) {
@@ -3140,7 +3173,49 @@ void HorizontalDynamicsFEM::ApplyRayleighFriction(
 			// Rayleigh damping on nodes
 			for (int k = 0; k < pGrid->GetRElements(); k++) {
 
-				double dNu = dataRayleighStrengthNode[k][i][j];
+				// covariant velocities
+				double dCovUa = dataUpdateNode[UIx][k][i][j];
+				double dCovUb = dataUpdateNode[VIx][k][i][j];
+				// Calculate covariant xi velocity and store
+				double dCovUx =
+					  dataUpdateNode[WIx][k][i][j]
+					* dDerivRNode[k][i][j][2];
+
+				// Contravariant velocities
+				double dConUa =
+					  dContraMetricA[k][i][j][0] * dCovUa
+					+ dContraMetricA[k][i][j][1] * dCovUb
+					+ dContraMetricA[k][i][j][2] * dCovUx;
+
+				double dConUb =
+					  dContraMetricA[k][i][j][1] * dCovUa
+					+ dContraMetricB[k][i][j][1] * dCovUb
+					+ dContraMetricB[k][i][j][2] * dCovUx;
+
+				double dConUx =
+					  dContraMetricA[k][i][j][2] * dCovUa
+					+ dContraMetricB[k][i][j][2] * dCovUb
+					+ dContraMetricXi[k][i][j][2] * dCovUx;
+
+				// Specific kinetic energy scale
+				double dKinetic = sqrt(
+					  dConUa * dCovUa
+					+ dConUb * dCovUb
+					+ dConUx * dCovUx);
+
+				double dNu = 0.0;
+				double dScale = dKinetic / abs(dCovUx);
+				double dZloc = dZtop - dZLevels[k][i][j];
+				double dRloc = abs(dScale * dZloc);
+				if ((dCovUx != 0.0) && (dRloc <= dRayDepth) && (dScale < 10.0)) {
+					// Compute the local strength
+					dNu = 0.5 * dRayStrength
+					* (1.0 + cos(M_PI * dRloc / dRayDepth));
+
+					//dataRayleighStrengthNode[k][i][j] = dNu;
+				} else {
+					dNu = dataRayleighStrengthNode[k][i][j];
+				}
 
 				// Backwards Euler
 				if (dNu == 0.0) {
@@ -3167,7 +3242,49 @@ void HorizontalDynamicsFEM::ApplyRayleighFriction(
 			// Rayleigh damping on interfaces
 			for (int k = 0; k <= pGrid->GetRElements(); k++) {
 
-				double dNu = dataRayleighStrengthREdge[k][i][j];
+				// covariant velocities
+				double dCovUa = dataUpdateREdge[UIx][k][i][j];
+				double dCovUb = dataUpdateREdge[VIx][k][i][j];
+				// Calculate covariant xi velocity and store
+				double dCovUx =
+					  dataUpdateREdge[WIx][k][i][j]
+					* dDerivRREdge[k][i][j][2];
+
+				// Contravariant velocities
+				double dConUa =
+					  dContraMetricAREdge[k][i][j][0] * dCovUa
+					+ dContraMetricAREdge[k][i][j][1] * dCovUb
+					+ dContraMetricAREdge[k][i][j][2] * dCovUx;
+
+				double dConUb =
+					  dContraMetricAREdge[k][i][j][1] * dCovUa
+					+ dContraMetricBREdge[k][i][j][1] * dCovUb
+					+ dContraMetricBREdge[k][i][j][2] * dCovUx;
+
+				double dConUx =
+					  dContraMetricAREdge[k][i][j][2] * dCovUa
+					+ dContraMetricBREdge[k][i][j][2] * dCovUb
+					+ dContraMetricXiREdge[k][i][j][2] * dCovUx;
+
+				// Specific kinetic energy scale
+				double dKinetic = sqrt(
+					  dConUa * dCovUa
+					+ dConUb * dCovUb
+					+ dConUx * dCovUx);
+
+				double dNu = 0.0;
+				double dScale = dKinetic / abs(dCovUx);
+				double dZloc = dZtop - dZInterfaces[k][i][j];
+				double dRloc = abs(dScale * dZloc);
+				if ((dCovUx != 0.0) && (dRloc <= dRayDepth) && (dScale < 10.0)) {
+					// Compute the local strength
+					dNu = 0.5 * dRayStrength
+					* (1.0 + cos(M_PI * dRloc / dRayDepth));
+
+					//dataRayleighStrengthNode[k][i][j] = dNu;
+				} else {
+					dNu = dataRayleighStrengthREdge[k][i][j];
+				}
 
 				// Backwards Euler
 				if (dNu == 0.0) {

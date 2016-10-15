@@ -54,6 +54,20 @@ public:
 	}
 
 	///	<summary>
+	///		Get the depth of the Rayleigh layer
+	///	</summary>
+	virtual double GetRayleighDepth() const {
+		return 0.0;
+	}
+
+	///	<summary>
+	///		Get the strength of the Rayleigh layer
+	///	</summary>
+	virtual double GetRayleighStrength() const {
+		return 0.0;
+	}
+
+	///	<summary>
 	///		Obtain test case specific physical constants.
 	///	</summary>
 	virtual void EvaluatePhysicalConstants(

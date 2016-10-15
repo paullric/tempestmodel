@@ -69,6 +69,8 @@ void Grid::DefineParameters() {
 	m_dcGridParameters.PushDataChunk(&m_eBoundaryCondition);
 	m_dcGridParameters.PushDataChunk(&m_dReferenceLength);
 	m_dcGridParameters.PushDataChunk(&m_dZtop);
+	m_dcGridParameters.PushDataChunk(&m_dRayleighDepth);
+	m_dcGridParameters.PushDataChunk(&m_dRayleighStrength);
 	m_dcGridParameters.PushDataChunk(&m_fHasReferenceState);
 	m_dcGridParameters.PushDataChunk(&m_fHasRayleighFriction);
 	m_dcGridParameters.PushDataChunk(&m_fHasUniformDiffusion);
@@ -104,6 +106,7 @@ void Grid::SetParameters(
 	m_nRefinementRatio = nRefinementRatio;
 	m_dReferenceLength = 1.0;
 	m_dZtop = 1.0;
+	m_dRayleighDepth = 0.0;
 	m_fHasReferenceState = false;
 	m_fHasRayleighFriction = false;
 	m_fHasUniformDiffusion = false;
@@ -387,6 +390,12 @@ void Grid::EvaluateTestCase(
 ) {
 	// Store the model cap
 	m_dZtop = test.GetZtop();
+
+	// Store the Rayleigh depth
+	m_dRayleighDepth = test.GetRayleighDepth();
+
+	// Store the Rayleigh strength
+	m_dRayleighStrength = test.GetRayleighStrength();
 
 	// Store the reference state flag
 	m_fHasReferenceState = test.HasReferenceState();
