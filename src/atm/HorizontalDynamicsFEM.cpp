@@ -3205,12 +3205,15 @@ void HorizontalDynamicsFEM::ApplyRayleighFriction(
 
 				double dNu = 0.0;
 				double dScale = dKinetic / abs(dCovUx);
-				double dZloc = dZtop - dZLevels[k][i][j];
+				double dZloc = dZLevels[k][i][j];
 				double dRloc = abs(dScale * dZloc);
-				if ((dCovUx != 0.0) && (dRloc <= dRayDepth) && (dScale < 10.0)) {
+				double dDiag = abs(dScale * dZtop);
+
+				if (dRloc > dDiag - (dScale * dRayDepth)) {
 					// Compute the local strength
 					dNu = 0.5 * dRayStrength
-					* (1.0 + cos(M_PI * dRloc / dRayDepth));
+					* (1.0 + cos(M_PI * (dDiag - dRloc) / dRayDepth));
+//printf("%.16E %.16E %.16E %.16E %.16E %.16E\n",dNu,dRloc,dDiag,dZLevels[k][i][j],dCovUx,dKinetic);
 
 					//dataRayleighStrengthNode[k][i][j] = dNu;
 				} else {
@@ -3274,14 +3277,17 @@ void HorizontalDynamicsFEM::ApplyRayleighFriction(
 
 				double dNu = 0.0;
 				double dScale = dKinetic / abs(dCovUx);
-				double dZloc = dZtop - dZInterfaces[k][i][j];
+				double dZloc = dZLevels[k][i][j];
 				double dRloc = abs(dScale * dZloc);
-				if ((dCovUx != 0.0) && (dRloc <= dRayDepth) && (dScale < 10.0)) {
+				double dDiag = abs(dScale * dZtop);
+
+				if (dRloc > dDiag - (dScale * dRayDepth)) {
 					// Compute the local strength
 					dNu = 0.5 * dRayStrength
-					* (1.0 + cos(M_PI * dRloc / dRayDepth));
+					* (1.0 + cos(M_PI * (dDiag - dRloc) / dRayDepth));
+//printf("%.16E %.16E %.16E %.16E %.16E %.16E\n",dNu,dRloc,dDiag,dZLevels[k][i][j],dCovUx,dKinetic);
 
-					//dataRayleighStrengthNode[k][i][j] = dNu;
+					//dataRayleighStrengthREdge[k][i][j] = dNu;
 				} else {
 					dNu = dataRayleighStrengthREdge[k][i][j];
 				}
