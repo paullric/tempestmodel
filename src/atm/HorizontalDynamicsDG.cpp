@@ -1856,14 +1856,14 @@ void HorizontalDynamicsDG::StepAfterSubCycle(
 		FinalizeApplyHyperdiffusionToBoundary(
 			iDataWorking, iDataUpdate);
 	}
-
-
+/*
 #ifdef APPLY_RAYLEIGH_WITH_HYPERVIS
 	// Apply Rayleigh damping
 	if (pGrid->HasRayleighFriction()) {
 		ApplyRayleighFriction(iDataUpdate, dDeltaT);
 	}
 #endif
+*/
 }
 
 ///////////////////////////////////////////////////////////////////////////////

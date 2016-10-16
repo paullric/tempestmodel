@@ -3056,6 +3056,7 @@ void HorizontalDynamicsFEM::ApplyVectorHyperdiffusionResidual(
 ///////////////////////////////////////////////////////////////////////////////
 
 void HorizontalDynamicsFEM::ApplyRayleighFriction(
+	int iDataPrevious,
 	int iDataUpdate,
 	double dDeltaT
 ) {
@@ -3128,6 +3129,12 @@ void HorizontalDynamicsFEM::ApplyRayleighFriction(
 
 		DataArray4D<double> & dataUpdateREdge =
 			pPatch->GetDataState(iDataUpdate, DataLocation_REdge);
+
+		DataArray4D<double> & dataPreviousNode =
+			pPatch->GetDataState(iDataPrevious, DataLocation_Node);
+
+		DataArray4D<double> & dataPreviousREdge =
+			pPatch->GetDataState(iDataPrevious, DataLocation_REdge);
 
 		// Reference state
 		const DataArray4D<double> & dataReferenceNode =
@@ -3236,6 +3243,7 @@ void HorizontalDynamicsFEM::ApplyRayleighFriction(
 							dataUpdateNode[nEffectiveC[c]][k][i][j] = 
 								dNuNode * dataUpdateNode[nEffectiveC[c]][k][i][j]
 								+ (1.0 - dNuNode)
+								//* dataPreviousNode[nEffectiveC[c]][k][i][j];
 								* dataReferenceNode[nEffectiveC[c]][k][i][j];
 						}
 					}
@@ -3308,7 +3316,8 @@ void HorizontalDynamicsFEM::ApplyRayleighFriction(
 							dataUpdateREdge[nEffectiveC[c]][k][i][j] = 
 							dNuREdge * dataUpdateREdge[nEffectiveC[c]][k][i][j]
 							+ (1.0 - dNuREdge)
-							* dataReferenceREdge[nEffectiveC[c]][k][i][j];
+								//* dataPreviousREdge[nEffectiveC[c]][k][i][j];
+								* dataReferenceREdge[nEffectiveC[c]][k][i][j];
 						}
 					}
 				}
@@ -3369,13 +3378,14 @@ int HorizontalDynamicsFEM::SubStepAfterSubCycle(
 
 		// Apply positive definite filter to tracers
 		FilterNegativeTracers(iDataUpdate);
-
+/*
 #ifdef APPLY_RAYLEIGH_WITH_HYPERVIS
 		// Apply Rayleigh damping
 		if (pGrid->HasRayleighFriction()) {
 			ApplyRayleighFriction(iDataUpdate, dDeltaT);
 		}
 #endif
+*/
 		return iDataUpdate;
 	}
 
@@ -3463,13 +3473,14 @@ void HorizontalDynamicsFEM::StepAfterSubCycle(
 	} else {
 		_EXCEPTIONT("Invalid viscosity order");
 	}
-
+/*
 #ifdef APPLY_RAYLEIGH_WITH_HYPERVIS
 		// Apply Rayleigh damping
 		if (pGrid->HasRayleighFriction()) {
 			ApplyRayleighFriction(iDataUpdate, dDeltaT);
 		}
 #endif
+*/
 }
 
 ///////////////////////////////////////////////////////////////////////////////

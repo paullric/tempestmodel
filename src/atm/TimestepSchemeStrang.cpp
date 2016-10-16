@@ -787,6 +787,11 @@ void TimestepSchemeStrang::Step(
 						  pVerticalDynamics, pHorizontalDynamics, pGrid);
 	pGrid->PostProcessSubstage(0, DataType_State);
 	pGrid->PostProcessSubstage(0, DataType_Tracers);
+
+	// Apply Rayleigh damping
+	if (pGrid->HasRayleighFriction()) {
+		pHorizontalDynamics->ApplyRayleighFriction(7,0, dDeltaT);
+	}
 /*
 	if (0) {
 	//if (fLastStep) {

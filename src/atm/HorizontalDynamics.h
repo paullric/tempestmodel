@@ -130,6 +130,16 @@ public:
 	) {
 	}
 
+	///	<summary>
+	///		Apply Rayleigh damping.
+	///	</summary>
+	virtual void ApplyRayleighFriction(
+		int iDataPrevious,
+		int iDataUpdate,
+		double dDeltaT
+	) {
+	}
+
 protected:
 	///	<summary>
 	///		Reference to the model.

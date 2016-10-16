@@ -166,15 +166,16 @@ protected:
 		bool fScaleNuLocally
 	);
 
+public:
 	///	<summary>
 	///		Apply Rayleigh damping.
 	///	</summary>
 	void ApplyRayleighFriction(
+		int iDataPrevious,
 		int iDataUpdate,
 		double dDeltaT
 	);
 
-public:
 	///	<summary>
 	///		Number of sub-steps after sub-cycling.
 	///	</summary>
