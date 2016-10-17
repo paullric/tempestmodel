@@ -570,6 +570,7 @@ void GridPatchCartesianGLL::EvaluateTestCase(
 	if (test.HasRayleighFriction()) {
 		for (int i = 0; i < m_box.GetATotalWidth(); i++) {
 		for (int j = 0; j < m_box.GetBTotalWidth(); j++) {
+/*
 			for (int k = 0; k < m_grid.GetRElements(); k++) {
 				m_dataRayleighStrengthNode[k][i][j] =
 					test.EvaluateRayleighStrength(
@@ -581,6 +582,21 @@ void GridPatchCartesianGLL::EvaluateTestCase(
 				m_dataRayleighStrengthREdge[k][i][j] =
 					test.EvaluateRayleighStrength(
 						m_dataZInterfaces[k][i][j],
+						m_dataLon[i][j],
+						m_dataLat[i][j]);
+			}
+*/
+			for (int k = 0; k < m_grid.GetRElements(); k++) {
+				m_dataRayleighStrengthNode[k][i][j] =
+					test.EvaluateRayleighStrength(
+						m_grid.GetREtaLevel(k),
+						m_dataLon[i][j],
+						m_dataLat[i][j]);
+			}
+			for (int k = 0; k <= m_grid.GetRElements(); k++) {
+				m_dataRayleighStrengthREdge[k][i][j] =
+					test.EvaluateRayleighStrength(
+						m_grid.GetREtaInterface(k),
 						m_dataLon[i][j],
 						m_dataLat[i][j]);
 			}
