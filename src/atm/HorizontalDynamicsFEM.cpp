@@ -3179,10 +3179,12 @@ void HorizontalDynamicsFEM::ApplyRayleighFriction(
 
 			// Rayleigh damping on nodes
 			for (int k = 0; k < pGrid->GetRElements(); k++) {
-
+/*
 				// covariant velocities
-				double dCovUa = dataUpdateNode[UIx][k][i][j];
+				double dCovUa = dataUpdateNode[UIx][k][i][j]
+								- dataReferenceNode[UIx][k][i][j];
 				double dCovUb = dataUpdateNode[VIx][k][i][j];
+								- dataReferenceNode[VIx][k][i][j];
 				// Calculate covariant xi velocity and store
 				double dCovUx =
 					  dataUpdateNode[WIx][k][i][j]
@@ -3219,13 +3221,13 @@ void HorizontalDynamicsFEM::ApplyRayleighFriction(
 				if (dRloc > dDiag - (dScale * dRayDepth)) {
 					// Compute the local strength
 					dNu = 0.5 * dRayStrength
-					* (1.0 + cos(M_PI * (dDiag - dRloc) / dRayDepth));
+					* (1.0 + cos(M_PI * (dDiag - dRloc) / (dScale * dRayDepth)));
 //printf("%.16E %.16E %.16E %.16E %.16E %.16E\n",dNu,dRloc,dDiag,dZLevels[k][i][j],dCovUx,dKinetic);
-
-					//dataRayleighStrengthNode[k][i][j] = dNu;
 				} else {
 					dNu = dataRayleighStrengthNode[k][i][j];
 				}
+*/
+				double dNu = dataRayleighStrengthNode[k][i][j];
 
 				// Backwards Euler
 				if (dNu == 0.0) {
@@ -3252,7 +3254,7 @@ void HorizontalDynamicsFEM::ApplyRayleighFriction(
 
 			// Rayleigh damping on interfaces
 			for (int k = 0; k <= pGrid->GetRElements(); k++) {
-
+/*
 				// covariant velocities
 				double dCovUa = dataUpdateREdge[UIx][k][i][j];
 				double dCovUb = dataUpdateREdge[VIx][k][i][j];
@@ -3292,14 +3294,13 @@ void HorizontalDynamicsFEM::ApplyRayleighFriction(
 				if (dRloc > dDiag - (dScale * dRayDepth)) {
 					// Compute the local strength
 					dNu = 0.5 * dRayStrength
-					* (1.0 + cos(M_PI * (dDiag - dRloc) / dRayDepth));
+					* (1.0 + cos(M_PI * (dDiag - dRloc) / (dScale * dRayDepth)));
 //printf("%.16E %.16E %.16E %.16E %.16E %.16E\n",dNu,dRloc,dDiag,dZLevels[k][i][j],dCovUx,dKinetic);
-
-					//dataRayleighStrengthREdge[k][i][j] = dNu;
 				} else {
 					dNu = dataRayleighStrengthREdge[k][i][j];
 				}
-
+*/
+				double dNu = dataRayleighStrengthREdge[k][i][j];
 				// Backwards Euler
 				if (dNu == 0.0) {
 					continue;

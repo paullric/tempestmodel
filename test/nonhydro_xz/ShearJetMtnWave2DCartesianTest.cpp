@@ -352,19 +352,35 @@ public:
 		double dNuDepth = 0.0;
 		double dNuRight = 0.0;
 		double dNuLeft  = 0.0;
+		double dNu = 0.0;
 
 		// Using cosine ramp up
-		if (dZ > m_dGDim[5] - dRayleighDepth) {
+		double dLayerZ = m_dGDim[5] - dRayleighDepth;
+		double dLayerR = m_dGDim[1] - dRayleighWidth;
+		double dLayerL = m_dGDim[0] + dRayleighWidth;
+		if (dZ > dLayerZ) {
 			double dNormZ = (m_dGDim[5] - dZ) / dRayleighDepth;
 			dNuDepth = 0.5 * dRayleighStrengthZ * (1.0 + cos(M_PI * dNormZ));
+			dNu = dNuDepth;
 		}
-		if (dXp > m_dGDim[1] - dRayleighWidth) {
+		if (dXp > dLayerR) {
 			double dNormX = (m_dGDim[1] - dXp) / dRayleighWidth;
 			dNuRight = 0.5 * dRayleighStrengthX * (1.0 + cos(M_PI * dNormX));
+			dNu = dNuRight;
 		}
-		if (dXp < m_dGDim[0] + dRayleighWidth) {
+		if (dXp < dLayerL) {
 			double dNormX = (dXp - m_dGDim[0]) / dRayleighWidth;
 			dNuLeft = 0.5 * dRayleighStrengthX * (1.0 + cos(M_PI * dNormX));
+			dNu = dNuLeft;
+		}
+
+		// Handle the corners of the layer domain
+		if ((dZ > dLayerZ) && (dXp > dLayerR)) {
+			dNu = 0.5 * (dNuDepth + dNuRight);
+		}
+
+		if ((dZ > dLayerZ) && (dXp < dLayerL)) {
+			dNu = 0.5 * (dNuDepth + dNuLeft);
 		}
 /*
 		// Using high order cosine ramp up
@@ -388,6 +404,7 @@ public:
 					pow(0.5, nPower) * pow(1.0 + cos(M_PI * dNormX), nPower));
 		}
 */
+/*
 		//std::cout << dXp << ' ' << dZ << ' ' << dNuDepth << std::endl;
 		if ((dNuDepth >= dNuRight) && (dNuDepth >= dNuLeft)) {
 			return dNuDepth;
@@ -396,6 +413,8 @@ public:
 			return dNuRight;
 		}
 		return dNuLeft;
+*/
+		return dNu;
 	}
 
 	///	<summary>
