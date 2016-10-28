@@ -183,6 +183,16 @@ protected:
 	DataArray2D<double> m_dBetaMassFlux;
 
 	///	<summary>
+	///		Nodal alpha mass fluxes to sum over element.
+	///	</summary>
+	DataArray2D<double> m_dAlphaElMassFlux;
+
+	///	<summary>
+	///		Nodal beta mass fluxes to sum over element.
+	///	</summary>
+	DataArray2D<double> m_dBetaElMassFlux;
+
+	///	<summary>
 	///		Nodal alpha pressure fluxes.
 	///	</summary>
 	DataArray2D<double> m_dAlphaPressureFlux;
@@ -289,4 +299,3 @@ protected:
 ///////////////////////////////////////////////////////////////////////////////
 
 #endif
-
