@@ -33,7 +33,7 @@
 
 //#define INSTEP_DIVERGENCE_DAMPING
 
-//#define FIX_ELEMENT_MASS_NONHYDRO
+#define FIX_ELEMENT_MASS_NONHYDRO
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -1727,6 +1727,13 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusion(
 	int iComponent,
 	bool fRemoveRefState
 ) {
+	// Indices of EquationSet variables
+	const int UIx = 0;
+	const int VIx = 1;
+	const int PIx = 2;
+	const int WIx = 3;
+	const int RIx = 4;
+
 	// Get a copy of the GLL grid
 	GridGLL * pGrid = dynamic_cast<GridGLL*>(m_model.GetGrid());
 
@@ -1745,6 +1752,8 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusion(
 
 		const PatchBox & box = pPatch->GetPatchBox();
 
+		const DataArray3D<double> & dElementArea =
+			pPatch->GetElementArea();
 		const DataArray3D<double> & dJacobianNode =
 			pPatch->GetJacobian();
 		const DataArray3D<double> & dJacobianREdge =
@@ -1753,6 +1762,9 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusion(
 			pPatch->GetContraMetric2DA();
 		const DataArray3D<double> & dContraMetricB =
 			pPatch->GetContraMetric2DB();
+
+		const DataArray4D<double> & dDerivRNode =
+			pPatch->GetDerivRNode();
 
 		// Grid data
 		DataArray4D<double> & dataInitialNode =
@@ -1933,12 +1945,18 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusion(
 					}
 
 					// Pointwise updates
+					double dElementMassFluxA = 0.0;
+					double dElementMassFluxB = 0.0;
+					double dMassFluxPerNodeA = 0.0;
+					double dMassFluxPerNodeB = 0.0;
+					double dElTotalArea = 0.0;
 					for (int i = 0; i < m_nHorizontalOrder; i++) {
 					for (int j = 0; j < m_nHorizontalOrder; j++) {
 						int iA = iElementA + i;
 						int iB = iElementB + j;
 
-						double dInvJacobian = 1.0 / (*pJacobian)[k][iA][iB];
+						// Inverse Jacobian and Jacobian
+						const double dInvJacobian = 1.0 / (*pJacobian)[k][iA][iB];
 
 						// Compute integral term
 						double dUpdateA = 0.0;
@@ -1957,12 +1975,60 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusion(
 						dUpdateA *= dInvElementDeltaA;
 						dUpdateB *= dInvElementDeltaB;
 
+#ifdef FIX_ELEMENT_MASS_NONHYDRO
+							if (c == RIx) {
+		 						double dInvJacobian = 1.0 / (*pJacobian)[k][iA][iB];
+								// Integrate element mass fluxes
+								dElementMassFluxA += dInvJacobian *
+												dUpdateA * dElementArea[k][iA][iB];
+								dElementMassFluxB += dInvJacobian *
+												dUpdateB * dElementArea[k][iA][iB];
+								dElTotalArea += dElementArea[k][iA][iB];
+
+								// Store the local element fluxes
+								m_dAlphaElMassFlux[i][j] = dUpdateA;
+								m_dBetaElMassFlux[i][j] = dUpdateB;
+							} else {
+								// Apply update
+								(*pDataUpdate)[c][k][iA][iB] -=
+									dDeltaT * dInvJacobian * dLocalNu
+										* (dUpdateA + dUpdateB);
+							}
+#else
 						// Apply update
 						(*pDataUpdate)[c][k][iA][iB] -=
 							dDeltaT * dInvJacobian * dLocalNu
 								* (dUpdateA + dUpdateB);
+#endif
 					}
 					}
+#ifdef FIX_ELEMENT_MASS_NONHYDRO
+					if (c == RIx) {
+						double dMassFluxPerNodeA = dElementMassFluxA / dElTotalArea;
+						double dMassFluxPerNodeB = dElementMassFluxB / dElTotalArea;
+
+						// Compute the fixed mass update
+						for (int i = 0; i < m_nHorizontalOrder; i++) {
+						for (int j = 0; j < m_nHorizontalOrder; j++) {
+
+							int iA = iElementA + i;
+							int iB = iElementB + j;
+
+							// Inverse Jacobian
+							const double dInvJacobian = 1.0 / (*pJacobian)[k][iA][iB];
+							const double dJacobian = (*pJacobian)[k][iA][iB];
+
+							m_dAlphaElMassFlux[i][j] -= dJacobian * dMassFluxPerNodeA;
+							m_dBetaElMassFlux[i][j] -= dJacobian * dMassFluxPerNodeB;
+
+							// Update fixed density on model levels
+							(*pDataUpdate)[c][k][iA][iB] -=
+								dDeltaT * dInvJacobian * dLocalNu *
+									(m_dAlphaElMassFlux[i][j] + m_dBetaElMassFlux[i][j]);
+						}
+						}
+					}
+#endif
 				}
 				}
 				}
