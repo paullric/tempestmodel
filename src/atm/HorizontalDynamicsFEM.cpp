@@ -43,7 +43,7 @@
 
 #define RESIDUAL_DIFFUSION_HORIZONTAL_VELOCITIES
 //#define RESIDUAL_DIFFUSION_THERMO
-//#define RESIDUAL_DIFFUSION_VERTICAL_VELOCITY
+#define RESIDUAL_DIFFUSION_VERTICAL_VELOCITY
 
 ///////////////////////////////////////////////////////////////////////////////
 

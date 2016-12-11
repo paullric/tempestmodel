@@ -199,8 +199,8 @@ public:
 		m_dpiC = M_PI;
 
 		// Set the dimensions of the box
-		m_dGDim[0] = -60000.0;
-		m_dGDim[1] = 60000.0;
+		m_dGDim[0] = -50000.0;
+		m_dGDim[1] = 70000.0;
 		m_dGDim[2] = -100.0;
 		m_dGDim[3] = 100.0;
 		m_dGDim[4] = 0.0;
@@ -378,11 +378,11 @@ public:
 
 		// Handle the corners of the layer domain
 		if ((dZ > dLayerZ) && (dXp > dLayerR)) {
-			dNu = 0.5 * (dNuDepth + dNuRight);
+			dNu = sqrt(dNuDepth * dNuDepth + dNuRight * dNuRight);
 		}
 
 		if ((dZ > dLayerZ) && (dXp < dLayerL)) {
-			dNu = 0.5 * (dNuDepth + dNuLeft);
+			dNu = sqrt(dNuDepth * dNuDepth + dNuLeft * dNuLeft);
 		}
 /*
 		// Using high order cosine ramp up
@@ -571,7 +571,7 @@ public:
 
 		// Tropospheric branch of the jet
 		double dExpDecay = exp(-(log(dEta) / m_dbC) * (log(dEta) / m_dbC));
-		double dUlon = -m_dUj * pow(log(dEta), 1.0) * dExpDecay;
+		double dUlon = -m_dUj * log(dEta) * dExpDecay;
 
 		dState[0] = m_dU0 + dUlon;
 

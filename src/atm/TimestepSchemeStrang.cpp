@@ -536,16 +536,6 @@ void TimestepSchemeStrang::Step(
 		pGrid->PostProcessSubstage(1, DataType_State);
 		pGrid->PostProcessSubstage(1, DataType_Tracers);
 
-		// Compute the function evaluation F and store it
-		m_dCombinationF[0] = - 1.0 / dHalfDeltaT;
-		m_dCombinationF[1] = + 1.0 / dHalfDeltaT;
-		m_dCombinationF[2] =   0.0;
-		m_dCombinationF[3] =   0.0;
-		m_dCombinationF[4] =   0.0;
-		m_dCombinationF[5] =   0.0;
-		m_dCombinationF[6] =   0.0;
-		m_dCombinationF[7] =   0.0;
-
 		pGrid->LinearCombineData(
 			m_dCombinationF, 5, DataType_State);
 		pGrid->LinearCombineData(
@@ -583,16 +573,6 @@ void TimestepSchemeStrang::Step(
 		pGrid->PostProcessSubstage(1, DataType_State);
 		pGrid->PostProcessSubstage(1, DataType_Tracers);
 
-		// Compute the function evaluation F and store it
-		m_dCombinationF[0] = - 1.0 / dDeltaT;
-		m_dCombinationF[1] = + 1.0 / dDeltaT;
-		m_dCombinationF[2] =   0.0;
-		m_dCombinationF[3] =   0.0;
-		m_dCombinationF[4] =   0.0;
-		m_dCombinationF[5] =   0.0;
-		m_dCombinationF[6] =   0.0;
-		m_dCombinationF[7] =   0.0;
-
 		pGrid->LinearCombineData(
 			m_dCombinationF, 5, DataType_State);
 		pGrid->LinearCombineData(
@@ -621,27 +601,31 @@ void TimestepSchemeStrang::Step(
 		pVerticalDynamics->StepExplicit(0, 1, time, dDeltaT / 5.0);
 		pGrid->PostProcessSubstage(1, DataType_State);
 		pGrid->PostProcessSubstage(1, DataType_Tracers);
-/*
-		// Compute the function evaluation F and store it
-		m_dCombinationF[0] = - 5.0 / dDeltaT;
-		m_dCombinationF[1] = + 5.0 / dDeltaT;
-		m_dCombinationF[2] =   0.0;
-		m_dCombinationF[3] =   0.0;
-		m_dCombinationF[4] =   0.0;
-		m_dCombinationF[5] =   0.0;
-		m_dCombinationF[6] =   0.0;
-		m_dCombinationF[7] =   0.0;
-		pGrid->LinearCombineData(
-			m_dCombinationF, 5, DataType_State);
-		pGrid->LinearCombineData(
-			m_dCombinationF, 5, DataType_Tracers);
-*/
+
+		if (!fFirstStep) {
+			// Apply the residual diffusion in dynamics
+			SubcycleStageExplicit(time, 1.0, dDeltaT / 5.0, 1, 0, 1, 6, 
+								  pVerticalDynamics, pHorizontalDynamics, pGrid);
+			pGrid->PostProcessSubstage(1, DataType_State);
+			pGrid->PostProcessSubstage(1, DataType_Tracers);
+		}
+
 		pGrid->CopyData(0, 2, DataType_State);
 		pGrid->CopyData(0, 2, DataType_Tracers);
 		pHorizontalDynamics->StepExplicit(1, 2, time, dDeltaT / 5.0);
 		pVerticalDynamics->StepExplicit(1, 2, time, dDeltaT / 5.0);
 		pGrid->PostProcessSubstage(2, DataType_State);
 		pGrid->PostProcessSubstage(2, DataType_Tracers);
+
+		if (!fFirstStep) {
+			pGrid->CopyData(2, 1, DataType_State);
+			pGrid->CopyData(2, 1, DataType_Tracers);
+			// Apply the residual diffusion in dynamics
+			SubcycleStageExplicit(time, 1.0, dDeltaT / 5.0, 1, 1, 2, 6, 
+								  pVerticalDynamics, pHorizontalDynamics, pGrid);
+			pGrid->PostProcessSubstage(2, DataType_State);
+			pGrid->PostProcessSubstage(2, DataType_Tracers);
+		}
 
 		pGrid->CopyData(0, 3, DataType_State);
 		pGrid->CopyData(0, 3, DataType_Tracers);
@@ -650,12 +634,32 @@ void TimestepSchemeStrang::Step(
 		pGrid->PostProcessSubstage(3, DataType_State);
 		pGrid->PostProcessSubstage(3, DataType_Tracers);
 
+		if (!fFirstStep) {
+			pGrid->CopyData(3, 2, DataType_State);
+			pGrid->CopyData(3, 2, DataType_Tracers);
+			// Apply the residual diffusion in dynamics
+			SubcycleStageExplicit(time, 1.0, dDeltaT / 3.0, 1, 2, 3, 6, 
+								  pVerticalDynamics, pHorizontalDynamics, pGrid);
+			pGrid->PostProcessSubstage(3, DataType_State);
+			pGrid->PostProcessSubstage(3, DataType_Tracers);
+		}
+
 		pGrid->CopyData(0, 2, DataType_State);
 		pGrid->CopyData(0, 2, DataType_Tracers);
 		pHorizontalDynamics->StepExplicit(3, 2, time, 2.0 * dDeltaT / 3.0);
 		pVerticalDynamics->StepExplicit(3, 2, time, 2.0 * dDeltaT / 3.0);
 		pGrid->PostProcessSubstage(2, DataType_State);
 		pGrid->PostProcessSubstage(2, DataType_Tracers);
+
+		if (!fFirstStep) {
+			pGrid->CopyData(2, 3, DataType_State);
+			pGrid->CopyData(2, 3, DataType_Tracers);
+			// Apply the residual diffusion in dynamics
+			SubcycleStageExplicit(time, 1.0, dDeltaT / 3.0, 1, 3, 2, 6, 
+								  pVerticalDynamics, pHorizontalDynamics, pGrid);
+			pGrid->PostProcessSubstage(2, DataType_State);
+			pGrid->PostProcessSubstage(2, DataType_Tracers);
+		}
 
 		pGrid->LinearCombineData(
 			m_dKinnmarkGrayUllrichCombination, 4, DataType_State);
@@ -665,6 +669,16 @@ void TimestepSchemeStrang::Step(
 		pVerticalDynamics->StepExplicit(2, 4, time, 3.0 * dDeltaT / 4.0);
 		pGrid->PostProcessSubstage(4, DataType_State);
 		pGrid->PostProcessSubstage(4, DataType_Tracers);
+
+		if (!fFirstStep) {
+			pGrid->CopyData(4, 2, DataType_State);
+			pGrid->CopyData(4, 2, DataType_Tracers);
+			// Apply the residual diffusion in dynamics
+			SubcycleStageExplicit(time, 1.0, dDeltaT / 3.0, 1, 2, 4, 6, 
+								  pVerticalDynamics, pHorizontalDynamics, pGrid);
+			pGrid->PostProcessSubstage(4, DataType_State);
+			pGrid->PostProcessSubstage(4, DataType_Tracers);
+		}
 
 		// Compute the function evaluation F(u^n4) and store it
 		m_dCombinationF[0] = + 1.0 / (3.0 * dDeltaT);
@@ -691,21 +705,6 @@ void TimestepSchemeStrang::Step(
 		pVerticalDynamics->StepExplicit(0, 1, time, dStepOne * dDeltaT);
 		pGrid->PostProcessSubstage(1, DataType_State);
 		pGrid->PostProcessSubstage(1, DataType_Tracers);
-
-		// Compute the function evaluation F and store it
-		m_dCombinationF[0] = - 1.0 / (dStepOne * dDeltaT);
-		m_dCombinationF[1] = + 1.0 / (dStepOne * dDeltaT);
-		m_dCombinationF[2] =   0.0;
-		m_dCombinationF[3] =   0.0;
-		m_dCombinationF[4] =   0.0;
-		m_dCombinationF[5] =   0.0;
-		m_dCombinationF[6] =   0.0;
-		m_dCombinationF[7] =   0.0;
-
-		pGrid->LinearCombineData(
-			m_dCombinationF, 5, DataType_State);
-		pGrid->LinearCombineData(
-			m_dCombinationF, 5, DataType_Tracers);
 
 		pGrid->CopyData(1, 2, DataType_State);
 		pGrid->CopyData(1, 2, DataType_Tracers);
@@ -780,13 +779,15 @@ void TimestepSchemeStrang::Step(
 	pGrid->LinearCombineData(
 		m_dCombinationR, 2, DataType_Tracers);
 
-	// Apply the residual diffusion in dynamics
-	pGrid->CopyData(0, 4, DataType_State);
-	pGrid->CopyData(0, 4, DataType_Tracers);
-	SubcycleStageExplicit(time, 1.0, dDeltaT, 2, 4, 0, 2, 
-						  pVerticalDynamics, pHorizontalDynamics, pGrid);
-	pGrid->PostProcessSubstage(0, DataType_State);
-	pGrid->PostProcessSubstage(0, DataType_Tracers);
+	if (fFirstStep) {
+		// Apply the residual diffusion in dynamics
+		pGrid->CopyData(0, 4, DataType_State);
+		pGrid->CopyData(0, 4, DataType_Tracers);
+		SubcycleStageExplicit(time, 1.0, dDeltaT, 5, 4, 0, 2, 
+							  pVerticalDynamics, pHorizontalDynamics, pGrid);
+		pGrid->PostProcessSubstage(0, DataType_State);
+		pGrid->PostProcessSubstage(0, DataType_Tracers);
+	}
 
 	// Apply Rayleigh damping
 	if (pGrid->HasRayleighFriction()) {
