@@ -609,6 +609,7 @@ void TimestepSchemeStrang::Step(
 			pGrid->PostProcessSubstage(1, DataType_State);
 			pGrid->PostProcessSubstage(1, DataType_Tracers);
 		}
+		pHorizontalDynamics->ApplyRayleighFriction(1,1, dDeltaT / 5.0);
 
 		pGrid->CopyData(0, 2, DataType_State);
 		pGrid->CopyData(0, 2, DataType_Tracers);
@@ -626,6 +627,7 @@ void TimestepSchemeStrang::Step(
 			pGrid->PostProcessSubstage(2, DataType_State);
 			pGrid->PostProcessSubstage(2, DataType_Tracers);
 		}
+		pHorizontalDynamics->ApplyRayleighFriction(2,2, dDeltaT / 5.0);
 
 		pGrid->CopyData(0, 3, DataType_State);
 		pGrid->CopyData(0, 3, DataType_Tracers);
@@ -643,6 +645,7 @@ void TimestepSchemeStrang::Step(
 			pGrid->PostProcessSubstage(3, DataType_State);
 			pGrid->PostProcessSubstage(3, DataType_Tracers);
 		}
+		pHorizontalDynamics->ApplyRayleighFriction(3,3, dDeltaT / 3.0);
 
 		pGrid->CopyData(0, 2, DataType_State);
 		pGrid->CopyData(0, 2, DataType_Tracers);
@@ -660,6 +663,7 @@ void TimestepSchemeStrang::Step(
 			pGrid->PostProcessSubstage(2, DataType_State);
 			pGrid->PostProcessSubstage(2, DataType_Tracers);
 		}
+		pHorizontalDynamics->ApplyRayleighFriction(2,2, dDeltaT / 3.0);
 
 		pGrid->LinearCombineData(
 			m_dKinnmarkGrayUllrichCombination, 4, DataType_State);
@@ -674,11 +678,12 @@ void TimestepSchemeStrang::Step(
 			pGrid->CopyData(4, 2, DataType_State);
 			pGrid->CopyData(4, 2, DataType_Tracers);
 			// Apply the residual diffusion in dynamics
-			SubcycleStageExplicit(time, 1.0, dDeltaT / 3.0, 1, 2, 4, 6, 
+			SubcycleStageExplicit(time, 1.0, 3.0 * dDeltaT / 4.0, 1, 2, 4, 6, 
 								  pVerticalDynamics, pHorizontalDynamics, pGrid);
 			pGrid->PostProcessSubstage(4, DataType_State);
 			pGrid->PostProcessSubstage(4, DataType_Tracers);
 		}
+		pHorizontalDynamics->ApplyRayleighFriction(4,4, 3.0 * dDeltaT / 4.0);
 
 		// Compute the function evaluation F(u^n4) and store it
 		m_dCombinationF[0] = + 1.0 / (3.0 * dDeltaT);
@@ -788,11 +793,12 @@ void TimestepSchemeStrang::Step(
 		pGrid->PostProcessSubstage(0, DataType_State);
 		pGrid->PostProcessSubstage(0, DataType_Tracers);
 	}
-
+/*
 	// Apply Rayleigh damping
 	if (pGrid->HasRayleighFriction()) {
 		pHorizontalDynamics->ApplyRayleighFriction(7,0, dDeltaT);
 	}
+*/
 /*
 	if (0) {
 	//if (fLastStep) {
