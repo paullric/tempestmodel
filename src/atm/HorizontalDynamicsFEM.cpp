@@ -43,7 +43,7 @@
 
 #define RESIDUAL_DIFFUSION_HORIZONTAL_VELOCITIES
 //#define RESIDUAL_DIFFUSION_THERMO
-#define RESIDUAL_DIFFUSION_VERTICAL_VELOCITY
+//#define RESIDUAL_DIFFUSION_VERTICAL_VELOCITY
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -3150,24 +3150,23 @@ void HorizontalDynamicsFEM::ApplyRayleighFriction(
 	int nEffectiveC[nComponents];
 	// 3D primitive nonhydro models with no density treatment
 	if ((nEqSet == EquationSet::PrimitiveNonhydrostaticEquations) && !fCartXZ) {
-		nEffectiveC[0] = 0; nEffectiveC[1] = 1; 
-		nEffectiveC[2] = 3;
-		//nEffectiveC[2] = 2; 
-		//nEffectiveC[3] = 3;
-		nEffectiveC[nComponents - 2] = 0;
+		nEffectiveC[0] = UIx; nEffectiveC[1] = VIx; 
+		nEffectiveC[2] = PIx;
+		nEffectiveC[3] = WIx;
+		//nEffectiveC[4] = RIx;
+		//nEffectiveC[nComponents - 2] = 0;
 		nEffectiveC[nComponents - 1] = 0;
-		nComponents = nComponents - 2;
+		nComponents = nComponents - 1;
 	}
 	// 2D Cartesian XZ primitive nonhydro models with no density treatment
 	else if ((nEqSet == EquationSet::PrimitiveNonhydrostaticEquations) && fCartXZ) {
-
-		nEffectiveC[0] = 0;
-		//nEffectiveC[1] = 2; 
-		nEffectiveC[1] = 3;
-		nEffectiveC[nComponents - 3] = 0;
-		nEffectiveC[nComponents - 2] = 0;
+		nEffectiveC[0] = UIx; nEffectiveC[1] = VIx; 
+		nEffectiveC[2] = PIx;
+		nEffectiveC[3] = WIx;
+		//nEffectiveC[4] = RIx;
+		//nEffectiveC[nComponents - 2] = 0;
 		nEffectiveC[nComponents - 1] = 0;
-		nComponents = nComponents - 3;
+		nComponents = nComponents - 1;
 	}
 	// Other model types (advection, shallow water, mass coord)
 	else {
