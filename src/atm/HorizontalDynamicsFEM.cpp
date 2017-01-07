@@ -2380,7 +2380,6 @@ int HorizontalDynamicsFEM::SubStepAfterSubCycle(
 	double dDeltaT,
 	int iSubStep
 ) {
-
 	// Get the GLL grid
 	GridGLL * pGrid = dynamic_cast<GridGLL*>(m_model.GetGrid());
 
@@ -2435,6 +2434,9 @@ void HorizontalDynamicsFEM::StepAfterSubCycle(
 	const Time & time,
 	double dDeltaT
 ) {
+	// Start the function timer
+	FunctionTimer timer("StepAfterSubCycle");
+
 	// Check indices
 	if (iDataInitial == iDataWorking) {
 		_EXCEPTIONT("Invalid indices "

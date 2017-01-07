@@ -519,10 +519,15 @@ void Model::Go() {
 			FunctionTimer::GetAverageGroupTime(
 				"VerticalStepImplicit");
 
+		long lTimeSaSc =
+			FunctionTimer::GetAverageGroupTime(
+				"StepAfterSubCycle");
+
 		long lGlobalTimeLoop[3];
 		long lGlobalTimeHNHP[3];
 		long lGlobalTimeVSEx[3];
 		long lGlobalTimeVSIm[3];
+		long lGlobalTimeSaSc[3];
 
 		MPI_Reduce(&lTimeLoop, &lGlobalTimeLoop[0],
 			1, MPI_LONG, MPI_SUM, 0, MPI_COMM_WORLD);
@@ -552,6 +557,13 @@ void Model::Go() {
 		MPI_Reduce(&lTimeVSIm, &lGlobalTimeVSIm[2],
 			1, MPI_LONG, MPI_MAX, 0, MPI_COMM_WORLD);
 
+		MPI_Reduce(&lTimeSaSc, &lGlobalTimeSaSc[0],
+			1, MPI_LONG, MPI_SUM, 0, MPI_COMM_WORLD);
+		MPI_Reduce(&lTimeSaSc, &lGlobalTimeSaSc[1],
+			1, MPI_LONG, MPI_MIN, 0, MPI_COMM_WORLD);
+		MPI_Reduce(&lTimeSaSc, &lGlobalTimeSaSc[2],
+			1, MPI_LONG, MPI_MAX, 0, MPI_COMM_WORLD);
+
 		int nCommSize;
 		MPI_Comm_size(MPI_COMM_WORLD, &nCommSize);
 
@@ -559,6 +571,7 @@ void Model::Go() {
 		lGlobalTimeHNHP[0] /= static_cast<long>(nCommSize);
 		lGlobalTimeVSEx[0] /= static_cast<long>(nCommSize);
 		lGlobalTimeVSIm[0] /= static_cast<long>(nCommSize);
+		lGlobalTimeSaSc[0] /= static_cast<long>(nCommSize);
 
 		Announce("Time [Loop]: %li [%li, %li]",
 			lGlobalTimeLoop[0], lGlobalTimeLoop[1], lGlobalTimeLoop[2]);
@@ -568,6 +581,8 @@ void Model::Go() {
 			lGlobalTimeVSEx[0], lGlobalTimeVSEx[1], lGlobalTimeVSEx[2]);
 		Announce("Time [VSIm]: %li [%li, %li]",
 			lGlobalTimeVSIm[0], lGlobalTimeVSIm[1], lGlobalTimeVSIm[2]);
+		Announce("Time [SaSc]: %li [%li, %li]",
+			lGlobalTimeSaSc[0], lGlobalTimeSaSc[1], lGlobalTimeSaSc[2]);
 	}
 #endif
 }
