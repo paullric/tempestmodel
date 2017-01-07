@@ -21,6 +21,7 @@
 #include "GridSpacing.h"
 #include "VerticalStretch.h"
 #include "ConsolidationStatus.h"
+#include "FunctionTimer.h"
 
 #include "Exception.h"
 
@@ -631,6 +632,8 @@ void Grid::Exchange(
 	if (m_fBlockParallelExchange) {
 		return;
 	}
+
+	FunctionTimer timer("Communicate");
 
 #ifdef TEMPEST_MPIOMP
 	// Verify all processors are prepared to exchange
