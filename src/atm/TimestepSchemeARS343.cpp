@@ -143,7 +143,7 @@ void TimestepSchemeARS343::Step(
 
 	// Compute u1 into index 2
 	pGrid->CopyData(1, 2, DataType_State);
-	pGrid->CopyData(1, 2, DataType_State);
+	pGrid->CopyData(1, 2, DataType_Tracers);
 	pVerticalDynamics->StepImplicit(
 		2, 2, time, m_dImpCf[0][0] * dDeltaT);
 	pGrid->PostProcessSubstage(2, DataType_State);
@@ -164,7 +164,7 @@ void TimestepSchemeARS343::Step(
 
 	// Compute u2 from uf2 (index 3) into index 4
 	pGrid->CopyData(3, 4, DataType_State);
-	pGrid->CopyData(3, 4, DataType_State);
+	pGrid->CopyData(3, 4, DataType_Tracers);
 	pVerticalDynamics->StepImplicit(
 		4, 4, time, m_dImpCf[1][1] * dDeltaT);
 	pGrid->PostProcessSubstage(4, DataType_State);
@@ -185,7 +185,7 @@ void TimestepSchemeARS343::Step(
 
 	// Compute u3 from uf3 (index 3) into index 6
 	pGrid->CopyData(5, 6, DataType_State);
-	pGrid->CopyData(5, 6, DataType_State);
+	pGrid->CopyData(5, 6, DataType_Tracers);
 	pVerticalDynamics->StepImplicit(
 		6, 6, time, m_dImpCf[2][2] * dDeltaT);
 	pGrid->PostProcessSubstage(6, DataType_State);
