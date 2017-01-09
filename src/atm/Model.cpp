@@ -354,6 +354,7 @@ void Model::Go() {
 
 	// Initial output
 	for (int om = 0; om < m_vecOutMan.size(); om++) {
+
 /* COMMENT IN FOR MASS, ENERGY, AND MOMENTUM OUTPUTS
 		if (om == 0) {
 			Announce("%s %1.15e %1.15e %1.15e",
@@ -408,16 +409,26 @@ void Model::Go() {
 				if (m_pGrid->GetVerticalStaggering() ==
 				    Grid::VerticalStaggering_Lorenz
 				) {
+					m_pGrid->InterpolateNodeToREdge(0, 0);
+					m_pGrid->InterpolateNodeToREdge(1, 0);
 					m_pGrid->InterpolateREdgeToNode(3, 0);
+					m_pGrid->InterpolateNodeToREdge(4, 0);
 				}
 
 				if (m_pGrid->GetVerticalStaggering() ==
 				    Grid::VerticalStaggering_CharneyPhillips
 				) {
+					m_pGrid->InterpolateNodeToREdge(0, 0);
+					m_pGrid->InterpolateNodeToREdge(1, 0);
 					m_pGrid->InterpolateREdgeToNode(2, 0);
 					m_pGrid->InterpolateREdgeToNode(3, 0);
+					m_pGrid->InterpolateNodeToREdge(4, 0);
 				}
 			}
+
+			Announce("Energy: %1.15e",
+				m_pGrid->ComputeTotalEnergy(0));
+
 /*
 			Announce("%1.15e %1.15e",
 				m_pGrid->ComputeTotalEnergy(0),

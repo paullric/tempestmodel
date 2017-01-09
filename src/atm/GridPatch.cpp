@@ -885,7 +885,7 @@ double GridPatch::ComputeTotalEnergy(
 	EquationSet::Type eEquationSetType =
 		m_grid.GetModel().GetEquationSet().GetType();
 
-	// Grid data
+	// Grid data on nodes
 	if ((iDataIndex < 0) || (iDataIndex >= m_datavecStateNode.size())) {
 		_EXCEPTION1("iDataIndex out of range: %i", iDataIndex);
 	}
@@ -927,7 +927,12 @@ double GridPatch::ComputeTotalEnergy(
 		}
 		}
 
+	// Nonhydrostatic 3D energy
 	} else {
+
+		// Data on interfaces
+		const DataArray4D<double> & dataREdge =
+			m_datavecStateREdge[iDataIndex];
 
 		// Loop over all elements
 		int k;
@@ -968,7 +973,8 @@ double GridPatch::ComputeTotalEnergy(
 
 			double dCovUa = dataNode[UIx][k][i][j];
 			double dCovUb = dataNode[VIx][k][i][j];
-			double dCovUx = dataNode[WIx][k][i][j] * m_dataDerivRNode[k][i][j][2];
+			double dCovUx =
+				dataNode[WIx][k][i][j] * m_dataDerivRNode[k][i][j][2];
 
 			double dConUa =
 				  m_dataContraMetricA[k][i][j][0] * dCovUa
@@ -980,12 +986,10 @@ double GridPatch::ComputeTotalEnergy(
 				+ m_dataContraMetricB[k][i][j][1] * dCovUb
 				+ m_dataContraMetricB[k][i][j][2] * dCovUx;
 
-			double dConUx =
-				  m_dataContraMetricXi[k][i][j][0] * dCovUa
-				+ m_dataContraMetricXi[k][i][j][1] * dCovUb
-				+ m_dataContraMetricXi[k][i][j][2] * dCovUx;
+			double dUdotU = dConUa * dCovUa + dConUb * dCovUb;
 
-			double dUdotU = dConUa * dCovUa + dConUb * dCovUb + dConUx * dCovUx;
+			dUdotU += m_dataContraMetricXi[k][i][j][0] * dCovUa * dCovUx;
+			dUdotU += m_dataContraMetricXi[k][i][j][1] * dCovUb * dCovUx;
 
 			double dKineticEnergy =
 				0.5 * dataNode[RIx][k][i][j] * dUdotU;
@@ -1015,6 +1019,32 @@ double GridPatch::ComputeTotalEnergy(
 			dTotalInternalEnergy += m_dataElementArea[k][i][j] * dInternalEnergy;
 			dTotalPotentialEnergy += m_dataElementArea[k][i][j] * dPotentialEnergy;
 */
+		}
+		}
+		}
+		for (k = 0; k <= m_grid.GetRElements(); k++) {
+		for (i = m_box.GetAInteriorBegin(); i < m_box.GetAInteriorEnd(); i++) {
+		for (j = m_box.GetBInteriorBegin(); j < m_box.GetBInteriorEnd(); j++) {
+
+			//double dCovUa = dataREdge[UIx][k][i][j];
+			//double dCovUb = dataREdge[VIx][k][i][j];
+			double dCovUx =
+				dataREdge[WIx][k][i][j] * m_dataDerivRREdge[k][i][j][2];
+/*
+			double dConUx =
+				  m_dataContraMetricXiREdge[k][i][j][0] * dCovUa
+				+ m_dataContraMetricXiREdge[k][i][j][1] * dCovUb
+				+ m_dataContraMetricXiREdge[k][i][j][2] * dCovUx;
+*/
+			double dKineticEnergy =
+				0.5 * dataREdge[RIx][k][i][j]
+				* m_dataContraMetricXiREdge[k][i][j][2]
+				* dCovUx * dCovUx;
+
+			dLocalEnergy +=
+				m_dataElementAreaREdge[k][i][j]
+				* dKineticEnergy;
+
 		}
 		}
 		}
