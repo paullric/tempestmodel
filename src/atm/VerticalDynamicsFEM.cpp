@@ -159,6 +159,8 @@ void VerticalDynamicsFEM::Initialize() {
 #ifdef USE_JFNK_GMRES
 	// Initialize JFNK
 	InitializeJFNK(m_nColumnStateSize, m_nColumnStateSize, 1.0e-5);
+
+	m_nJacobianFWidth = 1;
 #endif
 #if defined(USE_DIRECTSOLVE_APPROXJ) || defined(USE_DIRECTSOLVE)
 #ifdef USE_JACOBIAN_DIAGONAL
