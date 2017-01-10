@@ -49,3 +49,5 @@ test/dcmip2016/out*
 util/CFConverter/CFConverter
 
 test/nonhydro_xz/ThermalBubbleCartesian3DTest
+
+test/nonhydro_xz/ShearJetMtnWave2DCartesianTest
