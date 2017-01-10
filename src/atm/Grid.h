@@ -273,19 +273,6 @@ public:
 		int iDataIndex
 	);
 
-	///	<summary>
-	///		Exchange connectivity buffers between processors.
-	///	</summary>
-	void ExchangeBuffers();
-
-	///	<summary>
-	///		Exchange connectivity buffers between processors.
-	///	</summary>
-	void ExchangeBuffersAndUnpack(
-		DataType eDataType,
-		int iDataIndex
-	);
-
 public:
 	///	<summary>
 	///		Get the total number of patches on the grid.
@@ -543,16 +530,9 @@ public:
 	void InitializeExchangeBuffersFromActivePatches();
 
 	///	<summary>
-	///		Build all exchange buffer information using the grid layout.
-	///	</summary>
-	void InitializeAllExchangeBuffers();
-
-	///	<summary>
 	///		Initialize connectivity between patches.
 	///	</summary>
-	void InitializeConnectivity(
-		bool fAllocate = true
-	);
+	void InitializeConnectivity();
 
 public:
 	///	<summary>
@@ -676,23 +656,23 @@ public:
 
 public:
 	///	<summary>
-	///		Get the active patch with the specified index.
+	///		Get the active patch with the specified local index.
 	///	</summary>
-	GridPatch * GetActivePatch(int ix) {
-		if ((ix < 0) || (ix >= m_vecActiveGridPatches.size())) {
+	GridPatch * GetActivePatch(int ixLocal) {
+		if ((ixLocal < 0) || (ixLocal >= m_vecActiveGridPatches.size())) {
 			_EXCEPTIONT("Invalid active patch index");
 		}
-		return m_vecActiveGridPatches[ix];
+		return m_vecActiveGridPatches[ixLocal];
 	}
 
 	///	<summary>
-	///		Get the active patch with the specified index.
+	///		Get the active patch with the specified local index.
 	///	</summary>
-	const GridPatch * GetActivePatch(int ix) const {
-		if ((ix < 0) || (ix >= m_vecActiveGridPatches.size())) {
+	const GridPatch * GetActivePatch(int ixLocal) const {
+		if ((ixLocal < 0) || (ixLocal >= m_vecActiveGridPatches.size())) {
 			_EXCEPTIONT("Invalid active patch index");
 		}
-		return m_vecActiveGridPatches[ix];
+		return m_vecActiveGridPatches[ixLocal];
 	}
 
 #ifdef TEMPEST_MPIOMP
@@ -922,13 +902,6 @@ protected:
 	VerticalStretchFunction * m_pVerticalStretchF;
 
 protected:
-/*
-	///	<summary>
-	///		Vector of cumulative indices associated with 2D nodal values on
-	///		each patch.
-	///	</summary>
-	std::vector<int> m_vecCumulativePatch2DNodeIndex;
-*/
 	///	<summary>
 	///		Vector of grid patches which are active locally.
 	///	</summary>

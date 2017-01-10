@@ -2,10 +2,10 @@
 ///
 ///	\file    Connectivity.h
 ///	\author  Paul Ullrich
-///	\version March 24, 2013
+///	\version January 10, 2017
 ///
 ///	<remarks>
-///		Copyright 2000-2010 Paul Ullrich
+///		Copyright 2000-2017 Paul Ullrich
 ///
 ///		This file is distributed as part of the Tempest source code package.
 ///		Permission is granted to use, copy, modify and distribute this
@@ -53,26 +53,97 @@ typedef int ExchangeBufferId;
 
 ///////////////////////////////////////////////////////////////////////////////
 
-class ExchangeBufferInfo {
+class ExchangeBufferRegistry;
+
+///////////////////////////////////////////////////////////////////////////////
+
+///	<summary>
+///		Class containing information on buffers used for exchange of data
+///		between GridPatches.
+///	</summary>
+class ExchangeBuffer {
+
+	friend class ExchangeBufferRegistry;
+
+public:
+	///	<summary>
+	///		Message header for MPI message exchange.
+	///	</summary>
+	struct MessageHeader {
+		public:
+			///	<summary>
+			///		Default constructor.
+			///	</summary>
+			MessageHeader() :
+				m_ixReserved(0x01010101),
+				m_ixFirstPatch(-1),
+				m_ixSecondPatch(-1),
+				m_ixDirection(Direction_Middle)
+			{ }
+
+			///	<summary>
+			///		Constructor.
+			///	</summary>
+			MessageHeader(
+				int ixFirstPatch,
+				int ixSecondPatch,
+				int ixDirection
+			) :
+				m_ixReserved(0x01010101),
+				m_ixFirstPatch(ixFirstPatch),
+				m_ixSecondPatch(ixSecondPatch),
+				m_ixDirection(ixDirection)
+			{ }
+
+			///	<summary>
+			///		Equality comparator.
+			///	</summary>
+			bool operator==(const MessageHeader & msghead) const {
+				if ((m_ixReserved == msghead.m_ixReserved) &&
+				    (m_ixFirstPatch == msghead.m_ixFirstPatch) &&
+				    (m_ixSecondPatch == msghead.m_ixSecondPatch) &&
+				    (m_ixDirection == msghead.m_ixDirection)
+				) {
+					return true;
+				}
+				return false;
+			}
+
+			///	<summary>
+			///		Inequality comparator.
+			///	</summary>
+			bool operator!=(const MessageHeader & msghead) const {
+				return !((*this) == msghead);
+			}
+
+		public:
+			int m_ixReserved;
+			int m_ixFirstPatch;
+			int m_ixSecondPatch;
+			int m_ixDirection;
+	};
 
 public:
 	///	<summary>
 	///		Default constructor.
 	///	</summary>
-	ExchangeBufferInfo() :
-		ixSourcePatch(-1),
-		ixTargetPatch(-1),
-		dir(Direction_Middle),
-		dirOpposing(Direction_Middle),
-		sHaloElements(0),
-		sComponents(0),
-		sMaxRElements(0),
-		sBoundarySize(0),
-		sByteSize(0),
-		ixFirst(0),
-		ixSecond(0),
-		fReverseDirection(false),
-		fFlippedCoordinate(false)
+	ExchangeBuffer() :
+		m_ixSourcePatch(-1),
+		m_ixTargetPatch(-1),
+		m_dir(Direction_Middle),
+		m_dirOpposing(Direction_Middle),
+		m_ixSourceProcessor(-1),
+		m_ixTargetProcessor(-1),
+		m_ixLocalActiveSourcePatch(-1),
+		m_sHaloElements(0),
+		m_sComponents(0),
+		m_sMaxRElements(0),
+		m_sBoundarySize(0),
+		m_sByteSize(0),
+		m_ixFirst(0),
+		m_ixSecond(0),
+		m_fReverseDirection(false),
+		m_fFlippedCoordinate(false)
 	{ }
 
 public:
@@ -80,104 +151,200 @@ public:
 	///		Calculate total data size (in bytes).
 	///	</summary>
 	void CalculateByteSize() {
-		sByteSize =
-		  sBoundarySize
-		* sMaxRElements
-		* sHaloElements
-		* sComponents
-		* sizeof(double);
+		m_sByteSize =
+			  m_sBoundarySize
+			* m_sMaxRElements
+			* m_sHaloElements
+			* m_sComponents
+			* sizeof(double);
 	}
+
+	///	<summary>
+	///		Get the message size (in bytes).
+	///	</summary>
+	size_t GetMessageSize() {
+		return (m_sByteSize + sizeof(MessageHeader));
+	}
+
+	///	<summary>
+	///		Get the outgoing message header for this ExchangeBuffer.
+	///	</summary>
+	void GetSendMessageHeader(
+		MessageHeader * pMessageHead
+	) {
+		(*pMessageHead) =
+			MessageHeader(
+				m_ixSourcePatch,
+				m_ixTargetPatch,
+				m_dirOpposing);
+	}
+
+	///	<summary>
+	///		Get the incoming message header for this ExchangeBuffer.
+	///	</summary>
+	void GetRecvMessageHeader(
+		MessageHeader * pMessageHead
+	) {
+		(*pMessageHead) =
+			MessageHeader(
+				m_ixTargetPatch,
+				m_ixSourcePatch,
+				m_dir);
+	}
+
+public:
+	///	<summary>
+	///		Reset indices and pack the MessageHeader into the given buffer.
+	///	</summary>
+	void Reset();
+
+	///	<summary>
+	///		Pack DataArray3D into the send buffer.
+	///	</summary>
+	void Pack(
+		const DataArray3D<double> & data
+	);
+
+	///	<summary>
+	///		Pack DataArray4D into the send buffer.
+	///	</summary>
+	void Pack(
+		const Grid & grid,
+		const DataArray4D<double> & data
+	);
+
+	///	<summary>
+	///		Unpack receive buffer into the given DataArray3D.
+	///	</summary>
+	void Unpack(
+		DataArray3D<double> & data
+	);
+
+	///	<summary>
+	///		Unpack receive buffer into the given DataArray4D.
+	///	</summary>
+	void Unpack(
+		const Grid & grid,
+		DataArray4D<double> & data
+	);
 
 public:
 	///	<summary>
 	///		Unique global id of this exchange buffer.
 	///	</summary>
-	ExchangeBufferId id;
+	ExchangeBufferId m_id;
 
 	///	<summary>
 	///		Source GridPatch index.
 	///	</summary>
-	int ixSourcePatch;
+	int m_ixSourcePatch;
 
 	///	<summary>
 	///		Target GridPatch index.
 	///	</summary>
-	int ixTargetPatch;
+	int m_ixTargetPatch;
 
 	///	<summary>
 	///		Direction.
 	///	</summary>
-	Direction dir;
+	Direction m_dir;
 
 	///	<summary>
 	///		Opposing direction.
 	///	</summary>
-	Direction dirOpposing;
+	Direction m_dirOpposing;
+
+	///	<summary>
+	///		Source processor index.
+	///	</summary>
+	int m_ixSourceProcessor;
+
+	///	<summary>
+	///		Target processor index.
+	///	</summary>
+	int m_ixTargetProcessor;
+
+	///	<summary>
+	///		Local active GridPatch index.
+	///	</summary>
+	int m_ixLocalActiveSourcePatch;
 
 	///	<summary>
 	///		Number of halo elements.
 	///	</summary>
-	size_t sHaloElements;
+	size_t m_sHaloElements;
 
 	///	<summary>
 	///		Number of components.
 	///	</summary>
-	size_t sComponents;
+	size_t m_sComponents;
 
 	///	<summary>
 	///		Number of radial elements.
 	///	</summary>
-	size_t sMaxRElements;
+	size_t m_sMaxRElements;
 
 	///	<summary>
 	///		Boundary size (lateral length)
 	///	</summary>
-	size_t sBoundarySize;
+	size_t m_sBoundarySize;
 
 	///	<summary>
 	///		Total data size (in bytes).
 	///	</summary>
-	size_t sByteSize;
+	size_t m_sByteSize;
 
 	///	<summary>
 	///		First local index (begin node for Right, Top, Left, Bottom and
 	///		alpha coordinate for TopRight, TopLeft, BottomLeft, BottomRight)
 	///	</summary>
-	int ixFirst;
+	int m_ixFirst;
 
 	///	<summary>
 	///		Second local index (end node for Right, Top, Left, Bottom and
 	///		beta coordinate for TopRight, TopLeft, BottomLeft, BottomRight)
 	///	</summary>
-	int ixSecond;
+	int m_ixSecond;
 
 	///	<summary>
 	///		Indicator of whether or not directions are flipped across the edge.
 	///	</summary>
-	bool fReverseDirection;
+	bool m_fReverseDirection;
 
 	///	<summary>
 	///		Indicator of whether or not the direction of increasing coordinate
 	///		indices flips across the edge.
 	///	</summary>
-	bool fFlippedCoordinate;
+	bool m_fFlippedCoordinate;
 
+protected:
+	///	<summary>
+	///		Current RecvBuffer.
+	///	</summary>
+	DataArray1D<double> m_dRecvBuffer;
+
+	///	<summary>
+	///		Current SendBuffer.
+	///	</summary>
+	DataArray1D<double> m_dSendBuffer;
+
+	///	<summary>
+	///		Current RecvBuffer index.
+	///	</summary>
+	int m_ixRecvBuffer;
+
+	///	<summary>
+	///		Current SendBuffer index.
+	///	</summary>
+	int m_ixSendBuffer;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
 
+///	<summary>
+///		Class storing all local ExchangeBuffers.
+///	</summary>
 class ExchangeBufferRegistry {
-
-public:
-	///	<summary>
-	///		Vector of ExchangeBufferInfo objects.
-	///	</summary>
-	typedef std::vector<ExchangeBufferInfo> ExchangeBufferInfoVector;
-
-	///	<summary>
-	///		Vector of pointers to data.
-	///	</summary>
-	typedef std::vector<unsigned char *> DataPointerVector;
 
 public:
 	///	<summary>
@@ -190,640 +357,115 @@ public:
 	///	</summary>
 	virtual ~ExchangeBufferRegistry();
 
-	///	<summary>
-	///		Reclassify this ExchangeBuffer as one that does not own
-	///		its data.
-	///	</summary>
-	void SetNoDataOwnership();
-
-public:
-	///	<summary>
-	///		Get a reference to the registry.
-	///	</summary>
-	const ExchangeBufferInfoVector & GetRegistry() const {
-		return m_vecRegistry;
-	}
-
-	///	<summary>
-	///		Get the ExchangeBufferInfo object stored at index ix in the
-	///		registry.
-	///	</summary>
-	const ExchangeBufferInfo & GetExchangeBufferInfo(int ix) {
-		if ((ix < 0) || (ix > m_vecRegistry.size())) {
-			_EXCEPTIONT("ExchangeBuffer index out of range");
-		}
-		return m_vecRegistry[ix];
-	}
-
-	///	<summary>
-	///		Get the pointer for the specified recv buffer.
-	///	</summary>
-	unsigned char * GetRecvBufferPtr(int ix) {
-		if ((ix < 0) || (ix > m_vecRegistry.size())) {
-			_EXCEPTIONT("ExchangeBuffer index out of range");
-		}
-		return m_vecRecvBuffers[ix];
-	}
-
-	///	<summary>
-	///		Get the pointer for the specified send buffer.
-	///	</summary>
-	unsigned char * GetSendBufferPtr(int ix) {
-		if ((ix < 0) || (ix > m_vecRegistry.size())) {
-			_EXCEPTIONT("ExchangeBuffer index out of range");
-		}
-		return m_vecSendBuffers[ix];
-	}
-
 public:
 	///	<summary>
 	///		Register a new ExchangeBuffer.
 	///	</summary>
 	void Register(
-		const ExchangeBufferInfo & info
+		const ExchangeBuffer & exbuf
 	);
 
 	///	<summary>
-	///		Get all ExchangeBuffers with source patch index ixPatch.
+	///		Get the vector of ExchangeBuffers.
 	///	</summary>
-	void GetExchangeBuffersBySourcePatchIx(
-		int ixSourcePatch,
-		std::vector<int> & vecExchangeBufferIndices
-	) const;
-
-	///	<summary>
-	///		Allocate the specified recv/send buffers.
-	///	</summary>
-	void Allocate(int ix);
-
-	///	<summary>
-	///		Assign pointers to specified recv/send buffers.
-	///	</summary>
-	void Assign(
-		int ix,
-		unsigned char * pRecvBuffer,
-		unsigned char * pSendBuffer
-	);
-
-	///	<summary>
-	///		Unassign pointers to specified recv/send buffers.
-	///	</summary>
-	void Unassign(int ix);
-
-protected:
-	///	<summary>
-	///		A flag indicating this ExchangeBufferRegistry owns its own data.
-	///	</summary>
-	bool m_fOwnsData;
-
-	///	<summary>
-	///		Vector of exchange buffers.
-	///	</summary>
-	ExchangeBufferInfoVector m_vecRegistry;
-
-	///	<summary>
-	///		Vector of pointers to receive buffers.
-	///	</summary>
-	DataPointerVector m_vecRecvBuffers;
-
-	///	<summary>
-	///		Vector of pointers to send buffers.
-	///	</summary>
-	DataPointerVector m_vecSendBuffers;
-};
-
-///////////////////////////////////////////////////////////////////////////////
-
-///	<summary>
-///		Interface for GridPatch neighbors.
-///	</summary>
-class Neighbor {
-
-public:
-	///	<summary>
-	///		Constructor.
-	///	</summary>
-	Neighbor(
-		const ExchangeBufferInfo & info
-	);
-
-	///	<summary>
-	///		Virtual destructor.
-	///	</summary>
-	virtual ~Neighbor() {
-	}
-
-public:
-	///	<summary>
-	///		Allocate the exchange buffers.
-	///	</summary>
-	void AllocateBuffers();
-
-	///	<summary>
-	///		Initialize the exchange buffers by pointer.
-	///	</summary>
-	void AttachBuffers(
-		unsigned char * pRecvBuffer,
-		unsigned char * pSendBuffer
-	);
-
-public:
-	///	<summary>
-	///		Check if data has been received by this neighbor.
-	///	</summary>
-	bool CheckReceive();
-
-	///	<summary>
-	///		Set the complete flag.
-	///	</summary>
-	void SetComplete() {
-		if (m_fComplete) {
-			_EXCEPTIONT("Logic error");
-		}
-		m_fComplete = true;
-	}
-
-public:
-	///	<summary>
-	///		Prepare an asynchronous receive.
-	///	</summary>
-	virtual void PrepareExchange(
-		const Grid & grid
-	) {
-		// Reset the send buffer index
-		m_ixSendBuffer = 0;
-
-		// Reset the receive buffer index
-		m_ixRecvBuffer = 0;
-
-		// Reset the complete flag
-		m_fComplete = false;
+	std::vector<ExchangeBuffer> & GetExchangeBuffers() {
+		return m_vecRegistry;
 	}
 
 	///	<summary>
-	///		Pack data into the send buffer.
+	///		Allocate ExchangeBuffer storage.
 	///	</summary>
-	virtual void Pack(
-		const DataArray3D<double> & data
-	) = 0;
+	void Allocate();
 
 	///	<summary>
-	///		Pack data into the send buffer.
-	///	</summary>
-	virtual void Pack(
-		const Grid & grid,
-		const DataArray4D<double> & data
-	) = 0;
-
-	///	<summary>
-	///		Reset the send buffer size.
-	///	</summary>
-	void ResetSendBufferSize() {
-		m_ixSendBuffer =
-			  m_info.sBoundarySize
-			* m_info.sMaxRElements
-			* m_info.sHaloElements
-			* m_info.sComponents;
-	}
-
-	///	<summary>
-	///		Send data to other processors.
-	///	</summary>
-	virtual void Send(const Grid & grid) = 0;
-
-	///	<summary>
-	///		Unpack data from the receive buffer.
-	///	</summary>
-	virtual void Unpack(
-		DataArray3D<double> & data
-	) = 0;
-
-	///	<summary>
-	///		Unpack data from the receive buffer.
-	///	</summary>
-	virtual void Unpack(
-		const Grid & grid,
-		DataArray4D<double> & data
-	) = 0;
-
-	///	<summary>
-	///		Wait for the send request to complete.
-	///	</summary>
-	virtual void WaitSend() = 0;
-
-public:
-	///	<summary>
-	///		Returns true if this neighbor is complete.
-	///	</summary>
-	bool IsComplete() const {
-		return m_fComplete;
-	}
-
-public:
-	///	<summary>
-	///		Exchange buffer information.
-	///	</summary>
-	ExchangeBufferInfo m_info;
-
-	///	<summary>
-	///		Flag indicating if this neighbor has been received and processed.
-	///	</summary>
-	bool m_fComplete;
-
-	///	<summary>
-	///		Index into the send buffer.
-	///	</summary>
-	int m_ixSendBuffer;
-
-	///	<summary>
-	///		Index into the receive buffer.
-	///	</summary>
-	int m_ixRecvBuffer;
-
-#ifdef TEMPEST_MPIOMP
-	///	<summary>
-	///		MPI_Request objects used for asynchronous exchange of data.
-	///	</summary>
-	MPI_Request m_reqSend;
-	MPI_Request m_reqRecv;
-#endif
-
-	///	<summary>
-	///		DataArray1D used for exchange of data and fluxes.
-	///	</summary>
-	DataArray1D<double> m_vecSendBuffer;
-	DataArray1D<double> m_vecRecvBuffer;
-};
-
-///////////////////////////////////////////////////////////////////////////////
-
-///	<summary>
-///		Neighbor objects which are along GridPatch boundaries.
-///	</summary>
-class ExteriorNeighbor : public Neighbor {
-
-public:
-	///	<summary>
-	///		Constructor.
-	///	</summary>
-	ExteriorNeighbor(
-		const ExchangeBufferInfo & info
-	) :
-		Neighbor(info)
-	{ }
-
-public:
-	///	<summary>
-	///		Set a value in the SendBuffer directly.
-	///	</summary>
-	inline void SetSendBuffer(
-		int iC,
-		int iK,
-		int iA,
-		double dValue
-	) {
-		int ix = (iC * (m_info.sMaxRElements-1) + iK) * m_info.sBoundarySize;
-
-		if (m_info.fReverseDirection) {
-			ix += m_info.ixSecond - iA - 1;
-		} else {
-			ix += iA - m_info.ixFirst;
-		}
-
-		m_vecSendBuffer[ix] = dValue;
-	}
-
-	///	<summary>
-	///		Get a value in the RecvBuffer directly.
-	///	</summary>
-	inline double GetRecvBuffer(
-		int iC,
-		int iK,
-		int iA
-	) const {
-		int ix =
-			(iC * (m_info.sMaxRElements-1) + iK) * m_info.sBoundarySize
-				+ (iA - m_info.ixFirst);
-
-		return m_vecRecvBuffer[ix];
-	}
-
-public:
-	///	<summary>
-	///		Prepare an asynchronous receive.
-	///	</summary>
-	virtual void PrepareExchange(
-		const Grid & grid
-	);
-
-	///	<summary>
-	///		Pack data into the send buffer.
-	///	</summary>
-	virtual void Pack(
-		const DataArray3D<double> & data
-	);
-
-	///	<summary>
-	///		Pack data into the send buffer.
-	///	</summary>
-	virtual void Pack(
-		const Grid & grid,
-		const DataArray4D<double> & data
-	);
-
-	///	<summary>
-	///		Send data to other processors.
-	///	</summary>
-	virtual void Send(
-		const Grid & grid
-	);
-
-	///	<summary>
-	///		Unpack data from the receive buffer.
-	///	</summary>
-	void Unpack(
-		DataArray3D<double> & data
-	);
-
-	///	<summary>
-	///		Unpack data from the receive buffer.
-	///	</summary>
-	void Unpack(
-		const Grid & grid,
-		DataArray4D<double> & data
-	);
-
-	///	<summary>
-	///		Wait for the send request to complete.
-	///	</summary>
-	virtual void WaitSend();
-};
-
-///////////////////////////////////////////////////////////////////////////////
-
-///	<summary>
-///		Nested neighbors of the GridPatch.
-///	</summary>
-class InteriorNeighbor : public Neighbor {
-	///	<summary>
-	///		Send whole patch to coarse levels.
-	///	</summary>
-
-public:
-	///	<summary>
-	///		Prepare an asynchronous receive.
-	///	</summary>
-	virtual void PrepareExchange() {
-	}
-
-	///	<summary>
-	///		Pack data into the send buffer.
-	///	</summary>
-	virtual void Pack(
-		const Grid & grid,
-		const DataArray3D<double> & data
-	) {
-	}
-
-	///	<summary>
-	///		Pack data into the send buffer.
-	///	</summary>
-	virtual void Pack(
-		const Grid & grid,
-		const DataArray4D<double> & data
-	) {
-	}
-
-	///	<summary>
-	///		Send data to other processors.
-	///	</summary>
-	virtual void Send(const Grid & grid) {
-	}
-
-	///	<summary>
-	///		Unpack data from the receive buffer.
-	///	</summary>
-	void Unpack(
-		const Grid & grid,
-		DataArray3D<double> & data
-	) {
-	}
-
-	///	<summary>
-	///		Unpack data from the receive buffer.
-	///	</summary>
-	virtual void Unpack(
-		const Grid & grid,
-		const DataArray4D<double> & data
-	) {
-	}
-
-	///	<summary>
-	///		Wait for the send request to complete.
-	///	</summary>
-	virtual void WaitSend() {
-	}
-};
-
-///////////////////////////////////////////////////////////////////////////////
-
-///	<summary>
-///		Connectivity between GridPatch objects.
-///	</summary>
-class Connectivity {
-
-public:
-	///	<summary>
-	///		Vector of exterior boundary neighbors.
-	///	</summary>
-	typedef std::vector<ExteriorNeighbor *> ExteriorNeighborVector;
-
-	///	<summary>
-	///		Vector of interior boundary neighbors.
-	///	</summary>
-	typedef std::vector<InteriorNeighbor *> InteriorNeighborVector;
-
-public:
-	///	<summary>
-	///		Constructor.
-	///	</summary>
-	Connectivity(GridPatch & patch) :
-		m_patch(patch)
-	{ }
-
-	///	<summary>
-	///		Destructor.
-	///	</summary>
-	virtual ~Connectivity();
-
-public:
-	///	<summary>
-	///		Clear all neighbors from this connectivity object.
-	///	</summary>
-	void ClearNeighbors();
-
-	///	<summary>
-	///		Add a new exterior neighbor.
-	///	</summary>
-	void AddExteriorNeighbor(
-		ExteriorNeighbor * pNeighbor
-	) {
-		m_vecExteriorNeighbors.push_back(pNeighbor);
-	}
-
-public:
-	///	<summary>
-	///		Done adding new exterior neighbors.  Set up flux connectivity.
-	///	</summary>
-	void BuildFluxConnectivity();
-
-public:
-	///	<summary>
-	///		Prepare for the exchange of data between processors.
+	///		Set up asynchronous receives.
 	///	</summary>
 	void PrepareExchange();
 
 	///	<summary>
-	///		Pack data into the send buffer in preparation for a send.
-	///	</summary>
-	void Pack(
-		const DataArray3D<double> & data
-	);
-
-	///	<summary>
-	///		Pack data into the send buffer in preparation for a send.
-	///	</summary>
-	void Pack(
-		const DataArray4D<double> & data
-	);
-
-	///	<summary>
-	///		Send data to other processors.
+	///		Set up asynchronous sends.
 	///	</summary>
 	void Send();
 
+protected:
 	///	<summary>
-	///		Send buffers to other processors.
+	///		Attach RecvBuffers based on a received message.
 	///	</summary>
-	void SendBuffers();
+	void AttachRecvBuffers(int ixProc);
+
+public:
+	///	<summary>
+	///		Wait for a message to be received.
+	///	</summary>
+	///	<returns>
+	///		A vector of pointers to ExchangeBuffers that have been filled,
+	///		or NULL if all messages have been received.
+	///	</returns>
+	const std::vector<ExchangeBuffer *> * WaitReceive();
 
 	///	<summary>
-	///		Wait for a neighbor to receive a message and return a pointer
-	///		to the neighbor when one has been received.
-	///	</summary>
-	Neighbor * WaitReceive();
-
-	///	<summary>
-	///		Wait for all asynchronous send requests to complete.
+	///		Wait for all sends to complete.
 	///	</summary>
 	void WaitSend();
 
-public:
+protected:
 	///	<summary>
-	///		Verify valid connectivity.
+	///		Flag indicating that ExchangeBuffer RecvBuffers have not yet been
+	///		attached to data.
 	///	</summary>
-	void Verify() const {
-		_EXCEPTIONT("Not implemented.");
-	}
-
-public:
-	///	<summary>
-	///		Get the reference to the grid patch.
-	///	</summary>
-	const GridPatch & GetGridPatch() const {
-		return m_patch;
-	}
-/*
-	///	<summary>
-	///		Get the vector of exterior boundary neighbors.
-	///	</summary>
-	const ExteriorNeighborVector & GetExteriorNeighbors() const {
-		return m_vecExteriorNeighbors;
-	}
+	std::vector<bool> m_vecAreRecvBuffersAttached;
 
 	///	<summary>
-	///		Get the vector of interior boundary neighbors.
+	///		Vector of ExchangeBuffers.
 	///	</summary>
-	const InteriorNeighborVector & GetInteriorNeighbors() const {
-		return m_vecNestedNeighbors;
-	}
-*/
-	///	<summary>
-	///		Get the expected number of messages received during an exchange.
-	///	</summary>
-	int GetExpectedMessageCount() const;
+	std::vector<ExchangeBuffer> m_vecRegistry;
 
 	///	<summary>
-	///		Set a value directly in send buffer (one halo element).
+	///		Buffer size for each processor.
 	///	</summary>
-	///	<param name="iA">
-	///		Interior index along edge (index 0 corresponds to InteriorBegin)
-	///	</param>
-	inline void SetSendBuffer(
-		Direction dir,
-		int iC,
-		int iK,
-		int iA,
-		double dValue
-	) {
-		_EXCEPTIONT("Disabled");
-		//m_vecExteriorEdge[(int)(dir)][iA]->SetSendBuffer(iC, iK, iA, dValue);
-	}
+	std::vector<int> m_vecBufferSize;
 
 	///	<summary>
-	///		Get a value directly in recv buffer (one halo element).
+	///		Processor associated with each buffer.
 	///	</summary>
-	///	<param name="iA">
-	///		Interior index along edge (index 0 corresponds to InteriorBegin)
-	///	</param>
-	inline double GetRecvBuffer(
-		Direction dir,
-		int iC,
-		int iK,
-		int iA
-	) {
-		_EXCEPTIONT("Disabled");
-		//return m_vecExteriorEdge[(int)(dir)][iA]->GetRecvBuffer(iC, iK, iA);
-	}
+	std::vector<int> m_vecProcessors;
 
 	///	<summary>
-	///		Determine if the direction of increasing coordinate is flipped
-	///		across the edge.
+	///		Vector of pointers to receive buffers.
 	///	</summary>
-	inline bool IsCoordinateFlipped(
-		Direction dir,
-		int iA
-	) const {
-		_EXCEPTIONT("Disabled");
-		//return m_vecExteriorEdge[(int)(dir)][iA]->m_fFlippedCoordinate;
-	}
-
-private:
-	///	<summary>
-	///		Reference to parent object.
-	///	</summary>
-	GridPatch & m_patch;
+	std::vector<char *> m_vecRecvBuffers;
 
 	///	<summary>
-	///		Vector of exterior boundary neighbors.
+	///		Vector of pointers to send buffers.
 	///	</summary>
-	ExteriorNeighborVector m_vecExteriorNeighbors;
+	std::vector<char *> m_vecSendBuffers;
 
 	///	<summary>
-	///		Vector of interior boundary indices.
+	///		Vector of MPI_Requests.
 	///	</summary>
-	////InteriorNeighborVector m_vecNestedNeighbors;
+	std::vector<MPI_Request> m_vecRecvRequest;
 
 	///	<summary>
-	///		Array indicating the panel in the specified direction.
+	///		Vector of MPI_Requests.
 	///	</summary>
-	std::vector<int> m_ixPanelDirection;
-/*
+	std::vector<MPI_Request> m_vecSendRequest;
+
 	///	<summary>
-	///		Pointer to exterior neighbors along edges, by index.
+	///		Vector of booleans indicating which processors have sent messages.
 	///	</summary>
-	std::vector<ExteriorNeighbor *> m_vecExteriorEdge[8];
-*/
+	std::vector<bool> m_vecMessageReceived;
+
+protected:
+	///	<summary>
+	///		A lookup table mapping processor to ExchangeBuffer pointers.
+	///	</summary>
+	typedef std::vector< std::vector<ExchangeBuffer *> > ProcessorExBufferVector;
+
+	///	<summary>
+	///		Vector of ExchangeBuffers organized by processor.
+	///	</summary>
+	ProcessorExBufferVector m_vecRegistryByProcessor;
+
 };
 
 ///////////////////////////////////////////////////////////////////////////////

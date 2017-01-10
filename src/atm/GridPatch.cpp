@@ -33,7 +33,6 @@ GridPatch::GridPatch(
 	m_ixPatch(ixPatch),
 	m_iProcessor(0),
 	m_box(box),
-	m_connect(*this),
 	m_fContainsData(false)
 {
 }
@@ -1176,25 +1175,24 @@ double GridPatch::ComputeTotalVerticalMomentum(
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void GridPatch::PrepareExchange() {
-	m_connect.PrepareExchange();
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
-void GridPatch::Send(
+void GridPatch::PackExchangeBuffer(
 	DataType eDataType,
-	int iDataIndex
+	int iDataIndex,
+	ExchangeBuffer & exbuf
 ) {
+	// Check exchange buffer target
+	if (exbuf.m_ixSourcePatch != m_ixPatch) {
+		_EXCEPTIONT("ExchangeBuffer patch index mismatch");
+	}
+
 	// State data
 	if (eDataType == DataType_State) {
 		if ((iDataIndex < 0) || (iDataIndex > m_datavecStateNode.size())) {
 			_EXCEPTIONT("Invalid state data instance.");
 		}
 
-		m_connect.Pack(m_datavecStateNode[iDataIndex]);
-		m_connect.Pack(m_datavecStateREdge[iDataIndex]);
-		m_connect.Send();
+		exbuf.Pack(m_grid, m_datavecStateNode[iDataIndex]);
+		exbuf.Pack(m_grid, m_datavecStateREdge[iDataIndex]);
 
 	// Tracer data
 	} else if (eDataType == DataType_Tracers) {
@@ -1202,33 +1200,27 @@ void GridPatch::Send(
 			_EXCEPTIONT("Invalid tracers data instance.");
 		}
 
-		m_connect.Pack(m_datavecTracers[iDataIndex]);
-		m_connect.Send();
+		exbuf.Pack(m_grid, m_datavecTracers[iDataIndex]);
 
 	// Vorticity data
 	} else if (eDataType == DataType_Vorticity) {
-		m_connect.Pack(m_dataVorticity);
-		m_connect.Send();
+		exbuf.Pack(m_dataVorticity);
 
 	// Divergence data
 	} else if (eDataType == DataType_Divergence) {
-		m_connect.Pack(m_dataDivergence);
-		m_connect.Send();
+		exbuf.Pack(m_dataDivergence);
 
 	// Temperature data
 	} else if (eDataType == DataType_Temperature) {
-		m_connect.Pack(m_dataTemperature);
-		m_connect.Send();
+		exbuf.Pack(m_dataTemperature);
 
 	// Richardson data
 	} else if (eDataType == DataType_Richardson) {
-		m_connect.Pack(m_dataRichardson);
-		m_connect.Send();
+		exbuf.Pack(m_dataRichardson);
 
 	// Topography derivative data
 	} else if (eDataType == DataType_TopographyDeriv) {
-		m_connect.Pack(m_dataTopographyDeriv);
-		m_connect.Send();
+		exbuf.Pack(m_dataTopographyDeriv);
 
 	// Invalid data
 	} else {
@@ -1238,21 +1230,24 @@ void GridPatch::Send(
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void GridPatch::Receive(
+void GridPatch::UnpackExchangeBuffer(
 	DataType eDataType,
-	int iDataIndex
+	int iDataIndex,
+	ExchangeBuffer & exbuf
 ) {
+	// Check exchange buffer target
+	if (exbuf.m_ixSourcePatch != m_ixPatch) {
+		_EXCEPTIONT("ExchangeBuffer patch index mismatch");
+	}
+
 	// State data
 	if (eDataType == DataType_State) {
 		if ((iDataIndex < 0) || (iDataIndex > m_datavecStateNode.size())) {
 			_EXCEPTIONT("Invalid state data instance.");
 		}
 
-		Neighbor * pNeighbor;
-		while ((pNeighbor = m_connect.WaitReceive()) != NULL) {
-			pNeighbor->Unpack(m_grid, m_datavecStateNode[iDataIndex]);
-			pNeighbor->Unpack(m_grid, m_datavecStateREdge[iDataIndex]);
-		}
+		exbuf.Unpack(m_grid, m_datavecStateNode[iDataIndex]);
+		exbuf.Unpack(m_grid, m_datavecStateREdge[iDataIndex]);
 
 	// Tracer data
 	} else if (eDataType == DataType_Tracers) {
@@ -1260,69 +1255,32 @@ void GridPatch::Receive(
 			_EXCEPTIONT("Invalid tracers data instance.");
 		}
 
-		Neighbor * pNeighbor;
-		while ((pNeighbor = m_connect.WaitReceive()) != NULL) {
-			pNeighbor->Unpack(m_grid, m_datavecTracers[iDataIndex]);
-		}
+		exbuf.Unpack(m_grid, m_datavecTracers[iDataIndex]);
 
 	// Vorticity data
 	} else if (eDataType == DataType_Vorticity) {
-		Neighbor * pNeighbor;
-		while ((pNeighbor = m_connect.WaitReceive()) != NULL) {
-			pNeighbor->Unpack(m_dataVorticity);
-		}
+		exbuf.Unpack(m_dataVorticity);
 
 	// Divergence data
 	} else if (eDataType == DataType_Divergence) {
-		Neighbor * pNeighbor;
-		while ((pNeighbor = m_connect.WaitReceive()) != NULL) {
-			pNeighbor->Unpack(m_dataDivergence);
-		}
+		exbuf.Unpack(m_dataDivergence);
 
 	// Temperature data
 	} else if (eDataType == DataType_Temperature) {
-		Neighbor * pNeighbor;
-		while ((pNeighbor = m_connect.WaitReceive()) != NULL) {
-			pNeighbor->Unpack(m_dataTemperature);
-		}
+		exbuf.Unpack(m_dataTemperature);
 
 	// Richardson data
 	} else if (eDataType == DataType_Richardson) {
-		Neighbor * pNeighbor;
-		while ((pNeighbor = m_connect.WaitReceive()) != NULL) {
-			pNeighbor->Unpack(m_dataRichardson);
-		}
+		exbuf.Unpack(m_dataRichardson);
 
 	// Topographic derivatives
 	} else if (eDataType == DataType_TopographyDeriv) {
-		Neighbor * pNeighbor;
-		while ((pNeighbor = m_connect.WaitReceive()) != NULL) {
-			pNeighbor->Unpack(m_dataTopographyDeriv);
-		}
+		exbuf.Unpack(m_dataTopographyDeriv);
 
 	// Invalid data
 	} else {
 		_EXCEPTIONT("Invalid DataType");
 	}
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
-void GridPatch::SendBuffers() {
-	m_connect.SendBuffers();
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
-void GridPatch::ReceiveBuffers() {
-	Neighbor * pNeighbor;
-	while ((pNeighbor = m_connect.WaitReceive()) != NULL);
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
-void GridPatch::CompleteExchange() {
-	m_connect.WaitSend();
 }
 
 ///////////////////////////////////////////////////////////////////////////////

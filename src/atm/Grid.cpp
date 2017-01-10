@@ -641,97 +641,46 @@ void Grid::Exchange(
 #endif
 
 	// Set up asynchronous recvs
-	for (int n = 0; n < m_vecActiveGridPatches.size(); n++) {
-		m_vecActiveGridPatches[n]->PrepareExchange();
+	m_aExchangeBufferRegistry.PrepareExchange();
+
+	// Pack data
+	std::vector<ExchangeBuffer> & vecExchangeBuffers =
+		m_aExchangeBufferRegistry.GetExchangeBuffers();
+
+	for (int b = 0; b < vecExchangeBuffers.size(); b++) {
+		int ixActivePatch = vecExchangeBuffers[b].m_ixLocalActiveSourcePatch;
+		if ((ixActivePatch < 0) ||
+		    (ixActivePatch >= m_vecActiveGridPatches.size())
+		) {
+			_EXCEPTIONT("ExchangeBuffer active patch index out of range");
+		}
+		m_vecActiveGridPatches[ixActivePatch]->PackExchangeBuffer(
+			eDataType, iDataIndex, vecExchangeBuffers[b]);
 	}
 
 	// Send data
-	for (int n = 0; n < m_vecActiveGridPatches.size(); n++) {
-		m_vecActiveGridPatches[n]->Send(eDataType, iDataIndex);
-	}
+	m_aExchangeBufferRegistry.Send();
 
 	// Receive data
-	for (int n = 0; n < m_vecActiveGridPatches.size(); n++) {
-		m_vecActiveGridPatches[n]->Receive(eDataType, iDataIndex);
-	}
+	for (;;) {
+		const std::vector<ExchangeBuffer *> * pExchangeBuffers =
+			m_aExchangeBufferRegistry.WaitReceive();
 
-	// Wait for send requests to complete
-	for (int n = 0; n < m_vecActiveGridPatches.size(); n++) {
-		m_vecActiveGridPatches[n]->CompleteExchange();
-	}
+		if (pExchangeBuffers == NULL) {
+			break;
+		}
 
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
-void Grid::ExchangeBuffers() {
-
-	// Block parallel exchanges
-	if (m_fBlockParallelExchange) {
-		return;
-	}
-
-#ifdef TEMPEST_MPIOMP
-	// Verify all processors are prepared to exchange
-	MPI_Barrier(MPI_COMM_WORLD);
-#endif
-
-	// Set up asynchronous recvs
-	for (int n = 0; n < m_vecActiveGridPatches.size(); n++) {
-		m_vecActiveGridPatches[n]->PrepareExchange();
-	}
-
-	// Send data
-	for (int n = 0; n < m_vecActiveGridPatches.size(); n++) {
-		m_vecActiveGridPatches[n]->SendBuffers();
-	}
-
-	// Receive data
-	for (int n = 0; n < m_vecActiveGridPatches.size(); n++) {
-		m_vecActiveGridPatches[n]->ReceiveBuffers();
-	}
-
-	// Wait for send requests to complete
-	for (int n = 0; n < m_vecActiveGridPatches.size(); n++) {
-		m_vecActiveGridPatches[n]->CompleteExchange();
-	}
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
-void Grid::ExchangeBuffersAndUnpack(
-	DataType eDataType,
-	int iDataIndex
-) {
-
-	// Block parallel exchanges
-	if (m_fBlockParallelExchange) {
-		return;
-	}
-
-#ifdef TEMPEST_MPIOMP
-	// Verify all processors are prepared to exchange
-	MPI_Barrier(MPI_COMM_WORLD);
-#endif
-
-	// Set up asynchronous recvs
-	for (int n = 0; n < m_vecActiveGridPatches.size(); n++) {
-		m_vecActiveGridPatches[n]->PrepareExchange();
-	}
-
-	// Send data
-	for (int n = 0; n < m_vecActiveGridPatches.size(); n++) {
-		m_vecActiveGridPatches[n]->SendBuffers();
-	}
-
-	// Receive data
-	for (int n = 0; n < m_vecActiveGridPatches.size(); n++) {
-		m_vecActiveGridPatches[n]->Receive(eDataType, iDataIndex);
-	}
-
-	// Wait for send requests to complete
-	for (int n = 0; n < m_vecActiveGridPatches.size(); n++) {
-		m_vecActiveGridPatches[n]->CompleteExchange();
+		for (int b = 0; b < pExchangeBuffers->size(); b++) {
+			int ixActivePatch =
+				(*pExchangeBuffers)[b]->m_ixLocalActiveSourcePatch;
+			if ((ixActivePatch < 0) ||
+			    (ixActivePatch >= m_vecActiveGridPatches.size())
+			) {
+				_EXCEPTIONT("ExchangeBuffer active patch index out of range");
+			}
+			m_vecActiveGridPatches[ixActivePatch]->UnpackExchangeBuffer(
+				eDataType, iDataIndex, *((*pExchangeBuffers)[b]));
+		}
 	}
 }
 
@@ -1179,14 +1128,44 @@ void Grid::RegisterExchangeBuffer(
 	const PatchBox & boxTarget = GetPatchBox(ixTargetPatch);
 
 	// Build key
-	ExchangeBufferInfo info;
-	info.ixSourcePatch = ixSourcePatch;
-	info.ixTargetPatch = ixTargetPatch;
-	info.dir = dir;
+	ExchangeBuffer exbuf;
+	exbuf.m_ixSourcePatch = ixSourcePatch;
+	exbuf.m_ixTargetPatch = ixTargetPatch;
+	exbuf.m_dir = dir;
+
+	// Add local active patch index
+	{
+		int n = 0;
+		for (; n < m_vecActiveGridPatches.size(); n++) {
+			if (m_vecActiveGridPatches[n]->m_ixPatch == ixSourcePatch) {
+				exbuf.m_ixLocalActiveSourcePatch = n;
+				break;
+			}
+		}
+		if (n == m_vecActiveGridPatches.size()) {
+			_EXCEPTION1("Attempting to register ExchangeBuffer for "
+				"inactive GridPatch (%i)", ixSourcePatch);
+		}
+	}
+
+#ifdef TEMPEST_MPIOMP
+	// Set up thread ranks for MPI communication
+	if (ixSourcePatch >= m_vecPatchProcessor.size()) {
+		_EXCEPTIONT("m_vecPatchProcessor[] has not been initialized"
+			" (ixSourcePatch out of range)");
+	}
+	if (ixTargetPatch >= m_vecPatchProcessor.size()) {
+		_EXCEPTIONT("m_vecPatchProcessor[] has not been initialized"
+			" (ixTargetPatch out of range)");
+	}
+
+	exbuf.m_ixSourceProcessor = m_vecPatchProcessor[ixSourcePatch];
+	exbuf.m_ixTargetProcessor = m_vecPatchProcessor[ixTargetPatch];
+#endif
 
 	// Build exhange buffer metadata
-	info.ixFirst = ixFirst;
-	info.ixSecond = ixSecond;
+	exbuf.m_ixFirst = ixFirst;
+	exbuf.m_ixSecond = ixSecond;
 
 	// Get number of components
 	const Model & model = GetModel();
@@ -1200,18 +1179,18 @@ void Grid::RegisterExchangeBuffer(
 		sStateTracerMaxVariables = eqn.GetTracers();
 	}
 
-	info.sHaloElements = model.GetHaloElements();
-	info.sComponents = sStateTracerMaxVariables;
-	info.sMaxRElements = GetRElements() + 1;
+	exbuf.m_sHaloElements = model.GetHaloElements();
+	exbuf.m_sComponents = sStateTracerMaxVariables;
+	exbuf.m_sMaxRElements = GetRElements() + 1;
 
 	// Get the opposing direction
 	GetOpposingDirection(
 		boxSource.GetPanel(),
 		boxTarget.GetPanel(),
 		dir,
-		info.dirOpposing,
-		info.fReverseDirection,
-		info.fFlippedCoordinate);
+		exbuf.m_dirOpposing,
+		exbuf.m_fReverseDirection,
+		exbuf.m_fFlippedCoordinate);
 
 	// Determine the size of the boundary (number of elements along exterior
 	// edge).  Used in computing the size of the send/recv buffers.
@@ -1220,47 +1199,47 @@ void Grid::RegisterExchangeBuffer(
 		(dir == Direction_Left) ||
 		(dir == Direction_Bottom)
 	) {
-		info.sBoundarySize = ixSecond - ixFirst;
+		exbuf.m_sBoundarySize = ixSecond - ixFirst;
 	} else {
-		info.sBoundarySize = info.sHaloElements;
+		exbuf.m_sBoundarySize = exbuf.m_sHaloElements;
 	}
 
-	info.CalculateByteSize();
+	exbuf.CalculateByteSize();
 
 	if ((dir == Direction_TopRight) && (
-		(ixFirst < boxSource.GetAInteriorBegin() + info.sBoundarySize - 1) ||
-		(ixSecond < boxSource.GetBInteriorBegin() + info.sBoundarySize - 1)
+		(ixFirst < boxSource.GetAInteriorBegin() + exbuf.m_sBoundarySize - 1) ||
+		(ixSecond < boxSource.GetBInteriorBegin() + exbuf.m_sBoundarySize - 1)
 	)) {
 		_EXCEPTIONT("Insufficient interior elements to build "
 			"diagonal connection.");
 	}
 
 	if ((dir == Direction_TopLeft) && (
-		(ixFirst > boxSource.GetAInteriorEnd() - info.sBoundarySize) ||
-		(ixSecond < boxSource.GetBInteriorBegin() + info.sBoundarySize - 1)
+		(ixFirst > boxSource.GetAInteriorEnd() - exbuf.m_sBoundarySize) ||
+		(ixSecond < boxSource.GetBInteriorBegin() + exbuf.m_sBoundarySize - 1)
 	)) {
 		_EXCEPTIONT("Insufficient interior elements to build "
 			"diagonal connection.");
 	}
 
 	if ((dir == Direction_BottomLeft) && (
-		(ixFirst > boxSource.GetAInteriorEnd() - info.sBoundarySize) ||
-		(ixSecond > boxSource.GetBInteriorEnd() - info.sBoundarySize)
+		(ixFirst > boxSource.GetAInteriorEnd() - exbuf.m_sBoundarySize) ||
+		(ixSecond > boxSource.GetBInteriorEnd() - exbuf.m_sBoundarySize)
 	)) {
 		_EXCEPTIONT("Insufficient interior elements to build "
 			"diagonal connection.");
 	}
 
 	if ((dir == Direction_BottomRight) && (
-		(ixFirst < boxSource.GetAInteriorBegin() + info.sBoundarySize - 1) ||
-		(ixSecond > boxSource.GetBInteriorEnd() - info.sBoundarySize)
+		(ixFirst < boxSource.GetAInteriorBegin() + exbuf.m_sBoundarySize - 1) ||
+		(ixSecond > boxSource.GetBInteriorEnd() - exbuf.m_sBoundarySize)
 	)) {
 		_EXCEPTIONT("Insufficient interior elements to build "
 			"diagonal connection.");
 	}
 
 	// Add the exchange buffer information to the registry
-	m_aExchangeBufferRegistry.Register(info);
+	m_aExchangeBufferRegistry.Register(exbuf);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1584,61 +1563,10 @@ void Grid::InitializeExchangeBuffersFromActivePatches() {
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void Grid::InitializeAllExchangeBuffers() {
-	for (int n = 0; n < m_nInitializedPatchBoxes; n++) {
-		InitializeExchangeBuffersFromPatch(n);
-	}
-}
+void Grid::InitializeConnectivity() {
 
-///////////////////////////////////////////////////////////////////////////////
-
-void Grid::InitializeConnectivity(
-	bool fAllocate
-) {
-
-	// Clear all existing neighbors fro all active patches
-	for (int n = 0; n < m_vecActiveGridPatches.size(); n++) {
-		m_vecActiveGridPatches[n]->m_connect.ClearNeighbors();
-	}
-
-	// Loop through all exchange buffers
-	const ExchangeBufferRegistry::ExchangeBufferInfoVector & vecRegistry =
-		m_aExchangeBufferRegistry.GetRegistry();
-
-	for (int m = 0; m < vecRegistry.size(); m++) {
-
-		const ExchangeBufferInfo & info = vecRegistry[m];
-
-		// If the GridPatch associated with this exchange buffer is active,
-		// add neighbors
-		GridPatch * pPatch = NULL;
-		for (int n = 0; n < m_vecActiveGridPatches.size(); n++) {
-			if (m_vecActiveGridPatchIndices[n] == info.ixSourcePatch) {
-				pPatch = m_vecActiveGridPatches[n];
-				break;
-			}
-		}
-
-		if (pPatch != NULL) {
-
-			const PatchBox & boxSource = GetPatchBox(info.ixSourcePatch);
-			const PatchBox & boxTarget = GetPatchBox(info.ixTargetPatch);
-
-			// Build the new ExteriorNeighbor
-			ExteriorNeighbor * pNeighbor =
-				new ExteriorNeighbor(info);
-
-			if (fAllocate) {
-				m_aExchangeBufferRegistry.Allocate(m);
-			}
-
-			pNeighbor->AttachBuffers(
-				m_aExchangeBufferRegistry.GetRecvBufferPtr(m),
-				m_aExchangeBufferRegistry.GetSendBufferPtr(m));
-
-			pPatch->m_connect.AddExteriorNeighbor(pNeighbor);
-		}
-	}
+	// Allocate all ExchangeBuffers
+	m_aExchangeBufferRegistry.Allocate();
 }
 
 ///////////////////////////////////////////////////////////////////////////////

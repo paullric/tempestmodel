@@ -24,9 +24,9 @@
 #include "DataArray4D.h"
 
 #include "PatchBox.h"
-#include "Connectivity.h"
 #include "ChecksumType.h"
 #include "DataContainer.h"
+#include "Connectivity.h"
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -227,40 +227,22 @@ public:
 
 public:
 	///	<summary>
-	///		Prepare for the exchange of halo data between processors.
+	///		Pack the ExchangeBuffer.
 	///	</summary>
-	void PrepareExchange();
-
-	///	<summary>
-	///		Send halo data to other processors.
-	///	</summary>
-	void Send(
+	void PackExchangeBuffer(
 		DataType eDataType,
-		int iDataIndex
+		int iDataIndex,
+		ExchangeBuffer & exbuf
 	);
 
 	///	<summary>
-	///		Receive halo data from other processors.
+	///		Unpack the ExchangeBuffer.
 	///	</summary>
-	void Receive(
+	void UnpackExchangeBuffer(
 		DataType eDataType,
-		int iDataIndex
+		int iDataIndex,
+		ExchangeBuffer & exbuf
 	);
-
-	///	<summary>
-	///		Send buffers to other processors.
-	///	</summary>
-	void SendBuffers();
-
-	///	<summary>
-	///		Receive buffers from other processors.
-	///	</summary>
-	void ReceiveBuffers();
-
-	///	<summary>
-	///		Complete the exchange of data between processors.
-	///	</summary>
-	void CompleteExchange();
 
 public:
 	///	<summary>
@@ -363,20 +345,6 @@ public:
 	///	</summary>
 	int GetNeighborPanel(Direction dir) const {
 		return m_ixNeighborPanel[(int)(dir)];
-	}
-
-	///	<summary>
-	///		Get the connectivity of this patch.
-	///	</summary>
-	const Connectivity & GetConnectivity() const {
-		return m_connect;
-	}
-
-	///	<summary>
-	///		Get the connectivity of this patch.
-	///	</summary>
-	Connectivity & GetConnectivity() {
-		return m_connect;
 	}
 
 public:
@@ -1163,11 +1131,6 @@ protected:
 	///		Panels in each coordinate direction.
 	///	</summary>
 	PanelIndexVector m_ixNeighborPanel;
-
-	///	<summary>
-	///		Connectivity of this patch to other patches on the grid.
-	///	</summary>
-	Connectivity m_connect;
 
 protected:
 	///	<summary>

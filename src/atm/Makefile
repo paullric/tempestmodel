@@ -27,7 +27,6 @@ FILES= CubedSphereTrans.cpp \
        TimestepSchemeARK4.cpp \
        TimestepSchemeSplitExp.cpp \
        HorizontalDynamicsFEM.cpp \
-       HorizontalDynamicsDG.cpp \
        VerticalDynamicsFEM.cpp \
        VerticalDynamicsFLL.cpp \
        VerticalDynamicsSchur.cpp \

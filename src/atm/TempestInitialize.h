@@ -30,7 +30,6 @@
 #include "TimestepSchemeSplitExp.h"
 #include "HorizontalDynamicsStub.h"
 #include "HorizontalDynamicsFEM.h"
-#include "HorizontalDynamicsDG.h"
 #include "VerticalDynamicsStub.h"
 #include "VerticalDynamicsFEM.h"
 #include "VerticalDynamicsSchur.h"
@@ -131,7 +130,6 @@ struct _TempestCommandLineVariables {
 	CommandLineString(_tempestvars.strVerticalStretch, "vstretch", "uniform"); \
 	CommandLineInt(_tempestvars.nVerticalHyperdiffOrder, "vhypervisorder", 0); \
 	CommandLineString(_tempestvars.strTimestepScheme, "timescheme", "strang"); \
-	CommandLineStringD(_tempestvars.strHorizontalDynamics, "method", "SE", "(SE | DG)"); \
 	CommandLineStringD(_tempestvars.strVerticalDynamics, "vmethod", "DEFAULT", "(DEFAULT | SCHUR | FLL)");
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -258,32 +256,16 @@ void _TempestSetupMethodOfLines(
 		vars.dNuVort = 0.0;
 	}
 
-	STLStringHelper::ToLower(vars.strHorizontalDynamics);
-	if (vars.strHorizontalDynamics == "se") {
-		model.SetHorizontalDynamics(
-			new HorizontalDynamicsFEM(
-				model,
-				vars.nHorizontalOrder,
-				vars.nHyperviscosityOrder,
-				vars.dNuScalar,
-				vars.dNuDiv,
-				vars.dNuVort,
-				vars.dInstepNuDiv));
+	model.SetHorizontalDynamics(
+		new HorizontalDynamicsFEM(
+			model,
+			vars.nHorizontalOrder,
+			vars.nHyperviscosityOrder,
+			vars.dNuScalar,
+			vars.dNuDiv,
+			vars.dNuVort,
+			vars.dInstepNuDiv));
 
-	} else if (vars.strHorizontalDynamics == "dg") {
-		model.SetHorizontalDynamics(
-			new HorizontalDynamicsDG(
-				model,
-				vars.nHorizontalOrder,
-				vars.nHyperviscosityOrder,
-				vars.dNuScalar,
-				vars.dNuDiv,
-				vars.dNuVort,
-				vars.dInstepNuDiv));
-
-	} else {
-		_EXCEPTIONT("Invalid method: Expected \"SE\" or \"DG\"");
-	}
 	AnnounceEndBlock("Done");
 
 	// Vertical staggering
