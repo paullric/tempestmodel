@@ -926,44 +926,17 @@ double GridPatch::ComputeTotalEnergy(
 		}
 		}
 
-	} else {
+	// Non-hydrostatic model with vertical velocity on nodes
+	} else if (m_grid.GetVarLocation(WIx) == DataLocation_Node) {
 
 		// Loop over all elements
 		int k;
 		int i;
 		int j;
-/*
-		double dTotalKineticEnergy = 0.0;
-		double dTotalInternalEnergy = 0.0;
-		double dTotalPotentialEnergy = 0.0;
-*/
+
 		for (k = 0; k < m_grid.GetRElements(); k++) {
-		//for (k = 0; k < 1; k++) {
 		for (i = m_box.GetAInteriorBegin(); i < m_box.GetAInteriorEnd(); i++) {
 		for (j = m_box.GetBInteriorBegin(); j < m_box.GetBInteriorEnd(); j++) {
-/*
-			double dUa = dataNode[UIx][k][i][j];
-			double dUb = dataNode[VIx][k][i][j];
-			double dUx = dataNode[WIx][k][i][j];
-
-			double dCovUa =
-				  m_dataCovMetricA[k][i][j][0] * dUa
-				+ m_dataCovMetricA[k][i][j][1] * dUb
-				+ m_dataCovMetricA[k][i][j][2] * dUx;
-
-			double dCovUb =
-				  m_dataCovMetricB[k][i][j][0] * dUa
-				+ m_dataCovMetricB[k][i][j][1] * dUb
-				+ m_dataCovMetricB[k][i][j][2] * dUx;
-
-			double dCovUx =
-				  m_dataCovMetricXi[k][i][j][0] * dUa
-				+ m_dataCovMetricXi[k][i][j][1] * dUb
-				+ m_dataCovMetricXi[k][i][j][2] * dUx;
-
-			double dUdotU =
-				dCovUa * dUa + dCovUb * dUb + dCovUx * dUx;
-*/
 
 			double dCovUa = dataNode[UIx][k][i][j];
 			double dCovUb = dataNode[VIx][k][i][j];
@@ -1009,20 +982,91 @@ double GridPatch::ComputeTotalEnergy(
 
 			dLocalEnergy += m_dataElementArea[k][i][j]
 				* (dKineticEnergy + dInternalEnergy + dPotentialEnergy);
-/*
-			dTotalKineticEnergy += m_dataElementArea[k][i][j] * dKineticEnergy;
-			dTotalInternalEnergy += m_dataElementArea[k][i][j] * dInternalEnergy;
-			dTotalPotentialEnergy += m_dataElementArea[k][i][j] * dPotentialEnergy;
-*/
 		}
 		}
 		}
-/*
-		printf("%1.15e %1.15e %1.15e\n",
-			dTotalKineticEnergy,
-			dTotalInternalEnergy,
-			dTotalPotentialEnergy);
-*/
+
+	// Non-hydrostatic model with vertical velocity on interfaces
+	} else {
+
+		// Data on interfaces
+		const DataArray4D<double> & dataREdge =
+			m_datavecStateREdge[iDataIndex];
+
+		// Loop over all elements
+		int k;
+		int i;
+		int j;
+
+		for (k = 0; k < m_grid.GetRElements(); k++) {
+		for (i = m_box.GetAInteriorBegin(); i < m_box.GetAInteriorEnd(); i++) {
+		for (j = m_box.GetBInteriorBegin(); j < m_box.GetBInteriorEnd(); j++) {
+
+			double dCovUa = dataNode[UIx][k][i][j];
+			double dCovUb = dataNode[VIx][k][i][j];
+			double dCovUx =
+				dataNode[WIx][k][i][j] * m_dataDerivRNode[k][i][j][2];
+
+			double dConUa =
+				  m_dataContraMetricA[k][i][j][0] * dCovUa
+				+ m_dataContraMetricA[k][i][j][1] * dCovUb
+				+ m_dataContraMetricA[k][i][j][2] * dCovUx;
+
+			double dConUb =
+				  m_dataContraMetricB[k][i][j][0] * dCovUa
+				+ m_dataContraMetricB[k][i][j][1] * dCovUb
+				+ m_dataContraMetricB[k][i][j][2] * dCovUx;
+
+			double dUdotU = dConUa * dCovUa + dConUb * dCovUb;
+
+			dUdotU += m_dataContraMetricXi[k][i][j][0] * dCovUa * dCovUx;
+			dUdotU += m_dataContraMetricXi[k][i][j][1] * dCovUb * dCovUx;
+
+			double dKineticEnergy =
+				0.5 * dataNode[RIx][k][i][j] * dUdotU;
+
+#ifdef FORMULATION_PRESSURE
+			double dPressure = dataNode[PIx][k][i][j];
+#endif
+#if defined(FORMULATION_RHOTHETA_PI) || defined(FORMULATION_RHOTHETA_P)
+			double dPressure = phys.PressureFromRhoTheta(dataNode[PIx][k][i][j]);
+#endif
+#if defined(FORMULATION_THETA) || defined(FORMULATION_THETA_FLUX)
+			double dPressure =
+				phys.PressureFromRhoTheta(
+					dataNode[RIx][k][i][j] * dataNode[PIx][k][i][j]);
+#endif
+
+			double dInternalEnergy =
+				dPressure / (phys.GetGamma() - 1.0);
+
+			double dPotentialEnergy =
+				phys.GetG() * dataNode[RIx][k][i][j] * m_dataZLevels[k][i][j];
+
+			dLocalEnergy += m_dataElementArea[k][i][j]
+				* (dKineticEnergy + dInternalEnergy + dPotentialEnergy);
+		}
+		}
+		}
+
+		for (k = 0; k <= m_grid.GetRElements(); k++) {
+		for (i = m_box.GetAInteriorBegin(); i < m_box.GetAInteriorEnd(); i++) {
+		for (j = m_box.GetBInteriorBegin(); j < m_box.GetBInteriorEnd(); j++) {
+
+			double dCovUx =
+				dataREdge[WIx][k][i][j] * m_dataDerivRREdge[k][i][j][2];
+
+			double dKineticEnergy =
+				0.5 * dataREdge[RIx][k][i][j]
+				* m_dataContraMetricXiREdge[k][i][j][2]
+				* dCovUx * dCovUx;
+
+			dLocalEnergy +=
+				m_dataElementAreaREdge[k][i][j]
+				* dKineticEnergy;
+		}
+		}
+		}
 	}
 
 	return dLocalEnergy;

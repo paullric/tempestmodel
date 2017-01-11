@@ -401,7 +401,7 @@ void Model::Go() {
 		// Perform one time step
 		Announce("Step %s", m_time.ToString().c_str());
 		m_pTimestepScheme->Step(fFirstStep, fLastStep, m_time, dDeltaT);
-
+/*
 		// Energy and enstrophy
 		{
 			if (m_eqn.GetDimensionality() == 3) {
@@ -418,12 +418,13 @@ void Model::Go() {
 					m_pGrid->InterpolateREdgeToNode(3, 0);
 				}
 			}
-/*
+
 			Announce("%1.15e %1.15e",
 				m_pGrid->ComputeTotalEnergy(0),
 				m_pGrid->ComputeTotalPotentialEnstrophy(0));
-*/
+
 		}
+*/
 /*
 		// L2 errors of the height field
 		{
