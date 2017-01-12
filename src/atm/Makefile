@@ -28,6 +28,7 @@ FILES= CubedSphereTrans.cpp \
        TimestepSchemeSplitExp.cpp \
        HorizontalDynamicsFEM.cpp \
        VerticalDynamicsFEM.cpp \
+       VerticalDynamicsFEMV2.cpp \
        VerticalDynamicsFLL.cpp \
        VerticalDynamicsSchur.cpp \
        JacobianFreeNewtonKrylov.cpp \

@@ -32,6 +32,7 @@
 #include "HorizontalDynamicsFEM.h"
 #include "VerticalDynamicsStub.h"
 #include "VerticalDynamicsFEM.h"
+#include "VerticalDynamicsFEMV2.h"
 #include "VerticalDynamicsSchur.h"
 #include "VerticalDynamicsFLL.h"
 #include "OutputManagerComposite.h"
@@ -130,7 +131,7 @@ struct _TempestCommandLineVariables {
 	CommandLineString(_tempestvars.strVerticalStretch, "vstretch", "uniform"); \
 	CommandLineInt(_tempestvars.nVerticalHyperdiffOrder, "vhypervisorder", 0); \
 	CommandLineString(_tempestvars.strTimestepScheme, "timescheme", "strang"); \
-	CommandLineStringD(_tempestvars.strVerticalDynamics, "vmethod", "DEFAULT", "(DEFAULT | SCHUR | FLL)");
+	CommandLineStringD(_tempestvars.strVerticalDynamics, "vmethod", "V1", "(V1 | V2 | SCHUR | FLL)");
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -280,9 +281,20 @@ void _TempestSetupMethodOfLines(
 		model.SetVerticalDynamics(
 			new VerticalDynamicsStub(model));
 
-	} else if (vars.strVerticalDynamics == "default") {
+	} else if (vars.strVerticalDynamics == "v1") {
 		model.SetVerticalDynamics(
 			new VerticalDynamicsFEM(
+				model,
+				vars.nHorizontalOrder,
+				vars.nVerticalOrder,
+				vars.nVerticalHyperdiffOrder,
+				vars.fExplicitVertical,
+				!vars.fNoReferenceState,
+				vars.fForceMassFluxOnLevels));
+
+	} else if (vars.strVerticalDynamics == "v2") {
+		model.SetVerticalDynamics(
+			new VerticalDynamicsFEMV2(
 				model,
 				vars.nHorizontalOrder,
 				vars.nVerticalOrder,

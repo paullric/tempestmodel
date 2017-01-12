@@ -38,9 +38,9 @@
 ///		Thermodynamic closure to use.
 ///	</summary>
 //#define FORMULATION_PRESSURE
-//#define FORMULATION_RHOTHETA_PI
+#define FORMULATION_RHOTHETA_PI
 //#define FORMULATION_RHOTHETA_P
-#define FORMULATION_THETA
+//#define FORMULATION_THETA
 //#define FORMULATION_THETA_FLUX
 
 ///	<summary>
