@@ -4133,9 +4133,9 @@ void VerticalDynamicsFEM::UpdateColumnTracers(
 
 				double dSignWeight;
 				if (m_dXiDotREdge[kLeftEnd] > 0.0) {
-					dSignWeight = 1.0 / m_dColumnContraMetricXiREdge[kLeftEnd][2];
+					dSignWeight = 1.0 * m_dColumnContraMetricXiREdge[kLeftEnd][2];
 				} else if (m_dXiDotREdge[kLeftEnd] < 0.0) {
-					dSignWeight = -1.0 / m_dColumnContraMetricXiREdge[kLeftEnd][2];
+					dSignWeight = -1.0 * m_dColumnContraMetricXiREdge[kLeftEnd][2];
 				} else {
 					dSignWeight = 0.0;
 				}
@@ -4348,9 +4348,9 @@ void VerticalDynamicsFEM::UpdateColumnTracers(
 
 					double dSignWeight;
 					if (m_dXiDotREdgeInitial[kLeftEnd] > 0.0) {
-						dSignWeight = 1.0;
+						dSignWeight = 1.0 * m_dColumnContraMetricXiREdge[kLeftEnd][2];
 					} else if (m_dXiDotREdgeInitial[kLeftEnd] < 0.0) {
-						dSignWeight = -1.0;
+						dSignWeight = -1.0 * m_dColumnContraMetricXiREdge[kLeftEnd][2];
 					} else {
 						dSignWeight = 0.0;
 					}
