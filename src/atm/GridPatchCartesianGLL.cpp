@@ -307,7 +307,6 @@ void GridPatchCartesianGLL::EvaluateGeometricTerms() {
 				double dDbZ = (1.0 - dREta) * dDbZs;
 				double dDxZ = (m_grid.GetZtop() - dZs);
 */
-//
 				double power = 6.0;
 				double botRate = 1.0;
 				double dZ = m_grid.GetZtop() * dREta +
@@ -341,7 +340,7 @@ void GridPatchCartesianGLL::EvaluateGeometricTerms() {
 					dDxZ * m_dataJacobian2D[iA][iB];
 
 				// Element area associated with each model level GLL node
-				m_dataElementArea[k][iA][iB] =
+				m_dataElementAreaNode[k][iA][iB] =
 					m_dataJacobian[k][iA][iB]
 					* dWL[i] * GetElementDeltaA()
 					* dWL[j] * GetElementDeltaB()
@@ -368,29 +367,7 @@ void GridPatchCartesianGLL::EvaluateGeometricTerms() {
 					m_dataContraMetricB[k][iA][iB][2];
 				m_dataContraMetricXi[k][iA][iB][2] =
 					(1.0 + dDaZ * dDaZ + dDbZ * dDbZ) / (dDxZ * dDxZ);
-/*
-				// Covariant metric components
-				m_dataCovMetricA[k][iA][iB][0] =
-					m_dataCovMetric2DA[iA][iB][0] + dDaZ * dDaZ;
-				m_dataCovMetricA[k][iA][iB][1] =
-					m_dataCovMetric2DA[iA][iB][1] + dDaZ * dDbZ;
-				m_dataCovMetricA[k][iA][iB][2] =
-					dDaZ * dDxZ;
 
-				m_dataCovMetricB[k][iA][iB][0] =
-					m_dataCovMetric2DB[iA][iB][0] + dDbZ * dDaZ;
-				m_dataCovMetricB[k][iA][iB][1] =
-					m_dataCovMetric2DB[iA][iB][1] + dDbZ * dDbZ;
-				m_dataCovMetricB[k][iA][iB][2] =
-					dDbZ * dDxZ;
-
-				m_dataCovMetricXi[k][iA][iB][0] =
-					dDaZ * dDxZ;
-				m_dataCovMetricXi[k][iA][iB][1] =
-					dDbZ * dDxZ;
-				m_dataCovMetricXi[k][iA][iB][2] =
-					dDxZ * dDxZ;
-*/
 				// Derivatives of the vertical coordinate transform
 				m_dataDerivRNode[k][iA][iB][0] = dDaZ;
 				m_dataDerivRNode[k][iA][iB][1] = dDbZ;
@@ -764,7 +741,7 @@ void GridPatchCartesianGLL::ApplyBoundaryConditions(
 					dUx_hat = 0.5 * 
 						(m_datavecStateNode[iDataIndex][WIx][k][i][j] +
 						m_datavecStateNode[iDataIndex][WIx][k][i-1][j]);
-					dUx_hat *= m_dataDerivRNode[k][i-1][j][2];
+					//dUx_hat *= m_dataDerivRNode[k][i-1][j][2];
 					// Get the local alpha contravariant metric components
 					dGaa = m_dataContraMetricA[k][i-1][j][0];
 					dGab = m_dataContraMetricA[k][i-1][j][1];
@@ -808,7 +785,7 @@ void GridPatchCartesianGLL::ApplyBoundaryConditions(
 					dUx_hat = 0.5 * 
 						(m_datavecStateNode[iDataIndex][WIx][k][i][j] +
 						m_datavecStateNode[iDataIndex][WIx][k][i][j-1]);
-					dUx_hat *= m_dataDerivRNode[k][i][j-1][2];
+					//dUx_hat *= m_dataDerivRNode[k][i][j-1][2];
 					// Get the local beta contravariant metric components
 					dGba = m_dataContraMetricB[k][i][j-1][0];
 					dGbb = m_dataContraMetricB[k][i][j-1][1];
@@ -853,7 +830,7 @@ void GridPatchCartesianGLL::ApplyBoundaryConditions(
 					dUx_hat = 0.5 * 
 						(m_datavecStateNode[iDataIndex][WIx][k][i][j] +
 						m_datavecStateNode[iDataIndex][WIx][k][i+1][j]);
-					dUx_hat *= m_dataDerivRNode[k][i+1][j][2];
+					//dUx_hat *= m_dataDerivRNode[k][i+1][j][2];
 					// Get the local alpha contravariant metric components
 					dGaa = m_dataContraMetricA[k][i+1][j][0];
 					dGab = m_dataContraMetricA[k][i+1][j][1];
@@ -897,7 +874,7 @@ void GridPatchCartesianGLL::ApplyBoundaryConditions(
 					dUx_hat = 0.5 * 
 						(m_datavecStateNode[iDataIndex][WIx][k][i][j] +
 						m_datavecStateNode[iDataIndex][WIx][k][i][j+1]);
-					dUx_hat *= m_dataDerivRNode[k][i][j+1][2];
+					//dUx_hat *= m_dataDerivRNode[k][i][j+1][2];
 					// Get the local beta contravariant metric components
 					dGba = m_dataContraMetricB[k][i][j+1][0];
 					dGbb = m_dataContraMetricB[k][i][j+1][1];
@@ -943,7 +920,7 @@ void GridPatchCartesianGLL::ApplyBoundaryConditions(
 					dUx_hat = 0.5 * 
 						(m_datavecStateNode[iDataIndex][WIx][k][i][j] +
 						m_datavecStateNode[iDataIndex][WIx][k][i-1][j]);
-					dUx_hat *= m_dataDerivRNode[k][i-1][j][2];
+					//dUx_hat *= m_dataDerivRNode[k][i-1][j][2];
 					// Get the local alpha contravariant metric components
 					dGaa = m_dataContraMetricA[k][i-1][j][0];
 					dGab = m_dataContraMetricA[k][i-1][j][1];
@@ -977,7 +954,7 @@ void GridPatchCartesianGLL::ApplyBoundaryConditions(
 					dUx_hat = 0.5 * 
 						(m_datavecStateREdge[iDataIndex][WIx][k][i][j] +
 						m_datavecStateREdge[iDataIndex][WIx][k][i-1][j]);
-					dUx_hat *= m_dataDerivRREdge[k][i-1][j][2];
+					//dUx_hat *= m_dataDerivRREdge[k][i-1][j][2];
 					// Get the local alpha contravariant metric components
 					dGaa = m_dataContraMetricAREdge[k][i-1][j][0];
 					dGab = m_dataContraMetricAREdge[k][i-1][j][1];
@@ -1021,7 +998,7 @@ void GridPatchCartesianGLL::ApplyBoundaryConditions(
 					dUx_hat = 0.5 * 
 						(m_datavecStateNode[iDataIndex][WIx][k][i][j] +
 						m_datavecStateNode[iDataIndex][WIx][k][i][j-1]);
-					dUx_hat *= m_dataDerivRNode[k][i][j-1][2];
+					//dUx_hat *= m_dataDerivRNode[k][i][j-1][2];
 					// Get the local beta contravariant metric components
 					dGba = m_dataContraMetricB[k][i][j-1][0];
 					dGbb = m_dataContraMetricB[k][i][j-1][1];
@@ -1055,7 +1032,7 @@ void GridPatchCartesianGLL::ApplyBoundaryConditions(
 					dUx_hat = 0.5 * 
 						(m_datavecStateREdge[iDataIndex][WIx][k][i][j] +
 						m_datavecStateREdge[iDataIndex][WIx][k][i][j-1]);
-					dUx_hat *= m_dataDerivRREdge[k][i][j-1][2];
+					//dUx_hat *= m_dataDerivRREdge[k][i][j-1][2];
 					// Get the local beta contravariant metric components
 					dGba = m_dataContraMetricBREdge[k][i][j-1][0];
 					dGbb = m_dataContraMetricBREdge[k][i][j-1][1];
@@ -1099,7 +1076,7 @@ void GridPatchCartesianGLL::ApplyBoundaryConditions(
 					dUx_hat = 0.5 * 
 						(m_datavecStateNode[iDataIndex][WIx][k][i][j] +
 						m_datavecStateNode[iDataIndex][WIx][k][i+1][j]);
-					dUx_hat *= m_dataDerivRNode[k][i+1][j][2];
+					//dUx_hat *= m_dataDerivRNode[k][i+1][j][2];
 					// Get the local alpha contravariant metric components
 					dGaa = m_dataContraMetricA[k][i+1][j][0];
 					dGab = m_dataContraMetricA[k][i+1][j][1];
@@ -1133,7 +1110,7 @@ void GridPatchCartesianGLL::ApplyBoundaryConditions(
 					dUx_hat = 0.5 * 
 						(m_datavecStateREdge[iDataIndex][WIx][k][i][j] +
 						m_datavecStateREdge[iDataIndex][WIx][k][i+1][j]);
-					dUx_hat *= m_dataDerivRREdge[k][i+1][j][2];
+					//dUx_hat *= m_dataDerivRREdge[k][i+1][j][2];
 					// Get the local alpha contravariant metric components
 					dGaa = m_dataContraMetricAREdge[k][i+1][j][0];
 					dGab = m_dataContraMetricAREdge[k][i+1][j][1];
@@ -1177,7 +1154,7 @@ void GridPatchCartesianGLL::ApplyBoundaryConditions(
 					dUx_hat = 0.5 * 
 						(m_datavecStateNode[iDataIndex][WIx][k][i][j] +
 						m_datavecStateNode[iDataIndex][WIx][k][i][j+1]);
-					dUx_hat *= m_dataDerivRNode[k][i][j+1][2];
+					//dUx_hat *= m_dataDerivRNode[k][i][j+1][2];
 					// Get the local beta contravariant metric components
 					dGba = m_dataContraMetricB[k][i][j+1][0];
 					dGbb = m_dataContraMetricB[k][i][j+1][1];
@@ -1211,7 +1188,7 @@ void GridPatchCartesianGLL::ApplyBoundaryConditions(
 					dUx_hat = 0.5 * 
 						(m_datavecStateREdge[iDataIndex][WIx][k][i][j] +
 						m_datavecStateREdge[iDataIndex][WIx][k][i][j+1]);
-					dUx_hat *= m_dataDerivRREdge[k][i][j+1][2];
+					//dUx_hat *= m_dataDerivRREdge[k][i][j+1][2];
 					// Get the local beta contravariant metric components
 					dGba = m_dataContraMetricBREdge[k][i][j+1][0];
 					dGbb = m_dataContraMetricBREdge[k][i][j+1][1];

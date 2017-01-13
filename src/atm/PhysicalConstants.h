@@ -420,32 +420,6 @@ public:
 	inline double PressureFromExnerPressure(double dPi) const {
 		return m_dP0 * exp(m_dCp / m_dR * log(dPi / m_dCp));
 	}
-
-#ifdef TEMPEST_NETCDF
-public:
-	///	<summary>
-	///		Output the set of physical constants to a NetCDF file.
-	///	</summary>
-	///	<param name="ncOut">
-	///		NetCDF file to receive the output.
-	///	</param>
-	void NcOutputPhysicalConstants(NcFile * ncOut);
-
-	///	<summary>
-	///		Input the set of physical constants from a NetCDF file.
-	///	</summary>
-	///	<param name="ncIn">
-	///		NetCDF file that contains the set of physical constants.
-	///	</param>
-	void NcInputPhysicalConstants(NcFile * ncIn);
-
-#else
-public:
-	///	<summary>
-	///		Stub function to avoid .cpp has no symbols error.
-	///	</summary>
-	void Stub();
-#endif
 };
 
 ///////////////////////////////////////////////////////////////////////////////

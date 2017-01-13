@@ -1,6 +1,6 @@
 ///////////////////////////////////////////////////////////////////////////////
 ///
-///	\file    HorizontalDynamicsFEM.cpp
+///	\file    HorizontalDynamicsFEMV2.cpp
 ///	\author  Paul Ullrich
 ///	\version September 19, 2013
 ///
@@ -15,7 +15,7 @@
 ///	</remarks>
 
 #include "Defines.h"
-#include "HorizontalDynamicsFEM.h"
+#include "HorizontalDynamicsFEMV2.h"
 #include "PhysicalConstants.h"
 #include "Model.h"
 #include "Grid.h"
@@ -37,7 +37,7 @@
 
 ///////////////////////////////////////////////////////////////////////////////
 
-HorizontalDynamicsFEM::HorizontalDynamicsFEM(
+HorizontalDynamicsFEMV2::HorizontalDynamicsFEMV2(
 	Model & model,
 	int nHorizontalOrder,
 	int nHyperviscosityOrder,
@@ -58,7 +58,7 @@ HorizontalDynamicsFEM::HorizontalDynamicsFEM(
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void HorizontalDynamicsFEM::Initialize() {
+void HorizontalDynamicsFEMV2::Initialize() {
 
 	// Get a copy of the GLL grid
 	GridGLL * pGrid = dynamic_cast<GridGLL*>(m_model.GetGrid());
@@ -173,7 +173,7 @@ void HorizontalDynamicsFEM::Initialize() {
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void HorizontalDynamicsFEM::FilterNegativeTracers(
+void HorizontalDynamicsFEMV2::FilterNegativeTracers(
 	int iDataUpdate
 ) {
 #ifdef POSITIVE_DEFINITE_FILTER_TRACERS
@@ -266,275 +266,7 @@ void HorizontalDynamicsFEM::FilterNegativeTracers(
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void HorizontalDynamicsFEM::StepShallowWater(
-	int iDataInitial,
-	int iDataUpdate,
-	const Time & time,
-	double dDeltaT
-) {
-
-	// Get a copy of the GLL grid
-	GridGLL * pGrid = dynamic_cast<GridGLL*>(m_model.GetGrid());
-
-	// Number of vertical elements
-	const int nRElements = pGrid->GetRElements();
-
-	// Physical constants
-	const PhysicalConstants & phys = m_model.GetPhysicalConstants();
-
-	// Get indices of variables to update
-	const int UIx = 0;
-	const int VIx = 1;
-	const int HIx = 2;
-
-	// Indices of auxiliary data variables
-	const int ConUaIx = 0;
-	const int ConUbIx = 1;
-	const int KIx = 4;
-
-	// Perform local update
-	for (int n = 0; n < pGrid->GetActivePatchCount(); n++) {
-		GridPatchGLL * pPatch =
-			dynamic_cast<GridPatchGLL*>(pGrid->GetActivePatch(n));
-
-		const PatchBox & box = pPatch->GetPatchBox();
-
-		const DataArray3D<double> & dElementAreaNode =
-			pPatch->GetElementAreaNode();
-		const DataArray2D<double> & dJacobian2D =
-			pPatch->GetJacobian2D();
-		const DataArray3D<double> & dContraMetric2DA =
-			pPatch->GetContraMetric2DA();
-		const DataArray3D<double> & dContraMetric2DB =
-			pPatch->GetContraMetric2DB();
-		const DataArray2D<double> & dCoriolisF =
-			pPatch->GetCoriolisF();
-		const DataArray2D<double> & dTopography =
-			pPatch->GetTopography();
-
-		// Data
-		const DataArray4D<double> & dataInitialNode =
-			pPatch->GetDataState(iDataInitial, DataLocation_Node);
-
-		DataArray4D<double> & dataUpdateNode =
-			pPatch->GetDataState(iDataUpdate, DataLocation_Node);
-
-		// Element grid spacing and derivative coefficients
-		const double dElementDeltaA = pPatch->GetElementDeltaA();
-		const double dElementDeltaB = pPatch->GetElementDeltaB();
-
-		const double dInvElementDeltaA = 1.0 / dElementDeltaA;
-		const double dInvElementDeltaB = 1.0 / dElementDeltaB;
-
-		const DataArray2D<double> & dDxBasis1D = pGrid->GetDxBasis1D();
-		const DataArray2D<double> & dStiffness1D = pGrid->GetStiffness1D();
-
-		// Get number of finite elements in each coordinate direction
-		int nElementCountA = pPatch->GetElementCountA();
-		int nElementCountB = pPatch->GetElementCountB();
-
-		// Loop over all elements
-		for (int a = 0; a < nElementCountA; a++) {
-		for (int b = 0; b < nElementCountB; b++) {
-
-			// Compute auxiliary data in element
-			for (int k = 0; k < nRElements; k++) {
-			for (int i = 0; i < m_nHorizontalOrder; i++) {
-			for (int j = 0; j < m_nHorizontalOrder; j++) {
-
-				int iA = a * m_nHorizontalOrder + i + box.GetHaloElements();
-				int iB = b * m_nHorizontalOrder + j + box.GetHaloElements();
-
-				int iElementA = a * m_nHorizontalOrder + box.GetHaloElements();
-				int iElementB = b * m_nHorizontalOrder + box.GetHaloElements();
-
-				// Contravariant velocities
-				double dCovUa = dataInitialNode[UIx][k][iA][iB];
-				double dCovUb = dataInitialNode[VIx][k][iA][iB];
-
-				// Contravariant velocities
-				m_dAuxDataNode[ConUaIx][k][i][j] =
-					  dContraMetric2DA[iA][iB][0] * dCovUa
-					+ dContraMetric2DA[iA][iB][1] * dCovUb;
-
-				m_dAuxDataNode[ConUbIx][k][i][j] =
-					  dContraMetric2DB[iA][iB][0] * dCovUa
-					+ dContraMetric2DB[iA][iB][1] * dCovUb;
-
-				// Specific kinetic energy plus pointwise pressure
-				m_dAuxDataNode[KIx][k][i][j] = 0.5 * (
-					  m_dAuxDataNode[ConUaIx][k][i][j] * dCovUa
-					+ m_dAuxDataNode[ConUbIx][k][i][j] * dCovUb);
-
-				m_dAuxDataNode[KIx][k][i][j] +=
-					phys.GetG() * dataInitialNode[HIx][k][iA][iB];
-			}
-			}
-			}
-
-			// Update all elements
-			for (int k = 0; k < nRElements; k++) {
-
-				// Pointwise fluxes and pressure within spectral element
-				for (int i = 0; i < m_nHorizontalOrder; i++) {
-				for (int j = 0; j < m_nHorizontalOrder; j++) {
-
-					int iA = a * m_nHorizontalOrder + i + box.GetHaloElements();
-					int iB = b * m_nHorizontalOrder + j + box.GetHaloElements();
-
-					// Height flux
-					m_dAlphaMassFlux[i][j] =
-						dJacobian2D[iA][iB]
-						* (dataInitialNode[HIx][k][iA][iB] - dTopography[iA][iB])
-						* m_dAuxDataNode[ConUaIx][k][i][j];
-
-					m_dBetaMassFlux[i][j] =
-						dJacobian2D[iA][iB]
-						* (dataInitialNode[HIx][k][iA][iB] - dTopography[iA][iB])
-						* m_dAuxDataNode[ConUbIx][k][i][j];
-
-				}
-				}
-
-				// Pointwise update of quantities on model levels
-				for (int i = 0; i < m_nHorizontalOrder; i++) {
-				for (int j = 0; j < m_nHorizontalOrder; j++) {
-
-					int iA = a * m_nHorizontalOrder + i + box.GetHaloElements();
-					int iB = b * m_nHorizontalOrder + j + box.GetHaloElements();
-
-					int iElementA = a * m_nHorizontalOrder + box.GetHaloElements();
-					int iElementB = b * m_nHorizontalOrder + box.GetHaloElements();
-
-					// Inverse Jacobian
-					double dInvJacobian2D = 1.0 / dJacobian2D[iA][iB];
-
-					// Derivatives of the covariant velocity field
-					double dCovDaUb = 0.0;
-					double dCovDbUa = 0.0;
-
-					// Derivative of the kinetic energy
-					double dDaKE = 0.0;
-					double dDbKE = 0.0;
-
-					// Aliases for alpha and beta velocities
-					const double dConUa = m_dAuxDataNode[ConUaIx][k][i][j];
-					const double dConUb = m_dAuxDataNode[ConUbIx][k][i][j];
-
-					// Calculate derivatives in the alpha direction
-					double dDaMassFluxA = 0.0;
-
-					for (int s = 0; s < m_nHorizontalOrder; s++) {
-#ifdef DIFFERENTIAL_FORM
-						// Update density: Differential formulation
-						dDaMassFluxA +=
-							m_dAlphaMassFlux[s][j]
-							* dDxBasis1D[s][i];
-#else
-						// Update density: Variational formulation
-						dDaMassFluxA -=
-							m_dAlphaMassFlux[s][j]
-							* dStiffness1D[i][s];
-#endif
-						// Derivative of covariant beta velocity wrt alpha
-						dCovDaUb +=
-							dataInitialNode[VIx][k][iElementA+s][iB]
-							* dDxBasis1D[s][i];
-
-						// Derivative of specific kinetic energy wrt alpha
-						dDaKE +=
-							m_dAuxDataNode[KIx][k][s][j]
-							* dDxBasis1D[s][i];
-					}
-
-					// Calculate derivatives in the beta direction
-					double dDbMassFluxB = 0.0;
-
-					for (int s = 0; s < m_nHorizontalOrder; s++) {
-#ifdef DIFFERENTIAL_FORM
-						// Update density: Differential formulation
-						dDbMassFluxB +=
-							m_dBetaMassFlux[i][s]
-							* dDxBasis1D[s][j];
-
-#else
-						// Update density: Variational formulation
-						dDbMassFluxB -=
-							m_dBetaMassFlux[i][s]
-							* dStiffness1D[j][s];
-#endif
-						// Derivative of covariant alpha velocity wrt beta
-						dCovDbUa +=
-							dataInitialNode[UIx][k][iA][iElementB+s]
-							* dDxBasis1D[s][j];
-
-						// Derivative of specific kinetic energy wrt beta
-						dDbKE +=
-							m_dAuxDataNode[KIx][k][i][s]
-							* dDxBasis1D[s][j];
-					}
-
-					// Scale derivatives
-					dDaMassFluxA *= dInvElementDeltaA;
-					dCovDaUb     *= dInvElementDeltaA;
-					dDaKE        *= dInvElementDeltaA;
-
-					dDbMassFluxB *= dInvElementDeltaB;
-					dCovDbUa     *= dInvElementDeltaB;
-					dDbKE        *= dInvElementDeltaB;
-
-					// Pointwise horizontal momentum update
-					double dLocalUpdateUa = 0.0;
-					double dLocalUpdateUb = 0.0;
-
-					// Relative vorticity
-					double dZetaXi = (dCovDaUb - dCovDbUa);
-
-					// Rotational terms (covariant)
-					double dCovUCrossZetaA  =   dConUb * dZetaXi;
-					double dCovUCrossZetaB  = - dConUa * dZetaXi;
-
-					// Coriolis terms
-					dLocalUpdateUa +=
-						dCoriolisF[iA][iB] * dJacobian2D[iA][iB] * dConUb;
-
-					dLocalUpdateUb -=
-						dCoriolisF[iA][iB] * dJacobian2D[iA][iB] * dConUa;
-
-					// Horizontal updates
-					dLocalUpdateUa += - dDaKE + dCovUCrossZetaA;
-					dLocalUpdateUb += - dDbKE + dCovUCrossZetaB;
-/*
-					if ((n == 0) && (iA == 10) && (iB == 10)) {
-						printf("%1.10e %1.10e %1.10e\n",
-							- dCoriolisF[iA][iB] * dJacobian2D[iA][iB] * dConUa,
-							dCovUCrossZetaB,
-							- dDbKE);
-					}
-*/
-
- 					// Apply update to horizontal velocity
-					dataUpdateNode[UIx][k][iA][iB] +=
-						dDeltaT * dLocalUpdateUa;
-					dataUpdateNode[VIx][k][iA][iB] +=
-						dDeltaT * dLocalUpdateUb;
-
-					// Update height
-					dataUpdateNode[HIx][k][iA][iB] -=
-						dDeltaT * dInvJacobian2D * (
-							  dDaMassFluxA
-							+ dDbMassFluxB);
-				}
-				}
-			}
-		}
-		}
-	}
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
-void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
+void HorizontalDynamicsFEMV2::StepNonhydrostaticPrimitive(
 	int iDataInitial,
 	int iDataUpdate,
 	const Time & time,
@@ -1618,7 +1350,7 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void HorizontalDynamicsFEM::StepExplicit(
+void HorizontalDynamicsFEMV2::StepExplicit(
 	int iDataInitial,
 	int iDataUpdate,
 	const Time & time,
@@ -1641,7 +1373,7 @@ void HorizontalDynamicsFEM::StepExplicit(
 
 	// Step the shallow water equations
 	} else if (eqn.GetType() == EquationSet::ShallowWaterEquations) {
-		StepShallowWater(iDataInitial, iDataUpdate, time, dDeltaT);
+		_EXCEPTIONT("Not implemented");
 
 	// Invalid EquationSet
 	} else {
@@ -1696,7 +1428,7 @@ void HorizontalDynamicsFEM::StepExplicit(
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void HorizontalDynamicsFEM::ApplyScalarHyperdiffusion(
+void HorizontalDynamicsFEMV2::ApplyScalarHyperdiffusion(
 	int iDataInitial,
 	int iDataUpdate,
 	double dDeltaT,
@@ -2014,7 +1746,7 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusion(
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void HorizontalDynamicsFEM::ApplyVectorHyperdiffusion(
+void HorizontalDynamicsFEMV2::ApplyVectorHyperdiffusion(
 	int iDataInitial,
 	int iDataUpdate,
 	double dDeltaT,
@@ -2192,7 +1924,7 @@ void HorizontalDynamicsFEM::ApplyVectorHyperdiffusion(
 
 //#pragma message "jeguerra: Clean up this function"
 
-void HorizontalDynamicsFEM::ApplyRayleighFriction(
+void HorizontalDynamicsFEMV2::ApplyRayleighFriction(
 	int iDataUpdate,
 	double dDeltaT
 ) {
@@ -2327,7 +2059,7 @@ void HorizontalDynamicsFEM::ApplyRayleighFriction(
 
 ///////////////////////////////////////////////////////////////////////////////
 
-int HorizontalDynamicsFEM::GetSubStepAfterSubCycleCount() {
+int HorizontalDynamicsFEMV2::GetSubStepAfterSubCycleCount() {
 	int iSubStepCount = m_nHyperviscosityOrder / 2;
 
 	return iSubStepCount;
@@ -2335,7 +2067,7 @@ int HorizontalDynamicsFEM::GetSubStepAfterSubCycleCount() {
 
 ///////////////////////////////////////////////////////////////////////////////
 
-int HorizontalDynamicsFEM::SubStepAfterSubCycle(
+int HorizontalDynamicsFEMV2::SubStepAfterSubCycle(
 	int iDataInitial,
 	int iDataUpdate,
 	int iDataWorking,
@@ -2390,7 +2122,7 @@ int HorizontalDynamicsFEM::SubStepAfterSubCycle(
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void HorizontalDynamicsFEM::StepAfterSubCycle(
+void HorizontalDynamicsFEMV2::StepAfterSubCycle(
 	int iDataInitial,
 	int iDataUpdate,
 	int iDataWorking,

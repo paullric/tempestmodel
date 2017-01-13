@@ -452,7 +452,7 @@ void VerticalDynamicsSchur::Initialize() {
 	// Metric quantities
 	m_dColumnJacobianNode.Allocate(nRElements);
 	m_dColumnJacobianREdge.Allocate(nRElements+1);
-	m_dColumnElementArea.Allocate(nRElements);
+	m_dColumnElementAreaNode.Allocate(nRElements);
 	m_dColumnInvJacobianNode.Allocate(nRElements);
 	m_dColumnInvJacobianREdge.Allocate(nRElements+1);
 	m_dColumnDerivRNode.Allocate(nRElements, 3);
@@ -1519,9 +1519,6 @@ void VerticalDynamicsSchur::StepImplicit(
 				dataRefREdge,
 				dataInitialREdge);
 
-#ifdef USE_JACOBIAN_DEBUG
-			BootstrapJacobian();
-#endif
 #ifdef USE_JFNK_PETSC
 			// Use PetSc to solve
 			double * dX;
@@ -2109,8 +2106,8 @@ void VerticalDynamicsSchur::SetupReferenceColumn(
 	// Metric terms
 	const DataArray3D<double> & dJacobian =
 		m_pPatch->GetJacobian();
-	const DataArray3D<double> & dElementArea =
-		m_pPatch->GetElementArea();
+	const DataArray3D<double> & dElementAreaNode =
+		m_pPatch->GetElementAreaNode();
 	const DataArray3D<double> & dJacobianREdge =
 		m_pPatch->GetJacobianREdge();
 	const DataArray4D<double> & dDerivRNode =
@@ -2132,7 +2129,7 @@ void VerticalDynamicsSchur::SetupReferenceColumn(
 
 	for (int k = 0; k < pGrid->GetRElements(); k++) {
 		m_dColumnJacobianNode[k] = dJacobian[k][iA][iB];
-		m_dColumnElementArea[k] = dElementArea[k][iA][iB];
+		m_dColumnElementAreaNode[k] = dElementAreaNode[k][iA][iB];
 		m_dColumnInvJacobianNode[k] = 1.0 / m_dColumnJacobianNode[k];
 
 		m_dColumnDerivRNode[k][0] = dDerivRNode[k][iA][iB][0];
@@ -2592,7 +2589,7 @@ void VerticalDynamicsSchur::BuildF(
 	// Change in density on model levels
 	double dSum = 0.0;
 	for (int k = 0; k < nRElements; k++) {
-		dSum += m_dColumnElementArea[k] * m_dDiffMassFluxNode[k];
+		dSum += m_dColumnElementAreaNode[k] * m_dDiffMassFluxNode[k];
 
 		dF[VecFIx(FRIx, k)] =
 			m_dDiffMassFluxNode[k]
@@ -3682,8 +3679,8 @@ void VerticalDynamicsSchur::UpdateColumnTracers(
 		m_pPatch->GetContraMetricXi();
 	const DataArray4D<double> & dContraMetricXiREdge =
 		m_pPatch->GetContraMetricXiREdge();
-	const DataArray3D<double> & dElementArea =
-		m_pPatch->GetElementArea();
+	const DataArray3D<double> & dElementAreaNode =
+		m_pPatch->GetElementAreaNode();
 	const DataArray3D<double> & dJacobianNode =
 		m_pPatch->GetJacobian();
 	const DataArray3D<double> & dJacobianREdge =
@@ -4110,8 +4107,8 @@ void VerticalDynamicsSchur::FilterNegativeTracers(
 
 		const PatchBox & box = pPatch->GetPatchBox();
 
-		const DataArray3D<double> & dElementArea =
-			pPatch->GetElementArea();
+		const DataArray3D<double> & dElementAreaNode =
+			pPatch->GetElementAreaNode();
 
 		DataArray4D<double> & dataUpdateTracer =
 			pPatch->GetDataTracers(iDataUpdate);
@@ -4130,7 +4127,7 @@ void VerticalDynamicsSchur::FilterNegativeTracers(
 				for (int k = 0; k < nRElements; k++) {
 					double dPointwiseMass =
 						  dataUpdateTracer[c][k][i][j]
-						* dElementArea[k][i][j];
+						* dElementAreaNode[k][i][j];
 
 					dTotalMass += dPointwiseMass;
 

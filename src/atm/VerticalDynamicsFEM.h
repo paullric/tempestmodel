@@ -620,7 +620,7 @@ private:
 	///	<summary>
 	///		Element area on Nodes.
 	///	</summary>
-	DataArray1D<double> m_dColumnElementArea;
+	DataArray1D<double> m_dColumnElementAreaNode;
 
 	///	<summary>
 	///		Inverse Jacobian in the column on Nodes.

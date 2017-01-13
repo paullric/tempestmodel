@@ -30,6 +30,7 @@
 #include "TimestepSchemeSplitExp.h"
 #include "HorizontalDynamicsStub.h"
 #include "HorizontalDynamicsFEM.h"
+#include "HorizontalDynamicsFEMV2.h"
 #include "VerticalDynamicsStub.h"
 #include "VerticalDynamicsFEM.h"
 #include "VerticalDynamicsFEMV2.h"
@@ -131,6 +132,7 @@ struct _TempestCommandLineVariables {
 	CommandLineString(_tempestvars.strVerticalStretch, "vstretch", "uniform"); \
 	CommandLineInt(_tempestvars.nVerticalHyperdiffOrder, "vhypervisorder", 0); \
 	CommandLineString(_tempestvars.strTimestepScheme, "timescheme", "strang"); \
+	CommandLineStringD(_tempestvars.strHorizontalDynamics, "hmethod", "V1", "(V1 | V2)"); \
 	CommandLineStringD(_tempestvars.strVerticalDynamics, "vmethod", "V1", "(V1 | V2 | SCHUR | FLL)");
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -257,15 +259,33 @@ void _TempestSetupMethodOfLines(
 		vars.dNuVort = 0.0;
 	}
 
-	model.SetHorizontalDynamics(
-		new HorizontalDynamicsFEM(
-			model,
-			vars.nHorizontalOrder,
-			vars.nHyperviscosityOrder,
-			vars.dNuScalar,
-			vars.dNuDiv,
-			vars.dNuVort,
-			vars.dInstepNuDiv));
+	STLStringHelper::ToLower(vars.strHorizontalDynamics);
+
+	if (vars.strHorizontalDynamics == "v1") {
+		model.SetHorizontalDynamics(
+			new HorizontalDynamicsFEM(
+				model,
+				vars.nHorizontalOrder,
+				vars.nHyperviscosityOrder,
+				vars.dNuScalar,
+				vars.dNuDiv,
+				vars.dNuVort,
+				vars.dInstepNuDiv));
+
+	} else if (vars.strHorizontalDynamics == "v2") {
+		model.SetHorizontalDynamics(
+			new HorizontalDynamicsFEMV2(
+				model,
+				vars.nHorizontalOrder,
+				vars.nHyperviscosityOrder,
+				vars.dNuScalar,
+				vars.dNuDiv,
+				vars.dNuVort,
+				vars.dInstepNuDiv));
+
+	} else {
+		_EXCEPTIONT("Invalid --hmethod");
+	}
 
 	AnnounceEndBlock("Done");
 
@@ -275,7 +295,6 @@ void _TempestSetupMethodOfLines(
 	// Vertical method
 	STLStringHelper::ToLower(vars.strVerticalDynamics);
 
-	// Set the vertical dynamics
 	AnnounceStartBlock("Initializing vertical dynamics");
 	if (vars.nLevels == 1) {
 		model.SetVerticalDynamics(

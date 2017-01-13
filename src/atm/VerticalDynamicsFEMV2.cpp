@@ -34,10 +34,10 @@
 //#define HYPERVISC_THERMO
 //#define HYPERVISC_VERTICAL_VELOCITY
 
-#define UPWIND_HORIZONTAL_VELOCITIES
-#define UPWIND_THERMO
-#define UPWIND_VERTICAL_VELOCITY
-#define UPWIND_RHO_AND_TRACERS
+//#define UPWIND_HORIZONTAL_VELOCITIES
+//#define UPWIND_THERMO
+//#define UPWIND_VERTICAL_VELOCITY
+//#define UPWIND_RHO_AND_TRACERS
 
 #define UNIFORM_DIFFUSION_HORIZONTAL_VELOCITIES
 #define UNIFORM_DIFFUSION_THERMO
@@ -425,7 +425,7 @@ void VerticalDynamicsFEMV2::Initialize() {
 	// Metric quantities
 	m_dColumnJacobianNode.Allocate(nRElements);
 	m_dColumnJacobianREdge.Allocate(nRElements+1);
-	m_dColumnElementArea.Allocate(nRElements);
+	m_dColumnElementAreaNode.Allocate(nRElements);
 	m_dColumnInvJacobianNode.Allocate(nRElements);
 	m_dColumnInvJacobianREdge.Allocate(nRElements+1);
 	m_dColumnDerivRNode.Allocate(nRElements, 3);
@@ -876,8 +876,8 @@ void VerticalDynamicsFEMV2::StepExplicit(
 				pGrid->GetOpInterpNodeToREdge();
 			const DataArray2D<double> & dInterpNodeToREdge =
 				opInterpNodeToREdge.GetCoeffs();
-			const DataArray3D<double> & dElementAreaNode =
-				m_pPatch->GetElementArea();
+			const DataArray3D<double> & dElementAreaNodeNode =
+				m_pPatch->GetElementAreaNode();
 			const DataArray3D<double> & dElementAreaREdge =
 				m_pPatch->GetElementAreaREdge();
 
@@ -910,8 +910,8 @@ void VerticalDynamicsFEMV2::StepExplicit(
 						* dCovDxUb;
 				}
 
-				dDeltaU /= (m_dStateNode[RIx][k] * dElementAreaNode[k][i][j]);
-				dDeltaV /= (m_dStateNode[RIx][k] * dElementAreaNode[k][i][j]);
+				dDeltaU /= (m_dStateNode[RIx][k] * dElementAreaNodeNode[k][i][j]);
+				dDeltaV /= (m_dStateNode[RIx][k] * dElementAreaNodeNode[k][i][j]);
 
 				dataUpdateNode[UIx][k][i][j] += dDeltaT * dDeltaU;
 				dataUpdateNode[VIx][k][i][j] += dDeltaT * dDeltaV;
@@ -1907,8 +1907,8 @@ void VerticalDynamicsFEMV2::SetupReferenceColumn(
 	// Metric terms
 	const DataArray3D<double> & dJacobian =
 		m_pPatch->GetJacobian();
-	const DataArray3D<double> & dElementArea =
-		m_pPatch->GetElementArea();
+	const DataArray3D<double> & dElementAreaNode =
+		m_pPatch->GetElementAreaNode();
 	const DataArray3D<double> & dJacobianREdge =
 		m_pPatch->GetJacobianREdge();
 	const DataArray4D<double> & dDerivRNode =
@@ -1930,7 +1930,7 @@ void VerticalDynamicsFEMV2::SetupReferenceColumn(
 
 	for (int k = 0; k < pGrid->GetRElements(); k++) {
 		m_dColumnJacobianNode[k] = dJacobian[k][iA][iB];
-		m_dColumnElementArea[k] = dElementArea[k][iA][iB];
+		m_dColumnElementAreaNode[k] = dElementAreaNode[k][iA][iB];
 		m_dColumnInvJacobianNode[k] = 1.0 / m_dColumnJacobianNode[k];
 
 		m_dColumnDerivRNode[k][0] = dDerivRNode[k][iA][iB][0];
@@ -2390,7 +2390,7 @@ void VerticalDynamicsFEMV2::BuildF(
 	// Change in density on model levels
 	double dSum = 0.0;
 	for (int k = 0; k < nRElements; k++) {
-		dSum += m_dColumnElementArea[k] * m_dDiffMassFluxNode[k];
+		dSum += m_dColumnElementAreaNode[k] * m_dDiffMassFluxNode[k];
 
 		dF[VecFIx(FRIx, k)] =
 			m_dDiffMassFluxNode[k]
@@ -4092,8 +4092,8 @@ void VerticalDynamicsFEMV2::UpdateColumnTracers(
 		m_pPatch->GetContraMetricXi();
 	const DataArray4D<double> & dContraMetricXiREdge =
 		m_pPatch->GetContraMetricXiREdge();
-	const DataArray3D<double> & dElementArea =
-		m_pPatch->GetElementArea();
+	const DataArray3D<double> & dElementAreaNode =
+		m_pPatch->GetElementAreaNode();
 	const DataArray3D<double> & dJacobianNode =
 		m_pPatch->GetJacobian();
 	const DataArray3D<double> & dJacobianREdge =
@@ -4520,8 +4520,8 @@ void VerticalDynamicsFEMV2::FilterNegativeTracers(
 
 		const PatchBox & box = pPatch->GetPatchBox();
 
-		const DataArray3D<double> & dElementArea =
-			pPatch->GetElementArea();
+		const DataArray3D<double> & dElementAreaNode =
+			pPatch->GetElementAreaNode();
 
 		DataArray4D<double> & dataUpdateTracer =
 			pPatch->GetDataTracers(iDataUpdate);
@@ -4540,7 +4540,7 @@ void VerticalDynamicsFEMV2::FilterNegativeTracers(
 				for (int k = 0; k < nRElements; k++) {
 					double dPointwiseMass =
 						  dataUpdateTracer[c][k][i][j]
-						* dElementArea[k][i][j];
+						* dElementAreaNode[k][i][j];
 
 					dTotalMass += dPointwiseMass;
 

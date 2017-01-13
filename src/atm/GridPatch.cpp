@@ -204,7 +204,7 @@ void GridPatch::InitializeDataLocal(
 		3);
 
 	// Element area at each node
-	m_dataElementArea.SetSize(
+	m_dataElementAreaNode.SetSize(
 		m_grid.GetRElements(),
 		m_box.GetATotalWidth(),
 		m_box.GetBTotalWidth());
@@ -324,7 +324,7 @@ void GridPatch::InitializeDataLocal(
 	m_dcGeometric.PushDataChunk(&m_dataContraMetricXiREdge);
 	m_dcGeometric.PushDataChunk(&m_dataDerivRNode);
 	m_dcGeometric.PushDataChunk(&m_dataDerivRREdge);
-	m_dcGeometric.PushDataChunk(&m_dataElementArea);
+	m_dcGeometric.PushDataChunk(&m_dataElementAreaNode);
 	m_dcGeometric.PushDataChunk(&m_dataElementAreaREdge);
 	m_dcGeometric.PushDataChunk(&m_dataTopography);
 	m_dcGeometric.PushDataChunk(&m_dataTopographyDeriv);
@@ -526,7 +526,7 @@ void GridPatch::DeinitializeData() {
 	m_dataCovMetricXi.Deallocate();
 	m_dataContraMetricXiREdge.Deallocate();
 	m_dataDerivRNode.Deallocate();
-	m_dataElementArea.Deallocate();
+	m_dataElementAreaNode.Deallocate();
 	m_dataElementAreaREdge.Deallocate();
 	m_dataTopography.Deallocate();
 	m_dataTopographyDeriv.Deallocate();
@@ -757,7 +757,7 @@ void GridPatch::Checksum(
 		for (j = m_box.GetBInteriorBegin(); j < m_box.GetBInteriorEnd(); j++) {
 			dChecksums[nodevars[c]] +=
 				  (*pDataNode)[nodevars[c]][k][i][j]
-				* m_dataElementArea[k][i][j];
+				* m_dataElementAreaNode[k][i][j];
 		}
 		}
 		}
@@ -783,7 +783,7 @@ void GridPatch::Checksum(
 		for (j = m_box.GetBInteriorBegin(); j < m_box.GetBInteriorEnd(); j++) {
 			double dValue = fabs((*pDataNode)[nodevars[c]][k][i][j]);
 			dChecksums[nodevars[c]] +=
-				dValue * m_dataElementArea[k][i][j];
+				dValue * m_dataElementAreaNode[k][i][j];
 		}
 		}
 		}
@@ -809,7 +809,7 @@ void GridPatch::Checksum(
 		for (j = m_box.GetBInteriorBegin(); j < m_box.GetBInteriorEnd(); j++) {
 			double dValue = (*pDataNode)[nodevars[c]][k][i][j];
 			dChecksums[nodevars[c]] +=
-				dValue * dValue * m_dataElementArea[k][i][j];
+				dValue * dValue * m_dataElementAreaNode[k][i][j];
 		}
 		}
 		}
@@ -920,7 +920,7 @@ double GridPatch::ComputeTotalEnergy(
 					* (dataNode[HIx][k][i][j] * dataNode[HIx][k][i][j]
 						- m_dataTopography[i][j] * m_dataTopography[i][j]);
 
-			dLocalEnergy += m_dataElementArea[k][i][j]
+			dLocalEnergy += m_dataElementAreaNode[k][i][j]
 				* (dKineticEnergy + dPotentialEnergy);
 		}
 		}
@@ -940,7 +940,7 @@ double GridPatch::ComputeTotalEnergy(
 
 			double dCovUa = dataNode[UIx][k][i][j];
 			double dCovUb = dataNode[VIx][k][i][j];
-			double dCovUx = dataNode[WIx][k][i][j] * m_dataDerivRNode[k][i][j][2];
+			double dCovUx = dataNode[WIx][k][i][j];
 
 			double dConUa =
 				  m_dataContraMetricA[k][i][j][0] * dCovUa
@@ -980,7 +980,7 @@ double GridPatch::ComputeTotalEnergy(
 			double dPotentialEnergy =
 				phys.GetG() * dataNode[RIx][k][i][j] * m_dataZLevels[k][i][j];
 
-			dLocalEnergy += m_dataElementArea[k][i][j]
+			dLocalEnergy += m_dataElementAreaNode[k][i][j]
 				* (dKineticEnergy + dInternalEnergy + dPotentialEnergy);
 		}
 		}
@@ -1004,8 +1004,7 @@ double GridPatch::ComputeTotalEnergy(
 
 			double dCovUa = dataNode[UIx][k][i][j];
 			double dCovUb = dataNode[VIx][k][i][j];
-			double dCovUx =
-				dataNode[WIx][k][i][j] * m_dataDerivRNode[k][i][j][2];
+			double dCovUx = dataNode[WIx][k][i][j];
 
 			double dConUa =
 				  m_dataContraMetricA[k][i][j][0] * dCovUa
@@ -1043,7 +1042,7 @@ double GridPatch::ComputeTotalEnergy(
 			double dPotentialEnergy =
 				phys.GetG() * dataNode[RIx][k][i][j] * m_dataZLevels[k][i][j];
 
-			dLocalEnergy += m_dataElementArea[k][i][j]
+			dLocalEnergy += m_dataElementAreaNode[k][i][j]
 				* (dKineticEnergy + dInternalEnergy + dPotentialEnergy);
 		}
 		}
@@ -1053,8 +1052,7 @@ double GridPatch::ComputeTotalEnergy(
 		for (i = m_box.GetAInteriorBegin(); i < m_box.GetAInteriorEnd(); i++) {
 		for (j = m_box.GetBInteriorBegin(); j < m_box.GetBInteriorEnd(); j++) {
 
-			double dCovUx =
-				dataREdge[WIx][k][i][j] * m_dataDerivRREdge[k][i][j][2];
+			double dCovUx = dataREdge[WIx][k][i][j];
 
 			double dKineticEnergy =
 				0.5 * dataREdge[RIx][k][i][j]
@@ -1119,7 +1117,7 @@ double GridPatch::ComputeTotalPotentialEnstrophy(
 				m_dataVorticity[k][i][j] + dPlanetaryVorticity;
 
 			dLocalPotentialEnstrophy +=
-				m_dataElementArea[k][i][j]
+				m_dataElementAreaNode[k][i][j]
 					* 0.5 * dAbsoluteVorticity * dAbsoluteVorticity
 					/ (dataNode[HIx][k][i][j] - m_dataTopography[i][j]);
 		}
@@ -1144,7 +1142,7 @@ double GridPatch::ComputeTotalPotentialEnstrophy(
 
 			// Zonal momentum
 			dLocalPotentialEnstrophy +=
-				m_dataElementArea[k][i][j]
+				m_dataElementAreaNode[k][i][j]
 				* dataNode[RIx][k][i][j]
 				* dataNode[UIx][k][i][j];
 		}
@@ -1205,7 +1203,7 @@ double GridPatch::ComputeTotalVerticalMomentum(
 
 			// Vertical momentum
 			dLocalVerticalMomentum +=
-				m_dataElementArea[k][i][j]
+				m_dataElementAreaNode[k][i][j]
 				* dataNode[RIx][k][i][j]
 				* dataNode[WIx][k][i][j];
 		}

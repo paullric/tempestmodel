@@ -435,7 +435,7 @@ void GridPatchCSGLL::EvaluateGeometricTerms() {
 			m_dataJacobian[k][iA][iB] = dDxR * m_dataJacobian2D[iA][iB];
 
 			// Element area associated with each model level GLL node
-			m_dataElementArea[k][iA][iB] =
+			m_dataElementAreaNode[k][iA][iB] =
 				m_dataJacobian[k][iA][iB]
 				* dWL[i] * GetElementDeltaA()
 				* dWL[j] * GetElementDeltaB()
@@ -467,91 +467,7 @@ void GridPatchCSGLL::EvaluateGeometricTerms() {
 				- 1.0 / dDxR * (
 					  m_dataContraMetricXi[k][iA][iB][0] * dDaR
 					+ m_dataContraMetricXi[k][iA][iB][1] * dDbR);
-/*
-			// Covariant metric components
-			m_dataCovMetricA[k][iA][iB][0] =
-				m_dataCovMetric2DA[iA][iB][0] + dDaR * dDaR;
-			m_dataCovMetricA[k][iA][iB][1] =
-				m_dataCovMetric2DA[iA][iB][1] + dDaR * dDbR;
-			m_dataCovMetricA[k][iA][iB][2] =
-				dDaR * dDxR;
 
-			m_dataCovMetricB[k][iA][iB][0] =
-				m_dataCovMetric2DB[iA][iB][0] + dDbR * dDaR;
-			m_dataCovMetricB[k][iA][iB][1] =
-				m_dataCovMetric2DB[iA][iB][1] + dDbR * dDbR;
-			m_dataCovMetricB[k][iA][iB][2] =
-				dDbR * dDxR;
-
-			m_dataCovMetricXi[k][iA][iB][0] =
-				dDxR * dDaR;
-			m_dataCovMetricXi[k][iA][iB][1] =
-				dDxR * dDbR;
-			m_dataCovMetricXi[k][iA][iB][2] =
-				dDxR * dDxR;
-
-			// Verify metric inverse
-			double dI11 =
-				  m_dataCovMetricA[k][iA][iB][0]
-					* m_dataContraMetricA[k][iA][iB][0]
-				+ m_dataCovMetricA[k][iA][iB][1]
-					* m_dataContraMetricA[k][iA][iB][1]
-				+ m_dataCovMetricA[k][iA][iB][2]
-					* m_dataContraMetricA[k][iA][iB][2];
-
-			double dI12 =
-				  m_dataCovMetricA[k][iA][iB][0]
-					* m_dataContraMetricB[k][iA][iB][0]
-				+ m_dataCovMetricA[k][iA][iB][1]
-					* m_dataContraMetricB[k][iA][iB][1]
-				+ m_dataCovMetricA[k][iA][iB][2]
-					* m_dataContraMetricB[k][iA][iB][2];
-
-			double dI13 =
-				  m_dataCovMetricA[k][iA][iB][0]
-					* m_dataContraMetricXi[k][iA][iB][0]
-				+ m_dataCovMetricA[k][iA][iB][1]
-					* m_dataContraMetricXi[k][iA][iB][1]
-				+ m_dataCovMetricA[k][iA][iB][2]
-					* m_dataContraMetricXi[k][iA][iB][2];
-
-			double dI22 =
-				  m_dataCovMetricB[k][iA][iB][0]
-					* m_dataContraMetricB[k][iA][iB][0]
-				+ m_dataCovMetricB[k][iA][iB][1]
-					* m_dataContraMetricB[k][iA][iB][1]
-				+ m_dataCovMetricB[k][iA][iB][2]
-					* m_dataContraMetricB[k][iA][iB][2];
-
-			double dI23 =
-				  m_dataCovMetricB[k][iA][iB][0]
-					* m_dataContraMetricXi[k][iA][iB][0]
-				+ m_dataCovMetricB[k][iA][iB][1]
-					* m_dataContraMetricXi[k][iA][iB][1]
-				+ m_dataCovMetricB[k][iA][iB][2]
-					* m_dataContraMetricXi[k][iA][iB][2];
-
-			double dI33 =
-				  m_dataCovMetricXi[k][iA][iB][0]
-					* m_dataContraMetricXi[k][iA][iB][0]
-				+ m_dataCovMetricXi[k][iA][iB][1]
-					* m_dataContraMetricXi[k][iA][iB][1]
-				+ m_dataCovMetricXi[k][iA][iB][2]
-					* m_dataContraMetricXi[k][iA][iB][2];
-
-			if ((fabs(dI11 - 1.0) > 1.0e-13) ||
-			    (fabs(dI12 - 0.0) > 1.0e-13) ||
-				(fabs(dI13 - 0.0) > 1.0e-13) ||
-				(fabs(dI22 - 1.0) > 1.0e-13) ||
-				(fabs(dI23 - 0.0) > 1.0e-13) ||
-				(fabs(dI33 - 1.0) > 1.0e-13)
-			) {
-				_EXCEPTION6("Error: Metric inverse check failed\n"
-					"11: %1.15e\n 12: %1.15e\n 13: %1.15e\n"
-				    "22: %1.15e\n 23: %1.15e\n 33: %1.15e",
-					dI11, dI12, dI13, dI22, dI23, dI33);
-			}
-*/
 			// Derivatives of the vertical coordinate transform
 			m_dataDerivRNode[k][iA][iB][0] = dDaR;
 			m_dataDerivRNode[k][iA][iB][1] = dDbR;
@@ -1541,6 +1457,7 @@ void GridPatchCSGLL::InterpolateData(
 			for (int k = 0; k < dREta.GetRows(); k++) {
 				dInterpData[c][k][i] = dColumnDataOut[k];
 			}
+
 		}
 	}
 

@@ -423,7 +423,7 @@ void VerticalDynamicsFLL::Initialize() {
 	// Metric quantities
 	m_dColumnJacobianNode.Allocate(nRElements);
 	m_dColumnJacobianREdge.Allocate(nRElements+1);
-	m_dColumnElementArea.Allocate(nRElements);
+	m_dColumnElementAreaNode.Allocate(nRElements);
 	m_dColumnInvJacobianNode.Allocate(nRElements);
 	m_dColumnInvJacobianREdge.Allocate(nRElements+1);
 	m_dColumnDerivRNode.Allocate(nRElements, 3);
@@ -1136,8 +1136,8 @@ void VerticalDynamicsFLL::SetupReferenceColumn(
 	// Metric terms
 	const DataArray3D<double> & dJacobian =
 		m_pPatch->GetJacobian();
-	const DataArray3D<double> & dElementArea =
-		m_pPatch->GetElementArea();
+	const DataArray3D<double> & dElementAreaNode =
+		m_pPatch->GetElementAreaNode();
 	const DataArray3D<double> & dJacobianREdge =
 		m_pPatch->GetJacobianREdge();
 	const DataArray4D<double> & dDerivRNode =
@@ -1159,7 +1159,7 @@ void VerticalDynamicsFLL::SetupReferenceColumn(
 
 	for (int k = 0; k < pGrid->GetRElements(); k++) {
 		m_dColumnJacobianNode[k] = dJacobian[k][iA][iB];
-		m_dColumnElementArea[k] = dElementArea[k][iA][iB];
+		m_dColumnElementAreaNode[k] = dElementAreaNode[k][iA][iB];
 		m_dColumnInvJacobianNode[k] = 1.0 / m_dColumnJacobianNode[k];
 
 		m_dColumnDerivRNode[k][0] = dDerivRNode[k][iA][iB][0];

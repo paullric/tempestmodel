@@ -615,40 +615,7 @@ public:
 
 		return m_dataContraMetricXiREdge;
 	}
-/*
-	///	<summary>
-	///		Get the components of the covariant metric (alpha)
-	///	</summary>
-	const DataArray4D<double> & GetCovMetricA() const {
-		if (!m_fContainsData) {
-			_EXCEPTIONT("Stub patch does not store data.");
-		}
 
-		return m_dataCovMetricA;
-	}
-
-	///	<summary>
-	///		Get the  components of the covariant metric (beta)
-	///	</summary>
-	const DataArray4D<double> & GetCovMetricB() const {
-		if (!m_fContainsData) {
-			_EXCEPTIONT("Stub patch does not store data.");
-		}
-
-		return m_dataCovMetricB;
-	}
-
-	///	<summary>
-	///		Get the  components of the covariant metric (xi)
-	///	</summary>
-	const DataArray4D<double> & GetCovMetricXi() const {
-		if (!m_fContainsData) {
-			_EXCEPTIONT("Stub patch does not store data.");
-		}
-
-		return m_dataCovMetricXi;
-	}
-*/
  	///	<summary>
 	///		Get the vertical coordinate transform (derivatives of the
 	///		radius) at nodes.
@@ -676,12 +643,12 @@ public:
 	///	<summary>
 	///		Get the nodal element area matrix.
 	///	</summary>
-	const DataArray3D<double> & GetElementArea() const {
+	const DataArray3D<double> & GetElementAreaNode() const {
 		if (!m_fContainsData) {
 			_EXCEPTIONT("Stub patch does not store data.");
 		}
 
-		return m_dataElementArea;
+		return m_dataElementAreaNode;
 	}
 
 	///	<summary>
@@ -1233,22 +1200,7 @@ protected:
 	///		Contravariant metric (xi) components (Geometric).
 	///	</summary>
 	DataArray4D<double> m_dataContraMetricXi;
-/*
-	///	<summary>
-	///		Covariant metric (alpha) components (Geometric).
-	///	</summary>
-	DataArray4D<double> m_dataCovMetricA;
 
-	///	<summary>
-	///		Covariant metric (beta) components (Geometric).
-	///	</summary>
-	DataArray4D<double> m_dataCovMetricB;
-
-	///	<summary>
-	///		Covariant metric (xi) components (Geometric).
-	///	</summary>
-	DataArray4D<double> m_dataCovMetricXi;
-*/
 	///	<summary>
 	///		Contravariant metric (alpha) components on interfaces (Geometric).
 	///	</summary>
@@ -1279,7 +1231,7 @@ protected:
 	///	<summary>
 	///		Element area at each node (Geometric).
 	///	</summary>
-	DataArray3D<double> m_dataElementArea;
+	DataArray3D<double> m_dataElementAreaNode;
 
 	///	<summary>
 	///		Element area at each interface (Geometric).

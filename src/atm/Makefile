@@ -27,6 +27,7 @@ FILES= CubedSphereTrans.cpp \
        TimestepSchemeARK4.cpp \
        TimestepSchemeSplitExp.cpp \
        HorizontalDynamicsFEM.cpp \
+       HorizontalDynamicsFEMV2.cpp \
        VerticalDynamicsFEM.cpp \
        VerticalDynamicsFEMV2.cpp \
        VerticalDynamicsFLL.cpp \
@@ -39,7 +40,6 @@ FILES= CubedSphereTrans.cpp \
        OutputManagerComposite.cpp \
        OutputManagerReference.cpp \
        OutputManagerChecksum.cpp \
-       PhysicalConstants.cpp \
        Grid.cpp \
        GridPatch.cpp \
        GridGLL.cpp \
