@@ -374,6 +374,9 @@ void Model::Go() {
 	// First time step
 	bool fFirstStep = true;
 
+	// Reset the communication timer
+	FunctionTimer::ResetGroupTimeRecord("Communicate");
+
 	// Loop
 	for(int iStep = 0;; iStep++) {
 
@@ -491,9 +494,6 @@ void Model::Go() {
 			}
 		}
 
-		// Stop the loop timer
-		timerLoop.StopTime();
-
 		// Exit on last step
 		if (fLastStep) {
 			break;
@@ -529,7 +529,7 @@ void Model::Go() {
 				"Communicate");
 
 		long lGlobalTimeLoop[3];
-		long lGlobalTimeHNHP[3];
+		long lGlobalTimeSNHP[3];
 		long lGlobalTimeVSEx[3];
 		long lGlobalTimeVSIm[3];
 		long lGlobalTimeSaSc[3];
@@ -542,11 +542,11 @@ void Model::Go() {
 		MPI_Reduce(&lTimeLoop, &lGlobalTimeLoop[2],
 			1, MPI_LONG, MPI_MAX, 0, MPI_COMM_WORLD);
 
-		MPI_Reduce(&lTimeHSNP, &lGlobalTimeHNHP[0],
+		MPI_Reduce(&lTimeHSNP, &lGlobalTimeSNHP[0],
 			1, MPI_LONG, MPI_SUM, 0, MPI_COMM_WORLD);
-		MPI_Reduce(&lTimeHSNP, &lGlobalTimeHNHP[1],
+		MPI_Reduce(&lTimeHSNP, &lGlobalTimeSNHP[1],
 			1, MPI_LONG, MPI_MIN, 0, MPI_COMM_WORLD);
-		MPI_Reduce(&lTimeHSNP, &lGlobalTimeHNHP[2],
+		MPI_Reduce(&lTimeHSNP, &lGlobalTimeSNHP[2],
 			1, MPI_LONG, MPI_MAX, 0, MPI_COMM_WORLD);
 
 		MPI_Reduce(&lTimeVSEx, &lGlobalTimeVSEx[0],
@@ -581,24 +581,47 @@ void Model::Go() {
 		MPI_Comm_size(MPI_COMM_WORLD, &nCommSize);
 
 		lGlobalTimeLoop[0] /= static_cast<long>(nCommSize);
-		lGlobalTimeHNHP[0] /= static_cast<long>(nCommSize);
+		lGlobalTimeSNHP[0] /= static_cast<long>(nCommSize);
 		lGlobalTimeVSEx[0] /= static_cast<long>(nCommSize);
 		lGlobalTimeVSIm[0] /= static_cast<long>(nCommSize);
 		lGlobalTimeSaSc[0] /= static_cast<long>(nCommSize);
 		lGlobalTimeComm[0] /= static_cast<long>(nCommSize);
 
-		Announce("Time [Loop]: %li [%li, %li]",
-			lGlobalTimeLoop[0], lGlobalTimeLoop[1], lGlobalTimeLoop[2]);
-		Announce("Time [SNHP]: %li [%li, %li]",
-			lGlobalTimeHNHP[0], lGlobalTimeHNHP[1], lGlobalTimeHNHP[2]);
-		Announce("Time [VSEx]: %li [%li, %li]",
-			lGlobalTimeVSEx[0], lGlobalTimeVSEx[1], lGlobalTimeVSEx[2]);
-		Announce("Time [VSIm]: %li [%li, %li]",
-			lGlobalTimeVSIm[0], lGlobalTimeVSIm[1], lGlobalTimeVSIm[2]);
-		Announce("Time [SaSc]: %li [%li, %li]",
-			lGlobalTimeSaSc[0], lGlobalTimeSaSc[1], lGlobalTimeSaSc[2]);
-		Announce("Time [Comm]: %li [%li, %li]",
-			lGlobalTimeComm[0], lGlobalTimeComm[1], lGlobalTimeComm[2]);
+		int nEntriesLoop =
+			FunctionTimer::GetNumberOfEntries("Loop");
+
+		int nEntriesSNHP =
+			FunctionTimer::GetNumberOfEntries(
+				"HorizontalStepNonhydrostaticPrimitive");
+
+		int nEntriesVSEx =
+			FunctionTimer::GetNumberOfEntries(
+				"VerticalStepExplicit");
+
+		int nEntriesVSIm =
+			FunctionTimer::GetNumberOfEntries(
+				"VerticalStepImplicit");
+
+		int nEntriesSaSc =
+			FunctionTimer::GetNumberOfEntries(
+				"StepAfterSubCycle");
+
+		int nEntriesComm =
+			FunctionTimer::GetNumberOfEntries(
+				"Communicate");
+
+		Announce("Time [Loop]: %li [%li, %li] (%i)",
+			lGlobalTimeLoop[0], lGlobalTimeLoop[1], lGlobalTimeLoop[2], nEntriesLoop);
+		Announce("Time [SNHP]: %li [%li, %li] (%i)",
+			lGlobalTimeSNHP[0], lGlobalTimeSNHP[1], lGlobalTimeSNHP[2], nEntriesSNHP);
+		Announce("Time [VSEx]: %li [%li, %li] (%i)",
+			lGlobalTimeVSEx[0], lGlobalTimeVSEx[1], lGlobalTimeVSEx[2], nEntriesVSEx);
+		Announce("Time [VSIm]: %li [%li, %li] (%i)",
+			lGlobalTimeVSIm[0], lGlobalTimeVSIm[1], lGlobalTimeVSIm[2], nEntriesVSIm);
+		Announce("Time [SaSc]: %li [%li, %li] (%i)",
+			lGlobalTimeSaSc[0], lGlobalTimeSaSc[1], lGlobalTimeSaSc[2], nEntriesSaSc);
+		Announce("Time [Comm]: %li [%li, %li] (%i)",
+			lGlobalTimeComm[0], lGlobalTimeComm[1], lGlobalTimeComm[2], nEntriesComm);
 	}
 #endif
 }
