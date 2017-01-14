@@ -100,8 +100,8 @@ void TimestepSchemeARS232::Step(
 	pGrid->CopyData(1, 2, DataType_Tracers);
 	pVerticalDynamics->StepImplicit(
 		2, 2, time, m_dImpCf[0][0] * dDeltaT);
-	pGrid->PostProcessSubstage(2, DataType_State);
-	pGrid->PostProcessSubstage(2, DataType_Tracers);
+	//pGrid->PostProcessSubstage(2, DataType_State);
+	//pGrid->PostProcessSubstage(2, DataType_Tracers);
 
 	// STAGE 2
 	// Compute uf2 from u1 (index 2) into index 5
@@ -121,8 +121,8 @@ void TimestepSchemeARS232::Step(
 	pGrid->CopyData(3, 4, DataType_Tracers);
 	pVerticalDynamics->StepImplicit(
 		4, 4, time, m_dImpCf[1][1] * dDeltaT);
-	pGrid->PostProcessSubstage(4, DataType_State);
-	pGrid->PostProcessSubstage(4, DataType_Tracers);
+	//pGrid->PostProcessSubstage(4, DataType_State);
+	//pGrid->PostProcessSubstage(4, DataType_Tracers);
 
 	// STAGE 3
 	// Compute uf3 from u2 (index 4) into index 6

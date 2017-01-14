@@ -786,6 +786,17 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 				double dCovDbUa = 0.0;
 				double dCovDbUx = 0.0;
 
+				// Vertical derivatives of the covariant velocity field			
+				double dCovDxUa =
+					pGrid->DifferentiateNodeToNode(
+						&(dataUpdateNode[UIx][0][iA][iB]),
+						k, nVerticalStateStride);
+
+				double dCovDxUb =
+					pGrid->DifferentiateNodeToNode(
+						&(dataUpdateNode[VIx][0][iA][iB]),
+						k, nVerticalStateStride);
+
 				// Derivative needed for calculating relative vorticity
 				for (int s = 0; s < m_nHorizontalOrder; s++) {
 
@@ -821,8 +832,8 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 				double dConUx = m_dAuxDataNode[ConUxIx][k][i][j];
 
 				// Relative vorticity (contravariant)
-				double dJZetaA = (dCovDbUx           );
-				double dJZetaB = (         - dCovDaUx);
+				double dJZetaA = (dCovDbUx - dCovDxUb);
+				double dJZetaB = (dCovDxUa - dCovDaUx);
 				double dJZetaX = (dCovDaUb - dCovDbUa);
 
 				// U cross Relative Vorticity (contravariant)
@@ -836,23 +847,6 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 					- dConUa * dCovDaUx - dConUb * dCovDbUx;
 			}
 			}
-			}
-
-			// Interpolate U cross Zeta to interfaces
-			if (pGrid->GetVarLocation(WIx) == DataLocation_REdge) {
-				for (int k = 0; k <= nRElements; k++) {
-				for (int i = 0; i < m_nHorizontalOrder; i++) {
-				for (int j = 0; j < m_nHorizontalOrder; j++) {
-					m_dAuxDataREdge[UCrossZetaXIx][k][i][j] =
-						pGrid->InterpolateNodeToREdge(
-							&(m_dAuxDataNode[UCrossZetaXIx][0][i][j]),
-							NULL,
-							k,
-							0.0,
-							nVerticalElementStride);
-				}
-				}
-				}
 			}
 
 			// Update quantities on nodes
@@ -1481,12 +1475,18 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 					int iA = a * m_nHorizontalOrder + i + box.GetHaloElements();
 					int iB = b * m_nHorizontalOrder + j + box.GetHaloElements();
 
-					int iElementA = a * m_nHorizontalOrder + box.GetHaloElements();
-					int iElementB = b * m_nHorizontalOrder + box.GetHaloElements();
+					// Interpolate U cross Zeta to interfaces
+					double dUCrossZetaX =
+						pGrid->InterpolateNodeToREdge(
+							&(m_dAuxDataNode[UCrossZetaXIx][0][i][j]),
+							NULL,
+							k,
+							0.0,
+							nVerticalElementStride);
 
 					// Calculate vertical velocity update
 					dataUpdateREdge[WIx][k][iA][iB] +=
-						dDeltaT * m_dAuxDataREdge[UCrossZetaXIx][k][i][j];
+						dDeltaT * dUCrossZetaX;
 				}
 				}
 				}

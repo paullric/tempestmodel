@@ -44,6 +44,11 @@
 //#define FORMULATION_THETA_FLUX
 
 ///	<summary>
+///		Explicit vertical advection of vertical velocity variable.
+///	</summary>
+//#define EXPLICIT_VERTICAL_VELOCITY_ADVECTION
+
+///	<summary>
 ///		When to apply Rayleigh damping.
 ///	</summary>
 #define APPLY_RAYLEIGH_WITH_HYPERVIS

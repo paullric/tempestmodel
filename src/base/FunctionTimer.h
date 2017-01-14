@@ -101,6 +101,11 @@ public:
 	static unsigned long GetAverageGroupTime(const char *szName);
 
 	///	<summary>
+	///		Retrieve the number of entries from a group data record.
+	///	</summary>
+	static unsigned int GetNumberOfEntries(const char *szName);
+
+	///	<summary>
 	///		Reset the group data record.
 	///	</summary>
 	static void ResetGroupTimeRecord(const char *szName);

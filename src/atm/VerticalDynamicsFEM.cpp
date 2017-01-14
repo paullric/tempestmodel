@@ -44,9 +44,6 @@
 #define UNIFORM_DIFFUSION_VERTICAL_VELOCITY
 #define UNIFORM_DIFFUSION_TRACERS
 
-//#define EXPLICIT_THERMO
-//#define EXPLICIT_VERTICAL_VELOCITY_ADVECTION
-
 #define VERTICAL_VELOCITY_ADVECTION_CLARK
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -282,11 +279,6 @@ void VerticalDynamicsFEM::Initialize() {
 	}
 #endif
 
-#if defined(EXPLICIT_THERMO)
-	Announce("Explicit thermodynamic advection");
-#else
-	Announce("Implicit thermodynamic advection");
-#endif
 #if defined(EXPLICIT_VERTICAL_VELOCITY_ADVECTION)
 	Announce("Explicit vertical velocity advection");
 #else
@@ -446,18 +438,18 @@ void VerticalDynamicsFEM::StepImplicitTermsExplicitly(
 	const Time & time,
 	double dDeltaT
 ) {
-	// Get a copy of the grid
-	GridGLL * pGrid = dynamic_cast<GridGLL *>(m_model.GetGrid());
-
-	// Physical constants
-	const PhysicalConstants & phys = m_model.GetPhysicalConstants();
-
 	// Indices of EquationSet variables
 	const int UIx = 0;
 	const int VIx = 1;
 	const int PIx = 2;
 	const int WIx = 3;
 	const int RIx = 4;
+
+	// Get a copy of the grid
+	GridGLL * pGrid = dynamic_cast<GridGLL *>(m_model.GetGrid());
+
+	// Physical constants
+	const PhysicalConstants & phys = m_model.GetPhysicalConstants();
 
 	// Number of elements
 	const int nRElements = pGrid->GetRElements();
@@ -512,14 +504,8 @@ void VerticalDynamicsFEM::StepImplicitTermsExplicitly(
 			pPatch->GetDataTracers(iDataUpdate);
 
 		// Metric quantities
-		const DataArray4D<double> & dDerivRNode =
-			pPatch->GetDerivRNode();
-
 		const DataArray4D<double> & dContraMetricXi =
 			pPatch->GetContraMetricXi();
-
-		const DataArray4D<double> & dDerivRREdge =
-			pPatch->GetDerivRREdge();
 
 		const DataArray4D<double> & dContraMetricXiREdge =
 			pPatch->GetContraMetricXiREdge();
@@ -543,9 +529,8 @@ void VerticalDynamicsFEM::StepImplicitTermsExplicitly(
 		pPatch->InterpolateNodeToREdge(UIx, iDataInitial);
 		pPatch->InterpolateNodeToREdge(VIx, iDataInitial);
 #endif
-#if defined(EXPLICIT_THERMO) \
- || (defined(EXPLICIT_VERTICAL_VELOCITY_ADVECTION) \
-     && defined(VERTICAL_VELOCITY_ADVECTION_CLARK))
+#if defined(EXPLICIT_VERTICAL_VELOCITY_ADVECTION) \
+     && defined(VERTICAL_VELOCITY_ADVECTION_CLARK)
 		// Interpolate W to levels
 		pPatch->InterpolateREdgeToNode(WIx, iDataInitial);
 #endif
@@ -630,6 +615,13 @@ void VerticalDynamicsFEM::StepExplicit(
 	const Time & time,
 	double dDeltaT
 ) {
+	// Indices of EquationSet variables
+	const int UIx = 0;
+	const int VIx = 1;
+	const int PIx = 2;
+	const int WIx = 3;
+	const int RIx = 4;
+
 	// Start the function timer
 	FunctionTimer timer("VerticalStepExplicit");
 
@@ -638,13 +630,6 @@ void VerticalDynamicsFEM::StepExplicit(
 
 	// Physical constants
 	const PhysicalConstants & phys = m_model.GetPhysicalConstants();
-
-	// Indices of EquationSet variables
-	const int UIx = 0;
-	const int VIx = 1;
-	const int PIx = 2;
-	const int WIx = 3;
-	const int RIx = 4;
 
 	// Number of elements
 	const int nRElements = pGrid->GetRElements();
@@ -702,14 +687,8 @@ void VerticalDynamicsFEM::StepExplicit(
 			pPatch->GetDataTracers(iDataUpdate);
 
 		// Metric quantities
-		const DataArray4D<double> & dDerivRNode =
-			pPatch->GetDerivRNode();
-
 		const DataArray4D<double> & dContraMetricXi =
 			pPatch->GetContraMetricXi();
-
-		const DataArray4D<double> & dDerivRREdge =
-			pPatch->GetDerivRREdge();
 
 		const DataArray4D<double> & dContraMetricXiREdge =
 			pPatch->GetContraMetricXiREdge();
@@ -735,26 +714,12 @@ void VerticalDynamicsFEM::StepExplicit(
 		pPatch->InterpolateNodeToREdge(UIx, iDataInitial);
 		pPatch->InterpolateNodeToREdge(VIx, iDataInitial);
 #endif
-#if defined(EXPLICIT_THERMO) \
- || (defined(EXPLICIT_VERTICAL_VELOCITY_ADVECTION) \
-     && defined(VERTICAL_VELOCITY_ADVECTION_CLARK))
-		// Interpolate W to levels
-		pPatch->InterpolateREdgeToNode(WIx, iDataInitial);
-#endif
 */
 		// Loop over all nodes
 		for (int i = box.GetAInteriorBegin(); i < box.GetAInteriorEnd(); i++) {
 		for (int j = box.GetBInteriorBegin(); j < box.GetBInteriorEnd(); j++) {
 
-			// Setup the reference column:  Store U and V in m_dState arrays
-			// and interpolate U and V from levels to interfaces.
-			SetupReferenceColumn(
-				pPatch, i, j,
-				dataRefNode,
-				dataInitialNode,
-				dataRefREdge,
-				dataInitialREdge);
-
+/*
 			// Store W in m_dState structure on levels and interfaces
 			if (pGrid->GetVarLocation(WIx) == DataLocation_Node) {
 				for (int k = 0; k < nRElements; k++) {
@@ -774,9 +739,18 @@ void VerticalDynamicsFEM::StepExplicit(
 					m_dStateREdge[WIx],
 					m_dStateNode[WIx]);
 			}
-
+*/
 			// Update thermodynamic variables
 			if (m_fFullyExplicit) {
+
+				// Setup the reference column:  Store U and V in m_dState arrays
+				// and interpolate U and V from levels to interfaces.
+				SetupReferenceColumn(
+					pPatch, i, j,
+					dataRefNode,
+					dataInitialNode,
+					dataRefREdge,
+					dataInitialREdge);
 
 				// Evaluate the time tendency equations
 				Evaluate(m_dColumnState, m_dSoln);
@@ -836,14 +810,14 @@ void VerticalDynamicsFEM::StepExplicit(
 			// when m_fFullyExplicit is enabled)
 			} else {
 				for (int k = 0; k <= nRElements; k++) {
-					double dCovUa = m_dStateREdge[UIx][k];
-					double dCovUb = m_dStateREdge[VIx][k];
-					double dCovUx = m_dStateREdge[WIx][k];
+					double dCovUa = dataInitialREdge[UIx][k][i][j];
+					double dCovUb = dataInitialREdge[VIx][k][i][j];
+					double dCovUx = dataInitialREdge[WIx][k][i][j];
 
 					m_dXiDotREdge[k] =
-						  m_dColumnContraMetricXiREdge[k][0] * dCovUa
-						+ m_dColumnContraMetricXiREdge[k][1] * dCovUb
-						+ m_dColumnContraMetricXiREdge[k][2] * dCovUx;
+						  dContraMetricXiREdge[k][i][j][0] * dCovUa
+						+ dContraMetricXiREdge[k][i][j][1] * dCovUb
+						+ dContraMetricXiREdge[k][i][j][2] * dCovUx;
 				}
 
 				m_dXiDotREdge[0] = 0.0;
@@ -851,26 +825,13 @@ void VerticalDynamicsFEM::StepExplicit(
 
 				// Calculate u^xi on model levels (interpolated
 				// from interfaces)
-				pGrid->InterpolateREdgeToNode(
-					m_dXiDotREdge,
-					m_dXiDotNode);
-
-/*
-				for (int k = 0; k < nRElements; k++) {
-					double dCovUa = m_dStateNode[UIx][k];
-					double dCovUb = m_dStateNode[VIx][k];
-					double dCovUx =
-						  m_dStateNode[WIx][k]
-						* m_dColumnDerivRNode[k][2];
-
-					m_dXiDotNode[k] =
-						  m_dColumnContraMetricXi[k][0] * dCovUa
-						+ m_dColumnContraMetricXi[k][1] * dCovUb
-						+ m_dColumnContraMetricXi[k][2] * dCovUx;
+				if (m_fHypervisVar[UIx]) {
+					pGrid->InterpolateREdgeToNode(
+						m_dXiDotREdge,
+						m_dXiDotNode);
 				}
-*/
 			}
-
+/*
 			//////////////////////////////////////////////////////////////
 			// Explicit vertical horizontal velocity advection
 			for (int k = 0; k < nRElements; k++) {
@@ -890,20 +851,20 @@ void VerticalDynamicsFEM::StepExplicit(
 					dDeltaT * m_dXiDotNode[k] * dCovDxUb;
 
 			}
-
+*/
 			//////////////////////////////////////////////////////////////
 			// Explicit vertical velocity advection (Clark form)
 
 #if defined(EXPLICIT_VERTICAL_VELOCITY_ADVECTION)
 #if defined(VERTICAL_VELOCITY_ADVECTION_CLARK)
 
+			_EXCEPTIONT("Move to HorizontalDynamicsFEM");
 			{
 				// Calculate specific kinetic energy on model levels
 				for (int k = 0; k < nRElements; k++) {
 					double dCovUa = m_dStateNode[UIx][k];
 					double dCovUb = m_dStateNode[VIx][k];
-					double dCovUx = m_dStateNode[WIx][k]
-						* dDerivRNode[k][i][j][2];
+					double dCovUx = m_dStateNode[WIx][k];
 
 					double dConUa =
 						  m_dColumnContraMetricA[k][0] * dCovUa
@@ -948,8 +909,7 @@ void VerticalDynamicsFEM::StepExplicit(
 					for (int k = 0; k < nRElements; k++) {
 						double dCovUa = m_dStateNode[UIx][k];
 						double dCovUb = m_dStateNode[VIx][k];
-						double dCovUx = m_dStateNode[WIx][k]
-							* m_dColumnDerivRNode[k][2];
+						double dCovUx = m_dStateNode[WIx][k];
 
 						double dConUa =
 							  m_dColumnContraMetricA[k][0] * dCovUa
@@ -967,8 +927,7 @@ void VerticalDynamicsFEM::StepExplicit(
 
 						dataUpdateNode[WIx][k][i][j] -=
 							dDeltaT
-							* (m_dDiffKineticEnergyNode[k] + dCurlTerm)
-							/ m_dColumnDerivRNode[k][2];
+							* (m_dDiffKineticEnergyNode[k] + dCurlTerm);
 					}
 
 				} else {
@@ -987,8 +946,7 @@ void VerticalDynamicsFEM::StepExplicit(
 					for (int k = 1; k < nRElements; k++) {
 						double dCovUa = m_dStateREdge[UIx][k];
 						double dCovUb = m_dStateREdge[VIx][k];
-						double dCovUx = m_dStateREdge[WIx][k]
-							* m_dColumnDerivRREdge[k][2];
+						double dCovUx = m_dStateREdge[WIx][k];
 
 						double dConUa =
 							  m_dColumnContraMetricAREdge[k][0] * dCovUa
@@ -1006,8 +964,7 @@ void VerticalDynamicsFEM::StepExplicit(
 
 						dataUpdateREdge[WIx][k][i][j] -=
 							dDeltaT
-							* (m_dDiffKineticEnergyREdge[k] + dCurlTerm)
-							/ m_dColumnDerivRREdge[k][2];
+							* (m_dDiffKineticEnergyREdge[k] + dCurlTerm);
 					}
 				}
 			}
@@ -1038,37 +995,6 @@ void VerticalDynamicsFEM::StepExplicit(
 				}
 			}
 #endif
-#endif
-
-#if defined(EXPLICIT_THERMO)
-#if !defined(FORMULATION_THETA)
-			_EXCEPTIONT("Not implemented: Explicit update of thermodynamic "
-				"variable for RHOTHETA or P formulations");
-#endif
-
-			//////////////////////////////////////////////////////////////
-			// Explicit update of thermodynamic equation
-			{
-				// Differentiate theta
-				const LinearColumnDiffFEM & opDiffNodeToNode =
-					pGrid->GetOpDiffNodeToNode();
-
-				int nUpwindStride =
-					dataInitialNode.GetSize(2)
-					* dataInitialNode.GetSize(3);
-
-				opDiffNodeToNode.Apply(
-					&(dataInitialNode[PIx][0][i][j]),
-					&(m_dDiffThetaNode[0]),
-					nUpwindStride,
-					1);
-
-				// Calculate update to theta
-				for (int k = 0; k < nRElements; k++) {
-					dataUpdateNode[PIx][k][i][j] -=
-						dDeltaT * m_dXiDotNode[k] * m_dDiffThetaNode[k];
-				}
-			}
 #endif
 
 			//////////////////////////////////////////////////////////////
@@ -1106,26 +1032,14 @@ void VerticalDynamicsFEM::StepExplicit(
 						nUpwindStride);
 				}
 
-#if defined(EXPLICIT_THERMO)
-				// Apply upwinding to thermodynamic variable
-				if (m_fUpwindVar[PIx]) {
-					if (pGrid->GetVarLocation(PIx) == DataLocation_REdge) {
-						_EXCEPTIONT("Not implemented: Upwinding of thermo"
-							   " on interfaces");
-					} else {
-						opPenalty.Apply(
-							&(m_dUpwindWeights[0]),
-							&(dataInitialNode[PIx][0][i][j]),
-							&(dataUpdateNode[PIx][0][i][j]),
-							nUpwindStride,
-							nUpwindStride);
-					}
-				}
-#endif
 #if defined(EXPLICIT_VERTICAL_VELOCITY_ADVECTION)
 				// Apply upwinding to vertical velocity
 				if (m_fUpwindVar[WIx]) {
 					if (pGrid->GetVarLocation(WIx) == DataLocation_REdge) {
+
+						for (int k = 0; k <= nRElements; k++) {
+							m_dStateREdge[WIx][k] = dataInitialREdge[WIx][k][i][j];
+						}
 
 						pGrid->DiffDiffREdgeToREdge(
 							m_dStateREdge[WIx],
@@ -1578,24 +1492,6 @@ void VerticalDynamicsFEM::StepImplicit(
 			}
 #endif
 
-#if defined(EXPLICIT_THERMO)
-			// Verify thermodynamic closure is untouched by update
-			if (pGrid->GetVarLocation(PIx) == DataLocation_REdge) {
-				for (int k = 0; k <= pGrid->GetRElements(); k++) {
-					if (fabs(m_dSoln[VecFIx(FPIx, k)] - dataInitialREdge[PIx][k][iA][iB]) > 1.0e-12) {
-						_EXCEPTIONT("Logic error");
-					}
-				}
-
-			} else {
-				for (int k = 0; k < pGrid->GetRElements(); k++) {
-					if (fabs(m_dSoln[VecFIx(FPIx, k)] - dataInitialNode[PIx][k][iA][iB]) > 1.0e-12) {
-						_EXCEPTIONT("Logic error");
-					}
-				}
-			}
-
-#else
 			// Apply updated state to thermodynamic closure
 			if (pGrid->GetVarLocation(PIx) == DataLocation_REdge) {
 				for (int k = 0; k <= pGrid->GetRElements(); k++) {
@@ -1608,7 +1504,6 @@ void VerticalDynamicsFEM::StepImplicit(
 						m_dSoln[VecFIx(FPIx, k)];
 				}
 			}
-#endif
 
 			// Copy over W
 			if (pGrid->GetVarLocation(WIx) == DataLocation_REdge) {
@@ -2365,7 +2260,6 @@ void VerticalDynamicsFEM::BuildF(
 			* m_dColumnInvJacobianNode[k];
 	}
 
-#if !defined(EXPLICIT_THERMO)
 #if defined(FORMULATION_PRESSURE)
 	// Pressure flux calculated on model interfaces
 	if (!fMassFluxOnLevels) {
@@ -2539,7 +2433,6 @@ void VerticalDynamicsFEM::BuildF(
 				* m_dColumnInvJacobianREdge[k];
 		}
 	}
-#endif
 #endif
 
 #if !defined(EXPLICIT_VERTICAL_VELOCITY_ADVECTION)
@@ -2781,13 +2674,6 @@ void VerticalDynamicsFEM::BuildF(
 				continue;
 			}
 
-#if defined(EXPLICIT_THERMO)
-			// Don't upwind thermodynamic variable if explicit
-			if (c == PIx) {
-				continue;
-			}
-#endif
-
 #if defined(EXPLICIT_VERTICAL_VELOCITY_ADVECTION)
 			// Don't upwind vertical velocity if explicit
 			if (c == WIx) {
@@ -2980,13 +2866,6 @@ void VerticalDynamicsFEM::BuildJacobianF_Diffusion(
 	/////////////////////////////////////////////////////////////////////
 	// Vertical upwinding
 	for (int c = 2; c < 5; c++) {
-
-#if defined(EXPLICIT_THERMO)
-		// Don't upwind thermodynamic variable if explicit
-		if (c == PIx) {
-			continue;
-		}
-#endif
 
 #if defined(EXPLICIT_VERTICAL_VELOCITY_ADVECTION)
 		// Don't upwind vertical velocity if explicit
@@ -3184,10 +3063,6 @@ void VerticalDynamicsFEM::BuildJacobianF_LOR_RhoTheta_Pi(
 		m_nColumnStateSize * m_nColumnStateSize * sizeof(double));
 #endif
 
-#if defined(EXPLICIT_THERMO)
-	// Only support implicit thermodynamics
-	_EXCEPTIONT("Not implemented");
-#endif
 #if !defined(FORMULATION_RHOTHETA_PI)
 	// Only support FORMULATION_RHOTHETA_PI
 	_EXCEPTIONT("Invalid call to BuildJacobianF_LOR_RhoTheta_Pi");
@@ -3336,12 +3211,10 @@ void VerticalDynamicsFEM::BuildJacobianF(
 	const GridGLL * pGrid = dynamic_cast<const GridGLL *>(m_model.GetGrid());
 
 #if defined(FORMULATION_RHOTHETA_PI)
-#if !defined(EXPLICIT_THERMO)
 	if (pGrid->GetVarLocation(PIx) == DataLocation_Node) {
 		BuildJacobianF_LOR_RhoTheta_Pi(dX, dDG);
 		return;
 	}
-#endif
 #endif
 
 	// Get the column interpolation and differentiation coefficients
@@ -3435,7 +3308,6 @@ void VerticalDynamicsFEM::BuildJacobianF(
 	// Vertical velocity on nodes (LEV or INT staggering)
 	} else {
 
-#if !defined(EXPLICIT_THERMO)
 		// dP_k/dP_n
 		for (int k = 0; k < nRElements; k++) {
 
@@ -3495,7 +3367,6 @@ void VerticalDynamicsFEM::BuildJacobianF(
 				* m_dColumnContraMetricXi[k][2]
 				* m_dDiffPNode[k];
 		}
-#endif
 
 		// Account for interfaces
 		int kBegin = 0;
@@ -3526,10 +3397,6 @@ void VerticalDynamicsFEM::BuildJacobianF(
 
 #endif
 #if defined(FORMULATION_RHOTHETA_PI)
-
-#if defined(EXPLICIT_THERMO)
-	_EXCEPTIONT("Not implemented");
-#endif
 
 	// Charney-Phillips staggering
 	if (pGrid->GetVarLocation(PIx) == DataLocation_REdge) {
@@ -3623,7 +3490,6 @@ void VerticalDynamicsFEM::BuildJacobianF(
 			_EXCEPTIONT("Not implemented");
 		}
 
-#if !defined(EXPLICIT_THERMO)
 		// dT_k/dW_l
 		for (int k = 0; k < nRElements; k++) {
 			int l = iInterpREdgeToNodeBegin[k];
@@ -3649,7 +3515,6 @@ void VerticalDynamicsFEM::BuildJacobianF(
 					* m_dXiDotNode[k];
 			}
 		}
-#endif
 
 		// dW_k/dT_m and dW_k/dR_m
 		for (int k = 1; k < nRElements; k++) {
@@ -3692,7 +3557,6 @@ void VerticalDynamicsFEM::BuildJacobianF(
 			_EXCEPTIONT("Not implemented");
 		}
 
-#if !defined(EXPLICIT_THERMO)
 		// dT_k/dW_k
 		for (int k = 1; k < nRElements; k++) {
 			dDG[MatFIx(FWIx, k, FPIx, k)] +=
@@ -3709,7 +3573,6 @@ void VerticalDynamicsFEM::BuildJacobianF(
 					* m_dXiDotREdge[k];
 			}
 		}
-#endif
 
 		// dW_k/dT_l and dW_k/dR_m
 		for (int k = 1; k < nRElements; k++) {
