@@ -69,19 +69,44 @@ protected:
 
 private:
 	///	<summary>
-	///		ARK3 parameter gamma
+	///		ARK343 parameter gamma
 	///	</summary>
 	static const double m_dgamma;
 
 	///	<summary>
-	///		ARK3 parameter b1
+	///		ARK343 parameter b1
 	///	</summary>
 	static const double m_db1;
 
 	///	<summary>
-	///		ARK3 parameter b2
+	///		ARK343 parameter b2
 	///	</summary>
 	static const double m_db2;
+
+	///	<summary>
+	///		ARK343 parameter a41
+	///	</summary>
+	static const double m_da41;
+
+	///	<summary>
+	///		ARK343 parameter a42
+	///	</summary>
+	static const double m_da42;
+
+	///	<summary>
+	///		ARK343 parameter a43
+	///	</summary>
+	static const double m_da43;
+
+	///	<summary>
+	///		ARK343 parameter a31
+	///	</summary>
+	static const double m_da31;
+
+	///	<summary>
+	///		ARK343 parameter a32
+	///	</summary>
+	static const double m_da32;
 
 	///	<summary>
 	///		Coefficients for the time increment ARK3.
