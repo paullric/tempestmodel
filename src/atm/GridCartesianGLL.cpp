@@ -571,9 +571,9 @@ void GridCartesianGLL::ApplyDSS(
 			}
 
 			pDataUpdate.SetSize(
-				nRElements,
 				box.GetATotalWidth(),
-				box.GetBTotalWidth());
+				box.GetBTotalWidth(),
+				nRElements);
 
 			// State data
 			if (eDataType == DataType_State) {
@@ -624,11 +624,11 @@ void GridCartesianGLL::ApplyDSS(
 
 					// Perform averaging across edge of patch
 					for (int j = jBegin; j < jEnd; j++) {
-						pDataUpdate[k][iA][j] = 0.5 * (
-							+ pDataUpdate[k][iA  ][j]
-							+ pDataUpdate[k][iA-1][j]);
+						pDataUpdate[iA][j][k] = 0.5 * (
+							+ pDataUpdate[iA  ][j][k]
+							+ pDataUpdate[iA-1][j][k]);
 
-						pDataUpdate[k][iA-1][j] = pDataUpdate[k][iA][j];
+						pDataUpdate[iA-1][j][k] = pDataUpdate[iA][j][k];
 					}
 				}
 
@@ -641,11 +641,11 @@ void GridCartesianGLL::ApplyDSS(
 					int iEnd = box.GetAInteriorEnd()+1;
 
 					for (int i = iBegin; i < iEnd; i++) {
-						pDataUpdate[k][i][iB] = 0.5 * (
-							+ pDataUpdate[k][i][iB  ]
-							+ pDataUpdate[k][i][iB-1]);
+						pDataUpdate[i][iB][k] = 0.5 * (
+							+ pDataUpdate[i][iB  ][k]
+							+ pDataUpdate[i][iB-1][k]);
 
-						pDataUpdate[k][i][iB-1] = pDataUpdate[k][i][iB];
+						pDataUpdate[i][iB-1][k] = pDataUpdate[i][iB][k];
 					}
 				}
 			}

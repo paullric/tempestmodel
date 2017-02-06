@@ -219,7 +219,7 @@ void DCMIPPhysics::Perform(
 			// Remap virtual potential temperature tendency to levels
 			if (pGridGLL->GetVarLocation(TIx) == DataLocation_REdge) {
 				for (int k = 0; k < nRElements+1; k++) {
-					m_dThetaVREdge[k] = dataREdge[TIx][k][i][j];
+					m_dThetaVREdge[k] = dataREdge[TIx][i][j][k];
 				}
 
 				pGridGLL->InterpolateREdgeToNode(
@@ -229,7 +229,7 @@ void DCMIPPhysics::Perform(
 			// Store virtual potential temperature on levels
 			} else {
 				for (int k = 0; k < nRElements; k++) {
-					m_dThetaVNode[k] = dataNode[TIx][k][i][j];
+					m_dThetaVNode[k] = dataNode[TIx][i][j][k];
 				}
 			}
 */
@@ -242,18 +242,18 @@ void DCMIPPhysics::Perform(
 #if defined(FORMULATION_RHOTHETA_PI)
 				// Virtual potential temperature
 				m_dThetaVNode[k] =
-					dataNode[TIx][k][i][j] / dataNode[RIx][k][i][j];
+					dataNode[TIx][i][j][k] / dataNode[RIx][i][j][k];
 #endif
 #if defined(FORMULATION_THETA)
 				// Virtual potential temperature
-				m_dThetaVNode[k] = dataNode[TIx][k][i][j];
+				m_dThetaVNode[k] = dataNode[TIx][i][j][k];
 #endif
 
 				// Zonal velocity
 				double dUalpha =
-					dataNode[UIx][k][i][j] / phys.GetEarthRadius();
+					dataNode[UIx][i][j][k] / phys.GetEarthRadius();
 				double dUbeta =
-					dataNode[VIx][k][i][j] / phys.GetEarthRadius();
+					dataNode[VIx][i][j][k] / phys.GetEarthRadius();
 
 				CubedSphereTrans::CoVecTransRLLFromABP(
 					tan(pPatch->GetANode(i)),
@@ -265,14 +265,14 @@ void DCMIPPhysics::Perform(
 					m_dV[k]);
 
 				// Total density
-				double dRho = dataNode[RIx][k][i][j];
+				double dRho = dataNode[RIx][i][j][k];
 
 				// Dry air density
 				double dRhoD =
 					dRho
-					- dataTracer[0][k][i][j]
-					- dataTracer[1][k][i][j]
-					- dataTracer[2][k][i][j];
+					- dataTracer[0][i][j][k]
+					- dataTracer[1][i][j][k]
+					- dataTracer[2][i][j][k];
 
 				// Calculate moist pressure
 				m_dPmid[k] =
@@ -282,19 +282,19 @@ void DCMIPPhysics::Perform(
 				double dTv = m_dPmid[k] / (dRho * phys.GetR());
 
 				// Water vapor mixing ratio (RhoQv / Rho)
-				m_dQv[k] = dataTracer[0][k][i][j] / dataNode[RIx][k][i][j];
+				m_dQv[k] = dataTracer[0][i][j][k] / dataNode[RIx][i][j][k];
 				if (m_dQv[k] < 0.0) {
 					m_dQv[k] = 0.0;
 				}
 
 				// Cloud water mixing ratio (RhoQc / Rho)
-				m_dQc[k] = dataTracer[1][k][i][j] / dataNode[RIx][k][i][j];
+				m_dQc[k] = dataTracer[1][i][j][k] / dataNode[RIx][i][j][k];
 				if (m_dQc[k] < 0.0) {
 					m_dQc[k] = 0.0;
 				}
 
 				// Rain water mixing ratio (RhoQr / Rho)
-				m_dQr[k] = dataTracer[2][k][i][j] / dataNode[RIx][k][i][j];
+				m_dQr[k] = dataTracer[2][i][j][k] / dataNode[RIx][i][j][k];
 				if (m_dQr[k] < 0.0) {
 					m_dQr[k] = 0.0;
 				}
@@ -303,13 +303,13 @@ void DCMIPPhysics::Perform(
 				m_dRho[k] = dRhoD;
  
 				// Heights of each level
-				m_dZc[k] = dataZLevels[k][i][j];
+				m_dZc[k] = dataZLevels[i][j][k];
 			}
 
 			// Calculate quantities on model interfaces
 			for (int k = 0; k <= nRElements; k++) {
 				// Heights of each interface
-				m_dZi[k] = dataZInterfaces[k][i][j];
+				m_dZi[k] = dataZInterfaces[i][j][k];
 			}
 
 			double dPrecL = 0.0;
@@ -351,13 +351,13 @@ void DCMIPPhysics::Perform(
 
 				// Update thetaV on interfaces
 				for (int k = 0; k <= nRElements; k++) {
-					dataREdge[TIx][k][i][j] -= m_dThetaVREdge[k];
+					dataREdge[TIx][i][j][k] -= m_dThetaVREdge[k];
 				}
 
 			// Update thetaV on nodes
 			} else {
 				for (int k = 0; k < nRElements; k++) {
-					dataNode[TIx][k][i][j] =
+					dataNode[TIx][i][j][k] =
 						m_dTheta[k] * (1.0 + 0.61 * m_dQv[k]);
 				}
 			}
@@ -366,25 +366,25 @@ void DCMIPPhysics::Perform(
 			for (int k = 0; k < nRElements; k++) {
 
 				// Moist density
-				dataNode[RIx][k][i][j] =
+				dataNode[RIx][i][j][k] =
 					m_dRho[k] / (1.0 - m_dQv[k] - m_dQc[k] - m_dQr[k]);
 
 				// Virtual temperature
 				double dTv =
-					m_dPmid[k] / (dataNode[RIx][k][i][j] * phys.GetR());
+					m_dPmid[k] / (dataNode[RIx][i][j][k] * phys.GetR());
 
 				// Virtual potential temperature
-				dataNode[TIx][k][i][j] =
+				dataNode[TIx][i][j][k] =
 					dTv * pow(phys.GetP0() / m_dPmid[k], phys.GetKappa());
 
 #if defined(FORMULATION_RHOTHETA_PI)
-				dataNode[TIx][k][i][j] *= dataNode[RIx][k][i][j];
+				dataNode[TIx][i][j][k] *= dataNode[RIx][i][j][k];
 #endif
 
 				// Tracers
-				dataTracer[0][k][i][j] = m_dQv[k] * dataNode[RIx][k][i][j];
-				dataTracer[1][k][i][j] = m_dQc[k] * dataNode[RIx][k][i][j];
-				dataTracer[2][k][i][j] = m_dQr[k] * dataNode[RIx][k][i][j];
+				dataTracer[0][i][j][k] = m_dQv[k] * dataNode[RIx][i][j][k];
+				dataTracer[1][i][j][k] = m_dQc[k] * dataNode[RIx][i][j][k];
+				dataTracer[2][i][j][k] = m_dQr[k] * dataNode[RIx][i][j][k];
 
 				// Velocities
 				CubedSphereTrans::CoVecTransABPFromRLL(
@@ -393,11 +393,11 @@ void DCMIPPhysics::Perform(
 					pPatch->GetPatchBox().GetPanel(),
 					m_dU[k],
 					m_dV[k],
-					dataNode[UIx][k][i][j],
-					dataNode[VIx][k][i][j]);
+					dataNode[UIx][i][j][k],
+					dataNode[VIx][i][j][k]);
 
-				dataNode[UIx][k][i][j] *= phys.GetEarthRadius();
-				dataNode[VIx][k][i][j] *= phys.GetEarthRadius();
+				dataNode[UIx][i][j][k] *= phys.GetEarthRadius();
+				dataNode[VIx][i][j][k] *= phys.GetEarthRadius();
 			}
 		}
 		}
@@ -484,14 +484,14 @@ void DCMIPPhysics::Perform(
 			double dPrecL = 0.0;
 
 			for (int k = 0; k < nRElements; k++) {
-				double dRho = dataNode[RIx][k][i][j];
-				double dTheta = dataNode[TIx][k][i][j];
+				double dRho = dataNode[RIx][i][j][k];
+				double dTheta = dataNode[TIx][i][j][k];
 
 				double dP = phys.PressureFromRhoTheta(dRho * dTheta);
 
 				double dTv = dP / (phys.GetR() * dRho);
 
-				double dQv = dataTracer[0][k][i][j] / dRho;
+				double dQv = dataTracer[0][i][j][k] / dRho;
 
 				double dT = dTv / (1.0 + 0.61 * dQv);
 
@@ -509,21 +509,21 @@ void DCMIPPhysics::Perform(
 					dQv -= dDeltaQv;
 
 					double dDeltaZ =
-						(dataZREdge[k+1][i][j] - dataZREdge[k][i][j]);
+						(dataZREdge[k+1][i][j] - dataZREdge[i][j][k]);
 
 					dPrecL +=
-						dDeltaQv * dataNode[RIx][k][i][j] * dDeltaZ / 1000.0;
+						dDeltaQv * dataNode[RIx][i][j][k] * dDeltaZ / 1000.0;
 
 					double dDeltaTemp =
 						phys.GetLvap() / phys.GetCp() * dDeltaQv;
 
 					dTv = (dT + dDeltaTemp) * (1.0 + 0.61 * dQv);
 
-					dP = dataNode[RIx][k][i][j] * phys.GetR() * dTv;
+					dP = dataNode[RIx][i][j][k] * phys.GetR() * dTv;
 
-					dataTracer[0][k][i][j] = dQv * dRho;
+					dataTracer[0][i][j][k] = dQv * dRho;
 
-					dataNode[TIx][k][i][j] =
+					dataNode[TIx][i][j][k] =
 						phys.RhoThetaFromPressure(dP) / dRho;
 				}
 			}
@@ -532,8 +532,8 @@ void DCMIPPhysics::Perform(
 			// Surface fluxes and Boundary layer
 
 			// Contravariant velocity in lowest model level
-			double dCovUa = dataNode[UIx][0][i][j];
-			double dCovUb = dataNode[VIx][0][i][j];
+			double dCovUa = dataNode[UIx][i][j][0];
+			double dCovUb = dataNode[VIx][i][j][0];
 
 			// Contravariant velocity in lowest model level
 			double dConUa =
@@ -571,19 +571,19 @@ void DCMIPPhysics::Perform(
 			// Pressure and temperature in lowest model level
 			double dPa =
 				phys.PressureFromRhoTheta(
-					dataNode[RIx][0][i][j]
-					* dataNode[TIx][0][i][j]);
+					dataNode[RIx][i][j][0]
+					* dataNode[TIx][i][j][0]);
 
-			double dTva = dPa / (phys.GetR() * dataNode[RIx][0][i][j]);
+			double dTva = dPa / (phys.GetR() * dataNode[RIx][i][j][0]);
 
-			double dQva = dataTracer[0][0][i][j] / dataNode[RIx][0][i][j];
+			double dQva = dataTracer[0][i][j][0] / dataNode[RIx][i][j][0];
 
 			double dTa = dTva / (1.0 + 0.61 * dQva);
 
 			// Surface pressure
 			double dPsurf =
 				phys.PressureFromRhoTheta(
-					dataREdge[RIx][0][i][j] * dataREdge[TIx][0][i][j]);
+					dataREdge[RIx][i][j][0] * dataREdge[TIx][i][j][0]);
 
 			// Saturation specific humidity at surface
 			double dQsatsurf =
@@ -593,15 +593,15 @@ void DCMIPPhysics::Perform(
 
 			// Store primitive quantities
 			for (int k = 0; k < nRElements; k++) {
-				m_dU[k] = dataNode[UIx][k][i][j];
-				m_dV[k] = dataNode[VIx][k][i][j];
-				m_dRho[k] = dataNode[RIx][k][i][j];
+				m_dU[k] = dataNode[UIx][i][j][k];
+				m_dV[k] = dataNode[VIx][i][j][k];
+				m_dRho[k] = dataNode[RIx][i][j][k];
 
-				m_dQv[k] = dataTracer[0][k][i][j] / m_dRho[k];
+				m_dQv[k] = dataTracer[0][i][j][k] / m_dRho[k];
 
-				m_dTheta[k] = dataNode[TIx][k][i][j] / (1.0 + 0.61 * m_dQv[k]);
+				m_dTheta[k] = dataNode[TIx][i][j][k] / (1.0 + 0.61 * m_dQv[k]);
 
-				m_dZc[k] = dataZNode[k][i][j];
+				m_dZc[k] = dataZNode[i][j][k];
 			}
 
 			// Altitude of lowest model level
@@ -609,14 +609,14 @@ void DCMIPPhysics::Perform(
 
 			// Quantities on interfaces
 			for (int k = 0; k <= nRElements; k++) {
-				m_dRhoREdge[k] = dataREdge[RIx][k][i][j];
+				m_dRhoREdge[k] = dataREdge[RIx][i][j][k];
 
-				m_dZi[k] = dataZREdge[k][i][j];
+				m_dZi[k] = dataZREdge[i][j][k];
 
 				double dPint =
 					phys.PressureFromRhoTheta(
-						dataREdge[RIx][k][i][j]
-						* dataREdge[TIx][k][i][j]);
+						dataREdge[RIx][i][j][k]
+						* dataREdge[TIx][i][j][k]);
 
 				// Mixing coefficients
 				const double dPtop = 85000.0;
@@ -713,25 +713,25 @@ void DCMIPPhysics::Perform(
 			dataTracer[0][nRElements-1][i][j] = m_dF[QIx][nRElements-1];
 
 			for (int k = nRElements-2; k >= 0; k--) {
-				dataNode[UIx][k][i][j] =
+				dataNode[UIx][i][j][k] =
 					m_dEm[k] * dataNode[UIx][k+1][i][j] + m_dF[UIx][k];
-				dataNode[VIx][k][i][j] =
+				dataNode[VIx][i][j][k] =
 					m_dEm[k] * dataNode[VIx][k+1][i][j] + m_dF[VIx][k];
 
-				dataTracer[0][k][i][j] =
+				dataTracer[0][i][j][k] =
 					m_dEE[k] * dataTracer[0][k+1][i][j] + m_dF[QIx][k];
 
-				dataNode[TIx][k][i][j] =
+				dataNode[TIx][i][j][k] =
 					m_dEE[k] * dataNode[TIx][k+1][i][j] + m_dF[TIx][k];
 			}
 
 			for (int k = 0; k < nRElements; k++) {
-				m_dTheta[k] = dataNode[TIx][k][i][j];
+				m_dTheta[k] = dataNode[TIx][i][j][k];
 
-				dataNode[TIx][k][i][j] *=
-					(1.0 + 0.61 * dataTracer[0][k][i][j]);
+				dataNode[TIx][i][j][k] *=
+					(1.0 + 0.61 * dataTracer[0][i][j][k]);
 
-				dataTracer[0][k][i][j] *= dataNode[RIx][k][i][j];
+				dataTracer[0][i][j][k] *= dataNode[RIx][i][j][k];
 			}
 		}
 		}
@@ -813,8 +813,8 @@ void DCMIPPhysics::Perform(
 
 				m_dPint[kswap] =
 					phys.PressureFromRhoTheta(
-						dataREdge[RIx][k][i][j]
-						* dataREdge[TIx][k][i][j]);
+						dataREdge[RIx][i][j][k]
+						* dataREdge[TIx][i][j][k]);
 			}
 
 			// Loop over all levels in column
@@ -823,26 +823,26 @@ void DCMIPPhysics::Perform(
 				int kswap = nRElements - k - 1;
 
 				// Total density
-				double dRho = dataNode[RIx][k][i][j];
+				double dRho = dataNode[RIx][i][j][k];
 
 #if defined(DCMIP_KESSLER)
 				// Dry air density
 				double dRhoD =
 					dRho
-					- dataTracer[0][k][i][j]
-					- dataTracer[1][k][i][j]
-					- dataTracer[2][k][i][j];
+					- dataTracer[0][i][j][k]
+					- dataTracer[1][i][j][k]
+					- dataTracer[2][i][j][k];
 #else
 				// Dry air density
 				double dRhoD =
-					dRho - dataTracer[0][k][i][j];
+					dRho - dataTracer[0][i][j][k];
 #endif
 
 				// Calculate moist pressure
 				m_dPmid[kswap] =
 					phys.PressureFromRhoTheta(
-						dataNode[RIx][k][i][j]
-						* dataNode[TIx][k][i][j]);
+						dataNode[RIx][i][j][k]
+						* dataNode[TIx][i][j][k]);
 
 				// Layer thickness
 				m_dPdel[kswap] = m_dPint[kswap+1] - m_dPint[kswap];
@@ -855,13 +855,13 @@ void DCMIPPhysics::Perform(
 				m_dRPdel[kswap] = 1.0 / m_dPdel[kswap];
 
 				// Water vapor (RhoQv / Rho)
-				m_dQv[kswap] = dataTracer[0][k][i][j] / dataNode[RIx][k][i][j];
+				m_dQv[kswap] = dataTracer[0][i][j][k] / dataNode[RIx][i][j][k];
 
 				// Cloud water (RhoQc / Rho)
-				//m_dQc[k] = dataTracer[1][k][i][j] / dataNode[RIx][k][i][j];
+				//m_dQc[k] = dataTracer[1][i][j][k] / dataNode[RIx][i][j][k];
 
 				// Rain water (RhoQr / Rho)
-				//m_dQr[k] = dataTracer[2][k][i][j] / dataNode[RIx][k][i][j];
+				//m_dQr[k] = dataTracer[2][i][j][k] / dataNode[RIx][i][j][k];
 
 				// Pointwise virtual temperature (bottom to top)
 				m_dTvNode[k] = m_dPmid[kswap] / (dRho * phys.GetR());
@@ -873,13 +873,13 @@ void DCMIPPhysics::Perform(
 				m_dRho[kswap] = dRhoD;
  
 				// Heights of each level
-				m_dZc[kswap] = dataZLevels[k][i][j];
+				m_dZc[kswap] = dataZLevels[i][j][k];
 
 				// Zonal velocity
 				double dUalpha =
-					dataNode[UIx][k][i][j] / phys.GetEarthRadius();
+					dataNode[UIx][i][j][k] / phys.GetEarthRadius();
 				double dUbeta =
-					dataNode[VIx][k][i][j] / phys.GetEarthRadius();
+					dataNode[VIx][i][j][k] / phys.GetEarthRadius();
 
 				CubedSphereTrans::CoVecTransRLLFromABP(
 					tan(pPatch->GetANode(i)),
@@ -948,7 +948,7 @@ void DCMIPPhysics::Perform(
 				for (int k = 0; k <= nRElements; k++) {
 					int kswap = nRElements - k;
 
-					dataREdge[TIx][k][i][j] -=
+					dataREdge[TIx][i][j][k] -=
 						m_dTvREdge[k]
 						* pow(phys.GetP0() / m_dPint[kswap], phys.GetKappa());
 				}
@@ -958,7 +958,7 @@ void DCMIPPhysics::Perform(
 				for (int k = 0; k < nRElements; k++) {
 					int kswap = nRElements - k - 1;
 
-					dataNode[TIx][k][i][j] =
+					dataNode[TIx][i][j][k] =
 						m_dT[kswap] * (1.0 + 0.61 * m_dQv[kswap])
 						* pow(phys.GetP0() / m_dPmid[kswap], phys.GetKappa());
 				}
@@ -969,13 +969,13 @@ void DCMIPPhysics::Perform(
 				int kswap = nRElements - k - 1;
 
 				// Moist density
-				dataNode[RIx][k][i][j] =
+				dataNode[RIx][i][j][k] =
 					m_dRho[kswap] / (1.0 - m_dQv[kswap]); // - m_dQc[k] - m_dQr[k]);
 
 				// Water vapor density
-				dataTracer[0][k][i][j] = m_dQv[kswap] * dataNode[RIx][k][i][j];
-				//dataTracer[1][k][i][j] = m_dQc[k] * dataNode[RIx][k][i][j];
-				//dataTracer[2][k][i][j] = m_dQr[k] * dataNode[RIx][k][i][j];
+				dataTracer[0][i][j][k] = m_dQv[kswap] * dataNode[RIx][i][j][k];
+				//dataTracer[1][i][j][k] = m_dQc[k] * dataNode[RIx][i][j][k];
+				//dataTracer[2][i][j][k] = m_dQr[k] * dataNode[RIx][i][j][k];
 
 				CubedSphereTrans::CoVecTransABPFromRLL(
 					tan(pPatch->GetANode(i)),
@@ -983,11 +983,11 @@ void DCMIPPhysics::Perform(
 					pPatch->GetPatchBox().GetPanel(),
 					m_dU[kswap],
 					m_dV[kswap],
-					dataNode[UIx][k][i][j],
-					dataNode[VIx][k][i][j]);
+					dataNode[UIx][i][j][k],
+					dataNode[VIx][i][j][k]);
 
-				dataNode[UIx][k][i][j] *= phys.GetEarthRadius();
-				dataNode[VIx][k][i][j] *= phys.GetEarthRadius();
+				dataNode[UIx][i][j][k] *= phys.GetEarthRadius();
+				dataNode[VIx][i][j][k] *= phys.GetEarthRadius();
 			}
 		}
 		}

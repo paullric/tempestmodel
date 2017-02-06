@@ -268,7 +268,7 @@ void GridPatchCSGLL::EvaluateTopography(
 			dDaZs /= GetElementDeltaA();
 			dDbZs /= GetElementDeltaB();
 
-			m_dataTopographyDeriv[0][iA][iB] = dDaZs;
+			m_dataTopographyDeriv[iA][iB][0] = dDaZs;
 			m_dataTopographyDeriv[1][iA][iB] = dDbZs;
 		}
 		}
@@ -360,7 +360,7 @@ void GridPatchCSGLL::EvaluateGeometricTerms() {
 
 		// Topography height and its derivatives
 		double dZs = m_dataTopography[iA][iB];
-		double dDaZs = m_dataTopographyDeriv[0][iA][iB];
+		double dDaZs = m_dataTopographyDeriv[iA][iB][0];
 		double dDbZs = m_dataTopographyDeriv[1][iA][iB];
 
 		// 2D equations
@@ -432,46 +432,46 @@ void GridPatchCSGLL::EvaluateGeometricTerms() {
 			double dDxR = (m_grid.GetZtop() - dZs);
 
 			// Calculate pointwise Jacobian
-			m_dataJacobian[k][iA][iB] = dDxR * m_dataJacobian2D[iA][iB];
+			m_dataJacobian[iA][iB][k] = dDxR * m_dataJacobian2D[iA][iB];
 
 			// Element area associated with each model level GLL node
-			m_dataElementAreaNode[k][iA][iB] =
-				m_dataJacobian[k][iA][iB]
+			m_dataElementAreaNode[iA][iB][k] =
+				m_dataJacobian[iA][iB][k]
 				* dWL[i] * GetElementDeltaA()
 				* dWL[j] * GetElementDeltaB()
 				* dWNode[k];
 
 			// Contravariant metric components
-			m_dataContraMetricA[k][iA][iB][0] =
+			m_dataContraMetricA[iA][iB][k][0] =
 				m_dataContraMetric2DA[iA][iB][0];
-			m_dataContraMetricA[k][iA][iB][1] =
+			m_dataContraMetricA[iA][iB][k][1] =
 				m_dataContraMetric2DA[iA][iB][1];
-			m_dataContraMetricA[k][iA][iB][2] =
+			m_dataContraMetricA[iA][iB][k][2] =
 				- dContraMetricScale / dDxR * (
 					(1.0 + dY * dY) * dDaR + dX * dY * dDbR);
 
-			m_dataContraMetricB[k][iA][iB][0] =
+			m_dataContraMetricB[iA][iB][k][0] =
 				m_dataContraMetric2DB[iA][iB][0];
-			m_dataContraMetricB[k][iA][iB][1] =
+			m_dataContraMetricB[iA][iB][k][1] =
 				m_dataContraMetric2DB[iA][iB][1];
-			m_dataContraMetricB[k][iA][iB][2] =
+			m_dataContraMetricB[iA][iB][k][2] =
 				- dContraMetricScale / dDxR * (
 					dX * dY * dDaR + (1.0 + dX * dX) * dDbR);
 
-			m_dataContraMetricXi[k][iA][iB][0] =
-				m_dataContraMetricA[k][iA][iB][2];
-			m_dataContraMetricXi[k][iA][iB][1] =
-				m_dataContraMetricB[k][iA][iB][2];
-			m_dataContraMetricXi[k][iA][iB][2] =
+			m_dataContraMetricXi[iA][iB][k][0] =
+				m_dataContraMetricA[iA][iB][k][2];
+			m_dataContraMetricXi[iA][iB][k][1] =
+				m_dataContraMetricB[iA][iB][k][2];
+			m_dataContraMetricXi[iA][iB][k][2] =
 				  1.0 / (dDxR * dDxR)
 				- 1.0 / dDxR * (
-					  m_dataContraMetricXi[k][iA][iB][0] * dDaR
-					+ m_dataContraMetricXi[k][iA][iB][1] * dDbR);
+					  m_dataContraMetricXi[iA][iB][k][0] * dDaR
+					+ m_dataContraMetricXi[iA][iB][k][1] * dDbR);
 
 			// Derivatives of the vertical coordinate transform
-			m_dataDerivRNode[k][iA][iB][0] = dDaR;
-			m_dataDerivRNode[k][iA][iB][1] = dDbR;
-			m_dataDerivRNode[k][iA][iB][2] = dDxR;
+			m_dataDerivRNode[iA][iB][k][0] = dDaR;
+			m_dataDerivRNode[iA][iB][k][1] = dDbR;
+			m_dataDerivRNode[iA][iB][k][2] = dDxR;
 		}
 
 		// Metric terms at vertical interfaces
@@ -497,58 +497,58 @@ void GridPatchCSGLL::EvaluateGeometricTerms() {
 			double dDxR = (m_grid.GetZtop() - dZs);
 
 			// Calculate pointwise Jacobian
-			m_dataJacobianREdge[k][iA][iB] =
+			m_dataJacobianREdge[iA][iB][k] =
 				(1.0 + dX * dX) * (1.0 + dY * dY) / (dDelta * dDelta * dDelta);
 
-			m_dataJacobianREdge[k][iA][iB] *=
+			m_dataJacobianREdge[iA][iB][k] *=
 				dDxR
 				* phys.GetEarthRadius()
 				* phys.GetEarthRadius();
 
 			// Element area associated with each model interface GLL node
-			m_dataElementAreaREdge[k][iA][iB] =
-				m_dataJacobianREdge[k][iA][iB]
+			m_dataElementAreaREdge[iA][iB][k] =
+				m_dataJacobianREdge[iA][iB][k]
 				* dWL[i] * GetElementDeltaA()
 				* dWL[j] * GetElementDeltaB()
 				* dWREdge[k];
 
 			// Contravariant metric (alpha)
-			m_dataContraMetricAREdge[k][iA][iB][0] =
+			m_dataContraMetricAREdge[iA][iB][k][0] =
 				m_dataContraMetric2DA[iA][iB][0];
-			m_dataContraMetricAREdge[k][iA][iB][1] =
+			m_dataContraMetricAREdge[iA][iB][k][1] =
 				m_dataContraMetric2DA[iA][iB][1];
-			m_dataContraMetricAREdge[k][iA][iB][2] =
+			m_dataContraMetricAREdge[iA][iB][k][2] =
 				- dContraMetricScale / dDxR * (
 					(1.0 + dY * dY) * dDaR + dX * dY * dDbR);
 
 			// Contravariant metric (beta)
-			m_dataContraMetricBREdge[k][iA][iB][0] =
+			m_dataContraMetricBREdge[iA][iB][k][0] =
 				m_dataContraMetric2DB[iA][iB][0];
-			m_dataContraMetricBREdge[k][iA][iB][1] =
+			m_dataContraMetricBREdge[iA][iB][k][1] =
 				m_dataContraMetric2DB[iA][iB][1];
-			m_dataContraMetricBREdge[k][iA][iB][2] =
+			m_dataContraMetricBREdge[iA][iB][k][2] =
 				- dContraMetricScale / dDxR * (
 					dX * dY * dDaR + (1.0 + dX * dX) * dDbR);
 
 			// Contravariant metric (xi)
-			m_dataContraMetricXiREdge[k][iA][iB][0] =
+			m_dataContraMetricXiREdge[iA][iB][k][0] =
 				- dContraMetricScale / dDxR * (
 					(1.0 + dY * dY) * dDaR + dX * dY * dDbR);
 
-			m_dataContraMetricXiREdge[k][iA][iB][1] =
+			m_dataContraMetricXiREdge[iA][iB][k][1] =
 				- dContraMetricScale / dDxR * (
 					dX * dY * dDaR + (1.0 + dX * dX) * dDbR);
 
-			m_dataContraMetricXiREdge[k][iA][iB][2] =
+			m_dataContraMetricXiREdge[iA][iB][k][2] =
 				  1.0 / (dDxR * dDxR)
 				- 1.0 / dDxR * (
-					  m_dataContraMetricXiREdge[k][iA][iB][0] * dDaR
-					+ m_dataContraMetricXiREdge[k][iA][iB][1] * dDbR);
+					  m_dataContraMetricXiREdge[iA][iB][k][0] * dDaR
+					+ m_dataContraMetricXiREdge[iA][iB][k][1] * dDbR);
 
 			// Derivatives of the vertical coordinate transform
-			m_dataDerivRREdge[k][iA][iB][0] = dDaR;
-			m_dataDerivRREdge[k][iA][iB][1] = dDbR;
-			m_dataDerivRREdge[k][iA][iB][2] = dDxR;
+			m_dataDerivRREdge[iA][iB][k][0] = dDaR;
+			m_dataDerivRREdge[iA][iB][k][1] = dDbR;
+			m_dataDerivRREdge[iA][iB][k][2] = dDxR;
 		}
 	}
 	}
@@ -564,6 +564,9 @@ void GridPatchCSGLL::EvaluateTestCase(
 	const Time & time,
 	int iDataIndex
 ) {
+	static const int UIx = 0;
+	static const int VIx = 1;
+
 	// Initialize the data at each node
 	if (m_datavecStateNode.size() == 0) {
 		_EXCEPTIONT("InitializeData must be called before InitialConditions");
@@ -594,9 +597,9 @@ void GridPatchCSGLL::EvaluateTestCase(
 	if (fIs2DEquationSet) {
 		for (int i = 0; i < m_box.GetATotalWidth(); i++) {
 		for (int j = 0; j < m_box.GetBTotalWidth(); j++) {
-			m_dataZLevels[0][i][j] = 0.0;
-			m_dataZInterfaces[0][i][j] = 0.0;
-			m_dataZInterfaces[1][i][j] = 1.0;
+			m_dataZLevels[i][j][0] = 0.0;
+			m_dataZInterfaces[i][j][0] = 0.0;
+			m_dataZInterfaces[i][j][1] = 1.0;
 		}
 		}
 
@@ -613,7 +616,7 @@ void GridPatchCSGLL::EvaluateTestCase(
 				m_grid.EvaluateVerticalStretchF(
 					dREta, dREtaStretch, dDxREtaStretch);
 */
-				m_dataZLevels[k][i][j] =
+				m_dataZLevels[i][j][k] =
 					m_dataTopography[i][j]
 						+ dREta * (m_grid.GetZtop() - m_dataTopography[i][j]);
 			}
@@ -625,7 +628,7 @@ void GridPatchCSGLL::EvaluateTestCase(
 				m_grid.EvaluateVerticalStretchF(
 					dREta, dREtaStretch, dDxREtaStretch);
 */
-				m_dataZInterfaces[k][i][j] =
+				m_dataZInterfaces[i][j][k] =
 					m_dataTopography[i][j]
 						+ dREta * (m_grid.GetZtop() - m_dataTopography[i][j]);
 			}
@@ -638,16 +641,16 @@ void GridPatchCSGLL::EvaluateTestCase(
 		for (int i = 0; i < m_box.GetATotalWidth(); i++) {
 		for (int j = 0; j < m_box.GetBTotalWidth(); j++) {
 			for (int k = 0; k < m_grid.GetRElements(); k++) {
-				m_dataRayleighStrengthNode[k][i][j] =
+				m_dataRayleighStrengthNode[i][j][k] =
 					test.EvaluateRayleighStrength(
-						m_dataZLevels[k][i][j],
+						m_dataZLevels[i][j][k],
 						m_dataLon[i][j],
 						m_dataLat[i][j]);
 			}
 			for (int k = 0; k < m_grid.GetRElements(); k++) {
-				m_dataRayleighStrengthREdge[k][i][j] =
+				m_dataRayleighStrengthREdge[i][j][k] =
 					test.EvaluateRayleighStrength(
-						m_dataZInterfaces[k][i][j],
+						m_dataZInterfaces[i][j][k],
 						m_dataLon[i][j],
 						m_dataLat[i][j]);
 			}
@@ -682,7 +685,7 @@ void GridPatchCSGLL::EvaluateTestCase(
 		test.EvaluatePointwiseState(
 			phys,
 			time,
-			m_dataZLevels[k][i][j],
+			m_dataZLevels[i][j][k],
 			m_dataLon[i][j],
 			m_dataLat[i][j],
 			dPointwiseState,
@@ -692,15 +695,15 @@ void GridPatchCSGLL::EvaluateTestCase(
 			phys, dPointwiseState, dPointwiseTracers);
 
 		for (int c = 0; c < dPointwiseState.GetRows(); c++) {
-			m_datavecStateNode[iDataIndex][c][k][i][j] = dPointwiseState[c];
+			m_datavecStateNode[iDataIndex][c][i][j][k] = dPointwiseState[c];
 		}
 
 		// Transform state velocities
 		double dUlon;
 		double dUlat;
 
-		dUlon = m_datavecStateNode[iDataIndex][0][k][i][j];
-		dUlat = m_datavecStateNode[iDataIndex][1][k][i][j];
+		dUlon = m_datavecStateNode[iDataIndex][UIx][i][j][k];
+		dUlat = m_datavecStateNode[iDataIndex][VIx][i][j][k];
 
 		dUlon *= phys.GetEarthRadius();
 		dUlat *= phys.GetEarthRadius();
@@ -710,14 +713,14 @@ void GridPatchCSGLL::EvaluateTestCase(
 			tan(m_dBNode[j]),
 			m_box.GetPanel(),
 			dUlon, dUlat,
-			m_datavecStateNode[iDataIndex][0][k][i][j],
-			m_datavecStateNode[iDataIndex][1][k][i][j]);
+			m_datavecStateNode[iDataIndex][UIx][i][j][k],
+			m_datavecStateNode[iDataIndex][VIx][i][j][k]);
 
 		// Evaluate reference state
 		if (m_grid.HasReferenceState()) {
 			test.EvaluateReferenceState(
 				m_grid.GetModel().GetPhysicalConstants(),
-				m_dataZLevels[k][i][j],
+				m_dataZLevels[i][j][k],
 				m_dataLon[i][j],
 				m_dataLat[i][j],
 				dPointwiseRefState,
@@ -727,16 +730,16 @@ void GridPatchCSGLL::EvaluateTestCase(
 				phys, dPointwiseRefState, dPointwiseRefTracers);
 
 			for (int c = 0; c < dPointwiseRefState.GetRows(); c++) {
-				m_dataRefStateNode[c][k][i][j] = dPointwiseRefState[c];
+				m_dataRefStateNode[c][i][j][k] = dPointwiseRefState[c];
 			}
 
 			for (int c = 0; c < dPointwiseRefTracers.GetRows(); c++) {
-				m_dataRefTracers[c][k][i][j] = dPointwiseRefTracers[c];
+				m_dataRefTracers[c][i][j][k] = dPointwiseRefTracers[c];
 			}
 
 			// Transform reference velocities
-			dUlon = m_dataRefStateNode[0][k][i][j];
-			dUlat = m_dataRefStateNode[1][k][i][j];
+			dUlon = m_dataRefStateNode[UIx][i][j][k];
+			dUlat = m_dataRefStateNode[VIx][i][j][k];
 
 			dUlon *= phys.GetEarthRadius();
 			dUlat *= phys.GetEarthRadius();
@@ -746,13 +749,13 @@ void GridPatchCSGLL::EvaluateTestCase(
 				tan(m_dBNode[j]),
 				m_box.GetPanel(),
 				dUlon, dUlat,
-				m_dataRefStateNode[0][k][i][j],
-				m_dataRefStateNode[1][k][i][j]);
+				m_dataRefStateNode[UIx][i][j][k],
+				m_dataRefStateNode[VIx][i][j][k]);
 		}
 
 		// Evaluate tracers
 		for (int c = 0; c < dPointwiseTracers.GetRows(); c++) {
-			m_datavecTracers[iDataIndex][c][k][i][j] = dPointwiseTracers[c];
+			m_datavecTracers[iDataIndex][c][i][j][k] = dPointwiseTracers[c];
 		}
 	}
 	}
@@ -767,7 +770,7 @@ void GridPatchCSGLL::EvaluateTestCase(
 		test.EvaluatePointwiseState(
 			m_grid.GetModel().GetPhysicalConstants(),
 			time,
-			m_dataZInterfaces[k][i][j],
+			m_dataZInterfaces[i][j][k],
 			m_dataLon[i][j],
 			m_dataLat[i][j],
 			dPointwiseState,
@@ -777,15 +780,15 @@ void GridPatchCSGLL::EvaluateTestCase(
 			phys, dPointwiseState, dPointwiseTracers);
 
 		for (int c = 0; c < dPointwiseState.GetRows(); c++) {
-			m_datavecStateREdge[iDataIndex][c][k][i][j] = dPointwiseState[c];
+			m_datavecStateREdge[iDataIndex][c][i][j][k] = dPointwiseState[c];
 		}
 
 		// Transform state velocities
 		double dUlon;
 		double dUlat;
 
-		dUlon = m_datavecStateREdge[iDataIndex][0][k][i][j];
-		dUlat = m_datavecStateREdge[iDataIndex][1][k][i][j];
+		dUlon = m_datavecStateREdge[iDataIndex][UIx][i][j][k];
+		dUlat = m_datavecStateREdge[iDataIndex][VIx][i][j][k];
 
 		dUlon *= phys.GetEarthRadius();
 		dUlat *= phys.GetEarthRadius();
@@ -795,13 +798,13 @@ void GridPatchCSGLL::EvaluateTestCase(
 			tan(m_dBNode[j]),
 			m_box.GetPanel(),
 			dUlon, dUlat,
-			m_datavecStateREdge[iDataIndex][0][k][i][j],
-			m_datavecStateREdge[iDataIndex][1][k][i][j]);
+			m_datavecStateREdge[iDataIndex][UIx][i][j][k],
+			m_datavecStateREdge[iDataIndex][VIx][i][j][k]);
 
 		if (m_grid.HasReferenceState()) {
 			test.EvaluateReferenceState(
 				m_grid.GetModel().GetPhysicalConstants(),
-				m_dataZInterfaces[k][i][j],
+				m_dataZInterfaces[i][j][k],
 				m_dataLon[i][j],
 				m_dataLat[i][j],
 				dPointwiseRefState,
@@ -811,12 +814,12 @@ void GridPatchCSGLL::EvaluateTestCase(
 				phys, dPointwiseRefState, dPointwiseRefTracers);
 
 			for (int c = 0; c < dPointwiseState.GetRows(); c++) {
-				m_dataRefStateREdge[c][k][i][j] = dPointwiseRefState[c];
+				m_dataRefStateREdge[c][i][j][k] = dPointwiseRefState[c];
 			}
 
 			// Transform reference velocities
-			dUlon = m_dataRefStateREdge[0][k][i][j];
-			dUlat = m_dataRefStateREdge[1][k][i][j];
+			dUlon = m_dataRefStateREdge[UIx][i][j][k];
+			dUlat = m_dataRefStateREdge[VIx][i][j][k];
 
 			dUlon *= phys.GetEarthRadius();
 			dUlat *= phys.GetEarthRadius();
@@ -826,8 +829,8 @@ void GridPatchCSGLL::EvaluateTestCase(
 				tan(m_dBNode[j]),
 				m_box.GetPanel(),
 				dUlon, dUlat,
-				m_dataRefStateREdge[0][k][i][j],
-				m_dataRefStateREdge[1][k][i][j]);
+				m_dataRefStateREdge[UIx][i][j][k],
+				m_dataRefStateREdge[VIx][i][j][k]);
 		}
 	}
 	}
@@ -842,81 +845,6 @@ void GridPatchCSGLL::EvaluateTestCase_StateOnly(
 	int iDataIndex
 ) {
 	_EXCEPTIONT("Unmaintained function");
-/*
-	// Initialize the data at each node
-	if (m_datavecStateNode.size() == 0) {
-		_EXCEPTIONT("InitializeData must be called before InitialConditions");
-	}
-	if (iDataIndex >= m_datavecStateNode.size()) {
-		_EXCEPTIONT("Invalid iDataIndex (out of range)");
-	}
-
-	// 2D equation set
-	bool fIs2DEquationSet = false;
-	if (m_grid.GetModel().GetEquationSet().GetDimensionality() == 2) {
-		fIs2DEquationSet = true;
-	}
-
-	// Check dimensionality
-	if (fIs2DEquationSet && (m_nVerticalOrder != 1)) {
-		_EXCEPTIONT("VerticalOrder / Dimensionality mismatch:\n"
-			"For 2D problems vertical order must be 1.");
-	}
-
-	// Physical constants
-	const PhysicalConstants & phys = m_grid.GetModel().GetPhysicalConstants();
-
-	// Buffer vector for storing pointwise states
-	int nComponents = m_grid.GetModel().GetEquationSet().GetComponents();
-	int nTracers = m_grid.GetModel().GetEquationSet().GetTracers();
-
-	DataArray1D<double> dPointwiseState(nComponents);
-
-	DataArray1D<double> dPointwiseTracers;
-	if (m_datavecTracers.size() > 0) {
-		dPointwiseTracers.Allocate(nTracers);
-	}
-
-	// Loop over all nodes
-	for (int k = 0; k < m_grid.GetRElements(); k++) {
-	for (int i = 0; i < m_box.GetATotalWidth(); i++) {
-	for (int j = 0; j < m_box.GetBTotalWidth(); j++) {
-
-		// Evaluate pointwise state
-		test.EvaluatePointwiseState(
-			phys,
-			time,
-			m_dataZLevels[k][i][j],
-			m_dataLon[i][j],
-			m_dataLat[i][j],
-			dPointwiseState,
-			dPointwiseTracers);
-
-		for (int c = 0; c < dPointwiseState.GetRows(); c++) {
-			m_datavecStateNode[iDataIndex][c][k][i][j] = dPointwiseState[c];
-		}
-
-		// Transform state velocities
-		double dUlon;
-		double dUlat;
-
-		dUlon = m_datavecStateNode[iDataIndex][0][k][i][j];
-		dUlat = m_datavecStateNode[iDataIndex][1][k][i][j];
-
-		dUlon /= phys.GetEarthRadius();
-		dUlat /= phys.GetEarthRadius();
-
-		CubedSphereTrans::CoVecTransABPFromRLL(
-			tan(m_dANode[i]),
-			tan(m_dBNode[j]),
-			m_box.GetPanel(),
-			dUlon, dUlat,
-			m_datavecStateNode[iDataIndex][0][k][i][j],
-			m_datavecStateNode[iDataIndex][1][k][i][j]);
-	}
-	}
-	}
-*/
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -950,9 +878,9 @@ void GridPatchCSGLL::ComputeCurlAndDiv(
 	const double dInvElementDeltaB = 1.0 / GetElementDeltaB();
 
 	// Loop over all elements in the box
-	for (int k = 0; k < gridCSGLL.GetRElements(); k++) {
 	for (int a = 0; a < nAFiniteElements; a++) {
 	for (int b = 0; b < nBFiniteElements; b++) {
+	for (int k = 0; k < gridCSGLL.GetRElements(); k++) {
 
 		// Index of lower-left corner node
 		int iElementA = a * m_nHorizontalOrder + m_box.GetHaloElements();
@@ -966,12 +894,12 @@ void GridPatchCSGLL::ComputeCurlAndDiv(
 			int iB = iElementB + j;
 
 			m_dBufferConU[0][i][j] =
-				+ m_dataContraMetric2DA[iA][iB][0] * dataUa[k][iA][iB]
-				+ m_dataContraMetric2DA[iA][iB][1] * dataUb[k][iA][iB];
+				+ m_dataContraMetric2DA[iA][iB][0] * dataUa[iA][iB][k]
+				+ m_dataContraMetric2DA[iA][iB][1] * dataUb[iA][iB][k];
 
 			m_dBufferConU[1][i][j] =
-				+ m_dataContraMetric2DB[iA][iB][0] * dataUa[k][iA][iB]
-				+ m_dataContraMetric2DB[iA][iB][1] * dataUb[k][iA][iB];
+				+ m_dataContraMetric2DB[iA][iB][0] * dataUa[iA][iB][k]
+				+ m_dataContraMetric2DB[iA][iB][1] * dataUb[iA][iB][k];
 		}
 		}
 
@@ -983,23 +911,19 @@ void GridPatchCSGLL::ComputeCurlAndDiv(
 			int iB = iElementB + j;
 
 			// Pointwise field values
-			double dUa = dataUa[k][iA][iB];
-			double dUb = dataUb[k][iA][iB];
+			double dUa = dataUa[iA][iB][k];
+			double dUb = dataUb[iA][iB][k];
 
 			// Compute derivatives at each node
-			//double dDaUa = 0.0;
 			double dDaUb = 0.0;
 			double dDbUa = 0.0;
-			//double dDbUb = 0.0;
 
 			double dDaJUa = 0.0;
 			double dDbJUb = 0.0;
 
 			for (int s = 0; s < m_nHorizontalOrder; s++) {
-				//dDaUa += dataUa[k][iElementA+s][iB] * dDxBasis1D[s][i];
-				dDaUb += dataUb[k][iElementA+s][iB] * dDxBasis1D[s][i];
-				dDbUa += dataUa[k][iA][iElementB+s] * dDxBasis1D[s][j];
-				//dDbUb += dataUb[k][iA][iElementB+s] * dDxBasis1D[s][j];
+				dDaUb += dataUb[iElementA+s][iB][k] * dDxBasis1D[s][i];
+				dDbUa += dataUa[iA][iElementB+s][k] * dDxBasis1D[s][j];
 
 				dDaJUa +=
 					m_dataJacobian2D[iElementA+s][iB]
@@ -1017,89 +941,11 @@ void GridPatchCSGLL::ComputeCurlAndDiv(
 
 			dDaJUa *= dInvElementDeltaA;
 			dDbJUb *= dInvElementDeltaB;
-/*
-			if (fDiscontinuous) {
-				_EXCEPTIONT("This needs to be updated for covariant indices");
 
-				double dUpdateDerivA =
-					  dFluxDeriv1D[m_nHorizontalOrder-1] / GetElementDeltaA();
-				double dUpdateDerivB =
-					  dFluxDeriv1D[m_nHorizontalOrder-1] / GetElementDeltaB();
-
-				if (i == 0) {
-					double dUaL = dataUa[k][iA-1][iB];
-					double dUaR = dataUa[k][iA  ][iB];
-					double dUbL = dataUb[k][iA-1][iB];
-					double dUbR = dataUb[k][iA  ][iB];
-
-					dDaUa += 0.5 * dUpdateDerivA * (dUaR - dUaL);
-					dDaUb += 0.5 * dUpdateDerivA * (dUbR - dUbL);
-				}
-				if (i == m_nHorizontalOrder-1) {
-					double dUaL = dataUa[k][iA  ][iB];
-					double dUaR = dataUa[k][iA+1][iB];
-					double dUbL = dataUb[k][iA  ][iB];
-					double dUbR = dataUb[k][iA+1][iB];
-
-					dDaUa += 0.5 * dUpdateDerivA * (dUaR - dUaL);
-					dDaUb += 0.5 * dUpdateDerivA * (dUbR - dUbL);
-				}
-				if (j == 0) {
-					double dUaL = dataUa[k][iA][iB-1];
-					double dUaR = dataUa[k][iA][iB  ];
-					double dUbL = dataUb[k][iA][iB-1];
-					double dUbR = dataUb[k][iA][iB  ];
-
-					dDbUa += 0.5 * dUpdateDerivB * (dUaR - dUaL);
-					dDbUb += 0.5 * dUpdateDerivB * (dUbR - dUbL);
-				}
-				if (j == m_nHorizontalOrder-1) {
-					double dUaL = dataUa[k][iA][iB  ];
-					double dUaR = dataUa[k][iA][iB+1];
-					double dUbL = dataUb[k][iA][iB  ];
-					double dUbR = dataUb[k][iA][iB+1];
-
-					dDbUa += 0.5 * dUpdateDerivB * (dUaR - dUaL);
-					dDbUb += 0.5 * dUpdateDerivB * (dUbR - dUbL);
-				}
-			}
-*/
-			m_dataDivergence[k][iA][iB] =
+			m_dataDivergence[iA][iB][k] =
 				(dDaJUa + dDbJUb) / m_dataJacobian2D[iA][iB];
-			m_dataVorticity[k][iA][iB] =
+			m_dataVorticity[iA][iB][k] =
 				(dDaUb - dDbUa) / m_dataJacobian2D[iA][iB];
-
-/*
-			// Compute covariant derivatives at node
-			double dCovDaUa = dDaUa
-				+ m_dataChristoffelA[iA][iB][0] * dUa
-				+ m_dataChristoffelA[iA][iB][1] * 0.5 * dUb;
-
-			double dCovDaUb = dDaUb
-				+ m_dataChristoffelB[iA][iB][0] * dUa
-				+ m_dataChristoffelB[iA][iB][1] * 0.5 * dUb;
-
-			double dCovDbUa = dDbUa
-				+ m_dataChristoffelA[iA][iB][1] * 0.5 * dUa
-				+ m_dataChristoffelA[iA][iB][2] * dUb;
-
-			double dCovDbUb = dDbUb
-				+ m_dataChristoffelB[iA][iB][1] * 0.5 * dUa
-				+ m_dataChristoffelB[iA][iB][2] * dUb;
-
-			// Compute curl at node
-			m_dataVorticity[k][iA][iB] = m_dataJacobian2D[iA][iB] * (
-				+ m_dataContraMetric2DA[iA][iB][0] * dCovDaUb
-				+ m_dataContraMetric2DA[iA][iB][1] * dCovDbUb
-				- m_dataContraMetric2DB[iA][iB][0] * dCovDaUa
-				- m_dataContraMetric2DB[iA][iB][1] * dCovDbUa);
-
-			// Compute the divergence at node
-			m_dataDivergence[k][iA][iB] = dCovDaUa + dCovDbUb;
-			//double dInvJacobian = 1.0 / m_dataJacobian2D[iA][iB];
-			//m_dataDivergence[k][iA][iB] =
-			//	dInvJacobian * (dDaJUa + dDbJUb);
-*/
 		}
 		}
 	}
@@ -1112,6 +958,9 @@ void GridPatchCSGLL::ComputeCurlAndDiv(
 void GridPatchCSGLL::ComputeVorticityDivergence(
 	int iDataIndex
 ) {
+	static const int UIx = 0;
+	static const int VIx = 1;
+
 	// Physical constants
 	const PhysicalConstants & phys = m_grid.GetModel().GetPhysicalConstants();
 
@@ -1137,8 +986,8 @@ void GridPatchCSGLL::ComputeVorticityDivergence(
 		dataState.GetSize(2),
 		dataState.GetSize(3));
 
-	dataUa.AttachToData(&(dataState[0][0][0][0]));
-	dataUb.AttachToData(&(dataState[1][0][0][0]));
+	dataUa.AttachToData(&(dataState[UIx][0][0][0]));
+	dataUb.AttachToData(&(dataState[VIx][0][0][0]));
 
 	// Compute the radial component of the curl of the velocity field
 	ComputeCurlAndDiv(dataUa, dataUb);
@@ -1320,14 +1169,14 @@ void GridPatchCSGLL::InterpolateData(
 		DataArray3D<double> pDataRef;
 
 		pData.SetSize(
-			nRElements,
 			m_box.GetATotalWidth(),
-			m_box.GetBTotalWidth());
+			m_box.GetBTotalWidth(),
+			nRElements);
 
 		pDataRef.SetSize(
-			nRElements,
 			m_box.GetATotalWidth(),
-			m_box.GetBTotalWidth());
+			m_box.GetBTotalWidth(),
+			nRElements);
 
 		if (eDataType == DataType_State) {
 			if (eDataLocation == DataLocation_Node) {
@@ -1433,8 +1282,8 @@ void GridPatchCSGLL::InterpolateData(
 							dColumnData[k] +=
 								  dAInterpCoeffs[m]
 								* dBInterpCoeffs[n]
-								* pData[k][iA+m][iB+n]
-								/ m_dataDerivRREdge[k][iA][iB][2];
+								* pData[iA+m][iB+n][k]
+								/ m_dataDerivRREdge[iA][iB][k][2];
 						}
 						}
 
@@ -1444,8 +1293,8 @@ void GridPatchCSGLL::InterpolateData(
 							dColumnData[k] +=
 								  dAInterpCoeffs[m]
 								* dBInterpCoeffs[n]
-								* pData[k][iA+m][iB+n]
-								/ m_dataDerivRNode[k][iA][iB][2];
+								* pData[iA+m][iB+n][k]
+								/ m_dataDerivRNode[iA][iB][k][2];
 						}
 						}
 					}
@@ -1456,7 +1305,7 @@ void GridPatchCSGLL::InterpolateData(
 						dColumnData[k] +=
 							  dAInterpCoeffs[m]
 							* dBInterpCoeffs[n]
-							* pData[k][iA+m][iB+n];
+							* pData[iA+m][iB+n][k];
 					}
 					}
 				}
@@ -1470,7 +1319,7 @@ void GridPatchCSGLL::InterpolateData(
 						dColumnData[k] -=
 							  dAInterpCoeffs[m]
 							* dBInterpCoeffs[n]
-							* pDataRef[k][iA+m][iB+n];
+							* pDataRef[iA+m][iB+n][k];
 					}
 					}
 				}
@@ -1521,8 +1370,8 @@ void GridPatchCSGLL::TransformHaloVelocities(
 	int iDataUpdate
 ) {
 	// Indices of velocities
-	const int UIx = 0;
-	const int VIx = 1;
+	static const int UIx = 0;
+	static const int VIx = 1;
 
 	// Velocity data
 	DataArray4D<double> * pDataVelocity =
@@ -1552,13 +1401,13 @@ void GridPatchCSGLL::TransformHaloVelocities(
 		int jEnd = m_box.GetBInteriorEnd()+1;
 
 		i = m_box.GetAInteriorEnd();
-		for (int k = 0; k < pDataVelocity->GetSize(1); k++) {
+		for (int k = 0; k < pDataVelocity->GetSize(3); k++) {
 		for (j = jBegin; j < jEnd; j++) {
 			CubedSphereTrans::CoVecPanelTrans(
 				ixRightPanel,
 				m_box.GetPanel(),
-				(*pDataVelocity)[0][k][i][j],
-				(*pDataVelocity)[1][k][i][j],
+				(*pDataVelocity)[UIx][i][j][k],
+				(*pDataVelocity)[VIx][i][j][k],
 				tan(m_dANode[i]),
 				tan(m_dBNode[j]));
 		}
@@ -1574,13 +1423,13 @@ void GridPatchCSGLL::TransformHaloVelocities(
 		int iEnd = m_box.GetAInteriorEnd()+1;
 
 		j = m_box.GetBInteriorEnd();
-		for (int k = 0; k < pDataVelocity->GetSize(1); k++) {
+		for (int k = 0; k < pDataVelocity->GetSize(3); k++) {
 		for (i = iBegin; i < iEnd; i++) {
 			CubedSphereTrans::CoVecPanelTrans(
 				ixTopPanel,
 				m_box.GetPanel(),
-				(*pDataVelocity)[0][k][i][j],
-				(*pDataVelocity)[1][k][i][j],
+				(*pDataVelocity)[UIx][i][j][k],
+				(*pDataVelocity)[VIx][i][j][k],
 				tan(m_dANode[i]),
 				tan(m_dBNode[j]));
 		}
@@ -1596,13 +1445,13 @@ void GridPatchCSGLL::TransformHaloVelocities(
 		int jEnd = m_box.GetBInteriorEnd()+1;
 
 		i = m_box.GetAInteriorBegin()-1;
-		for (int k = 0; k < pDataVelocity->GetSize(1); k++) {
+		for (int k = 0; k < pDataVelocity->GetSize(3); k++) {
 		for (j = jBegin; j < jEnd; j++) {
 			CubedSphereTrans::CoVecPanelTrans(
 				ixLeftPanel,
 				m_box.GetPanel(),
-				(*pDataVelocity)[0][k][i][j],
-				(*pDataVelocity)[1][k][i][j],
+				(*pDataVelocity)[UIx][i][j][k],
+				(*pDataVelocity)[VIx][i][j][k],
 				tan(m_dANode[i]),
 				tan(m_dBNode[j]));
 		}
@@ -1618,13 +1467,13 @@ void GridPatchCSGLL::TransformHaloVelocities(
 		int iEnd = m_box.GetAInteriorEnd()+1;
 
 		j = m_box.GetBInteriorBegin()-1;
-		for (int k = 0; k < pDataVelocity->GetSize(1); k++) {
+		for (int k = 0; k < pDataVelocity->GetSize(3); k++) {
 		for (i = iBegin; i < iEnd; i++) {
 			CubedSphereTrans::CoVecPanelTrans(
 				ixBottomPanel,
 				m_box.GetPanel(),
-				(*pDataVelocity)[0][k][i][j],
-				(*pDataVelocity)[1][k][i][j],
+				(*pDataVelocity)[UIx][i][j][k],
+				(*pDataVelocity)[VIx][i][j][k],
 				tan(m_dANode[i]),
 				tan(m_dBNode[j]));
 		}
@@ -1660,7 +1509,7 @@ void GridPatchCSGLL::TransformTopographyDeriv() {
 			CubedSphereTrans::CoVecPanelTrans(
 				ixRightPanel,
 				m_box.GetPanel(),
-				m_dataTopographyDeriv[0][i][j],
+				m_dataTopographyDeriv[i][j][0],
 				m_dataTopographyDeriv[1][i][j],
 				tan(m_dANode[i]),
 				tan(m_dBNode[j]));
@@ -1680,7 +1529,7 @@ void GridPatchCSGLL::TransformTopographyDeriv() {
 			CubedSphereTrans::CoVecPanelTrans(
 				ixTopPanel,
 				m_box.GetPanel(),
-				m_dataTopographyDeriv[0][i][j],
+				m_dataTopographyDeriv[i][j][0],
 				m_dataTopographyDeriv[1][i][j],
 				tan(m_dANode[i]),
 				tan(m_dBNode[j]));
@@ -1700,7 +1549,7 @@ void GridPatchCSGLL::TransformTopographyDeriv() {
 			CubedSphereTrans::CoVecPanelTrans(
 				ixLeftPanel,
 				m_box.GetPanel(),
-				m_dataTopographyDeriv[0][i][j],
+				m_dataTopographyDeriv[i][j][0],
 				m_dataTopographyDeriv[1][i][j],
 				tan(m_dANode[i]),
 				tan(m_dBNode[j]));
@@ -1720,7 +1569,7 @@ void GridPatchCSGLL::TransformTopographyDeriv() {
 			CubedSphereTrans::CoVecPanelTrans(
 				ixBottomPanel,
 				m_box.GetPanel(),
-				m_dataTopographyDeriv[0][i][j],
+				m_dataTopographyDeriv[i][j][0],
 				m_dataTopographyDeriv[1][i][j],
 				tan(m_dANode[i]),
 				tan(m_dBNode[j]));

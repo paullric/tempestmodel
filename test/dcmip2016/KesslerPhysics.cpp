@@ -142,7 +142,7 @@ void KesslerPhysics::Perform(
 			// Remap virtual potential temperature tendency to levels
 			if (pGridGLL->GetVarLocation(TIx) == DataLocation_REdge) {
 				for (int k = 0; k < nRElements+1; k++) {
-					m_dThetaVREdge[k] = dataREdge[TIx][k][i][j];
+					m_dThetaVREdge[k] = dataREdge[TIx][i][j][k];
 				}
 
 				pGridGLL->InterpolateREdgeToNode(
@@ -154,11 +154,11 @@ void KesslerPhysics::Perform(
 				for (int k = 0; k < nRElements; k++) {
 #if defined(FORMULATION_THETA)
 					m_dThetaVNode[k] =
-						dataNode[TIx][k][i][j];
+						dataNode[TIx][i][j][k];
 #elif defined(FORMULATION_RHOTHETA_PI)
 					m_dThetaVNode[k] =
-						dataNode[TIx][k][i][j]
-						/ dataNode[RIx][k][i][j];
+						dataNode[TIx][i][j][k]
+						/ dataNode[RIx][i][j][k];
 #else
 					_EXCEPTIONT("Invalid FORMULATION");
 #endif
@@ -169,14 +169,14 @@ void KesslerPhysics::Perform(
 			for (int k = 0; k < nRElements; k++) {
 
 				// Total density
-				double dRho = dataNode[RIx][k][i][j];
+				double dRho = dataNode[RIx][i][j][k];
 
 				// Dry air density
 				double dRhoD =
 					dRho
-					- dataTracer[0][k][i][j]
-					- dataTracer[1][k][i][j]
-					- dataTracer[2][k][i][j];
+					- dataTracer[0][i][j][k]
+					- dataTracer[1][i][j][k]
+					- dataTracer[2][i][j][k];
 
 				// Calculate moist pressure
 				double dPressure =
@@ -186,19 +186,19 @@ void KesslerPhysics::Perform(
 				double dTv = dPressure / (dRho * phys.GetR());
 
 				// Water vapor (RhoQv / Rho)
-				m_dQv[k] = dataTracer[0][k][i][j] / dataNode[RIx][k][i][j];
+				m_dQv[k] = dataTracer[0][i][j][k] / dataNode[RIx][i][j][k];
 				if (m_dQv[k] < 0.0) {
 					m_dQv[k] = 0.0;
 				}
 
 				// Cloud water (RhoQc / Rho)
-				m_dQc[k] = dataTracer[1][k][i][j] / dataNode[RIx][k][i][j];
+				m_dQc[k] = dataTracer[1][i][j][k] / dataNode[RIx][i][j][k];
 				if (m_dQc[k] < 0.0) {
 					m_dQc[k] = 0.0;
 				}
 
 				// Rain water (RhoQr / Rho)
-				m_dQr[k] = dataTracer[2][k][i][j] / dataNode[RIx][k][i][j];
+				m_dQr[k] = dataTracer[2][i][j][k] / dataNode[RIx][i][j][k];
 				if (m_dQr[k] < 0.0) {
 					m_dQr[k] = 0.0;
 				}
@@ -210,7 +210,7 @@ void KesslerPhysics::Perform(
 				m_dRho[k] = dRhoD;
  
 				// Heights of each level
-				m_dZc[k] = dataZLevels[k][i][j];
+				m_dZc[k] = dataZLevels[i][j][k];
 	
 				// Exner function (Tv/thetav)
 				m_dPk[k] = dTv / m_dThetaVNode[k];
@@ -236,13 +236,13 @@ void KesslerPhysics::Perform(
 			for (int k = 0; k < nRElements; k++) {
 
 				// Moist density
-				dataNode[RIx][k][i][j] =
+				dataNode[RIx][i][j][k] =
 					m_dRho[k] / (1.0 - m_dQv[k] - m_dQc[k] - m_dQr[k]);
 
 				// Virtual potential temperature
-				dataTracer[0][k][i][j] = m_dQv[k] * dataNode[RIx][k][i][j];
-				dataTracer[1][k][i][j] = m_dQc[k] * dataNode[RIx][k][i][j];
-				dataTracer[2][k][i][j] = m_dQr[k] * dataNode[RIx][k][i][j];
+				dataTracer[0][i][j][k] = m_dQv[k] * dataNode[RIx][i][j][k];
+				dataTracer[1][i][j][k] = m_dQc[k] * dataNode[RIx][i][j][k];
+				dataTracer[2][i][j][k] = m_dQr[k] * dataNode[RIx][i][j][k];
 			}
 
 			// Remap virtual potential temperature tendency to interfaces
@@ -261,18 +261,18 @@ void KesslerPhysics::Perform(
 
 				// Update thetaV on interfaces
 				for (int k = 0; k <= nRElements; k++) {
-					dataREdge[TIx][k][i][j] -= m_dThetaVREdge[k];
+					dataREdge[TIx][i][j][k] -= m_dThetaVREdge[k];
 				}
 
 			// Update thetaV on levels
 			} else {
 				for (int k = 0; k < nRElements; k++) {
 #if defined(FORMULATION_THETA)
-					dataNode[TIx][k][i][j] =
+					dataNode[TIx][i][j][k] =
 						m_dTheta[k] * (1.0 + 0.61 * m_dQv[k]);
 #elif defined(FORMULATION_RHOTHETA_PI)
-					dataNode[TIx][k][i][j] =
-						dataNode[RIx][k][i][j]
+					dataNode[TIx][i][j][k] =
+						dataNode[RIx][i][j][k]
 						* m_dTheta[k] * (1.0 + 0.61 * m_dQv[k]);
 #else
 					_EXCEPTIONT("Invalid FORMULATION");

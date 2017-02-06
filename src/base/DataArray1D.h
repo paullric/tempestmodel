@@ -361,6 +361,11 @@ public:
 	///		Parenthetical array accessor.
 	///	</summary>
 	inline T & operator()(size_t i) {
+#if defined(DEBUG_ARRAYOUTOFBOUNDS)
+		if (i > m_sSize) {
+			_EXCEPTIONT("Array access out of bounds");
+		}
+#endif
 		return m_data[i];
 	}
 
@@ -368,6 +373,11 @@ public:
 	///		Parenthetical array accessor.
 	///	</summary>
 	inline const T & operator()(size_t i) const {
+#if defined(DEBUG_ARRAYOUTOFBOUNDS)
+		if (i > m_sSize) {
+			_EXCEPTIONT("Array access out of bounds");
+		}
+#endif
 		return m_data[i];
 	}
 

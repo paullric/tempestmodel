@@ -572,13 +572,13 @@ void VerticalDynamicsFLL::StepExplicit(
 						m_dSoln[VecFIx(FZIx, k+1)]
 						- m_dSoln[VecFIx(FZIx, k)];
 
-					dataUpdateNode[PIx][k][i][j] =
-						dataInitialNode[PIx][k][i][j]
+					dataUpdateNode[PIx][i][j][k] =
+						dataInitialNode[PIx][i][j][k]
 						* dInitialDeltaZ
 						/ dUpdateDeltaZ;
 
-					dataUpdateNode[RIx][k][i][j] =
-						dataInitialNode[RIx][k][i][j]
+					dataUpdateNode[RIx][i][j][k] =
+						dataInitialNode[RIx][i][j][k]
 						* dInitialDeltaZ
 						/ dUpdateDeltaZ;
 				}
@@ -907,12 +907,12 @@ void VerticalDynamicsFLL::StepImplicit(
 			// Copy over W
 			if (pGrid->GetVarLocation(WIx) == DataLocation_REdge) {
 				for (int k = 0; k <= pGrid->GetRElements(); k++) {
-					dataUpdateREdge[WIx][k][iA][iB] =
+					dataUpdateREdge[WIx][iA][iB][k] =
 						m_dSoln[VecFIx(FWIx, k)];
 				}
 			} else {
 				for (int k = 0; k < pGrid->GetRElements(); k++) {
-					dataUpdateNode[WIx][k][iA][iB] =
+					dataUpdateNode[WIx][iA][iB][k] =
 						m_dSoln[VecFIx(FWIx, k)];
 				}
 			}
@@ -927,13 +927,13 @@ void VerticalDynamicsFLL::StepImplicit(
 					m_dSoln[VecFIx(FZIx, k+1)]
 					- m_dSoln[VecFIx(FZIx, k)];
 
-				dataUpdateNode[PIx][k][iA][iB] =
-					dataInitialNode[PIx][k][iA][iB]
+				dataUpdateNode[PIx][iA][iB][k] =
+					dataInitialNode[PIx][iA][iB][k]
 					* dInitialDeltaZ
 					/ dUpdateDeltaZ;
 
-				dataUpdateNode[RIx][k][iA][iB] =
-					dataInitialNode[RIx][k][iA][iB]
+				dataUpdateNode[RIx][iA][iB][k] =
+					dataInitialNode[RIx][iA][iB][k]
 					* dInitialDeltaZ
 					/ dUpdateDeltaZ;
 			}
@@ -975,33 +975,33 @@ void VerticalDynamicsFLL::StepImplicit(
 					int iB = box.GetBInteriorBegin() + b * m_nHorizontalOrder + j;
 
 					for (int k = 0; k < pGrid->GetRElements(); k++) {
-						//dataUpdateNode[UIx][k][iA][iB]
+						//dataUpdateNode[UIx][iA][iB][k]
 						//	= dataUpdateNode[UIx][k][iA+1][iB];
-						//dataUpdateNode[VIx][k][iA][iB]
+						//dataUpdateNode[VIx][iA][iB][k]
 						//	= dataUpdateNode[VIx][k][iA+1][iB];
-						dataUpdateNode[PIx][k][iA][iB]
+						dataUpdateNode[PIx][iA][iB][k]
 							= dataUpdateNode[PIx][k][iA+1][iB];
-						dataUpdateNode[WIx][k][iA][iB]
+						dataUpdateNode[WIx][iA][iB][k]
 							= dataUpdateNode[WIx][k][iA+1][iB];
-						dataUpdateNode[RIx][k][iA][iB]
+						dataUpdateNode[RIx][iA][iB][k]
 							= dataUpdateNode[RIx][k][iA+1][iB];
 
 						for (int c = 0; c < nTracerCount; c++) {
-							dataUpdateTracer[c][k][iA][iB]
+							dataUpdateTracer[c][iA][iB][k]
 								= dataUpdateTracer[c][k][iA+1][iB];
 						}
 					}
 
 					for (int k = 0; k <= pGrid->GetRElements(); k++) {
-						//dataUpdateREdge[UIx][k][iA][iB]
+						//dataUpdateREdge[UIx][iA][iB][k]
 						//	= dataUpdateREdge[UIx][k][iA+1][iB];
-						//dataUpdateREdge[VIx][k][iA][iB]
+						//dataUpdateREdge[VIx][iA][iB][k]
 						//	= dataUpdateREdge[VIx][k][iA+1][iB];
-						dataUpdateREdge[PIx][k][iA][iB]
+						dataUpdateREdge[PIx][iA][iB][k]
 							= dataUpdateREdge[PIx][k][iA+1][iB];
-						dataUpdateREdge[WIx][k][iA][iB]
+						dataUpdateREdge[WIx][iA][iB][k]
 							= dataUpdateREdge[WIx][k][iA+1][iB];
-						dataUpdateREdge[RIx][k][iA][iB]
+						dataUpdateREdge[RIx][iA][iB][k]
 							= dataUpdateREdge[RIx][k][iA+1][iB];
 					}
 				}
@@ -1085,24 +1085,24 @@ void VerticalDynamicsFLL::SetupReferenceColumn(
 
 	// Store U in State structure
 	for (int k = 0; k < nRElements; k++) {
-		m_dStateNode[UIx][k] = dataInitialNode[UIx][k][iA][iB];
+		m_dStateNode[UIx][k] = dataInitialNode[UIx][iA][iB][k];
 	}
 
 	// Store V in State structure
 	for (int k = 0; k < nRElements; k++) {
-		m_dStateNode[VIx][k] = dataInitialNode[VIx][k][iA][iB];
+		m_dStateNode[VIx][k] = dataInitialNode[VIx][iA][iB][k];
 	}
 /*
 	// Copy over Theta
 	if (pGrid->GetVarLocation(PIx) == DataLocation_REdge) {
 		for (int k = 0; k <= pGrid->GetRElements(); k++) {
 			m_dColumnState[VecFIx(FPIx, k)] =
-				dataInitialREdge[PIx][k][iA][iB];
+				dataInitialREdge[PIx][iA][iB][k];
 		}
 	} else {
 		for (int k = 0; k < pGrid->GetRElements(); k++) {
 			m_dColumnState[VecFIx(FPIx, k)] =
-				dataInitialNode[PIx][k][iA][iB];
+				dataInitialNode[PIx][iA][iB][k];
 		}
 	}
 */
@@ -1110,12 +1110,12 @@ void VerticalDynamicsFLL::SetupReferenceColumn(
 	if (pGrid->GetVarLocation(WIx) == DataLocation_REdge) {
 		for (int k = 0; k <= pGrid->GetRElements(); k++) {
 			m_dColumnState[VecFIx(FWIx, k)] =
-				dataInitialREdge[WIx][k][iA][iB];
+				dataInitialREdge[WIx][iA][iB][k];
 		}
 	} else {
 		for (int k = 0; k < pGrid->GetRElements(); k++) {
 			m_dColumnState[VecFIx(FWIx, k)] =
-				dataInitialNode[WIx][k][iA][iB];
+				dataInitialNode[WIx][iA][iB][k];
 		}
 	}
 /*
@@ -1123,12 +1123,12 @@ void VerticalDynamicsFLL::SetupReferenceColumn(
 	if (pGrid->GetVarLocation(RIx) == DataLocation_REdge) {
 		for (int k = 0; k <= pGrid->GetRElements(); k++) {
 			m_dColumnState[VecFIx(FRIx, k)] =
-				dataInitialREdge[RIx][k][iA][iB];
+				dataInitialREdge[RIx][iA][iB][k];
 		}
 	} else {
 		for (int k = 0; k < pGrid->GetRElements(); k++) {
 			m_dColumnState[VecFIx(FRIx, k)] =
-				dataInitialNode[RIx][k][iA][iB];
+				dataInitialNode[RIx][iA][iB][k];
 		}
 	}
 */
@@ -1158,46 +1158,46 @@ void VerticalDynamicsFLL::SetupReferenceColumn(
 		m_pPatch->GetContraMetricXiREdge();
 
 	for (int k = 0; k < pGrid->GetRElements(); k++) {
-		m_dColumnJacobianNode[k] = dJacobian[k][iA][iB];
-		m_dColumnElementAreaNode[k] = dElementAreaNode[k][iA][iB];
+		m_dColumnJacobianNode[k] = dJacobian[iA][iB][k];
+		m_dColumnElementAreaNode[k] = dElementAreaNode[iA][iB][k];
 		m_dColumnInvJacobianNode[k] = 1.0 / m_dColumnJacobianNode[k];
 
-		m_dColumnDerivRNode[k][0] = dDerivRNode[k][iA][iB][0];
-		m_dColumnDerivRNode[k][1] = dDerivRNode[k][iA][iB][1];
-		m_dColumnDerivRNode[k][2] = dDerivRNode[k][iA][iB][2];
+		m_dColumnDerivRNode[k][0] = dDerivRNode[iA][iB][k][0];
+		m_dColumnDerivRNode[k][1] = dDerivRNode[iA][iB][k][1];
+		m_dColumnDerivRNode[k][2] = dDerivRNode[iA][iB][k][2];
 
-		m_dColumnContraMetricA[k][0] = dContraMetricA[k][iA][iB][0];
-		m_dColumnContraMetricA[k][1] = dContraMetricA[k][iA][iB][1];
-		m_dColumnContraMetricA[k][2] = dContraMetricA[k][iA][iB][2];
+		m_dColumnContraMetricA[k][0] = dContraMetricA[iA][iB][k][0];
+		m_dColumnContraMetricA[k][1] = dContraMetricA[iA][iB][k][1];
+		m_dColumnContraMetricA[k][2] = dContraMetricA[iA][iB][k][2];
 
-		m_dColumnContraMetricB[k][0] = dContraMetricB[k][iA][iB][0];
-		m_dColumnContraMetricB[k][1] = dContraMetricB[k][iA][iB][1];
-		m_dColumnContraMetricB[k][2] = dContraMetricB[k][iA][iB][2];
+		m_dColumnContraMetricB[k][0] = dContraMetricB[iA][iB][k][0];
+		m_dColumnContraMetricB[k][1] = dContraMetricB[iA][iB][k][1];
+		m_dColumnContraMetricB[k][2] = dContraMetricB[iA][iB][k][2];
 
-		m_dColumnContraMetricXi[k][0] = dContraMetricXi[k][iA][iB][0];
-		m_dColumnContraMetricXi[k][1] = dContraMetricXi[k][iA][iB][1];
-		m_dColumnContraMetricXi[k][2] = dContraMetricXi[k][iA][iB][2];
+		m_dColumnContraMetricXi[k][0] = dContraMetricXi[iA][iB][k][0];
+		m_dColumnContraMetricXi[k][1] = dContraMetricXi[iA][iB][k][1];
+		m_dColumnContraMetricXi[k][2] = dContraMetricXi[iA][iB][k][2];
 	}
 
 	for (int k = 0; k <= pGrid->GetRElements(); k++) {
-		m_dColumnJacobianREdge[k] = dJacobianREdge[k][iA][iB];
+		m_dColumnJacobianREdge[k] = dJacobianREdge[iA][iB][k];
 		m_dColumnInvJacobianREdge[k] = 1.0 / m_dColumnJacobianREdge[k];
 
-		m_dColumnDerivRREdge[k][0] = dDerivRREdge[k][iA][iB][0];
-		m_dColumnDerivRREdge[k][1] = dDerivRREdge[k][iA][iB][1];
-		m_dColumnDerivRREdge[k][2] = dDerivRREdge[k][iA][iB][2];
+		m_dColumnDerivRREdge[k][0] = dDerivRREdge[iA][iB][k][0];
+		m_dColumnDerivRREdge[k][1] = dDerivRREdge[iA][iB][k][1];
+		m_dColumnDerivRREdge[k][2] = dDerivRREdge[iA][iB][k][2];
 
-		m_dColumnContraMetricAREdge[k][0] = dContraMetricAREdge[k][iA][iB][0];
-		m_dColumnContraMetricAREdge[k][1] = dContraMetricAREdge[k][iA][iB][1];
-		m_dColumnContraMetricAREdge[k][2] = dContraMetricAREdge[k][iA][iB][2];
+		m_dColumnContraMetricAREdge[k][0] = dContraMetricAREdge[iA][iB][k][0];
+		m_dColumnContraMetricAREdge[k][1] = dContraMetricAREdge[iA][iB][k][1];
+		m_dColumnContraMetricAREdge[k][2] = dContraMetricAREdge[iA][iB][k][2];
 
-		m_dColumnContraMetricBREdge[k][0] = dContraMetricBREdge[k][iA][iB][0];
-		m_dColumnContraMetricBREdge[k][1] = dContraMetricBREdge[k][iA][iB][1];
-		m_dColumnContraMetricBREdge[k][2] = dContraMetricBREdge[k][iA][iB][2];
+		m_dColumnContraMetricBREdge[k][0] = dContraMetricBREdge[iA][iB][k][0];
+		m_dColumnContraMetricBREdge[k][1] = dContraMetricBREdge[iA][iB][k][1];
+		m_dColumnContraMetricBREdge[k][2] = dContraMetricBREdge[iA][iB][k][2];
 
-		m_dColumnContraMetricXiREdge[k][0] = dContraMetricXiREdge[k][iA][iB][0];
-		m_dColumnContraMetricXiREdge[k][1] = dContraMetricXiREdge[k][iA][iB][1];
-		m_dColumnContraMetricXiREdge[k][2] = dContraMetricXiREdge[k][iA][iB][2];
+		m_dColumnContraMetricXiREdge[k][0] = dContraMetricXiREdge[iA][iB][k][0];
+		m_dColumnContraMetricXiREdge[k][1] = dContraMetricXiREdge[iA][iB][k][1];
+		m_dColumnContraMetricXiREdge[k][2] = dContraMetricXiREdge[iA][iB][k][2];
 	}
 */
 }

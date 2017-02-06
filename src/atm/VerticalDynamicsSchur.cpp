@@ -597,12 +597,12 @@ void VerticalDynamicsSchur::StepImplicitTermsExplicitly(
 			// Apply update to P
 			if (pGrid->GetVarLocation(PIx) == DataLocation_REdge) {
 				for (int k = 0; k <= nRElements; k++) {
-					dataUpdateREdge[PIx][k][iA][iB] -=
+					dataUpdateREdge[PIx][iA][iB][k] -=
 						dDeltaT * m_dSoln[VecFIx(FPIx, k)];
 				}
 			} else {
 				for (int k = 0; k < nRElements; k++) {
-					dataUpdateNode[PIx][k][iA][iB] -=
+					dataUpdateNode[PIx][iA][iB][k] -=
 						dDeltaT * m_dSoln[VecFIx(FPIx, k)];
 				}
 			}
@@ -610,13 +610,13 @@ void VerticalDynamicsSchur::StepImplicitTermsExplicitly(
 			// Apply update to W
 			if (pGrid->GetVarLocation(WIx) == DataLocation_REdge) {
 				for (int k = 0; k <= nRElements; k++) {
-					dataUpdateREdge[WIx][k][iA][iB] -=
+					dataUpdateREdge[WIx][iA][iB][k] -=
 						dDeltaT * m_dSoln[VecFIx(FWIx, k)];
 				}
 
 			} else {
 				for (int k = 0; k < nRElements; k++) {
-					dataUpdateNode[WIx][k][iA][iB] -=
+					dataUpdateNode[WIx][iA][iB][k] -=
 						dDeltaT * m_dSoln[VecFIx(FWIx, k)];
 				}
 			}
@@ -624,12 +624,12 @@ void VerticalDynamicsSchur::StepImplicitTermsExplicitly(
 			// Apply update to Rho
 			if (pGrid->GetVarLocation(RIx) == DataLocation_REdge) {
 				for (int k = 0; k <= nRElements; k++) {
-					dataUpdateREdge[RIx][k][iA][iB] -=
+					dataUpdateREdge[RIx][iA][iB][k] -=
 						dDeltaT * m_dSoln[VecFIx(FRIx, k)];
 				}
 			} else {
 				for (int k = 0; k < nRElements; k++) {
-					dataUpdateNode[RIx][k][iA][iB] -=
+					dataUpdateNode[RIx][iA][iB][k] -=
 						dDeltaT * m_dSoln[VecFIx(FRIx, k)];
 				}
 			}
@@ -785,7 +785,7 @@ void VerticalDynamicsSchur::StepExplicit(
 			// Store W in m_dState structure on levels and interfaces
 			if (pGrid->GetVarLocation(WIx) == DataLocation_Node) {
 				for (int k = 0; k < nRElements; k++) {
-					m_dStateNode[WIx][k] = dataInitialNode[WIx][k][i][j];
+					m_dStateNode[WIx][k] = dataInitialNode[WIx][i][j][k];
 				}
 
 				pGrid->InterpolateNodeToREdge(
@@ -794,7 +794,7 @@ void VerticalDynamicsSchur::StepExplicit(
 
 			} else {
 				for (int k = 0; k <= nRElements; k++) {
-					m_dStateREdge[WIx][k] = dataInitialREdge[WIx][k][i][j];
+					m_dStateREdge[WIx][k] = dataInitialREdge[WIx][i][j][k];
 				}
 
 				pGrid->InterpolateREdgeToNode(
@@ -811,12 +811,12 @@ void VerticalDynamicsSchur::StepExplicit(
 				// Apply update to P
 				if (pGrid->GetVarLocation(PIx) == DataLocation_REdge) {
 					for (int k = 0; k <= nRElements; k++) {
-						dataUpdateREdge[PIx][k][i][j] -=
+						dataUpdateREdge[PIx][i][j][k] -=
 							dDeltaT * m_dSoln[VecFIx(FPIx, k)];
 					}
 				} else {
 					for (int k = 0; k < nRElements; k++) {
-						dataUpdateNode[PIx][k][i][j] -=
+						dataUpdateNode[PIx][i][j][k] -=
 							dDeltaT * m_dSoln[VecFIx(FPIx, k)];
 					}
 				}
@@ -824,13 +824,13 @@ void VerticalDynamicsSchur::StepExplicit(
 				// Apply update to W
 				if (pGrid->GetVarLocation(WIx) == DataLocation_REdge) {
 					for (int k = 0; k <= nRElements; k++) {
-						dataUpdateREdge[WIx][k][i][j] -=
+						dataUpdateREdge[WIx][i][j][k] -=
 							dDeltaT * m_dSoln[VecFIx(FWIx, k)];
 					}
 
 				} else {
 					for (int k = 0; k < nRElements; k++) {
-						dataUpdateNode[WIx][k][i][j] -=
+						dataUpdateNode[WIx][i][j][k] -=
 							dDeltaT * m_dSoln[VecFIx(FWIx, k)];
 					}
 				}
@@ -838,12 +838,12 @@ void VerticalDynamicsSchur::StepExplicit(
 				// Apply update to Rho
 				if (pGrid->GetVarLocation(RIx) == DataLocation_REdge) {
 					for (int k = 0; k <= nRElements; k++) {
-						dataUpdateREdge[RIx][k][i][j] -=
+						dataUpdateREdge[RIx][i][j][k] -=
 							dDeltaT * m_dSoln[VecFIx(FRIx, k)];
 					}
 				} else {
 					for (int k = 0; k < nRElements; k++) {
-						dataUpdateNode[RIx][k][i][j] -=
+						dataUpdateNode[RIx][i][j][k] -=
 							dDeltaT * m_dSoln[VecFIx(FRIx, k)];
 					}
 				}
@@ -912,10 +912,10 @@ void VerticalDynamicsSchur::StepExplicit(
 					pGrid->DifferentiateNodeToNode(
 						m_dStateNode[VIx], k);
 
-				dataUpdateNode[UIx][k][i][j] -=
+				dataUpdateNode[UIx][i][j][k] -=
 					dDeltaT * m_dXiDotNode[k] * dCovDxUa;
 
-				dataUpdateNode[VIx][k][i][j] -=
+				dataUpdateNode[VIx][i][j][k] -=
 					dDeltaT * m_dXiDotNode[k] * dCovDxUb;
 
 			}
@@ -932,7 +932,7 @@ void VerticalDynamicsSchur::StepExplicit(
 					double dCovUa = m_dStateNode[UIx][k];
 					double dCovUb = m_dStateNode[VIx][k];
 					double dCovUx = m_dStateNode[WIx][k]
-						* dDerivRNode[k][i][j][2];
+						* dDerivRNode[i][j][k][2];
 
 					double dConUa =
 						  m_dColumnContraMetricA[k][0] * dCovUa
@@ -954,11 +954,6 @@ void VerticalDynamicsSchur::StepExplicit(
 						+ dConUb * dCovUb
 						+ dConUx * dCovUx);
 				}
-
-				// Stride through state matrix
-				int nVerticalStateStride =
-					dataInitialNode.GetSize(2)
-					* dataInitialNode.GetSize(3);
 
 				// Update vertical velocity on levels
 				if (pGrid->GetVarLocation(WIx) == DataLocation_Node) {
@@ -994,7 +989,7 @@ void VerticalDynamicsSchur::StepExplicit(
 							- dConUa * m_dDiffUa[k]
 							- dConUb * m_dDiffUb[k];
 
-						dataUpdateNode[WIx][k][i][j] -=
+						dataUpdateNode[WIx][i][j][k] -=
 							dDeltaT
 							* (m_dDiffKineticEnergyNode[k] + dCurlTerm)
 							/ m_dColumnDerivRNode[k][2];
@@ -1033,7 +1028,7 @@ void VerticalDynamicsSchur::StepExplicit(
 							- dConUa * m_dDiffUa[k]
 							- dConUb * m_dDiffUb[k];
 
-						dataUpdateREdge[WIx][k][i][j] -=
+						dataUpdateREdge[WIx][i][j][k] -=
 							dDeltaT
 							* (m_dDiffKineticEnergyREdge[k] + dCurlTerm)
 							/ m_dColumnDerivRREdge[k][2];
@@ -1043,11 +1038,6 @@ void VerticalDynamicsSchur::StepExplicit(
 #else
 			// Explicit vertical velocity advection (advective form)
 			{
-				// Stride through state matrix
-				int nVerticalStateStride =
-					dataInitialNode.GetSize(2)
-					* dataInitialNode.GetSize(3);
-
 				// Update vertical velocity on levels
 				if (pGrid->GetVarLocation(WIx) == DataLocation_Node) {
 					_EXCEPTIONT("Not implemented");
@@ -1059,9 +1049,9 @@ void VerticalDynamicsSchur::StepExplicit(
 							pGrid->DifferentiateREdgeToREdge(
 								&(m_dStateREdge[WIx][0]),
 								k,
-								nVerticalStateStride);
+								1);
 
-						dataUpdateREdge[WIx][k][i][j] -=
+						dataUpdateREdge[WIx][i][j][k] -=
 							dDeltaT * m_dXiDotREdge[k] * dDxW;
 					}
 				}
@@ -1082,19 +1072,15 @@ void VerticalDynamicsSchur::StepExplicit(
 				const LinearColumnDiffFEM & opDiffNodeToNode =
 					pGrid->GetOpDiffNodeToNode();
 
-				int nUpwindStride =
-					dataInitialNode.GetSize(2)
-					* dataInitialNode.GetSize(3);
-
 				opDiffNodeToNode.Apply(
-					&(dataInitialNode[PIx][0][i][j]),
+					&(dataInitialNode[PIx][i][j][0]),
 					&(m_dDiffThetaNode[0]),
-					nUpwindStride,
+					1,
 					1);
 
 				// Calculate update to theta
 				for (int k = 0; k < nRElements; k++) {
-					dataUpdateNode[PIx][k][i][j] -=
+					dataUpdateNode[PIx][i][j][k] -=
 						dDeltaT * m_dXiDotNode[k] * m_dDiffThetaNode[k];
 				}
 			}
@@ -1122,15 +1108,15 @@ void VerticalDynamicsSchur::StepExplicit(
 				if (m_fUpwindVar[UIx]) {
 					opPenalty.Apply(
 						&(m_dUpwindWeights[0]),
-						&(dataInitialNode[UIx][0][i][j]),
-						&(dataUpdateNode[UIx][0][i][j]),
+						&(dataInitialNode[UIx][i][j][0]),
+						&(dataUpdateNode[UIx][i][j][0]),
 						nUpwindStride,
 						nUpwindStride);
 
 					opPenalty.Apply(
 						&(m_dUpwindWeights[0]),
-						&(dataInitialNode[VIx][0][i][j]),
-						&(dataUpdateNode[VIx][0][i][j]),
+						&(dataInitialNode[VIx][i][j][0]),
+						&(dataUpdateNode[VIx][i][j][0]),
 						nUpwindStride,
 						nUpwindStride);
 				}
@@ -1144,8 +1130,8 @@ void VerticalDynamicsSchur::StepExplicit(
 					} else {
 						opPenalty.Apply(
 							&(m_dUpwindWeights[0]),
-							&(dataInitialNode[PIx][0][i][j]),
-							&(dataUpdateNode[PIx][0][i][j]),
+							&(dataInitialNode[PIx][i][j][0]),
+							&(dataUpdateNode[PIx][i][j][0]),
 							nUpwindStride,
 							nUpwindStride);
 					}
@@ -1161,7 +1147,7 @@ void VerticalDynamicsSchur::StepExplicit(
 							m_dDiffDiffStateUpwind[WIx]);
 
 						for (int k = 1; k < nRElements; k++) {
-							dataUpdateNode[WIx][k][i][j] +=
+							dataUpdateNode[WIx][i][j][k] +=
 								m_dUpwindCoeff
 								* fabs(m_dXiDotREdge[k])
 								* m_dDiffDiffStateUpwind[WIx][k];
@@ -1170,8 +1156,8 @@ void VerticalDynamicsSchur::StepExplicit(
 					} else {
 						opPenalty.Apply(
 							&(m_dUpwindWeights[0]),
-							&(dataInitialNode[WIx][0][i][j]),
-							&(dataUpdateNode[WIx][0][i][j]),
+							&(dataInitialNode[WIx][i][j][0]),
+							&(dataUpdateNode[WIx][i][j][0]),
 							nUpwindStride,
 							nUpwindStride);
 					}
@@ -1203,8 +1189,8 @@ void VerticalDynamicsSchur::StepExplicit(
 						/ (dZtop * dZtop);
 
 					for (int k = 0; k < nRElements; k++) {
-						m_dStateRefNode[UIx][k] = dataRefNode[UIx][k][i][j];
-						m_dStateRefNode[VIx][k] = dataRefNode[VIx][k][i][j];
+						m_dStateRefNode[UIx][k] = dataRefNode[UIx][i][j][k];
+						m_dStateRefNode[VIx][k] = dataRefNode[VIx][i][j][k];
 					}
 
 					pGrid->DiffDiffNodeToNode(
@@ -1216,13 +1202,13 @@ void VerticalDynamicsSchur::StepExplicit(
 						m_dDiffDiffStateUniform[VIx]);
 
 					for (int k = 0; k < nRElements; k++) {
-						dataUpdateNode[UIx][k][i][j] +=
+						dataUpdateNode[UIx][i][j][k] +=
 							dDeltaT
 							* dUniformDiffusionCoeff
 							* (m_dDiffDiffStateHypervis[UIx][k]
 								- m_dDiffDiffStateUniform[UIx][k]);
 
-						dataUpdateNode[VIx][k][i][j] +=
+						dataUpdateNode[VIx][i][j][k] +=
 							dDeltaT
 							* dUniformDiffusionCoeff
 							* (m_dDiffDiffStateHypervis[VIx][k]
@@ -1264,13 +1250,13 @@ void VerticalDynamicsSchur::StepExplicit(
 
 					// Apply hyperviscosity
 					for (int k = 0; k < nRElements; k++) {
-						dataUpdateNode[UIx][k][i][j] +=
+						dataUpdateNode[UIx][i][j][k] +=
 							dDeltaT
 							* m_dHypervisCoeff
 							* fabs(m_dXiDotNode[k])
 							* m_dDiffDiffStateHypervis[UIx][k];
 
-						dataUpdateNode[VIx][k][i][j] +=
+						dataUpdateNode[VIx][i][j][k] +=
 							dDeltaT
 							* m_dHypervisCoeff
 							* fabs(m_dXiDotNode[k])
@@ -1807,14 +1793,14 @@ void VerticalDynamicsSchur::StepImplicit(
 			// Verify thermodynamic closure is untouched by update
 			if (pGrid->GetVarLocation(PIx) == DataLocation_REdge) {
 				for (int k = 0; k <= pGrid->GetRElements(); k++) {
-					if (fabs(m_dSoln[VecFIx(FPIx, k)] - dataInitialREdge[PIx][k][iA][iB]) > 1.0e-12) {
+					if (fabs(m_dSoln[VecFIx(FPIx, k)] - dataInitialREdge[PIx][iA][iB][k]) > 1.0e-12) {
 						_EXCEPTIONT("Logic error");
 					}
 				}
 
 			} else {
 				for (int k = 0; k < pGrid->GetRElements(); k++) {
-					if (fabs(m_dSoln[VecFIx(FPIx, k)] - dataInitialNode[PIx][k][iA][iB]) > 1.0e-12) {
+					if (fabs(m_dSoln[VecFIx(FPIx, k)] - dataInitialNode[PIx][iA][iB][k]) > 1.0e-12) {
 						_EXCEPTIONT("Logic error");
 					}
 				}
@@ -1824,12 +1810,12 @@ void VerticalDynamicsSchur::StepImplicit(
 			// Apply updated state to thermodynamic closure
 			if (pGrid->GetVarLocation(PIx) == DataLocation_REdge) {
 				for (int k = 0; k <= pGrid->GetRElements(); k++) {
-					dataUpdateREdge[PIx][k][iA][iB] =
+					dataUpdateREdge[PIx][iA][iB][k] =
 						m_dSoln[VecFIx(FPIx, k)];
 				}
 			} else {
 				for (int k = 0; k < pGrid->GetRElements(); k++) {
-					dataUpdateNode[PIx][k][iA][iB] =
+					dataUpdateNode[PIx][iA][iB][k] =
 						m_dSoln[VecFIx(FPIx, k)];
 				}
 			}
@@ -1838,12 +1824,12 @@ void VerticalDynamicsSchur::StepImplicit(
 			// Copy over W
 			if (pGrid->GetVarLocation(WIx) == DataLocation_REdge) {
 				for (int k = 0; k <= pGrid->GetRElements(); k++) {
-					dataUpdateREdge[WIx][k][iA][iB] =
+					dataUpdateREdge[WIx][iA][iB][k] =
 						m_dSoln[VecFIx(FWIx, k)];
 				}
 			} else {
 				for (int k = 0; k < pGrid->GetRElements(); k++) {
-					dataUpdateNode[WIx][k][iA][iB] =
+					dataUpdateNode[WIx][iA][iB][k] =
 						m_dSoln[VecFIx(FWIx, k)];
 				}
 			}
@@ -1851,12 +1837,12 @@ void VerticalDynamicsSchur::StepImplicit(
 			// Copy over Rho
 			if (pGrid->GetVarLocation(RIx) == DataLocation_REdge) {
 				for (int k = 0; k <= pGrid->GetRElements(); k++) {
-					dataUpdateREdge[RIx][k][iA][iB] =
+					dataUpdateREdge[RIx][iA][iB][k] =
 						m_dSoln[VecFIx(FRIx, k)];
 				}
 			} else {
 				for (int k = 0; k < pGrid->GetRElements(); k++) {
-					dataUpdateNode[RIx][k][iA][iB] =
+					dataUpdateNode[RIx][iA][iB][k] =
 						m_dSoln[VecFIx(FRIx, k)];
 				}
 			}
@@ -1897,33 +1883,33 @@ void VerticalDynamicsSchur::StepImplicit(
 					int iB = box.GetBInteriorBegin() + b * m_nHorizontalOrder + j;
 
 					for (int k = 0; k < pGrid->GetRElements(); k++) {
-						//dataUpdateNode[UIx][k][iA][iB]
+						//dataUpdateNode[UIx][iA][iB][k]
 						//	= dataUpdateNode[UIx][k][iA+1][iB];
-						//dataUpdateNode[VIx][k][iA][iB]
+						//dataUpdateNode[VIx][iA][iB][k]
 						//	= dataUpdateNode[VIx][k][iA+1][iB];
-						dataUpdateNode[PIx][k][iA][iB]
+						dataUpdateNode[PIx][iA][iB][k]
 							= dataUpdateNode[PIx][k][iA+1][iB];
-						dataUpdateNode[WIx][k][iA][iB]
+						dataUpdateNode[WIx][iA][iB][k]
 							= dataUpdateNode[WIx][k][iA+1][iB];
-						dataUpdateNode[RIx][k][iA][iB]
+						dataUpdateNode[RIx][iA][iB][k]
 							= dataUpdateNode[RIx][k][iA+1][iB];
 
 						for (int c = 0; c < nTracerCount; c++) {
-							dataUpdateTracer[c][k][iA][iB]
+							dataUpdateTracer[c][iA][iB][k]
 								= dataUpdateTracer[c][k][iA+1][iB];
 						}
 					}
 
 					for (int k = 0; k <= pGrid->GetRElements(); k++) {
-						//dataUpdateREdge[UIx][k][iA][iB]
+						//dataUpdateREdge[UIx][iA][iB][k]
 						//	= dataUpdateREdge[UIx][k][iA+1][iB];
-						//dataUpdateREdge[VIx][k][iA][iB]
+						//dataUpdateREdge[VIx][iA][iB][k]
 						//	= dataUpdateREdge[VIx][k][iA+1][iB];
-						dataUpdateREdge[PIx][k][iA][iB]
+						dataUpdateREdge[PIx][iA][iB][k]
 							= dataUpdateREdge[PIx][k][iA+1][iB];
-						dataUpdateREdge[WIx][k][iA][iB]
+						dataUpdateREdge[WIx][iA][iB][k]
 							= dataUpdateREdge[WIx][k][iA+1][iB];
-						dataUpdateREdge[RIx][k][iA][iB]
+						dataUpdateREdge[RIx][iA][iB][k]
 							= dataUpdateREdge[RIx][k][iA+1][iB];
 					}
 				}
@@ -2007,7 +1993,7 @@ void VerticalDynamicsSchur::SetupReferenceColumn(
 
 	// Store U in State structure
 	for (int k = 0; k < nRElements; k++) {
-		m_dStateNode[UIx][k] = dataInitialNode[UIx][k][iA][iB];
+		m_dStateNode[UIx][k] = dataInitialNode[UIx][iA][iB][k];
 	}
 
 	if (pGrid->GetVarsAtLocation(DataLocation_REdge) != 0) {
@@ -2018,7 +2004,7 @@ void VerticalDynamicsSchur::SetupReferenceColumn(
 
 	// Store V in State structure
 	for (int k = 0; k < nRElements; k++) {
-		m_dStateNode[VIx][k] = dataInitialNode[VIx][k][iA][iB];
+		m_dStateNode[VIx][k] = dataInitialNode[VIx][iA][iB][k];
 	}
 
 	if (pGrid->GetVarsAtLocation(DataLocation_REdge) != 0) {
@@ -2054,12 +2040,12 @@ void VerticalDynamicsSchur::SetupReferenceColumn(
 	if (pGrid->GetVarLocation(PIx) == DataLocation_REdge) {
 		for (int k = 0; k <= pGrid->GetRElements(); k++) {
 			m_dColumnState[VecFIx(FPIx, k)] =
-				dataInitialREdge[PIx][k][iA][iB];
+				dataInitialREdge[PIx][iA][iB][k];
 		}
 	} else {
 		for (int k = 0; k < pGrid->GetRElements(); k++) {
 			m_dColumnState[VecFIx(FPIx, k)] =
-				dataInitialNode[PIx][k][iA][iB];
+				dataInitialNode[PIx][iA][iB][k];
 		}
 	}
 
@@ -2067,12 +2053,12 @@ void VerticalDynamicsSchur::SetupReferenceColumn(
 	if (pGrid->GetVarLocation(WIx) == DataLocation_REdge) {
 		for (int k = 0; k <= pGrid->GetRElements(); k++) {
 			m_dColumnState[VecFIx(FWIx, k)] =
-				dataInitialREdge[WIx][k][iA][iB];
+				dataInitialREdge[WIx][iA][iB][k];
 		}
 	} else {
 		for (int k = 0; k < pGrid->GetRElements(); k++) {
 			m_dColumnState[VecFIx(FWIx, k)] =
-				dataInitialNode[WIx][k][iA][iB];
+				dataInitialNode[WIx][iA][iB][k];
 		}
 	}
 
@@ -2080,26 +2066,26 @@ void VerticalDynamicsSchur::SetupReferenceColumn(
 	if (pGrid->GetVarLocation(RIx) == DataLocation_REdge) {
 		for (int k = 0; k <= pGrid->GetRElements(); k++) {
 			m_dColumnState[VecFIx(FRIx, k)] =
-				dataInitialREdge[RIx][k][iA][iB];
+				dataInitialREdge[RIx][iA][iB][k];
 		}
 	} else {
 		for (int k = 0; k < pGrid->GetRElements(); k++) {
 			m_dColumnState[VecFIx(FRIx, k)] =
-				dataInitialNode[RIx][k][iA][iB];
+				dataInitialNode[RIx][iA][iB][k];
 		}
 	}
 
 	// Construct reference column
 	if ((pGrid->HasUniformDiffusion()) && (m_fUseReferenceState)) {
 		for (int k = 0; k < pGrid->GetRElements(); k++) {
-			m_dStateRefNode[RIx][k] = dataRefNode[RIx][k][iA][iB];
-			m_dStateRefNode[WIx][k] = dataRefNode[WIx][k][iA][iB];
-			m_dStateRefNode[PIx][k] = dataRefNode[PIx][k][iA][iB];
+			m_dStateRefNode[RIx][k] = dataRefNode[RIx][iA][iB][k];
+			m_dStateRefNode[WIx][k] = dataRefNode[WIx][iA][iB][k];
+			m_dStateRefNode[PIx][k] = dataRefNode[PIx][iA][iB][k];
 		}
 		for (int k = 0; k <= pGrid->GetRElements(); k++) {
-			m_dStateRefREdge[RIx][k] = dataRefREdge[RIx][k][iA][iB];
-			m_dStateRefREdge[WIx][k] = dataRefREdge[WIx][k][iA][iB];
-			m_dStateRefREdge[PIx][k] = dataRefREdge[PIx][k][iA][iB];
+			m_dStateRefREdge[RIx][k] = dataRefREdge[RIx][iA][iB][k];
+			m_dStateRefREdge[WIx][k] = dataRefREdge[WIx][iA][iB][k];
+			m_dStateRefREdge[PIx][k] = dataRefREdge[PIx][iA][iB][k];
 		}
 	}
 
@@ -2128,46 +2114,46 @@ void VerticalDynamicsSchur::SetupReferenceColumn(
 		m_pPatch->GetContraMetricXiREdge();
 
 	for (int k = 0; k < pGrid->GetRElements(); k++) {
-		m_dColumnJacobianNode[k] = dJacobian[k][iA][iB];
-		m_dColumnElementAreaNode[k] = dElementAreaNode[k][iA][iB];
+		m_dColumnJacobianNode[k] = dJacobian[iA][iB][k];
+		m_dColumnElementAreaNode[k] = dElementAreaNode[iA][iB][k];
 		m_dColumnInvJacobianNode[k] = 1.0 / m_dColumnJacobianNode[k];
 
-		m_dColumnDerivRNode[k][0] = dDerivRNode[k][iA][iB][0];
-		m_dColumnDerivRNode[k][1] = dDerivRNode[k][iA][iB][1];
-		m_dColumnDerivRNode[k][2] = dDerivRNode[k][iA][iB][2];
+		m_dColumnDerivRNode[k][0] = dDerivRNode[iA][iB][k][0];
+		m_dColumnDerivRNode[k][1] = dDerivRNode[iA][iB][k][1];
+		m_dColumnDerivRNode[k][2] = dDerivRNode[iA][iB][k][2];
 
-		m_dColumnContraMetricA[k][0] = dContraMetricA[k][iA][iB][0];
-		m_dColumnContraMetricA[k][1] = dContraMetricA[k][iA][iB][1];
-		m_dColumnContraMetricA[k][2] = dContraMetricA[k][iA][iB][2];
+		m_dColumnContraMetricA[k][0] = dContraMetricA[iA][iB][k][0];
+		m_dColumnContraMetricA[k][1] = dContraMetricA[iA][iB][k][1];
+		m_dColumnContraMetricA[k][2] = dContraMetricA[iA][iB][k][2];
 
-		m_dColumnContraMetricB[k][0] = dContraMetricB[k][iA][iB][0];
-		m_dColumnContraMetricB[k][1] = dContraMetricB[k][iA][iB][1];
-		m_dColumnContraMetricB[k][2] = dContraMetricB[k][iA][iB][2];
+		m_dColumnContraMetricB[k][0] = dContraMetricB[iA][iB][k][0];
+		m_dColumnContraMetricB[k][1] = dContraMetricB[iA][iB][k][1];
+		m_dColumnContraMetricB[k][2] = dContraMetricB[iA][iB][k][2];
 
-		m_dColumnContraMetricXi[k][0] = dContraMetricXi[k][iA][iB][0];
-		m_dColumnContraMetricXi[k][1] = dContraMetricXi[k][iA][iB][1];
-		m_dColumnContraMetricXi[k][2] = dContraMetricXi[k][iA][iB][2];
+		m_dColumnContraMetricXi[k][0] = dContraMetricXi[iA][iB][k][0];
+		m_dColumnContraMetricXi[k][1] = dContraMetricXi[iA][iB][k][1];
+		m_dColumnContraMetricXi[k][2] = dContraMetricXi[iA][iB][k][2];
 	}
 
 	for (int k = 0; k <= pGrid->GetRElements(); k++) {
-		m_dColumnJacobianREdge[k] = dJacobianREdge[k][iA][iB];
+		m_dColumnJacobianREdge[k] = dJacobianREdge[iA][iB][k];
 		m_dColumnInvJacobianREdge[k] = 1.0 / m_dColumnJacobianREdge[k];
 
-		m_dColumnDerivRREdge[k][0] = dDerivRREdge[k][iA][iB][0];
-		m_dColumnDerivRREdge[k][1] = dDerivRREdge[k][iA][iB][1];
-		m_dColumnDerivRREdge[k][2] = dDerivRREdge[k][iA][iB][2];
+		m_dColumnDerivRREdge[k][0] = dDerivRREdge[iA][iB][k][0];
+		m_dColumnDerivRREdge[k][1] = dDerivRREdge[iA][iB][k][1];
+		m_dColumnDerivRREdge[k][2] = dDerivRREdge[iA][iB][k][2];
 
-		m_dColumnContraMetricAREdge[k][0] = dContraMetricAREdge[k][iA][iB][0];
-		m_dColumnContraMetricAREdge[k][1] = dContraMetricAREdge[k][iA][iB][1];
-		m_dColumnContraMetricAREdge[k][2] = dContraMetricAREdge[k][iA][iB][2];
+		m_dColumnContraMetricAREdge[k][0] = dContraMetricAREdge[iA][iB][k][0];
+		m_dColumnContraMetricAREdge[k][1] = dContraMetricAREdge[iA][iB][k][1];
+		m_dColumnContraMetricAREdge[k][2] = dContraMetricAREdge[iA][iB][k][2];
 
-		m_dColumnContraMetricBREdge[k][0] = dContraMetricBREdge[k][iA][iB][0];
-		m_dColumnContraMetricBREdge[k][1] = dContraMetricBREdge[k][iA][iB][1];
-		m_dColumnContraMetricBREdge[k][2] = dContraMetricBREdge[k][iA][iB][2];
+		m_dColumnContraMetricBREdge[k][0] = dContraMetricBREdge[iA][iB][k][0];
+		m_dColumnContraMetricBREdge[k][1] = dContraMetricBREdge[iA][iB][k][1];
+		m_dColumnContraMetricBREdge[k][2] = dContraMetricBREdge[iA][iB][k][2];
 
-		m_dColumnContraMetricXiREdge[k][0] = dContraMetricXiREdge[k][iA][iB][0];
-		m_dColumnContraMetricXiREdge[k][1] = dContraMetricXiREdge[k][iA][iB][1];
-		m_dColumnContraMetricXiREdge[k][2] = dContraMetricXiREdge[k][iA][iB][2];
+		m_dColumnContraMetricXiREdge[k][0] = dContraMetricXiREdge[iA][iB][k][0];
+		m_dColumnContraMetricXiREdge[k][1] = dContraMetricXiREdge[iA][iB][k][1];
+		m_dColumnContraMetricXiREdge[k][2] = dContraMetricXiREdge[iA][iB][k][2];
 	}
 }
 
@@ -3739,14 +3725,14 @@ void VerticalDynamicsSchur::UpdateColumnTracers(
 		// Calculate u^xi on interfaces
 		for (int k = 1; k < nRElements; k++) {
 			double dCovUx =
-				m_dStateREdge[WIx][k] * dDerivRREdge[k][m_iA][m_iB][2];
+				m_dStateREdge[WIx][k] * dDerivRREdge[m_iA][m_iB][k][2];
 
 			m_dXiDotREdge[k] =
-				  dContraMetricXiREdge[k][m_iA][m_iB][0]
+				  dContraMetricXiREdge[m_iA][m_iB][k][0]
 					* m_dStateREdge[UIx][k]
-				+ dContraMetricXiREdge[k][m_iA][m_iB][1]
+				+ dContraMetricXiREdge[m_iA][m_iB][k][1]
 					* m_dStateREdge[VIx][k]
-				+ dContraMetricXiREdge[k][m_iA][m_iB][2]
+				+ dContraMetricXiREdge[m_iA][m_iB][k][2]
 					* dCovUx;
 
 			m_dXiDotREdgeInitial[k] = m_dXiDotREdge[k];
@@ -3770,7 +3756,7 @@ void VerticalDynamicsSchur::UpdateColumnTracers(
 					dTracersLUDF[TracerMatFIx(n, k)] +=
 						dDiffREdgeToNode[k][m]
 						* dJacobianREdge[m][m_iA][m_iB]
-						/ dJacobianNode[k][m_iA][m_iB]
+						/ dJacobianNode[m_iA][m_iB][k]
 						* dInterpNodeToREdge[m][n]
 						* m_dXiDotREdge[m];
 				}
@@ -3851,13 +3837,13 @@ void VerticalDynamicsSchur::UpdateColumnTracers(
 		if (pGrid->GetVarLocation(WIx) == DataLocation_REdge) {
 			for (int k = 0; k <= nRElements; k++) {
 				m_dStateREdge[WIx][k] =
-					dataInitialREdge[WIx][k][m_iA][m_iB];
+					dataInitialREdge[WIx][m_iA][m_iB][k];
 			}
 
 		} else {
 			for (int k = 0; k < nRElements; k++) {
 				m_dStateNode[WIx][k] =
-					dataInitialNode[WIx][k][m_iA][m_iB];
+					dataInitialNode[WIx][m_iA][m_iB][k];
 			}
 		}
 
@@ -3865,13 +3851,13 @@ void VerticalDynamicsSchur::UpdateColumnTracers(
 		if (pGrid->GetVarLocation(WIx) == DataLocation_REdge) {
 			for (int k = 0; k <= nRElements; k++) {
 				m_dStateREdge[WIx][k] =
-					dataUpdateREdge[WIx][k][m_iA][m_iB];
+					dataUpdateREdge[WIx][m_iA][m_iB][k];
 			}
 
 		} else {
 			for (int k = 0; k < nRElements; k++) {
 				m_dStateNode[WIx][k] =
-					dataUpdateNode[WIx][k][m_iA][m_iB];
+					dataUpdateNode[WIx][m_iA][m_iB][k];
 			}
 		}
 	}
@@ -3885,14 +3871,14 @@ void VerticalDynamicsSchur::UpdateColumnTracers(
 #pragma message "Change to column arrays"
 	for (int k = 1; k < nRElements; k++) {
 		double dCovUx =
-			m_dStateREdge[WIx][k] * dDerivRREdge[k][m_iA][m_iB][2];
+			m_dStateREdge[WIx][k] * dDerivRREdge[m_iA][m_iB][k][2];
 
 		m_dXiDotREdge[k] =
-			  dContraMetricXiREdge[k][m_iA][m_iB][0]
+			  dContraMetricXiREdge[m_iA][m_iB][k][0]
 				* m_dStateREdge[UIx][k]
-			+ dContraMetricXiREdge[k][m_iA][m_iB][1]
+			+ dContraMetricXiREdge[m_iA][m_iB][k][1]
 				* m_dStateREdge[VIx][k]
-			+ dContraMetricXiREdge[k][m_iA][m_iB][2]
+			+ dContraMetricXiREdge[m_iA][m_iB][k][2]
 				* dCovUx;
 	}
 
@@ -3904,7 +3890,7 @@ void VerticalDynamicsSchur::UpdateColumnTracers(
 
 		// Interpolate tracer density to interfaces
 		for (int k = 0; k < nRElements; k++) {
-			m_dTracerDensityNode[k] = dataInitialTracer[c][k][m_iA][m_iB];
+			m_dTracerDensityNode[k] = dataInitialTracer[c][m_iA][m_iB][k];
 		}
 
 		pGrid->InterpolateNodeToREdge(
@@ -3914,7 +3900,7 @@ void VerticalDynamicsSchur::UpdateColumnTracers(
 		// Calculate mass flux
 		for (int k = 0; k <= nRElements; k++) {
 			m_dMassFluxREdge[k] =
-				dJacobianREdge[k][m_iA][m_iB]
+				dJacobianREdge[m_iA][m_iB][k]
 				* m_dTracerDensityREdge[k]
 				* m_dXiDotREdge[k];
 		}
@@ -3928,7 +3914,7 @@ void VerticalDynamicsSchur::UpdateColumnTracers(
 					/ m_dStateNode[RIx][k];
 
 				m_dStateAux[k] -=
-					dataRefTracer[c][k][m_iA][m_iB]
+					dataRefTracer[c][m_iA][m_iB][k]
 					/ m_dStateRefNode[RIx][k];
 			}
 
@@ -3956,7 +3942,7 @@ void VerticalDynamicsSchur::UpdateColumnTracers(
 		for (int k = 0; k < nRElements; k++) {
 			m_vecTracersF[k] =
 				m_dDiffMassFluxNode[k]
-				/ dJacobianNode[k][m_iA][m_iB];
+				/ dJacobianNode[m_iA][m_iB][k];
 		}
 
 		////////////////////////////////////////////////////////////
@@ -4019,7 +4005,7 @@ void VerticalDynamicsSchur::UpdateColumnTracers(
 					// dRhoQ_k/dW_a (left operator)
 					double dLeftJumpConUx =
 						dSignWeight
-						* (dataUpdateREdge[WIx][kLeftEnd][m_iA][m_iB]
+						* (dataUpdateREdge[WIx][m_iA][m_iB][kLeftEnd]
 							- m_dColumnState[VecFIx(FWIx, kLeftEnd)])
 						/ m_dColumnDerivRREdge[kLeftEnd][2];
 
@@ -4036,7 +4022,7 @@ void VerticalDynamicsSchur::UpdateColumnTracers(
 					// dRhoQ_k/dW_a (right operator)
 					double dRightJumpConUx =
 						dSignWeight
-						* (dataUpdateREdge[WIx][kRightBegin][m_iA][m_iB]
+						* (dataUpdateREdge[WIx][m_iA][m_iB][kRightBegin]
 							- m_dColumnState[VecFIx(FWIx, kRightBegin)])
 						/ m_dColumnDerivRREdge[kRightBegin][2];
 
@@ -4082,7 +4068,7 @@ void VerticalDynamicsSchur::UpdateColumnTracers(
 
 		// Update the state
 		for (int k = 0; k < nRElements; k++) {
-			dataUpdateTracer[c][k][m_iA][m_iB] -=
+			dataUpdateTracer[c][m_iA][m_iB][k] -=
 				m_vecTracersF[k];
 		}
 	}
@@ -4126,12 +4112,12 @@ void VerticalDynamicsSchur::FilterNegativeTracers(
 				double dNonNegativeMass = 0.0;
 				for (int k = 0; k < nRElements; k++) {
 					double dPointwiseMass =
-						  dataUpdateTracer[c][k][i][j]
-						* dElementAreaNode[k][i][j];
+						  dataUpdateTracer[c][i][j][k]
+						* dElementAreaNode[i][j][k];
 
 					dTotalMass += dPointwiseMass;
 
-					if (dataUpdateTracer[c][k][i][j] >= 0.0) {
+					if (dataUpdateTracer[c][i][j][k] >= 0.0) {
 						dNonNegativeMass += dPointwiseMass;
 					}
 				}
@@ -4140,10 +4126,10 @@ void VerticalDynamicsSchur::FilterNegativeTracers(
 				double dR = dTotalMass / dNonNegativeMass;
 
 				for (int k = 0; k < nRElements; k++) {
-					if (dataUpdateTracer[c][k][i][j] > 0.0) {
-						dataUpdateTracer[c][k][i][j] *= dR;
+					if (dataUpdateTracer[c][i][j][k] > 0.0) {
+						dataUpdateTracer[c][i][j][k] *= dR;
 					} else {
-						dataUpdateTracer[c][k][i][j] = 0.0;
+						dataUpdateTracer[c][i][j][k] = 0.0;
 					}
 				}
 			}

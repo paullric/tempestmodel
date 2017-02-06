@@ -95,8 +95,6 @@ void GridPatchGLL::InterpolateNodeToREdge(
 	}
 
 	// Loop over all elements in the box
-	int nStride = dataNode.GetSize(2) * dataNode.GetSize(3);
-
 	const LinearColumnInterpFEM & opInterpNodeToREdge =
 		pGLLGrid->GetOpInterpNodeToREdge();
 
@@ -104,10 +102,8 @@ void GridPatchGLL::InterpolateNodeToREdge(
 	for (int j = m_box.GetBInteriorBegin(); j < m_box.GetBInteriorEnd(); j++) {
 
 		opInterpNodeToREdge.Apply(
-			&(dataNode[iVar][0][i][j]),
-			&(dataREdge[iVar][0][i][j]),
-			nStride,
-			nStride);
+			&(dataNode[iVar][i][j][0]),
+			&(dataREdge[iVar][i][j][0]));
 	}
 	}
 }
@@ -132,8 +128,6 @@ void GridPatchGLL::InterpolateREdgeToNode(
 	}
 
 	// Loop over all elements in the box
-	int nStride = dataNode.GetSize(2) * dataNode.GetSize(3);
-
 	const LinearColumnInterpFEM & opInterpREdgeToNode =
 		pGLLGrid->GetOpInterpREdgeToNode();
 
@@ -142,10 +136,8 @@ void GridPatchGLL::InterpolateREdgeToNode(
 	for (int j = m_box.GetBInteriorBegin(); j < m_box.GetBInteriorEnd(); j++) {
 
 		opInterpREdgeToNode.Apply(
-			&(dataREdge[iVar][0][i][j]),
-			&(dataNode[iVar][0][i][j]),
-			nStride,
-			nStride);
+			&(dataREdge[iVar][i][j][0]),
+			&(dataNode[iVar][i][j][0]));
 	}
 	}
 }
@@ -216,10 +208,6 @@ void GridPatchGLL::ComputeRichardson(
 		_EXCEPTIONT("Logic error");
 	}
 
-	int k;
-	int i;
-	int j;
-
 	// Calculate Richardson number on nodes
 	if (loc == DataLocation_Node) {
 		if (m_grid.GetVarLocation(PIx) == DataLocation_REdge) {
@@ -234,18 +222,18 @@ void GridPatchGLL::ComputeRichardson(
 
 		const DataArray4D<double> & dataNode = m_datavecStateNode[iDataIndex];
 
-		for (i = m_box.GetAInteriorBegin(); i < m_box.GetAInteriorEnd(); i++) {
-		for (j = m_box.GetBInteriorBegin(); j < m_box.GetBInteriorEnd(); j++) {
+		for (int i = m_box.GetAInteriorBegin(); i < m_box.GetAInteriorEnd(); i++) {
+		for (int j = m_box.GetBInteriorBegin(); j < m_box.GetBInteriorEnd(); j++) {
 
-			for (k = 0; k < nRElements; k++) {
-				dDensityNode[k] = dataNode[RIx][k][i][j];
+			for (int k = 0; k < nRElements; k++) {
+				dDensityNode[k] = dataNode[RIx][i][j][k];
 
 				// Convert U_alpha and V_beta to X and Y (Lon, Lat)
-				dUXNode[k] = dataNode[UIx][k][i][j] - 
-							dDerivRNode[k][i][j][0] * dataNode[WIx][k][i][j] * dDerivRNode[k][i][j][2];
+				dUXNode[k] = dataNode[UIx][i][j][k] - 
+							dDerivRNode[i][j][k][0] * dataNode[WIx][i][j][k] * dDerivRNode[i][j][k][2];
 
-				dVYNode[k] = dataNode[VIx][k][i][j] - 
-							dDerivRNode[k][i][j][1] * dataNode[WIx][k][i][j] * dDerivRNode[k][i][j][2];
+				dVYNode[k] = dataNode[VIx][i][j][k] - 
+							dDerivRNode[i][j][k][1] * dataNode[WIx][i][j][k] * dDerivRNode[i][j][k][2];
 			}
 
 			pGLLGrid->DifferentiateNodeToNode(
@@ -263,15 +251,15 @@ void GridPatchGLL::ComputeRichardson(
 			dDiffVYNode,
 			fZeroBoundaries);
 
-			for (k = 0; k < nRElements; k++) {
-				//[k][i][j] = dDiffDensityNode[k];
-				//m_dataRichardson[k][i][j] = dDiffUXNode[k];
-				m_dataRichardson[k][i][j] = phys.GetG() / dDensityNode[k] * 
-				dDiffDensityNode[k] / 
-				((dDiffUXNode[k] * dDiffUXNode[k]) + 
-				 (dDiffVYNode[k] * dDiffVYNode[k]));
+			for (int k = 0; k < nRElements; k++) {
+				//[i][j][k] = dDiffDensityNode[k];
+				//m_dataRichardson[i][j][k] = dDiffUXNode[k];
+				m_dataRichardson[i][j][k] =
+					phys.GetG() / dDensityNode[k] * dDiffDensityNode[k] / (
+						(dDiffUXNode[k] * dDiffUXNode[k]) + 
+						(dDiffVYNode[k] * dDiffVYNode[k]));
 
-//printf("%i %.16E \n",k,m_dataRichardson[k][i][j]);
+//printf("%i %.16E \n",k,m_dataRichardson[i][j][k]);
 			}
 		}
 		}
@@ -293,18 +281,18 @@ void GridPatchGLL::ComputeRichardson(
 
 		const DataArray4D<double> & dataREdge = m_datavecStateREdge[iDataIndex];
 
-		for (i = m_box.GetAInteriorBegin(); i < m_box.GetAInteriorEnd(); i++) {
-		for (j = m_box.GetBInteriorBegin(); j < m_box.GetBInteriorEnd(); j++) {
+		for (int i = m_box.GetAInteriorBegin(); i < m_box.GetAInteriorEnd(); i++) {
+		for (int j = m_box.GetBInteriorBegin(); j < m_box.GetBInteriorEnd(); j++) {
 
-			for (k = 0; k <= nRElements; k++) {
-				dDensityREdge[k] = dataREdge[RIx][k][i][j];
+			for (int k = 0; k <= nRElements; k++) {
+				dDensityREdge[k] = dataREdge[RIx][i][j][k];
 
 				// Convert U_alpha and V_beta to X and Y (Lon, Lat)
-				dUXREdge[k] = dataREdge[UIx][k][i][j] - 
-							dDerivRREdge[k][i][j][0] * dataREdge[WIx][k][i][j] * dDerivRREdge[k][i][j][2];
+				dUXREdge[k] = dataREdge[UIx][i][j][k] - 
+							dDerivRREdge[i][j][k][0] * dataREdge[WIx][i][j][k] * dDerivRREdge[i][j][k][2];
 
-				dVYREdge[k] = dataREdge[VIx][k][i][j] - 
-							dDerivRREdge[k][i][j][1] * dataREdge[WIx][k][i][j] * dDerivRREdge[k][i][j][2];
+				dVYREdge[k] = dataREdge[VIx][i][j][k] - 
+							dDerivRREdge[i][j][k][1] * dataREdge[WIx][i][j][k] * dDerivRREdge[i][j][k][2];
 			}
 
 			pGLLGrid->DifferentiateREdgeToREdge(
@@ -319,16 +307,18 @@ void GridPatchGLL::ComputeRichardson(
 			dVYREdge,
 			dDiffVYREdge);
 
-			for (k = 0; k <= nRElements; k++) {
-				//m_dataRichardson[k][i][j] = dDiffUXREdge[k] * dDiffUXREdge[k];
-				//m_dataRichardson[k][i][j] = dDiffDensityREdge[k] / dDensityREdge[k];
-				m_dataRichardson[k][i][j] = phys.GetG() * 
-				(dDiffDensityREdge[k] / dDensityREdge[k]) / 
-				((dDiffUXREdge[k] * dDiffUXREdge[k]) + 
-				 (dDiffVYREdge[k] * dDiffVYREdge[k]));
+			for (int k = 0; k <= nRElements; k++) {
+				//m_dataRichardson[i][j][k] = dDiffUXREdge[k] * dDiffUXREdge[k];
+				//m_dataRichardson[i][j][k] = dDiffDensityREdge[k] / dDensityREdge[k];
+				m_dataRichardson[i][j][k] =
+					phys.GetG() * (dDiffDensityREdge[k] / dDensityREdge[k]) / (
+						(dDiffUXREdge[k] * dDiffUXREdge[k]) + 
+						(dDiffVYREdge[k] * dDiffVYREdge[k]));
 			}
 		}
 		}
 	}
 }
+
+///////////////////////////////////////////////////////////////////////////////
 

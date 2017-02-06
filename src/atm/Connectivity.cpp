@@ -47,9 +47,9 @@ void ExchangeBuffer::Reset() {
 void ExchangeBuffer::Pack(
 	const DataArray3D<double> & data
 ) {
-	const size_t sRElements = data.GetSize(0);
-	const size_t sAElements = data.GetSize(1);
-	const size_t sBElements = data.GetSize(2);
+	const size_t sAElements = data.GetSize(0);
+	const size_t sBElements = data.GetSize(1);
+	const size_t sRElements = data.GetSize(2);
 
 	// Check matrix bounds
 	if (((m_dir == Direction_Right) || (m_dir == Direction_Left)) &&
@@ -92,19 +92,19 @@ void ExchangeBuffer::Pack(
 
 		// Pack the SendBuffer
 		if (m_fReverseDirection) {
-			for (int k = 0; k < sRElements; k++) {
 			for (int i = ixBoundaryBegin; i < ixBoundaryEnd; i++) {
 			for (int j = m_ixSecond-1; j >= m_ixFirst; j--) {
-				m_dSendBuffer[m_ixSendBuffer++] = data[k][i][j];
+			for (int k = 0; k < sRElements; k++) {
+				m_dSendBuffer[m_ixSendBuffer++] = data[i][j][k];
 			}
 			}
 			}
 
 		} else {
-			for (int k = 0; k < sRElements; k++) {
 			for (int i = ixBoundaryBegin; i < ixBoundaryEnd; i++) {
 			for (int j = m_ixFirst; j < m_ixSecond; j++) {
-				m_dSendBuffer[m_ixSendBuffer++] = data[k][i][j];	
+			for (int k = 0; k < sRElements; k++) {
+				m_dSendBuffer[m_ixSendBuffer++] = data[i][j][k];	
 			}
 			}
 			}
@@ -127,19 +127,19 @@ void ExchangeBuffer::Pack(
 
 		// Pack the SendBuffer
 		if (m_fReverseDirection) {
-			for (int k = 0; k < sRElements; k++) {
 			for (int j = ixBoundaryBegin; j < ixBoundaryEnd; j++) {
 			for (int i = m_ixSecond-1; i >= m_ixFirst; i--) {
-				m_dSendBuffer[m_ixSendBuffer++] = data[k][i][j];
+			for (int k = 0; k < sRElements; k++) {
+				m_dSendBuffer[m_ixSendBuffer++] = data[i][j][k];
 			}
 			}
 			}
 
 		} else {
-			for (int k = 0; k < sRElements; k++) {
 			for (int j = ixBoundaryBegin; j < ixBoundaryEnd; j++) {
 			for (int i = m_ixFirst; i < m_ixSecond; i++) {
-				m_dSendBuffer[m_ixSendBuffer++] = data[k][i][j];
+			for (int k = 0; k < sRElements; k++) {
+				m_dSendBuffer[m_ixSendBuffer++] = data[i][j][k];
 			}
 			}
 			}
@@ -162,19 +162,19 @@ void ExchangeBuffer::Pack(
 
 		// Pack the SendBuffer
 		if (m_fReverseDirection) {
-			for (int k = 0; k < sRElements; k++) {
 			for (int i = ixBoundaryEnd-1; i >= ixBoundaryBegin; i--) {
 			for (int j = m_ixSecond-1; j >= m_ixFirst; j--) {
-				m_dSendBuffer[m_ixSendBuffer++] = data[k][i][j];
+			for (int k = 0; k < sRElements; k++) {
+				m_dSendBuffer[m_ixSendBuffer++] = data[i][j][k];
 			}
 			}
 			}
 
 		} else {
-			for (int k = 0; k < sRElements; k++) {
 			for (int i = ixBoundaryEnd-1; i >= ixBoundaryBegin; i--) {
 			for (int j = m_ixFirst; j < m_ixSecond; j++) {
-				m_dSendBuffer[m_ixSendBuffer++] = data[k][i][j];
+			for (int k = 0; k < sRElements; k++) {
+				m_dSendBuffer[m_ixSendBuffer++] = data[i][j][k];
 			}
 			}
 			}
@@ -197,19 +197,19 @@ void ExchangeBuffer::Pack(
 
 		// Pack the SendBuffer
 		if (m_fReverseDirection) {
-			for (int k = 0; k < sRElements; k++) {
 			for (int j = ixBoundaryEnd-1; j >= ixBoundaryBegin; j--) {
 			for (int i = m_ixSecond-1; i >= m_ixFirst; i--) {
-				m_dSendBuffer[m_ixSendBuffer++] = data[k][i][j];
+			for (int k = 0; k < sRElements; k++) {
+				m_dSendBuffer[m_ixSendBuffer++] = data[i][j][k];
 			}
 			}
 			}
 
 		} else {
-			for (int k = 0; k < sRElements; k++) {
 			for (int j = ixBoundaryEnd-1; j >= ixBoundaryBegin; j--) {
 			for (int i = m_ixFirst; i < m_ixSecond; i++) {
-				m_dSendBuffer[m_ixSendBuffer++] = data[k][i][j];
+			for (int k = 0; k < sRElements; k++) {
+				m_dSendBuffer[m_ixSendBuffer++] = data[i][j][k];
 			}
 			}
 			}
@@ -234,19 +234,19 @@ void ExchangeBuffer::Pack(
 
 		// Pack the SendBuffer
 		if (m_fReverseDirection) {
-			for (int k = 0; k < sRElements; k++) {
 			for (int i = ixABoundaryBegin; i < ixABoundaryEnd; i++) {
 			for (int j = ixBBoundaryBegin; j < ixBBoundaryEnd; j++) {
-				m_dSendBuffer[m_ixSendBuffer++] = data[k][i][j];
+			for (int k = 0; k < sRElements; k++) {
+				m_dSendBuffer[m_ixSendBuffer++] = data[i][j][k];
 			}
 			}
 			}
 
 		} else {
-			for (int k = 0; k < sRElements; k++) {
 			for (int j = ixBBoundaryBegin; j < ixBBoundaryEnd; j++) {
 			for (int i = ixABoundaryBegin; i < ixABoundaryEnd; i++) {
-				m_dSendBuffer[m_ixSendBuffer++] = data[k][i][j];
+			for (int k = 0; k < sRElements; k++) {
+				m_dSendBuffer[m_ixSendBuffer++] = data[i][j][k];
 			}
 			}
 			}
@@ -271,19 +271,19 @@ void ExchangeBuffer::Pack(
 
 		// Pack the SendBuffer
 		if (m_fReverseDirection) {
-			for (int k = 0; k < sRElements; k++) {
 			for (int i = ixABoundaryEnd-1; i >= ixABoundaryBegin; i--) {
 			for (int j = ixBBoundaryBegin; j < ixBBoundaryEnd; j++) {
-				m_dSendBuffer[m_ixSendBuffer++] = data[k][i][j];
+			for (int k = 0; k < sRElements; k++) {
+				m_dSendBuffer[m_ixSendBuffer++] = data[i][j][k];
 			}
 			}
 			}
 
 		} else {
-			for (int k = 0; k < sRElements; k++) {
 			for (int j = ixBBoundaryBegin; j < ixBBoundaryEnd; j++) {
 			for (int i = ixABoundaryEnd-1; i >= ixABoundaryBegin; i--) {
-				m_dSendBuffer[m_ixSendBuffer++] = data[k][i][j];
+			for (int k = 0; k < sRElements; k++) {
+				m_dSendBuffer[m_ixSendBuffer++] = data[i][j][k];
 			}
 			}
 			}
@@ -308,19 +308,19 @@ void ExchangeBuffer::Pack(
 
 		// Pack the SendBuffer
 		if (m_fReverseDirection) {
-			for (int k = 0; k < sRElements; k++) {
 			for (int i = ixABoundaryEnd-1; i >= ixABoundaryBegin; i--) {
 			for (int j = ixBBoundaryEnd-1; j >= ixBBoundaryBegin; j--) {
-				m_dSendBuffer[m_ixSendBuffer++] = data[k][i][j];
+			for (int k = 0; k < sRElements; k++) {
+				m_dSendBuffer[m_ixSendBuffer++] = data[i][j][k];
 			}
 			}
 			}
 
 		} else {
-			for (int k = 0; k < sRElements; k++) {
 			for (int j = ixBBoundaryEnd-1; j >= ixBBoundaryBegin; j--) {
 			for (int i = ixABoundaryEnd-1; i >= ixABoundaryBegin; i--) {
-				m_dSendBuffer[m_ixSendBuffer++] = data[k][i][j];
+			for (int k = 0; k < sRElements; k++) {
+				m_dSendBuffer[m_ixSendBuffer++] = data[i][j][k];
 			}
 			}
 			}
@@ -345,19 +345,19 @@ void ExchangeBuffer::Pack(
 
 		// Pack the SendBuffer
 		if (m_fReverseDirection) {
-			for (int k = 0; k < sRElements; k++) {
 			for (int i = ixABoundaryBegin; i < ixABoundaryEnd; i++) {
 			for (int j = ixBBoundaryEnd-1; j >= ixBBoundaryBegin; j--) {
-				m_dSendBuffer[m_ixSendBuffer++] = data[k][i][j];
+			for (int k = 0; k < sRElements; k++) {
+				m_dSendBuffer[m_ixSendBuffer++] = data[i][j][k];
 			}
 			}
 			}
 
 		} else {
-			for (int k = 0; k < sRElements; k++) {
 			for (int j = ixBBoundaryEnd-1; j >= ixBBoundaryBegin; j--) {
 			for (int i = ixABoundaryBegin; i < ixABoundaryEnd; i++) {
-				m_dSendBuffer[m_ixSendBuffer++] = data[k][i][j];
+			for (int k = 0; k < sRElements; k++) {
+				m_dSendBuffer[m_ixSendBuffer++] = data[i][j][k];
 			}
 			}
 			}
@@ -413,9 +413,9 @@ void ExchangeBuffer::Pack(
 void ExchangeBuffer::Unpack(
 	DataArray3D<double> & data
 ) {
-	const size_t sRElements = data.GetSize(0);
-	const size_t sAElements = data.GetSize(1);
-	const size_t sBElements = data.GetSize(2);
+	const size_t sAElements = data.GetSize(0);
+	const size_t sBElements = data.GetSize(1);
+	const size_t sRElements = data.GetSize(2);
 
 	// Index for halo elements along boundary
 	int ixBoundaryBegin;
@@ -443,10 +443,10 @@ void ExchangeBuffer::Unpack(
 		}
 
 		// Unpack data
-		for (int k = 0; k < sRElements; k++) {
 		for (int i = ixBoundaryEnd-1; i >= ixBoundaryBegin; i--) {
 		for (int j = m_ixFirst; j < m_ixSecond; j++) {
-			data[k][i][j] = m_dRecvBuffer[m_ixRecvBuffer++];
+		for (int k = 0; k < sRElements; k++) {
+			data[i][j][k] = m_dRecvBuffer[m_ixRecvBuffer++];
 		}
 		}
 		}
@@ -467,10 +467,10 @@ void ExchangeBuffer::Unpack(
 		}
 
 		// Unpack data
-		for (int k = 0; k < sRElements; k++) {
 		for (int j = ixBoundaryEnd-1; j >= ixBoundaryBegin; j--) {
 		for (int i = m_ixFirst; i < m_ixSecond; i++) {
-			data[k][i][j] = m_dRecvBuffer[m_ixRecvBuffer++];
+		for (int k = 0; k < sRElements; k++) {
+			data[i][j][k] = m_dRecvBuffer[m_ixRecvBuffer++];
 		}
 		}
 		}
@@ -491,10 +491,10 @@ void ExchangeBuffer::Unpack(
 		}
 
 		// Unpack data
-		for (int k = 0; k < sRElements; k++) {
 		for (int i = ixBoundaryBegin; i < ixBoundaryEnd; i++) {
 		for (int j = m_ixFirst; j < m_ixSecond; j++) {
-			data[k][i][j] = m_dRecvBuffer[m_ixRecvBuffer++];
+		for (int k = 0; k < sRElements; k++) {
+			data[i][j][k] = m_dRecvBuffer[m_ixRecvBuffer++];
 		}
 		}
 		}
@@ -515,10 +515,10 @@ void ExchangeBuffer::Unpack(
 		}
 
 		// Unpack data
-		for (int k = 0; k < sRElements; k++) {
 		for (int j = ixBoundaryBegin; j < ixBoundaryEnd; j++) {
 		for (int i = m_ixFirst; i < m_ixSecond; i++) {
-			data[k][i][j] = m_dRecvBuffer[m_ixRecvBuffer++];
+		for (int k = 0; k < sRElements; k++) {
+			data[i][j][k] = m_dRecvBuffer[m_ixRecvBuffer++];
 		}
 		}
 		}
@@ -541,10 +541,10 @@ void ExchangeBuffer::Unpack(
 		}
 
 		// Unpack data
-		for (int k = 0; k < sRElements; k++) {
 		for (int j = ixBBoundaryEnd-1; j >= ixBBoundaryBegin; j--) {
 		for (int i = ixABoundaryEnd-1; i >= ixABoundaryBegin; i--) {
-			data[k][i][j] = m_dRecvBuffer[m_ixRecvBuffer++];
+		for (int k = 0; k < sRElements; k++) {
+			data[i][j][k] = m_dRecvBuffer[m_ixRecvBuffer++];
 		}
 		}
 		}
@@ -567,10 +567,10 @@ void ExchangeBuffer::Unpack(
 		}
 
 		// Unpack data
-		for (int k = 0; k < sRElements; k++) {
 		for (int j = ixBBoundaryEnd-1; j >= ixBBoundaryBegin; j--) {
 		for (int i = ixABoundaryBegin; i < ixABoundaryEnd; i++) {
-			data[k][i][j] = m_dRecvBuffer[m_ixRecvBuffer++];
+		for (int k = 0; k < sRElements; k++) {
+			data[i][j][k] = m_dRecvBuffer[m_ixRecvBuffer++];
 		}
 		}
 		}
@@ -593,10 +593,10 @@ void ExchangeBuffer::Unpack(
 		}
 
 		// Unpack data
-		for (int k = 0; k < sRElements; k++) {
 		for (int j = ixBBoundaryBegin; j < ixBBoundaryEnd; j++) {
 		for (int i = ixABoundaryBegin; i < ixABoundaryEnd; i++) {
-			data[k][i][j] = m_dRecvBuffer[m_ixRecvBuffer++];
+		for (int k = 0; k < sRElements; k++) {
+			data[i][j][k] = m_dRecvBuffer[m_ixRecvBuffer++];
 		}
 		}
 		}
@@ -619,10 +619,10 @@ void ExchangeBuffer::Unpack(
 		}
 
 		// Unpack data
-		for (int k = 0; k < sRElements; k++) {
 		for (int j = ixBBoundaryBegin; j < ixBBoundaryEnd; j++) {
 		for (int i = ixABoundaryEnd-1; i >= ixABoundaryBegin; i--) {
-			data[k][i][j] = m_dRecvBuffer[m_ixRecvBuffer++];
+		for (int k = 0; k < sRElements; k++) {
+			data[i][j][k] = m_dRecvBuffer[m_ixRecvBuffer++];
 		}
 		}
 		}

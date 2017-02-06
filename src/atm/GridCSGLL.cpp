@@ -511,9 +511,9 @@ void GridCSGLL::ApplyDSS(
 			}
 
 			pDataUpdate.SetSize(
-				nRElements,
 				box.GetATotalWidth(),
-				box.GetBTotalWidth());
+				box.GetBTotalWidth(),
+				nRElements);
 
 			// State data
 			if (eDataType == DataType_State) {
@@ -578,11 +578,11 @@ void GridCSGLL::ApplyDSS(
 
 					// Perform averaging across edge
 					for (int j = jBegin; j < jEnd; j++) {
-						pDataUpdate[k][iA][j] = 0.5 * (
-							+ pDataUpdate[k][iA  ][j]
-							+ pDataUpdate[k][iA-1][j]);
+						pDataUpdate[iA][j][k] = 0.5 * (
+							+ pDataUpdate[iA  ][j][k]
+							+ pDataUpdate[iA-1][j][k]);
 
-						pDataUpdate[k][iA-1][j] = pDataUpdate[k][iA][j];
+						pDataUpdate[iA-1][j][k] = pDataUpdate[iA][j][k];
 					}
 				}
 
@@ -610,11 +610,11 @@ void GridCSGLL::ApplyDSS(
 					}
 
 					for (int i = iBegin; i < iEnd; i++) {
-						pDataUpdate[k][i][iB] = 0.5 * (
-							+ pDataUpdate[k][i][iB  ]
-							+ pDataUpdate[k][i][iB-1]);
+						pDataUpdate[i][iB][k] = 0.5 * (
+							+ pDataUpdate[i][iB  ][k]
+							+ pDataUpdate[i][iB-1][k]);
 
-						pDataUpdate[k][i][iB-1] = pDataUpdate[k][i][iB];
+						pDataUpdate[i][iB-1][k] = pDataUpdate[i][iB][k];
 					}
 				}
 
@@ -623,40 +623,40 @@ void GridCSGLL::ApplyDSS(
 					int iA = box.GetAInteriorEnd()-1;
 					int iB = box.GetBInteriorEnd()-1;
 
-					pDataUpdate[k][iA][iB] = (1.0/3.0) * (
-						+ pDataUpdate[k][iA  ][iB  ]
-						+ pDataUpdate[k][iA+1][iB  ]
-						+ pDataUpdate[k][iA  ][iB+1]);
+					pDataUpdate[iA][iB][k] = (1.0/3.0) * (
+						+ pDataUpdate[iA  ][iB  ][k]
+						+ pDataUpdate[iA+1][iB  ][k]
+						+ pDataUpdate[iA  ][iB+1][k]);
 				}
 
 				if (ixTopLeftPanel == InvalidPanel) {
 					int iA = box.GetAInteriorBegin();
 					int iB = box.GetBInteriorEnd()-1;
 
-					pDataUpdate[k][iA][iB] = (1.0/3.0) * (
-						+ pDataUpdate[k][iA  ][iB  ]
-						+ pDataUpdate[k][iA-1][iB  ]
-						+ pDataUpdate[k][iA  ][iB+1]);
+					pDataUpdate[iA][iB][k] = (1.0/3.0) * (
+						+ pDataUpdate[iA  ][iB  ][k]
+						+ pDataUpdate[iA-1][iB  ][k]
+						+ pDataUpdate[iA  ][iB+1][k]);
 				}
 
 				if (ixBottomLeftPanel == InvalidPanel) {
 					int iA = box.GetAInteriorBegin();
 					int iB = box.GetBInteriorBegin();
 
-					pDataUpdate[k][iA][iB] = (1.0/3.0) * (
-						+ pDataUpdate[k][iA  ][iB  ]
-						+ pDataUpdate[k][iA-1][iB  ]
-						+ pDataUpdate[k][iA  ][iB-1]);
+					pDataUpdate[iA][iB][k] = (1.0/3.0) * (
+						+ pDataUpdate[iA  ][iB  ][k]
+						+ pDataUpdate[iA-1][iB  ][k]
+						+ pDataUpdate[iA  ][iB-1][k]);
 				}
 
 				if (ixBottomRightPanel == InvalidPanel) {
 					int iA = box.GetAInteriorEnd()-1;
 					int iB = box.GetBInteriorBegin();
 
-					pDataUpdate[k][iA][iB] = (1.0/3.0) * (
-						+ pDataUpdate[k][iA  ][iB  ]
-						+ pDataUpdate[k][iA+1][iB  ]
-						+ pDataUpdate[k][iA  ][iB-1]);
+					pDataUpdate[iA][iB][k] = (1.0/3.0) * (
+						+ pDataUpdate[iA  ][iB  ][k]
+						+ pDataUpdate[iA+1][iB  ][k]
+						+ pDataUpdate[iA  ][iB-1][k]);
 				}
 			}
 		}

@@ -504,6 +504,11 @@ public:
 	///		Parenthetical array accessor.
 	///	</summary>
 	inline const T & operator()(size_t i, size_t j, size_t k, size_t l) const {
+#if defined(DEBUG_ARRAYOUTOFBOUNDS)
+		if ((i > m_sSize[0]) || (j > m_sSize[1]) || (k > m_sSize[2]) || (l > m_sSize[3])) {
+			_EXCEPTIONT("Array access out of bounds");
+		}
+#endif
 		return (*(m_data1D + i * m_sSize[1] * m_sSize[2] * m_sSize[3]
 				+ j * m_sSize[2] * m_sSize[3] + k * m_sSize[3] + l));
 	}
@@ -511,6 +516,11 @@ public:
 	///		Parenthetical array accessor.
 	///	</summary>
 	inline T & operator()(size_t i, size_t j, size_t k, size_t l) {
+#if defined(DEBUG_ARRAYOUTOFBOUNDS)
+		if ((i > m_sSize[0]) || (j > m_sSize[1]) || (k > m_sSize[2]) || (l > m_sSize[3])) {
+			_EXCEPTIONT("Array access out of bounds");
+		}
+#endif
 		return (*(m_data1D + i * m_sSize[1] * m_sSize[2] * m_sSize[3]
 				+ j * m_sSize[2] * m_sSize[3] + k * m_sSize[3] + l));
 	}
@@ -550,6 +560,11 @@ public:
 #else
 	inline T const* operator()(size_t i, size_t j, size_t k) const noexcept {
 #endif
+#if defined(DEBUG_ARRAYOUTOFBOUNDS)
+		if ((i > m_sSize[0]) || (j > m_sSize[1]) || (k > m_sSize[2])) {
+			_EXCEPTIONT("Array access out of bounds");
+		}
+#endif
 		return m_data1D + i * m_sSize[1] * m_sSize[2] * m_sSize[3]
 				+ j * m_sSize[2] * m_sSize[3] + k * m_sSize[3];
 	}
@@ -560,6 +575,11 @@ public:
 	inline T* operator()(size_t i, size_t j, size_t k) {
 #else
 	inline T* operator()(size_t i, size_t j, size_t k) noexcept {
+#endif
+#if defined(DEBUG_ARRAYOUTOFBOUNDS)
+		if ((i > m_sSize[0]) || (j > m_sSize[1]) || (k > m_sSize[2])) {
+			_EXCEPTIONT("Array access out of bounds");
+		}
 #endif
 		return m_data1D + i * m_sSize[1] * m_sSize[2] * m_sSize[3]
 				+ j * m_sSize[2] * m_sSize[3] + k * m_sSize[3];

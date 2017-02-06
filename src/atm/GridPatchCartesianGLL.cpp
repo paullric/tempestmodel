@@ -336,42 +336,42 @@ void GridPatchCartesianGLL::EvaluateGeometricTerms() {
 //printf("%.16E %.16E %.16E %.16E %.16E %.16E \n",m_dataLon[iA][iB],m_dataLat[iA][iB],dZ,dDaZ,dDbZ,dDxZ);
 
 				// Calculate pointwise Jacobian
-				m_dataJacobian[k][iA][iB] =
+				m_dataJacobian[iA][iB][k] =
 					dDxZ * m_dataJacobian2D[iA][iB];
 
 				// Element area associated with each model level GLL node
-				m_dataElementAreaNode[k][iA][iB] =
-					m_dataJacobian[k][iA][iB]
+				m_dataElementAreaNode[iA][iB][k] =
+					m_dataJacobian[iA][iB][k]
 					* dWL[i] * GetElementDeltaA()
 					* dWL[j] * GetElementDeltaB()
 					* dWNode[k];
 
 				// Contravariant metric components
-				m_dataContraMetricA[k][iA][iB][0] =
+				m_dataContraMetricA[iA][iB][k][0] =
 					m_dataContraMetric2DA[iA][iB][0];
-				m_dataContraMetricA[k][iA][iB][1] =
+				m_dataContraMetricA[iA][iB][k][1] =
 					m_dataContraMetric2DA[iA][iB][1];
-				m_dataContraMetricA[k][iA][iB][2] =
+				m_dataContraMetricA[iA][iB][k][2] =
 					- dDaZ / dDxZ;
 
-				m_dataContraMetricB[k][iA][iB][0] =
+				m_dataContraMetricB[iA][iB][k][0] =
 					m_dataContraMetric2DB[iA][iB][0];
-				m_dataContraMetricB[k][iA][iB][1] =
+				m_dataContraMetricB[iA][iB][k][1] =
 					m_dataContraMetric2DB[iA][iB][1];
-				m_dataContraMetricB[k][iA][iB][2] =
+				m_dataContraMetricB[iA][iB][k][2] =
 					- dDbZ / dDxZ;
 
-				m_dataContraMetricXi[k][iA][iB][0] =
-					m_dataContraMetricA[k][iA][iB][2];
-				m_dataContraMetricXi[k][iA][iB][1] =
-					m_dataContraMetricB[k][iA][iB][2];
-				m_dataContraMetricXi[k][iA][iB][2] =
+				m_dataContraMetricXi[iA][iB][k][0] =
+					m_dataContraMetricA[iA][iB][k][2];
+				m_dataContraMetricXi[iA][iB][k][1] =
+					m_dataContraMetricB[iA][iB][k][2];
+				m_dataContraMetricXi[iA][iB][k][2] =
 					(1.0 + dDaZ * dDaZ + dDbZ * dDbZ) / (dDxZ * dDxZ);
 
 				// Derivatives of the vertical coordinate transform
-				m_dataDerivRNode[k][iA][iB][0] = dDaZ;
-				m_dataDerivRNode[k][iA][iB][1] = dDbZ;
-				m_dataDerivRNode[k][iA][iB][2] = dDxZ;
+				m_dataDerivRNode[iA][iB][k][0] = dDaZ;
+				m_dataDerivRNode[iA][iB][k][1] = dDbZ;
+				m_dataDerivRNode[iA][iB][k][2] = dDxZ;
 			}
 
 			// Metric terms at vertical interfaces
@@ -415,42 +415,42 @@ void GridPatchCartesianGLL::EvaluateGeometricTerms() {
 //printf("%.16E %.16E %.16E %.16E %.16E %.16E \n",m_dataLon[iA][iB],m_dataLat[iA][iB],dZ,dDaZ,dDbZ,dDxZ);
 
 				// Calculate pointwise Jacobian
-				m_dataJacobianREdge[k][iA][iB] =
+				m_dataJacobianREdge[iA][iB][k] =
 					dDxZ * m_dataJacobian2D[iA][iB];
 
 				// Element area associated with each model interface GLL node
-				m_dataElementAreaREdge[k][iA][iB] =
-					m_dataJacobianREdge[k][iA][iB]
+				m_dataElementAreaREdge[iA][iB][k] =
+					m_dataJacobianREdge[iA][iB][k]
 					* dWL[i] * GetElementDeltaA()
 					* dWL[j] * GetElementDeltaB()
 					* dWREdge[k];
 
 				// Components of the contravariant metric
-				m_dataContraMetricAREdge[k][iA][iB][0] =
+				m_dataContraMetricAREdge[iA][iB][k][0] =
 					m_dataContraMetric2DA[iA][iB][0];
-				m_dataContraMetricAREdge[k][iA][iB][1] =
+				m_dataContraMetricAREdge[iA][iB][k][1] =
 					m_dataContraMetric2DA[iA][iB][1];
-				m_dataContraMetricAREdge[k][iA][iB][2] =
+				m_dataContraMetricAREdge[iA][iB][k][2] =
 					- dDaZ / dDxZ;
 
-				m_dataContraMetricBREdge[k][iA][iB][0] =
+				m_dataContraMetricBREdge[iA][iB][k][0] =
 					m_dataContraMetric2DB[iA][iB][0];
-				m_dataContraMetricBREdge[k][iA][iB][1] =
+				m_dataContraMetricBREdge[iA][iB][k][1] =
 					m_dataContraMetric2DB[iA][iB][1];
-				m_dataContraMetricBREdge[k][iA][iB][2] =
+				m_dataContraMetricBREdge[iA][iB][k][2] =
 					- dDbZ / dDxZ;
 
-				m_dataContraMetricXiREdge[k][iA][iB][0] =
+				m_dataContraMetricXiREdge[iA][iB][k][0] =
 					- dDaZ / dDxZ;
-				m_dataContraMetricXiREdge[k][iA][iB][1] =
+				m_dataContraMetricXiREdge[iA][iB][k][1] =
 					- dDbZ / dDxZ;
-				m_dataContraMetricXiREdge[k][iA][iB][2] =
+				m_dataContraMetricXiREdge[iA][iB][k][2] =
 					(1.0 + dDaZ * dDaZ + dDbZ * dDbZ) / (dDxZ * dDxZ);
 
 				// Derivatives of the vertical coordinate transform
-				m_dataDerivRREdge[k][iA][iB][0] = dDaZ;
-				m_dataDerivRREdge[k][iA][iB][1] = dDbZ;
-				m_dataDerivRREdge[k][iA][iB][2] = dDxZ;
+				m_dataDerivRREdge[iA][iB][k][0] = dDaZ;
+				m_dataDerivRREdge[iA][iB][k][1] = dDbZ;
+				m_dataDerivRREdge[iA][iB][k][2] = dDxZ;
 			}
 		}
 		}
@@ -505,13 +505,13 @@ void GridPatchCartesianGLL::EvaluateTestCase(
 /*
 		// Gal-Chen and Sommerville vertical coordinate
 		for (int k = 0; k < m_grid.GetRElements(); k++) {
-			m_dataZLevels[k][i][j] =
+			m_dataZLevels[i][j][k] =
 				m_dataTopography[i][j]
 					+ m_grid.GetREtaLevel(k)
 						* (m_grid.GetZtop() - m_dataTopography[i][j]);
 		}
 		for (int k = 0; k <= m_grid.GetRElements(); k++) {
-			m_dataZInterfaces[k][i][j] =
+			m_dataZInterfaces[i][j][k] =
 				m_dataTopography[i][j]
 					+ m_grid.GetREtaInterface(k)
 						* (m_grid.GetZtop() - m_dataTopography[i][j]);
@@ -522,7 +522,7 @@ void GridPatchCartesianGLL::EvaluateTestCase(
 		double power = 6.0;
 		double botRate = 1.0;
 		for (int k = 0; k < m_grid.GetRElements(); k++) {
-			m_dataZLevels[k][i][j] =
+			m_dataZLevels[i][j][k] =
 			m_grid.GetZtop() * m_grid.GetREtaLevel(k) +
 				(1.0 - botRate * m_grid.GetREtaLevel(k)) *
 				(std::pow(std::cos(0.5 * M_PI * m_grid.GetREtaLevel(k)), power) +
@@ -531,7 +531,7 @@ void GridPatchCartesianGLL::EvaluateTestCase(
 				m_dataTopography[i][j];
 		}
 		for (int k = 0; k <= m_grid.GetRElements(); k++) {
-			m_dataZInterfaces[k][i][j] =
+			m_dataZInterfaces[i][j][k] =
 			m_grid.GetZtop() * m_grid.GetREtaInterface(k) +
 				(1.0 - botRate * m_grid.GetREtaInterface(k)) *
 				(std::pow(std::cos(0.5 * M_PI * m_grid.GetREtaInterface(k)), power) +
@@ -548,16 +548,16 @@ void GridPatchCartesianGLL::EvaluateTestCase(
 		for (int i = 0; i < m_box.GetATotalWidth(); i++) {
 		for (int j = 0; j < m_box.GetBTotalWidth(); j++) {
 			for (int k = 0; k < m_grid.GetRElements(); k++) {
-				m_dataRayleighStrengthNode[k][i][j] =
+				m_dataRayleighStrengthNode[i][j][k] =
 					test.EvaluateRayleighStrength(
-						m_dataZLevels[k][i][j],
+						m_dataZLevels[i][j][k],
 						m_dataLon[i][j],
 						m_dataLat[i][j]);
 			}
 			for (int k = 0; k < m_grid.GetRElements(); k++) {
-				m_dataRayleighStrengthREdge[k][i][j] =
+				m_dataRayleighStrengthREdge[i][j][k] =
 					test.EvaluateRayleighStrength(
-						m_dataZInterfaces[k][i][j],
+						m_dataZInterfaces[i][j][k],
 						m_dataLon[i][j],
 						m_dataLat[i][j]);
 			}
@@ -584,15 +584,15 @@ void GridPatchCartesianGLL::EvaluateTestCase(
 	}
 
 	// Evaluate the state on model levels
-	for (int k = 0; k < m_grid.GetRElements(); k++) {
 	for (int i = 0; i < m_box.GetATotalWidth(); i++) {
 	for (int j = 0; j < m_box.GetBTotalWidth(); j++) {
+	for (int k = 0; k < m_grid.GetRElements(); k++) {
 
 		// Evaluate pointwise state
 		test.EvaluatePointwiseState(
 			m_grid.GetModel().GetPhysicalConstants(),
 			time,
-			m_dataZLevels[k][i][j],
+			m_dataZLevels[i][j][k],
 			m_dataLon[i][j],
 			m_dataLat[i][j],
 			dPointwiseState,
@@ -602,14 +602,14 @@ void GridPatchCartesianGLL::EvaluateTestCase(
 			phys, dPointwiseState, dPointwiseTracers);
 
 		for (int c = 0; c < dPointwiseState.GetRows(); c++) {
-			m_datavecStateNode[iDataIndex][c][k][i][j] = dPointwiseState[c];
+			m_datavecStateNode[iDataIndex][c][i][j][k] = dPointwiseState[c];
 		}
 
 		// Evaluate reference state
 		if (m_grid.HasReferenceState()) {
 			test.EvaluateReferenceState(
 				m_grid.GetModel().GetPhysicalConstants(),
-				m_dataZLevels[k][i][j],
+				m_dataZLevels[i][j][k],
 				m_dataLon[i][j],
 				m_dataLat[i][j],
 				dPointwiseRefState);
@@ -618,18 +618,18 @@ void GridPatchCartesianGLL::EvaluateTestCase(
 				phys, dPointwiseRefState, dPointwiseRefTracers);
 
 			for (int c = 0; c < dPointwiseState.GetRows(); c++) {
-				m_dataRefStateNode[c][k][i][j] = dPointwiseRefState[c];
+				m_dataRefStateNode[c][i][j][k] = dPointwiseRefState[c];
 			}
 
 			for (int c = 0; c < dPointwiseRefTracers.GetRows(); c++) {
-				m_dataRefTracers[c][k][i][j] =
+				m_dataRefTracers[c][i][j][k] =
 					dPointwiseRefTracers[c];
 			}
 		}
 
 		// Evaluate tracers
 		for (int c = 0; c < dPointwiseTracers.GetRows(); c++) {
-			m_datavecTracers[iDataIndex][c][k][i][j] = dPointwiseTracers[c];
+			m_datavecTracers[iDataIndex][c][i][j][k] = dPointwiseTracers[c];
 		}
 	}
 	}
@@ -643,7 +643,7 @@ void GridPatchCartesianGLL::EvaluateTestCase(
 		test.EvaluatePointwiseState(
 			phys,
 			time,
-			m_dataZInterfaces[k][i][j],
+			m_dataZInterfaces[i][j][k],
 			m_dataLon[i][j],
 			m_dataLat[i][j],
 			dPointwiseState,
@@ -652,13 +652,13 @@ void GridPatchCartesianGLL::EvaluateTestCase(
 		eqns.ConvertComponents(phys, dPointwiseState, dPointwiseTracers);
 
 		for (int c = 0; c < dPointwiseState.GetRows(); c++) {
-			m_datavecStateREdge[iDataIndex][c][k][i][j] = dPointwiseState[c];
+			m_datavecStateREdge[iDataIndex][c][i][j][k] = dPointwiseState[c];
 		}
 
 		if (m_grid.HasReferenceState()) {
 			test.EvaluateReferenceState(
 				phys,
-				m_dataZInterfaces[k][i][j],
+				m_dataZInterfaces[i][j][k],
 				m_dataLon[i][j],
 				m_dataLat[i][j],
 				dPointwiseRefState);
@@ -668,7 +668,7 @@ void GridPatchCartesianGLL::EvaluateTestCase(
 				phys, dPointwiseRefState, dPointwiseRefTracers);
 
 			for (int c = 0; c < dPointwiseState.GetRows(); c++) {
-				m_dataRefStateREdge[c][k][i][j] = dPointwiseRefState[c];
+				m_dataRefStateREdge[c][i][j][k] = dPointwiseRefState[c];
 			}
 		}
 	}
@@ -725,33 +725,33 @@ void GridPatchCartesianGLL::ApplyBoundaryConditions(
 			for (int k = 0; k < m_grid.GetRElements(); k++) {
 			for (int j = 0; j < m_box.GetBTotalWidth(); j++) {
 				if (eBoundaryRight != Grid::BoundaryCondition_NoSlip) {
-					m_datavecStateNode[iDataIndex][UIx][k][i][j] =
-						- m_datavecStateNode[iDataIndex][UIx][k][i-1][j];
+					m_datavecStateNode[iDataIndex][UIx][i][j][k] =
+						- m_datavecStateNode[iDataIndex][UIx][i-1][j][k];
 
-					m_datavecStateNode[iDataIndex][VIx][k][i][j] =
-						- m_datavecStateNode[iDataIndex][VIx][k][i-1][j];
+					m_datavecStateNode[iDataIndex][VIx][i][j][k] =
+						- m_datavecStateNode[iDataIndex][VIx][i-1][j][k];
 
-					m_datavecStateNode[iDataIndex][WIx][k][i][j] =
-						- m_datavecStateNode[iDataIndex][WIx][k][i-1][j];
+					m_datavecStateNode[iDataIndex][WIx][i][j][k] =
+						- m_datavecStateNode[iDataIndex][WIx][i-1][j][k];
 				} else if (eBoundaryRight != Grid::BoundaryCondition_NoFlux) {
 					// DSS the local boundary u_beta and u_xi
 					dUb_hat = 0.5 * 
-						(m_datavecStateNode[iDataIndex][VIx][k][i][j] +
-						m_datavecStateNode[iDataIndex][VIx][k][i-1][j]);
+						(m_datavecStateNode[iDataIndex][VIx][i][j][k] +
+						m_datavecStateNode[iDataIndex][VIx][i-1][j][k]);
 					dUx_hat = 0.5 * 
-						(m_datavecStateNode[iDataIndex][WIx][k][i][j] +
-						m_datavecStateNode[iDataIndex][WIx][k][i-1][j]);
+						(m_datavecStateNode[iDataIndex][WIx][i][j][k] +
+						m_datavecStateNode[iDataIndex][WIx][i-1][j][k]);
 					//dUx_hat *= m_dataDerivRNode[k][i-1][j][2];
 					// Get the local alpha contravariant metric components
-					dGaa = m_dataContraMetricA[k][i-1][j][0];
-					dGab = m_dataContraMetricA[k][i-1][j][1];
-					dGax = m_dataContraMetricA[k][i-1][j][2];
+					dGaa = m_dataContraMetricA[i-1][j][k][0];
+					dGab = m_dataContraMetricA[i-1][j][k][1];
+					dGax = m_dataContraMetricA[i-1][j][k][2];
 					// Compute the convariant boundary velocity u^hat
 					dUa_hat = -1.0 / dGaa * (dGab * dUb_hat + dGax * dUx_hat);
 					// Compute the pre-DSS halo velocity that imposes no-flux
-					m_datavecStateNode[iDataIndex][UIx][k][i][j] =
+					m_datavecStateNode[iDataIndex][UIx][i][j][k] =
 						2.0 * dUa_hat
-						- m_datavecStateNode[iDataIndex][UIx][k][i-1][j];
+						- m_datavecStateNode[iDataIndex][UIx][i-1][j][k];
 				} else {
 					_EXCEPTIONT("+X NoSlip or NoFlux only: ApplyBoundaryConditions");
 				}
@@ -769,34 +769,34 @@ void GridPatchCartesianGLL::ApplyBoundaryConditions(
 			for (int k = 0; k < m_grid.GetRElements(); k++) {
 			for (int i = 0; i < m_box.GetATotalWidth(); i++) {
 				if (eBoundaryTop != Grid::BoundaryCondition_NoSlip) {
-					m_datavecStateNode[iDataIndex][UIx][k][i][j] =
-						- m_datavecStateNode[iDataIndex][UIx][k][i][j-1];
+					m_datavecStateNode[iDataIndex][UIx][i][j][k] =
+						- m_datavecStateNode[iDataIndex][UIx][i][j-1][k];
 
-					m_datavecStateNode[iDataIndex][VIx][k][i][j] =
-						- m_datavecStateNode[iDataIndex][VIx][k][i][j-1];
+					m_datavecStateNode[iDataIndex][VIx][i][j][k] =
+						- m_datavecStateNode[iDataIndex][VIx][i][j-1][k];
 
-					m_datavecStateNode[iDataIndex][WIx][k][i][j] =
-						- m_datavecStateNode[iDataIndex][WIx][k][i][j-1];
+					m_datavecStateNode[iDataIndex][WIx][i][j][k] =
+						- m_datavecStateNode[iDataIndex][WIx][i][j-1][k];
 				} else if (eBoundaryTop != Grid::BoundaryCondition_NoFlux) {
 					// DSS the local boundary u_alpha and u_xi
 					dUa_hat = 0.5 * 
-						(m_datavecStateNode[iDataIndex][UIx][k][i][j] +
-						m_datavecStateNode[iDataIndex][UIx][k][i][j-1]);
+						(m_datavecStateNode[iDataIndex][UIx][i][j][k] +
+						m_datavecStateNode[iDataIndex][UIx][i][j-1][k]);
 					dUx_hat = 0.5 * 
-						(m_datavecStateNode[iDataIndex][WIx][k][i][j] +
-						m_datavecStateNode[iDataIndex][WIx][k][i][j-1]);
-					//dUx_hat *= m_dataDerivRNode[k][i][j-1][2];
+						(m_datavecStateNode[iDataIndex][WIx][i][j][k] +
+						m_datavecStateNode[iDataIndex][WIx][i][j-1][k]);
+					//dUx_hat *= m_dataDerivRNode[i][j-1][k][2];
 					// Get the local beta contravariant metric components
-					dGba = m_dataContraMetricB[k][i][j-1][0];
-					dGbb = m_dataContraMetricB[k][i][j-1][1];
-					dGbx = m_dataContraMetricB[k][i][j-1][2];
+					dGba = m_dataContraMetricB[i][j-1][k][0];
+					dGbb = m_dataContraMetricB[i][j-1][k][1];
+					dGbx = m_dataContraMetricB[i][j-1][k][2];
 					//std::cout << dGbb << "\n";
 					// Compute the convariant boundary velocity u^hat
 					dUb_hat = -1.0 / dGbb * (dGba * dUa_hat + dGbx * dUx_hat);
 					// Compute the pre-DSS halo velocity that imposes no-flux
-					m_datavecStateNode[iDataIndex][VIx][k][i][j] =
+					m_datavecStateNode[iDataIndex][VIx][i][j][k] =
 						2.0 * dUb_hat
-						- m_datavecStateNode[iDataIndex][VIx][k][i][j-1];
+						- m_datavecStateNode[iDataIndex][VIx][i][j-1][k];
 				} else {
 					_EXCEPTIONT("+Y NoSlip or NoFlux only: ApplyBoundaryConditions");
 				}
@@ -814,33 +814,33 @@ void GridPatchCartesianGLL::ApplyBoundaryConditions(
 			for (int k = 0; k < m_grid.GetRElements(); k++) {
 			for (int j = 0; j < m_box.GetBTotalWidth(); j++) {
 				if (eBoundaryLeft == Grid::BoundaryCondition_NoSlip) {
-					m_datavecStateNode[iDataIndex][UIx][k][i][j] =
-						- m_datavecStateNode[iDataIndex][UIx][k][i+1][j];
+					m_datavecStateNode[iDataIndex][UIx][i][j][k] =
+						- m_datavecStateNode[iDataIndex][UIx][i+1][j][k];
 
-					m_datavecStateNode[iDataIndex][VIx][k][i][j] =
-						- m_datavecStateNode[iDataIndex][VIx][k][i+1][j];
+					m_datavecStateNode[iDataIndex][VIx][i][j][k] =
+						- m_datavecStateNode[iDataIndex][VIx][i+1][j][k];
 
-					m_datavecStateNode[iDataIndex][WIx][k][i][j] =
-						- m_datavecStateNode[iDataIndex][WIx][k][i+1][j];
+					m_datavecStateNode[iDataIndex][WIx][i][j][k] =
+						- m_datavecStateNode[iDataIndex][WIx][i+1][j][k];
 				} else if (eBoundaryLeft == Grid::BoundaryCondition_NoFlux) {
 					// DSS the local boundary u_beta and u_xi
 					dUb_hat = 0.5 * 
-						(m_datavecStateNode[iDataIndex][VIx][k][i][j] +
-						m_datavecStateNode[iDataIndex][VIx][k][i+1][j]);
+						(m_datavecStateNode[iDataIndex][VIx][i][j][k] +
+						m_datavecStateNode[iDataIndex][VIx][i+1][j][k]);
 					dUx_hat = 0.5 * 
-						(m_datavecStateNode[iDataIndex][WIx][k][i][j] +
-						m_datavecStateNode[iDataIndex][WIx][k][i+1][j]);
-					//dUx_hat *= m_dataDerivRNode[k][i+1][j][2];
+						(m_datavecStateNode[iDataIndex][WIx][i][j][k] +
+						m_datavecStateNode[iDataIndex][WIx][i+1][j][k]);
+					//dUx_hat *= m_dataDerivRNode[i+1][j][k][2];
 					// Get the local alpha contravariant metric components
-					dGaa = m_dataContraMetricA[k][i+1][j][0];
-					dGab = m_dataContraMetricA[k][i+1][j][1];
-					dGax = m_dataContraMetricA[k][i+1][j][2];
+					dGaa = m_dataContraMetricA[i+1][j][k][0];
+					dGab = m_dataContraMetricA[i+1][j][k][1];
+					dGax = m_dataContraMetricA[i+1][j][k][2];
 					// Compute the convariant boundary velocity u^hat
 					dUa_hat = -1.0 / dGaa * (dGab * dUb_hat + dGax * dUx_hat);
 					// Compute the pre-DSS halo velocity that imposes no-flux
-					m_datavecStateNode[iDataIndex][UIx][k][i][j] =
+					m_datavecStateNode[iDataIndex][UIx][i][j][k] =
 						2.0 * dUa_hat
-						- m_datavecStateNode[iDataIndex][UIx][k][i+1][j];
+						- m_datavecStateNode[iDataIndex][UIx][i+1][j][k];
 				} else {
 					_EXCEPTIONT("-X NoSlip or NoFlux only: ApplyBoundaryConditions");
 				}
@@ -858,33 +858,33 @@ void GridPatchCartesianGLL::ApplyBoundaryConditions(
 			for (int k = 0; k < m_grid.GetRElements(); k++) {
 			for (int i = 0; i < m_box.GetATotalWidth(); i++) {
 				if (eBoundaryBottom == Grid::BoundaryCondition_NoSlip) {
-					m_datavecStateNode[iDataIndex][UIx][k][i][j] =
-						- m_datavecStateNode[iDataIndex][UIx][k][i][j+1];
+					m_datavecStateNode[iDataIndex][UIx][i][j][k] =
+						- m_datavecStateNode[iDataIndex][UIx][i][j+1][k];
 
-					m_datavecStateNode[iDataIndex][VIx][k][i][j] =
-						- m_datavecStateNode[iDataIndex][VIx][k][i][j+1];
+					m_datavecStateNode[iDataIndex][VIx][i][j][k] =
+						- m_datavecStateNode[iDataIndex][VIx][i][j+1][k];
 
-					m_datavecStateNode[iDataIndex][WIx][k][i][j] =
-						- m_datavecStateNode[iDataIndex][WIx][k][i][j+1];
+					m_datavecStateNode[iDataIndex][WIx][i][j][k] =
+						- m_datavecStateNode[iDataIndex][WIx][i][j+1][k];
 				} else if (eBoundaryBottom == Grid::BoundaryCondition_NoFlux) {
 					// DSS the local boundary u_alpha and u_xi
 					dUa_hat = 0.5 * 
-						(m_datavecStateNode[iDataIndex][UIx][k][i][j] +
-						m_datavecStateNode[iDataIndex][UIx][k][i][j+1]);
+						(m_datavecStateNode[iDataIndex][UIx][i][j][k] +
+						m_datavecStateNode[iDataIndex][UIx][i][j+1][k]);
 					dUx_hat = 0.5 * 
-						(m_datavecStateNode[iDataIndex][WIx][k][i][j] +
-						m_datavecStateNode[iDataIndex][WIx][k][i][j+1]);
-					//dUx_hat *= m_dataDerivRNode[k][i][j+1][2];
+						(m_datavecStateNode[iDataIndex][WIx][i][j][k] +
+						m_datavecStateNode[iDataIndex][WIx][i][j+1][k]);
+					//dUx_hat *= m_dataDerivRNode[i][j+1][k][2];
 					// Get the local beta contravariant metric components
-					dGba = m_dataContraMetricB[k][i][j+1][0];
-					dGbb = m_dataContraMetricB[k][i][j+1][1];
-					dGbx = m_dataContraMetricB[k][i][j+1][2];
+					dGba = m_dataContraMetricB[i][j+1][k][0];
+					dGbb = m_dataContraMetricB[i][j+1][k][1];
+					dGbx = m_dataContraMetricB[i][j+1][k][2];
 					// Compute the convariant boundary velocity u^hat
 					dUb_hat = -1.0 / dGbb * (dGba * dUa_hat + dGbx * dUx_hat);
 					// Compute the pre-DSS halo velocity that imposes no-flux
-					m_datavecStateNode[iDataIndex][VIx][k][i][j] =
+					m_datavecStateNode[iDataIndex][VIx][i][j][k] =
 						2.0 * dUb_hat
-						- m_datavecStateNode[iDataIndex][VIx][k][i][j+1];
+						- m_datavecStateNode[iDataIndex][VIx][i][j+1][k];
 				} else {
 					_EXCEPTIONT("-Y NoSlip or NoFlux only: ApplyBoundaryConditions");
 				}
@@ -904,33 +904,33 @@ void GridPatchCartesianGLL::ApplyBoundaryConditions(
 			for (int j = 0; j < m_box.GetBTotalWidth(); j++) {
 			for (int k = 0; k < m_grid.GetRElements(); k++) {
 				if (eBoundaryRight == Grid::BoundaryCondition_NoSlip) {
-					m_datavecStateNode[iDataIndex][UIx][k][i][j] =
-						- m_datavecStateNode[iDataIndex][UIx][k][i-1][j];
+					m_datavecStateNode[iDataIndex][UIx][i][j][k] =
+						- m_datavecStateNode[iDataIndex][UIx][i-1][j][k];
 
-					m_datavecStateNode[iDataIndex][VIx][k][i][j] =
-						- m_datavecStateNode[iDataIndex][VIx][k][i-1][j];
+					m_datavecStateNode[iDataIndex][VIx][i][j][k] =
+						- m_datavecStateNode[iDataIndex][VIx][i-1][j][k];
 
-					m_datavecStateNode[iDataIndex][WIx][k][i][j] =
-						- m_datavecStateNode[iDataIndex][WIx][k][i-1][j];
+					m_datavecStateNode[iDataIndex][WIx][i][j][k] =
+						- m_datavecStateNode[iDataIndex][WIx][i-1][j][k];
 				} else if (eBoundaryRight == Grid::BoundaryCondition_NoFlux) {
 					// DSS the local boundary u_beta and u_xi
 					dUb_hat = 0.5 * 
-						(m_datavecStateNode[iDataIndex][VIx][k][i][j] +
-						m_datavecStateNode[iDataIndex][VIx][k][i-1][j]);
+						(m_datavecStateNode[iDataIndex][VIx][i][j][k] +
+						m_datavecStateNode[iDataIndex][VIx][i-1][j][k]);
 					dUx_hat = 0.5 * 
-						(m_datavecStateNode[iDataIndex][WIx][k][i][j] +
-						m_datavecStateNode[iDataIndex][WIx][k][i-1][j]);
-					//dUx_hat *= m_dataDerivRNode[k][i-1][j][2];
+						(m_datavecStateNode[iDataIndex][WIx][i][j][k] +
+						m_datavecStateNode[iDataIndex][WIx][i-1][j][k]);
+					//dUx_hat *= m_dataDerivRNode[i-1][j][k][2];
 					// Get the local alpha contravariant metric components
-					dGaa = m_dataContraMetricA[k][i-1][j][0];
-					dGab = m_dataContraMetricA[k][i-1][j][1];
-					dGax = m_dataContraMetricA[k][i-1][j][2];
+					dGaa = m_dataContraMetricA[i-1][j][k][0];
+					dGab = m_dataContraMetricA[i-1][j][k][1];
+					dGax = m_dataContraMetricA[i-1][j][k][2];
 					// Compute the convariant boundary velocity u^hat
 					dUa_hat = -1.0 / dGaa * (dGab * dUb_hat + dGax * dUx_hat);
 					// Compute the pre-DSS halo velocity that imposes no-flux
-					m_datavecStateNode[iDataIndex][UIx][k][i][j] =
+					m_datavecStateNode[iDataIndex][UIx][i][j][k] =
 						2.0 * dUa_hat
-						- m_datavecStateNode[iDataIndex][UIx][k][i-1][j];
+						- m_datavecStateNode[iDataIndex][UIx][i-1][j][k];
 				} else {
 					_EXCEPTIONT("+X NoSlip or NoFlux only: ApplyBoundaryConditions");
 				}
@@ -938,33 +938,33 @@ void GridPatchCartesianGLL::ApplyBoundaryConditions(
 
 			for (int k = 0; k <= m_grid.GetRElements(); k++) {
 				if (eBoundaryRight == Grid::BoundaryCondition_NoSlip) {
-					m_datavecStateREdge[iDataIndex][UIx][k][i][j] =
-						- m_datavecStateREdge[iDataIndex][UIx][k][i-1][j];
+					m_datavecStateREdge[iDataIndex][UIx][i][j][k] =
+						- m_datavecStateREdge[iDataIndex][UIx][i-1][j][k];
 
-					m_datavecStateREdge[iDataIndex][VIx][k][i][j] =
-						- m_datavecStateREdge[iDataIndex][VIx][k][i-1][j];
+					m_datavecStateREdge[iDataIndex][VIx][i][j][k] =
+						- m_datavecStateREdge[iDataIndex][VIx][i-1][j][k];
 
-					m_datavecStateREdge[iDataIndex][WIx][k][i][j] =
-						- m_datavecStateREdge[iDataIndex][WIx][k][i-1][j];
+					m_datavecStateREdge[iDataIndex][WIx][i][j][k] =
+						- m_datavecStateREdge[iDataIndex][WIx][i-1][j][k];
 				} else if (eBoundaryRight == Grid::BoundaryCondition_NoFlux) {
 					// DSS the local boundary u_beta and u_xi
 					dUb_hat = 0.5 * 
-						(m_datavecStateREdge[iDataIndex][VIx][k][i][j] +
-						m_datavecStateREdge[iDataIndex][VIx][k][i-1][j]);
+						(m_datavecStateREdge[iDataIndex][VIx][i][j][k] +
+						m_datavecStateREdge[iDataIndex][VIx][i-1][j][k]);
 					dUx_hat = 0.5 * 
-						(m_datavecStateREdge[iDataIndex][WIx][k][i][j] +
-						m_datavecStateREdge[iDataIndex][WIx][k][i-1][j]);
-					//dUx_hat *= m_dataDerivRREdge[k][i-1][j][2];
+						(m_datavecStateREdge[iDataIndex][WIx][i][j][k] +
+						m_datavecStateREdge[iDataIndex][WIx][i-1][j][k]);
+					//dUx_hat *= m_dataDerivRREdge[i-1][j][k][2];
 					// Get the local alpha contravariant metric components
-					dGaa = m_dataContraMetricAREdge[k][i-1][j][0];
-					dGab = m_dataContraMetricAREdge[k][i-1][j][1];
-					dGax = m_dataContraMetricAREdge[k][i-1][j][2];
+					dGaa = m_dataContraMetricAREdge[i-1][j][k][0];
+					dGab = m_dataContraMetricAREdge[i-1][j][k][1];
+					dGax = m_dataContraMetricAREdge[i-1][j][k][2];
 					// Compute the convariant boundary velocity u^hat
 					dUa_hat = -1.0 / dGaa * (dGab * dUb_hat + dGax * dUx_hat);
 					// Compute the pre-DSS halo velocity that imposes no-flux
-					m_datavecStateREdge[iDataIndex][UIx][k][i][j] =
+					m_datavecStateREdge[iDataIndex][UIx][i][j][k] =
 						2.0 * dUa_hat
-						- m_datavecStateREdge[iDataIndex][UIx][k][i-1][j];
+						- m_datavecStateREdge[iDataIndex][UIx][i-1][j][k];
 				} else {
 					_EXCEPTIONT("+X NoSlip or NoFlux only: ApplyBoundaryConditions");
 				}
@@ -982,33 +982,33 @@ void GridPatchCartesianGLL::ApplyBoundaryConditions(
 			for (int i = 0; i < m_box.GetATotalWidth(); i++) {
 			for (int k = 0; k < m_grid.GetRElements(); k++) {
 				if (eBoundaryTop == Grid::BoundaryCondition_NoSlip) {
-					m_datavecStateNode[iDataIndex][UIx][k][i][j] =
-						- m_datavecStateNode[iDataIndex][UIx][k][i][j-1];
+					m_datavecStateNode[iDataIndex][UIx][i][j][k] =
+						- m_datavecStateNode[iDataIndex][UIx][i][j-1][k];
 
-					m_datavecStateNode[iDataIndex][VIx][k][i][j] =
-						- m_datavecStateNode[iDataIndex][VIx][k][i][j-1];
+					m_datavecStateNode[iDataIndex][VIx][i][j][k] =
+						- m_datavecStateNode[iDataIndex][VIx][i][j-1][k];
 
-					m_datavecStateNode[iDataIndex][WIx][k][i][j] =
-						- m_datavecStateNode[iDataIndex][WIx][k][i][j-1];
+					m_datavecStateNode[iDataIndex][WIx][i][j][k] =
+						- m_datavecStateNode[iDataIndex][WIx][i][j-1][k];
 				} else if (eBoundaryTop == Grid::BoundaryCondition_NoFlux) {
 					// DSS the local boundary u_alpha and u_xi
 					dUa_hat = 0.5 * 
-						(m_datavecStateNode[iDataIndex][UIx][k][i][j] +
-						m_datavecStateNode[iDataIndex][UIx][k][i][j-1]);
+						(m_datavecStateNode[iDataIndex][UIx][i][j][k] +
+						m_datavecStateNode[iDataIndex][UIx][i][j-1][k]);
 					dUx_hat = 0.5 * 
-						(m_datavecStateNode[iDataIndex][WIx][k][i][j] +
-						m_datavecStateNode[iDataIndex][WIx][k][i][j-1]);
-					//dUx_hat *= m_dataDerivRNode[k][i][j-1][2];
+						(m_datavecStateNode[iDataIndex][WIx][i][j][k] +
+						m_datavecStateNode[iDataIndex][WIx][i][j-1][k]);
+					//dUx_hat *= m_dataDerivRNode[i][j-1][k][2];
 					// Get the local beta contravariant metric components
-					dGba = m_dataContraMetricB[k][i][j-1][0];
-					dGbb = m_dataContraMetricB[k][i][j-1][1];
-					dGbx = m_dataContraMetricB[k][i][j-1][2];
+					dGba = m_dataContraMetricB[i][j-1][k][0];
+					dGbb = m_dataContraMetricB[i][j-1][k][1];
+					dGbx = m_dataContraMetricB[i][j-1][k][2];
 					// Compute the convariant boundary velocity u^hat
 					dUb_hat = -1.0 / dGbb * (dGba * dUa_hat + dGbx * dUx_hat);
 					// Compute the pre-DSS halo velocity that imposes no-flux
-					m_datavecStateNode[iDataIndex][VIx][k][i][j] =
+					m_datavecStateNode[iDataIndex][VIx][i][j][k] =
 						2.0 * dUb_hat
-						- m_datavecStateNode[iDataIndex][VIx][k][i][j-1];
+						- m_datavecStateNode[iDataIndex][VIx][i][j-1][k];
 				} else {
 					_EXCEPTIONT("+Y NoSlip or NoFlux only: ApplyBoundaryConditions");
 				}
@@ -1016,33 +1016,33 @@ void GridPatchCartesianGLL::ApplyBoundaryConditions(
 
 			for (int k = 0; k <= m_grid.GetRElements(); k++) {
 				if (eBoundaryTop == Grid::BoundaryCondition_NoSlip) {
-					m_datavecStateREdge[iDataIndex][UIx][k][i][j] =
-						- m_datavecStateREdge[iDataIndex][UIx][k][i][j-1];
+					m_datavecStateREdge[iDataIndex][UIx][i][j][k] =
+						- m_datavecStateREdge[iDataIndex][UIx][i][j-1][k];
 
-					m_datavecStateREdge[iDataIndex][VIx][k][i][j] =
-						- m_datavecStateREdge[iDataIndex][VIx][k][i][j-1];
+					m_datavecStateREdge[iDataIndex][VIx][i][j][k] =
+						- m_datavecStateREdge[iDataIndex][VIx][i][j-1][k];
 
-					m_datavecStateREdge[iDataIndex][WIx][k][i][j] =
-						- m_datavecStateREdge[iDataIndex][WIx][k][i][j-1];
+					m_datavecStateREdge[iDataIndex][WIx][i][j][k] =
+						- m_datavecStateREdge[iDataIndex][WIx][i][j-1][k];
 				} else if (eBoundaryTop == Grid::BoundaryCondition_NoFlux) {
 					// DSS the local boundary u_alpha and u_xi
 					dUa_hat = 0.5 * 
-						(m_datavecStateREdge[iDataIndex][UIx][k][i][j] +
-						m_datavecStateREdge[iDataIndex][UIx][k][i][j-1]);
+						(m_datavecStateREdge[iDataIndex][UIx][i][j][k] +
+						m_datavecStateREdge[iDataIndex][UIx][i][j-1][k]);
 					dUx_hat = 0.5 * 
-						(m_datavecStateREdge[iDataIndex][WIx][k][i][j] +
-						m_datavecStateREdge[iDataIndex][WIx][k][i][j-1]);
-					//dUx_hat *= m_dataDerivRREdge[k][i][j-1][2];
+						(m_datavecStateREdge[iDataIndex][WIx][i][j][k] +
+						m_datavecStateREdge[iDataIndex][WIx][i][j-1][k]);
+					//dUx_hat *= m_dataDerivRREdge[i][j-1][k][2];
 					// Get the local beta contravariant metric components
-					dGba = m_dataContraMetricBREdge[k][i][j-1][0];
-					dGbb = m_dataContraMetricBREdge[k][i][j-1][1];
-					dGbx = m_dataContraMetricBREdge[k][i][j-1][2];
+					dGba = m_dataContraMetricBREdge[i][j-1][k][0];
+					dGbb = m_dataContraMetricBREdge[i][j-1][k][1];
+					dGbx = m_dataContraMetricBREdge[i][j-1][k][2];
 					// Compute the convariant boundary velocity u^hat
 					dUb_hat = -1.0 / dGbb * (dGba * dUa_hat + dGbx * dUx_hat);
 					// Compute the pre-DSS halo velocity that imposes no-flux
-					m_datavecStateREdge[iDataIndex][VIx][k][i][j] =
+					m_datavecStateREdge[iDataIndex][VIx][i][j][k] =
 						2.0 * dUb_hat
-						- m_datavecStateREdge[iDataIndex][VIx][k][i][j-1];
+						- m_datavecStateREdge[iDataIndex][VIx][i][j-1][k];
 				} else {
 					_EXCEPTIONT("+Y NoSlip or NoFlux only: ApplyBoundaryConditions");
 				}
@@ -1060,33 +1060,33 @@ void GridPatchCartesianGLL::ApplyBoundaryConditions(
 			for (int j = 0; j < m_box.GetBTotalWidth(); j++) {
 			for (int k = 0; k < m_grid.GetRElements(); k++) {
 				if (eBoundaryLeft == Grid::BoundaryCondition_NoSlip) {
-					m_datavecStateNode[iDataIndex][UIx][k][i][j] =
-						- m_datavecStateNode[iDataIndex][UIx][k][i+1][j];
+					m_datavecStateNode[iDataIndex][UIx][i][j][k] =
+						- m_datavecStateNode[iDataIndex][UIx][i+1][j][k];
 
-					m_datavecStateNode[iDataIndex][VIx][k][i][j] =
-						- m_datavecStateNode[iDataIndex][VIx][k][i+1][j];
+					m_datavecStateNode[iDataIndex][VIx][i][j][k] =
+						- m_datavecStateNode[iDataIndex][VIx][i+1][j][k];
 
-					m_datavecStateNode[iDataIndex][WIx][k][i][j] =
-						- m_datavecStateNode[iDataIndex][WIx][k][i+1][j];
+					m_datavecStateNode[iDataIndex][WIx][i][j][k] =
+						- m_datavecStateNode[iDataIndex][WIx][i+1][j][k];
 				} else if (eBoundaryLeft == Grid::BoundaryCondition_NoFlux) {
 					// DSS the local boundary u_beta and u_xi
 					dUb_hat = 0.5 * 
-						(m_datavecStateNode[iDataIndex][VIx][k][i][j] +
-						m_datavecStateNode[iDataIndex][VIx][k][i+1][j]);
+						(m_datavecStateNode[iDataIndex][VIx][i][j][k] +
+						m_datavecStateNode[iDataIndex][VIx][i+1][j][k]);
 					dUx_hat = 0.5 * 
-						(m_datavecStateNode[iDataIndex][WIx][k][i][j] +
-						m_datavecStateNode[iDataIndex][WIx][k][i+1][j]);
-					//dUx_hat *= m_dataDerivRNode[k][i+1][j][2];
+						(m_datavecStateNode[iDataIndex][WIx][i][j][k] +
+						m_datavecStateNode[iDataIndex][WIx][i+1][j][k]);
+					//dUx_hat *= m_dataDerivRNode[i+1][j][k][2];
 					// Get the local alpha contravariant metric components
-					dGaa = m_dataContraMetricA[k][i+1][j][0];
-					dGab = m_dataContraMetricA[k][i+1][j][1];
-					dGax = m_dataContraMetricA[k][i+1][j][2];
+					dGaa = m_dataContraMetricA[i+1][j][k][0];
+					dGab = m_dataContraMetricA[i+1][j][k][1];
+					dGax = m_dataContraMetricA[i+1][j][k][2];
 					// Compute the convariant boundary velocity u^hat
 					dUa_hat = -1.0 / dGaa * (dGab * dUb_hat + dGax * dUx_hat);
 					// Compute the pre-DSS halo velocity that imposes no-flux
-					m_datavecStateNode[iDataIndex][UIx][k][i][j] =
+					m_datavecStateNode[iDataIndex][UIx][i][j][k] =
 						2.0 * dUa_hat
-						- m_datavecStateNode[iDataIndex][UIx][k][i+1][j];
+						- m_datavecStateNode[iDataIndex][UIx][i+1][j][k];
 				} else {
 					_EXCEPTIONT("-X NoSlip or NoFlux only: ApplyBoundaryConditions");
 				}
@@ -1094,33 +1094,33 @@ void GridPatchCartesianGLL::ApplyBoundaryConditions(
 
 			for (int k = 0; k <= m_grid.GetRElements(); k++) {
 				if (eBoundaryLeft == Grid::BoundaryCondition_NoSlip) {
-					m_datavecStateREdge[iDataIndex][UIx][k][i][j] =
-						- m_datavecStateREdge[iDataIndex][UIx][k][i+1][j];
+					m_datavecStateREdge[iDataIndex][UIx][i][j][k] =
+						- m_datavecStateREdge[iDataIndex][UIx][i+1][j][k];
 
-					m_datavecStateREdge[iDataIndex][VIx][k][i][j] =
-						- m_datavecStateREdge[iDataIndex][VIx][k][i+1][j];
+					m_datavecStateREdge[iDataIndex][VIx][i][j][k] =
+						- m_datavecStateREdge[iDataIndex][VIx][i+1][j][k];
 
-					m_datavecStateREdge[iDataIndex][WIx][k][i][j] =
-						- m_datavecStateREdge[iDataIndex][WIx][k][i+1][j];
+					m_datavecStateREdge[iDataIndex][WIx][i][j][k] =
+						- m_datavecStateREdge[iDataIndex][WIx][i+1][j][k];
 				} else if (eBoundaryLeft == Grid::BoundaryCondition_NoFlux) {
 					// DSS the local boundary u_beta and u_xi
 					dUb_hat = 0.5 * 
-						(m_datavecStateREdge[iDataIndex][VIx][k][i][j] +
-						m_datavecStateREdge[iDataIndex][VIx][k][i+1][j]);
+						(m_datavecStateREdge[iDataIndex][VIx][i][j][k] +
+						m_datavecStateREdge[iDataIndex][VIx][i+1][j][k]);
 					dUx_hat = 0.5 * 
-						(m_datavecStateREdge[iDataIndex][WIx][k][i][j] +
-						m_datavecStateREdge[iDataIndex][WIx][k][i+1][j]);
-					//dUx_hat *= m_dataDerivRREdge[k][i+1][j][2];
+						(m_datavecStateREdge[iDataIndex][WIx][i][j][k] +
+						m_datavecStateREdge[iDataIndex][WIx][i+1][j][k]);
+					//dUx_hat *= m_dataDerivRREdge[i+1][j][k][2];
 					// Get the local alpha contravariant metric components
-					dGaa = m_dataContraMetricAREdge[k][i+1][j][0];
-					dGab = m_dataContraMetricAREdge[k][i+1][j][1];
-					dGax = m_dataContraMetricAREdge[k][i+1][j][2];
+					dGaa = m_dataContraMetricAREdge[i+1][j][k][0];
+					dGab = m_dataContraMetricAREdge[i+1][j][k][1];
+					dGax = m_dataContraMetricAREdge[i+1][j][k][2];
 					// Compute the convariant boundary velocity u^hat
 					dUa_hat = -1.0 / dGaa * (dGab * dUb_hat + dGax * dUx_hat);
 					// Compute the pre-DSS halo velocity that imposes no-flux
-					m_datavecStateREdge[iDataIndex][UIx][k][i][j] =
+					m_datavecStateREdge[iDataIndex][UIx][i][j][k] =
 						2.0 * dUa_hat
-						- m_datavecStateREdge[iDataIndex][UIx][k][i+1][j];
+						- m_datavecStateREdge[iDataIndex][UIx][i+1][j][k];
 				} else {
 					_EXCEPTIONT("-X NoSlip or NoFlux only: ApplyBoundaryConditions");
 				}
@@ -1138,33 +1138,33 @@ void GridPatchCartesianGLL::ApplyBoundaryConditions(
 			for (int i = 0; i < m_box.GetATotalWidth(); i++) {
 			for (int k = 0; k < m_grid.GetRElements(); k++) {
 				if (eBoundaryBottom == Grid::BoundaryCondition_NoSlip) {
-					m_datavecStateNode[iDataIndex][UIx][k][i][j] =
-						- m_datavecStateNode[iDataIndex][UIx][k][i][j+1];
+					m_datavecStateNode[iDataIndex][UIx][i][j][k] =
+						- m_datavecStateNode[iDataIndex][UIx][i][j+1][k];
 
-					m_datavecStateNode[iDataIndex][VIx][k][i][j] =
-						- m_datavecStateNode[iDataIndex][VIx][k][i][j+1];
+					m_datavecStateNode[iDataIndex][VIx][i][j][k] =
+						- m_datavecStateNode[iDataIndex][VIx][i][j+1][k];
 
-					m_datavecStateNode[iDataIndex][WIx][k][i][j] =
-						- m_datavecStateNode[iDataIndex][WIx][k][i][j+1];
+					m_datavecStateNode[iDataIndex][WIx][i][j][k] =
+						- m_datavecStateNode[iDataIndex][WIx][i][j+1][k];
 				} else if (eBoundaryBottom == Grid::BoundaryCondition_NoFlux) {
 					// DSS the local boundary u_alpha and u_xi
 					dUa_hat = 0.5 * 
-						(m_datavecStateNode[iDataIndex][UIx][k][i][j] +
-						m_datavecStateNode[iDataIndex][UIx][k][i][j+1]);
+						(m_datavecStateNode[iDataIndex][UIx][i][j][k] +
+						m_datavecStateNode[iDataIndex][UIx][i][j+1][k]);
 					dUx_hat = 0.5 * 
-						(m_datavecStateNode[iDataIndex][WIx][k][i][j] +
-						m_datavecStateNode[iDataIndex][WIx][k][i][j+1]);
-					//dUx_hat *= m_dataDerivRNode[k][i][j+1][2];
+						(m_datavecStateNode[iDataIndex][WIx][i][j][k] +
+						m_datavecStateNode[iDataIndex][WIx][i][j+1][k]);
+					//dUx_hat *= m_dataDerivRNode[i][j+1][k][2];
 					// Get the local beta contravariant metric components
-					dGba = m_dataContraMetricB[k][i][j+1][0];
-					dGbb = m_dataContraMetricB[k][i][j+1][1];
-					dGbx = m_dataContraMetricB[k][i][j+1][2];
+					dGba = m_dataContraMetricB[i][j+1][k][0];
+					dGbb = m_dataContraMetricB[i][j+1][k][1];
+					dGbx = m_dataContraMetricB[i][j+1][k][2];
 					// Compute the convariant boundary velocity u^hat
 					dUb_hat = -1.0 / dGbb * (dGba * dUa_hat + dGbx * dUx_hat);
 					// Compute the pre-DSS halo velocity that imposes no-flux
-					m_datavecStateNode[iDataIndex][VIx][k][i][j] =
+					m_datavecStateNode[iDataIndex][VIx][i][j][k] =
 						2.0 * dUb_hat
-						- m_datavecStateNode[iDataIndex][VIx][k][i][j+1];
+						- m_datavecStateNode[iDataIndex][VIx][i][j+1][k];
 				} else {
 					_EXCEPTIONT("-Y NoSlip or NoFlux only: ApplyBoundaryConditions");
 				}
@@ -1172,33 +1172,33 @@ void GridPatchCartesianGLL::ApplyBoundaryConditions(
 
 			for (int k = 0; k <= m_grid.GetRElements(); k++) {
 				if (eBoundaryBottom == Grid::BoundaryCondition_NoSlip) {
-					m_datavecStateREdge[iDataIndex][UIx][k][i][j] =
-						- m_datavecStateREdge[iDataIndex][UIx][k][i][j+1];
+					m_datavecStateREdge[iDataIndex][UIx][i][j][k] =
+						- m_datavecStateREdge[iDataIndex][UIx][i][j+1][k];
 
-					m_datavecStateREdge[iDataIndex][VIx][k][i][j] =
-						- m_datavecStateREdge[iDataIndex][VIx][k][i][j+1];
+					m_datavecStateREdge[iDataIndex][VIx][i][j][k] =
+						- m_datavecStateREdge[iDataIndex][VIx][i][j+1][k];
 
-					m_datavecStateREdge[iDataIndex][WIx][k][i][j] =
-						- m_datavecStateREdge[iDataIndex][WIx][k][i][j+1];
+					m_datavecStateREdge[iDataIndex][WIx][i][j][k] =
+						- m_datavecStateREdge[iDataIndex][WIx][i][j+1][k];
 				} else if (eBoundaryBottom == Grid::BoundaryCondition_NoFlux) {
 					// DSS the local boundary u_alpha and u_xi
 					dUa_hat = 0.5 * 
-						(m_datavecStateREdge[iDataIndex][UIx][k][i][j] +
-						m_datavecStateREdge[iDataIndex][UIx][k][i][j+1]);
+						(m_datavecStateREdge[iDataIndex][UIx][i][j][k] +
+						m_datavecStateREdge[iDataIndex][UIx][i][j+1][k]);
 					dUx_hat = 0.5 * 
-						(m_datavecStateREdge[iDataIndex][WIx][k][i][j] +
-						m_datavecStateREdge[iDataIndex][WIx][k][i][j+1]);
-					//dUx_hat *= m_dataDerivRREdge[k][i][j+1][2];
+						(m_datavecStateREdge[iDataIndex][WIx][i][j][k] +
+						m_datavecStateREdge[iDataIndex][WIx][i][j+1][k]);
+					//dUx_hat *= m_dataDerivRREdge[i][j+1][k][2];
 					// Get the local beta contravariant metric components
-					dGba = m_dataContraMetricBREdge[k][i][j+1][0];
-					dGbb = m_dataContraMetricBREdge[k][i][j+1][1];
-					dGbx = m_dataContraMetricBREdge[k][i][j+1][2];
+					dGba = m_dataContraMetricBREdge[i][j+1][k][0];
+					dGbb = m_dataContraMetricBREdge[i][j+1][k][1];
+					dGbx = m_dataContraMetricBREdge[i][j+1][k][2];
 					// Compute the convariant boundary velocity u^hat
 					dUb_hat = -1.0 / dGbb * (dGba * dUa_hat + dGbx * dUx_hat);
 					// Compute the pre-DSS halo velocity that imposes no-flux
-					m_datavecStateREdge[iDataIndex][VIx][k][i][j] =
+					m_datavecStateREdge[iDataIndex][VIx][i][j][k] =
 						2.0 * dUb_hat
-						- m_datavecStateREdge[iDataIndex][VIx][k][i][j+1];
+						- m_datavecStateREdge[iDataIndex][VIx][i][j+1][k];
 				} else {
 					_EXCEPTIONT("-Y NoSlip or NoFlux only: ApplyBoundaryConditions");
 				}
@@ -1244,15 +1244,15 @@ void GridPatchCartesianGLL::ComputeCurlAndDiv(
 		for (int j = 0; j < m_nHorizontalOrder; j++) {
 			dConUa[i][j] =
 				  m_dataContraMetric2DA[iA+i][iB+j][0]
-				  	* dataUa[k][iA+i][iB+j]
+				  	* dataUa[iA+i][iB+j][k]
 				+ m_dataContraMetric2DA[iA+i][iB+j][1]
-					* dataUb[k][iA+i][iB+j];
+					* dataUb[iA+i][iB+j][k];
 
 			dConUb[i][j] =
 				  m_dataContraMetric2DB[iA+i][iB+j][0]
-				  	* dataUa[k][iA+i][iB+j]
+				  	* dataUa[iA+i][iB+j][k]
 				+ m_dataContraMetric2DB[iA+i][iB+j][1]
-					* dataUb[k][iA+i][iB+j];
+					* dataUb[iA+i][iB+j][k];
 		}
 		}
 
@@ -1276,12 +1276,12 @@ void GridPatchCartesianGLL::ComputeCurlAndDiv(
 					* m_dataJacobian2D[iA+i][iB+s]
 					* dConUb[i][s];
 
-				dCovDaUb += dDxBasis1D[s][i] * dataUb[k][iA+s][iB+j];
-					//( m_dataCovMetric2DB[iA+s][iB+j][0] * dataUa[k][iA+s][iB+j]
-					//+ m_dataCovMetric2DB[iA+s][iB+j][1] * dataUb[k][iA+s][iB+j]);
-				dCovDbUa += dDxBasis1D[s][j] * dataUa[k][iA+i][iB+s];
-					//( m_dataCovMetric2DA[iA+i][iB+s][0] * dataUa[k][iA+i][iB+s]
-					//+ m_dataCovMetric2DA[iA+i][iB+s][1] * dataUb[k][iA+i][iB+s]);
+				dCovDaUb += dDxBasis1D[s][i] * dataUb[iA+s][iB+j][k];
+					//( m_dataCovMetric2DB[iA+s][iB+j][0] * dataUa[iA+s][iB+j][k]
+					//+ m_dataCovMetric2DB[iA+s][iB+j][1] * dataUb[iA+s][iB+j][k]);
+				dCovDbUa += dDxBasis1D[s][j] * dataUa[iA+i][iB+s][k];
+					//( m_dataCovMetric2DA[iA+i][iB+s][0] * dataUa[iA+i][iB+s][k]
+					//+ m_dataCovMetric2DA[iA+i][iB+s][1] * dataUb[iA+i][iB+s][k]);
 			}
 
 			dDaJUa /= GetElementDeltaA();
@@ -1291,11 +1291,11 @@ void GridPatchCartesianGLL::ComputeCurlAndDiv(
 			dCovDbUa /= GetElementDeltaB();
 
 			// Radial vorticity (vertical component)
-			m_dataVorticity[k][iA+i][iB+j] =
+			m_dataVorticity[iA+i][iB+j][k] =
 				(dCovDaUb - dCovDbUa) / m_dataJacobian2D[iA+i][iB+j];
 
 			// Compute the divergence at node
-			m_dataDivergence[k][iA+i][iB+j] =
+			m_dataDivergence[iA+i][iB+j][k] =
 				(dDaJUa + dDbJUb) / m_dataJacobian2D[iA+i][iB+j];
 
 /*
@@ -1317,14 +1317,14 @@ void GridPatchCartesianGLL::ComputeCurlAndDiv(
 				+ m_dataChristoffelB[iA+i][iB+j][2] * dUb;
 
 			// Compute curl at node
-			m_dataVorticity[k][iA+i][iB+j] = m_dataJacobian2D[iA+i][iB+j] * (
+			m_dataVorticity[iA+i][iB+j][k] = m_dataJacobian2D[iA+i][iB+j] * (
 				+ m_dataContraMetric2DA[iA+i][iB+j][0] * dDaUb
 				+ m_dataContraMetric2DA[iA+i][iB+j][1] * dDbUb
 				- m_dataContraMetric2DB[iA+i][iB+j][0] * dDaUa
 				- m_dataContraMetric2DB[iA+i][iB+j][1] * dDbUa);
 
 			// Compute the divergence at node
-			m_dataDivergence[k][iA+i][iB+j] = dDaUa + dDbUb;
+			m_dataDivergence[iA+i][iB+j][k] = dDaUa + dDbUb;
 */
 		}
 		}
@@ -1545,14 +1545,14 @@ void GridPatchCartesianGLL::InterpolateData(
 		DataArray3D<double> pDataRef;
 
 		pData.SetSize(
-			nRElements,
 			m_box.GetATotalWidth(),
-			m_box.GetBTotalWidth());
+			m_box.GetBTotalWidth(),
+			nRElements);
 
 		pDataRef.SetSize(
-			nRElements,
 			m_box.GetATotalWidth(),
-			m_box.GetBTotalWidth());
+			m_box.GetBTotalWidth(),
+			nRElements);
 
 		if (eDataType == DataType_State) {
 			if (eDataLocation == DataLocation_Node) {
@@ -1658,7 +1658,7 @@ void GridPatchCartesianGLL::InterpolateData(
 					dColumnData[k] +=
 						  dAInterpCoeffs[m]
 						* dBInterpCoeffs[n]
-						* pData[k][iA+m][iB+n];
+						* pData[iA+m][iB+n][k];
 				}
 				}
 
@@ -1671,7 +1671,7 @@ void GridPatchCartesianGLL::InterpolateData(
 						dColumnData[k] -=
 							  dAInterpCoeffs[m]
 							* dBInterpCoeffs[n]
-							* pDataRef[k][iA+m][iB+n];
+							* pDataRef[iA+m][iB+n][k];
 					}
 					}
 				}

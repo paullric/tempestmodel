@@ -109,7 +109,7 @@ void HeldSuarezPhysics::Perform(
 			// Calculate surface pressure
 			double dSurfacePressure =
 				phys.PressureFromRhoTheta(
-					dataREdge[RIx][0][i][j] * dataREdge[TIx][0][i][j]);
+					dataREdge[RIx][i][j][0] * dataREdge[TIx][i][j][0]);
 
 			// Loop over all levels in column
 			for (int k = 0; k < pGrid->GetRElements(); k++) {
@@ -117,7 +117,7 @@ void HeldSuarezPhysics::Perform(
 				// Calculate pressure
 				double dPressure =
 					phys.PressureFromRhoTheta(
-						dataNode[RIx][k][i][j] * dataNode[TIx][k][i][j]);
+						dataNode[RIx][i][j][k] * dataNode[TIx][i][j][k]);
 
 				double dSigma = dPressure / dSurfacePressure;
 
@@ -129,9 +129,9 @@ void HeldSuarezPhysics::Perform(
 				}
 
 				// Apply velocity diffusion using backward Euler
-				dataNode[UIx][k][i][j] /=
+				dataNode[UIx][i][j][k] /=
 					(1.0 + ParamKFriction * dBoundaryScale * dDeltaT);
-				dataNode[VIx][k][i][j] /=
+				dataNode[VIx][i][j][k] /=
 					(1.0 + ParamKFriction * dBoundaryScale * dDeltaT);
 
 			}
@@ -143,8 +143,8 @@ void HeldSuarezPhysics::Perform(
 					// Calculate pressure
 					double dPressure =
 						phys.PressureFromRhoTheta(
-							dataNode[RIx][k][i][j]
-							* dataNode[TIx][k][i][j]);
+							dataNode[RIx][i][j][k]
+							* dataNode[TIx][i][j][k]);
 
 					double dSigma = dPressure / dSurfacePressure;
 
@@ -158,7 +158,7 @@ void HeldSuarezPhysics::Perform(
 
 					// Pointwise temperature
 					double dT = dPressure
-						/ (dataNode[RIx][k][i][j] * phys.GetR());
+						/ (dataNode[RIx][i][j][k] * phys.GetR());
 
 					// Get latitude
 					double dLat = dataLatitude[i][j];
@@ -187,7 +187,7 @@ void HeldSuarezPhysics::Perform(
 					double dTnew =
 						(dT + dDeltaT * dKT * dTeq) / (1.0 + dDeltaT * dKT);
 
-					dataNode[TIx][k][i][j] =
+					dataNode[TIx][i][j][k] =
 						dTnew * pow(phys.GetP0() / dPressure, phys.GetKappa());
 */
 					double dDH = - dKT / phys.GetGamma()
@@ -195,7 +195,7 @@ void HeldSuarezPhysics::Perform(
 
 					double dH = - dKT / phys.GetGamma() * (1.0 - dTeq / dT);
 
-					dataNode[TIx][k][i][j] *=
+					dataNode[TIx][i][j][k] *=
 						1.0 + dDeltaT / (1.0 - dDeltaT * dDH) * dH;
 				}
 			}
@@ -207,8 +207,8 @@ void HeldSuarezPhysics::Perform(
 					// Calculate pressure
 					double dPressure =
 						phys.PressureFromRhoTheta(
-							dataREdge[RIx][k][i][j]
-							* dataREdge[TIx][k][i][j]);
+							dataREdge[RIx][i][j][k]
+							* dataREdge[TIx][i][j][k]);
 
 					double dSigma = dPressure / dSurfacePressure;
 
@@ -222,7 +222,7 @@ void HeldSuarezPhysics::Perform(
 
 					// Pointwise temperature
 					double dT = dPressure
-						/ (dataREdge[RIx][k][i][j] * phys.GetR());
+						/ (dataREdge[RIx][i][j][k] * phys.GetR());
 
 					// Get latitude
 					double dLat = dataLatitude[i][j];
@@ -251,7 +251,7 @@ void HeldSuarezPhysics::Perform(
 					double dTnew =
 						(dT + dDeltaT * dKT * dTeq) / (1.0 + dDeltaT * dKT);
 
-					dataREdge[TIx][k][i][j] =
+					dataREdge[TIx][i][j][k] =
 						dTnew * pow(phys.GetP0() / dPressure, phys.GetKappa());
 */
 					double dDH = - dKT / phys.GetGamma()
@@ -259,13 +259,13 @@ void HeldSuarezPhysics::Perform(
 
 					double dH = - dKT / phys.GetGamma() * (1.0 - dTeq / dT);
 
-					dataREdge[TIx][k][i][j] *=
+					dataREdge[TIx][i][j][k] *=
 						1.0 + dDeltaT / (1.0 - dDeltaT * dDH) * dH;
 				}
 			}
 /*
 			// Vertical Velocity diffusion
-			dataREdge[WIx][k][i][j] /=
+			dataREdge[WIx][i][j][k] /=
 				(1.0 + ParamKFriction * dBoundaryScale * dDeltaT);
 */
 		}

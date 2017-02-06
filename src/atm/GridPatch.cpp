@@ -123,97 +123,78 @@ void GridPatch::InitializeDataLocal(
 
 	// Jacobian at each node
 	m_dataJacobian.SetSize(
-		m_grid.GetRElements(),
 		m_box.GetATotalWidth(),
-		m_box.GetBTotalWidth());
+		m_box.GetBTotalWidth(),
+		m_grid.GetRElements());
 
 	// Jacobian at each interface
 	m_dataJacobianREdge.SetSize(
-		m_grid.GetRElements()+1,
 		m_box.GetATotalWidth(),
-		m_box.GetBTotalWidth());
+		m_box.GetBTotalWidth(),
+		m_grid.GetRElements()+1);
 
 	// Contravariant metric components at each node
 	m_dataContraMetricA.SetSize(
-		m_grid.GetRElements(),
 		m_box.GetATotalWidth(),
 		m_box.GetBTotalWidth(),
+		m_grid.GetRElements(),
 		3);
 
 	m_dataContraMetricB.SetSize(
-		m_grid.GetRElements(),
 		m_box.GetATotalWidth(),
 		m_box.GetBTotalWidth(),
+		m_grid.GetRElements(),
 		3);
 
 	m_dataContraMetricXi.SetSize(
-		m_grid.GetRElements(),
 		m_box.GetATotalWidth(),
 		m_box.GetBTotalWidth(),
-		3);
-/*
-	// Covariant metric components at each node
-	m_dataCovMetricA.SetSize(
 		m_grid.GetRElements(),
-		m_box.GetATotalWidth(),
-		m_box.GetBTotalWidth(),
 		3);
 
-	m_dataCovMetricB.SetSize(
-		m_grid.GetRElements(),
-		m_box.GetATotalWidth(),
-		m_box.GetBTotalWidth(),
-		3);
-
-	m_dataCovMetricXi.SetSize(
-		m_grid.GetRElements(),
-		m_box.GetATotalWidth(),
-		m_box.GetBTotalWidth(),
-		3);
-*/
 	// Xi contravariant metric on interfaces
 	m_dataContraMetricAREdge.SetSize(
-		m_grid.GetRElements()+1,
 		m_box.GetATotalWidth(),
 		m_box.GetBTotalWidth(),
+		m_grid.GetRElements()+1,
 		3);
 
 	m_dataContraMetricBREdge.SetSize(
-		m_grid.GetRElements()+1,
 		m_box.GetATotalWidth(),
 		m_box.GetBTotalWidth(),
+		m_grid.GetRElements()+1,
 		3);
 
 	m_dataContraMetricXiREdge.SetSize(
-		m_grid.GetRElements()+1,
 		m_box.GetATotalWidth(),
 		m_box.GetBTotalWidth(),
+		m_grid.GetRElements()+1,
 		3);
 
 	// Vertical coordinate transform (derivatives of the radius)
 	m_dataDerivRNode.SetSize(
-		m_grid.GetRElements(),
 		m_box.GetATotalWidth(),
 		m_box.GetBTotalWidth(),
+		m_grid.GetRElements(),
 		3);
 
 	m_dataDerivRREdge.SetSize(
-		m_grid.GetRElements()+1,
 		m_box.GetATotalWidth(),
 		m_box.GetBTotalWidth(),
+		m_grid.GetRElements()+1,
 		3);
 
 	// Element area at each node
 	m_dataElementAreaNode.SetSize(
-		m_grid.GetRElements(),
 		m_box.GetATotalWidth(),
-		m_box.GetBTotalWidth());
+		m_box.GetBTotalWidth(),
+		m_grid.GetRElements());
 
 	// Element area at each interface
 	m_dataElementAreaREdge.SetSize(
-		m_grid.GetRElements()+1,
 		m_box.GetATotalWidth(),
-		m_box.GetBTotalWidth());
+		m_box.GetBTotalWidth(),
+		m_grid.GetRElements()+1);
 
 	// Topography height at each node
 	m_dataTopography.SetSize(
@@ -223,9 +204,9 @@ void GridPatch::InitializeDataLocal(
 	// Topography derivatives at each node
 	m_dataTopographyDeriv.SetDataType(DataType_TopographyDeriv);
 	m_dataTopographyDeriv.SetSize(
-		2,
 		m_box.GetATotalWidth(),
-		m_box.GetBTotalWidth());
+		m_box.GetBTotalWidth(),
+		2);
 
 	// Longitude at each node
 	m_dataLon.SetSize(
@@ -244,15 +225,15 @@ void GridPatch::InitializeDataLocal(
 
 	// Radial coordinate at each level
 	m_dataZLevels.SetSize(
-		m_grid.GetRElements(),
 		m_box.GetATotalWidth(),
-		m_box.GetBTotalWidth());
+		m_box.GetBTotalWidth(),
+		m_grid.GetRElements());
 
 	// Radial coordinate at each interface
 	m_dataZInterfaces.SetSize(
-		m_grid.GetRElements()+1,
 		m_box.GetATotalWidth(),
-		m_box.GetBTotalWidth());
+		m_box.GetBTotalWidth(),
+		m_grid.GetRElements()+1);
 
 	// Active State Patch Index
 	m_iActiveStatePatchIx.SetSize(1);
@@ -262,41 +243,41 @@ void GridPatch::InitializeDataLocal(
 	m_dataRefStateNode.SetDataLocation(DataLocation_Node);
 	m_dataRefStateNode.SetSize(
 		eqn.GetComponents(),
-		m_grid.GetRElements(),
 		m_box.GetATotalWidth(),
-		m_box.GetBTotalWidth());
+		m_box.GetBTotalWidth(),
+		m_grid.GetRElements());
 
 	m_dataRefStateREdge.SetDataType(DataType_State);
 	m_dataRefStateREdge.SetDataLocation(DataLocation_REdge);
 	m_dataRefStateREdge.SetSize(
 		eqn.GetComponents(),
-		m_grid.GetRElements()+1,
 		m_box.GetATotalWidth(),
-		m_box.GetBTotalWidth());
+		m_box.GetBTotalWidth(),
+		m_grid.GetRElements()+1);
 
 	m_dataRefTracers.SetDataType(DataType_Tracers);
 	m_dataRefTracers.SetDataLocation(DataLocation_Node);
 	m_dataRefTracers.SetSize(
 		eqn.GetTracers(),
-		m_grid.GetRElements(),
 		m_box.GetATotalWidth(),
-		m_box.GetBTotalWidth());
+		m_box.GetBTotalWidth(),
+		m_grid.GetRElements());
 
 	// Rayleigh friction strength
 	m_dataRayleighStrengthNode.SetDataType(DataType_None);
 	m_dataRayleighStrengthNode.SetDataLocation(DataLocation_Node);
 	m_dataRayleighStrengthNode.SetSize(
-		m_grid.GetRElements(),
 		m_box.GetATotalWidth(),
-		m_box.GetBTotalWidth());
+		m_box.GetBTotalWidth(),
+		m_grid.GetRElements());
 
 	// Rayleigh friction strength
 	m_dataRayleighStrengthREdge.SetDataType(DataType_None);
 	m_dataRayleighStrengthREdge.SetDataLocation(DataLocation_Node);
 	m_dataRayleighStrengthREdge.SetSize(
-		m_grid.GetRElements()+1,
 		m_box.GetATotalWidth(),
-		m_box.GetBTotalWidth());
+		m_box.GetBTotalWidth(),
+		m_grid.GetRElements()+1);
 
 	// Put all read-only data objects into DataContainer
 	m_dcGeometric.PushDataChunk(&m_iGeometricPatchIx);
@@ -357,17 +338,17 @@ void GridPatch::InitializeDataLocal(
 		m_datavecStateNode[m].SetDataLocation(DataLocation_Node);
 		m_datavecStateNode[m].SetSize(
 			eqn.GetComponents(),
-			m_grid.GetRElements(),
 			m_box.GetATotalWidth(),
-			m_box.GetBTotalWidth());
+			m_box.GetBTotalWidth(),
+			m_grid.GetRElements());
 
 		m_datavecStateREdge[m].SetDataType(DataType_State);
 		m_datavecStateREdge[m].SetDataLocation(DataLocation_REdge);
 		m_datavecStateREdge[m].SetSize(
 			eqn.GetComponents(),
-			m_grid.GetRElements()+1,
 			m_box.GetATotalWidth(),
-			m_box.GetBTotalWidth());
+			m_box.GetBTotalWidth(),
+			m_grid.GetRElements()+1);
 	}
 
 	m_dcActiveState.PushDataChunk(&m_iActiveStatePatchIx);
@@ -392,9 +373,9 @@ void GridPatch::InitializeDataLocal(
 			m_datavecTracers[m].SetDataLocation(DataLocation_Node);
 			m_datavecTracers[m].SetSize(
 				eqn.GetTracers(),
-				m_grid.GetRElements(),
 				m_box.GetATotalWidth(),
-				m_box.GetBTotalWidth());
+				m_box.GetBTotalWidth(),
+				m_grid.GetRElements());
 		}
 
 		// Store active state data
@@ -417,48 +398,48 @@ void GridPatch::InitializeDataLocal(
 	m_dataPressure.SetDataType(DataType_Pressure);
 	m_dataPressure.SetDataLocation(DataLocation_Node);
 	m_dataPressure.SetSize(
-		m_grid.GetRElements(),
 		m_box.GetATotalWidth(),
-		m_box.GetBTotalWidth());
+		m_box.GetBTotalWidth(),
+		m_grid.GetRElements());
 
 	m_dataDxPressure.SetDataType(DataType_Pressure);
 	m_dataDxPressure.SetDataLocation(DataLocation_Node);
 	m_dataDxPressure.SetSize(
-		m_grid.GetRElements(),
 		m_box.GetATotalWidth(),
-		m_box.GetBTotalWidth());
+		m_box.GetBTotalWidth(),
+		m_grid.GetRElements());
 
 	// Vorticity data
 	m_dataVorticity.SetDataType(DataType_Vorticity);
 	m_dataVorticity.SetDataLocation(DataLocation_Node);
 	m_dataVorticity.SetSize(
-		m_grid.GetRElements(),
 		m_box.GetATotalWidth(),
-		m_box.GetBTotalWidth());
+		m_box.GetBTotalWidth(),
+		m_grid.GetRElements());
 
 	// Divergence data
 	m_dataDivergence.SetDataType(DataType_Divergence);
 	m_dataDivergence.SetDataLocation(DataLocation_Node);
 	m_dataDivergence.SetSize(
-		m_grid.GetRElements(),
 		m_box.GetATotalWidth(),
-		m_box.GetBTotalWidth());
+		m_box.GetBTotalWidth(),
+		m_grid.GetRElements());
 
 	// Temperature data
 	m_dataTemperature.SetDataType(DataType_Temperature);
 	m_dataTemperature.SetDataLocation(DataLocation_Node);
 	m_dataTemperature.SetSize(
-		m_grid.GetRElements(),
 		m_box.GetATotalWidth(),
-		m_box.GetBTotalWidth());
+		m_box.GetBTotalWidth(),
+		m_grid.GetRElements());
 
 	// Richardson number data
 	m_dataRichardson.SetDataType(DataType_Richardson);
 	m_dataRichardson.SetDataLocation(DataLocation_Node);
 	m_dataRichardson.SetSize(
-		m_grid.GetRElements(),
 		m_box.GetATotalWidth(),
-		m_box.GetBTotalWidth());
+		m_box.GetBTotalWidth(),
+		m_grid.GetRElements());
 
 	// Surface pressure data
 	m_dataSurfacePressure.SetDataType(DataType_SurfacePressure);
@@ -584,9 +565,9 @@ void GridPatch::ComputeSurfacePressure(
 		for (k = 0; k < m_grid.GetRElements(); k++) {
 			m_dataSurfacePressure[i][j] +=
 				phys.GetG()
-				* dataNode[RIx][k][i][j]
-				* (m_dataZInterfaces[k+1][i][j]
-					- m_dataZInterfaces[k][i][j]);
+				* dataNode[RIx][i][j][k]
+				* (m_dataZInterfaces[i][j][k+1]
+					- m_dataZInterfaces[i][j][k]);
 		}
 	}
 	}
@@ -631,18 +612,18 @@ void GridPatch::ComputeTemperature(
 		for (j = m_box.GetBInteriorBegin(); j < m_box.GetBInteriorEnd(); j++) {
 
 #ifdef FORMULATION_PRESSURE
-			double dPressure = dataNode[PIx][k][i][j];
+			double dPressure = dataNode[PIx][i][j][k];
 #endif
 #if defined(FORMULATION_RHOTHETA_PI) || defined(FORMULATION_RHOTHETA_P)
-			double dPressure = phys.PressureFromRhoTheta(dataNode[PIx][k][i][j]);
+			double dPressure = phys.PressureFromRhoTheta(dataNode[PIx][i][j][k]);
 #endif
 #if defined(FORMULATION_THETA) || defined(FORMULATION_THETA_FLUX)
 			double dPressure =
 				phys.PressureFromRhoTheta(
-					dataNode[RIx][k][i][j] * dataNode[PIx][k][i][j]);
+					dataNode[RIx][i][j][k] * dataNode[PIx][i][j][k]);
 #endif
-			m_dataTemperature[k][i][j] =
-				dPressure / (dataNode[RIx][k][i][j] * phys.GetR());
+			m_dataTemperature[i][j][k] =
+				dPressure / (dataNode[RIx][i][j][k] * phys.GetR());
 		}
 		}
 		}
@@ -666,19 +647,19 @@ void GridPatch::ComputeTemperature(
 		for (j = m_box.GetBInteriorBegin(); j < m_box.GetBInteriorEnd(); j++) {
 
 #ifdef FORMULATION_PRESSURE
-			double dPressure = dataNode[PIx][k][i][j];
+			double dPressure = dataNode[PIx][i][j][k];
 #endif
 #if defined(FORMULATION_RHOTHETA_PI) || defined(FORMULATION_RHOTHETA_P)
-			double dPressure = phys.PressureFromRhoTheta(dataNode[PIx][k][i][j]);
+			double dPressure = phys.PressureFromRhoTheta(dataNode[PIx][i][j][k]);
 #endif
 #if defined(FORMULATION_THETA) || defined(FORMULATION_THETA_FLUX)
 			double dPressure =
 				phys.PressureFromRhoTheta(
-					dataNode[RIx][k][i][j] * dataNode[PIx][k][i][j]);
+					dataNode[RIx][i][j][k] * dataNode[PIx][i][j][k]);
 #endif
 
-			m_dataTemperature[k][i][j] =
-				dPressure / (dataNode[RIx][k][i][j] * phys.GetR());
+			m_dataTemperature[i][j][k] =
+				dPressure / (dataNode[RIx][i][j][k] * phys.GetR());
 		}
 		}
 		}
@@ -756,8 +737,8 @@ void GridPatch::Checksum(
 		for (i = m_box.GetAInteriorBegin(); i < m_box.GetAInteriorEnd(); i++) {
 		for (j = m_box.GetBInteriorBegin(); j < m_box.GetBInteriorEnd(); j++) {
 			dChecksums[nodevars[c]] +=
-				  (*pDataNode)[nodevars[c]][k][i][j]
-				* m_dataElementAreaNode[k][i][j];
+				  (*pDataNode)[nodevars[c]][i][j][k]
+				* m_dataElementAreaNode[i][j][k];
 		}
 		}
 		}
@@ -768,8 +749,8 @@ void GridPatch::Checksum(
 		for (i = m_box.GetAInteriorBegin(); i < m_box.GetAInteriorEnd(); i++) {
 		for (j = m_box.GetBInteriorBegin(); j < m_box.GetBInteriorEnd(); j++) {
 			dChecksums[redgevars[c]] +=
-				  (*pDataREdge)[redgevars[c]][k][i][j]
-				* m_dataElementAreaREdge[k][i][j];
+				  (*pDataREdge)[redgevars[c]][i][j][k]
+				* m_dataElementAreaREdge[i][j][k];
 		}
 		}
 		}
@@ -781,9 +762,9 @@ void GridPatch::Checksum(
 		for (k = 0; k < m_grid.GetRElements(); k++) {
 		for (i = m_box.GetAInteriorBegin(); i < m_box.GetAInteriorEnd(); i++) {
 		for (j = m_box.GetBInteriorBegin(); j < m_box.GetBInteriorEnd(); j++) {
-			double dValue = fabs((*pDataNode)[nodevars[c]][k][i][j]);
+			double dValue = fabs((*pDataNode)[nodevars[c]][i][j][k]);
 			dChecksums[nodevars[c]] +=
-				dValue * m_dataElementAreaNode[k][i][j];
+				dValue * m_dataElementAreaNode[i][j][k];
 		}
 		}
 		}
@@ -793,9 +774,9 @@ void GridPatch::Checksum(
 		for (k = 0; k <= m_grid.GetRElements(); k++) {
 		for (i = m_box.GetAInteriorBegin(); i < m_box.GetAInteriorEnd(); i++) {
 		for (j = m_box.GetBInteriorBegin(); j < m_box.GetBInteriorEnd(); j++) {
-			double dValue = fabs((*pDataREdge)[redgevars[c]][k][i][j]);
+			double dValue = fabs((*pDataREdge)[redgevars[c]][i][j][k]);
 			dChecksums[redgevars[c]] +=
-				dValue * m_dataElementAreaREdge[k][i][j];
+				dValue * m_dataElementAreaREdge[i][j][k];
 		}
 		}
 		}
@@ -807,9 +788,9 @@ void GridPatch::Checksum(
 		for (k = 0; k < m_grid.GetRElements(); k++) {
 		for (i = m_box.GetAInteriorBegin(); i < m_box.GetAInteriorEnd(); i++) {
 		for (j = m_box.GetBInteriorBegin(); j < m_box.GetBInteriorEnd(); j++) {
-			double dValue = (*pDataNode)[nodevars[c]][k][i][j];
+			double dValue = (*pDataNode)[nodevars[c]][i][j][k];
 			dChecksums[nodevars[c]] +=
-				dValue * dValue * m_dataElementAreaNode[k][i][j];
+				dValue * dValue * m_dataElementAreaNode[i][j][k];
 		}
 		}
 		}
@@ -819,9 +800,9 @@ void GridPatch::Checksum(
 		for (k = 0; k <= m_grid.GetRElements(); k++) {
 		for (i = m_box.GetAInteriorBegin(); i < m_box.GetAInteriorEnd(); i++) {
 		for (j = m_box.GetBInteriorBegin(); j < m_box.GetBInteriorEnd(); j++) {
-			double dValue = (*pDataREdge)[redgevars[c]][k][i][j];
+			double dValue = (*pDataREdge)[redgevars[c]][i][j][k];
 			dChecksums[redgevars[c]] +=
-				dValue * dValue * m_dataElementAreaREdge[k][i][j];
+				dValue * dValue * m_dataElementAreaREdge[i][j][k];
 		}
 		}
 		}
@@ -833,7 +814,7 @@ void GridPatch::Checksum(
 		for (k = 0; k < m_grid.GetRElements(); k++) {
 		for (i = m_box.GetAInteriorBegin(); i < m_box.GetAInteriorEnd(); i++) {
 		for (j = m_box.GetBInteriorBegin(); j < m_box.GetBInteriorEnd(); j++) {
-			double dValue = (*pDataNode)[nodevars[c]][k][i][j];
+			double dValue = (*pDataNode)[nodevars[c]][i][j][k];
 			if (fabs(dValue) > dChecksums[nodevars[c]]) {
 				dChecksums[nodevars[c]] = fabs(dValue);
 			}
@@ -846,7 +827,7 @@ void GridPatch::Checksum(
 		for (k = 0; k <= m_grid.GetRElements(); k++) {
 		for (i = m_box.GetAInteriorBegin(); i < m_box.GetAInteriorEnd(); i++) {
 		for (j = m_box.GetBInteriorBegin(); j < m_box.GetBInteriorEnd(); j++) {
-			double dValue = (*pDataREdge)[redgevars[c]][k][i][j];
+			double dValue = (*pDataREdge)[redgevars[c]][i][j][k];
 			if (fabs(dValue) > dChecksums[redgevars[c]]) {
 				dChecksums[redgevars[c]] = fabs(dValue);
 			}
@@ -903,24 +884,24 @@ double GridPatch::ComputeTotalEnergy(
 		for (j = m_box.GetBInteriorBegin(); j < m_box.GetBInteriorEnd(); j++) {
 			double dUdotU =
 				+ m_dataContraMetric2DB[i][j][1]
-					* dataNode[UIx][k][i][j] * dataNode[UIx][k][i][j]
+					* dataNode[UIx][i][j][k] * dataNode[UIx][i][j][k]
 				- 2.0 * m_dataContraMetric2DA[i][j][1]
-					* dataNode[UIx][k][i][j] * dataNode[VIx][k][i][j]
+					* dataNode[UIx][i][j][k] * dataNode[VIx][i][j][k]
 				+ m_dataContraMetric2DA[i][j][0]
-					* dataNode[VIx][k][i][j] * dataNode[VIx][k][i][j];
+					* dataNode[VIx][i][j][k] * dataNode[VIx][i][j][k];
 
 			dUdotU *= m_dataJacobian2D[i][j] * m_dataJacobian2D[i][j];
 
 			double dKineticEnergy =
-				0.5 * (dataNode[HIx][k][i][j] - m_dataTopography[i][j])
+				0.5 * (dataNode[HIx][i][j][k] - m_dataTopography[i][j])
 					* dUdotU;
 
 			double dPotentialEnergy =
 				0.5 * phys.GetG()
-					* (dataNode[HIx][k][i][j] * dataNode[HIx][k][i][j]
+					* (dataNode[HIx][i][j][k] * dataNode[HIx][i][j][k]
 						- m_dataTopography[i][j] * m_dataTopography[i][j]);
 
-			dLocalEnergy += m_dataElementAreaNode[k][i][j]
+			dLocalEnergy += m_dataElementAreaNode[i][j][k]
 				* (dKineticEnergy + dPotentialEnergy);
 		}
 		}
@@ -938,49 +919,49 @@ double GridPatch::ComputeTotalEnergy(
 		for (i = m_box.GetAInteriorBegin(); i < m_box.GetAInteriorEnd(); i++) {
 		for (j = m_box.GetBInteriorBegin(); j < m_box.GetBInteriorEnd(); j++) {
 
-			double dCovUa = dataNode[UIx][k][i][j];
-			double dCovUb = dataNode[VIx][k][i][j];
-			double dCovUx = dataNode[WIx][k][i][j];
+			double dCovUa = dataNode[UIx][i][j][k];
+			double dCovUb = dataNode[VIx][i][j][k];
+			double dCovUx = dataNode[WIx][i][j][k];
 
 			double dConUa =
-				  m_dataContraMetricA[k][i][j][0] * dCovUa
-				+ m_dataContraMetricA[k][i][j][1] * dCovUb
-				+ m_dataContraMetricA[k][i][j][2] * dCovUx;
+				  m_dataContraMetricA[i][j][k][0] * dCovUa
+				+ m_dataContraMetricA[i][j][k][1] * dCovUb
+				+ m_dataContraMetricA[i][j][k][2] * dCovUx;
 
 			double dConUb =
-				  m_dataContraMetricB[k][i][j][0] * dCovUa
-				+ m_dataContraMetricB[k][i][j][1] * dCovUb
-				+ m_dataContraMetricB[k][i][j][2] * dCovUx;
+				  m_dataContraMetricB[i][j][k][0] * dCovUa
+				+ m_dataContraMetricB[i][j][k][1] * dCovUb
+				+ m_dataContraMetricB[i][j][k][2] * dCovUx;
 
 			double dConUx =
-				  m_dataContraMetricXi[k][i][j][0] * dCovUa
-				+ m_dataContraMetricXi[k][i][j][1] * dCovUb
-				+ m_dataContraMetricXi[k][i][j][2] * dCovUx;
+				  m_dataContraMetricXi[i][j][k][0] * dCovUa
+				+ m_dataContraMetricXi[i][j][k][1] * dCovUb
+				+ m_dataContraMetricXi[i][j][k][2] * dCovUx;
 
 			double dUdotU = dConUa * dCovUa + dConUb * dCovUb + dConUx * dCovUx;
 
 			double dKineticEnergy =
-				0.5 * dataNode[RIx][k][i][j] * dUdotU;
+				0.5 * dataNode[RIx][i][j][k] * dUdotU;
 
 #ifdef FORMULATION_PRESSURE
-			double dPressure = dataNode[PIx][k][i][j];
+			double dPressure = dataNode[PIx][i][j][k];
 #endif
 #if defined(FORMULATION_RHOTHETA_PI) || defined(FORMULATION_RHOTHETA_P)
-			double dPressure = phys.PressureFromRhoTheta(dataNode[PIx][k][i][j]);
+			double dPressure = phys.PressureFromRhoTheta(dataNode[PIx][i][j][k]);
 #endif
 #if defined(FORMULATION_THETA) || defined(FORMULATION_THETA_FLUX)
 			double dPressure =
 				phys.PressureFromRhoTheta(
-					dataNode[RIx][k][i][j] * dataNode[PIx][k][i][j]);
+					dataNode[RIx][i][j][k] * dataNode[PIx][i][j][k]);
 #endif
 
 			double dInternalEnergy =
 				dPressure / (phys.GetGamma() - 1.0);
 
 			double dPotentialEnergy =
-				phys.GetG() * dataNode[RIx][k][i][j] * m_dataZLevels[k][i][j];
+				phys.GetG() * dataNode[RIx][i][j][k] * m_dataZLevels[i][j][k];
 
-			dLocalEnergy += m_dataElementAreaNode[k][i][j]
+			dLocalEnergy += m_dataElementAreaNode[i][j][k]
 				* (dKineticEnergy + dInternalEnergy + dPotentialEnergy);
 		}
 		}
@@ -1002,47 +983,47 @@ double GridPatch::ComputeTotalEnergy(
 		for (i = m_box.GetAInteriorBegin(); i < m_box.GetAInteriorEnd(); i++) {
 		for (j = m_box.GetBInteriorBegin(); j < m_box.GetBInteriorEnd(); j++) {
 
-			double dCovUa = dataNode[UIx][k][i][j];
-			double dCovUb = dataNode[VIx][k][i][j];
-			double dCovUx = dataNode[WIx][k][i][j];
+			double dCovUa = dataNode[UIx][i][j][k];
+			double dCovUb = dataNode[VIx][i][j][k];
+			double dCovUx = dataNode[WIx][i][j][k];
 
 			double dConUa =
-				  m_dataContraMetricA[k][i][j][0] * dCovUa
-				+ m_dataContraMetricA[k][i][j][1] * dCovUb
-				+ m_dataContraMetricA[k][i][j][2] * dCovUx;
+				  m_dataContraMetricA[i][j][k][0] * dCovUa
+				+ m_dataContraMetricA[i][j][k][1] * dCovUb
+				+ m_dataContraMetricA[i][j][k][2] * dCovUx;
 
 			double dConUb =
-				  m_dataContraMetricB[k][i][j][0] * dCovUa
-				+ m_dataContraMetricB[k][i][j][1] * dCovUb
-				+ m_dataContraMetricB[k][i][j][2] * dCovUx;
+				  m_dataContraMetricB[i][j][k][0] * dCovUa
+				+ m_dataContraMetricB[i][j][k][1] * dCovUb
+				+ m_dataContraMetricB[i][j][k][2] * dCovUx;
 
 			double dUdotU = dConUa * dCovUa + dConUb * dCovUb;
 
-			dUdotU += m_dataContraMetricXi[k][i][j][0] * dCovUa * dCovUx;
-			dUdotU += m_dataContraMetricXi[k][i][j][1] * dCovUb * dCovUx;
+			dUdotU += m_dataContraMetricXi[i][j][k][0] * dCovUa * dCovUx;
+			dUdotU += m_dataContraMetricXi[i][j][k][1] * dCovUb * dCovUx;
 
 			double dKineticEnergy =
-				0.5 * dataNode[RIx][k][i][j] * dUdotU;
+				0.5 * dataNode[RIx][i][j][k] * dUdotU;
 
 #ifdef FORMULATION_PRESSURE
-			double dPressure = dataNode[PIx][k][i][j];
+			double dPressure = dataNode[PIx][i][j][k];
 #endif
 #if defined(FORMULATION_RHOTHETA_PI) || defined(FORMULATION_RHOTHETA_P)
-			double dPressure = phys.PressureFromRhoTheta(dataNode[PIx][k][i][j]);
+			double dPressure = phys.PressureFromRhoTheta(dataNode[PIx][i][j][k]);
 #endif
 #if defined(FORMULATION_THETA) || defined(FORMULATION_THETA_FLUX)
 			double dPressure =
 				phys.PressureFromRhoTheta(
-					dataNode[RIx][k][i][j] * dataNode[PIx][k][i][j]);
+					dataNode[RIx][i][j][k] * dataNode[PIx][i][j][k]);
 #endif
 
 			double dInternalEnergy =
 				dPressure / (phys.GetGamma() - 1.0);
 
 			double dPotentialEnergy =
-				phys.GetG() * dataNode[RIx][k][i][j] * m_dataZLevels[k][i][j];
+				phys.GetG() * dataNode[RIx][i][j][k] * m_dataZLevels[i][j][k];
 
-			dLocalEnergy += m_dataElementAreaNode[k][i][j]
+			dLocalEnergy += m_dataElementAreaNode[i][j][k]
 				* (dKineticEnergy + dInternalEnergy + dPotentialEnergy);
 		}
 		}
@@ -1052,15 +1033,15 @@ double GridPatch::ComputeTotalEnergy(
 		for (i = m_box.GetAInteriorBegin(); i < m_box.GetAInteriorEnd(); i++) {
 		for (j = m_box.GetBInteriorBegin(); j < m_box.GetBInteriorEnd(); j++) {
 
-			double dCovUx = dataREdge[WIx][k][i][j];
+			double dCovUx = dataREdge[WIx][i][j][k];
 
 			double dKineticEnergy =
-				0.5 * dataREdge[RIx][k][i][j]
-				* m_dataContraMetricXiREdge[k][i][j][2]
+				0.5 * dataREdge[RIx][i][j][k]
+				* m_dataContraMetricXiREdge[i][j][k][2]
 				* dCovUx * dCovUx;
 
 			dLocalEnergy +=
-				m_dataElementAreaREdge[k][i][j]
+				m_dataElementAreaREdge[i][j][k]
 				* dKineticEnergy;
 		}
 		}
@@ -1114,12 +1095,12 @@ double GridPatch::ComputeTotalPotentialEnstrophy(
 				2.0 * phys.GetOmega() * sin(m_dataLat[i][j]);
 
 			double dAbsoluteVorticity =
-				m_dataVorticity[k][i][j] + dPlanetaryVorticity;
+				m_dataVorticity[i][j][k] + dPlanetaryVorticity;
 
 			dLocalPotentialEnstrophy +=
-				m_dataElementAreaNode[k][i][j]
+				m_dataElementAreaNode[i][j][k]
 					* 0.5 * dAbsoluteVorticity * dAbsoluteVorticity
-					/ (dataNode[HIx][k][i][j] - m_dataTopography[i][j]);
+					/ (dataNode[HIx][i][j][k] - m_dataTopography[i][j]);
 		}
 		}
 		}
@@ -1142,9 +1123,9 @@ double GridPatch::ComputeTotalPotentialEnstrophy(
 
 			// Zonal momentum
 			dLocalPotentialEnstrophy +=
-				m_dataElementAreaNode[k][i][j]
-				* dataNode[RIx][k][i][j]
-				* dataNode[UIx][k][i][j];
+				m_dataElementAreaNode[i][j][k]
+				* dataNode[RIx][i][j][k]
+				* dataNode[UIx][i][j][k];
 		}
 		}
 		}
@@ -1203,9 +1184,9 @@ double GridPatch::ComputeTotalVerticalMomentum(
 
 			// Vertical momentum
 			dLocalVerticalMomentum +=
-				m_dataElementAreaNode[k][i][j]
-				* dataNode[RIx][k][i][j]
-				* dataNode[WIx][k][i][j];
+				m_dataElementAreaNode[i][j][k]
+				* dataNode[RIx][i][j][k]
+				* dataNode[WIx][i][j][k];
 		}
 		}
 		}
