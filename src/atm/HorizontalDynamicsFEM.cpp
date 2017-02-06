@@ -67,10 +67,10 @@ void HorizontalDynamicsFEM::Initialize() {
 	}
 
 	// Number of vertical levels
-	int nRElements = pGrid->GetRElements();
+	const int nRElements = pGrid->GetRElements();
 
 	// Number of tracers
-	int nTracerCount = m_model.GetEquationSet().GetTracers();
+	const int nTracerCount = m_model.GetEquationSet().GetTracers();
 
 	// Initialize the alpha and beta mass fluxes
 	m_dAlphaMassFlux.Allocate(
@@ -1707,7 +1707,7 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusion(
 	GridGLL * pGrid = dynamic_cast<GridGLL*>(m_model.GetGrid());
 
 	// Number of radial elements in grid
-	int nRElements = pGrid->GetRElements();
+	const int nRElements = pGrid->GetRElements();
 
 	// Check argument
 	if (iComponent < (-1)) {
@@ -2021,6 +2021,9 @@ void HorizontalDynamicsFEM::ApplyVectorHyperdiffusion(
 	// Get a copy of the GLL grid
 	GridGLL * pGrid = dynamic_cast<GridGLL*>(m_model.GetGrid());
 
+	// Number of radial elements
+	const int nRElements = pGrid->GetRElements();
+
 	// Apply viscosity to reference state
 	bool fApplyToRefState = false;
 	if (iDataInitial == DATA_INDEX_REFERENCE) {
@@ -2110,7 +2113,7 @@ void HorizontalDynamicsFEM::ApplyVectorHyperdiffusion(
 		// Loop over all finite elements
 		for (int a = 0; a < nElementCountA; a++) {
 		for (int b = 0; b < nElementCountB; b++) {
-		for (int k = 0; k < pGrid->GetRElements(); k++) {
+		for (int k = 0; k < nRElements; k++) {
 
 			const int iElementA = a * m_nHorizontalOrder + box.GetHaloElements();
 			const int iElementB = b * m_nHorizontalOrder + box.GetHaloElements();
@@ -2190,15 +2193,19 @@ void HorizontalDynamicsFEM::ApplyRayleighFriction(
 	// Get a copy of the GLL grid
 	GridGLL * pGrid = dynamic_cast<GridGLL*>(m_model.GetGrid());
 
+	// Number of radial elements
+	const int nRElements = pGrid->GetRElements();
+
 	// Number of components to hit with friction
 	int nComponents = m_model.GetEquationSet().GetComponents();
 
 	// Equation set being solved
-	int nEqSet = m_model.GetEquationSet().GetType();
+	const int nEqSet = m_model.GetEquationSet().GetType();
 
-	bool fCartXZ = pGrid->GetIsCartesianXZ();
+	const bool fCartXZ = pGrid->GetIsCartesianXZ();
 
 	int nEffectiveC[nComponents];
+
 	// 3D primitive nonhydro models with no density treatment
 	if ((nEqSet == EquationSet::PrimitiveNonhydrostaticEquations) && !fCartXZ) {
 		nEffectiveC[0] = 0; nEffectiveC[1] = 1;
@@ -2259,7 +2266,7 @@ void HorizontalDynamicsFEM::ApplyRayleighFriction(
 		for (int j = box.GetBInteriorBegin(); j < box.GetBInteriorEnd(); j++) {
 
 			// Rayleigh damping on nodes
-			for (int k = 0; k < pGrid->GetRElements(); k++) {
+			for (int k = 0; k < nRElements; k++) {
 
 				double dNu = dataRayleighStrengthNode[i][j][k];
 
@@ -2286,7 +2293,7 @@ void HorizontalDynamicsFEM::ApplyRayleighFriction(
 			}
 
 			// Rayleigh damping on interfaces
-			for (int k = 0; k <= pGrid->GetRElements(); k++) {
+			for (int k = 0; k <= nRElements; k++) {
 
 				double dNu = dataRayleighStrengthREdge[i][j][k];
 

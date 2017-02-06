@@ -1250,6 +1250,9 @@ void VerticalDynamicsFEM::StepImplicit(
 	const int WIx = 3;
 	const int RIx = 4;
 
+	// Number of radial elements
+	const int nRElements = pGrid->GetRElements();
+
 	// Store timestep size
 	m_dDeltaT = dDeltaT;
 
@@ -1480,12 +1483,12 @@ void VerticalDynamicsFEM::StepImplicit(
 
 			// Apply updated state to thermodynamic closure
 			if (pGrid->GetVarLocation(PIx) == DataLocation_REdge) {
-				for (int k = 0; k <= pGrid->GetRElements(); k++) {
+				for (int k = 0; k <= nRElements; k++) {
 					dataUpdateREdge[PIx][iA][iB][k] =
 						m_dSoln[VecFIx(FPIx, k)];
 				}
 			} else {
-				for (int k = 0; k < pGrid->GetRElements(); k++) {
+				for (int k = 0; k < nRElements; k++) {
 					dataUpdateNode[PIx][iA][iB][k] =
 						m_dSoln[VecFIx(FPIx, k)];
 				}
@@ -1493,12 +1496,12 @@ void VerticalDynamicsFEM::StepImplicit(
 
 			// Copy over W
 			if (pGrid->GetVarLocation(WIx) == DataLocation_REdge) {
-				for (int k = 0; k <= pGrid->GetRElements(); k++) {
+				for (int k = 0; k <= nRElements; k++) {
 					dataUpdateREdge[WIx][iA][iB][k] =
 						m_dSoln[VecFIx(FWIx, k)];
 				}
 			} else {
-				for (int k = 0; k < pGrid->GetRElements(); k++) {
+				for (int k = 0; k < nRElements; k++) {
 					dataUpdateNode[WIx][iA][iB][k] =
 						m_dSoln[VecFIx(FWIx, k)];
 				}
@@ -1506,12 +1509,12 @@ void VerticalDynamicsFEM::StepImplicit(
 
 			// Copy over Rho
 			if (pGrid->GetVarLocation(RIx) == DataLocation_REdge) {
-				for (int k = 0; k <= pGrid->GetRElements(); k++) {
+				for (int k = 0; k <= nRElements; k++) {
 					dataUpdateREdge[RIx][iA][iB][k] =
 						m_dSoln[VecFIx(FRIx, k)];
 				}
 			} else {
-				for (int k = 0; k < pGrid->GetRElements(); k++) {
+				for (int k = 0; k < nRElements; k++) {
 					dataUpdateNode[RIx][iA][iB][k] =
 						m_dSoln[VecFIx(FRIx, k)];
 				}
@@ -1552,7 +1555,7 @@ void VerticalDynamicsFEM::StepImplicit(
 
 					int iB = box.GetBInteriorBegin() + b * m_nHorizontalOrder + j;
 
-					for (int k = 0; k < pGrid->GetRElements(); k++) {
+					for (int k = 0; k < nRElements; k++) {
 						//dataUpdateNode[UIx][iA][iB][k]
 						//	= dataUpdateNode[UIx][iA+1][iB][k];
 						//dataUpdateNode[VIx][iA][iB][k]
@@ -1570,7 +1573,7 @@ void VerticalDynamicsFEM::StepImplicit(
 						}
 					}
 
-					for (int k = 0; k <= pGrid->GetRElements(); k++) {
+					for (int k = 0; k <= nRElements; k++) {
 						//dataUpdateREdge[UIx][iA][iB][k]
 						//	= dataUpdateREdge[UIx][iA+1][iB][k];
 						//dataUpdateREdge[VIx][iA][iB][k]
@@ -1591,7 +1594,7 @@ void VerticalDynamicsFEM::StepImplicit(
 		for (int i = box.GetAInteriorBegin(); i < box.GetAInteriorEnd(); i++) {
 			int iB = box.GetBInteriorBegin() + b * m_nHorizontalOrder - 1;
 
-			for (int k = 0; k < pGrid->GetRElements(); k++) {
+			for (int k = 0; k < nRElements; k++) {
 				//dataUpdateNode[UIx][i][iB][k]
 				//	= dataUpdateNode[UIx][i][iB+1][k];
 				//dataUpdateNode[VIx][i][iB][k]
@@ -1610,7 +1613,7 @@ void VerticalDynamicsFEM::StepImplicit(
 
 			}
 
-			for (int k = 0; k <= pGrid->GetRElements(); k++) {
+			for (int k = 0; k <= nRElements; k++) {
 				//dataUpdateREdge[UIx][i][iB][k]
 				//	= dataUpdateREdge[UIx][i][iB+1][k];
 				//dataUpdateREdge[VIx][i][iB][k]
@@ -1708,12 +1711,12 @@ void VerticalDynamicsFEM::SetupReferenceColumn(
 
 	// Copy over Theta
 	if (pGrid->GetVarLocation(PIx) == DataLocation_REdge) {
-		for (int k = 0; k <= pGrid->GetRElements(); k++) {
+		for (int k = 0; k <= nRElements; k++) {
 			m_dColumnState[VecFIx(FPIx, k)] =
 				dataInitialREdge[PIx][iA][iB][k];
 		}
 	} else {
-		for (int k = 0; k < pGrid->GetRElements(); k++) {
+		for (int k = 0; k < nRElements; k++) {
 			m_dColumnState[VecFIx(FPIx, k)] =
 				dataInitialNode[PIx][iA][iB][k];
 		}
@@ -1721,12 +1724,12 @@ void VerticalDynamicsFEM::SetupReferenceColumn(
 
 	// Copy over W
 	if (pGrid->GetVarLocation(WIx) == DataLocation_REdge) {
-		for (int k = 0; k <= pGrid->GetRElements(); k++) {
+		for (int k = 0; k <= nRElements; k++) {
 			m_dColumnState[VecFIx(FWIx, k)] =
 				dataInitialREdge[WIx][iA][iB][k];
 		}
 	} else {
-		for (int k = 0; k < pGrid->GetRElements(); k++) {
+		for (int k = 0; k < nRElements; k++) {
 			m_dColumnState[VecFIx(FWIx, k)] =
 				dataInitialNode[WIx][iA][iB][k];
 		}
@@ -1734,12 +1737,12 @@ void VerticalDynamicsFEM::SetupReferenceColumn(
 
 	// Copy over rho
 	if (pGrid->GetVarLocation(RIx) == DataLocation_REdge) {
-		for (int k = 0; k <= pGrid->GetRElements(); k++) {
+		for (int k = 0; k <= nRElements; k++) {
 			m_dColumnState[VecFIx(FRIx, k)] =
 				dataInitialREdge[RIx][iA][iB][k];
 		}
 	} else {
-		for (int k = 0; k < pGrid->GetRElements(); k++) {
+		for (int k = 0; k < nRElements; k++) {
 			m_dColumnState[VecFIx(FRIx, k)] =
 				dataInitialNode[RIx][iA][iB][k];
 		}
@@ -1747,12 +1750,12 @@ void VerticalDynamicsFEM::SetupReferenceColumn(
 
 	// Construct reference column
 	if ((pGrid->HasUniformDiffusion()) && (m_fUseReferenceState)) {
-		for (int k = 0; k < pGrid->GetRElements(); k++) {
+		for (int k = 0; k < nRElements; k++) {
 			m_dStateRefNode[RIx][k] = dataRefNode[RIx][iA][iB][k];
 			m_dStateRefNode[WIx][k] = dataRefNode[WIx][iA][iB][k];
 			m_dStateRefNode[PIx][k] = dataRefNode[PIx][iA][iB][k];
 		}
-		for (int k = 0; k <= pGrid->GetRElements(); k++) {
+		for (int k = 0; k <= nRElements; k++) {
 			m_dStateRefREdge[RIx][k] = dataRefREdge[RIx][iA][iB][k];
 			m_dStateRefREdge[WIx][k] = dataRefREdge[WIx][iA][iB][k];
 			m_dStateRefREdge[PIx][k] = dataRefREdge[PIx][iA][iB][k];
@@ -1783,7 +1786,7 @@ void VerticalDynamicsFEM::SetupReferenceColumn(
 	const DataArray4D<double> & dContraMetricXiREdge =
 		m_pPatch->GetContraMetricXiREdge();
 
-	for (int k = 0; k < pGrid->GetRElements(); k++) {
+	for (int k = 0; k < nRElements; k++) {
 		m_dColumnJacobianNode[k] = dJacobian[iA][iB][k];
 		m_dColumnElementAreaNode[k] = dElementArea[iA][iB][k];
 		m_dColumnInvJacobianNode[k] = 1.0 / m_dColumnJacobianNode[k];
@@ -1805,7 +1808,7 @@ void VerticalDynamicsFEM::SetupReferenceColumn(
 		m_dColumnContraMetricXi[k][2] = dContraMetricXi[iA][iB][k][2];
 	}
 
-	for (int k = 0; k <= pGrid->GetRElements(); k++) {
+	for (int k = 0; k <= nRElements; k++) {
 		m_dColumnJacobianREdge[k] = dJacobianREdge[iA][iB][k];
 		m_dColumnInvJacobianREdge[k] = 1.0 / m_dColumnJacobianREdge[k];
 

@@ -78,6 +78,9 @@ void HeldSuarezPhysics::Perform(
 	// Physical constants
 	const PhysicalConstants & phys = m_model.GetPhysicalConstants();
 
+	// Number of radial elements
+	const int nRElements = pGrid->GetRElements();
+
 	// Perform local update
 	for (int n = 0; n < pGrid->GetActivePatchCount(); n++) {
 		GridPatch * pPatch = pGrid->GetActivePatch(n);
@@ -112,7 +115,7 @@ void HeldSuarezPhysics::Perform(
 					dataREdge[RIx][i][j][0] * dataREdge[TIx][i][j][0]);
 
 			// Loop over all levels in column
-			for (int k = 0; k < pGrid->GetRElements(); k++) {
+			for (int k = 0; k < nRElements; k++) {
 
 				// Calculate pressure
 				double dPressure =
@@ -138,7 +141,7 @@ void HeldSuarezPhysics::Perform(
 
 			// Theta on model levels
 			if (pGrid->GetVarLocation(TIx) == DataLocation_Node) {
-				for (int k = 0; k < pGrid->GetRElements(); k++) {
+				for (int k = 0; k < nRElements; k++) {
 
 					// Calculate pressure
 					double dPressure =
@@ -202,7 +205,7 @@ void HeldSuarezPhysics::Perform(
 
 			// Theta on model interfaces
 			if (pGrid->GetVarLocation(TIx) == DataLocation_REdge) {
-				for (int k = 0; k <= pGrid->GetRElements(); k++) {
+				for (int k = 0; k <= nRElements; k++) {
 
 					// Calculate pressure
 					double dPressure =

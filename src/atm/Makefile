@@ -30,7 +30,6 @@ FILES= CubedSphereTrans.cpp \
        HorizontalDynamicsFEMV2.cpp \
        VerticalDynamicsFEM.cpp \
        VerticalDynamicsFEMV2.cpp \
-       VerticalDynamicsFLL.cpp \
        VerticalDynamicsSchur.cpp \
        JacobianFreeNewtonKrylov.cpp \
        FluxCorrectionFunction.cpp \
