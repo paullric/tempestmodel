@@ -19,11 +19,12 @@
 #include "PhysicalConstants.h"
 #include "Model.h"
 #include "Grid.h"
-#include "FunctionTimer.h"
-
-#include "Announce.h"
 #include "GridGLL.h"
 #include "GridPatchGLL.h"
+
+#include "Announce.h"
+#include "LinearAlgebra.h"
+#include "FunctionTimer.h"
 
 //#define FIX_ELEMENT_MASS_NONHYDRO
 
@@ -207,6 +208,10 @@ void SplitExplicitDynamics::Initialize() {
 		m_nHorizontalOrder,
 		m_nHorizontalOrder);
 
+	// LAPACK info structure
+	m_nInfo.Allocate(
+		m_nHorizontalOrder,
+		m_nHorizontalOrder);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -695,7 +700,6 @@ void SplitExplicitDynamics::PerformAcousticLoop(
 	int iDataAcoustic0,
 	int iDataAcoustic1,
 	int iDataAcoustic2,
-	const Time & time,
 	double dDeltaT
 ) {
 	// Start the function timer
@@ -880,6 +884,9 @@ void SplitExplicitDynamics::PerformAcousticLoop(
 		DataArray4D<double> & dataAcoustic2Node =
 			pPatch->GetDataState(iDataAcoustic2, DataLocation_Node);
 
+		DataArray4D<double> & dataAcoustic2REdge =
+			pPatch->GetDataState(iDataAcoustic2, DataLocation_REdge);
+
 		const DataArray2D<double> & dStiffness1D = pGrid->GetStiffness1D();
 
 		// Solve the tridiagonal system for vertical momentum
@@ -956,9 +963,11 @@ void SplitExplicitDynamics::PerformAcousticLoop(
 				const int iA = iElementA + i;
 				const int iB = iElementB + j;
 
-				const double dInvJacobian = 1.0 / dJacobian[iA][iB][k];
+				const double dInvJacobian =
+					1.0 / dJacobian[iA][iB][k];
 
-				const double dDeltaZn = 1.0 / (dataZi[iA][iB][k+1] - dataZi[iA][iB][k]);
+				const double dInvDeltaZn =
+					1.0 / (dataZi[iA][iB][k+1] - dataZi[iA][iB][k]);
 
 				double dDaMassFlux = 0.0;
 				double dDbMassFlux = 0.0;
@@ -992,7 +1001,7 @@ void SplitExplicitDynamics::PerformAcousticLoop(
 				dDaPressureFlux *= dInvElementDeltaA * dInvJacobian;
 				dDbPressureFlux *= dInvElementDeltaB * dInvJacobian;
 
-				const double dDzMassFlux = dDeltaZn
+				const double dDzMassFlux = dInvDeltaZn
 					* (dataAcoustic1REdge[WIx][iA][iB][k+1]
 					- dataAcoustic1REdge[WIx][iA][iB][k]);
 
@@ -1002,7 +1011,7 @@ void SplitExplicitDynamics::PerformAcousticLoop(
 					- 0.5 * (1.0 - m_dBs) * dDzMassFlux
 					+ dataSlowTendenciesNode[RIx][iA][iB][k];
 
-				const double dDzPressureFlux = dDeltaZn
+				const double dDzPressureFlux = dInvDeltaZn
 					* (dataAcoustic1REdge[WIx][iA][iB][k+1]
 					 	* dataInitialREdge[PIx][iA][iB][k+1]
 						/ dataInitialREdge[RIx][iA][iB][k+1]
@@ -1086,8 +1095,101 @@ void SplitExplicitDynamics::PerformAcousticLoop(
 			}
 
 			// Perform a tridiagonal solve for dataAcoustic2REdge
+			int nREdges = nRElements+1;
+			int nRHS = 1;
+			int nLDB = nREdges;
 
-			// 
+			for (int i = 0; i < m_nHorizontalOrder; i++) {
+			for (int j = 0; j < m_nHorizontalOrder; j++) {
+
+#ifdef TEMPEST_LAPACK_ACML_INTERFACE
+				dgtsv(
+					nREdges,
+					nRHS,
+					&(m_dA[i][j][0]),
+					&(m_dB[i][j][0]),
+					&(m_dC[i][j][0]),
+					&(m_dD[i][j][0]),
+					nLDB,
+					&(m_nInfo[i][j]));
+#endif
+#ifdef TEMPEST_LAPACK_ESSL_INTERFACE
+				dgtsv(
+					nREdges,
+					nRHS,
+					&(m_dA[i][j][0]),
+					&(m_dB[i][j][0]),
+					&(m_dC[i][j][0]),
+					&(m_dD[i][j][0]),
+					nLDB);
+				m_nInfo[i][j] = 0;
+#endif
+#ifdef TEMPEST_LAPACK_FORTRAN_INTERFACE
+				dgtsv_(
+					&nREdges,
+					&nRHS,
+					&(m_dA[i][j][0]),
+					&(m_dB[i][j][0]),
+					&(m_dC[i][j][0]),
+					&(m_dD[i][j][0]),
+					&nLDB,
+					&(m_nInfo[i][j]));
+#endif
+			}
+			}
+
+			// Check return values from tridiagonal solve
+			for (int i = 0; i < m_nHorizontalOrder; i++) {
+			for (int j = 0; j < m_nHorizontalOrder; j++) {
+				if (m_nInfo[i][j] != 0) {
+					_EXCEPTION1("Failure in tridiagonal solve: %i",
+						m_nInfo[i][j]);
+				}
+			}
+			}
+
+			// Perform update to vertical momentum
+			for (int i = 0; i < m_nHorizontalOrder; i++) {
+			for (int j = 0; j < m_nHorizontalOrder; j++) {
+			for (int k = 0; k < nRElements; k++) {
+
+				const int iA = iElementA + i;
+				const int iB = iElementB + j;
+
+				const double dInvDeltaZn =
+					1.0 / (dataZi[iA][iB][k+1] - dataZi[iA][iB][k]);
+
+				// Store updated vertical momentum
+				dataAcoustic2REdge[WIx][i][j][k] = m_dD[i][j][k];
+
+				// Updated vertical mass flux
+				const double dDzMassFlux =
+					dInvDeltaZn * (m_dD[i][j][k+1] - m_dD[i][j][k]);
+
+				// Store updated density
+				dataAcoustic2Node[RIx][i][j][k] =
+					dataAcoustic1Node[RIx][i][j][k]
+					+ dDeltaT * (
+						m_dNodalMassUpdate[i][j][k]
+						- 0.5 * (1.0 + m_dBs) * dDzMassFlux);
+
+				const double dDzPressureFlux = dInvDeltaZn
+					* (dataAcoustic1REdge[WIx][iA][iB][k+1]
+					 	* dataInitialREdge[PIx][iA][iB][k+1]
+						/ dataInitialREdge[RIx][iA][iB][k+1]
+					- dataAcoustic1REdge[WIx][iA][iB][k]
+						* dataInitialREdge[PIx][iA][iB][k]
+						/ dataInitialREdge[RIx][iA][iB][k]);
+
+				// Store updated potential temperature density
+				dataAcoustic2Node[PIx][i][j][k] =
+					dataAcoustic1Node[PIx][i][j][k]
+					+ dDeltaT * (
+						m_dNodalPressureUpdate[i][j][k]
+						- 0.5 * (1.0 + m_dBs) * dDzPressureFlux);
+			}
+			}
+			}
 		}
 		}
 	}
@@ -1144,6 +1246,11 @@ void SplitExplicitDynamics::StepExplicit(
 	// Physical constants
 	const PhysicalConstants & phys = m_model.GetPhysicalConstants();
 
+	// First data instance reserved for this class
+	const int iDataSlowTendenciesIx = m_model.GetFirstHorizontalDynamicsDataInstance();
+	const int iDataAcousticIndex1 = iDataSlowTendenciesIx+1;
+	const int iDataAcousticIndex2 = iDataSlowTendenciesIx+2;
+
 	// Calculate diagnostic pressure slope and store in dataPressure
 	{
 		for (int n = 0; n < pGrid->GetActivePatchCount(); n++) {
@@ -1169,26 +1276,49 @@ void SplitExplicitDynamics::StepExplicit(
 			}
 		}
 	}
-
-	// Interpolate rho and rhotheta to interfaces in iDataInitial
-	for (int n = 0; n < pGrid->GetActivePatchCount(); n++) {
-		GridPatchGLL * pPatch =
-			dynamic_cast<GridPatchGLL*>(pGrid->GetActivePatch(n));
-
-		pPatch->InterpolateNodeToREdge(RIx, iDataInitial);
-		pPatch->InterpolateNodeToREdge(PIx, iDataInitial);
-	}
+	
+	return;
 
 	// Calculate the slow tendencies in the momentum variables
-	CalculateSlowTendencies(iDataInitial, iDataUpdate, time, dDeltaT);
+	CalculateSlowTendencies(iDataInitial, iDataSlowTendenciesIx, time, dDeltaT);
 
-	// Store momenta in acoustic loop data
+	// Perform three sub-cycles of the acoustic loop
 	{
+		pGrid->ZeroData(iDataUpdate, DataType_State);
+		pGrid->ZeroData(iDataAcousticIndex1, DataType_State);
+		pGrid->ZeroData(iDataAcousticIndex2, DataType_State);
+
+		PerformAcousticLoop(
+			iDataInitial,
+			iDataSlowTendenciesIx,
+			iDataAcousticIndex2,
+			iDataUpdate,
+			iDataAcousticIndex1,
+			dDeltaT / 3.0);
+
+		PerformAcousticLoop(
+			iDataInitial,
+			iDataSlowTendenciesIx,
+			iDataUpdate,
+			iDataAcousticIndex1,
+			iDataAcousticIndex2,
+			dDeltaT / 3.0);
+
+		PerformAcousticLoop(
+			iDataInitial,
+			iDataSlowTendenciesIx,
+			iDataAcousticIndex1,
+			iDataAcousticIndex2,
+			iDataUpdate,
+			dDeltaT / 3.0);
+
+		// Apply direct stiffness summation on final result
+		pGrid->ApplyDSS(iDataUpdate, DataType_State);
 	}
 
-	// Apply acoustic loop
-	for (int ss = 0; ss < 3; ss++) {
-	}
+	// Apply positive definite filter to tracers
+	//FilterNegativeTracers(iDataUpdate);
+
 /*
 	// Uniform diffusion of U and V with vector diffusion coeff
 	if (pGrid->HasUniformDiffusion()) {
@@ -1232,8 +1362,6 @@ void SplitExplicitDynamics::StepExplicit(
 		}
 	}
 */
-	// Apply positive definite filter to tracers
-	FilterNegativeTracers(iDataUpdate);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1887,6 +2015,8 @@ void SplitExplicitDynamics::StepAfterSubCycle(
 ) {
 	// Start the function timer
 	FunctionTimer timer("StepAfterSubCycle");
+
+	return;
 
 	// Check indices
 	if (iDataInitial == iDataWorking) {

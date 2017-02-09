@@ -58,6 +58,15 @@ public:
 
 public:
 	///	<summary>
+	///		Get the number of component data instances needed by
+	///		this HorizontalDynamics class.
+	///	</summary>
+	virtual int GetComponentDataInstances() const {
+		return 0;
+	}
+
+public:
+	///	<summary>
 	///		Initializer.  Called prior to execution.
 	///	</summary>
 	virtual void Initialize() { }

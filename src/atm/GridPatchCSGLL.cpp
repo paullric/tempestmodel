@@ -708,6 +708,15 @@ void GridPatchCSGLL::EvaluateTestCase(
 		dUlon *= phys.GetEarthRadius();
 		dUlat *= phys.GetEarthRadius();
 
+#if defined(PROGNOSTIC_CONTRAVARIANT_MOMENTA)
+		CubedSphereTrans::VecTransABPFromRLL(
+			tan(m_dANode[i]),
+			tan(m_dBNode[j]),
+			m_box.GetPanel(),
+			dUlon, dUlat,
+			m_datavecStateNode[iDataIndex][UIx][i][j][k],
+			m_datavecStateNode[iDataIndex][VIx][i][j][k]);
+#else
 		CubedSphereTrans::CoVecTransABPFromRLL(
 			tan(m_dANode[i]),
 			tan(m_dBNode[j]),
@@ -715,6 +724,7 @@ void GridPatchCSGLL::EvaluateTestCase(
 			dUlon, dUlat,
 			m_datavecStateNode[iDataIndex][UIx][i][j][k],
 			m_datavecStateNode[iDataIndex][VIx][i][j][k]);
+#endif
 
 		// Evaluate reference state
 		if (m_grid.HasReferenceState()) {
@@ -744,6 +754,15 @@ void GridPatchCSGLL::EvaluateTestCase(
 			dUlon *= phys.GetEarthRadius();
 			dUlat *= phys.GetEarthRadius();
 
+#if defined(PROGNOSTIC_CONTRAVARIANT_MOMENTA)
+			CubedSphereTrans::VecTransABPFromRLL(
+				tan(m_dANode[i]),
+				tan(m_dBNode[j]),
+				m_box.GetPanel(),
+				dUlon, dUlat,
+				m_dataRefStateNode[UIx][i][j][k],
+				m_dataRefStateNode[VIx][i][j][k]);
+#else
 			CubedSphereTrans::CoVecTransABPFromRLL(
 				tan(m_dANode[i]),
 				tan(m_dBNode[j]),
@@ -751,6 +770,7 @@ void GridPatchCSGLL::EvaluateTestCase(
 				dUlon, dUlat,
 				m_dataRefStateNode[UIx][i][j][k],
 				m_dataRefStateNode[VIx][i][j][k]);
+#endif
 		}
 
 		// Evaluate tracers
@@ -793,6 +813,15 @@ void GridPatchCSGLL::EvaluateTestCase(
 		dUlon *= phys.GetEarthRadius();
 		dUlat *= phys.GetEarthRadius();
 
+#if defined(PROGNOSTIC_CONTRAVARIANT_MOMENTA)
+		CubedSphereTrans::VecTransABPFromRLL(
+			tan(m_dANode[i]),
+			tan(m_dBNode[j]),
+			m_box.GetPanel(),
+			dUlon, dUlat,
+			m_datavecStateREdge[iDataIndex][UIx][i][j][k],
+			m_datavecStateREdge[iDataIndex][VIx][i][j][k]);
+#else
 		CubedSphereTrans::CoVecTransABPFromRLL(
 			tan(m_dANode[i]),
 			tan(m_dBNode[j]),
@@ -800,6 +829,7 @@ void GridPatchCSGLL::EvaluateTestCase(
 			dUlon, dUlat,
 			m_datavecStateREdge[iDataIndex][UIx][i][j][k],
 			m_datavecStateREdge[iDataIndex][VIx][i][j][k]);
+#endif
 
 		if (m_grid.HasReferenceState()) {
 			test.EvaluateReferenceState(
@@ -824,6 +854,15 @@ void GridPatchCSGLL::EvaluateTestCase(
 			dUlon *= phys.GetEarthRadius();
 			dUlat *= phys.GetEarthRadius();
 
+#if defined(PROGNOSTIC_CONTRAVARIANT_MOMENTA)
+			CubedSphereTrans::VecTransABPFromRLL(
+				tan(m_dANode[i]),
+				tan(m_dBNode[j]),
+				m_box.GetPanel(),
+				dUlon, dUlat,
+				m_dataRefStateREdge[UIx][i][j][k],
+				m_dataRefStateREdge[VIx][i][j][k]);
+#else
 			CubedSphereTrans::CoVecTransABPFromRLL(
 				tan(m_dANode[i]),
 				tan(m_dBNode[j]),
@@ -831,6 +870,7 @@ void GridPatchCSGLL::EvaluateTestCase(
 				dUlon, dUlat,
 				m_dataRefStateREdge[UIx][i][j][k],
 				m_dataRefStateREdge[VIx][i][j][k]);
+#endif
 		}
 	}
 	}
@@ -1351,6 +1391,16 @@ void GridPatchCSGLL::InterpolateData(
 				double dUbeta =
 					dInterpData[1][k][i] / phys.GetEarthRadius();
 
+#if defined(PROGNOSTIC_CONTRAVARIANT_MOMENTA)
+				CubedSphereTrans::VecTransRLLFromABP(
+					tan(dAlpha[i]),
+					tan(dBeta[i]),
+					GetPatchBox().GetPanel(),
+					dUalpha,
+					dUbeta,
+					dInterpData[0][k][i],
+					dInterpData[1][k][i]);
+#else
 				CubedSphereTrans::CoVecTransRLLFromABP(
 					tan(dAlpha[i]),
 					tan(dBeta[i]),
@@ -1359,6 +1409,7 @@ void GridPatchCSGLL::InterpolateData(
 					dUbeta,
 					dInterpData[0][k][i],
 					dInterpData[1][k][i]);
+#endif
 			}
 		}
 	}
@@ -1403,6 +1454,15 @@ void GridPatchCSGLL::TransformHaloVelocities(
 		i = m_box.GetAInteriorEnd();
 		for (int k = 0; k < pDataVelocity->GetSize(3); k++) {
 		for (j = jBegin; j < jEnd; j++) {
+#if defined(PROGNOSTIC_CONTRAVARIANT_MOMENTA)
+			CubedSphereTrans::VecPanelTrans(
+				ixRightPanel,
+				m_box.GetPanel(),
+				(*pDataVelocity)[UIx][i][j][k],
+				(*pDataVelocity)[VIx][i][j][k],
+				tan(m_dANode[i]),
+				tan(m_dBNode[j]));
+#else
 			CubedSphereTrans::CoVecPanelTrans(
 				ixRightPanel,
 				m_box.GetPanel(),
@@ -1410,6 +1470,7 @@ void GridPatchCSGLL::TransformHaloVelocities(
 				(*pDataVelocity)[VIx][i][j][k],
 				tan(m_dANode[i]),
 				tan(m_dBNode[j]));
+#endif
 		}
 		}
 	}
@@ -1425,6 +1486,15 @@ void GridPatchCSGLL::TransformHaloVelocities(
 		j = m_box.GetBInteriorEnd();
 		for (int k = 0; k < pDataVelocity->GetSize(3); k++) {
 		for (i = iBegin; i < iEnd; i++) {
+#if defined(PROGNOSTIC_CONTRAVARIANT_MOMENTA)
+			CubedSphereTrans::VecPanelTrans(
+				ixTopPanel,
+				m_box.GetPanel(),
+				(*pDataVelocity)[UIx][i][j][k],
+				(*pDataVelocity)[VIx][i][j][k],
+				tan(m_dANode[i]),
+				tan(m_dBNode[j]));
+#else
 			CubedSphereTrans::CoVecPanelTrans(
 				ixTopPanel,
 				m_box.GetPanel(),
@@ -1432,6 +1502,7 @@ void GridPatchCSGLL::TransformHaloVelocities(
 				(*pDataVelocity)[VIx][i][j][k],
 				tan(m_dANode[i]),
 				tan(m_dBNode[j]));
+#endif
 		}
 		}
 	}
@@ -1447,6 +1518,15 @@ void GridPatchCSGLL::TransformHaloVelocities(
 		i = m_box.GetAInteriorBegin()-1;
 		for (int k = 0; k < pDataVelocity->GetSize(3); k++) {
 		for (j = jBegin; j < jEnd; j++) {
+#if defined(PROGNOSTIC_CONTRAVARIANT_MOMENTA)
+			CubedSphereTrans::VecPanelTrans(
+				ixLeftPanel,
+				m_box.GetPanel(),
+				(*pDataVelocity)[UIx][i][j][k],
+				(*pDataVelocity)[VIx][i][j][k],
+				tan(m_dANode[i]),
+				tan(m_dBNode[j]));
+#else
 			CubedSphereTrans::CoVecPanelTrans(
 				ixLeftPanel,
 				m_box.GetPanel(),
@@ -1454,6 +1534,7 @@ void GridPatchCSGLL::TransformHaloVelocities(
 				(*pDataVelocity)[VIx][i][j][k],
 				tan(m_dANode[i]),
 				tan(m_dBNode[j]));
+#endif
 		}
 		}
 	}
@@ -1469,6 +1550,15 @@ void GridPatchCSGLL::TransformHaloVelocities(
 		j = m_box.GetBInteriorBegin()-1;
 		for (int k = 0; k < pDataVelocity->GetSize(3); k++) {
 		for (i = iBegin; i < iEnd; i++) {
+#if defined(PROGNOSTIC_CONTRAVARIANT_MOMENTA)
+			CubedSphereTrans::VecPanelTrans(
+				ixBottomPanel,
+				m_box.GetPanel(),
+				(*pDataVelocity)[UIx][i][j][k],
+				(*pDataVelocity)[VIx][i][j][k],
+				tan(m_dANode[i]),
+				tan(m_dBNode[j]));
+#else
 			CubedSphereTrans::CoVecPanelTrans(
 				ixBottomPanel,
 				m_box.GetPanel(),
@@ -1476,6 +1566,7 @@ void GridPatchCSGLL::TransformHaloVelocities(
 				(*pDataVelocity)[VIx][i][j][k],
 				tan(m_dANode[i]),
 				tan(m_dBNode[j]));
+#endif
 		}
 		}
 	}

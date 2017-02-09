@@ -97,6 +97,10 @@ VerticalDynamicsFEMV2::~VerticalDynamicsFEMV2() {
 
 void VerticalDynamicsFEMV2::Initialize() {
 
+#if defined(PROGNOSTIC_CONTRAVARIANT_MOMENTA)
+	_EXCEPTIONT("Prognostic contrvariant velocities not supported");
+#endif
+
 	// Indices of EquationSet variables
 	const int UIx = 0;
 	const int VIx = 1;

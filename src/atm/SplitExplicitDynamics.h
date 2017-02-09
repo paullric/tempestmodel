@@ -64,6 +64,14 @@ public:
 
 public:
 	///	<summary>
+	///		Additional data instances needed for acoustic loop.
+	///	</summary>
+	virtual int GetComponentDataInstances() const {
+		return 3;
+	}
+
+public:
+	///	<summary>
 	///		Apply a positive definite filter to all tracers.
 	///	</summary>
 	void FilterNegativeTracers(
@@ -89,7 +97,6 @@ public:
 		int iDataAcoustic0,
 		int iDataAcoustic1,
 		int iDataAcoustic2,
-		const Time & time,
 		double dDeltaT
 	);
 
@@ -270,6 +277,11 @@ protected:
 	///		Acoustic pressure term used in acoustic loop.
 	///	</summary>
 	DataArray3D<double> m_dAcousticPressureTerm;
+
+	///	<summary>
+	///		Output from the tridiagonal solve
+	///	</summary>
+	DataArray2D<int> m_nInfo;
 
 	///	<summary>
 	///		Buffer state.

@@ -135,13 +135,18 @@ void EquationSet::ConvertComponents(
 		if (dState.GetRows() != 5) {
 			_EXCEPTIONT("Invalid state vector length");
 		}
-#ifdef FORMULATION_PRESSURE
+#if defined(FORMULATION_PRESSURE)
 		dState[PIx] = phys.PressureFromRhoTheta(dState[PIx] * dState[RIx]);
 #endif
 #if defined(FORMULATION_THETA) || defined(FORMULATION_THETA_FLUX)
 #endif
 #if defined(FORMULATION_RHOTHETA_PI) || defined(FORMULATION_RHOTHETA_P)
 		dState[PIx] *= dState[RIx];
+#endif
+#if defined(PROGNOSTIC_CONTRAVARIANT_MOMENTA)
+		dState[UIx] *= dState[RIx];
+		dState[VIx] *= dState[RIx];
+		dState[WIx] *= dState[RIx];
 #endif
 	}
 }

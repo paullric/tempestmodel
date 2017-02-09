@@ -134,8 +134,24 @@ public:
 		if (m_pTimestepScheme == NULL) {
 			_EXCEPTIONT("TimestepScheme not initialized");
 		}
+		if (m_pHorizontalDynamics == NULL) {
+			_EXCEPTIONT("HorizontalDynamics not initialized");
+		}
 
-		return m_pTimestepScheme->GetComponentDataInstances();
+		return (
+			m_pTimestepScheme->GetComponentDataInstances()
+			+ m_pHorizontalDynamics->GetComponentDataInstances());
+	}
+
+	///	<summary>
+	///		Get the first data instance for HorizontalDynamics.
+	///	</summary>
+	int GetFirstHorizontalDynamicsDataInstance() const {
+		if (m_pTimestepScheme == NULL) {
+			_EXCEPTIONT("TimestepScheme not initialized");
+		}
+
+		return (m_pTimestepScheme->GetComponentDataInstances());
 	}
 
 	///	<summary>

@@ -31,6 +31,7 @@
 #include "HorizontalDynamicsStub.h"
 #include "HorizontalDynamicsFEM.h"
 #include "HorizontalDynamicsFEMV2.h"
+#include "SplitExplicitDynamics.h"
 #include "VerticalDynamicsStub.h"
 #include "VerticalDynamicsFEM.h"
 #include "VerticalDynamicsFEMV2.h"
@@ -131,8 +132,8 @@ struct _TempestCommandLineVariables {
 	CommandLineString(_tempestvars.strVerticalStretch, "vstretch", "uniform"); \
 	CommandLineInt(_tempestvars.nVerticalHyperdiffOrder, "vhypervisorder", 0); \
 	CommandLineString(_tempestvars.strTimestepScheme, "timescheme", "strang"); \
-	CommandLineStringD(_tempestvars.strHorizontalDynamics, "hmethod", "V1", "(V1 | V2)"); \
-	CommandLineStringD(_tempestvars.strVerticalDynamics, "vmethod", "V1", "(V1 | V2 | SCHUR)");
+	CommandLineStringD(_tempestvars.strHorizontalDynamics, "hmethod", "V1", "(V1 | V2 | SPEX)"); \
+	CommandLineStringD(_tempestvars.strVerticalDynamics, "vmethod", "V1", "(V1 | V2 | SCHUR | NONE)");
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -282,6 +283,17 @@ void _TempestSetupMethodOfLines(
 				vars.dNuVort,
 				vars.dInstepNuDiv));
 
+	} else if (vars.strHorizontalDynamics == "spex") {
+		model.SetHorizontalDynamics(
+			new SplitExplicitDynamics(
+				model,
+				vars.nHorizontalOrder,
+				vars.nHyperviscosityOrder,
+				vars.dNuScalar,
+				vars.dNuDiv,
+				vars.dNuVort,
+				vars.dInstepNuDiv));
+
 	} else {
 		_EXCEPTIONT("Invalid --hmethod");
 	}
@@ -331,6 +343,11 @@ void _TempestSetupMethodOfLines(
 				vars.fExplicitVertical,
 				!vars.fNoReferenceState,
 				vars.fForceMassFluxOnLevels));
+
+	} else if (vars.strVerticalDynamics == "none") {
+		model.SetVerticalDynamics(
+			new VerticalDynamicsStub(
+				model));
 
 	} else {
 		_EXCEPTIONT("Invalid --vmethod");
