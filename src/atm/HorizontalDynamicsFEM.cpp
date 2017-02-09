@@ -60,6 +60,10 @@ HorizontalDynamicsFEM::HorizontalDynamicsFEM(
 
 void HorizontalDynamicsFEM::Initialize() {
 
+#if defined(PROGNOSTIC_CONTRAVARIANT_MOMENTA)
+	_EXCEPTIONT("Prognostic contrvariant velocities not supported");
+#endif
+
 	// Get a copy of the GLL grid
 	GridGLL * pGrid = dynamic_cast<GridGLL*>(m_model.GetGrid());
 	if (pGrid == NULL) {
@@ -780,12 +784,12 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 				// Vertical derivatives of the covariant velocity field			
 				double dCovDxUa =
 					pGrid->DifferentiateNodeToNode(
-						&(dataUpdateNode[UIx][iA][iB][0]),
+						&(dataInitialNode[UIx][iA][iB][0]),
 						k, 1);
 
 				double dCovDxUb =
 					pGrid->DifferentiateNodeToNode(
-						&(dataUpdateNode[VIx][iA][iB][0]),
+						&(dataInitialNode[VIx][iA][iB][0]),
 						k, 1);
 
 				// Derivative needed for calculating relative vorticity

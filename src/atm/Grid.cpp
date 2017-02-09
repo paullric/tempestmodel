@@ -789,6 +789,17 @@ void Grid::ComputeVorticityDivergence(
 
 ///////////////////////////////////////////////////////////////////////////////
 
+void Grid::ComputePressure(
+	int iDataIndex
+) {
+	// Loop over all grid patches
+	for (int n = 0; n < m_vecActiveGridPatches.size(); n++) {
+		m_vecActiveGridPatches[n]->ComputePressure(iDataIndex);
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
 void Grid::ComputeTemperature(
 	int iDataIndex
 ) {

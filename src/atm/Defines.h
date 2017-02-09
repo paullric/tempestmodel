@@ -44,6 +44,11 @@
 //#define FORMULATION_THETA_FLUX
 
 ///	<summary>
+///		Prognostic contravariant velocities.
+///	</summary>
+#define PROGNOSTIC_CONTRAVARIANT_MOMENTA
+
+///	<summary>
 ///		Explicit vertical advection of vertical velocity variable.
 ///	</summary>
 //#define EXPLICIT_VERTICAL_VELOCITY_ADVECTION

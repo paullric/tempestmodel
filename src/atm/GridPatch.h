@@ -171,6 +171,13 @@ public:
 	}
 
 	///	<summary>
+	///		Compute pressure on the GridPatch.
+	///	</summary>
+	virtual void ComputePressure(
+		int iDataIndex
+	);
+
+	///	<summary>
 	///		Compute temperature on the GridPatch.
 	///	</summary>
 	virtual void ComputeTemperature(
@@ -179,7 +186,7 @@ public:
 	);
 
 	///	<summary>
-	///		Compute temperature on the GridPatch.
+	///		Compute surface pressure on the GridPatch.
 	///	</summary>
 	virtual void ComputeSurfacePressure(
 		int iDataIndex

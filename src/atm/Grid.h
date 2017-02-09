@@ -323,6 +323,13 @@ public:
 	);
 
 	///	<summary>
+	///		Compute vorticity and divergence on the grid.
+	///	</summary>
+	virtual void ComputePressure(
+		int iDataIndex
+	);
+
+	///	<summary>
 	///		Compute temperature on the grid.
 	///	</summary>
 	virtual void ComputeTemperature(

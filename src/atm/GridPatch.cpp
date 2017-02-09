@@ -575,6 +575,45 @@ void GridPatch::ComputeSurfacePressure(
 
 ///////////////////////////////////////////////////////////////////////////////
 
+void GridPatch::ComputePressure(
+	int iDataIndex
+) {
+	const PhysicalConstants & phys = m_grid.GetModel().GetPhysicalConstants();
+
+	// Indices of EquationSet variables
+	const int UIx = 0;
+	const int VIx = 1;
+	const int PIx = 2;
+	const int WIx = 3;
+	const int RIx = 4;
+
+	if (m_grid.GetModel().GetEquationSet().GetComponents() < 5) {
+		_EXCEPTIONT("Invalid EquationSet.");
+	}
+
+	const DataArray4D<double> & dataNode = m_datavecStateNode[iDataIndex];
+
+	for (int i = m_box.GetAInteriorBegin(); i < m_box.GetAInteriorEnd(); i++) {
+	for (int j = m_box.GetBInteriorBegin(); j < m_box.GetBInteriorEnd(); j++) {
+	for (int k = 0; k < m_grid.GetRElements(); k++) {
+#ifdef FORMULATION_PRESSURE
+		m_dataPressure[i][j][k] = dataNode[PIx][i][j][k];
+#endif
+#if defined(FORMULATION_RHOTHETA_PI) || defined(FORMULATION_RHOTHETA_P)
+		m_dataPressure[i][j][k] = phys.PressureFromRhoTheta(dataNode[PIx][i][j][k]);
+#endif
+#if defined(FORMULATION_THETA) || defined(FORMULATION_THETA_FLUX)
+		m_dataPressure[i][j][k] =
+			phys.PressureFromRhoTheta(
+				dataNode[RIx][i][j][k] * dataNode[PIx][i][j][k]);
+#endif
+	}
+	}
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
 void GridPatch::ComputeTemperature(
 	int iDataIndex,
 	DataLocation loc
@@ -592,10 +631,6 @@ void GridPatch::ComputeTemperature(
 		_EXCEPTIONT("Invalid EquationSet.");
 	}
 
-	int k;
-	int i;
-	int j;
-
 	// Calculate temperature on nodes
 	if (loc == DataLocation_Node) {
 		if (m_grid.GetVarLocation(PIx) == DataLocation_REdge) {
@@ -607,9 +642,9 @@ void GridPatch::ComputeTemperature(
 
 		const DataArray4D<double> & dataNode = m_datavecStateNode[iDataIndex];
 
-		for (k = 0; k < m_grid.GetRElements(); k++) {
-		for (i = m_box.GetAInteriorBegin(); i < m_box.GetAInteriorEnd(); i++) {
-		for (j = m_box.GetBInteriorBegin(); j < m_box.GetBInteriorEnd(); j++) {
+		for (int i = m_box.GetAInteriorBegin(); i < m_box.GetAInteriorEnd(); i++) {
+		for (int j = m_box.GetBInteriorBegin(); j < m_box.GetBInteriorEnd(); j++) {
+		for (int k = 0; k < m_grid.GetRElements(); k++) {
 
 #ifdef FORMULATION_PRESSURE
 			double dPressure = dataNode[PIx][i][j][k];
@@ -642,9 +677,9 @@ void GridPatch::ComputeTemperature(
 
 		const DataArray4D<double> & dataNode = m_datavecStateREdge[iDataIndex];
 
-		for (k = 0; k <= m_grid.GetRElements(); k++) {
-		for (i = m_box.GetAInteriorBegin(); i < m_box.GetAInteriorEnd(); i++) {
-		for (j = m_box.GetBInteriorBegin(); j < m_box.GetBInteriorEnd(); j++) {
+		for (int i = m_box.GetAInteriorBegin(); i < m_box.GetAInteriorEnd(); i++) {
+		for (int j = m_box.GetBInteriorBegin(); j < m_box.GetBInteriorEnd(); j++) {
+		for (int k = 0; k <= m_grid.GetRElements(); k++) {
 
 #ifdef FORMULATION_PRESSURE
 			double dPressure = dataNode[PIx][i][j][k];
