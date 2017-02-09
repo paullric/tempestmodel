@@ -46,7 +46,7 @@
 ///	<summary>
 ///		Prognostic contravariant velocities.
 ///	</summary>
-#define PROGNOSTIC_CONTRAVARIANT_MOMENTA
+//#define PROGNOSTIC_CONTRAVARIANT_MOMENTA
 
 ///	<summary>
 ///		Explicit vertical advection of vertical velocity variable.

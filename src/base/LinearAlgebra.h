@@ -76,6 +76,9 @@ int dtpsv_(char *uplo, char *trace, char *diag, int *n, double *a, double *x, in
 ///	General banded matrix solver from CLAPACK
 int dgbsv_(int *n, int *kl, int *ku, int *nrhs, double *ab, int *ldab, int *ipiv, double *b, int *ldb, int *info); 
 
+/// Tridiagonal matrix solver from CLAPACK
+int dgtsv_(int *n, int *nrhs, double *dl, double *d, double *du, double *b, int *ldb, int *info);
+
 /// LU decomposition from CLAPACK
 int dgetrf_(int *m, int *n, double *a, int *lda, int *ipiv, int *info);
 
@@ -359,6 +362,16 @@ public:
 		DataArray1D<int> & iPIV,
 		int nKL,
 		int nKU
+	);
+
+	///	<summary>
+	///		Solve a linear system of the form A * X = B.
+	///	</summary>
+	static int DGTSV(
+		DataArray1D<double> & dDL,
+		DataArray1D<double> & dD,
+		DataArray1D<double> & dDU,
+		DataArray1D<double> & dB
 	);
 
 	///	<summary>

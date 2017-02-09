@@ -465,10 +465,10 @@ public:
 	///	</summary>
 #if defined(__INTEL_COMPILER)
 	inline T const&
-	operator()(std::array<std::ptrdiff_t, 3> indices) const
+	operator()(index_array<std::ptrdiff_t, 3> indices) const
 #else
 	inline T const&
-	operator()(std::array<std::ptrdiff_t, 3> indices) const noexcept
+	operator()(index_array<std::ptrdiff_t, 3> indices) const noexcept
 #endif
 	{
 		return (*this)(indices[0], indices[1], indices[2]);
@@ -478,10 +478,10 @@ public:
 	///	</summary>
 #if defined(__INTEL_COMPILER)
 	inline T&
-	operator()(std::array<std::ptrdiff_t, 3> indices)
+	operator()(index_array<std::ptrdiff_t, 3> indices)
 #else
 	inline T&
-	operator()(std::array<std::ptrdiff_t, 3> indices) noexcept
+	operator()(index_array<std::ptrdiff_t, 3> indices) noexcept
 #endif
 	{
 		return (*this)(indices[0], indices[1], indices[2]);
@@ -515,10 +515,10 @@ public:
 	///	</summary>
 #if defined(__INTEL_COMPILER)
 	inline T const*
-	operator()(std::array<std::ptrdiff_t, 2> indices) const
+	operator()(index_array<std::ptrdiff_t, 2> indices) const
 #else
 	inline T const*
-	operator()(std::array<std::ptrdiff_t, 2> indices) const noexcept
+	operator()(index_array<std::ptrdiff_t, 2> indices) const noexcept
 #endif
 	{
 		return (*this)(indices[0], indices[1]);
@@ -528,10 +528,10 @@ public:
 	///	</summary>
 #if defined(__INTEL_COMPILER)
 	inline T*
-	operator()(std::array<std::ptrdiff_t, 2> indices)
+	operator()(index_array<std::ptrdiff_t, 2> indices)
 #else
 	inline T*
-	operator()(std::array<std::ptrdiff_t, 2> indices) noexcept
+	operator()(index_array<std::ptrdiff_t, 2> indices) noexcept
 #endif
 	{
 		return (*this)(indices[0], indices[1]);

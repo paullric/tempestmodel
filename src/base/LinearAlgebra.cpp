@@ -203,6 +203,50 @@ int LAPACK::DGBSV(
 
 ///////////////////////////////////////////////////////////////////////////////
 
+int LAPACK::DGTSV(
+	DataArray1D<double> & dDL,
+	DataArray1D<double> & dD,
+	DataArray1D<double> & dDU,
+	DataArray1D<double> & dB
+) {
+	// Check dimensions
+	if (dDL.GetRows() < dD.GetRows()-1) {
+		_EXCEPTIONT("Array DL / D dimension mismatch in DGTSV");
+	}
+	if (dDU.GetRows() < dD.GetRows()-1) {
+		_EXCEPTIONT("Array DU / D dimension mismatch in DGTSV");
+	}
+	if (dB.GetRows() < dD.GetRows()) {
+		_EXCEPTIONT("Array B / D dimension mismatch in DGTSV");
+	}
+
+	// Store CLAPACK parameters
+	int n     = dD.GetRows();
+	int nRHS  = 1;
+	int nLDB  = n;
+
+	int nInfo;
+
+#ifdef TEMPEST_LAPACK_ACML_INTERFACE
+	// Call the tridiagonal solve
+	dgtsv(n, nRHS, &(dDL[0]), &(dD[0]), &(dDU[0]), &(dB[0]), nLDB, &nInfo);
+#endif
+#ifdef TEMPEST_LAPACK_ESSL_INTERFACE
+	// Call the tridiagonal solve
+	dgtsv(n, nRHS, &(dDL[0]), &(dD[0]), &(dDU[0]), &(dB[0]), nLDB);
+	nInfo = 0;
+#endif
+#ifdef TEMPEST_LAPACK_FORTRAN_INTERFACE
+	// Call the tridiagonal solve
+	dgtsv_(
+		&n, &nRHS, &(dDL[0]), &(dD[0]), &(dDU[0]), &(dB[0]), &nLDB, &nInfo);
+#endif
+
+	return nInfo;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
 int LAPACK::DTPSV(
 	char chUpperLower,
 	char chTrans,

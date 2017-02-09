@@ -22,9 +22,34 @@
 
 ///////////////////////////////////////////////////////////////////////////////
 
-#include <array>
 #include <type_traits>
 #include <cstddef>
+
+///////////////////////////////////////////////////////////////////////////////
+
+template <typename T, size_t size>
+struct index_array
+{
+	T ix_[size];
+
+#if defined(__INTEL_COMPILER)
+	inline T& operator[](int i) {
+#else
+	inline T& operator[](int i) noexcept {
+#endif
+		return ix_[i];
+	}
+
+#if defined(__INTEL_COMPILER)
+	inline const T& operator[](int i) const {
+#else
+	inline const T& operator[](int i) const noexcept {
+#endif
+		return ix_[i];
+	}
+};
+
+///////////////////////////////////////////////////////////////////////////////
 
 // expr := subscript+
 // subscript := '[' c++-integral-expression ']'
@@ -41,7 +66,7 @@ struct Subscript
 	enum { Dim = NumDims - FreeDims };
 
 	T& object_;
-	std::array<size_type, Dim> indices_;
+	index_array<size_type, Dim> indices_;
 
 #if defined(__INTEL_COMPILER)
 	constexpr Subscript(T& object)
@@ -78,6 +103,8 @@ struct Subscript
 	}
 };
 
+///////////////////////////////////////////////////////////////////////////////
+
 // This specialization is instantiated for the final index, and completes the
 // indexing operation.
 template <typename T, std::ptrdiff_t NumDims>
@@ -89,7 +116,7 @@ struct Subscript<T, 1, NumDims>
 	enum { Dim = NumDims - 1 };
 
 	T& object_;
-	std::array<size_type, Dim> indices_;
+	index_array<size_type, Dim> indices_;
 
 #if defined(__INTEL_COMPILER)
 	constexpr Subscript(T& object)
@@ -131,6 +158,8 @@ struct Subscript<T, 1, NumDims>
 		return object_(indices_);
 	} 
 };
+
+///////////////////////////////////////////////////////////////////////////////
 
 #endif // _SUBSCRIPT_H_
 
