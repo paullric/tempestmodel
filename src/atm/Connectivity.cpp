@@ -684,18 +684,18 @@ ExchangeBufferRegistry::~ExchangeBufferRegistry() {
 	for (int i = 0; i < m_vecRecvBuffers.size(); i++) {
 		if (m_vecRecvBuffers[i] != NULL) {
 #if defined(__INTEL_COMPILER)
-			delete[] m_vecRecvBuffers[i];
-#else
 			_mm_free(m_vecRecvBuffers[i]);
+#else
+			delete[] m_vecRecvBuffers[i];
 #endif
 		}
 	}
 	for (int i = 0; i < m_vecSendBuffers.size(); i++) {
 		if (m_vecSendBuffers[i] != NULL) {
 #if defined(__INTEL_COMPILER)
-			delete[] m_vecSendBuffers[i];
-#else
 			_mm_free(m_vecSendBuffers[i]);
+#else
+			delete[] m_vecSendBuffers[i];
 #endif
 		}
 	}
