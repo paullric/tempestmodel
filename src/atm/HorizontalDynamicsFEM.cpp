@@ -70,109 +70,142 @@ void HorizontalDynamicsFEM::Initialize() {
 		_EXCEPTIONT("Grid must be of type GridGLL");
 	}
 
-	// Number of vertical levels
+#if defined(FIXED_HORIZONTAL_ORDER)
+	const int nHorizontalOrder = FIXED_HORIZONTAL_ORDER;
+	if (nHorizontalOrder != m_nHorizontalOrder) {
+		_EXCEPTIONT("Command line order must match FIXED_HORIZONTAL_ORDER");
+	}
+#else
+	const int nHorizontalOrder = m_nHorizontalOrder;
+#endif
+
+#if defined(FIXED_RELEMENTS)
+	const int nRElements = FIXED_RELEMENTS;
+	if (nRElements != pGrid->GetRElements()) {
+		_EXCEPTIONT("Command line levels must match FIXED_RELEMENTS");
+	}
+#else
 	const int nRElements = pGrid->GetRElements();
+#endif
 
 	// Number of tracers
 	const int nTracerCount = m_model.GetEquationSet().GetTracers();
 
 	// Initialize the alpha and beta mass fluxes
 	m_dAlphaMassFlux.Allocate(
-		m_nHorizontalOrder,
-		m_nHorizontalOrder);
+		nHorizontalOrder,
+		nHorizontalOrder,
+		nRElements);
 
 	m_dBetaMassFlux.Allocate(
-		m_nHorizontalOrder,
-		m_nHorizontalOrder);
+		nHorizontalOrder,
+		nHorizontalOrder,
+		nRElements);
 
 	// Initialize the alpha and beta mass fluxes for mass fix
 	m_dAlphaElMassFlux.Allocate(
-		m_nHorizontalOrder,
-		m_nHorizontalOrder);
+		nHorizontalOrder,
+		nHorizontalOrder,
+		nRElements);
 
 	m_dBetaElMassFlux.Allocate(
-		m_nHorizontalOrder,
-		m_nHorizontalOrder);
+		nHorizontalOrder,
+		nHorizontalOrder,
+		nRElements);
+
+	// Initialize element-wise arrays used for mass fix
+	m_dElementMassFluxA.Allocate(
+		nRElements);
+
+	m_dElementMassFluxB.Allocate(
+		nRElements);
+
+	m_dElTotalArea.Allocate(
+		nRElements);
 
 	// Initialize the alpha and beta pressure fluxes
 	m_dAlphaPressureFlux.Allocate(
-		m_nHorizontalOrder,
-		m_nHorizontalOrder);
+		nHorizontalOrder,
+		nHorizontalOrder,
+		nRElements);
 
 	m_dBetaPressureFlux.Allocate(
-		m_nHorizontalOrder,
-		m_nHorizontalOrder);
+		nHorizontalOrder,
+		nHorizontalOrder,
+		nRElements);
 
 	// Initialize tracer fluxes
 	if (nTracerCount > 0) {
 		m_dAlphaTracerFlux.Allocate(
 			nTracerCount,
-			m_nHorizontalOrder,
-			m_nHorizontalOrder);
+			nHorizontalOrder,
+			nHorizontalOrder,
+			nRElements);
 
 		m_dBetaTracerFlux.Allocate(
 			nTracerCount,
-			m_nHorizontalOrder,
-			m_nHorizontalOrder);
+			nHorizontalOrder,
+			nHorizontalOrder,
+			nRElements);
 	}
 
 	// Auxiliary data
 	m_dAuxDataNode.Allocate(
 		9,
-		m_nHorizontalOrder,
-		m_nHorizontalOrder,
+		nHorizontalOrder,
+		nHorizontalOrder,
 		nRElements);
 
 	m_dAuxDataREdge.Allocate(
 		9,
-		m_nHorizontalOrder,
-		m_nHorizontalOrder,
+		nHorizontalOrder,
+		nHorizontalOrder,
 		nRElements+1);
 
 	m_dDivergence.Allocate(
-		m_nHorizontalOrder,
-		m_nHorizontalOrder,
+		nHorizontalOrder,
+		nHorizontalOrder,
 		nRElements);
 
 	// Contravariant metric terms
 	m_dLocalCoriolisF.Allocate(
-		m_nHorizontalOrder,
-		m_nHorizontalOrder);
+		nHorizontalOrder,
+		nHorizontalOrder);
 
 	m_dLocalJacobian2D.Allocate(
-		m_nHorizontalOrder,
-		m_nHorizontalOrder);
+		nHorizontalOrder,
+		nHorizontalOrder);
 
 	m_dLocalJacobian.Allocate(
-		m_nHorizontalOrder,
-		m_nHorizontalOrder,
+		nHorizontalOrder,
+		nHorizontalOrder,
 		nRElements);
 
 	m_dLocalDerivR.Allocate(
-		m_nHorizontalOrder,
-		m_nHorizontalOrder,
+		nHorizontalOrder,
+		nHorizontalOrder,
 		nRElements,
 		3);
 
 	m_dLocalContraMetric.Allocate(
-		m_nHorizontalOrder,
-		m_nHorizontalOrder,
+		nHorizontalOrder,
+		nHorizontalOrder,
 		nRElements,
 		6);
 
 	// Initialize buffers for derivatives of Jacobian
 	m_dJGradientA.Allocate(
-		m_nHorizontalOrder,
-		m_nHorizontalOrder);
+		nHorizontalOrder,
+		nHorizontalOrder);
 
 	m_dJGradientB.Allocate(
-		m_nHorizontalOrder,
-		m_nHorizontalOrder);
+		nHorizontalOrder,
+		nHorizontalOrder);
 
 	// Buffer state
 	m_dBufferState.Allocate(
-		m_nHorizontalOrder,
-		m_nHorizontalOrder);
+		nHorizontalOrder,
+		nHorizontalOrder);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -184,8 +217,23 @@ void HorizontalDynamicsFEM::FilterNegativeTracers(
 	// Get a copy of the GLL grid
 	GridGLL * pGrid = dynamic_cast<GridGLL*>(m_model.GetGrid());
 
-	// Number of vertical elements
+#if defined(FIXED_HORIZONTAL_ORDER)
+	const int nHorizontalOrder = FIXED_HORIZONTAL_ORDER;
+	if (nHorizontalOrder != m_nHorizontalOrder) {
+		_EXCEPTIONT("Command line order must match FIXED_HORIZONTAL_ORDER");
+	}
+#else
+	const int nHorizontalOrder = m_nHorizontalOrder;
+#endif
+
+#if defined(FIXED_RELEMENTS)
+	const int nRElements = FIXED_RELEMENTS;
+	if (nRElements != pGrid->GetRElements()) {
+		_EXCEPTIONT("Command line levels must match FIXED_RELEMENTS");
+	}
+#else
 	const int nRElements = pGrid->GetRElements();
+#endif
 
 	// Perform local update
 	for (int n = 0; n < pGrid->GetActivePatchCount(); n++) {
@@ -220,11 +268,11 @@ void HorizontalDynamicsFEM::FilterNegativeTracers(
 				double dTotalMass = 0.0;
 				double dNonNegativeMass = 0.0;
 
-				for (int i = 0; i < m_nHorizontalOrder; i++) {
-				for (int j = 0; j < m_nHorizontalOrder; j++) {
+				for (int i = 0; i < nHorizontalOrder; i++) {
+				for (int j = 0; j < nHorizontalOrder; j++) {
 
-					int iA = a * m_nHorizontalOrder + i + box.GetHaloElements();
-					int iB = b * m_nHorizontalOrder + j + box.GetHaloElements();
+					int iA = a * nHorizontalOrder + i + box.GetHaloElements();
+					int iB = b * nHorizontalOrder + j + box.GetHaloElements();
 
 					double dPointwiseMass =
 						  dataUpdateTracer[c][iA][iB][k]
@@ -247,11 +295,11 @@ void HorizontalDynamicsFEM::FilterNegativeTracers(
 				// Apply scaling ratio to points with non-negative mass
 				double dR = dTotalMass / dNonNegativeMass;
 
-				for (int i = 0; i < m_nHorizontalOrder; i++) {
-				for (int j = 0; j < m_nHorizontalOrder; j++) {
+				for (int i = 0; i < nHorizontalOrder; i++) {
+				for (int j = 0; j < nHorizontalOrder; j++) {
 
-					int iA = a * m_nHorizontalOrder + i + box.GetHaloElements();
-					int iB = b * m_nHorizontalOrder + j + box.GetHaloElements();
+					int iA = a * nHorizontalOrder + i + box.GetHaloElements();
+					int iB = b * nHorizontalOrder + j + box.GetHaloElements();
 
 					if (dataUpdateTracer[c][iA][iB][k] > 0.0) {
 						dataUpdateTracer[c][iA][iB][k] *= dR;
@@ -280,8 +328,23 @@ void HorizontalDynamicsFEM::StepShallowWater(
 	// Get a copy of the GLL grid
 	GridGLL * pGrid = dynamic_cast<GridGLL*>(m_model.GetGrid());
 
-	// Number of vertical elements
+#if defined(FIXED_HORIZONTAL_ORDER)
+	const int nHorizontalOrder = FIXED_HORIZONTAL_ORDER;
+	if (nHorizontalOrder != m_nHorizontalOrder) {
+		_EXCEPTIONT("Command line order must match FIXED_HORIZONTAL_ORDER");
+	}
+#else
+	const int nHorizontalOrder = m_nHorizontalOrder;
+#endif
+
+#if defined(FIXED_RELEMENTS)
+	const int nRElements = FIXED_RELEMENTS;
+	if (nRElements != pGrid->GetRElements()) {
+		_EXCEPTIONT("Command line levels must match FIXED_RELEMENTS");
+	}
+#else
 	const int nRElements = pGrid->GetRElements();
+#endif
 
 	// Physical constants
 	const PhysicalConstants & phys = m_model.GetPhysicalConstants();
@@ -343,14 +406,14 @@ void HorizontalDynamicsFEM::StepShallowWater(
 
 			// Compute auxiliary data in element
 			for (int k = 0; k < nRElements; k++) {
-			for (int i = 0; i < m_nHorizontalOrder; i++) {
-			for (int j = 0; j < m_nHorizontalOrder; j++) {
+			for (int i = 0; i < nHorizontalOrder; i++) {
+			for (int j = 0; j < nHorizontalOrder; j++) {
 
-				int iA = a * m_nHorizontalOrder + i + box.GetHaloElements();
-				int iB = b * m_nHorizontalOrder + j + box.GetHaloElements();
+				int iA = a * nHorizontalOrder + i + box.GetHaloElements();
+				int iB = b * nHorizontalOrder + j + box.GetHaloElements();
 
-				int iElementA = a * m_nHorizontalOrder + box.GetHaloElements();
-				int iElementB = b * m_nHorizontalOrder + box.GetHaloElements();
+				int iElementA = a * nHorizontalOrder + box.GetHaloElements();
+				int iElementB = b * nHorizontalOrder + box.GetHaloElements();
 
 				// Contravariant velocities
 				double dCovUa = dataInitialNode[UIx][iA][iB][k];
@@ -380,19 +443,19 @@ void HorizontalDynamicsFEM::StepShallowWater(
 			for (int k = 0; k < nRElements; k++) {
 
 				// Pointwise fluxes and pressure within spectral element
-				for (int i = 0; i < m_nHorizontalOrder; i++) {
-				for (int j = 0; j < m_nHorizontalOrder; j++) {
+				for (int i = 0; i < nHorizontalOrder; i++) {
+				for (int j = 0; j < nHorizontalOrder; j++) {
 
-					int iA = a * m_nHorizontalOrder + i + box.GetHaloElements();
-					int iB = b * m_nHorizontalOrder + j + box.GetHaloElements();
+					int iA = a * nHorizontalOrder + i + box.GetHaloElements();
+					int iB = b * nHorizontalOrder + j + box.GetHaloElements();
 
 					// Height flux
-					m_dAlphaMassFlux[i][j] =
+					m_dAlphaMassFlux[i][j][k] =
 						dJacobian2D[iA][iB]
 						* (dataInitialNode[HIx][iA][iB][k] - dTopography[iA][iB])
 						* m_dAuxDataNode[ConUaIx][i][j][k];
 
-					m_dBetaMassFlux[i][j] =
+					m_dBetaMassFlux[i][j][k] =
 						dJacobian2D[iA][iB]
 						* (dataInitialNode[HIx][iA][iB][k] - dTopography[iA][iB])
 						* m_dAuxDataNode[ConUbIx][i][j][k];
@@ -401,14 +464,14 @@ void HorizontalDynamicsFEM::StepShallowWater(
 				}
 
 				// Pointwise update of quantities on model levels
-				for (int i = 0; i < m_nHorizontalOrder; i++) {
-				for (int j = 0; j < m_nHorizontalOrder; j++) {
+				for (int i = 0; i < nHorizontalOrder; i++) {
+				for (int j = 0; j < nHorizontalOrder; j++) {
 
-					int iA = a * m_nHorizontalOrder + i + box.GetHaloElements();
-					int iB = b * m_nHorizontalOrder + j + box.GetHaloElements();
+					int iA = a * nHorizontalOrder + i + box.GetHaloElements();
+					int iB = b * nHorizontalOrder + j + box.GetHaloElements();
 
-					int iElementA = a * m_nHorizontalOrder + box.GetHaloElements();
-					int iElementB = b * m_nHorizontalOrder + box.GetHaloElements();
+					int iElementA = a * nHorizontalOrder + box.GetHaloElements();
+					int iElementB = b * nHorizontalOrder + box.GetHaloElements();
 
 					// Inverse Jacobian
 					double dInvJacobian2D = 1.0 / dJacobian2D[iA][iB];
@@ -428,16 +491,16 @@ void HorizontalDynamicsFEM::StepShallowWater(
 					// Calculate derivatives in the alpha direction
 					double dDaMassFluxA = 0.0;
 
-					for (int s = 0; s < m_nHorizontalOrder; s++) {
+					for (int s = 0; s < nHorizontalOrder; s++) {
 #ifdef DIFFERENTIAL_FORM
 						// Update density: Differential formulation
 						dDaMassFluxA +=
-							m_dAlphaMassFlux[s][j]
+							m_dAlphaMassFlux[s][j][k]
 							* dDxBasis1D[s][i];
 #else
 						// Update density: Variational formulation
 						dDaMassFluxA -=
-							m_dAlphaMassFlux[s][j]
+							m_dAlphaMassFlux[s][j][k]
 							* dStiffness1D[i][s];
 #endif
 						// Derivative of covariant beta velocity wrt alpha
@@ -454,17 +517,17 @@ void HorizontalDynamicsFEM::StepShallowWater(
 					// Calculate derivatives in the beta direction
 					double dDbMassFluxB = 0.0;
 
-					for (int s = 0; s < m_nHorizontalOrder; s++) {
+					for (int s = 0; s < nHorizontalOrder; s++) {
 #ifdef DIFFERENTIAL_FORM
 						// Update density: Differential formulation
 						dDbMassFluxB +=
-							m_dBetaMassFlux[i][s]
+							m_dBetaMassFlux[i][s][k]
 							* dDxBasis1D[s][j];
 
 #else
 						// Update density: Variational formulation
 						dDbMassFluxB -=
-							m_dBetaMassFlux[i][s]
+							m_dBetaMassFlux[i][s][k]
 							* dStiffness1D[j][s];
 #endif
 						// Derivative of covariant alpha velocity wrt beta
@@ -551,7 +614,6 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 	GridGLL * pGrid = dynamic_cast<GridGLL*>(m_model.GetGrid());
 
 	// Number of vertical elements
-	const int nRElements = pGrid->GetRElements();
 
 	// Physical constants
 	const PhysicalConstants & phys = m_model.GetPhysicalConstants();
@@ -573,6 +635,24 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 	const int UCrossZetaBIx = 6;
 	const int UCrossZetaXIx = 7;
 	const int ExnerIx = 8;
+
+#if defined(FIXED_HORIZONTAL_ORDER)
+	const int nHorizontalOrder = FIXED_HORIZONTAL_ORDER;
+	if (nHorizontalOrder != m_nHorizontalOrder) {
+		_EXCEPTIONT("Command line order must match FIXED_HORIZONTAL_ORDER");
+	}
+#else
+	const int nHorizontalOrder = m_nHorizontalOrder;
+#endif
+
+#if defined(FIXED_RELEMENTS)
+	const int nRElements = FIXED_RELEMENTS;
+	if (nRElements != pGrid->GetRElements()) {
+		_EXCEPTIONT("Command line levels must match FIXED_RELEMENTS");
+	}
+#else
+	const int nRElements = pGrid->GetRElements();
+#endif
 
 	// Perform local update
 	for (int n = 0; n < pGrid->GetActivePatchCount(); n++) {
@@ -671,11 +751,22 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 		for (int a = 0; a < nElementCountA; a++) {
 		for (int b = 0; b < nElementCountB; b++) {
 
+			const int iElementA = a * nHorizontalOrder + box.GetHaloElements();
+			const int iElementB = b * nHorizontalOrder + box.GetHaloElements();
+
+#if defined(FIX_ELEMENT_MASS_NONHYDRO)
+			// Zero mass fixer arrays
+			m_dElementMassFluxA.Zero();
+			m_dElementMassFluxB.Zero();
+			m_dElTotalArea.Zero();
+#endif
+
 			// Store 2D Jacobian
-			for (int i = 0; i < m_nHorizontalOrder; i++) {
-			for (int j = 0; j < m_nHorizontalOrder; j++) {
-				int iA = a * m_nHorizontalOrder + i + box.GetHaloElements();
-				int iB = b * m_nHorizontalOrder + j + box.GetHaloElements();
+			for (int i = 0; i < nHorizontalOrder; i++) {
+			for (int j = 0; j < nHorizontalOrder; j++) {
+
+				const int iA = iElementA + i;
+				const int iB = iElementB + j;
 
 				m_dLocalCoriolisF[i][j] = dCoriolisF[iA][iB];
 				m_dLocalJacobian2D[i][j] = dJacobian2D[iA][iB];
@@ -683,12 +774,12 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 			}
 
 			// Compute auxiliary data in element
+			for (int i = 0; i < nHorizontalOrder; i++) {
+			for (int j = 0; j < nHorizontalOrder; j++) {
 			for (int k = 0; k < nRElements; k++) {
-			for (int i = 0; i < m_nHorizontalOrder; i++) {
-			for (int j = 0; j < m_nHorizontalOrder; j++) {
 
-				int iA = a * m_nHorizontalOrder + i + box.GetHaloElements();
-				int iB = b * m_nHorizontalOrder + j + box.GetHaloElements();
+				const int iA = iElementA + i;
+				const int iB = iElementB + j;
 
 				// Contravariant velocities
 				double dCovUa = dataInitialNode[UIx][iA][iB][k];
@@ -765,15 +856,12 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 			}
 
 			// Compute U cross Relative vorticity
+			for (int i = 0; i < nHorizontalOrder; i++) {
+			for (int j = 0; j < nHorizontalOrder; j++) {
 			for (int k = 0; k < nRElements; k++) {
-			for (int i = 0; i < m_nHorizontalOrder; i++) {
-			for (int j = 0; j < m_nHorizontalOrder; j++) {
 
-				int iA = a * m_nHorizontalOrder + i + box.GetHaloElements();
-				int iB = b * m_nHorizontalOrder + j + box.GetHaloElements();
-
-				int iElementA = a * m_nHorizontalOrder + box.GetHaloElements();
-				int iElementB = b * m_nHorizontalOrder + box.GetHaloElements();
+				const int iA = iElementA + i;
+				const int iB = iElementB + j;
 
 				// Derivatives of the covariant velocity field
 				double dCovDaUb = 0.0;
@@ -793,7 +881,7 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 						k, 1);
 
 				// Derivative needed for calculating relative vorticity
-				for (int s = 0; s < m_nHorizontalOrder; s++) {
+				for (int s = 0; s < nHorizontalOrder; s++) {
 
 					// Derivative of covariant beta velocity wrt alpha
 					dCovDaUb +=
@@ -844,135 +932,488 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 			}
 			}
 
-			// Update quantities on nodes
+			// Pointwise fluxes and pressure within spectral element
+			for (int i = 0; i < nHorizontalOrder; i++) {
+			for (int j = 0; j < nHorizontalOrder; j++) {
 			for (int k = 0; k < nRElements; k++) {
 
-				// Pointwise fluxes and pressure within spectral element
-				for (int i = 0; i < m_nHorizontalOrder; i++) {
-				for (int j = 0; j < m_nHorizontalOrder; j++) {
+				const int iA = iElementA + i;
+				const int iB = iElementB + j;
 
-					int iElementA =
-						a * m_nHorizontalOrder + box.GetHaloElements();
-					int iElementB =
-						b * m_nHorizontalOrder + box.GetHaloElements();
+				// Base fluxes (area times velocity)
+				double dAlphaBaseFlux =
+					m_dLocalJacobian[i][j][k]
+					* m_dAuxDataNode[ConUaIx][i][j][k];
 
-					int iA = iElementA + i;
-					int iB = iElementB + j;
+				double dBetaBaseFlux =
+					m_dLocalJacobian[i][j][k]
+					* m_dAuxDataNode[ConUbIx][i][j][k];
 
-					// Base fluxes (area times velocity)
-					double dAlphaBaseFlux =
-						m_dLocalJacobian[i][j][k]
-						* m_dAuxDataNode[ConUaIx][i][j][k];
+				// Density flux
+				m_dAlphaMassFlux[i][j][k] =
+					  dAlphaBaseFlux
+					* dataInitialNode[RIx][iA][iB][k];
 
-					double dBetaBaseFlux =
-						m_dLocalJacobian[i][j][k]
-						* m_dAuxDataNode[ConUbIx][i][j][k];
-
-					// Density flux
-					m_dAlphaMassFlux[i][j] =
-						  dAlphaBaseFlux
-						* dataInitialNode[RIx][iA][iB][k];
-
-					m_dBetaMassFlux[i][j] =
-						  dBetaBaseFlux
-						* dataInitialNode[RIx][iA][iB][k];
+				m_dBetaMassFlux[i][j][k] =
+					  dBetaBaseFlux
+					* dataInitialNode[RIx][iA][iB][k];
 
 #ifdef FORMULATION_PRESSURE
-					// Pressure flux
-					m_dAlphaPressureFlux[i][j] =
-						  dAlphaBaseFlux
-						* phys.GetGamma()
-						* dataInitialNode[PIx][iA][iB][k];
+				// Pressure flux
+				m_dAlphaPressureFlux[i][j][k] =
+					  dAlphaBaseFlux
+					* phys.GetGamma()
+					* dataInitialNode[PIx][iA][iB][k];
 
-					m_dBetaPressureFlux[i][j] =
-						  dBetaBaseFlux
-						* phys.GetGamma()
-						* dataInitialNode[PIx][iA][iB][k];
+				m_dBetaPressureFlux[i][j][k] =
+					  dBetaBaseFlux
+					* phys.GetGamma()
+					* dataInitialNode[PIx][iA][iB][k];
 #endif
 #if defined(FORMULATION_RHOTHETA_PI) \
  || defined(FORMULATION_RHOTHETA_P)
-					// RhoTheta flux
-					m_dAlphaPressureFlux[i][j] =
-						  dAlphaBaseFlux
-						* dataInitialNode[PIx][iA][iB][k];
+				// RhoTheta flux
+				m_dAlphaPressureFlux[i][j][k] =
+					  dAlphaBaseFlux
+					* dataInitialNode[PIx][iA][iB][k];
 
-					m_dBetaPressureFlux[i][j] =
-						  dBetaBaseFlux
-						* dataInitialNode[PIx][iA][iB][k];
+				m_dBetaPressureFlux[i][j][k] =
+					  dBetaBaseFlux
+					* dataInitialNode[PIx][iA][iB][k];
 #endif
+				for (int c = 0; c < nTracerCount; c++) {
+					m_dAlphaTracerFlux[c][i][j][k] =
+						dAlphaBaseFlux
+						* dataInitialTracer[c][iA][iB][k];
+
+					m_dBetaTracerFlux[c][i][j][k] =
+						dBetaBaseFlux
+						* dataInitialTracer[c][iA][iB][k];
+				}
+
+				////////////////////////////////////////////////////////
+				// Apply uniform diffusion to tracers
+				if (pGrid->HasUniformDiffusion()) {
+
 					for (int c = 0; c < nTracerCount; c++) {
-						m_dAlphaTracerFlux[c][i][j] =
-							dAlphaBaseFlux
-							* dataInitialTracer[c][iA][iB][k];
 
-						m_dBetaTracerFlux[c][i][j] =
-							dBetaBaseFlux
-							* dataInitialTracer[c][iA][iB][k];
-					}
+						// Derivatives of tracer mixing ratio
+						double dCovDaQ = 0.0;
+						double dCovDbQ = 0.0;
 
-					////////////////////////////////////////////////////////
-					// Apply uniform diffusion to tracers
-					if (pGrid->HasUniformDiffusion()) {
+						for (int s = 0; s < nHorizontalOrder; s++) {
+							dCovDaQ +=
+								dataInitialTracer[c][iElementA+s][iB][k]
+								/ dataInitialNode[RIx][iElementA+s][iB][k]
+								* dDxBasis1D[s][i];
 
-						for (int c = 0; c < nTracerCount; c++) {
-
-							// Derivatives of tracer mixing ratio
-							double dCovDaQ = 0.0;
-							double dCovDbQ = 0.0;
-
-							for (int s = 0; s < m_nHorizontalOrder; s++) {
-								dCovDaQ +=
-									dataInitialTracer[c][iElementA+s][iB][k]
-									/ dataInitialNode[RIx][iElementA+s][iB][k]
-									* dDxBasis1D[s][i];
-
-								dCovDbQ +=
-									dataInitialTracer[c][iA][iElementB+s][k]
-									/ dataInitialNode[RIx][iA][iElementB+s][k]
-									* dDxBasis1D[s][j];
-							}
-
-							dCovDaQ *= dInvElementDeltaA;
-							dCovDbQ *= dInvElementDeltaB;
-
-							// Gradient of tracer mixing ratio
-							double dConDaQ =
-								  m_dLocalContraMetric[i][j][k][0] * dCovDaQ
-								+ m_dLocalContraMetric[i][j][k][1] * dCovDbQ;
-
-							double dConDbQ =
-								  m_dLocalContraMetric[i][j][k][1] * dCovDaQ
-								+ m_dLocalContraMetric[i][j][k][3] * dCovDbQ;
-
-							m_dAlphaTracerFlux[c][i][j] -=
-								pGrid->GetScalarUniformDiffusionCoeff()
-								* m_dLocalJacobian[i][j][k]
-								* dataInitialNode[RIx][iA][iB][k]
-								* dConDaQ;
-
-							m_dBetaTracerFlux[c][i][j] -=
-								pGrid->GetScalarUniformDiffusionCoeff()
-								* m_dLocalJacobian[i][j][k]
-								* dataInitialNode[RIx][iA][iB][k]
-								* dConDbQ;
+							dCovDbQ +=
+								dataInitialTracer[c][iA][iElementB+s][k]
+								/ dataInitialNode[RIx][iA][iElementB+s][k]
+								* dDxBasis1D[s][j];
 						}
+
+						dCovDaQ *= dInvElementDeltaA;
+						dCovDbQ *= dInvElementDeltaB;
+
+						// Gradient of tracer mixing ratio
+						double dConDaQ =
+							  m_dLocalContraMetric[i][j][k][0] * dCovDaQ
+							+ m_dLocalContraMetric[i][j][k][1] * dCovDbQ;
+
+						double dConDbQ =
+							  m_dLocalContraMetric[i][j][k][1] * dCovDaQ
+							+ m_dLocalContraMetric[i][j][k][3] * dCovDbQ;
+
+						m_dAlphaTracerFlux[c][i][j][k] -=
+							pGrid->GetScalarUniformDiffusionCoeff()
+							* m_dLocalJacobian[i][j][k]
+							* dataInitialNode[RIx][iA][iB][k]
+							* dConDaQ;
+
+						m_dBetaTracerFlux[c][i][j][k] -=
+							pGrid->GetScalarUniformDiffusionCoeff()
+							* m_dLocalJacobian[i][j][k]
+							* dataInitialNode[RIx][iA][iB][k]
+							* dConDbQ;
 					}
+				}
 
 #ifdef INSTEP_DIVERGENCE_DAMPING
-					// Derivatives of J U^i
+				// Derivatives of J U^i
+				double dDaJUa = 0.0;
+				double dDbJUb = 0.0;
+
+				for (int s = 0; s < nHorizontalOrder; s++) {
+					// Alpha derivative of J U^a
+					dDaJUa +=
+						m_dLocalJacobian[s][j][k]
+						* m_dAuxDataNode[ConUaIx][s][j][k]
+						* dDxBasis1D[s][i];
+
+					// Beta derivative of J U^b
+					dDbJUb +=
+						m_dLocalJacobian[i][s][k]
+						* m_dAuxDataNode[ConUbIx][i][s][k]
+						* dDxBasis1D[s][j];
+				}
+
+				dDaJUa *= dInvElementDeltaA;
+				dDbJUb *= dInvElementDeltaB;
+
+				m_dDivergence[i][j][k] =
+					(dDaJUa + dDbJUb) / m_dLocalJacobian[i][j][k];
+#endif
+			}
+			}
+			}
+
+			// Pointwise update of quantities on model levels
+			for (int i = 0; i < nHorizontalOrder; i++) {
+			for (int j = 0; j < nHorizontalOrder; j++) {
+			for (int k = 0; k < nRElements; k++) {
+
+				const int iA = iElementA + i;
+				const int iB = iElementB + j;
+
+				// Inverse Jacobian
+				const double dInvJacobian =
+					1.0 / m_dLocalJacobian[i][j][k];
+
+				// Aliases for alpha and beta velocities
+				const double dConUa = m_dAuxDataNode[ConUaIx][i][j][k];
+				const double dConUb = m_dAuxDataNode[ConUbIx][i][j][k];
+				const double dConUx = m_dAuxDataNode[ConUxIx][i][j][k];
+
+				const double dCovUx = m_dAuxDataNode[CovUxIx][i][j][k];
+
+				// Derivative of the kinetic energy
+				double dDaKE = 0.0;
+				double dDbKE = 0.0;
+
+				// Derivatives of the pressure field
+				double dDaP = 0.0;
+				double dDbP = 0.0;
+
+				// Gradient of the divergence
+				double dDaDiv = 0.0;
+				double dDbDiv = 0.0;
+
+				// Calculate derivatives in the alpha direction
+				double dDaRhoFluxA = 0.0;
+				double dDaPressureFluxA = 0.0;
+
+				for (int s = 0; s < nHorizontalOrder; s++) {
+#ifdef DIFFERENTIAL_FORM
+					// Update density: Differential formulation
+					dDaRhoFluxA +=
+						m_dAlphaMassFlux[s][j][k]
+						* dDxBasis1D[s][i];
+
+#pragma message "Only evaluate pressure flux for relevant formulations"
+					// Update pressure: Differential formulation
+					dDaPressureFluxA +=
+						m_dAlphaPressureFlux[s][j][k]
+						* dDxBasis1D[s][i];
+
+#else
+					// Update density: Variational formulation
+					dDaRhoFluxA -=
+						m_dAlphaMassFlux[s][j][k]
+						* dStiffness1D[i][s];
+
+					// Update pressure: Variational formulation
+					dDaPressureFluxA -=
+						m_dAlphaPressureFlux[s][j][k]
+						* dStiffness1D[i][s];
+#endif
+
+#ifdef FORMULATION_PRESSURE
+					// Derivative of pressure with respect to alpha
+					dDaP +=
+						dataInitialNode[PIx][iElementA+s][iB][k]
+						* dDxBasis1D[s][i];
+#endif
+#if defined(FORMULATION_RHOTHETA_PI) \
+ || defined(FORMULATION_RHOTHETA_P) \
+ || defined(FORMULATION_THETA) \
+ || defined(FORMULATION_THETA_FLUX)
+					// Derivative of (Exner) pressure with respect to alpha
+					dDaP +=
+						m_dAuxDataNode[ExnerIx][s][j][k]
+						* dDxBasis1D[s][i];
+#endif
+
+					// Derivative of specific kinetic energy wrt alpha
+					dDaKE +=
+						m_dAuxDataNode[KIx][s][j][k]
+						* dDxBasis1D[s][i];
+
+#ifdef INSTEP_DIVERGENCE_DAMPING
+					dDaDiv -=
+						m_dDivergence[s][j][k]
+						* dStiffness1D[i][s];
+#endif
+				}
+
+				// Calculate derivatives in the beta direction
+				double dDbRhoFluxB = 0.0;
+				double dDbPressureFluxB = 0.0;
+
+				for (int s = 0; s < nHorizontalOrder; s++) {
+#ifdef DIFFERENTIAL_FORM
+					// Update density: Differential formulation
+					dDbRhoFluxB +=
+						m_dBetaMassFlux[i][s][k]
+						* dDxBasis1D[s][j];
+
+					// Update pressure: Differential formulation
+					dDbPressureFluxB +=
+						m_dBetaPressureFlux[i][s][k]
+						* dDxBasis1D[s][j];
+
+#else
+					// Update density: Variational formulation
+					dDbRhoFluxB -=
+						m_dBetaMassFlux[i][s][k]
+						* dStiffness1D[j][s];
+
+					// Update pressure: Variational formulation
+					dDbPressureFluxB -=
+						m_dBetaPressureFlux[i][s][k]
+						* dStiffness1D[j][s];
+#endif
+
+#ifdef FORMULATION_PRESSURE
+					// Derivative of pressure with respect to beta
+					dDbP +=
+						dataInitialNode[PIx][iA][iElementB+s][k]
+						* dDxBasis1D[s][j];
+#endif
+#if defined(FORMULATION_RHOTHETA_PI) \
+ || defined(FORMULATION_RHOTHETA_P) \
+ || defined(FORMULATION_THETA) \
+ || defined(FORMULATION_THETA_FLUX)
+					// Derivative of (Exner) pressure with respect to beta
+					dDbP +=
+						m_dAuxDataNode[ExnerIx][i][s][k]
+						* dDxBasis1D[s][j];
+#endif
+
+					// Derivative of specific kinetic energy wrt beta
+					dDbKE +=
+						m_dAuxDataNode[KIx][i][s][k]
+						* dDxBasis1D[s][j];
+
+#ifdef INSTEP_DIVERGENCE_DAMPING
+					dDbDiv -=
+						m_dDivergence[i][s][k]
+						* dStiffness1D[j][s];
+#endif
+				}
+
+				// Scale derivatives
+				dDaRhoFluxA *= dInvElementDeltaA;
+				dDbRhoFluxB *= dInvElementDeltaB;
+
+				dDaPressureFluxA *= dInvElementDeltaA;
+				dDbPressureFluxB *= dInvElementDeltaB;
+
+				dDaP *= dInvElementDeltaA;
+				dDbP *= dInvElementDeltaB;
+
+				dDaKE *= dInvElementDeltaA;
+				dDbKE *= dInvElementDeltaB;
+
+#ifdef INSTEP_DIVERGENCE_DAMPING
+				dDaDiv *= dInvElementDeltaA;
+				dDbDiv *= dInvElementDeltaB;
+#endif
+
+				// Pointwise momentum updates
+				double dLocalUpdateUa = 0.0;
+				double dLocalUpdateUb = 0.0;
+
+				// Updates due to rotational terms
+				dLocalUpdateUa += m_dAuxDataNode[UCrossZetaAIx][i][j][k];
+				dLocalUpdateUb += m_dAuxDataNode[UCrossZetaBIx][i][j][k];
+
+				// Coriolis terms
+				dLocalUpdateUa +=
+					m_dLocalCoriolisF[i][j]
+					* m_dLocalJacobian2D[i][j]
+					* dConUb;
+
+				dLocalUpdateUb -=
+					m_dLocalCoriolisF[i][j]
+					* m_dLocalJacobian2D[i][j]
+					* dConUa;
+
+				// Pressure gradient force
+#if defined(FORMULATION_PRESSURE) || defined(FORMULATION_RHOTHETA_P)
+				double dPressureGradientForceUa =
+					dDaP / dataInitialNode[RIx][iA][iB][k];
+				double dPressureGradientForceUb =
+					dDbP / dataInitialNode[RIx][iA][iB][k];
+#endif
+#ifdef FORMULATION_RHOTHETA_PI
+				double dPressureGradientForceUa =
+					dDaP * dataInitialNode[PIx][iA][iB][k]
+					/ dataInitialNode[RIx][iA][iB][k];
+				double dPressureGradientForceUb =
+					dDbP * dataInitialNode[PIx][iA][iB][k]
+					/ dataInitialNode[RIx][iA][iB][k];
+#endif
+#if defined(FORMULATION_THETA) || defined(FORMULATION_THETA_FLUX)
+				double dPressureGradientForceUa =
+					dDaP * dataInitialNode[PIx][iA][iB][k];
+				double dPressureGradientForceUb =
+					dDbP * dataInitialNode[PIx][iA][iB][k];
+#endif
+
+				// Gravity
+				double dDaPhi = phys.GetG() * m_dLocalDerivR[i][j][k][0];
+				double dDbPhi = phys.GetG() * m_dLocalDerivR[i][j][k][1];
+
+				// Horizontal updates due to gradient terms
+				double dDaUpdate =
+					dPressureGradientForceUa + dDaKE + dDaPhi;
+
+				double dDbUpdate =
+					dPressureGradientForceUb + dDbKE + dDbPhi;
+
+				// Apply gradient term update to total update
+				dLocalUpdateUa -= dDaUpdate;
+				dLocalUpdateUb -= dDbUpdate;
+
+ 					// Apply update to horizontal velocity on model levels
+				dataUpdateNode[UIx][iA][iB][k] +=
+					dDeltaT * dLocalUpdateUa;
+
+				// Omit beta update for XZ 2D models
+				if (pGrid->GetIsCartesianXZ() == false) {
+					dataUpdateNode[VIx][iA][iB][k] +=
+						dDeltaT * dLocalUpdateUb;
+				}
+
+#ifdef INSTEP_DIVERGENCE_DAMPING
+				// Apply instep divergence
+				dataUpdateNode[UIx][iA][iB][k] +=
+					dDeltaT * m_dInstepNuDiv * dDaDiv;
+				if (pGrid->GetIsCartesianXZ() == false) {
+					dataUpdateNode[VIx][iA][iB][k] +=
+						dDeltaT * m_dInstepNuDiv * dDbDiv;
+				}
+#endif
+
+#if !defined(FIX_ELEMENT_MASS_NONHYDRO)
+				// Update density on model levels
+				dataUpdateNode[RIx][iA][iB][k] -=
+					dDeltaT * dInvJacobian * (
+						  dDaRhoFluxA
+						+ dDbRhoFluxB);
+#endif
+
+#ifdef FORMULATION_PRESSURE
+				// Update pressure on model levels
+				dataUpdateNode[PIx][iA][iB][k] +=
+					dDeltaT * (phys.GetGamma() - 1.0)
+					* (dConUa * dDaP + dConUb * dDbP);
+
+				dataUpdateNode[PIx][iA][iB][k] -=
+					dDeltaT * dInvJacobian * (
+						  dDaPressureFluxA
+						+ dDbPressureFluxB);
+#endif
+#if defined(FORMULATION_RHOTHETA_PI) || defined(FORMULATION_RHOTHETA_P)
+				// Update RhoTheta on model levels
+				dataUpdateNode[PIx][iA][iB][k] -=
+					dDeltaT * dInvJacobian * (
+						  dDaPressureFluxA
+						+ dDbPressureFluxB);
+#endif
+
+				// Update vertical velocity on nodes
+				if (pGrid->GetVarLocation(WIx) == DataLocation_Node) {
+
+					// Calculate vertical velocity update
+					double dLocalUpdateUr =
+						m_dAuxDataNode[UCrossZetaXIx][i][j][k];
+
+					if (k == 0) {
+						dLocalUpdateUr =
+							- ( m_dLocalContraMetric[iA][iB][0][2]
+									* dLocalUpdateUa
+							  + m_dLocalContraMetric[iA][iB][0][4]
+							  		* dLocalUpdateUb)
+							/ m_dLocalContraMetric[iA][iB][0][5];
+
+					} else if (k == nRElements-1) {
+						dLocalUpdateUr = 0.0;
+					}
+
+					// Update vertical velocity
+					dataUpdateNode[WIx][iA][iB][k] +=
+						dDeltaT * dLocalUpdateUr;
+				}
+
+#ifdef FORMULATION_THETA
+				// Update thermodynamic variable on nodes
+				if (pGrid->GetVarLocation(PIx) == DataLocation_Node) {
+
+					// Derivatives of the theta field
+					double dDaTheta = 0.0;
+					double dDbTheta = 0.0;
+
+					for (int s = 0; s < nHorizontalOrder; s++) {
+						dDaTheta +=
+							dataInitialNode[PIx][iElementA+s][iB][k]
+							* dDxBasis1D[s][i];
+
+						dDbTheta +=
+							dataInitialNode[PIx][iA][iElementB+s][k]
+							* dDxBasis1D[s][j];
+					}
+
+					dDaTheta *= dInvElementDeltaA;
+					dDbTheta *= dInvElementDeltaB;
+
+					// Update Theta on model levels
+					dataUpdateNode[PIx][iA][iB][k] -=
+						dDeltaT * (dConUa * dDaTheta + dConUb * dDbTheta);
+				}
+#endif
+#ifdef FORMULATION_THETA_FLUX
+				// Update thermodynamic variable on nodes
+				if (pGrid->GetVarLocation(PIx) == DataLocation_Node) {
+
+					// Derivatives of the theta field
 					double dDaJUa = 0.0;
 					double dDbJUb = 0.0;
 
-					for (int s = 0; s < m_nHorizontalOrder; s++) {
-						// Alpha derivative of J U^a
+					double dDaJThetaUa = 0.0;
+					double dDbJThetaUb = 0.0;
+
+					for (int s = 0; s < nHorizontalOrder; s++) {
 						dDaJUa +=
 							m_dLocalJacobian[s][j][k]
 							* m_dAuxDataNode[ConUaIx][s][j][k]
 							* dDxBasis1D[s][i];
 
-						// Beta derivative of J U^b
 						dDbJUb +=
 							m_dLocalJacobian[i][s][k]
+							* m_dAuxDataNode[ConUbIx][i][s][k]
+							* dDxBasis1D[s][j];
+
+						dDaJThetaUa +=
+							m_dLocalJacobian[s][j][k]
+							* dataInitialNode[PIx][iElementA+s][iB][k]
+							* m_dAuxDataNode[ConUaIx][s][j][k]
+							* dDxBasis1D[s][i];
+
+						dDbJThetaUb +=
+							m_dLocalJacobian[i][s][k]
+							* dataInitialNode[PIx][iA][iElementB+s][k]
 							* m_dAuxDataNode[ConUbIx][i][s][k]
 							* dDxBasis1D[s][j];
 					}
@@ -980,423 +1421,69 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 					dDaJUa *= dInvElementDeltaA;
 					dDbJUb *= dInvElementDeltaB;
 
-					m_dDivergence[i][j][k] =
-						(dDaJUa + dDbJUb) / m_dLocalJacobian[i][j][k];
-#endif
+					dDaJThetaUa *= dInvElementDeltaA;
+					dDbJThetaUb *= dInvElementDeltaB;
+
+					// Update Theta on model levels
+					double dUpdateTheta =
+						(dDaJThetaUa + dDbJThetaUb)
+						- dataInitialNode[PIx][iA][iB][k]
+							* (dDaJUa + dDbJUb);
+
+					dataUpdateNode[PIx][iA][iB][k] -=
+						dDeltaT
+						* dUpdateTheta
+						* dInvJacobian;
 				}
+#endif
+
+				// Update tracers
+				for (int c = 0; c < nTracerCount; c++) {
+					double dDaTracerFluxA = 0.0;
+					double dDbTracerFluxB = 0.0;
+
+					for (int s = 0; s < nHorizontalOrder; s++) {
+						dDaTracerFluxA -=
+							m_dAlphaTracerFlux[c][s][j][k]
+							* dStiffness1D[i][s];
+
+						dDbTracerFluxB -=
+							m_dBetaTracerFlux[c][i][s][k]
+							* dStiffness1D[j][s];
+					}
+
+					dDaTracerFluxA *= dInvElementDeltaA;
+					dDbTracerFluxB *= dInvElementDeltaB;
+
+					dataUpdateTracer[c][iA][iB][k] -=
+						dDeltaT * dInvJacobian * (
+							  dDaTracerFluxA
+							+ dDbTracerFluxB);
 				}
-
-				// Pointwise update of quantities on model levels
-				double dElementMassFluxA = 0.0;
-				double dElementMassFluxB = 0.0;
-				double dElTotalArea = 0.0;
-				for (int i = 0; i < m_nHorizontalOrder; i++) {
-				for (int j = 0; j < m_nHorizontalOrder; j++) {
-
-					int iA = a * m_nHorizontalOrder + i + box.GetHaloElements();
-					int iB = b * m_nHorizontalOrder + j + box.GetHaloElements();
-
-					int iElementA = a * m_nHorizontalOrder + box.GetHaloElements();
-					int iElementB = b * m_nHorizontalOrder + box.GetHaloElements();
-
-					// Inverse Jacobian
-					const double dInvJacobian =
-						1.0 / m_dLocalJacobian[i][j][k];
-
-					// Aliases for alpha and beta velocities
-					const double dConUa = m_dAuxDataNode[ConUaIx][i][j][k];
-					const double dConUb = m_dAuxDataNode[ConUbIx][i][j][k];
-					const double dConUx = m_dAuxDataNode[ConUxIx][i][j][k];
-
-					const double dCovUx = m_dAuxDataNode[CovUxIx][i][j][k];
-
-					// Derivative of the kinetic energy
-					double dDaKE = 0.0;
-					double dDbKE = 0.0;
-
-					// Derivatives of the pressure field
-					double dDaP = 0.0;
-					double dDbP = 0.0;
-
-					// Gradient of the divergence
-					double dDaDiv = 0.0;
-					double dDbDiv = 0.0;
-
-					// Calculate derivatives in the alpha direction
-					double dDaRhoFluxA = 0.0;
-					double dDaPressureFluxA = 0.0;
-
-					for (int s = 0; s < m_nHorizontalOrder; s++) {
-#ifdef DIFFERENTIAL_FORM
-						// Update density: Differential formulation
-						dDaRhoFluxA +=
-							m_dAlphaMassFlux[s][j]
-							* dDxBasis1D[s][i];
-
-#pragma message "Only evaluate pressure flux for relevant formulations"
-						// Update pressure: Differential formulation
-						dDaPressureFluxA +=
-							m_dAlphaPressureFlux[s][j]
-							* dDxBasis1D[s][i];
-
-#else
-						// Update density: Variational formulation
-						dDaRhoFluxA -=
-							m_dAlphaMassFlux[s][j]
-							* dStiffness1D[i][s];
-
-						// Update pressure: Variational formulation
-						dDaPressureFluxA -=
-							m_dAlphaPressureFlux[s][j]
-							* dStiffness1D[i][s];
-#endif
-
-#ifdef FORMULATION_PRESSURE
-						// Derivative of pressure with respect to alpha
-						dDaP +=
-							dataInitialNode[PIx][iElementA+s][iB][k]
-							* dDxBasis1D[s][i];
-#endif
-#if defined(FORMULATION_RHOTHETA_PI) \
- || defined(FORMULATION_RHOTHETA_P) \
- || defined(FORMULATION_THETA) \
- || defined(FORMULATION_THETA_FLUX)
-						// Derivative of (Exner) pressure with respect to alpha
-						dDaP +=
-							m_dAuxDataNode[ExnerIx][s][j][k]
-							* dDxBasis1D[s][i];
-#endif
-
-						// Derivative of specific kinetic energy wrt alpha
-						dDaKE +=
-							m_dAuxDataNode[KIx][s][j][k]
-							* dDxBasis1D[s][i];
-
-#ifdef INSTEP_DIVERGENCE_DAMPING
-						dDaDiv -=
-							m_dDivergence[s][j][k]
-							* dStiffness1D[i][s];
-#endif
-					}
-
-					// Calculate derivatives in the beta direction
-					double dDbRhoFluxB = 0.0;
-					double dDbPressureFluxB = 0.0;
-
-					for (int s = 0; s < m_nHorizontalOrder; s++) {
-#ifdef DIFFERENTIAL_FORM
-						// Update density: Differential formulation
-						dDbRhoFluxB +=
-							m_dBetaMassFlux[i][s]
-							* dDxBasis1D[s][j];
-
-						// Update pressure: Differential formulation
-						dDbPressureFluxB +=
-							m_dBetaPressureFlux[i][s]
-							* dDxBasis1D[s][j];
-
-#else
-						// Update density: Variational formulation
-						dDbRhoFluxB -=
-							m_dBetaMassFlux[i][s]
-							* dStiffness1D[j][s];
-
-						// Update pressure: Variational formulation
-						dDbPressureFluxB -=
-							m_dBetaPressureFlux[i][s]
-							* dStiffness1D[j][s];
-#endif
-
-#ifdef FORMULATION_PRESSURE
-						// Derivative of pressure with respect to beta
-						dDbP +=
-							dataInitialNode[PIx][iA][iElementB+s][k]
-							* dDxBasis1D[s][j];
-#endif
-#if defined(FORMULATION_RHOTHETA_PI) \
- || defined(FORMULATION_RHOTHETA_P) \
- || defined(FORMULATION_THETA) \
- || defined(FORMULATION_THETA_FLUX)
-						// Derivative of (Exner) pressure with respect to beta
-						dDbP +=
-							m_dAuxDataNode[ExnerIx][i][s][k]
-							* dDxBasis1D[s][j];
-#endif
-
-						// Derivative of specific kinetic energy wrt beta
-						dDbKE +=
-							m_dAuxDataNode[KIx][i][s][k]
-							* dDxBasis1D[s][j];
-
-#ifdef INSTEP_DIVERGENCE_DAMPING
-						dDbDiv -=
-							m_dDivergence[i][s][k]
-							* dStiffness1D[j][s];
-#endif
-					}
-
-					// Scale derivatives
-					dDaRhoFluxA *= dInvElementDeltaA;
-					dDbRhoFluxB *= dInvElementDeltaB;
-
-					dDaPressureFluxA *= dInvElementDeltaA;
-					dDbPressureFluxB *= dInvElementDeltaB;
-
-					dDaP *= dInvElementDeltaA;
-					dDbP *= dInvElementDeltaB;
-
-					dDaKE *= dInvElementDeltaA;
-					dDbKE *= dInvElementDeltaB;
-
-#ifdef INSTEP_DIVERGENCE_DAMPING
-					dDaDiv *= dInvElementDeltaA;
-					dDbDiv *= dInvElementDeltaB;
-#endif
-
-					// Pointwise momentum updates
-					double dLocalUpdateUa = 0.0;
-					double dLocalUpdateUb = 0.0;
-
-					// Updates due to rotational terms
-					dLocalUpdateUa += m_dAuxDataNode[UCrossZetaAIx][i][j][k];
-					dLocalUpdateUb += m_dAuxDataNode[UCrossZetaBIx][i][j][k];
-
-					// Coriolis terms
-					dLocalUpdateUa +=
-						m_dLocalCoriolisF[i][j]
-						* m_dLocalJacobian2D[i][j]
-						* dConUb;
-
-					dLocalUpdateUb -=
-						m_dLocalCoriolisF[i][j]
-						* m_dLocalJacobian2D[i][j]
-						* dConUa;
-
-					// Pressure gradient force
-#if defined(FORMULATION_PRESSURE) || defined(FORMULATION_RHOTHETA_P)
-					double dPressureGradientForceUa =
-						dDaP / dataInitialNode[RIx][iA][iB][k];
-					double dPressureGradientForceUb =
-						dDbP / dataInitialNode[RIx][iA][iB][k];
-#endif
-#ifdef FORMULATION_RHOTHETA_PI
-					double dPressureGradientForceUa =
-						dDaP * dataInitialNode[PIx][iA][iB][k]
-						/ dataInitialNode[RIx][iA][iB][k];
-					double dPressureGradientForceUb =
-						dDbP * dataInitialNode[PIx][iA][iB][k]
-						/ dataInitialNode[RIx][iA][iB][k];
-#endif
-#if defined(FORMULATION_THETA) || defined(FORMULATION_THETA_FLUX)
-					double dPressureGradientForceUa =
-						dDaP * dataInitialNode[PIx][iA][iB][k];
-					double dPressureGradientForceUb =
-						dDbP * dataInitialNode[PIx][iA][iB][k];
-#endif
-
-					// Gravity
-					double dDaPhi = phys.GetG() * m_dLocalDerivR[i][j][k][0];
-					double dDbPhi = phys.GetG() * m_dLocalDerivR[i][j][k][1];
-
-					// Horizontal updates due to gradient terms
-					double dDaUpdate =
-						dPressureGradientForceUa + dDaKE + dDaPhi;
-
-					double dDbUpdate =
-						dPressureGradientForceUb + dDbKE + dDbPhi;
-
-					// Apply gradient term update to total update
-					dLocalUpdateUa -= dDaUpdate;
-					dLocalUpdateUb -= dDbUpdate;
-
- 					// Apply update to horizontal velocity on model levels
-					dataUpdateNode[UIx][iA][iB][k] +=
-						dDeltaT * dLocalUpdateUa;
-
-					// Omit beta update for XZ 2D models
-					if (pGrid->GetIsCartesianXZ() == false) {
-						dataUpdateNode[VIx][iA][iB][k] +=
-							dDeltaT * dLocalUpdateUb;
-					}
-
-#ifdef INSTEP_DIVERGENCE_DAMPING
-					// Apply instep divergence
-					dataUpdateNode[UIx][iA][iB][k] +=
-						dDeltaT * m_dInstepNuDiv * dDaDiv;
-					if (pGrid->GetIsCartesianXZ() == false) {
-						dataUpdateNode[VIx][iA][iB][k] +=
-							dDeltaT * m_dInstepNuDiv * dDbDiv;
-					}
-#endif
 
 #ifdef FIX_ELEMENT_MASS_NONHYDRO
-					// Integrate element mass fluxes
-					dElementMassFluxA += dInvJacobian *
-						dDaRhoFluxA * dElementAreaNode[iA][iB][k];
-					dElementMassFluxB += dInvJacobian *
-						dDbRhoFluxB * dElementAreaNode[iA][iB][k];
-					dElTotalArea += dElementAreaNode[iA][iB][k];
+				// Integrate element mass fluxes
+				m_dElementMassFluxA[k] +=
+					dInvJacobian
+					* dDaRhoFluxA
+					* dElementAreaNode[iA][iB][k];
 
-					// Store the local element fluxes
-					m_dAlphaElMassFlux[i][j] = dDaRhoFluxA;
-					m_dBetaElMassFlux[i][j] = dDbRhoFluxB;
-#else
+				m_dElementMassFluxB[k] +=
+					dInvJacobian
+					* dDbRhoFluxB
+					* dElementAreaNode[iA][iB][k];
 
-					// Update density on model levels
-					dataUpdateNode[RIx][iA][iB][k] -=
-						dDeltaT * dInvJacobian * (
-							  dDaRhoFluxA
-							+ dDbRhoFluxB);
+				m_dElTotalArea[k] +=
+					dElementAreaNode[iA][iB][k];
+
+				// Store the local element fluxes
+				m_dAlphaElMassFlux[i][j][k] = dDaRhoFluxA;
+				m_dBetaElMassFlux[i][j][k] = dDbRhoFluxB;
 #endif
-
-#ifdef FORMULATION_PRESSURE
-					// Update pressure on model levels
-					dataUpdateNode[PIx][iA][iB][k] +=
-						dDeltaT * (phys.GetGamma() - 1.0)
-						* (dConUa * dDaP + dConUb * dDbP);
-
-					dataUpdateNode[PIx][iA][iB][k] -=
-						dDeltaT * dInvJacobian * (
-							  dDaPressureFluxA
-							+ dDbPressureFluxB);
-#endif
-#if defined(FORMULATION_RHOTHETA_PI) || defined(FORMULATION_RHOTHETA_P)
-					// Update RhoTheta on model levels
-					dataUpdateNode[PIx][iA][iB][k] -=
-						dDeltaT * dInvJacobian * (
-							  dDaPressureFluxA
-							+ dDbPressureFluxB);
-#endif
-
-					// Update vertical velocity on nodes
-					if (pGrid->GetVarLocation(WIx) == DataLocation_Node) {
-
-						// Calculate vertical velocity update
-						double dLocalUpdateUr =
-							m_dAuxDataNode[UCrossZetaXIx][i][j][k];
-
-						if (k == 0) {
-							dLocalUpdateUr =
-								- ( m_dLocalContraMetric[iA][iB][0][2]
-										* dLocalUpdateUa
-								  + m_dLocalContraMetric[iA][iB][0][4]
-								  		* dLocalUpdateUb)
-								/ m_dLocalContraMetric[iA][iB][0][5];
-
-						} else if (k == nRElements-1) {
-							dLocalUpdateUr = 0.0;
-						}
-
-						// Update vertical velocity
-						dataUpdateNode[WIx][iA][iB][k] +=
-							dDeltaT * dLocalUpdateUr;
-					}
-
-#ifdef FORMULATION_THETA
-					// Update thermodynamic variable on nodes
-					if (pGrid->GetVarLocation(PIx) == DataLocation_Node) {
-
-						// Derivatives of the theta field
-						double dDaTheta = 0.0;
-						double dDbTheta = 0.0;
-
-						for (int s = 0; s < m_nHorizontalOrder; s++) {
-							dDaTheta +=
-								dataInitialNode[PIx][iElementA+s][iB][k]
-								* dDxBasis1D[s][i];
-
-							dDbTheta +=
-								dataInitialNode[PIx][iA][iElementB+s][k]
-								* dDxBasis1D[s][j];
-						}
-
-						dDaTheta *= dInvElementDeltaA;
-						dDbTheta *= dInvElementDeltaB;
-
-						// Update Theta on model levels
-						dataUpdateNode[PIx][iA][iB][k] -=
-							dDeltaT * (dConUa * dDaTheta + dConUb * dDbTheta);
-					}
-#endif
-#ifdef FORMULATION_THETA_FLUX
-					// Update thermodynamic variable on nodes
-					if (pGrid->GetVarLocation(PIx) == DataLocation_Node) {
-
-						// Derivatives of the theta field
-						double dDaJUa = 0.0;
-						double dDbJUb = 0.0;
-
-						double dDaJThetaUa = 0.0;
-						double dDbJThetaUb = 0.0;
-
-						for (int s = 0; s < m_nHorizontalOrder; s++) {
-							dDaJUa +=
-								m_dLocalJacobian[s][j][k]
-								* m_dAuxDataNode[ConUaIx][s][j][k]
-								* dDxBasis1D[s][i];
-
-							dDbJUb +=
-								m_dLocalJacobian[i][s][k]
-								* m_dAuxDataNode[ConUbIx][i][s][k]
-								* dDxBasis1D[s][j];
-
-							dDaJThetaUa +=
-								m_dLocalJacobian[s][j][k]
-								* dataInitialNode[PIx][iElementA+s][iB][k]
-								* m_dAuxDataNode[ConUaIx][s][j][k]
-								* dDxBasis1D[s][i];
-
-							dDbJThetaUb +=
-								m_dLocalJacobian[i][s][k]
-								* dataInitialNode[PIx][iA][iElementB+s][k]
-								* m_dAuxDataNode[ConUbIx][i][s][k]
-								* dDxBasis1D[s][j];
-						}
-
-						dDaJUa *= dInvElementDeltaA;
-						dDbJUb *= dInvElementDeltaB;
-
-						dDaJThetaUa *= dInvElementDeltaA;
-						dDbJThetaUb *= dInvElementDeltaB;
-
-						// Update Theta on model levels
-						double dUpdateTheta =
-							(dDaJThetaUa + dDbJThetaUb)
-							- dataInitialNode[PIx][iA][iB][k]
-								* (dDaJUa + dDbJUb);
-
-						dataUpdateNode[PIx][iA][iB][k] -=
-							dDeltaT
-							* dUpdateTheta
-							* dInvJacobian;
-					}
-#endif
-
-					// Update tracers
-					for (int c = 0; c < nTracerCount; c++) {
-						double dDaTracerFluxA = 0.0;
-						double dDbTracerFluxB = 0.0;
-
-						for (int s = 0; s < m_nHorizontalOrder; s++) {
-							dDaTracerFluxA -=
-								m_dAlphaTracerFlux[c][s][j]
-								* dStiffness1D[i][s];
-
-							dDbTracerFluxB -=
-								m_dBetaTracerFlux[c][i][s]
-								* dStiffness1D[j][s];
-						}
-
-						dDaTracerFluxA *= dInvElementDeltaA;
-						dDbTracerFluxB *= dInvElementDeltaB;
-
-						dataUpdateTracer[c][iA][iB][k] -=
-							dDeltaT * dInvJacobian * (
-								  dDaTracerFluxA
-								+ dDbTracerFluxB);
-					}
-				}
-				}
+			}
+			}
+			}
+/*
 				#ifdef FIX_ELEMENT_MASS_NONHYDRO
 								double dMassFluxPerNodeA = dElementMassFluxA / dElTotalArea;
 								double dMassFluxPerNodeB = dElementMassFluxB / dElTotalArea;
@@ -1423,23 +1510,51 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 											+ m_dBetaElMassFlux[i][j]);
 								}
 								}
-				/*
-								Announce("%i %i %i %1.16e %1.16e %1.16e %1.16e",
-								k, a, b,
-								dElMassInitial, dElMassUpdate, dMassPerNode, dMassPerElement);
-				*/
 				#endif
+*/
+#ifdef FIX_ELEMENT_MASS_NONHYDRO
+			// Apply mass fixer
+			for (int k = 0; k < nRElements; k++) {
+				m_dElementMassFluxA[k] /= m_dElTotalArea[k];
+				m_dElementMassFluxB[k] /= m_dElTotalArea[k];
 			}
+
+			for (int i = 0; i < nHorizontalOrder; i++) {
+			for (int j = 0; j < nHorizontalOrder; j++) {
+			for (int k = 0; k < nRElements; k++) {
+
+				const int iA = iElementA + i;
+				const int iB = iElementB + j;
+
+				const double dInvJacobian =
+					1.0 / m_dLocalJacobian[i][j][k];
+				const double dJacobian =
+					m_dLocalJacobian[i][j][k];
+
+				m_dAlphaElMassFlux[i][j][k] -=
+					dJacobian * m_dElementMassFluxA[k];
+				m_dBetaElMassFlux[i][j][k] -=
+					dJacobian * m_dElementMassFluxB[k];
+
+				// Update density on model levels
+				dataUpdateNode[RIx][iA][iB][k] -=
+					dDeltaT * dInvJacobian * (
+						  m_dAlphaElMassFlux[i][j][k]
+						+ m_dBetaElMassFlux[i][j][k]);
+			}
+			}
+			}
+#endif
 
 			// Update vertical velocity on interfaces
 			if (pGrid->GetVarLocation(WIx) == DataLocation_REdge) {
 
 				// Update vertical velocity at bottom boundary
-				for (int i = 0; i < m_nHorizontalOrder; i++) {
-				for (int j = 0; j < m_nHorizontalOrder; j++) {
+				for (int i = 0; i < nHorizontalOrder; i++) {
+				for (int j = 0; j < nHorizontalOrder; j++) {
 
-					int iA = a * m_nHorizontalOrder + i + box.GetHaloElements();
-					int iB = b * m_nHorizontalOrder + j + box.GetHaloElements();
+					const int iA = iElementA + i;
+					const int iB = iElementB + j;
 
 					// Interpolate horizontal velocity to bottom boundary
 					double dU0 =
@@ -1463,12 +1578,12 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 				}
 
 				// Update interior interfaces
+				for (int i = 0; i < nHorizontalOrder; i++) {
+				for (int j = 0; j < nHorizontalOrder; j++) {
 				for (int k = 1; k < nRElements; k++) {
-				for (int i = 0; i < m_nHorizontalOrder; i++) {
-				for (int j = 0; j < m_nHorizontalOrder; j++) {
 
-					int iA = a * m_nHorizontalOrder + i + box.GetHaloElements();
-					int iB = b * m_nHorizontalOrder + j + box.GetHaloElements();
+					const int iA = iElementA + i;
+					const int iB = iElementB + j;
 
 					// Interpolate U cross Zeta to interfaces
 					double dUCrossZetaX =
@@ -1491,12 +1606,12 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 			// Update thermodynamic variable on interfaces
 			if (pGrid->GetVarLocation(PIx) == DataLocation_REdge) {
 
+				for (int i = 0; i < nHorizontalOrder; i++) {
+				for (int j = 0; j < nHorizontalOrder; j++) {
 				for (int k = 0; k <= nRElements; k++) {
-				for (int i = 0; i < m_nHorizontalOrder; i++) {
-				for (int j = 0; j < m_nHorizontalOrder; j++) {
 
-					int iA = a * m_nHorizontalOrder + i + box.GetHaloElements();
-					int iB = b * m_nHorizontalOrder + j + box.GetHaloElements();
+					const int iA = iElementA + i;
+					const int iB = iElementB + j;
 
 					// Contravariant velocities
 					double dCovUa = dataInitialREdge[UIx][iA][iB][k];
@@ -1517,22 +1632,19 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 				}
 				}
 
+				for (int i = 0; i < nHorizontalOrder; i++) {
+				for (int j = 0; j < nHorizontalOrder; j++) {
 				for (int k = 0; k <= nRElements; k++) {
-				for (int i = 0; i < m_nHorizontalOrder; i++) {
-				for (int j = 0; j < m_nHorizontalOrder; j++) {
 
-					int iA = a * m_nHorizontalOrder + i + box.GetHaloElements();
-					int iB = b * m_nHorizontalOrder + j + box.GetHaloElements();
-
-					int iElementA = a * m_nHorizontalOrder + box.GetHaloElements();
-					int iElementB = b * m_nHorizontalOrder + box.GetHaloElements();
+					const int iA = iElementA + i;
+					const int iB = iElementB + j;
 
 #ifdef FORMULATION_THETA
 					// Derivatives of the theta field on interfaces
 					double dDaTheta = 0.0;
 					double dDbTheta = 0.0;
 
-					for (int s = 0; s < m_nHorizontalOrder; s++) {
+					for (int s = 0; s < nHorizontalOrder; s++) {
 						dDaTheta +=
 							dataInitialREdge[PIx][iElementA+s][iB][k]
 							* dDxBasis1D[s][i];
@@ -1560,7 +1672,7 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 					double dDaJThetaUa = 0.0;
 					double dDbJThetaUb = 0.0;
 
-					for (int s = 0; s < m_nHorizontalOrder; s++) {
+					for (int s = 0; s < nHorizontalOrder; s++) {
 						dDaJUa +=
 							dJacobianREdge[iElementA+s][iB][k]
 							* m_dAuxDataREdge[ConUaIx][s][j][k]
@@ -1710,8 +1822,23 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusion(
 	// Get a copy of the GLL grid
 	GridGLL * pGrid = dynamic_cast<GridGLL*>(m_model.GetGrid());
 
-	// Number of radial elements in grid
+#if defined(FIXED_HORIZONTAL_ORDER)
+	const int nHorizontalOrder = FIXED_HORIZONTAL_ORDER;
+	if (nHorizontalOrder != m_nHorizontalOrder) {
+		_EXCEPTIONT("Command line order must match FIXED_HORIZONTAL_ORDER");
+	}
+#else
+	const int nHorizontalOrder = m_nHorizontalOrder;
+#endif
+
+#if defined(FIXED_RELEMENTS)
+	const int nRElements = FIXED_RELEMENTS;
+	if (nRElements != pGrid->GetRElements()) {
+		_EXCEPTIONT("Command line levels must match FIXED_RELEMENTS");
+	}
+#else
 	const int nRElements = pGrid->GetRElements();
+#endif
 
 	// Check argument
 	if (iComponent < (-1)) {
@@ -1856,13 +1983,13 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusion(
 				for (int k = 0; k < nElementCountR; k++) {
 
 					int iElementA =
-						a * m_nHorizontalOrder + box.GetHaloElements();
+						a * nHorizontalOrder + box.GetHaloElements();
 					int iElementB =
-						b * m_nHorizontalOrder + box.GetHaloElements();
+						b * nHorizontalOrder + box.GetHaloElements();
 
 					// Store the buffer state
-					for (int i = 0; i < m_nHorizontalOrder; i++) {
-					for (int j = 0; j < m_nHorizontalOrder; j++) {
+					for (int i = 0; i < nHorizontalOrder; i++) {
+					for (int j = 0; j < nHorizontalOrder; j++) {
 						int iA = iElementA + i;
 						int iB = iElementB + j;
 
@@ -1872,8 +1999,8 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusion(
 
 					// Remove the reference state from the buffer state
 					if (fRemoveRefState) {
-						for (int i = 0; i < m_nHorizontalOrder; i++) {
-						for (int j = 0; j < m_nHorizontalOrder; j++) {
+						for (int i = 0; i < nHorizontalOrder; i++) {
+						for (int j = 0; j < nHorizontalOrder; j++) {
 							int iA = iElementA + i;
 							int iB = iElementB + j;
 
@@ -1884,14 +2011,14 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusion(
 					}
 
 					// Calculate the pointwise gradient of the scalar field
-					for (int i = 0; i < m_nHorizontalOrder; i++) {
-					for (int j = 0; j < m_nHorizontalOrder; j++) {
+					for (int i = 0; i < nHorizontalOrder; i++) {
+					for (int j = 0; j < nHorizontalOrder; j++) {
 						int iA = iElementA + i;
 						int iB = iElementB + j;
 
 						double dDaPsi = 0.0;
 						double dDbPsi = 0.0;
-						for (int s = 0; s < m_nHorizontalOrder; s++) {
+						for (int s = 0; s < nHorizontalOrder; s++) {
 							dDaPsi +=
 								m_dBufferState[s][j]
 								* dDxBasis1D[s][i];
@@ -1920,8 +2047,8 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusion(
 					double dMassFluxPerNodeA = 0.0;
 					double dMassFluxPerNodeB = 0.0;
 					double dElTotalArea = 0.0;
-					for (int i = 0; i < m_nHorizontalOrder; i++) {
-					for (int j = 0; j < m_nHorizontalOrder; j++) {
+					for (int i = 0; i < nHorizontalOrder; i++) {
+					for (int j = 0; j < nHorizontalOrder; j++) {
 						int iA = iElementA + i;
 						int iB = iElementB + j;
 
@@ -1932,7 +2059,7 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusion(
 						double dUpdateA = 0.0;
 						double dUpdateB = 0.0;
 
-						for (int s = 0; s < m_nHorizontalOrder; s++) {
+						for (int s = 0; s < nHorizontalOrder; s++) {
 							dUpdateA +=
 								m_dJGradientA[s][j]
 								* dStiffness1D[i][s];
@@ -1956,8 +2083,8 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusion(
 								dElTotalArea += dElementAreaNode[iA][iB][k];
 
 								// Store the local element fluxes
-								m_dAlphaElMassFlux[i][j] = dUpdateA;
-								m_dBetaElMassFlux[i][j] = dUpdateB;
+								m_dAlphaElMassFlux[i][j][k] = dUpdateA;
+								m_dBetaElMassFlux[i][j][k] = dUpdateB;
 							} else {
 								// Apply update
 								(*pDataUpdate)[c][iA][iB][k] -=
@@ -1978,8 +2105,8 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusion(
 						double dMassFluxPerNodeB = dElementMassFluxB / dElTotalArea;
 
 						// Compute the fixed mass update
-						for (int i = 0; i < m_nHorizontalOrder; i++) {
-						for (int j = 0; j < m_nHorizontalOrder; j++) {
+						for (int i = 0; i < nHorizontalOrder; i++) {
+						for (int j = 0; j < nHorizontalOrder; j++) {
 
 							int iA = iElementA + i;
 							int iB = iElementB + j;
@@ -1988,13 +2115,13 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusion(
 							const double dInvJacobian = 1.0 / (*pJacobian)[iA][iB][k];
 							const double dJacobian = (*pJacobian)[iA][iB][k];
 
-							m_dAlphaElMassFlux[i][j] -= dJacobian * dMassFluxPerNodeA;
-							m_dBetaElMassFlux[i][j] -= dJacobian * dMassFluxPerNodeB;
+							m_dAlphaElMassFlux[i][j][k] -= dJacobian * dMassFluxPerNodeA;
+							m_dBetaElMassFlux[i][j][k] -= dJacobian * dMassFluxPerNodeB;
 
 							// Update fixed density on model levels
 							(*pDataUpdate)[c][iA][iB][k] -=
 								dDeltaT * dInvJacobian * dLocalNu *
-									(m_dAlphaElMassFlux[i][j] + m_dBetaElMassFlux[i][j]);
+									(m_dAlphaElMassFlux[i][j][k] + m_dBetaElMassFlux[i][j][k]);
 						}
 						}
 					}
@@ -2025,8 +2152,23 @@ void HorizontalDynamicsFEM::ApplyVectorHyperdiffusion(
 	// Get a copy of the GLL grid
 	GridGLL * pGrid = dynamic_cast<GridGLL*>(m_model.GetGrid());
 
-	// Number of radial elements
+#if defined(FIXED_HORIZONTAL_ORDER)
+	const int nHorizontalOrder = FIXED_HORIZONTAL_ORDER;
+	if (nHorizontalOrder != m_nHorizontalOrder) {
+		_EXCEPTIONT("Command line order must match FIXED_HORIZONTAL_ORDER");
+	}
+#else
+	const int nHorizontalOrder = m_nHorizontalOrder;
+#endif
+
+#if defined(FIXED_RELEMENTS)
+	const int nRElements = FIXED_RELEMENTS;
+	if (nRElements != pGrid->GetRElements()) {
+		_EXCEPTIONT("Command line levels must match FIXED_RELEMENTS");
+	}
+#else
 	const int nRElements = pGrid->GetRElements();
+#endif
 
 	// Apply viscosity to reference state
 	bool fApplyToRefState = false;
@@ -2119,12 +2261,12 @@ void HorizontalDynamicsFEM::ApplyVectorHyperdiffusion(
 		for (int b = 0; b < nElementCountB; b++) {
 		for (int k = 0; k < nRElements; k++) {
 
-			const int iElementA = a * m_nHorizontalOrder + box.GetHaloElements();
-			const int iElementB = b * m_nHorizontalOrder + box.GetHaloElements();
+			const int iElementA = a * nHorizontalOrder + box.GetHaloElements();
+			const int iElementB = b * nHorizontalOrder + box.GetHaloElements();
 
 			// Pointwise update of horizontal velocities
-			for (int i = 0; i < m_nHorizontalOrder; i++) {
-			for (int j = 0; j < m_nHorizontalOrder; j++) {
+			for (int i = 0; i < nHorizontalOrder; i++) {
+			for (int j = 0; j < nHorizontalOrder; j++) {
 
 				const int iA = iElementA + i;
 				const int iB = iElementB + j;
@@ -2136,7 +2278,7 @@ void HorizontalDynamicsFEM::ApplyVectorHyperdiffusion(
 				double dDaCurl = 0.0;
 				double dDbCurl = 0.0;
 
-				for (int s = 0; s < m_nHorizontalOrder; s++) {
+				for (int s = 0; s < nHorizontalOrder; s++) {
 					dDaDiv -=
 						  dStiffness1D[i][s]
 						* dataDiv[iElementA+s][iB][k];
@@ -2197,8 +2339,23 @@ void HorizontalDynamicsFEM::ApplyRayleighFriction(
 	// Get a copy of the GLL grid
 	GridGLL * pGrid = dynamic_cast<GridGLL*>(m_model.GetGrid());
 
-	// Number of radial elements
+#if defined(FIXED_HORIZONTAL_ORDER)
+	const int nHorizontalOrder = FIXED_HORIZONTAL_ORDER;
+	if (nHorizontalOrder != m_nHorizontalOrder) {
+		_EXCEPTIONT("Command line order must match FIXED_HORIZONTAL_ORDER");
+	}
+#else
+	const int nHorizontalOrder = m_nHorizontalOrder;
+#endif
+
+#if defined(FIXED_RELEMENTS)
+	const int nRElements = FIXED_RELEMENTS;
+	if (nRElements != pGrid->GetRElements()) {
+		_EXCEPTIONT("Command line levels must match FIXED_RELEMENTS");
+	}
+#else
 	const int nRElements = pGrid->GetRElements();
+#endif
 
 	// Number of components to hit with friction
 	int nComponents = m_model.GetEquationSet().GetComponents();

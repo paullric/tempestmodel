@@ -119,7 +119,7 @@ TimestepSchemeStrang::TimestepSchemeStrang(
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-
+/*
 int TimestepSchemeStrang::GetSubStepCount() const {
 
 	HorizontalDynamics * pHorizontalDynamics =
@@ -134,7 +134,7 @@ int TimestepSchemeStrang::GetSubStepCount() const {
 
 	return (m_nExplicitSubSteps + nHorizontalDynamicsSubSteps + 1);
 }
-
+*/
 ///////////////////////////////////////////////////////////////////////////////
 
 double TimestepSchemeStrang::GetMaximumStableCourantNumber(
@@ -197,7 +197,7 @@ double TimestepSchemeStrang::GetMaximumStableCourantNumber(
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-
+/*
 int TimestepSchemeStrang::SubStep(
 	bool fFirstStep,
 	bool fLastStep,
@@ -444,7 +444,7 @@ int TimestepSchemeStrang::SubStep(
 	// Invalid substep
 	_EXCEPTIONT("Invalid iSubStep");
 }
-
+*/
 ///////////////////////////////////////////////////////////////////////////////
 
 void TimestepSchemeStrang::Step(

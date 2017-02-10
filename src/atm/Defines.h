@@ -44,6 +44,16 @@
 //#define FORMULATION_THETA_FLUX
 
 ///	<summary>
+///		Hardcoded horizontal order.
+///	</summary>
+//#define FIXED_HORIZONTAL_ORDER 4
+
+///	<summary>
+///		Hardcoded number of levels.
+///	</summary>
+//#define FIXED_RELEMENTS 20
+
+///	<summary>
 ///		Prognostic contravariant velocities.
 ///	</summary>
 //#define PROGNOSTIC_CONTRAVARIANT_MOMENTA

@@ -20,6 +20,7 @@
 #include "Defines.h"
 #include "Model.h"
 #include "TimestepSchemeStrang.h"
+#include "TimestepSchemeERK.h"
 #include "TimestepSchemeARS222.h"
 #include "TimestepSchemeARS232.h"
 #include "TimestepSchemeARK232.h"
@@ -211,6 +212,35 @@ void _TempestSetupMethodOfLines(
 			new TimestepSchemeStrang(
 				model, 0.0, TimestepSchemeStrang::RungeKuttaSSPRK53));
 
+	} else if (vars.strTimestepScheme == "erk") {
+		model.SetTimestepScheme(
+			new TimestepSchemeERK(model));
+
+	} else if (vars.strTimestepScheme == "erk/fe") {
+		model.SetTimestepScheme(
+			new TimestepSchemeERK(
+				model, TimestepSchemeERK::ForwardEuler));
+
+	} else if (vars.strTimestepScheme == "erk/rk4") {
+		model.SetTimestepScheme(
+			new TimestepSchemeERK(
+				model, TimestepSchemeERK::RungeKutta4));
+
+	} else if (vars.strTimestepScheme == "erk/rk3") {
+		model.SetTimestepScheme(
+			new TimestepSchemeERK(
+				model, TimestepSchemeERK::RungeKuttaSSP3));
+
+	} else if (vars.strTimestepScheme == "erk/kgu35") {
+		model.SetTimestepScheme(
+			new TimestepSchemeERK(
+				model, TimestepSchemeERK::KinnmarkGrayUllrich35));
+
+	} else if (vars.strTimestepScheme == "erk/ssprk53") {
+		model.SetTimestepScheme(
+			new TimestepSchemeERK(
+				model, TimestepSchemeERK::RungeKuttaSSPRK53));
+
 	} else if (vars.strTimestepScheme == "ars222") {
 		model.SetTimestepScheme(
 			new TimestepSchemeARS222(model));
@@ -245,7 +275,7 @@ void _TempestSetupMethodOfLines(
 
 	} else {
 		_EXCEPTIONT("Invalid timescheme: Expected "
-			"\"Strang\", \"ARS222\", \"ARS232\", \"ARK232\", "
+			"\"Strang\", \"ERK\", \"ARS222\", \"ARS232\", \"ARK232\", "
 			"\"ARS343\", \"ARS443\", \"SSP3_332\"");
 	}
 	AnnounceEndBlock("Done");

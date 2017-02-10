@@ -17,6 +17,7 @@ FILES= CubedSphereTrans.cpp \
        Model.cpp \
        EquationSet.cpp \
        TimestepSchemeStrang.cpp \
+       TimestepSchemeERK.cpp \
        TimestepSchemeARS222.cpp \
        TimestepSchemeARS232.cpp \
        TimestepSchemeARK232.cpp \

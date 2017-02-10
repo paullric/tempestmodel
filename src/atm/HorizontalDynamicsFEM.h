@@ -175,42 +175,57 @@ protected:
 	///	<summary>
 	///		Nodal alpha mass fluxes.
 	///	</summary>
-	DataArray2D<double> m_dAlphaMassFlux;
+	DataArray3D<double> m_dAlphaMassFlux;
 
 	///	<summary>
 	///		Nodal beta mass fluxes.
 	///	</summary>
-	DataArray2D<double> m_dBetaMassFlux;
+	DataArray3D<double> m_dBetaMassFlux;
 
 	///	<summary>
 	///		Nodal alpha mass fluxes to sum over element.
 	///	</summary>
-	DataArray2D<double> m_dAlphaElMassFlux;
+	DataArray3D<double> m_dAlphaElMassFlux;
 
 	///	<summary>
 	///		Nodal beta mass fluxes to sum over element.
 	///	</summary>
-	DataArray2D<double> m_dBetaElMassFlux;
+	DataArray3D<double> m_dBetaElMassFlux;
+
+	///	<summary>
+	///		Alpha mass fluxes summed over element.
+	///	</summary>
+	DataArray1D<double> m_dElementMassFluxA;
+
+	///	<summary>
+	///		Alpha mass fluxes summed over element.
+	///	</summary>
+	DataArray1D<double> m_dElementMassFluxB;
+
+	///	<summary>
+	///		Total element area.
+	///	</summary>
+	DataArray1D<double> m_dElTotalArea;
 
 	///	<summary>
 	///		Nodal alpha pressure fluxes.
 	///	</summary>
-	DataArray2D<double> m_dAlphaPressureFlux;
+	DataArray3D<double> m_dAlphaPressureFlux;
 
 	///	<summary>
 	///		Nodal beta pressure fluxes.
 	///	</summary>
-	DataArray2D<double> m_dBetaPressureFlux;
+	DataArray3D<double> m_dBetaPressureFlux;
 
 	///	<summary>
 	///		Nodal alpha tracer fluxes.
 	///	</summary>
-	DataArray3D<double> m_dAlphaTracerFlux;
+	DataArray4D<double> m_dAlphaTracerFlux;
 
 	///	<summary>
 	///		Nodal beta tracer fluxes.
 	///	</summary>
-	DataArray3D<double> m_dBetaTracerFlux;
+	DataArray4D<double> m_dBetaTracerFlux;
 
 	///	<summary>
 	///		Auxiliary data within an element (on nodes).

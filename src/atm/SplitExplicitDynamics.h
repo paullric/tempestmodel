@@ -84,7 +84,6 @@ public:
 	void CalculateSlowTendencies(
 		int iDataInitial,
 		int iDataSlowTendencies,
-		const Time & time,
 		double dDeltaT
 	);
 
@@ -244,6 +243,16 @@ protected:
 	DataArray3D<double> m_dBetaMassFlux;
 
 	///	<summary>
+	///		Vertical mass flux on interfaces (acoustic loop 1).
+	///	</summary>
+	DataArray3D<double> m_dZMassFluxREdge1;
+
+	///	<summary>
+	///		Vertical mass flux on interfaces (acoustic loop 2).
+	///	</summary>
+	DataArray3D<double> m_dZMassFluxREdge2;
+
+	///	<summary>
 	///		Vertical momentum flux in the alpha direction.
 	///	</summary>
 	DataArray3D<double> m_dAlphaVerticalMomentumFluxREdge;
@@ -262,6 +271,16 @@ protected:
 	///		Nodal beta pressure fluxes.
 	///	</summary>
 	DataArray3D<double> m_dBetaPressureFlux;
+
+	///	<summary>
+	///		Vertical pressure flux on interfaces (acoustic loop 1).
+	///	</summary>
+	DataArray3D<double> m_dZPressureFluxREdge1;
+
+	///	<summary>
+	///		Vertical pressure flux on interfaces (acoustic loop 2).
+	///	</summary>
+	DataArray3D<double> m_dZPressureFluxREdge2;
 
 	///	<summary>
 	///		Nodal mass update.

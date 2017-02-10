@@ -705,10 +705,10 @@ void GridPatchCSGLL::EvaluateTestCase(
 		dUlon = m_datavecStateNode[iDataIndex][UIx][i][j][k];
 		dUlat = m_datavecStateNode[iDataIndex][VIx][i][j][k];
 
-		dUlon *= phys.GetEarthRadius();
-		dUlat *= phys.GetEarthRadius();
-
 #if defined(PROGNOSTIC_CONTRAVARIANT_MOMENTA)
+		dUlon /= phys.GetEarthRadius();
+		dUlat /= phys.GetEarthRadius();
+
 		CubedSphereTrans::VecTransABPFromRLL(
 			tan(m_dANode[i]),
 			tan(m_dBNode[j]),
@@ -717,6 +717,9 @@ void GridPatchCSGLL::EvaluateTestCase(
 			m_datavecStateNode[iDataIndex][UIx][i][j][k],
 			m_datavecStateNode[iDataIndex][VIx][i][j][k]);
 #else
+		dUlon *= phys.GetEarthRadius();
+		dUlat *= phys.GetEarthRadius();
+
 		CubedSphereTrans::CoVecTransABPFromRLL(
 			tan(m_dANode[i]),
 			tan(m_dBNode[j]),
@@ -751,10 +754,10 @@ void GridPatchCSGLL::EvaluateTestCase(
 			dUlon = m_dataRefStateNode[UIx][i][j][k];
 			dUlat = m_dataRefStateNode[VIx][i][j][k];
 
-			dUlon *= phys.GetEarthRadius();
-			dUlat *= phys.GetEarthRadius();
-
 #if defined(PROGNOSTIC_CONTRAVARIANT_MOMENTA)
+			dUlon /= phys.GetEarthRadius();
+			dUlat /= phys.GetEarthRadius();
+
 			CubedSphereTrans::VecTransABPFromRLL(
 				tan(m_dANode[i]),
 				tan(m_dBNode[j]),
@@ -763,6 +766,9 @@ void GridPatchCSGLL::EvaluateTestCase(
 				m_dataRefStateNode[UIx][i][j][k],
 				m_dataRefStateNode[VIx][i][j][k]);
 #else
+			dUlon *= phys.GetEarthRadius();
+			dUlat *= phys.GetEarthRadius();
+
 			CubedSphereTrans::CoVecTransABPFromRLL(
 				tan(m_dANode[i]),
 				tan(m_dBNode[j]),
@@ -810,10 +816,10 @@ void GridPatchCSGLL::EvaluateTestCase(
 		dUlon = m_datavecStateREdge[iDataIndex][UIx][i][j][k];
 		dUlat = m_datavecStateREdge[iDataIndex][VIx][i][j][k];
 
-		dUlon *= phys.GetEarthRadius();
-		dUlat *= phys.GetEarthRadius();
-
 #if defined(PROGNOSTIC_CONTRAVARIANT_MOMENTA)
+		dUlon /= phys.GetEarthRadius();
+		dUlat /= phys.GetEarthRadius();
+
 		CubedSphereTrans::VecTransABPFromRLL(
 			tan(m_dANode[i]),
 			tan(m_dBNode[j]),
@@ -822,6 +828,9 @@ void GridPatchCSGLL::EvaluateTestCase(
 			m_datavecStateREdge[iDataIndex][UIx][i][j][k],
 			m_datavecStateREdge[iDataIndex][VIx][i][j][k]);
 #else
+		dUlon *= phys.GetEarthRadius();
+		dUlat *= phys.GetEarthRadius();
+
 		CubedSphereTrans::CoVecTransABPFromRLL(
 			tan(m_dANode[i]),
 			tan(m_dBNode[j]),
@@ -851,10 +860,10 @@ void GridPatchCSGLL::EvaluateTestCase(
 			dUlon = m_dataRefStateREdge[UIx][i][j][k];
 			dUlat = m_dataRefStateREdge[VIx][i][j][k];
 
-			dUlon *= phys.GetEarthRadius();
-			dUlat *= phys.GetEarthRadius();
-
 #if defined(PROGNOSTIC_CONTRAVARIANT_MOMENTA)
+			dUlon /= phys.GetEarthRadius();
+			dUlat /= phys.GetEarthRadius();
+
 			CubedSphereTrans::VecTransABPFromRLL(
 				tan(m_dANode[i]),
 				tan(m_dBNode[j]),
@@ -863,6 +872,9 @@ void GridPatchCSGLL::EvaluateTestCase(
 				m_dataRefStateREdge[UIx][i][j][k],
 				m_dataRefStateREdge[VIx][i][j][k]);
 #else
+			dUlon *= phys.GetEarthRadius();
+			dUlat *= phys.GetEarthRadius();
+
 			CubedSphereTrans::CoVecTransABPFromRLL(
 				tan(m_dANode[i]),
 				tan(m_dBNode[j]),

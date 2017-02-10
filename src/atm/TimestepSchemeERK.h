@@ -1,6 +1,6 @@
 ///////////////////////////////////////////////////////////////////////////////
 ///
-///	\file    TimestepSchemeStrang.h
+///	\file    TimestepSchemeERK.h
 ///	\author  Paul Ullrich
 ///	\version June 18, 2013
 ///
@@ -14,8 +14,8 @@
 ///		or implied warranty.
 ///	</remarks>
 
-#ifndef _TIMESTEPSCHEMESTRANG_H_
-#define _TIMESTEPSCHEMESTRANG_H_
+#ifndef _TIMESTEPSCHEMEERK_H_
+#define _TIMESTEPSCHEMEERK_H_
 
 #include "TimestepScheme.h"
 #include "Exception.h"
@@ -31,7 +31,7 @@ class Time;
 ///	<summary>
 ///		Adaptive Fourth-Order Runge-Kutta time stepping.
 ///	</summary>
-class TimestepSchemeStrang : public TimestepScheme {
+class TimestepSchemeERK : public TimestepScheme {
 
 public:
 	///	<summary>
@@ -49,9 +49,8 @@ public:
 	///	<summary>
 	///		Constructor.
 	///	</summary>
-	TimestepSchemeStrang(
+	TimestepSchemeERK(
 		Model & model,
-		double dOffCentering = 0.0,
 		ExplicitDiscretization eExplicitDiscretization = KinnmarkGrayUllrich35
 	);
 
@@ -69,12 +68,7 @@ public:
 	virtual int GetTracerDataInstances() const {
 		return 5;
 	}
-/*
-	///	<summary>
-	///		Get the number of substeps.
-	///	</summary>
-	virtual int GetSubStepCount() const;
-*/
+
 	///	<summary>
 	///		Get the maximum stable Courant number for the explicit part of the
 	///		Timesteps scheme.
@@ -85,18 +79,6 @@ public:
 	) const;
 
 protected:
-/*
-	///	<summary>
-	///		Perform one time substep.
-	///	</summary>
-	virtual int SubStep(
-		bool fFirstStep,
-		bool fLastStep,
-		const Time & time,
-		double dDeltaT,
-		int iSubStep
-	);
-*/
 	///	<summary>
 	///		Perform one time step.
 	///	</summary>
@@ -109,11 +91,6 @@ protected:
 
 private:
 	///	<summary>
-	///		Off-centering parameter.
-	///	</summary>
-	double m_dOffCentering;
-
-	///	<summary>
 	///		Explicit time discretization to use.
 	///	</summary>
 	ExplicitDiscretization m_eExplicitDiscretization;
@@ -122,21 +99,6 @@ private:
 	///		Number of sub-steps in explicit discretization.
 	///	</summary>
 	int m_nExplicitSubSteps;
-
-	///	<summary>
-	///		Carryover combination.
-	///	</summary>
-	DataArray1D<double> m_dCarryoverCombination;
-
-	///	<summary>
-	///		Off-centering combination.
-	///	</summary>
-	DataArray1D<double> m_dOffCenteringCombination;
-
-	///	<summary>
-	///		Final carryover combination.
-	///	</summary>
-	DataArray1D<double> m_dCarryoverFinal;
 
 	///	<summary>
 	///		Linear combination coefficients used by RK4.
