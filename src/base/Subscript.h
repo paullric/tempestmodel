@@ -32,7 +32,9 @@ struct index_array
 {
 	T ix_[size];
 
-#if defined(__INTEL_COMPILER)
+#if defined(__INTEL_COMPILER) && (__INTEL_COMPILER < 1500)
+	inline T& operator[](int i) __attribute__((nothrow));
+	
 	inline T& operator[](int i) {
 #else
 	inline T& operator[](int i) noexcept {
@@ -40,7 +42,9 @@ struct index_array
 		return ix_[i];
 	}
 
-#if defined(__INTEL_COMPILER)
+#if defined(__INTEL_COMPILER) && (__INTEL_COMPILER < 1500)
+	inline const T& operator[](int i) const __attribute__((nothrow));
+		
 	inline const T& operator[](int i) const {
 #else
 	inline const T& operator[](int i) const noexcept {
@@ -68,14 +72,21 @@ struct Subscript
 	T& object_;
 	index_array<size_type, Dim> indices_;
 
-#if defined(__INTEL_COMPILER)
+#if defined(__INTEL_COMPILER) && (__INTEL_COMPILER < 1500)
+	constexpr Subscript(T& object) __attribute__((nothrow));
+		
 	constexpr Subscript(T& object)
 #else
 	constexpr Subscript(T& object) noexcept
 #endif
 	  : object_(object), indices_() {}
 
-#if defined(__INTEL_COMPILER)
+#if defined(__INTEL_COMPILER) && (__INTEL_COMPILER < 1500)
+	Subscript(
+		size_type head,
+		Subscript<T, FreeDims + 1, NumDims> const& tail
+	) __attribute__((nothrow));
+
 	Subscript(
 		size_type head,
 		Subscript<T, FreeDims + 1, NumDims> const& tail
@@ -93,7 +104,9 @@ struct Subscript
 		indices_[Dim - 1] = head;
 	}
 
-#if defined(__INTEL_COMPILER)
+#if defined(__INTEL_COMPILER) && (__INTEL_COMPILER < 1500)
+	Subscript<T, FreeDims - 1, NumDims> operator[](size_type idx) const __attribute__((nothrow));
+	
 	Subscript<T, FreeDims - 1, NumDims> operator[](size_type idx) const
 #else
 	Subscript<T, FreeDims - 1, NumDims> operator[](size_type idx) const noexcept
@@ -118,14 +131,21 @@ struct Subscript<T, 1, NumDims>
 	T& object_;
 	index_array<size_type, Dim> indices_;
 
-#if defined(__INTEL_COMPILER)
+#if defined(__INTEL_COMPILER) && (__INTEL_COMPILER < 1500)
+	constexpr Subscript(T& object) __attribute__((nothrow));
+
 	constexpr Subscript(T& object)
 #else
 	constexpr Subscript(T& object) noexcept
 #endif
 	  : object_(object), indices_() {}
 
-#if defined(__INTEL_COMPILER)
+#if defined(__INTEL_COMPILER) && (__INTEL_COMPILER < 1500)
+	Subscript(
+		size_type head,
+		Subscript<T, 2, NumDims> const& tail
+	) __attribute__((nothrow));
+		
 	Subscript(
 		size_type head,
 		Subscript<T, 2, NumDims> const& tail
