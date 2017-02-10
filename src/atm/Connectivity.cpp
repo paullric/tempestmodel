@@ -764,8 +764,8 @@ void ExchangeBufferRegistry::Allocate() {
 			m_vecProcessors.push_back(iterProcs->first);
 
 #if defined(__INTEL_COMPILER)
-			char * pRecvBuffer = (char *)(_mm_malloc(iterProcs->second, 64);
-			char * pSendBuffer = (char *)(_mm_malloc(iterProcs->second, 64);
+			char * pRecvBuffer = (char *)(_mm_malloc(iterProcs->second, 64));
+			char * pSendBuffer = (char *)(_mm_malloc(iterProcs->second, 64));
 #else
 			char * pRecvBuffer = new char[iterProcs->second];
 			char * pSendBuffer = new char[iterProcs->second];
