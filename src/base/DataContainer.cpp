@@ -42,7 +42,11 @@ DataContainer::DataContainer() :
 
 DataContainer::~DataContainer() {
 	if ((m_fOwnsData) && (m_pAllocatedMemory != NULL)) {
+#if defined(__INTEL_COMPILER)
+		_mm_free(m_pAllocatedMemory);
+#else
 		free(m_pAllocatedMemory);
+#endif
 	}
 }
 
@@ -80,8 +84,13 @@ void DataContainer::Allocate() {
 	// Allocate memory as one contiguous chunk
 	size_t sTotalByteSize = GetTotalByteSize();
 
+#if defined(__INTEL_COMPILER)
+	m_pAllocatedMemory =
+		reinterpret_cast<unsigned char*>(_mm_malloc(sTotalByteSize, 64));
+#else
 	m_pAllocatedMemory =
 		reinterpret_cast<unsigned char*>(malloc(sTotalByteSize));
+#endif
 
 	if (m_pAllocatedMemory == NULL) {
 		_EXCEPTIONT("Out of memory");

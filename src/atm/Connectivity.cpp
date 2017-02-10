@@ -683,12 +683,20 @@ ExchangeBufferRegistry::ExchangeBufferRegistry()
 ExchangeBufferRegistry::~ExchangeBufferRegistry() {
 	for (int i = 0; i < m_vecRecvBuffers.size(); i++) {
 		if (m_vecRecvBuffers[i] != NULL) {
+#if defined(__INTEL_COMPILER)
 			delete[] m_vecRecvBuffers[i];
+#else
+			_mm_free(m_vecRecvBuffers[i]);
+#endif
 		}
 	}
 	for (int i = 0; i < m_vecSendBuffers.size(); i++) {
 		if (m_vecSendBuffers[i] != NULL) {
+#if defined(__INTEL_COMPILER)
 			delete[] m_vecSendBuffers[i];
+#else
+			_mm_free(m_vecSendBuffers[i]);
+#endif
 		}
 	}
 }
@@ -754,9 +762,14 @@ void ExchangeBufferRegistry::Allocate() {
 			mapProcessorToBufferSize.begin();
 		for (; iterProcs != mapProcessorToBufferSize.end(); iterProcs++) {
 			m_vecProcessors.push_back(iterProcs->first);
-			
+
+#if defined(__INTEL_COMPILER)
+			char * pRecvBuffer = (char *)(_mm_malloc(iterProcs->second, 64);
+			char * pSendBuffer = (char *)(_mm_malloc(iterProcs->second, 64);
+#else
 			char * pRecvBuffer = new char[iterProcs->second];
 			char * pSendBuffer = new char[iterProcs->second];
+#endif
 
 			if (pRecvBuffer == NULL) {
 				_EXCEPTIONT("Out of memory");
