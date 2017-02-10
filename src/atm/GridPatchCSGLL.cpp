@@ -1398,12 +1398,12 @@ void GridPatchCSGLL::InterpolateData(
 			}
 
 			for (int k = 0; k < dREta.GetRows(); k++) {
-				double dUalpha =
-					dInterpData[0][k][i] / phys.GetEarthRadius();
-				double dUbeta =
-					dInterpData[1][k][i] / phys.GetEarthRadius();
-
 #if defined(PROGNOSTIC_CONTRAVARIANT_MOMENTA)
+				double dUalpha =
+					dInterpData[0][k][i] * phys.GetEarthRadius();
+				double dUbeta =
+					dInterpData[1][k][i] * phys.GetEarthRadius();
+
 				CubedSphereTrans::VecTransRLLFromABP(
 					tan(dAlpha[i]),
 					tan(dBeta[i]),
@@ -1413,6 +1413,11 @@ void GridPatchCSGLL::InterpolateData(
 					dInterpData[0][k][i],
 					dInterpData[1][k][i]);
 #else
+				double dUalpha =
+					dInterpData[0][k][i] / phys.GetEarthRadius();
+				double dUbeta =
+					dInterpData[1][k][i] / phys.GetEarthRadius();
+
 				CubedSphereTrans::CoVecTransRLLFromABP(
 					tan(dAlpha[i]),
 					tan(dBeta[i]),

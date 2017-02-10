@@ -81,9 +81,9 @@ public:
 	///	<summary>
 	///		Calculate the slow tendencies as part of the update.
 	///	</summary>
-	void CalculateSlowTendencies(
+	void CalculateTendencies(
 		int iDataInitial,
-		int iDataSlowTendencies,
+		int iDataTendencies,
 		double dDeltaT
 	);
 
@@ -92,11 +92,12 @@ public:
 	///	</summary>
 	void PerformAcousticLoop(
 		int iDataInitial,
-		int iDataSlowTendencies,
+		int iDataTendencies,
 		int iDataAcoustic0,
 		int iDataAcoustic1,
 		int iDataAcoustic2,
-		double dDeltaT
+		double dDeltaT,
+		bool fFinalLoop
 	);
 
 public:
@@ -200,17 +201,27 @@ protected:
 	///	<summary>
 	///		 Vertical alpha momentum flux on interfaces.
 	///	</summary>
-	DataArray3D<double> m_dJ2SDotUaREdge;
+	DataArray3D<double> m_dSDotREdge;
+
+	///	<summary>
+	///		 Vertical alpha momentum flux on interfaces.
+	///	</summary>
+	DataArray3D<double> m_dSDotUaREdge;
 
 	///	<summary>
 	///		 Vertical beta momentum flux on interfaces.
 	///	</summary>
-	DataArray3D<double> m_dJ2SDotUbREdge;
+	DataArray3D<double> m_dSDotUbREdge;
+
+	///	<summary>
+	///		Vertical theta flux on interfaces.
+	///	</summary>
+	DataArray3D<double> m_dSDotThetaREdge;
 
 	///	<summary>
 	///		Vertical vertical momentum flux on levels.
 	///	</summary>
-	DataArray3D<double> m_dJ2SDotWNode;
+	DataArray3D<double> m_dSDotWNode;
 
 	///	<summary>
 	///		 alpha contravariant velocity.
