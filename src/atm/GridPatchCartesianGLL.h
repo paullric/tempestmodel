@@ -104,7 +104,8 @@ public:
 	///	</summary>
 	virtual void ComputeCurlAndDiv(
 		const DataArray3D<double> & dataUa,
-		const DataArray3D<double> & dataUb
+		const DataArray3D<double> & dataUb,
+		const DataArray3D<double> & dataRho
 	);
 
 	///	<summary>

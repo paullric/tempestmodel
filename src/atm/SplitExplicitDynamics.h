@@ -79,7 +79,7 @@ public:
 	);
 
 	///	<summary>
-	///		Calculate the slow tendencies as part of the update.
+	///		Calculate the explicit tendencies as part of the update.
 	///	</summary>
 	void CalculateTendencies(
 		int iDataInitial,

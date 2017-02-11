@@ -2149,6 +2149,14 @@ void HorizontalDynamicsFEM::ApplyVectorHyperdiffusion(
 	const int VIx = 1;
 	const int WIx = 3;
 
+	// Density or height index
+	int RIx = 4;
+
+	const EquationSet & eqn = m_model.GetEquationSet();
+	if (eqn.GetType() == EquationSet::ShallowWaterEquations) {
+		RIx = 2;
+	}
+
 	// Get a copy of the GLL grid
 	GridGLL * pGrid = dynamic_cast<GridGLL*>(m_model.GetGrid());
 
@@ -2223,16 +2231,24 @@ void HorizontalDynamicsFEM::ApplyVectorHyperdiffusion(
 			dataInitial.GetSize(2),
 			dataInitial.GetSize(3));
 
+		DataArray3D<double> dataRho;
+		dataRho.SetSize(
+			dataInitial.GetSize(1),
+			dataInitial.GetSize(2),
+			dataInitial.GetSize(3));
+
 		if (fApplyToRefState) {
 			dataUa.AttachToData(&(dataRef[UIx][0][0][0]));
 			dataUb.AttachToData(&(dataRef[VIx][0][0][0]));
+			dataRho.AttachToData(&(dataRef[RIx][0][0][0]));
 		} else {
 			dataUa.AttachToData(&(dataInitial[UIx][0][0][0]));
 			dataUb.AttachToData(&(dataInitial[VIx][0][0][0]));
+			dataRho.AttachToData(&(dataInitial[RIx][0][0][0]));
 		}
 
 		// Compute curl and divergence of U on the grid
-		pPatch->ComputeCurlAndDiv(dataUa, dataUb);
+		pPatch->ComputeCurlAndDiv(dataUa, dataUb, dataRho);
 
 		// Get curl and divergence
 		const DataArray3D<double> & dataCurl = pPatch->GetDataVorticity();

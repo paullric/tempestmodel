@@ -903,8 +903,12 @@ void GridPatchCSGLL::EvaluateTestCase_StateOnly(
 
 void GridPatchCSGLL::ComputeCurlAndDiv(
 	const DataArray3D<double> & dataUa,
-	const DataArray3D<double> & dataUb
+	const DataArray3D<double> & dataUb,
+	const DataArray3D<double> & dataRho
 ) {
+	const int UIx = 0;
+	const int VIx = 1;
+
 	// Parent grid
 	const GridCSGLL & gridCSGLL = dynamic_cast<const GridCSGLL &>(m_grid);
 
@@ -935,16 +939,27 @@ void GridPatchCSGLL::ComputeCurlAndDiv(
 	for (int k = 0; k < gridCSGLL.GetRElements(); k++) {
 
 		// Index of lower-left corner node
-		int iElementA = a * m_nHorizontalOrder + m_box.GetHaloElements();
-		int iElementB = b * m_nHorizontalOrder + m_box.GetHaloElements();
+		const int iElementA = a * m_nHorizontalOrder + m_box.GetHaloElements();
+		const int iElementB = b * m_nHorizontalOrder + m_box.GetHaloElements();
 
 		// Calculate contravariant velocities in element
 		for (int i = 0; i < m_nHorizontalOrder; i++) {
 		for (int j = 0; j < m_nHorizontalOrder; j++) {
 
-			int iA = iElementA + i;
-			int iB = iElementB + j;
+			const int iA = iElementA + i;
+			const int iB = iElementB + j;
 
+#if defined(PROGNOSTIC_CONTRAVARIANT_MOMENTA)
+			double dInvRho = 1.0 / dataRho[iA][iB][k];
+
+			m_dBufferConU[0][i][j] = dInvRho * (
+				  m_dataCovMetric2DA[iA][iB][0] * dataUa[iA][iB][k]
+				+ m_dataCovMetric2DA[iA][iB][1] * dataUb[iA][iB][k]);
+
+			m_dBufferConU[1][i][j] = dInvRho * (
+				  m_dataCovMetric2DB[iA][iB][0] * dataUa[iA][iB][k]
+				+ m_dataCovMetric2DB[iA][iB][1] * dataUb[iA][iB][k]);
+#else
 			m_dBufferConU[0][i][j] =
 				+ m_dataContraMetric2DA[iA][iB][0] * dataUa[iA][iB][k]
 				+ m_dataContraMetric2DA[iA][iB][1] * dataUb[iA][iB][k];
@@ -952,6 +967,7 @@ void GridPatchCSGLL::ComputeCurlAndDiv(
 			m_dBufferConU[1][i][j] =
 				+ m_dataContraMetric2DB[iA][iB][0] * dataUa[iA][iB][k]
 				+ m_dataContraMetric2DB[iA][iB][1] * dataUb[iA][iB][k];
+#endif
 		}
 		}
 
@@ -959,8 +975,8 @@ void GridPatchCSGLL::ComputeCurlAndDiv(
 		for (int i = 0; i < m_nHorizontalOrder; i++) {
 		for (int j = 0; j < m_nHorizontalOrder; j++) {
 
-			int iA = iElementA + i;
-			int iB = iElementB + j;
+			const int iA = iElementA + i;
+			const int iB = iElementB + j;
 
 			// Pointwise field values
 			double dUa = dataUa[iA][iB][k];
@@ -973,20 +989,40 @@ void GridPatchCSGLL::ComputeCurlAndDiv(
 			double dDaJUa = 0.0;
 			double dDbJUb = 0.0;
 
+#if defined(PROGNOSTIC_CONTRAVARIANT_MOMENTA)
+
+			for (int s = 0; s < m_nHorizontalOrder; s++) {
+				dDaUb += m_dBufferConU[VIx][s][j] * dDxBasis1D[s][i];
+				dDbUa += m_dBufferConU[UIx][i][s] * dDxBasis1D[s][j];
+
+				dDaJUa +=
+					m_dataJacobian2D[iElementA+s][iB]
+					* dataUa[iElementA+s][iB][k]
+					/ dataRho[iA][iElementB+s][k]
+					* dDxBasis1D[s][i];
+
+				dDbJUb +=
+					m_dataJacobian2D[iA][iElementB+s]
+					* dataUb[iA][iElementB+s][k]
+					/ dataRho[iA][iElementB+s][k]
+					* dDxBasis1D[s][j];
+			}
+#else
 			for (int s = 0; s < m_nHorizontalOrder; s++) {
 				dDaUb += dataUb[iElementA+s][iB][k] * dDxBasis1D[s][i];
 				dDbUa += dataUa[iA][iElementB+s][k] * dDxBasis1D[s][j];
 
 				dDaJUa +=
 					m_dataJacobian2D[iElementA+s][iB]
-					* m_dBufferConU[0][s][j]
+					* m_dBufferConU[UIx][s][j]
 					* dDxBasis1D[s][i];
 
 				dDbJUb +=
 					m_dataJacobian2D[iA][iElementB+s]
-					* m_dBufferConU[1][i][s]
+					* m_dBufferConU[VIx][i][s]
 					* dDxBasis1D[s][j];
 			}
+#endif
 
 			dDaUb *= dInvElementDeltaA;
 			dDbUa *= dInvElementDeltaB;
@@ -994,10 +1030,12 @@ void GridPatchCSGLL::ComputeCurlAndDiv(
 			dDaJUa *= dInvElementDeltaA;
 			dDbJUb *= dInvElementDeltaB;
 
+			const double dInvJacobian2D = 1.0 / m_dataJacobian2D[iA][iB];
+
 			m_dataDivergence[iA][iB][k] =
-				(dDaJUa + dDbJUb) / m_dataJacobian2D[iA][iB];
+				(dDaJUa + dDbJUb) * dInvJacobian2D;
 			m_dataVorticity[iA][iB][k] =
-				(dDaUb - dDbUa) / m_dataJacobian2D[iA][iB];
+				(dDaUb - dDbUa) * dInvJacobian2D;
 		}
 		}
 	}
@@ -1010,8 +1048,10 @@ void GridPatchCSGLL::ComputeCurlAndDiv(
 void GridPatchCSGLL::ComputeVorticityDivergence(
 	int iDataIndex
 ) {
-	static const int UIx = 0;
-	static const int VIx = 1;
+	const int UIx = 0;
+	const int VIx = 1;
+	const int HIx = 2;
+	const int RIx = 4;
 
 	// Physical constants
 	const PhysicalConstants & phys = m_grid.GetModel().GetPhysicalConstants();
@@ -1038,11 +1078,25 @@ void GridPatchCSGLL::ComputeVorticityDivergence(
 		dataState.GetSize(2),
 		dataState.GetSize(3));
 
+	DataArray3D<double> dataRho;
+	dataRho.SetSize(
+		dataState.GetSize(1),
+		dataState.GetSize(2),
+		dataState.GetSize(3));
+
 	dataUa.AttachToData(&(dataState[UIx][0][0][0]));
 	dataUb.AttachToData(&(dataState[VIx][0][0][0]));
 
+	if (dataState.GetSize(0) == 3) {
+		dataRho.AttachToData(&(dataState[HIx][0][0][0]));
+	} else if (dataState.GetSize(0) > 4) {
+		dataRho.AttachToData(&(dataState[RIx][0][0][0]));
+	} else {
+		_EXCEPTIONT("Invalid equation set");
+	}
+
 	// Compute the radial component of the curl of the velocity field
-	ComputeCurlAndDiv(dataUa, dataUb);
+	ComputeCurlAndDiv(dataUa, dataUb, dataRho);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1392,6 +1446,18 @@ void GridPatchCSGLL::InterpolateData(
 
 	// Convert to primitive variables
 	if ((eDataType == DataType_State) && (fConvertToPrimitive)) {
+
+		const int UIx = 0;
+		const int VIx = 1;
+		int RIx = 4;
+		if (dInterpData.GetRows() < 5) {
+			if (dInterpData.GetRows() == 3) {
+				RIx = 2;
+			} else {
+				_EXCEPTIONT("Invalid EquationSet");
+			}
+		}
+
 		for (int i = 0; i < dAlpha.GetRows(); i++) { 
 			if (iPatch[i] != GetPatchIndex()) {
 				continue;
@@ -1400,9 +1466,13 @@ void GridPatchCSGLL::InterpolateData(
 			for (int k = 0; k < dREta.GetRows(); k++) {
 #if defined(PROGNOSTIC_CONTRAVARIANT_MOMENTA)
 				double dUalpha =
-					dInterpData[0][k][i] * phys.GetEarthRadius();
+					dInterpData[UIx][k][i]
+					/ dInterpData[RIx][k][i]
+					* phys.GetEarthRadius();
 				double dUbeta =
-					dInterpData[1][k][i] * phys.GetEarthRadius();
+					dInterpData[VIx][k][i]
+					/ dInterpData[RIx][k][i]
+					* phys.GetEarthRadius();
 
 				CubedSphereTrans::VecTransRLLFromABP(
 					tan(dAlpha[i]),
@@ -1410,13 +1480,13 @@ void GridPatchCSGLL::InterpolateData(
 					GetPatchBox().GetPanel(),
 					dUalpha,
 					dUbeta,
-					dInterpData[0][k][i],
-					dInterpData[1][k][i]);
+					dInterpData[UIx][k][i],
+					dInterpData[VIx][k][i]);
 #else
 				double dUalpha =
-					dInterpData[0][k][i] / phys.GetEarthRadius();
+					dInterpData[UIx][k][i] / phys.GetEarthRadius();
 				double dUbeta =
-					dInterpData[1][k][i] / phys.GetEarthRadius();
+					dInterpData[VIx][k][i] / phys.GetEarthRadius();
 
 				CubedSphereTrans::CoVecTransRLLFromABP(
 					tan(dAlpha[i]),
@@ -1424,8 +1494,8 @@ void GridPatchCSGLL::InterpolateData(
 					GetPatchBox().GetPanel(),
 					dUalpha,
 					dUbeta,
-					dInterpData[0][k][i],
-					dInterpData[1][k][i]);
+					dInterpData[UIx][k][i],
+					dInterpData[VIx][k][i]);
 #endif
 			}
 		}

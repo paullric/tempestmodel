@@ -492,6 +492,14 @@ void SplitExplicitDynamics::CalculateTendencies(
 					m_dSDotREdge[i][j][k]
 					* dataInitialREdge[PIx][iA][iB][k];
 
+				if ((m_dSDotREdge[i][j][k] != 0.0) ||
+					(m_dSDotUaREdge[i][j][k] != 0.0) ||
+					(m_dSDotUbREdge[i][j][k] != 0.0) ||
+					(m_dSDotThetaREdge[i][j][k] != 0.0)
+				) {
+					_EXCEPTION();
+				}
+
 				// Horizontal vertical momentum flux
 				const double dVerticalMomentumBaseFluxREdge =
 					dataInitialREdge[WIx][iA][iB][k]
@@ -598,11 +606,6 @@ void SplitExplicitDynamics::CalculateTendencies(
 				// Alpha derivatives
 				for (int s = 0; s < m_nHorizontalOrder; s++) {
 
-					// Alpha derivative of pressure
-					dDaP +=
-						dataPressure[iElementA+s][iB][k]
-						* dDxBasis1D[s][i];
-
 					// Alpha derivative of mass flux
 					dDaMassFluxAlpha -=
 						m_dAlphaMassFlux[s][j][k]
@@ -612,6 +615,21 @@ void SplitExplicitDynamics::CalculateTendencies(
 					dDaPressureFluxAlpha -=
 						m_dAlphaPressureFlux[s][j][k]
 						* dStiffness1D[i][s];
+/*
+					// Alpha derivative of mass flux
+					dDaMassFluxAlpha +=
+						m_dAlphaMassFlux[s][j][k]
+						* dDxBasis1D[s][i];
+
+					// Alpha derivative of mass flux
+					dDaPressureFluxAlpha +=
+						m_dAlphaPressureFlux[s][j][k]
+						* dDxBasis1D[s][i];
+*/
+					// Alpha derivative of pressure
+					dDaP +=
+						dataPressure[iElementA+s][iB][k]
+						* dDxBasis1D[s][i];
 
 					// Alpha derivative of specific kinetic energy
 					dDaKE +=
@@ -627,11 +645,6 @@ void SplitExplicitDynamics::CalculateTendencies(
 				// Beta derivatives
 				for (int s = 0; s < m_nHorizontalOrder; s++) {
 
-					// Beta derivative of pressure
-					dDbP +=
-						dataPressure[iA][iElementB+s][k]
-						* dDxBasis1D[s][j];
-
 					// Beta derivative of mass flux
 					dDbMassFluxBeta -=
 						m_dBetaMassFlux[i][s][k]
@@ -641,6 +654,21 @@ void SplitExplicitDynamics::CalculateTendencies(
 					dDbPressureFluxBeta -=
 						m_dBetaPressureFlux[i][s][k]
 						* dStiffness1D[j][s];
+/*
+					// Beta derivative of mass flux
+					dDbMassFluxBeta +=
+						m_dBetaMassFlux[i][s][k]
+						* dDxBasis1D[s][j];
+
+					// Beta derivative of mass flux
+					dDbPressureFluxBeta +=
+						m_dBetaPressureFlux[i][s][k]
+						* dDxBasis1D[s][j];
+*/
+					// Beta derivative of pressure
+					dDbP +=
+						dataPressure[iA][iElementB+s][k]
+						* dDxBasis1D[s][j];
 
 					// Beta derivative of specific kinetic energy
 					dDbKE +=
@@ -673,18 +701,15 @@ void SplitExplicitDynamics::CalculateTendencies(
 				// to derivatives along z surfaces.
 				double dDzP = 0.0;
 				if (k == 0) {
-					dDzP = (dataPressure[i][j][k+1]
-						- dataPressure[i][j][k])
+					dDzP = (dataPressure[i][j][k+1] - dataPressure[i][j][k])
 						/ (dataZn[iA][iB][k+1] - dataZn[iA][iB][k]);
 
 				} else if (k == nRElements-1) {
-					dDzP = (dataPressure[i][j][k]
-						- dataPressure[i][j][k-1])
+					dDzP = (dataPressure[i][j][k] - dataPressure[i][j][k-1])
 						/ (dataZn[iA][iB][k] - dataZn[iA][iB][k-1]);
 
 				} else {
-					dDzP = (dataPressure[i][j][k+1]
-						- dataPressure[i][j][k-1])
+					dDzP = (dataPressure[i][j][k+1] - dataPressure[i][j][k-1])
 						/ (dataZn[iA][iB][k+1] - dataZn[iA][iB][k-1]);
 				}
 
@@ -757,33 +782,47 @@ void SplitExplicitDynamics::CalculateTendencies(
 				const double dVorticityBeta =
 					  dAbsVorticity * dInvJacobian2D * m_d2DCovUa[i][j][k];
 
-				// Compose slow tendencies
+				// Compose explicit tendencies on levels
 				dataTendenciesNode[UIx][iA][iB][k] =
 					- dConDaP
-					- dataInitialNode[RIx][iA][iB][k] * dConDaKE
+					- dataInitialNode[RIx][iA][iB][k]
+ 						* (dConDaKE + dVorticityAlpha)
 					- dTotalHorizFluxDiv * m_d2DConUa[i][j][k]
-					- dDsAlphaMomentumFluxS
-					- dVorticityAlpha;
+					- dDsAlphaMomentumFluxS;
+
 /*
-				printf("%1.5e %1.5e %1.5e %1.5e %1.5e : %1.5e\n",
+				printf("%1.5e %1.5e %1.5e %1.5e %1.5e %1.5e : %1.5e\n",
+					- dDaP,
 					- dConDaP,
 					- dataInitialNode[RIx][iA][iB][k] * dConDaKE,
 					- dTotalHorizFluxDiv * m_d2DConUa[i][j][k],
 					- dDsAlphaMomentumFluxS,
-					- dVorticityAlpha,
+					- dataInitialNode[RIx][iA][iB][k] * dVorticityAlpha,
 					dataTendenciesNode[UIx][iA][iB][k]);
 */
+
 				dataTendenciesNode[VIx][iA][iB][k] =
 					- dConDbP
-					- dataInitialNode[RIx][iA][iB][k] * dConDbKE
+					- dataInitialNode[RIx][iA][iB][k]
+ 						* (dConDbKE + dVorticityBeta)
 					- dTotalHorizFluxDiv * m_d2DConUb[i][j][k]
-					- dDsBetaMomentumFluxS
-					- dVorticityBeta;
+					- dDsBetaMomentumFluxS;
+
+/*
+				if (fabs(dataInitialNode[RIx][iA][iB][k] * dConDbKE) < 0.1 * fabs(dConDbP)) {
+					printf("%1.5e %1.5e %1.5e %1.5e %1.5e %1.5e : %1.5e\n",
+						- dConDbP,
+						- dataInitialNode[RIx][iA][iB][k] * dConDbKE,
+						- dTotalHorizFluxDiv * m_d2DConUb[i][j][k],
+						- dDsBetaMomentumFluxS,
+						- dCoriolisF[iA][iB] * dInvJacobian2D * m_d2DCovUa[i][j][k],
+						- dInvJacobian2D * (dDaCovUb - dDbCovUa) * dInvJacobian2D * m_d2DCovUa[i][j][k],
+						dataTendenciesNode[VIx][iA][iB][k]);
+				}
+*/
 
 				dataTendenciesNode[RIx][iA][iB][k] =
-					- dInvJacobian * (
-						  dDaMassFluxAlpha
-						+ dDbMassFluxBeta)
+					- dTotalHorizFluxDiv
 					- dDzMassFluxVertical;
 
 				dataTendenciesNode[PIx][iA][iB][k] =
@@ -795,7 +834,7 @@ void SplitExplicitDynamics::CalculateTendencies(
 			}
 			}
 
-			// Calculate slow tendencies on interfaces
+			// Calculate explicit tendencies on interfaces
 			// the vertical flux of horizontal momentum.
 			for (int i = 0; i < m_nHorizontalOrder; i++) {
 			for (int j = 0; j < m_nHorizontalOrder; j++) {
@@ -1571,7 +1610,7 @@ void SplitExplicitDynamics::StepExplicit(
 		}
 	}
 
-	// Calculate the slow tendencies in the momentum variables
+	// Calculate the explicit tendencies in the momentum variables
 	CalculateTendencies(iDataInitial, iDataTendenciesIx, dDeltaT);
 
 	// Pre-calculate diagnostic pressure tendency on model levels
@@ -1598,24 +1637,20 @@ void SplitExplicitDynamics::StepExplicit(
 			for (int i = box.GetAInteriorBegin(); i < box.GetAInteriorEnd(); i++) {
 			for (int j = box.GetBInteriorBegin(); j < box.GetBInteriorEnd(); j++) {
 			for (int k = 0; k < nRElements; k++) {
-				dataUpdateNode[UIx][i][j][k] =
-					dataInitialNode[UIx][i][j][k]
-					+ dDeltaT * dataTendenciesNode[UIx][i][j][k];
-				dataUpdateNode[VIx][i][j][k] =
-					dataInitialNode[VIx][i][j][k]
-					+ dDeltaT * dataTendenciesNode[VIx][i][j][k];
-				dataUpdateNode[RIx][i][j][k] =
-					dataInitialNode[RIx][i][j][k]
-					+ dDeltaT * dataTendenciesNode[RIx][i][j][k];
-				dataUpdateNode[PIx][i][j][k] =
-					dataInitialNode[PIx][i][j][k]
-					+ dDeltaT * dataTendenciesNode[PIx][i][j][k];
+				dataUpdateNode[UIx][i][j][k] +=
+					dDeltaT * dataTendenciesNode[UIx][i][j][k];
+				dataUpdateNode[VIx][i][j][k] +=
+					dDeltaT * dataTendenciesNode[VIx][i][j][k];
+				dataUpdateNode[RIx][i][j][k] +=
+					dDeltaT * dataTendenciesNode[RIx][i][j][k];
+				dataUpdateNode[PIx][i][j][k] +=
+					dDeltaT * dataTendenciesNode[PIx][i][j][k];
 			}
 			}
 			}
 		}
 	}
-	
+
 	return;
 
 	// Pre-calculate diagnostic pressure tendency on model levels
@@ -2079,6 +2114,14 @@ void SplitExplicitDynamics::ApplyVectorHyperdiffusion(
 	const int VIx = 1;
 	const int WIx = 3;
 
+	// Density or height index
+	int RIx = 4;
+
+	const EquationSet & eqn = m_model.GetEquationSet();
+	if (eqn.GetType() == EquationSet::ShallowWaterEquations) {
+		RIx = 2;
+	}
+
 	// Get a copy of the GLL grid
 	GridGLL * pGrid = dynamic_cast<GridGLL*>(m_model.GetGrid());
 
@@ -2138,16 +2181,24 @@ void SplitExplicitDynamics::ApplyVectorHyperdiffusion(
 			dataInitial.GetSize(2),
 			dataInitial.GetSize(3));
 
+		DataArray3D<double> dataRho;
+		dataRho.SetSize(
+			dataInitial.GetSize(1),
+			dataInitial.GetSize(2),
+			dataInitial.GetSize(3));
+
 		if (fApplyToRefState) {
 			dataUa.AttachToData(&(dataRef[UIx][0][0][0]));
 			dataUb.AttachToData(&(dataRef[VIx][0][0][0]));
+			dataRho.AttachToData(&(dataRef[RIx][0][0][0]));
 		} else {
 			dataUa.AttachToData(&(dataInitial[UIx][0][0][0]));
 			dataUb.AttachToData(&(dataInitial[VIx][0][0][0]));
+			dataRho.AttachToData(&(dataInitial[RIx][0][0][0]));
 		}
 
 		// Compute curl and divergence of U on the grid
-		pPatch->ComputeCurlAndDiv(dataUa, dataUb);
+		pPatch->ComputeCurlAndDiv(dataUa, dataUb, dataRho);
 
 		// Get curl and divergence
 		const DataArray3D<double> & dataCurl = pPatch->GetDataVorticity();

@@ -23,5 +23,7 @@
 #include "EquationSet.h"
 #include "Announce.h"
 
+#include <iostream>
+
 #endif
 

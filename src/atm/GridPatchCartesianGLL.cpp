@@ -1213,7 +1213,8 @@ void GridPatchCartesianGLL::ApplyBoundaryConditions(
 
 void GridPatchCartesianGLL::ComputeCurlAndDiv(
 	const DataArray3D<double> & dataUa,
-	const DataArray3D<double> & dataUb
+	const DataArray3D<double> & dataUb,
+	const DataArray3D<double> & dataRho
 ) {
 	// Parent grid
 	const GridCartesianGLL & gridCSGLL =
@@ -1338,6 +1339,11 @@ void GridPatchCartesianGLL::ComputeCurlAndDiv(
 void GridPatchCartesianGLL::ComputeVorticityDivergence(
 	int iDataIndex
 ) {
+	const int UIx = 0;
+	const int VIx = 1;
+	const int HIx = 2;
+	const int RIx = 4;
+
 	// Physical constants
 	const PhysicalConstants & phys = m_grid.GetModel().GetPhysicalConstants();
 
@@ -1363,11 +1369,25 @@ void GridPatchCartesianGLL::ComputeVorticityDivergence(
 		dataState.GetSize(2),
 		dataState.GetSize(3));
 
-	dataUa.AttachToData(&(dataState[0][0][0][0]));
-	dataUb.AttachToData(&(dataState[1][0][0][0]));
+	DataArray3D<double> dataRho;
+	dataRho.SetSize(
+		dataState.GetSize(1),
+		dataState.GetSize(2),
+		dataState.GetSize(3));
+
+	dataUa.AttachToData(&(dataState[UIx][0][0][0]));
+	dataUb.AttachToData(&(dataState[VIx][0][0][0]));
+
+	if (dataState.GetSize(0) == 3) {
+		dataRho.AttachToData(&(dataState[HIx][0][0][0]));
+	} else if (dataState.GetSize(0) > 4) {
+		dataRho.AttachToData(&(dataState[RIx][0][0][0]));
+	} else {
+		_EXCEPTIONT("Invalid equation set");
+	}
 
 	// Compute the radial component of the curl of the velocity field
-	ComputeCurlAndDiv(dataUa, dataUb);
+	ComputeCurlAndDiv(dataUa, dataUb, dataRho);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
