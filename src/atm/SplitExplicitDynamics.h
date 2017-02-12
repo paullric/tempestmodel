@@ -67,7 +67,7 @@ public:
 	///		Additional data instances needed for acoustic loop.
 	///	</summary>
 	virtual int GetComponentDataInstances() const {
-		return 3;
+		return 4;
 	}
 
 public:
@@ -96,8 +96,7 @@ public:
 		int iDataAcoustic0,
 		int iDataAcoustic1,
 		int iDataAcoustic2,
-		double dDeltaT,
-		bool fFinalLoop
+		double dDeltaT
 	);
 
 public:

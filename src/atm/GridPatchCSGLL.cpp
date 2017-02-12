@@ -998,7 +998,7 @@ void GridPatchCSGLL::ComputeCurlAndDiv(
 				dDaJUa +=
 					m_dataJacobian2D[iElementA+s][iB]
 					* dataUa[iElementA+s][iB][k]
-					/ dataRho[iA][iElementB+s][k]
+					/ dataRho[iElementA+s][iB][k]
 					* dDxBasis1D[s][i];
 
 				dDbJUb +=
@@ -1449,6 +1449,7 @@ void GridPatchCSGLL::InterpolateData(
 
 		const int UIx = 0;
 		const int VIx = 1;
+		const int WIx = 3;
 		int RIx = 4;
 		if (dInterpData.GetRows() < 5) {
 			if (dInterpData.GetRows() == 3) {
@@ -1462,6 +1463,18 @@ void GridPatchCSGLL::InterpolateData(
 			if (iPatch[i] != GetPatchIndex()) {
 				continue;
 			}
+
+#if defined(PROGNOSTIC_CONTRAVARIANT_MOMENTA)
+			if (dInterpData[RIx][0][i] == 0.0) {
+				continue;
+			}
+
+			if (dInterpData.GetRows() >= 5) {
+				for (int k = 0; k < dREta.GetRows(); k++) {
+					dInterpData[WIx][k][i] /= dInterpData[RIx][k][i];
+				}
+			}
+#endif
 
 			for (int k = 0; k < dREta.GetRows(); k++) {
 #if defined(PROGNOSTIC_CONTRAVARIANT_MOMENTA)
