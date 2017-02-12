@@ -71,8 +71,13 @@ EquationSet::EquationSet(
 		m_strComponentFullNames.push_back("Potential Temperature Density");
 #endif
 
+#if defined(PROGNOSTIC_CONTRAVARIANT_MOMENTA)
+		m_strComponentShortNames.push_back("RhoW");
+		m_strComponentFullNames.push_back("Vertical momentum");
+#else
 		m_strComponentShortNames.push_back("W");
 		m_strComponentFullNames.push_back("Vertical velocity");
+#endif
 
 		m_strComponentShortNames.push_back("Rho");
 		m_strComponentFullNames.push_back("Density");
@@ -92,8 +97,13 @@ EquationSet::EquationSet(
 		m_strComponentShortNames.push_back("Theta");
 		m_strComponentFullNames.push_back("Potential Temperature");
 
+#if defined(PROGNOSTIC_CONTRAVARIANT_MOMENTA)
+		m_strComponentShortNames.push_back("RhoW");
+		m_strComponentFullNames.push_back("Vertical momentum");
+#else
 		m_strComponentShortNames.push_back("W");
 		m_strComponentFullNames.push_back("Vertical velocity");
+#endif
 
 		m_strComponentShortNames.push_back("Pressure");
 		m_strComponentFullNames.push_back("Pressure");

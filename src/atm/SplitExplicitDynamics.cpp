@@ -1453,11 +1453,9 @@ void SplitExplicitDynamics::PerformAcousticLoop(
 			}
 /*
 			if ((a < 2) && (b < 2)) {
-			printf("%i %i %i %1.10e %1.10e %1.10e %1.10e\n", n, a, b,
-				m_dA[0][0][0],
-				m_dB[0][0][0],
-				m_dC[0][0][0],
-				m_dD[0][0][0]);
+			printf("%i %i %i %1.10e %1.10e\n", n, a, b,
+				dataInitialREdge[WIx][iElementA][iElementB][4],
+				m_dD[0][0][4]);
 			}
 */
 			// Check return values from tridiagonal solve
@@ -1491,22 +1489,18 @@ void SplitExplicitDynamics::PerformAcousticLoop(
 				// Store updated density
 				dataAcoustic2Node[RIx][iA][iB][k] =
 					dataAcoustic1Node[RIx][iA][iB][k]
-					+ dDeltaT * (
-						m_dNodalMassUpdate[i][j][k]
-						- 0.5 * (1.0 + m_dBs) * dDzMassFlux);
+					+ m_dNodalMassUpdate[i][j][k]
+					+ dDeltaT * (- 0.5 * (1.0 + m_dBs) * dDzMassFlux);
 
 				const double dDzPressureFlux = dInvDeltaZn
-					* (dataAcoustic2REdge[WIx][iA][iB][k+1]
-					 	* dataInitialREdge[PIx][iA][iB][k+1]
-					- dataAcoustic2REdge[WIx][iA][iB][k]
-						* dataInitialREdge[PIx][iA][iB][k]);
+					* (m_dD[i][j][k+1] * dataInitialREdge[PIx][iA][iB][k+1]
+					- m_dD[i][j][k] * dataInitialREdge[PIx][iA][iB][k]);
 
 				// Store updated potential temperature density
 				dataAcoustic2Node[PIx][iA][iB][k] =
 					dataAcoustic1Node[PIx][iA][iB][k]
-					+ dDeltaT * (
-						m_dNodalPressureUpdate[i][j][k]
-						- 0.5 * (1.0 + m_dBs) * dDzPressureFlux);
+					+ m_dNodalPressureUpdate[i][j][k]
+					+ dDeltaT * (- 0.5 * (1.0 + m_dBs) * dDzPressureFlux);
 			}
 			}
 			}
@@ -1678,9 +1672,6 @@ void SplitExplicitDynamics::StepExplicit(
 			dDeltaT);
 	}
 
-	// Apply direct stiffness summation to tendencies
-	pGrid->ApplyDSS(iDataAcousticIndex2, DataType_State);
-
 /*
 	// Perform three sub-cycles of the acoustic loop
 	{
@@ -1711,10 +1702,11 @@ void SplitExplicitDynamics::StepExplicit(
 			iDataAcousticIndex1,
 			iDataAcousticIndex2,
 			dDeltaT / 3.0);
-
-		pGrid->ApplyDSS(iDataAcousticIndex2, DataType_State);
 	}
 */
+	// Apply direct stiffness summation to tendencies
+	pGrid->ApplyDSS(iDataAcousticIndex2, DataType_State);
+
 	// Perform the final update
 	{
 		for (int n = 0; n < pGrid->GetActivePatchCount(); n++) {

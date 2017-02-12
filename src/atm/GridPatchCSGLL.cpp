@@ -1385,11 +1385,19 @@ void GridPatchCSGLL::InterpolateData(
 					if (m_grid.GetVarLocation(WIx) == DataLocation_REdge) {
 						for (int m = 0; m < m_nHorizontalOrder; m++) {
 						for (int n = 0; n < m_nHorizontalOrder; n++) {
+
+#if defined(PROGNOSTIC_CONTRAVARIANT_MOMENTA)
+							dColumnData[k] +=
+								  dAInterpCoeffs[m]
+								* dBInterpCoeffs[n]
+								* pData[iA+m][iB+n][k];
+#else
 							dColumnData[k] +=
 								  dAInterpCoeffs[m]
 								* dBInterpCoeffs[n]
 								* pData[iA+m][iB+n][k]
 								/ m_dataDerivRREdge[iA][iB][k][2];
+#endif
 						}
 						}
 
@@ -1463,18 +1471,6 @@ void GridPatchCSGLL::InterpolateData(
 			if (iPatch[i] != GetPatchIndex()) {
 				continue;
 			}
-
-#if defined(PROGNOSTIC_CONTRAVARIANT_MOMENTA)
-			if (dInterpData[RIx][0][i] == 0.0) {
-				continue;
-			}
-
-			if (dInterpData.GetRows() >= 5) {
-				for (int k = 0; k < dREta.GetRows(); k++) {
-					dInterpData[WIx][k][i] /= dInterpData[RIx][k][i];
-				}
-			}
-#endif
 
 			for (int k = 0; k < dREta.GetRows(); k++) {
 #if defined(PROGNOSTIC_CONTRAVARIANT_MOMENTA)
