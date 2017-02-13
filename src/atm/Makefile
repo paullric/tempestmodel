@@ -58,6 +58,10 @@ LIBNAME= libhardcoreatm
 
 LIB_TARGET= $(TEMPESTBASEDIR)/lib/$(LIBNAME).a
 
+ifeq ($(SPEX), 1)
+  CXXFLAGS+= -DPROGNOSTIC_CONTRAVARIANT_MOMENTA
+endif
+
 .PHONY: all clean
 
 # Build rules.

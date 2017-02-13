@@ -347,7 +347,7 @@ void SplitExplicitDynamics::CalculateTendencies(
 	double dDeltaT
 ) {
 	// Start the function timer
-	//FunctionTimer timer("CalculateTendencies");
+	FunctionTimer timer("CalculateTendencies");
 
 	// Get a copy of the GLL grid
 	GridGLL * pGrid = dynamic_cast<GridGLL*>(m_model.GetGrid());
@@ -364,6 +364,9 @@ void SplitExplicitDynamics::CalculateTendencies(
 	const int PIx = 2;
 	const int WIx = 3;
 	const int RIx = 4;
+
+	// Pre-calculate pressure on model levels
+	pGrid->ComputePressure(iDataInitial);
 
 	// Perform local update
 	for (int n = 0; n < pGrid->GetActivePatchCount(); n++) {
@@ -892,6 +895,36 @@ void SplitExplicitDynamics::CalculateTendencies(
 		}
 		}
 	}
+
+	// Apply direct stiffness summation to tendencies
+	pGrid->ApplyDSS(iDataTendencies, DataType_State);
+
+	// Pre-calculate diagnostic pressure tendency on model levels
+	// (needed in acoustic loop calculations)
+	{
+		for (int n = 0; n < pGrid->GetActivePatchCount(); n++) {
+			GridPatchGLL * pPatch =
+				dynamic_cast<GridPatchGLL*>(pGrid->GetActivePatch(n));
+
+			const PatchBox & box = pPatch->GetPatchBox();
+
+			DataArray3D<double> & dataPressure =
+				pPatch->GetDataPressure();
+
+			const DataArray4D<double> & dataInitialNode =
+				pPatch->GetDataState(iDataInitial, DataLocation_Node);
+
+			for (int i = box.GetAInteriorBegin(); i < box.GetAInteriorEnd(); i++) {
+			for (int j = box.GetBInteriorBegin(); j < box.GetBInteriorEnd(); j++) {
+			for (int k = 0; k < nRElements; k++) {
+				dataPressure[i][j][k] *=
+					phys.GetGamma()
+					/ dataInitialNode[PIx][i][j][k];
+			}
+			}
+			}
+		}
+	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1081,9 +1114,6 @@ void SplitExplicitDynamics::PerformAcousticLoop(
 		}
 		}
 	}
-
-	// Apply direct stiffness summation
-	pGrid->ApplyDSS(iDataAcoustic2, DataType_State);
 
 	// Compute remaining update
 	for (int n = 0; n < pGrid->GetActivePatchCount(); n++) {
@@ -1400,17 +1430,6 @@ void SplitExplicitDynamics::PerformAcousticLoop(
 				const int iA = iElementA + i;
 				const int iB = iElementB + j;
 
-/*
-				for (int k = 0; k < nREdges; k++) {
-					printf("%i %1.10e %1.10e %1.10e %1.10e\n",
-						k, 
-						m_dA[i][j][k],
-						m_dB[i][j][k],
-						m_dC[i][j][k],
-						m_dD[i][j][k]);
-				}
-*/
-
 #ifdef TEMPEST_LAPACK_ACML_INTERFACE
 				dgtsv(
 					nREdges,
@@ -1451,13 +1470,7 @@ void SplitExplicitDynamics::PerformAcousticLoop(
 				//}
 			}
 			}
-/*
-			if ((a < 2) && (b < 2)) {
-			printf("%i %i %i %1.10e %1.10e\n", n, a, b,
-				dataInitialREdge[WIx][iElementA][iElementB][4],
-				m_dD[0][0][4]);
-			}
-*/
+
 			// Check return values from tridiagonal solve
 			for (int i = 0; i < m_nHorizontalOrder; i++) {
 			for (int j = 0; j < m_nHorizontalOrder; j++) {
@@ -1519,6 +1532,10 @@ void SplitExplicitDynamics::PerformAcousticLoop(
 		}
 		}
 	}
+
+	// Apply direct stiffness summation
+	pGrid->ApplyDSS(iDataAcoustic2, DataType_State);
+
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1581,14 +1598,8 @@ void SplitExplicitDynamics::StepExplicit(
 	const int iDataAcousticIndex1 = iDataTendenciesIx+2;
 	const int iDataAcousticIndex2 = iDataTendenciesIx+3;
 
-	// Pre-calculate pressure on model levels
-	pGrid->ComputePressure(iDataInitial);
-
 	// Calculate the explicit tendencies in the momentum variables
 	CalculateTendencies(iDataInitial, iDataTendenciesIx, dDeltaT);
-
-	// Apply direct stiffness summation to tendencies
-	pGrid->ApplyDSS(iDataTendenciesIx, DataType_State);
 
 /*
 	// DEBUG: UPDATE
@@ -1630,33 +1641,7 @@ void SplitExplicitDynamics::StepExplicit(
 
 	return;
 */
-	// Pre-calculate diagnostic pressure tendency on model levels
-	// (needed in acoustic loop calculations)
-	{
-		for (int n = 0; n < pGrid->GetActivePatchCount(); n++) {
-			GridPatchGLL * pPatch =
-				dynamic_cast<GridPatchGLL*>(pGrid->GetActivePatch(n));
-
-			const PatchBox & box = pPatch->GetPatchBox();
-
-			DataArray3D<double> & dataPressure =
-				pPatch->GetDataPressure();
-
-			const DataArray4D<double> & dataInitialNode =
-				pPatch->GetDataState(iDataInitial, DataLocation_Node);
-
-			for (int i = box.GetAInteriorBegin(); i < box.GetAInteriorEnd(); i++) {
-			for (int j = box.GetBInteriorBegin(); j < box.GetBInteriorEnd(); j++) {
-			for (int k = 0; k < nRElements; k++) {
-				dataPressure[i][j][k] *=
-					phys.GetGamma()
-					/ dataInitialNode[PIx][i][j][k];
-			}
-			}
-			}
-		}
-	}
-
+/*
 	// Perform one sub-cycle of the acoustic loop
 	{
 		pGrid->ZeroData(iDataAcousticIndex0, DataType_State);
@@ -1671,8 +1656,7 @@ void SplitExplicitDynamics::StepExplicit(
 			iDataAcousticIndex2,
 			dDeltaT);
 	}
-
-/*
+*/
 	// Perform three sub-cycles of the acoustic loop
 	{
 		pGrid->ZeroData(iDataAcousticIndex0, DataType_State);
@@ -1703,9 +1687,9 @@ void SplitExplicitDynamics::StepExplicit(
 			iDataAcousticIndex2,
 			dDeltaT / 3.0);
 	}
-*/
+
 	// Apply direct stiffness summation to tendencies
-	pGrid->ApplyDSS(iDataAcousticIndex2, DataType_State);
+	//pGrid->ApplyDSS(iDataAcousticIndex2, DataType_State);
 
 	// Perform the final update
 	{
@@ -1714,9 +1698,6 @@ void SplitExplicitDynamics::StepExplicit(
 				dynamic_cast<GridPatchGLL*>(pGrid->GetActivePatch(n));
 
 			const PatchBox & box = pPatch->GetPatchBox();
-
-			DataArray3D<double> & dataPressure =
-				pPatch->GetDataPressure();
 
 			const DataArray4D<double> & dataAcoustic2Node =
 				pPatch->GetDataState(iDataAcousticIndex2, DataLocation_Node);
@@ -1965,9 +1946,9 @@ void SplitExplicitDynamics::ApplyScalarHyperdiffusion(
 				for (int b = 0; b < nElementCountB; b++) {
 				for (int k = 0; k < nElementCountR; k++) {
 
-					int iElementA =
+					const int iElementA =
 						a * m_nHorizontalOrder + box.GetHaloElements();
-					int iElementB =
+					const int iElementB =
 						b * m_nHorizontalOrder + box.GetHaloElements();
 
 					// Store the buffer state
@@ -2025,14 +2006,6 @@ void SplitExplicitDynamics::ApplyScalarHyperdiffusion(
 					}
 
 					// Pointwise updates
-#ifdef FIX_ELEMENT_MASS_NONHYDRO
-					double dElementMassFluxA = 0.0;
-					double dElementMassFluxB = 0.0;
-					double dMassFluxPerNodeA = 0.0;
-					double dMassFluxPerNodeB = 0.0;
-					double dElTotalArea = 0.0;
-#endif
-
 					for (int i = 0; i < m_nHorizontalOrder; i++) {
 					for (int j = 0; j < m_nHorizontalOrder; j++) {
 						int iA = iElementA + i;
@@ -2058,60 +2031,12 @@ void SplitExplicitDynamics::ApplyScalarHyperdiffusion(
 						dUpdateA *= dInvElementDeltaA;
 						dUpdateB *= dInvElementDeltaB;
 
-#ifdef FIX_ELEMENT_MASS_NONHYDRO
-							if (c == RIx) {
-		 						double dInvJacobian = 1.0 / (*pJacobian)[iA][iB][k];
-								// Integrate element mass fluxes
-								dElementMassFluxA += dInvJacobian *
-									dUpdateA * dElementAreaNode[iA][iB][k];
-								dElementMassFluxB += dInvJacobian *
-									dUpdateB * dElementAreaNode[iA][iB][k];
-								dElTotalArea += dElementAreaNode[iA][iB][k];
-
-								// Store the local element fluxes
-								m_dAlphaElMassFlux[i][j] = dUpdateA;
-								m_dBetaElMassFlux[i][j] = dUpdateB;
-							} else {
-								// Apply update
-								(*pDataUpdate)[c][iA][iB][k] -=
-									dDeltaT * dInvJacobian * dLocalNu
-										* (dUpdateA + dUpdateB);
-							}
-#else
 						// Apply update
 						(*pDataUpdate)[c][iA][iB][k] -=
 							dDeltaT * dInvJacobian * dLocalNu
 								* (dUpdateA + dUpdateB);
-#endif
 					}
 					}
-#ifdef FIX_ELEMENT_MASS_NONHYDRO
-					if (c == RIx) {
-						double dMassFluxPerNodeA = dElementMassFluxA / dElTotalArea;
-						double dMassFluxPerNodeB = dElementMassFluxB / dElTotalArea;
-
-						// Compute the fixed mass update
-						for (int i = 0; i < m_nHorizontalOrder; i++) {
-						for (int j = 0; j < m_nHorizontalOrder; j++) {
-
-							int iA = iElementA + i;
-							int iB = iElementB + j;
-
-							// Inverse Jacobian
-							const double dInvJacobian = 1.0 / (*pJacobian)[iA][iB][k];
-							const double dJacobian = (*pJacobian)[iA][iB][k];
-
-							m_dAlphaElMassFlux[i][j] -= dJacobian * dMassFluxPerNodeA;
-							m_dBetaElMassFlux[i][j] -= dJacobian * dMassFluxPerNodeB;
-
-							// Update fixed density on model levels
-							(*pDataUpdate)[c][iA][iB][k] -=
-								dDeltaT * dInvJacobian * dLocalNu *
-									(m_dAlphaElMassFlux[i][j] + m_dBetaElMassFlux[i][j]);
-						}
-						}
-					}
-#endif
 				}
 				}
 				}
@@ -2124,6 +2049,7 @@ void SplitExplicitDynamics::ApplyScalarHyperdiffusion(
 
 void SplitExplicitDynamics::ApplyVectorHyperdiffusion(
 	int iDataInitial,
+	int iDataWorking,
 	int iDataUpdate,
 	double dDeltaT,
 	double dNuDiv,
@@ -2173,6 +2099,9 @@ void SplitExplicitDynamics::ApplyVectorHyperdiffusion(
 		DataArray4D<double> & dataInitial =
 			pPatch->GetDataState(iDataInitial, DataLocation_Node);
 
+		DataArray4D<double> & dataWorking =
+			pPatch->GetDataState(iDataWorking, DataLocation_Node);
+
 		DataArray4D<double> & dataUpdate =
 			pPatch->GetDataState(iDataUpdate, DataLocation_Node);
 
@@ -2192,15 +2121,15 @@ void SplitExplicitDynamics::ApplyVectorHyperdiffusion(
 		// Compute curl and divergence of U on the grid
 		DataArray3D<double> dataUa;
 		dataUa.SetSize(
-			dataInitial.GetSize(1),
-			dataInitial.GetSize(2),
-			dataInitial.GetSize(3));
+			dataWorking.GetSize(1),
+			dataWorking.GetSize(2),
+			dataWorking.GetSize(3));
 
 		DataArray3D<double> dataUb;
 		dataUb.SetSize(
-			dataInitial.GetSize(1),
-			dataInitial.GetSize(2),
-			dataInitial.GetSize(3));
+			dataWorking.GetSize(1),
+			dataWorking.GetSize(2),
+			dataWorking.GetSize(3));
 
 		DataArray3D<double> dataRho;
 		dataRho.SetSize(
@@ -2213,8 +2142,8 @@ void SplitExplicitDynamics::ApplyVectorHyperdiffusion(
 			dataUb.AttachToData(&(dataRef[VIx][0][0][0]));
 			dataRho.AttachToData(&(dataRef[RIx][0][0][0]));
 		} else {
-			dataUa.AttachToData(&(dataInitial[UIx][0][0][0]));
-			dataUb.AttachToData(&(dataInitial[VIx][0][0][0]));
+			dataUa.AttachToData(&(dataWorking[UIx][0][0][0]));
+			dataUb.AttachToData(&(dataWorking[VIx][0][0][0]));
 			dataRho.AttachToData(&(dataInitial[RIx][0][0][0]));
 		}
 
@@ -2240,13 +2169,12 @@ void SplitExplicitDynamics::ApplyVectorHyperdiffusion(
 		}
 
 		// Number of finite elements
-		int nElementCountA = pPatch->GetElementCountA();
-		int nElementCountB = pPatch->GetElementCountB();
+		const int nElementCountA = pPatch->GetElementCountA();
+		const int nElementCountB = pPatch->GetElementCountB();
 
 		// Loop over all finite elements
 		for (int a = 0; a < nElementCountA; a++) {
 		for (int b = 0; b < nElementCountB; b++) {
-		for (int k = 0; k < nRElements; k++) {
 
 			const int iElementA = a * m_nHorizontalOrder + box.GetHaloElements();
 			const int iElementB = b * m_nHorizontalOrder + box.GetHaloElements();
@@ -2254,6 +2182,7 @@ void SplitExplicitDynamics::ApplyVectorHyperdiffusion(
 			// Pointwise update of horizontal velocities
 			for (int i = 0; i < m_nHorizontalOrder; i++) {
 			for (int j = 0; j < m_nHorizontalOrder; j++) {
+			for (int k = 0; k < nRElements; k++) {
 
 				const int iA = iElementA + i;
 				const int iB = iElementB + j;
@@ -2289,27 +2218,37 @@ void SplitExplicitDynamics::ApplyVectorHyperdiffusion(
 				dDaCurl *= dInvElementDeltaA;
 				dDbCurl *= dInvElementDeltaB;
 
-				// Apply update
-				double dUpdateUa =
-					+ dLocalNuDiv * dDaDiv
+				// Covariant update
+				const double dUpdateCovUa =
+					//+ dLocalNuDiv * dDaDiv
 					- dLocalNuVort * dJacobian2D[iA][iB] * (
 						  dContraMetric2DB[iA][iB][0] * dDaCurl
 						+ dContraMetric2DB[iA][iB][1] * dDbCurl);
 
-				double dUpdateUb =
-					+ dLocalNuDiv * dDbDiv
+				const double dUpdateCovUb =
+					//+ dLocalNuDiv * dDbDiv
 					+ dLocalNuVort * dJacobian2D[iA][iB] * (
 						  dContraMetric2DA[iA][iB][0] * dDaCurl
 						+ dContraMetric2DA[iA][iB][1] * dDbCurl);
 
-				dataUpdate[UIx][iA][iB][k] -= dDeltaT * dUpdateUa;
+				// Contravariant update
+				double dUpdateConUa =
+					  dContraMetric2DA[iA][iB][0] * dUpdateCovUa
+					+ dContraMetric2DA[iA][iB][1] * dUpdateCovUb;
 
-				if (pGrid->GetIsCartesianXZ() == false) {
-					dataUpdate[VIx][iA][iB][k] -= dDeltaT * dUpdateUb;
-				}
+				double dUpdateConUb =
+					  dContraMetric2DB[iA][iB][0] * dUpdateCovUa
+					+ dContraMetric2DB[iA][iB][1] * dUpdateCovUb;
+
+				dUpdateConUa *= dataInitial[RIx][iA][iB][k];
+				dUpdateConUb *= dataInitial[RIx][iA][iB][k];
+
+				dataUpdate[UIx][iA][iB][k] -= dDeltaT * dUpdateConUa;
+
+				dataUpdate[VIx][iA][iB][k] -= dDeltaT * dUpdateConUb;
 			}
 			}
-		}
+			}
 		}
 		}
 	}
@@ -2467,8 +2406,6 @@ void SplitExplicitDynamics::StepAfterSubCycle(
 	// Start the function timer
 	FunctionTimer timer("StepAfterSubCycle");
 
-	return;
-
 	// Check indices
 	if (iDataInitial == iDataWorking) {
 		_EXCEPTIONT("Invalid indices "
@@ -2499,7 +2436,7 @@ void SplitExplicitDynamics::StepAfterSubCycle(
 		ApplyScalarHyperdiffusion(
 			iDataInitial, iDataUpdate, dDeltaT, m_dNuScalar, false);
 		ApplyVectorHyperdiffusion(
-			iDataInitial, iDataUpdate, -dDeltaT, m_dNuDiv, m_dNuVort, false);
+			iDataInitial, iDataInitial, iDataUpdate, -dDeltaT, m_dNuDiv, m_dNuVort, false);
 
 		// Apply positive definite filter to tracers
 		FilterNegativeTracers(iDataUpdate);
@@ -2518,7 +2455,7 @@ void SplitExplicitDynamics::StepAfterSubCycle(
 		ApplyScalarHyperdiffusion(
 			iDataInitial, iDataWorking, 1.0, 1.0, false);
 		ApplyVectorHyperdiffusion(
-			iDataInitial, iDataWorking, 1.0, 1.0, 1.0, false);
+			iDataInitial, iDataInitial, iDataWorking, 1.0, 1.0, 1.0, false);
 
 		// Apply Direct Stiffness Summation
 		pGrid->ApplyDSS(iDataWorking, DataType_State);
@@ -2528,7 +2465,7 @@ void SplitExplicitDynamics::StepAfterSubCycle(
 		ApplyScalarHyperdiffusion(
 			iDataWorking, iDataUpdate, -dDeltaT, m_dNuScalar, true);
 		ApplyVectorHyperdiffusion(
-			iDataWorking, iDataUpdate, -dDeltaT, m_dNuDiv, m_dNuVort, true);
+			iDataInitial, iDataWorking, iDataUpdate, -dDeltaT, m_dNuDiv, m_dNuVort, true);
 
 		// Apply positive definite filter to tracers
 		FilterNegativeTracers(iDataUpdate);

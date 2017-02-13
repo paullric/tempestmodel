@@ -129,6 +129,7 @@ protected:
 	///	</summary>
 	void ApplyVectorHyperdiffusion(
 		int iDataInitial,
+		int iDataWorking,
 		int iDataUpdate,
 		double dDeltaT,
 		double dNuDiff,

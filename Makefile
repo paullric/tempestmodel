@@ -7,6 +7,10 @@
 BUILD_TARGETS= src/base src/atm test 
 CLEAN_TARGETS= $(addsuffix .clean,$(BUILD_TARGETS))
 
+ifeq ($(SPEX), 1)
+	MAKEFLAGS+= SPEX=1
+endif
+
 .PHONY: all clean $(BUILD_TARGETS) $(CLEAN_TARGETS)
 
 # Build rules.
@@ -19,7 +23,7 @@ lib/libhardcoreatm.a: src/atm
 test: src/base src/atm
 
 $(BUILD_TARGETS): %:
-	cd $*; $(MAKE)
+	cd $*; $(MAKE) $(MAKEFLAGS)
 
 # Clean rules.
 clean: $(CLEAN_TARGETS)

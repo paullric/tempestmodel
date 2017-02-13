@@ -924,11 +924,7 @@ void GridPatchCSGLL::ComputeCurlAndDiv(
 	// Number of finite elements in each direction
 	int nAFiniteElements = m_box.GetAInteriorWidth() / m_nHorizontalOrder;
 	int nBFiniteElements = m_box.GetBInteriorWidth() / m_nHorizontalOrder;
-/*
-	// Allocate temporary data for contravariant velocities
-	DataArray2D<double> dConUa(m_nHorizontalOrder, m_nHorizontalOrder);
-	DataArray2D<double> dConUb(m_nHorizontalOrder, m_nHorizontalOrder);
-*/
+
 	// Inverse grid spacings
 	const double dInvElementDeltaA = 1.0 / GetElementDeltaA();
 	const double dInvElementDeltaB = 1.0 / GetElementDeltaB();
