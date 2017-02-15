@@ -64,6 +64,11 @@
 //#define EXPLICIT_VERTICAL_VELOCITY_ADVECTION
 
 ///	<summary>
+///		Disable uniform diffusion checks.
+///	</summary>
+//#define DISABLE_UNIFORM_DIFFUSION_CHECKS
+
+///	<summary>
 ///		When to apply Rayleigh damping.
 ///	</summary>
 #define APPLY_RAYLEIGH_WITH_HYPERVIS
