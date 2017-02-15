@@ -41,8 +41,8 @@
 //#define UNIFORM_DIFFUSION_VERTICAL_VELOCITY
 //#define UNIFORM_DIFFUSION_TRACERS
 
-#define RESIDUAL_DIFFUSION_HORIZONTAL_VELOCITIES
-//#define RESIDUAL_DIFFUSION_THERMO
+//#define RESIDUAL_DIFFUSION_HORIZONTAL_VELOCITIES
+#define RESIDUAL_DIFFUSION_THERMO
 //#define RESIDUAL_DIFFUSION_VERTICAL_VELOCITY
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -2328,6 +2328,7 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusionResidual(
 
 		// Initialize new hyperviscosity coefficient
 		double dLocalNu = 0.0;
+		double dResNu[m_nHorizontalOrder][m_nHorizontalOrder];
 
 		// State variables and tracers
 		for (int iType = 0; iType < 2; iType++) {
@@ -2446,6 +2447,172 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusionResidual(
 						}
 					}
 
+                                        // Compute maximum local wave speed in an element
+                                        for (int i = 0; i < m_nHorizontalOrder; i++) {
+                                        for (int j = 0; j < m_nHorizontalOrder; j++) {
+                                                int iA = iElementA + i;
+                                                int iB = iElementB + j;
+
+                                                // Contravariant velocities
+                                                double dCovUa = (*pDataInitial)[UIx][k][iA][iB];
+                                                double dCovUb = (*pDataInitial)[VIx][k][iA][iB];
+
+                                                // Contravariant velocities
+                                                m_dAuxDataNode[ConUaIx][k][i][j] =
+                                                          dContraMetric2DA[iA][iB][0] * dCovUa
+                                                        + dContraMetric2DA[iA][iB][1] * dCovUb;
+
+                                                m_dAuxDataNode[ConUbIx][k][i][j] =
+                                                          dContraMetric2DB[iA][iB][0] * dCovUa
+                                                        + dContraMetric2DB[iA][iB][1] * dCovUb;
+
+                                        	double dRhoTheta = 0.0;
+#if defined(FORMULATION_THETA)
+                                                dRhoTheta = (*pDataInitial)[PIx][k][iA][iB] *
+                                                                                        (*pDataInitial)[RIx][k][iA][iB];
+#endif
+
+#if defined(FORMULATION_RHOTHETA_P) || defined(FORMULATION_RHOTHETA_PI)
+                                                dRhoTheta = (*pDataInitial)[PIx][k][iA][iB];
+#endif
+
+                                                // Maximum wave speed in this element
+                                                m_dAuxDataNode[KIx][k][i][j] = sqrt(
+                                                          m_dAuxDataNode[ConUaIx][k][i][j] * dCovUa
+                                                        + m_dAuxDataNode[ConUbIx][k][i][j] * dCovUb)
+                                                        + sqrt(phys.GetGamma() *
+                                                                   phys.PressureFromRhoTheta(dRhoTheta) /
+                                                                   (*pDataInitial)[RIx][k][iA][iB]);
+                                        }
+                                        }
+
+                                        double dAvgA = 0.0;
+                                        double dAvgB = 0.0;
+                                        double dEAvgU = 0.0;
+                                        double dEAvgV = 0.0;
+                                        double dEAvgW = 0.0;
+                                        double dEAvgP = 0.0;
+                                        double dEAvgR = 0.0;
+                                        // Calculate the element average of the scalar field
+                                        for (int i = 0; i < m_nHorizontalOrder; i++) {
+                                        for (int j = 0; j < m_nHorizontalOrder; j++) {
+                                                int iA = iElementA + i;
+                                                int iB = iElementB + j;
+
+                                                for (int o = 0; o < m_model.GetEquationSet().GetComponents(); o++) {
+                                                        for (int s = 0; s < m_nHorizontalOrder; s++) {
+                                                                dAvgA +=
+                                                                        (*pDataInitial)[o][k][s][iB]
+                                                                        * dStiffness1D[i][s];
+
+                                                                dAvgB +=
+                                                                        (*pDataInitial)[o][k][iA][s]
+                                                                        * dStiffness1D[j][s];
+                                                        }
+
+                                                        dAvgA *= dInvElementDeltaA;
+                                                        dAvgB *= dInvElementDeltaB;
+
+                                                        switch (o) {
+                                                                case 0: dEAvgU = 0.5 * (dAvgA + dAvgB); break;
+                                                                case 1: dEAvgV = 0.5 * (dAvgA + dAvgB); break;
+                                                                case 2: dEAvgW = 0.5 * (dAvgA + dAvgB); break;
+                                                                case 3: dEAvgP = 0.5 * (dAvgA + dAvgB); break;
+                                                                case 4: dEAvgR = 0.5 * (dAvgA + dAvgB); break;
+                                                        }
+                                                }
+                                        }
+                                        }
+
+                                        double dResU = 0.0;
+                                        double dResV = 0.0;
+                                        double dResW = 0.0;
+                                        double dResP = 0.0;
+                                        double dResR = 0.0;
+                                        double dResMax = 0.0;
+                                        double dNuMax = 0.0;
+                                        double dGridLength = dElementLength / (m_nHorizontalOrder - 1);
+
+                                        // Compute the local diffusion coefficient
+                                        for (int i = 0; i < m_nHorizontalOrder; i++) {
+                                        for (int j = 0; j < m_nHorizontalOrder; j++) {
+                                                int iA = iElementA + i;
+                                                int iB = iElementB + j;
+
+                                                // Compute the local diffusion coefficient
+                                                dResU = std::abs((*pDataResidual)[UIx][k][iA][iB]);
+                                                if (!fCartesianXZ) {
+                                                        dResV = std::abs((*pDataResidual)[VIx][k][iA][iB]);
+                                                }
+                                                dResW = std::abs((*pDataResidual)[WIx][k][iA][iB]);
+                                                dResP = std::abs((*pDataResidual)[PIx][k][iA][iB]);
+                                                dResR = std::abs((*pDataResidual)[RIx][k][iA][iB]);
+
+                                                // Select the maximum residual
+                                                dResMax = std::max(dResU, dResV);
+                                                dResMax = std::max(dResMax, dResW);
+                                                dResMax = std::max(dResMax, dResP);
+                                                dResMax = std::max(dResMax, dResR);
+
+                                                if (dResMax == dResU) {
+                                                        dResMax /= std::abs(
+                                                        (*pDataInitial)[UIx][k][iA][iB] - dEAvgU);
+                                                } else if ((dResMax == dResV) && (!fCartesianXZ)){
+                                                        dResMax /= std::abs(
+                                                        (*pDataInitial)[VIx][k][iA][iB] - dEAvgV);
+                                                } else if (dResMax == dResW) {
+                                                        dResMax /= std::abs(
+                                                        (*pDataInitial)[WIx][k][iA][iB] - dEAvgW);
+                                                } else if (dResMax == dResP) {
+                                                        dResMax /= std::abs(
+                                                        (*pDataInitial)[PIx][k][iA][iB] - dEAvgP);
+                                                } else if (dResMax == dResR) {
+                                                        dResMax /= std::abs(
+                                                        (*pDataInitial)[RIx][k][iA][iB] - dEAvgR);
+                                                } else {
+                                                        dResMax = 0.0;
+                                                }
+
+                                                // Scale to the average element length
+                                                dResNu[i][j] = dGridLength * dGridLength * dResMax;
+
+                                                // Get the maximum possible coefficient (upwind)
+                                                if (c != WIx) {
+                                                        // Use the total maximum wind speed
+                                                        dNuMax = 0.5 * dGridLength *
+                                                                                m_dAuxDataNode[KIx][k][i][j] /
+                                                                                pGrid->GetReferenceLength();
+                                                } else {
+                                                        // Contravariant velocities
+                                                        double dCovUa = (*pDataInitial)[UIx][k][iA][iB];
+                                                        double dCovUb = (*pDataInitial)[VIx][k][iA][iB];
+
+                                                        // Calculate covariant xi velocity and store
+                                                        double dCovUx =
+                                                                  (*pDataInitial)[WIx][k][iA][iB]
+                                                                * (*pDerivR)[k][iA][iB][2];
+
+                                                        // Use the vertical wind speed only
+                                                        double dXiDot =
+                                                                 (*pContraMetricA)[k][iA][iB][2] * dCovUa
+                                                                + (*pContraMetricB)[k][iA][iB][2] * dCovUb
+                                                                + (*pContraMetricXi)[k][iA][iB][2] * dCovUx;
+                                                        dNuMax = 0.5 * dGridLength * dXiDot /
+                                                                                pGrid->GetReferenceLength();
+                                                }
+
+                                                // Limit the coefficients to the upwind value
+                                                if (dLocalNu > dNuMax) {
+                                                        dResNu[i][j] = dNuMax;
+                                                }
+                                                // Check for Inf or NaN and adjust
+                                                if (std::isfinite(dLocalNu)) {
+                                                        //printf("%.16E %.16E \n",dLocalNu,dResMax);
+                                                        dResNu[i][j] = 0.0;
+                                                }
+					}
+					}
+
 					// Calculate the pointwise gradient of the scalar field
 					for (int i = 0; i < m_nHorizontalOrder; i++) {
 					for (int j = 0; j < m_nHorizontalOrder; j++) {
@@ -2467,6 +2634,9 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusionResidual(
 						dDaPsi *= dInvElementDeltaA;
 						dDbPsi *= dInvElementDeltaB;
 
+						dDaPsi *= dResNu[i][j];
+						dDbPsi *= dResNu[i][j];
+
 						m_dJGradientA[i][j] = (*pJacobian)[k][iA][iB] * (
 							+ dContraMetric2DA[iA][iB][0] * dDaPsi
 							+ dContraMetric2DA[iA][iB][1] * dDbPsi);
@@ -2477,179 +2647,11 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusionResidual(
 					}
 					}
 
-					// Compute maximum local wave speed in an element
-					for (int i = 0; i < m_nHorizontalOrder; i++) {
-					for (int j = 0; j < m_nHorizontalOrder; j++) {
-						int iA = iElementA + i;
-						int iB = iElementB + j;
-
-						// Contravariant velocities
-						double dCovUa = (*pDataInitial)[UIx][k][iA][iB];
-						double dCovUb = (*pDataInitial)[VIx][k][iA][iB];
-
-						// Contravariant velocities
-						m_dAuxDataNode[ConUaIx][k][i][j] =
-							  dContraMetric2DA[iA][iB][0] * dCovUa
-							+ dContraMetric2DA[iA][iB][1] * dCovUb;
-
-						m_dAuxDataNode[ConUbIx][k][i][j] =
-							  dContraMetric2DB[iA][iB][0] * dCovUa
-							+ dContraMetric2DB[iA][iB][1] * dCovUb;
-
-					double dRhoTheta = 0.0;
-#if defined(FORMULATION_THETA)
-						dRhoTheta = (*pDataInitial)[PIx][k][iA][iB] *
-											(*pDataInitial)[RIx][k][iA][iB];
-#endif
-
-#if defined(FORMULATION_RHOTHETA_P) || defined(FORMULATION_RHOTHETA_PI)
-						dRhoTheta = (*pDataInitial)[PIx][k][iA][iB];
-#endif
-
-						// Maximum wave speed in this element
-						m_dAuxDataNode[KIx][k][i][j] = sqrt(
-							  m_dAuxDataNode[ConUaIx][k][i][j] * dCovUa
-							+ m_dAuxDataNode[ConUbIx][k][i][j] * dCovUb)
-							+ sqrt(phys.GetGamma() * 
-								   phys.PressureFromRhoTheta(dRhoTheta) / 
-								   (*pDataInitial)[RIx][k][iA][iB]);
-					}
-					}
-
-					double dAvgA = 0.0;
-					double dAvgB = 0.0;
-					double dEAvgU = 0.0;
-					double dEAvgV = 0.0;
-					double dEAvgW = 0.0;
-					double dEAvgP = 0.0;
-					double dEAvgR = 0.0;
-					// Calculate the element average of the scalar field
-					for (int i = 0; i < m_nHorizontalOrder; i++) {
-					for (int j = 0; j < m_nHorizontalOrder; j++) {
-						int iA = iElementA + i;
-						int iB = iElementB + j;
-
-						for (int o = 0; o < m_model.GetEquationSet().GetComponents(); o++) {
-							for (int s = 0; s < m_nHorizontalOrder; s++) {
-								dAvgA +=
-									(*pDataInitial)[o][k][s][iB]
-									* dStiffness1D[i][s];
-
-								dAvgB +=
-									(*pDataInitial)[o][k][iA][s]
-									* dStiffness1D[j][s];
-							}
-
-							dAvgA *= dInvElementDeltaA;
-							dAvgB *= dInvElementDeltaB;
-
-							switch (o) {
-								case 0: dEAvgU = 0.5 * (dAvgA + dAvgB); break;
-								case 1: dEAvgV = 0.5 * (dAvgA + dAvgB); break;
-								case 2: dEAvgW = 0.5 * (dAvgA + dAvgB); break;
-								case 3: dEAvgP = 0.5 * (dAvgA + dAvgB); break;
-								case 4: dEAvgR = 0.5 * (dAvgA + dAvgB); break;
-							}
-						}
-					}
-					}
-
-					double dResU = 0.0;
-					double dResV = 0.0;
-					double dResW = 0.0;
-					double dResP = 0.0;
-					double dResR = 0.0;
-					double dResMax = 0.0;
-					double dNuMax = 0.0;
-					double dGridLength = dElementLength 
-											/ (m_nHorizontalOrder - 1);
-
 					// Pointwise updates
 					for (int i = 0; i < m_nHorizontalOrder; i++) {
 					for (int j = 0; j < m_nHorizontalOrder; j++) {
 						int iA = iElementA + i;
-						int iB = iElementB + j;
-
-						// Compute the local diffusion coefficient
-						dResU = std::abs((*pDataResidual)[UIx][k][iA][iB]);
-						if (!fCartesianXZ) {
-							dResV = std::abs((*pDataResidual)[VIx][k][iA][iB]);
-						}
-						dResW = std::abs((*pDataResidual)[WIx][k][iA][iB]);
-						dResP = std::abs((*pDataResidual)[PIx][k][iA][iB]);
-						dResR = std::abs((*pDataResidual)[RIx][k][iA][iB]);
-
-						// Select the maximum residual
-						dResMax = std::max(dResU, dResV);
-						dResMax = std::max(dResMax, dResW);
-						dResMax = std::max(dResMax, dResP);
-						dResMax = std::max(dResMax, dResR);
-
-						if (dResMax == dResU) {
-							dResMax /= std::abs(
-							(*pDataInitial)[UIx][k][iA][iB] - dEAvgU);
-						} else if ((dResMax == dResV) && (!fCartesianXZ)){
-							dResMax /= std::abs(
-							(*pDataInitial)[VIx][k][iA][iB] - dEAvgV);
-						} else if (dResMax == dResW) {
-							dResMax /= std::abs(
-							(*pDataInitial)[WIx][k][iA][iB] - dEAvgW);
-						} else if (dResMax == dResP) {
-							dResMax /= std::abs(
-							(*pDataInitial)[PIx][k][iA][iB] - dEAvgP);
-						} else if (dResMax == dResR) {
-							dResMax /= std::abs(
-							(*pDataInitial)[RIx][k][iA][iB] - dEAvgR);
-						} else {
-							dResMax = 0.0;
-						}
-
-						// Scale to the average element length
-						dLocalNu = dGridLength * dGridLength * dResMax;
-
-						// Get the maximum possible coefficient (upwind)
-						if (c != WIx) {
-							// Use the total maximum wind speed
-							dNuMax = 0.5 * dGridLength *
-										m_dAuxDataNode[KIx][k][i][j] /
-										pGrid->GetReferenceLength();
-						} else {
-							// Contravariant velocities
-							double dCovUa = (*pDataInitial)[UIx][k][iA][iB];
-							double dCovUb = (*pDataInitial)[VIx][k][iA][iB];
-
-							// Calculate covariant xi velocity and store
-							double dCovUx =
-								  (*pDataInitial)[WIx][k][iA][iB]
-								* (*pDerivR)[k][iA][iB][2];
-
-							// Use the vertical wind speed only
-							double dXiDot =
-								 (*pContraMetricA)[k][iA][iB][2] * dCovUa
-								+ (*pContraMetricB)[k][iA][iB][2] * dCovUb
-								+ (*pContraMetricXi)[k][iA][iB][2] * dCovUx;
-							dNuMax = 0.5 * dGridLength * dXiDot /
-										pGrid->GetReferenceLength();
-						}
-
-						// Limit the coefficients to the upwind value
-						if (dLocalNu > dNuMax) {
-							dLocalNu = dNuMax;
-						}
-
-						// If inside the Rayleigh layer alpha/beta MOMENTUM ONLY
-						if (((*pDataRayleigh)[k][iA][iB] > 0.0) 
-							&& (c != PIx)
-							&& (c != WIx)) {
-							dLocalNu = dNuMax;
-						}
-
-						// Check for Inf or NaN and adjust
-						if (!std::isfinite(dLocalNu)) {
-							//printf("%.16E %.16E \n",dLocalNu,dResMax);
-							dLocalNu = 0.0;
-						}
-
+                                                int iB = iElementB + j;
 						double dInvJacobian = 1.0 / (*pJacobian)[k][iA][iB];
 
 						// Compute integral term
@@ -3153,20 +3155,20 @@ void HorizontalDynamicsFEM::ApplyRayleighFriction(
 		nEffectiveC[0] = UIx; nEffectiveC[1] = VIx; 
 		nEffectiveC[2] = PIx;
 		nEffectiveC[3] = WIx;
-		//nEffectiveC[4] = RIx;
+		nEffectiveC[4] = RIx;
 		//nEffectiveC[nComponents - 2] = 0;
-		nEffectiveC[nComponents - 1] = 0;
-		nComponents = nComponents - 1;
+		//nEffectiveC[nComponents - 1] = 0;
+		//nComponents = nComponents - 1;
 	}
 	// 2D Cartesian XZ primitive nonhydro models with no density treatment
 	else if ((nEqSet == EquationSet::PrimitiveNonhydrostaticEquations) && fCartXZ) {
 		nEffectiveC[0] = UIx; nEffectiveC[1] = VIx; 
 		nEffectiveC[2] = PIx;
 		nEffectiveC[3] = WIx;
-		//nEffectiveC[4] = RIx;
+		nEffectiveC[4] = RIx;
 		//nEffectiveC[nComponents - 2] = 0;
-		nEffectiveC[nComponents - 1] = 0;
-		nComponents = nComponents - 1;
+		//nEffectiveC[nComponents - 1] = 0;
+		//nComponents = nComponents - 1;
 	}
 	// Other model types (advection, shallow water, mass coord)
 	else {

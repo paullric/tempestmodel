@@ -168,6 +168,19 @@ public:
 		double dDeltaT
 	);
 
+	///     <summary>
+        ///             Compute the field of residual based coefficients
+        ///     </summary>
+        virtual void ComputeResidualCoefficients(
+		GridPatch * pPatch,
+		int i,
+		int j,
+		const DataArray4D<double> & dataResidualNode,
+		const DataArray4D<double> & dataInitialNode,
+		const DataArray4D<double> & dataResidualREdge,
+		const DataArray4D<double> & dataInitialREdge        
+	);
+
 	///	<summary>
 	///		Build the Jacobian matrix.
 	///	</summary>

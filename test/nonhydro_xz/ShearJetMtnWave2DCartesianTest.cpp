@@ -199,15 +199,15 @@ public:
 		m_dpiC = M_PI;
 
 		// Set the dimensions of the box
-		m_dGDim[0] = -50000.0;
-		m_dGDim[1] = 70000.0;
+		m_dGDim[0] = -56000.0;
+		m_dGDim[1] = 56000.0;
 		m_dGDim[2] = -100.0;
 		m_dGDim[3] = 100.0;
 		m_dGDim[4] = 0.0;
-		m_dGDim[5] = 45000.0;
+		m_dGDim[5] = 30000.0;
 
 		// Set the Rayleigh layer depth and nominal strength
-		m_dRayleighDepth = 10000.0;
+		m_dRayleighDepth = 6000.0;
 		m_dRayleighStrength = 1.0E-2;
 
 		// Set the center of the domain in Y
@@ -346,9 +346,9 @@ public:
 	) const {
 		const double dRayleighStrengthZ = 1.0E-2;//8.0e-3;
 		const double dRayleighStrengthX = 1.0 * dRayleighStrengthZ;
-		const double dRayleighDepth = 10000.0;
+		const double dRayleighDepth = 6000.0;
 		const double dRayDepthXi = dRayleighDepth / m_dGDim[5];
-		const double dRayleighWidth = 10000.0;
+		const double dRayleighWidth = 6000.0;
 
 		double dNuDepth = 0.0;
 		double dNuRight = 0.0;
@@ -368,7 +368,7 @@ public:
 		if (dXp > dLayerR) {
 			double dNormX = (m_dGDim[1] - dXp) / dRayleighWidth;
 			dNuRight = 0.5 * dRayleighStrengthX * (1.0 + cos(M_PI * dNormX));
-			dNu = dNuRight;
+			//dNu = dNuRight;
 		}
 		if (dXp < dLayerL) {
 			double dNormX = (dXp - m_dGDim[0]) / dRayleighWidth;
@@ -384,38 +384,6 @@ public:
 		if ((dZ > dLayerZ) && (dXp < dLayerL)) {
 			dNu = sqrt(dNuDepth * dNuDepth + dNuLeft * dNuLeft);
 		}
-/*
-		// Using high order cosine ramp up
-		int nPower = 3;
-		if (dZ > m_dGDim[5] - dRayleighDepth) {
-			double dNormZ = (m_dGDim[5] - dZ - dRayleighDepth) /
-							dRayleighDepth;
-			dNuDepth = dRayleighStrengthZ * (1.0 - 
-					pow(0.5, nPower) * pow(1.0 + cos(M_PI * dNormZ), nPower));
-		}
-		if (dXp > m_dGDim[1] - dRayleighWidth) {
-			double dNormX = (m_dGDim[1] - dXp - dRayleighWidth) /
-							dRayleighWidth;
-			dNuRight = dRayleighStrengthX * (1.0 - 
-					pow(0.5, nPower) * pow(1.0 + cos(M_PI * dNormX), nPower));
-		}
-		if (dXp < m_dGDim[0] + dRayleighWidth) {
-			double dNormX = (dXp - m_dGDim[0] - 2.0 * dRayleighWidth) /
-							dRayleighWidth;
-			dNuLeft = dRayleighStrengthX * (1.0 - 
-					pow(0.5, nPower) * pow(1.0 + cos(M_PI * dNormX), nPower));
-		}
-*/
-/*
-		//std::cout << dXp << ' ' << dZ << ' ' << dNuDepth << std::endl;
-		if ((dNuDepth >= dNuRight) && (dNuDepth >= dNuLeft)) {
-			return dNuDepth;
-		}
-		if (dNuRight >= dNuLeft) {
-			return dNuRight;
-		}
-		return dNuLeft;
-*/
 		return dNu;
 	}
 
