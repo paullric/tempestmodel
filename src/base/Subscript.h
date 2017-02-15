@@ -103,8 +103,6 @@ struct Subscript
 	}
 };
 
-///////////////////////////////////////////////////////////////////////////////
-
 // This specialization is instantiated for the final index, and completes the
 // indexing operation.
 template <typename T, std::ptrdiff_t NumDims>
@@ -158,8 +156,6 @@ struct Subscript<T, 1, NumDims>
 		return object_(indices_);
 	} 
 };
-
-///////////////////////////////////////////////////////////////////////////////
 
 #endif // _SUBSCRIPT_H_
 
