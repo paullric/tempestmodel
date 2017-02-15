@@ -22,38 +22,9 @@
 
 ///////////////////////////////////////////////////////////////////////////////
 
+#include <array>
 #include <type_traits>
 #include <cstddef>
-
-///////////////////////////////////////////////////////////////////////////////
-
-template <typename T, size_t size>
-struct index_array
-{
-	T ix_[size];
-
-#if defined(__INTEL_COMPILER) && (__INTEL_COMPILER < 1500)
-	inline T& operator[](int i) __attribute__((nothrow));
-	
-	inline T& operator[](int i) {
-#else
-	inline T& operator[](int i) noexcept {
-#endif
-		return ix_[i];
-	}
-
-#if defined(__INTEL_COMPILER) && (__INTEL_COMPILER < 1500)
-	inline const T& operator[](int i) const __attribute__((nothrow));
-		
-	inline const T& operator[](int i) const {
-#else
-	inline const T& operator[](int i) const noexcept {
-#endif
-		return ix_[i];
-	}
-};
-
-///////////////////////////////////////////////////////////////////////////////
 
 // expr := subscript+
 // subscript := '[' c++-integral-expression ']'
@@ -70,23 +41,16 @@ struct Subscript
 	enum { Dim = NumDims - FreeDims };
 
 	T& object_;
-	index_array<size_type, Dim> indices_;
+	std::array<size_type, Dim> indices_;
 
-#if defined(__INTEL_COMPILER) && (__INTEL_COMPILER < 1500)
-	constexpr Subscript(T& object) __attribute__((nothrow));
-		
+#if defined(__INTEL_COMPILER)
 	constexpr Subscript(T& object)
 #else
 	constexpr Subscript(T& object) noexcept
 #endif
 	  : object_(object), indices_() {}
 
-#if defined(__INTEL_COMPILER) && (__INTEL_COMPILER < 1500)
-	Subscript(
-		size_type head,
-		Subscript<T, FreeDims + 1, NumDims> const& tail
-	) __attribute__((nothrow));
-
+#if defined(__INTEL_COMPILER)
 	Subscript(
 		size_type head,
 		Subscript<T, FreeDims + 1, NumDims> const& tail
@@ -104,9 +68,7 @@ struct Subscript
 		indices_[Dim - 1] = head;
 	}
 
-#if defined(__INTEL_COMPILER) && (__INTEL_COMPILER < 1500)
-	Subscript<T, FreeDims - 1, NumDims> operator[](size_type idx) const __attribute__((nothrow));
-	
+#if defined(__INTEL_COMPILER)
 	Subscript<T, FreeDims - 1, NumDims> operator[](size_type idx) const
 #else
 	Subscript<T, FreeDims - 1, NumDims> operator[](size_type idx) const noexcept
@@ -115,8 +77,6 @@ struct Subscript
 		return Subscript<T, FreeDims - 1, NumDims>(idx, *this);
 	}
 };
-
-///////////////////////////////////////////////////////////////////////////////
 
 // This specialization is instantiated for the final index, and completes the
 // indexing operation.
@@ -129,23 +89,16 @@ struct Subscript<T, 1, NumDims>
 	enum { Dim = NumDims - 1 };
 
 	T& object_;
-	index_array<size_type, Dim> indices_;
+	std::array<size_type, Dim> indices_;
 
-#if defined(__INTEL_COMPILER) && (__INTEL_COMPILER < 1500)
-	constexpr Subscript(T& object) __attribute__((nothrow));
-
+#if defined(__INTEL_COMPILER)
 	constexpr Subscript(T& object)
 #else
 	constexpr Subscript(T& object) noexcept
 #endif
 	  : object_(object), indices_() {}
 
-#if defined(__INTEL_COMPILER) && (__INTEL_COMPILER < 1500)
-	Subscript(
-		size_type head,
-		Subscript<T, 2, NumDims> const& tail
-	) __attribute__((nothrow));
-		
+#if defined(__INTEL_COMPILER)
 	Subscript(
 		size_type head,
 		Subscript<T, 2, NumDims> const& tail
@@ -178,8 +131,6 @@ struct Subscript<T, 1, NumDims>
 		return object_(indices_);
 	} 
 };
-
-///////////////////////////////////////////////////////////////////////////////
 
 #endif // _SUBSCRIPT_H_
 
