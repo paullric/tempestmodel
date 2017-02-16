@@ -631,6 +631,14 @@ void HorizontalDynamicsFEMV2::StepNonhydrostaticPrimitive(
 	const int nRElements = pGrid->GetRElements();
 #endif
 
+	// Differentiation operator from nodes to nodes
+	const LinearColumnOperator & opDiffNodeToNode =
+		pGrid->GetOpDiffNodeToNode();
+
+	// Interpolation operator from nodes to edges
+	const LinearColumnOperator & opInterpNodeToREdge =
+		pGrid->GetOpInterpNodeToREdge();
+
 	// Perform local update
 	for (int n = 0; n < pGrid->GetActivePatchCount(); n++) {
 		GridPatchGLL * pPatch =
@@ -690,21 +698,7 @@ void HorizontalDynamicsFEMV2::StepNonhydrostaticPrimitive(
 		const int nTracerCount = dataInitialTracer.GetSize(0);
 
 		// Perform interpolations as required due to vertical staggering
-		if (pGrid->GetVarsAtLocation(DataLocation_REdge) != 0) {
-
-			// Interpolate W to model levels
-			if (pGrid->GetVarLocation(WIx) == DataLocation_REdge) {
-				pPatch->InterpolateREdgeToNode(WIx, iDataInitial);
-
-				pPatch->InterpolateNodeToREdge(UIx, iDataInitial);
-				pPatch->InterpolateNodeToREdge(VIx, iDataInitial);
-			}
-
-			// Interpolate Theta to model levels
-			if (pGrid->GetVarLocation(PIx) == DataLocation_REdge) {
-				pPatch->InterpolateREdgeToNode(PIx, iDataInitial);
-			}
-		}
+		pPatch->InterpolateREdgeToNode(WIx, iDataInitial);
 
 		// Element grid spacing and derivative coefficients
 		const double dElementDeltaA = pPatch->GetElementDeltaA();
@@ -772,6 +766,7 @@ void HorizontalDynamicsFEMV2::StepNonhydrostaticPrimitive(
 			// Compute auxiliary data in element
 			for (int i = 0; i < nHorizontalOrder; i++) {
 			for (int j = 0; j < nHorizontalOrder; j++) {
+#pragma simd
 			for (int k = 0; k < nRElements; k++) {
 
 				const int iA = iElementA + i;
@@ -841,6 +836,7 @@ void HorizontalDynamicsFEMV2::StepNonhydrostaticPrimitive(
 			// Compute curl term
 			for (int i = 0; i < nHorizontalOrder; i++) {
 			for (int j = 0; j < nHorizontalOrder; j++) {
+#pragma simd
 			for (int k = 0; k < nRElements; k++) {
 
 				const int iA = iElementA + i;
@@ -852,14 +848,12 @@ void HorizontalDynamicsFEMV2::StepNonhydrostaticPrimitive(
 				const double dConUx = m_dAuxDataNode(ConUxIx,i,j,k);
 
 				const double dCovDxUa =
-					pGrid->DifferentiateNodeToNode(
-						&(dataInitialNode(UIx,iA,iB,0)),
-						k, 1);
+					opDiffNodeToNode.Apply(
+						&(dataInitialNode(UIx,iA,iB,0)), k);
 
 				const double dCovDxUb =
-					pGrid->DifferentiateNodeToNode(
-						&(dataInitialNode(VIx,iA,iB,0)),
-						k, 1);
+					opDiffNodeToNode.Apply(
+						&(dataInitialNode(VIx,iA,iB,0)), k);
 
 				const double dCovDaUb = dInvElementDeltaA * (
 					  dataInitialNode(VIx,iElementA+0,iB,k) * dDxBasis1D(0,i)
@@ -907,6 +901,7 @@ void HorizontalDynamicsFEMV2::StepNonhydrostaticPrimitive(
 			// Compute fluxes within spectral element
 			for (int i = 0; i < nHorizontalOrder; i++) {
 			for (int j = 0; j < nHorizontalOrder; j++) {
+#pragma simd
 			for (int k = 0; k < nRElements; k++) {
 
 				const int iA = iElementA + i;
@@ -945,6 +940,7 @@ void HorizontalDynamicsFEMV2::StepNonhydrostaticPrimitive(
 			// Pointwise update of quantities on model levels
 			for (int i = 0; i < nHorizontalOrder; i++) {
 			for (int j = 0; j < nHorizontalOrder; j++) {
+#pragma simd
 			for (int k = 0; k < nRElements; k++) {
 
 				const int iA = iElementA + i;
@@ -1009,7 +1005,8 @@ void HorizontalDynamicsFEMV2::StepNonhydrostaticPrimitive(
 					+ m_dAuxDataNode(KIx,i,3,k) * dDxBasis1D(3,j));
 
 				// Pressure gradient force
-				const double dInvRho = 1.0 / dataInitialNode(RIx,iA,iB,k);
+				const double dInvRho =
+					1.0 / dataInitialNode(RIx,iA,iB,k);
 
 				const double dPressureGradientForceUa =
 					dInvRho * dataInitialNode(PIx,iA,iB,k) * dDaP;
@@ -1091,14 +1088,12 @@ void HorizontalDynamicsFEMV2::StepNonhydrostaticPrimitive(
 
 					// Interpolate horizontal velocity to bottom boundary
 					const double dU0 =
-						pGrid->InterpolateNodeToREdge(
-							&(dataUpdateNode(UIx,iA,iB,0)),
-							NULL, 0, 0.0, 1);
+						opInterpNodeToREdge.Apply(
+							&(dataUpdateNode(UIx,iA,iB,0)), 0);
 
 					const double dV0 =
-						pGrid->InterpolateNodeToREdge(
-							&(dataUpdateNode(VIx,iA,iB,0)),
-							NULL, 0, 0.0, 1);
+						opInterpNodeToREdge.Apply(
+							&(dataUpdateNode(VIx,iA,iB,0)), 0);
 
 					// Update vertical velocity on boundary
 					dataUpdateREdge(WIx,iA,iB,0) =
@@ -1111,6 +1106,7 @@ void HorizontalDynamicsFEMV2::StepNonhydrostaticPrimitive(
 				// Update interior interfaces
 				for (int i = 0; i < nHorizontalOrder; i++) {
 				for (int j = 0; j < nHorizontalOrder; j++) {
+#pragma simd
 				for (int k = 1; k < nRElements; k++) {
 
 					const int iA = iElementA + i;
@@ -1118,9 +1114,9 @@ void HorizontalDynamicsFEMV2::StepNonhydrostaticPrimitive(
 
 					// Interpolate U cross Zeta to interfaces
 					const double dUCrossZetaX =
-						pGrid->InterpolateNodeToREdge(
+						opInterpNodeToREdge.Apply(
 							&(m_dAuxDataNode(UCrossZetaXIx,i,j,0)),
-							NULL, k, 0.0, 1); 
+							k);
 
 					// Calculate vertical velocity update
 					dataUpdateREdge(WIx,iA,iB,k) +=

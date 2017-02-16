@@ -31,10 +31,10 @@ LDFLAGS+= -L$(TEMPESTBASEDIR)/lib
 
 ifeq ($(OPT),TRUE)
   # NDEBUG disables assertions, among other things.
-  CXXFLAGS+= -O3 -DNDEBUG 
+  CXXFLAGS+= -O3
   F90FLAGS+= -O3
 else
-  CXXFLAGS+= -O0
+  CXXFLAGS+= -O0 -DDEBUG
   F90FLAGS+= -O0 
 endif
 

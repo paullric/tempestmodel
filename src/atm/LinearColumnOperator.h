@@ -79,66 +79,189 @@ public:
 	///		Apply the column operator to a column, but only produce output on
 	///		one level.  Stride indicates the sparsity of the dColumnIn array.
 	///	</summary>
-	double Apply(
+	inline double Apply(
 		const double * dColumnIn,
-		int iRout,
-		int nStride
-	) const;
+		int iRout
+	) const {
+#ifdef DEBUG
+		if (!m_fInitialized) {
+			_EXCEPTIONT("Attempting to Apply uninitialized LinearColumnOperator");
+		}
+#endif
+
+		double dOut = 0.0;
+		for (int l = m_iBegin[iRout]; l < m_iEnd[iRout]; l++) {
+			dOut += m_dCoeff[iRout][l] * dColumnIn[l];
+		}
+		return dOut;
+	}
 
 	///	<summary>
 	///		Apply the column operator to a column, but only produce output on
 	///		one level.  Stride indicates the sparsity of the dColumnIn array.
 	///	</summary>
-	double Apply(
+	inline double Apply(
+		const double * dColumnIn,
+		int iRout,
+		int nStride
+	) const {
+#ifdef DEBUG
+		if (!m_fInitialized) {
+			_EXCEPTIONT("Attempting to Apply uninitialized LinearColumnOperator");
+		}
+#endif
+
+		double dOut = 0.0;
+		for (int l = m_iBegin[iRout]; l < m_iEnd[iRout]; l++) {
+			int lx = l * nStride;
+
+			dOut += m_dCoeff[iRout][l] * dColumnIn[lx];
+		}
+		return dOut;
+	}
+
+	///	<summary>
+	///		Apply the column operator to a column, but only produce output on
+	///		one level.  Stride indicates the sparsity of the dColumnIn array.
+	///	</summary>
+	inline double Apply(
 		const double * dColumnIn,
 		const double * dColumnRefIn,
 		double dColumnRefOut,
 		int iRout,
 		int nStride
-	) const;
+	) const {
+#ifdef DEBUG
+		if (!m_fInitialized) {
+			_EXCEPTIONT("Attempting to Apply uninitialized LinearColumnOperator");
+		}
+#endif
+
+		double dOut = dColumnRefOut;
+		for (int l = m_iBegin[iRout]; l < m_iEnd[iRout]; l++) {
+			int lx = l * nStride;
+
+			dOut += m_dCoeff[iRout][l] * (dColumnIn[lx] - dColumnRefIn[lx]);
+		}
+		return dOut;
+	}
 
 public:
 	///	<summary>
 	///		Apply the operator to a column.
 	///	</summary>
-	void Apply(
+	inline void Apply(
 		const double * dColumnIn,
 		double * dColumnOut
-	) const;
+	) const {
+#ifdef DEBUG
+		if (!m_fInitialized) {
+			_EXCEPTIONT("Attempting to Apply uninitialized LinearColumnOperator");
+		}
+#endif
+
+		const int nRElementsOut = m_dCoeff.GetRows();
+
+		for (int k = 0; k < nRElementsOut; k++) {
+			dColumnOut[k] = 0.0;
+
+			for (int l = m_iBegin[k]; l < m_iEnd[k]; l++) {
+				dColumnOut[k] += m_dCoeff[k][l] * dColumnIn[l];
+			}
+		}
+	}
 
 	///	<summary>
 	///		Apply the operator to a column.  Stride indicates the sparsity
 	///		of the column array.
 	///	</summary>
-	void Apply(
+	inline void Apply(
 		const double * dColumnIn,
 		double * dColumnOut,
 		int nStrideIn,
 		int nStrideOut
-	) const;
+	) const {
+#ifdef DEBUG
+		if (!m_fInitialized) {
+			_EXCEPTIONT("Attempting to Apply uninitialized LinearColumnOperator");
+		}
+#endif
+
+		const int nRElementsOut = m_dCoeff.GetRows();
+
+		for (int k = 0; k < nRElementsOut; k++) {
+			int kx = k * nStrideOut;
+
+			dColumnOut[kx] = 0.0;
+
+			for (int l = m_iBegin[k]; l < m_iEnd[k]; l++) {
+				int lx = l * nStrideIn;
+
+				dColumnOut[kx] += m_dCoeff[k][l] * dColumnIn[lx];
+			}
+		}
+	}
 
 	///	<summary>
 	///		Apply the operator to a column with the reference state.
 	///	</summary>
-	void ApplyWithRef(
+	inline void ApplyWithRef(
 		const double * dColumnIn,
 		const double * dColumnRefIn,
 		double * dColumnOut,
 		const double * dColumnRefOut
-	) const;
+	) const {
+#ifdef DEBUG
+		if (!m_fInitialized) {
+			_EXCEPTIONT("Attempting to Apply uninitialized LinearColumnOperator");
+		}
+#endif
+
+		const int nRElementsOut = m_dCoeff.GetRows();
+
+		for (int k = 0; k < nRElementsOut; k++) {
+			dColumnOut[k] = dColumnRefOut[k];
+
+			for (int l = m_iBegin[k]; l < m_iEnd[k]; l++) {
+				dColumnOut[k] +=
+					m_dCoeff[k][l] * (dColumnIn[l] - dColumnRefIn[l]);
+			}
+		}
+	}
 
 	///	<summary>
 	///		Apply the operator to a column with the reference state.  Stride
 	///		indicates the sparsity of the column array.
 	///	</summary>
-	void ApplyWithRef(
+	inline void ApplyWithRef(
 		const double * dColumnIn,
 		const double * dColumnRefIn,
 		double * dColumnOut,
 		const double * dColumnRefOut,
 		int nStrideIn,
 		int nStrideOut
-	) const;
+	) const {
+#ifdef DEBUG
+		if (!m_fInitialized) {
+			_EXCEPTIONT("Attempting to Apply uninitialized LinearColumnOperator");
+		}
+#endif
+
+		const int nRElementsOut = m_dCoeff.GetRows();
+
+		for (int k = 0; k < nRElementsOut; k++) {
+			int kx = k * nStrideOut;
+
+			dColumnOut[kx] = dColumnRefOut[kx];
+
+			for (int l = m_iBegin[k]; l < m_iEnd[k]; l++) {
+				int lx = l * nStrideIn;
+
+				dColumnOut[kx] +=
+					m_dCoeff[k][l] * (dColumnIn[lx] - dColumnRefIn[lx]);
+			}
+		}
+	}
 
 public:
 	///	<summary>
