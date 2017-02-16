@@ -14,13 +14,13 @@
 ///		or implied warranty.
 ///	</remarks>
 
+#include "Defines.h"
 #include "GridPatchCSGLL.h"
 #include "GridCSGLL.h"
 #include "Model.h"
 #include "TestCase.h"
 #include "GridSpacing.h"
 #include "VerticalStretch.h"
-#include "Defines.h"
 
 #include "Direction.h"
 #include "CubedSphereTrans.h"
@@ -146,7 +146,8 @@ GridPatchCSGLL::GridPatchCSGLL(
 	m_dBufferConU.Allocate(
 		2,
 		m_nHorizontalOrder,
-		m_nHorizontalOrder);
+		m_nHorizontalOrder,
+		grid.GetRElements());
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -912,8 +913,23 @@ void GridPatchCSGLL::ComputeCurlAndDiv(
 	// Parent grid
 	const GridCSGLL & gridCSGLL = dynamic_cast<const GridCSGLL &>(m_grid);
 
-	// If SpectralElement dynamics are used, apply direct stiffness summation
-	bool fDiscontinuous = false;
+#if defined(FIXED_HORIZONTAL_ORDER)
+	const int nHorizontalOrder = FIXED_HORIZONTAL_ORDER;
+	if (nHorizontalOrder != gridCSGLL.GetHorizontalOrder()) {
+		_EXCEPTIONT("Command line order must match FIXED_HORIZONTAL_ORDER");
+	}
+#else
+	const int nHorizontalOrder = gridCSGLL.GetHorizontalOrder();
+#endif
+
+#if defined(FIXED_RELEMENTS)
+	const int nRElements = FIXED_RELEMENTS;
+	if (nRElements != gridCSGLL.GetRElements()) {
+		_EXCEPTIONT("Command line levels must match FIXED_RELEMENTS");
+	}
+#else
+	const int nRElements = gridCSGLL.GetRElements();
+#endif
 
 	// Get derivatives of the basis functions
 	const DataArray2D<double> & dDxBasis1D = gridCSGLL.GetDxBasis1D();
@@ -922,8 +938,8 @@ void GridPatchCSGLL::ComputeCurlAndDiv(
 	const DataArray1D<double> & dFluxDeriv1D = gridCSGLL.GetFluxDeriv1D();
 
 	// Number of finite elements in each direction
-	int nAFiniteElements = m_box.GetAInteriorWidth() / m_nHorizontalOrder;
-	int nBFiniteElements = m_box.GetBInteriorWidth() / m_nHorizontalOrder;
+	const int nAFiniteElements = m_box.GetAInteriorWidth() / m_nHorizontalOrder;
+	const int nBFiniteElements = m_box.GetBInteriorWidth() / m_nHorizontalOrder;
 
 	// Inverse grid spacings
 	const double dInvElementDeltaA = 1.0 / GetElementDeltaA();
@@ -932,7 +948,6 @@ void GridPatchCSGLL::ComputeCurlAndDiv(
 	// Loop over all elements in the box
 	for (int a = 0; a < nAFiniteElements; a++) {
 	for (int b = 0; b < nBFiniteElements; b++) {
-	for (int k = 0; k < gridCSGLL.GetRElements(); k++) {
 
 		// Index of lower-left corner node
 		const int iElementA = a * m_nHorizontalOrder + m_box.GetHaloElements();
@@ -941,35 +956,46 @@ void GridPatchCSGLL::ComputeCurlAndDiv(
 		// Calculate contravariant velocities in element
 		for (int i = 0; i < m_nHorizontalOrder; i++) {
 		for (int j = 0; j < m_nHorizontalOrder; j++) {
+		for (int k = 0; k < nRElements; k++) {
 
 			const int iA = iElementA + i;
 			const int iB = iElementB + j;
 
 #if defined(PROGNOSTIC_CONTRAVARIANT_MOMENTA)
-			double dInvRho = 1.0 / dataRho[iA][iB][k];
+			const double dInvRho = 1.0 / dataRho[iA][iB][k];
 
-			m_dBufferConU[0][i][j] = dInvRho * (
-				  m_dataCovMetric2DA[iA][iB][0] * dataUa[iA][iB][k]
-				+ m_dataCovMetric2DA[iA][iB][1] * dataUb[iA][iB][k]);
+			m_dBufferConU[0][i][j][k] = dInvRho * (
+				  m_dataCovMetric2DA[iA][iB][0]
+					* dataUa[iA][iB][k]
+				+ m_dataCovMetric2DA[iA][iB][1]
+					* dataUb[iA][iB][k]);
 
-			m_dBufferConU[1][i][j] = dInvRho * (
-				  m_dataCovMetric2DB[iA][iB][0] * dataUa[iA][iB][k]
-				+ m_dataCovMetric2DB[iA][iB][1] * dataUb[iA][iB][k]);
+			m_dBufferConU[1][i][j][k] = dInvRho * (
+				  m_dataCovMetric2DB[iA][iB][0]
+					* dataUa[iA][iB][k]
+				+ m_dataCovMetric2DB[iA][iB][1]
+					* dataUb[iA][iB][k]);
 #else
-			m_dBufferConU[0][i][j] =
-				+ m_dataContraMetric2DA[iA][iB][0] * dataUa[iA][iB][k]
-				+ m_dataContraMetric2DA[iA][iB][1] * dataUb[iA][iB][k];
+			m_dBufferConU[0][i][j][k] =
+				+ m_dataContraMetric2DA[iA][iB][0]
+					* dataUa[iA][iB][k]
+				+ m_dataContraMetric2DA[iA][iB][1]
+					* dataUb[iA][iB][k];
 
-			m_dBufferConU[1][i][j] =
-				+ m_dataContraMetric2DB[iA][iB][0] * dataUa[iA][iB][k]
-				+ m_dataContraMetric2DB[iA][iB][1] * dataUb[iA][iB][k];
+			m_dBufferConU[1][i][j][k] =
+				+ m_dataContraMetric2DB[iA][iB][0]
+					* dataUa[iA][iB][k]
+				+ m_dataContraMetric2DB[iA][iB][1]
+					* dataUb[iA][iB][k];
 #endif
+		}
 		}
 		}
 
 		// Calculate curl and div
 		for (int i = 0; i < m_nHorizontalOrder; i++) {
 		for (int j = 0; j < m_nHorizontalOrder; j++) {
+		for (int k = 0; k < nRElements; k++) {
 
 			const int iA = iElementA + i;
 			const int iB = iElementB + j;
@@ -988,8 +1014,13 @@ void GridPatchCSGLL::ComputeCurlAndDiv(
 #if defined(PROGNOSTIC_CONTRAVARIANT_MOMENTA)
 
 			for (int s = 0; s < m_nHorizontalOrder; s++) {
-				dDaUb += m_dBufferConU[VIx][s][j] * dDxBasis1D[s][i];
-				dDbUa += m_dBufferConU[UIx][i][s] * dDxBasis1D[s][j];
+				dDaUb +=
+					m_dBufferConU[VIx][s][j][k]
+					* dDxBasis1D[s][i];
+
+				dDbUa +=
+					m_dBufferConU[UIx][i][s][k]
+					* dDxBasis1D[s][j];
 
 				dDaJUa +=
 					m_dataJacobian2D[iElementA+s][iB]
@@ -1005,17 +1036,22 @@ void GridPatchCSGLL::ComputeCurlAndDiv(
 			}
 #else
 			for (int s = 0; s < m_nHorizontalOrder; s++) {
-				dDaUb += dataUb[iElementA+s][iB][k] * dDxBasis1D[s][i];
-				dDbUa += dataUa[iA][iElementB+s][k] * dDxBasis1D[s][j];
+				dDaUb +=
+					dataUb[iElementA+s][iB][k]
+					* dDxBasis1D[s][i];
+
+				dDbUa +=
+					dataUa[iA][iElementB+s][k]
+					* dDxBasis1D[s][j];
 
 				dDaJUa +=
 					m_dataJacobian2D[iElementA+s][iB]
-					* m_dBufferConU[UIx][s][j]
+					* m_dBufferConU[UIx][s][j][k]
 					* dDxBasis1D[s][i];
 
 				dDbJUb +=
 					m_dataJacobian2D[iA][iElementB+s]
-					* m_dBufferConU[VIx][i][s]
+					* m_dBufferConU[VIx][i][s][k]
 					* dDxBasis1D[s][j];
 			}
 #endif
@@ -1034,7 +1070,7 @@ void GridPatchCSGLL::ComputeCurlAndDiv(
 				(dDaUb - dDbUa) * dInvJacobian2D;
 		}
 		}
-	}
+		}
 	}
 	}
 }

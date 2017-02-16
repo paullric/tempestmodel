@@ -194,16 +194,19 @@ void HorizontalDynamicsFEMV2::Initialize() {
 	// Initialize buffers for derivatives of Jacobian
 	m_dJGradientA.Allocate(
 		nHorizontalOrder,
-		nHorizontalOrder);
+		nHorizontalOrder,
+		nRElements+1);
 
 	m_dJGradientB.Allocate(
 		nHorizontalOrder,
-		nHorizontalOrder);
+		nHorizontalOrder,
+		nRElements+1);
 
 	// Buffer state
 	m_dBufferState.Allocate(
 		nHorizontalOrder,
-		nHorizontalOrder);
+		nHorizontalOrder,
+		nRElements+1);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1231,8 +1234,14 @@ void HorizontalDynamicsFEMV2::ApplyScalarHyperdiffusion(
 	// Get a copy of the GLL grid
 	GridGLL * pGrid = dynamic_cast<GridGLL*>(m_model.GetGrid());
 
-	// Horizontal order 4
-	const int nHorizontalOrder = 4;
+#if defined(FIXED_HORIZONTAL_ORDER)
+	const int nHorizontalOrder = FIXED_HORIZONTAL_ORDER;
+	if (nHorizontalOrder != m_nHorizontalOrder) {
+		_EXCEPTIONT("Command line order must match FIXED_HORIZONTAL_ORDER");
+	}
+#else
+	const int nHorizontalOrder = m_nHorizontalOrder;
+#endif
 
 #if defined(FIXED_RELEMENTS)
 	const int nRElements = FIXED_RELEMENTS;
@@ -1303,8 +1312,8 @@ void HorizontalDynamicsFEMV2::ApplyScalarHyperdiffusion(
 		const DataArray2D<double> & dStiffness1D = pGrid->GetStiffness1D();
 
 		// Number of finite elements
-		int nElementCountA = pPatch->GetElementCountA();
-		int nElementCountB = pPatch->GetElementCountB();
+		const int nElementCountA = pPatch->GetElementCountA();
+		const int nElementCountB = pPatch->GetElementCountB();
 
 		// Compute new hyperviscosity coefficient
 		double dLocalNu = dNu;
@@ -1383,21 +1392,23 @@ void HorizontalDynamicsFEMV2::ApplyScalarHyperdiffusion(
 				// Loop over all finite elements
 				for (int a = 0; a < nElementCountA; a++) {
 				for (int b = 0; b < nElementCountB; b++) {
-				for (int k = 0; k < nElementCountR; k++) {
 
-					int iElementA =
+					const int iElementA =
 						a * nHorizontalOrder + box.GetHaloElements();
-					int iElementB =
+					const int iElementB =
 						b * nHorizontalOrder + box.GetHaloElements();
 
 					// Store the buffer state
 					for (int i = 0; i < nHorizontalOrder; i++) {
 					for (int j = 0; j < nHorizontalOrder; j++) {
-						int iA = iElementA + i;
-						int iB = iElementB + j;
+#pragma simd
+					for (int k = 0; k < nElementCountR; k++) {
+						const int iA = iElementA + i;
+						const int iB = iElementB + j;
 
-						m_dBufferState(i,j) =
+						m_dBufferState(i,j,k) =
 							(*pDataInitial)(c,iA,iB,k);
+					}
 					}
 					}
 
@@ -1405,11 +1416,14 @@ void HorizontalDynamicsFEMV2::ApplyScalarHyperdiffusion(
 					if (fRemoveRefState) {
 						for (int i = 0; i < nHorizontalOrder; i++) {
 						for (int j = 0; j < nHorizontalOrder; j++) {
+#pragma simd
+						for (int k = 0; k < nElementCountR; k++) {
 							int iA = iElementA + i;
 							int iB = iElementB + j;
 
-							m_dBufferState(i,j) -=
+							m_dBufferState(i,j,k) -=
 								(*pDataRef)(c,iA,iB,k);
+						}
 						}
 						}
 					}
@@ -1417,126 +1431,67 @@ void HorizontalDynamicsFEMV2::ApplyScalarHyperdiffusion(
 					// Calculate the pointwise gradient of the scalar field
 					for (int i = 0; i < nHorizontalOrder; i++) {
 					for (int j = 0; j < nHorizontalOrder; j++) {
-						int iA = iElementA + i;
-						int iB = iElementB + j;
+#pragma simd
+					for (int k = 0; k < nElementCountR; k++) {
+						const int iA = iElementA + i;
+						const int iB = iElementB + j;
 
-						double dDaPsi = 0.0;
-						double dDbPsi = 0.0;
+						const double dDaPsi = dInvElementDeltaA * (
+							  m_dBufferState(0,j,k) * dDxBasis1D(0,i)
+							+ m_dBufferState(1,j,k) * dDxBasis1D(1,i)
+							+ m_dBufferState(2,j,k) * dDxBasis1D(2,i)
+							+ m_dBufferState(3,j,k) * dDxBasis1D(3,i));
 
-#pragma unroll
-						for (int s = 0; s < nHorizontalOrder; s++) {
-							dDaPsi +=
-								m_dBufferState(s,j)
-								* dDxBasis1D(s,i);
+						const double dDbPsi = dInvElementDeltaB * (
+							  m_dBufferState(i,0,k) * dDxBasis1D(0,j)
+							+ m_dBufferState(i,1,k) * dDxBasis1D(1,j)
+							+ m_dBufferState(i,2,k) * dDxBasis1D(2,j)
+							+ m_dBufferState(i,3,k) * dDxBasis1D(3,j));
 
-							dDbPsi +=
-								m_dBufferState(i,s)
-								* dDxBasis1D(s,j);
-						}
-
-						dDaPsi *= dInvElementDeltaA;
-						dDbPsi *= dInvElementDeltaB;
-
-						m_dJGradientA(i,j) =
+						m_dJGradientA(i,j,k) =
 							(*pJacobian)(iA,iB,k) * (
 								+ dContraMetricA(iA,iB,0) * dDaPsi
 								+ dContraMetricA(iA,iB,1) * dDbPsi);
 
-						m_dJGradientB(i,j) =
+						m_dJGradientB(i,j,k) =
 							(*pJacobian)(iA,iB,k) * (
 								+ dContraMetricB(iA,iB,0) * dDaPsi
 								+ dContraMetricB(iA,iB,1) * dDbPsi);
 					}
 					}
+					}
 
 					// Pointwise updates
-					double dElementMassFluxA = 0.0;
-					double dElementMassFluxB = 0.0;
-					double dMassFluxPerNodeA = 0.0;
-					double dMassFluxPerNodeB = 0.0;
-					double dElTotalArea = 0.0;
 					for (int i = 0; i < nHorizontalOrder; i++) {
 					for (int j = 0; j < nHorizontalOrder; j++) {
-						int iA = iElementA + i;
-						int iB = iElementB + j;
+#pragma simd
+					for (int k = 0; k < nElementCountR; k++) {
+						const int iA = iElementA + i;
+						const int iB = iElementB + j;
 
 						// Inverse Jacobian and Jacobian
 						const double dInvJacobian = 1.0 / (*pJacobian)(iA,iB,k);
 
 						// Compute integral term
-						double dUpdateA = 0.0;
-						double dUpdateB = 0.0;
+						const double dUpdateA = dInvElementDeltaA * (
+							- m_dJGradientA(0,j,k) * dStiffness1D(i,0)
+							- m_dJGradientA(1,j,k) * dStiffness1D(i,1)
+							- m_dJGradientA(2,j,k) * dStiffness1D(i,2)
+							- m_dJGradientA(3,j,k) * dStiffness1D(i,3));
 
-#pragma unroll
-						for (int s = 0; s < nHorizontalOrder; s++) {
-							dUpdateA +=
-								m_dJGradientA(s,j)
-								* dStiffness1D(i,s);
+						const double dUpdateB = dInvElementDeltaB * (
+							- m_dJGradientB(i,0,k) * dStiffness1D(j,0)
+							- m_dJGradientB(i,1,k) * dStiffness1D(j,1)
+							- m_dJGradientB(i,2,k) * dStiffness1D(j,2)
+							- m_dJGradientB(i,3,k) * dStiffness1D(j,3));
 
-							dUpdateB +=
-								m_dJGradientB(i,s)
-								* dStiffness1D(j,s);
-						}
-
-						dUpdateA *= dInvElementDeltaA;
-						dUpdateB *= dInvElementDeltaB;
-
-#ifdef FIX_ELEMENT_MASS_NONHYDRO
-							if (c == RIx) {
-		 						double dInvJacobian = 1.0 / (*pJacobian)(iA,iB,k);
-								// Integrate element mass fluxes
-								dElementMassFluxA += dInvJacobian *
-									dUpdateA * dElementAreaNode(iA,iB,k);
-								dElementMassFluxB += dInvJacobian *
-									dUpdateB * dElementAreaNode(iA,iB,k);
-								dElTotalArea += dElementAreaNode(iA,iB,k);
-
-								// Store the local element fluxes
-								m_dAlphaElMassFlux(i,j,k) = dUpdateA;
-								m_dBetaElMassFlux(i,j,k) = dUpdateB;
-							} else {
-								// Apply update
-								(*pDataUpdate)(c,iA,iB,k) -=
-									dDeltaT * dInvJacobian * dLocalNu
-										* (dUpdateA + dUpdateB);
-							}
-#else
 						// Apply update
-						(*pDataUpdate)(c,iA,iB,k) -=
+						(*pDataUpdate)(c,iA,iB,k) +=
 							dDeltaT * dInvJacobian * dLocalNu
 								* (dUpdateA + dUpdateB);
-#endif
 					}
 					}
-#ifdef FIX_ELEMENT_MASS_NONHYDRO
-					if (c == RIx) {
-						double dMassFluxPerNodeA = dElementMassFluxA / dElTotalArea;
-						double dMassFluxPerNodeB = dElementMassFluxB / dElTotalArea;
-
-						// Compute the fixed mass update
-						for (int i = 0; i < nHorizontalOrder; i++) {
-						for (int j = 0; j < nHorizontalOrder; j++) {
-
-							int iA = iElementA + i;
-							int iB = iElementB + j;
-
-							// Inverse Jacobian
-							const double dInvJacobian = 1.0 / (*pJacobian)(iA,iB,k);
-							const double dJacobian = (*pJacobian)(iA,iB,k);
-
-							m_dAlphaElMassFlux(i,j,k) -= dJacobian * dMassFluxPerNodeA;
-							m_dBetaElMassFlux(i,j,k) -= dJacobian * dMassFluxPerNodeB;
-
-							// Update fixed density on model levels
-							(*pDataUpdate)(c,iA,iB,k) -=
-								dDeltaT * dInvJacobian * dLocalNu *
-									(m_dAlphaElMassFlux(i,j,k)
-									+ m_dBetaElMassFlux(i,j,k));
-						}
-						}
 					}
-#endif
-				}
 				}
 				}
 			}
@@ -1557,15 +1512,12 @@ void HorizontalDynamicsFEMV2::ApplyVectorHyperdiffusion(
 	// Variable indices
 	const int UIx = 0;
 	const int VIx = 1;
-	const int WIx = 3;
 
-	// Density or height index
-	int RIx = 4;
-
-	const EquationSet & eqn = m_model.GetEquationSet();
-	if (eqn.GetType() == EquationSet::ShallowWaterEquations) {
-		RIx = 2;
-	}
+	// Indices of auxiliary data variables
+	const int ConUaIx = 0;
+	const int ConUbIx = 1;
+	const int CurlIx  = 2;
+	const int DivIx   = 3;
 
 	// Get a copy of the GLL grid
 	GridGLL * pGrid = dynamic_cast<GridGLL*>(m_model.GetGrid());
@@ -1622,42 +1574,6 @@ void HorizontalDynamicsFEMV2::ApplyVectorHyperdiffusion(
 		const DataArray2D<double> & dDxBasis1D = pGrid->GetDxBasis1D();
 		const DataArray2D<double> & dStiffness1D = pGrid->GetStiffness1D();
 
-		// Compute curl and divergence of U on the grid
-		DataArray3D<double> dataUa;
-		dataUa.SetSize(
-			dataInitial.GetSize(1),
-			dataInitial.GetSize(2),
-			dataInitial.GetSize(3));
-
-		DataArray3D<double> dataUb;
-		dataUb.SetSize(
-			dataInitial.GetSize(1),
-			dataInitial.GetSize(2),
-			dataInitial.GetSize(3));
-
-		DataArray3D<double> dataRho;
-		dataRho.SetSize(
-			dataInitial.GetSize(1),
-			dataInitial.GetSize(2),
-			dataInitial.GetSize(3));
-
-		if (fApplyToRefState) {
-			dataUa.AttachToData(&(dataRef(UIx,0,0,0)));
-			dataUb.AttachToData(&(dataRef(VIx,0,0,0)));
-			dataRho.AttachToData(&(dataRef(RIx,0,0,0)));
-		} else {
-			dataUa.AttachToData(&(dataInitial(UIx,0,0,0)));
-			dataUb.AttachToData(&(dataInitial(VIx,0,0,0)));
-			dataRho.AttachToData(&(dataInitial(RIx,0,0,0)));
-		}
-
-		// Compute curl and divergence of U on the grid
-		pPatch->ComputeCurlAndDiv(dataUa, dataUb, dataRho);
-
-		// Get curl and divergence
-		const DataArray3D<double> & dataCurl = pPatch->GetDataVorticity();
-		const DataArray3D<double> & dataDiv  = pPatch->GetDataDivergence();
-
 		// Compute new hyperviscosity coefficient
 		double dLocalNuDiv  = dNuDiv;
 		double dLocalNuVort = dNuVort;
@@ -1673,74 +1589,137 @@ void HorizontalDynamicsFEMV2::ApplyVectorHyperdiffusion(
 		}
 
 		// Number of finite elements
-		int nElementCountA = pPatch->GetElementCountA();
-		int nElementCountB = pPatch->GetElementCountB();
+		const int nElementCountA = pPatch->GetElementCountA();
+		const int nElementCountB = pPatch->GetElementCountB();
 
 		// Loop over all finite elements
 		for (int a = 0; a < nElementCountA; a++) {
 		for (int b = 0; b < nElementCountB; b++) {
-		for (int k = 0; k < nRElements; k++) {
 
 			const int iElementA = a * nHorizontalOrder + box.GetHaloElements();
 			const int iElementB = b * nHorizontalOrder + box.GetHaloElements();
 
-			// Pointwise update of horizontal velocities
+			// Calculate contravariant velocities
 			for (int i = 0; i < nHorizontalOrder; i++) {
 			for (int j = 0; j < nHorizontalOrder; j++) {
+#pragma simd
+			for (int k = 0; k < nRElements; k++) {
 
 				const int iA = iElementA + i;
 				const int iB = iElementB + j;
 
-				// Compute hyperviscosity sums
-				double dDaDiv = 0.0;
-				double dDbDiv = 0.0;
+				m_dAuxDataNode(ConUaIx,i,j,k) =
+					  dContraMetric2DA(iA,iB,0) * dataInitial(UIx,iA,iB,k)
+					+ dContraMetric2DA(iA,iB,1) * dataInitial(VIx,iA,iB,k);
 
-				double dDaCurl = 0.0;
-				double dDbCurl = 0.0;
+				m_dAuxDataNode(ConUbIx,i,j,k) =
+					  dContraMetric2DB(iA,iB,0) * dataInitial(UIx,iA,iB,k)
+					+ dContraMetric2DB(iA,iB,1) * dataInitial(VIx,iA,iB,k);
+			}
+			}
+			}
 
-#pragma unroll
-				for (int s = 0; s < nHorizontalOrder; s++) {
-					dDaDiv -=
-						  dStiffness1D(i,s)
-						* dataDiv(iElementA+s,iB,k);
+			// Calculate curl and div
+			for (int i = 0; i < nHorizontalOrder; i++) {
+			for (int j = 0; j < nHorizontalOrder; j++) {
+#pragma simd
+			for (int k = 0; k < nRElements; k++) {
 
-					dDbDiv -=
-						  dStiffness1D(j,s)
-						* dataDiv(iA,iElementB+s,k);
+				const int iA = iElementA + i;
+				const int iB = iElementB + j;
 
-					dDaCurl -=
-						  dStiffness1D(i,s)
-						* dataCurl(iElementA+s,iB,k);
+				const double dInvJacobian2D = 1.0 / dJacobian2D(iA,iB);
 
-					dDbCurl -=
-						  dStiffness1D(j,s)
-						* dataCurl(iA,iElementB+s,k);
-				}
+				const double dDaUb = dInvElementDeltaA * (
+					  dataInitial(VIx,iElementA+0,iB,k) * dDxBasis1D(0,i)
+					+ dataInitial(VIx,iElementA+1,iB,k) * dDxBasis1D(1,i)
+					+ dataInitial(VIx,iElementA+2,iB,k) * dDxBasis1D(2,i)
+					+ dataInitial(VIx,iElementA+3,iB,k) * dDxBasis1D(3,i));
 
-				dDaDiv *= dInvElementDeltaA;
-				dDbDiv *= dInvElementDeltaB;
+				const double dDbUa = dInvElementDeltaB * (
+					  dataInitial(UIx,iA,iElementB+0,k) * dDxBasis1D(0,j)
+					+ dataInitial(UIx,iA,iElementB+1,k) * dDxBasis1D(1,j)
+					+ dataInitial(UIx,iA,iElementB+2,k) * dDxBasis1D(2,j)
+					+ dataInitial(UIx,iA,iElementB+3,k) * dDxBasis1D(3,j));
 
-				dDaCurl *= dInvElementDeltaA;
-				dDbCurl *= dInvElementDeltaB;
+				const double dDaJUa = dInvElementDeltaA * (
+					  dJacobian2D(iElementA+0,iB)
+						* m_dAuxDataNode(ConUaIx,0,j,k) * dDxBasis1D(0,i)
+					+ dJacobian2D(iElementA+1,iB)
+						* m_dAuxDataNode(ConUaIx,1,j,k) * dDxBasis1D(1,i)
+					+ dJacobian2D(iElementA+2,iB)
+						* m_dAuxDataNode(ConUaIx,2,j,k) * dDxBasis1D(2,i)
+					+ dJacobian2D(iElementA+3,iB)
+						* m_dAuxDataNode(ConUaIx,3,j,k) * dDxBasis1D(3,i));
 
-				// Apply update
-				double dUpdateUa =
+				const double dDbJUb = dInvElementDeltaB * (
+					  dJacobian2D(iA,iElementB+0)
+						* m_dAuxDataNode(ConUbIx,i,0,k) * dDxBasis1D(0,j)
+					+ dJacobian2D(iA,iElementB+1)
+						* m_dAuxDataNode(ConUbIx,i,1,k) * dDxBasis1D(1,j)
+					+ dJacobian2D(iA,iElementB+2)
+						* m_dAuxDataNode(ConUbIx,i,2,k) * dDxBasis1D(2,j)
+					+ dJacobian2D(iA,iElementB+3)
+						* m_dAuxDataNode(ConUbIx,i,3,k) * dDxBasis1D(3,j));
+
+				m_dAuxDataNode(CurlIx,i,j,k) =
+					dInvJacobian2D * (dDaUb - dDbUa);
+
+				m_dAuxDataNode(DivIx,i,j,k) =
+					dInvJacobian2D * (dDaJUa + dDbJUb);
+			}
+			}
+			}
+
+			// Pointwise update of horizontal velocities
+			for (int i = 0; i < nHorizontalOrder; i++) {
+			for (int j = 0; j < nHorizontalOrder; j++) {
+#pragma simd
+			for (int k = 0; k < nRElements; k++) {
+
+				const int iA = iElementA + i;
+				const int iB = iElementB + j;
+
+				// Compute covariant derivatives of divergence and curl
+				const double dDaDiv = dInvElementDeltaA * (
+					- m_dAuxDataNode(DivIx,0,j,k) * dStiffness1D(i,0)
+					- m_dAuxDataNode(DivIx,1,j,k) * dStiffness1D(i,1)
+					- m_dAuxDataNode(DivIx,2,j,k) * dStiffness1D(i,2)
+					- m_dAuxDataNode(DivIx,3,j,k) * dStiffness1D(i,3));
+
+				const double dDbDiv = dInvElementDeltaB * (
+					- m_dAuxDataNode(DivIx,i,0,k) * dStiffness1D(j,0)
+					- m_dAuxDataNode(DivIx,i,1,k) * dStiffness1D(j,1)
+					- m_dAuxDataNode(DivIx,i,2,k) * dStiffness1D(j,2)
+					- m_dAuxDataNode(DivIx,i,3,k) * dStiffness1D(j,3));
+
+				const double dDaCurl = dInvElementDeltaA * (
+					- m_dAuxDataNode(CurlIx,0,j,k) * dStiffness1D(i,0)
+					- m_dAuxDataNode(CurlIx,1,j,k) * dStiffness1D(i,1)
+					- m_dAuxDataNode(CurlIx,2,j,k) * dStiffness1D(i,2)
+					- m_dAuxDataNode(CurlIx,3,j,k) * dStiffness1D(i,3));
+
+				const double dDbCurl = dInvElementDeltaB * (
+					- m_dAuxDataNode(CurlIx,i,0,k) * dStiffness1D(j,0)
+					- m_dAuxDataNode(CurlIx,i,1,k) * dStiffness1D(j,1)
+					- m_dAuxDataNode(CurlIx,i,2,k) * dStiffness1D(j,2)
+					- m_dAuxDataNode(CurlIx,i,3,k) * dStiffness1D(j,3));
+
+				// Compute and apply update
+				const double dUpdateUa =
 					+ dLocalNuDiv * dDaDiv
 					- dLocalNuVort * dJacobian2D(iA,iB) * (
 						  dContraMetric2DB(iA,iB,0) * dDaCurl
 						+ dContraMetric2DB(iA,iB,1) * dDbCurl);
 
-				double dUpdateUb =
+				const double dUpdateUb =
 					+ dLocalNuDiv * dDbDiv
 					+ dLocalNuVort * dJacobian2D(iA,iB) * (
 						  dContraMetric2DA(iA,iB,0) * dDaCurl
 						+ dContraMetric2DA(iA,iB,1) * dDbCurl);
 
 				dataUpdate(UIx,iA,iB,k) -= dDeltaT * dUpdateUa;
-
-				if (pGrid->GetIsCartesianXZ() == false) {
-					dataUpdate(VIx,iA,iB,k) -= dDeltaT * dUpdateUb;
-				}
+				dataUpdate(VIx,iA,iB,k) -= dDeltaT * dUpdateUb;
 			}
 			}
 		}

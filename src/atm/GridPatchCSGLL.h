@@ -149,7 +149,7 @@ private:
 	///		Buffer space for computing contravariant velocities in
 	///		ComputeCurlAndDiv().
 	///	</summary>
-	DataArray3D<double> m_dBufferConU;
+	DataArray4D<double> m_dBufferConU;
 };
 
 ///////////////////////////////////////////////////////////////////////////////

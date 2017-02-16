@@ -246,17 +246,17 @@ protected:
 	///	<summary>
 	///		Nodal pointwise gradient of Jacobian in alpha direction (buffer).
 	///	</summary>
-	DataArray2D<double> m_dJGradientA;
+	DataArray3D<double> m_dJGradientA;
 
 	///	<summary>
 	///		Nodal pointwise gradient of Jacobian in beta direction (buffer).
 	///	</summary>
-	DataArray2D<double> m_dJGradientB;
+	DataArray3D<double> m_dJGradientB;
 
 	///	<summary>
 	///		Nodal state values (buffer).
 	///	</summary>
-	DataArray2D<double> m_dBufferState;
+	DataArray3D<double> m_dBufferState;
 
 protected:
 	///	<summary>
