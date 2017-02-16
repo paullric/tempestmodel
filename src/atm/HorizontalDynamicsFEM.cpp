@@ -404,20 +404,20 @@ void HorizontalDynamicsFEM::StepShallowWater(
 		for (int a = 0; a < nElementCountA; a++) {
 		for (int b = 0; b < nElementCountB; b++) {
 
+			int iElementA = a * nHorizontalOrder + box.GetHaloElements();
+			int iElementB = b * nHorizontalOrder + box.GetHaloElements();
+
 			// Compute auxiliary data in element
 			for (int k = 0; k < nRElements; k++) {
 			for (int i = 0; i < nHorizontalOrder; i++) {
 			for (int j = 0; j < nHorizontalOrder; j++) {
 
-				int iA = a * nHorizontalOrder + i + box.GetHaloElements();
-				int iB = b * nHorizontalOrder + j + box.GetHaloElements();
-
-				int iElementA = a * nHorizontalOrder + box.GetHaloElements();
-				int iElementB = b * nHorizontalOrder + box.GetHaloElements();
+				const int iA = iElementA + i;
+				const int iB = iElementB + j;
 
 				// Contravariant velocities
-				double dCovUa = dataInitialNode(UIx,iA,iB,k);
-				double dCovUb = dataInitialNode(VIx,iA,iB,k);
+				const double dCovUa = dataInitialNode(UIx,iA,iB,k);
+				const double dCovUb = dataInitialNode(VIx,iA,iB,k);
 
 				// Contravariant velocities
 				m_dAuxDataNode(ConUaIx,i,j,k) =
@@ -446,8 +446,8 @@ void HorizontalDynamicsFEM::StepShallowWater(
 				for (int i = 0; i < nHorizontalOrder; i++) {
 				for (int j = 0; j < nHorizontalOrder; j++) {
 
-					int iA = a * nHorizontalOrder + i + box.GetHaloElements();
-					int iB = b * nHorizontalOrder + j + box.GetHaloElements();
+					const int iA = iElementA + i;
+					const int iB = iElementB + j;
 
 					// Height flux
 					m_dAlphaMassFlux(i,j,k) =
@@ -469,11 +469,8 @@ void HorizontalDynamicsFEM::StepShallowWater(
 				for (int i = 0; i < nHorizontalOrder; i++) {
 				for (int j = 0; j < nHorizontalOrder; j++) {
 
-					int iA = a * nHorizontalOrder + i + box.GetHaloElements();
-					int iB = b * nHorizontalOrder + j + box.GetHaloElements();
-
-					int iElementA = a * nHorizontalOrder + box.GetHaloElements();
-					int iElementB = b * nHorizontalOrder + box.GetHaloElements();
+					const int iA = iElementA + i;
+					const int iB = iElementB + j;
 
 					// Inverse Jacobian
 					double dInvJacobian2D = 1.0 / dJacobian2D(iA,iB);
@@ -834,9 +831,9 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 				const int iB = iElementB + j;
 
 				// Contravariant velocities
-				double dCovUa = dataInitialNode(UIx,iA,iB,k);
-				double dCovUb = dataInitialNode(VIx,iA,iB,k);
-				double dCovUx = dataInitialNode(WIx,iA,iB,k);
+				const double dCovUa = dataInitialNode(UIx,iA,iB,k);
+				const double dCovUb = dataInitialNode(VIx,iA,iB,k);
+				const double dCovUx = dataInitialNode(WIx,iA,iB,k);
 
 				// Store metric quantities
 				m_dLocalJacobian(i,j,k) =
@@ -888,20 +885,24 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 					+ m_dAuxDataNode(ConUxIx,i,j,k) * dCovUx);
 
 #ifdef FORMULATION_RHOTHETA_P
+				// NOTE: For some reason using parenthetical notation on the
+				//       LHS of these expressions crash the Intel compiler
+				//       (observed with icpc 16.0.3)
+
 				// Pressure
-				m_dAuxDataNode(ExnerIx,i,j,k) =
+				m_dAuxDataNode[ExnerIx][i][j][k] =
 					phys.PressureFromRhoTheta(
 						dataInitialNode(PIx,iA,iB,k));
 #endif
 #ifdef FORMULATION_RHOTHETA_PI
 				// Exner pressure
-				m_dAuxDataNode(ExnerIx,i,j,k) =
+				m_dAuxDataNode[ExnerIx][i][j][k] =
 					phys.ExnerPressureFromRhoTheta(
 						dataInitialNode(PIx,iA,iB,k));
 #endif
 #if defined(FORMULATION_THETA) || defined(FORMULATION_THETA_FLUX)
 				// Exner pressure
-				m_dAuxDataNode(ExnerIx,i,j,k) =
+				m_dAuxDataNode[ExnerIx][i][j][k] =
 					phys.ExnerPressureFromRhoTheta(
 						  dataInitialNode(RIx,iA,iB,k)
 						* dataInitialNode(PIx,iA,iB,k));
@@ -926,12 +927,12 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 				double dCovDbUx = 0.0;
 
 				// Vertical derivatives of the covariant velocity field			
-				double dCovDxUa =
+				const double dCovDxUa =
 					pGrid->DifferentiateNodeToNode(
 						&(dataInitialNode(UIx,iA,iB,0)),
 						k, 1);
 
-				double dCovDxUb =
+				const double dCovDxUb =
 					pGrid->DifferentiateNodeToNode(
 						&(dataInitialNode(VIx,iA,iB,0)),
 						k, 1);
@@ -967,14 +968,14 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 				dCovDbUx *= dInvElementDeltaB;
 
 				// Contravariant velocities
-				double dConUa = m_dAuxDataNode(ConUaIx,i,j,k);
-				double dConUb = m_dAuxDataNode(ConUbIx,i,j,k);
-				double dConUx = m_dAuxDataNode(ConUxIx,i,j,k);
+				const double dConUa = m_dAuxDataNode(ConUaIx,i,j,k);
+				const double dConUb = m_dAuxDataNode(ConUbIx,i,j,k);
+				const double dConUx = m_dAuxDataNode(ConUxIx,i,j,k);
 
 				// Relative vorticity (contravariant)
-				double dJZetaA = (dCovDbUx - dCovDxUb);
-				double dJZetaB = (dCovDxUa - dCovDaUx);
-				double dJZetaX = (dCovDaUb - dCovDbUa);
+				const double dJZetaA = (dCovDbUx - dCovDxUb);
+				const double dJZetaB = (dCovDxUa - dCovDaUx);
+				const double dJZetaX = (dCovDaUb - dCovDbUa);
 
 				// U cross Relative Vorticity (contravariant)
 				m_dAuxDataNode(UCrossZetaAIx,i,j,k) =
@@ -998,11 +999,11 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 				const int iB = iElementB + j;
 
 				// Base fluxes (area times velocity)
-				double dAlphaBaseFlux =
+				const double dAlphaBaseFlux =
 					m_dLocalJacobian(i,j,k)
 					* m_dAuxDataNode(ConUaIx,i,j,k);
 
-				double dBetaBaseFlux =
+				const double dBetaBaseFlux =
 					m_dLocalJacobian(i,j,k)
 					* m_dAuxDataNode(ConUbIx,i,j,k);
 
@@ -1290,35 +1291,35 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 
 				// Pressure gradient force
 #if defined(FORMULATION_PRESSURE) || defined(FORMULATION_RHOTHETA_P)
-				double dPressureGradientForceUa =
+				const double dPressureGradientForceUa =
 					dDaP / dataInitialNode(RIx,iA,iB,k);
-				double dPressureGradientForceUb =
+				const double dPressureGradientForceUb =
 					dDbP / dataInitialNode(RIx,iA,iB,k);
 #endif
 #if defined(FORMULATION_RHOTHETA_PI)
-				double dPressureGradientForceUa =
+				const double dPressureGradientForceUa =
 					dDaP * dataInitialNode(PIx,iA,iB,k)
 					/ dataInitialNode(RIx,iA,iB,k);
-				double dPressureGradientForceUb =
+				const double dPressureGradientForceUb =
 					dDbP * dataInitialNode(PIx,iA,iB,k)
 					/ dataInitialNode(RIx,iA,iB,k);
 #endif
 #if defined(FORMULATION_THETA) || defined(FORMULATION_THETA_FLUX)
-				double dPressureGradientForceUa =
+				const double dPressureGradientForceUa =
 					dDaP * dataInitialNode(PIx,iA,iB,k);
-				double dPressureGradientForceUb =
+				const double dPressureGradientForceUb =
 					dDbP * dataInitialNode(PIx,iA,iB,k);
 #endif
 
 				// Gravity
-				double dDaPhi = phys.GetG() * m_dLocalDerivR(i,j,k,0);
-				double dDbPhi = phys.GetG() * m_dLocalDerivR(i,j,k,1);
+				const double dDaPhi = phys.GetG() * m_dLocalDerivR(i,j,k,0);
+				const double dDbPhi = phys.GetG() * m_dLocalDerivR(i,j,k,1);
 
 				// Horizontal updates due to gradient terms
-				double dDaUpdate =
+				const double dDaUpdate =
 					dPressureGradientForceUa + dDaKE + dDaPhi;
 
-				double dDbUpdate =
+				const double dDbUpdate =
 					dPressureGradientForceUb + dDbKE + dDbPhi;
 
 				// Apply gradient term update to total update
@@ -1466,7 +1467,7 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 					dDbJThetaUb *= dInvElementDeltaB;
 
 					// Update Theta on model levels
-					double dUpdateTheta =
+					const double dUpdateTheta =
 						(dDaJThetaUa + dDbJThetaUb)
 						- dataInitialNode(PIx,iA,iB,k)
 							* (dDaJUa + dDbJUb);
@@ -1570,12 +1571,12 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 					const int iB = iElementB + j;
 
 					// Interpolate horizontal velocity to bottom boundary
-					double dU0 =
+					const double dU0 =
 						pGrid->InterpolateNodeToREdge(
 							&(dataUpdateNode(UIx,iA,iB,0)),
 							NULL, 0, 0.0, 1);
 
-					double dV0 =
+					const double dV0 =
 						pGrid->InterpolateNodeToREdge(
 							&(dataUpdateNode(VIx,iA,iB,0)),
 							NULL, 0, 0.0, 1);
@@ -1597,7 +1598,7 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 					const int iB = iElementB + j;
 
 					// Interpolate U cross Zeta to interfaces
-					double dUCrossZetaX =
+					const double dUCrossZetaX =
 						pGrid->InterpolateNodeToREdge(
 							&(m_dAuxDataNode(UCrossZetaXIx,i,j,0)),
 							NULL, k, 0.0, 1); 
@@ -1622,9 +1623,9 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 					const int iB = iElementB + j;
 
 					// Contravariant velocities
-					double dCovUa = dataInitialREdge(UIx,iA,iB,k);
-					double dCovUb = dataInitialREdge(VIx,iA,iB,k);
-					double dCovUx = dataInitialREdge(WIx,iA,iB,k);
+					const double dCovUa = dataInitialREdge(UIx,iA,iB,k);
+					const double dCovUb = dataInitialREdge(VIx,iA,iB,k);
+					const double dCovUx = dataInitialREdge(WIx,iA,iB,k);
 
 					// Contravariant velocities on interfaces
 					m_dAuxDataREdge(ConUaIx,i,j,k) =
@@ -1667,8 +1668,8 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 					dDbTheta *= dInvElementDeltaB;
 
 					// Update Theta on interfaces
-					double dConUa = m_dAuxDataREdge(ConUaIx,i,j,k);
-					double dConUb = m_dAuxDataREdge(ConUbIx,i,j,k);
+					const double dConUa = m_dAuxDataREdge(ConUaIx,i,j,k);
+					const double dConUb = m_dAuxDataREdge(ConUbIx,i,j,k);
 
 					dataUpdateREdge(PIx,iA,iB,k) -=
 						dDeltaT * (dConUa * dDaTheta + dConUb * dDbTheta);
