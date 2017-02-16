@@ -33,7 +33,7 @@
 
 //#define INSTEP_DIVERGENCE_DAMPING
 
-#define FIX_ELEMENT_MASS_NONHYDRO
+//#define FIX_ELEMENT_MASS_NONHYDRO
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -920,12 +920,6 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 				const int iA = iElementA + i;
 				const int iB = iElementB + j;
 
-				// Derivatives of the covariant velocity field
-				double dCovDaUb = 0.0;
-				double dCovDaUx = 0.0;
-				double dCovDbUa = 0.0;
-				double dCovDbUx = 0.0;
-
 				// Vertical derivatives of the covariant velocity field			
 				const double dCovDxUa =
 					pGrid->DifferentiateNodeToNode(
@@ -938,7 +932,11 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 						k, 1);
 
 				// Derivative needed for calculating relative vorticity
-#pragma unroll
+				double dCovDaUb = 0.0;
+				double dCovDaUx = 0.0;
+				double dCovDbUa = 0.0;
+				double dCovDbUx = 0.0;
+
 				for (int s = 0; s < nHorizontalOrder; s++) {
 
 					// Derivative of covariant beta velocity wrt alpha
@@ -1039,6 +1037,7 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 					  dBetaBaseFlux
 					* dataInitialNode(PIx,iA,iB,k);
 #endif
+/*
 #pragma unroll
 				for (int c = 0; c < nTracerCount; c++) {
 					m_dAlphaTracerFlux(c,i,j,k) =
@@ -1049,7 +1048,7 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 						dBetaBaseFlux
 						* dataInitialTracer(c,iA,iB,k);
 				}
-
+*/
 #if !defined(DISABLE_UNIFORM_DIFFUSION_CHECKS)
 				////////////////////////////////////////////////////////
 				// Apply uniform diffusion to tracers
@@ -1106,7 +1105,6 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 				double dDaJUa = 0.0;
 				double dDbJUb = 0.0;
 
-#pragma unroll
 				for (int s = 0; s < nHorizontalOrder; s++) {
 					// Alpha derivative of J U^a
 					dDaJUa +=
@@ -1166,7 +1164,11 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 				double dDaRhoFluxA = 0.0;
 				double dDaPressureFluxA = 0.0;
 
-#pragma unroll
+				// Calculate derivatives in the beta direction
+				double dDbRhoFluxB = 0.0;
+				double dDbPressureFluxB = 0.0;
+
+				// Alpha derivatives
 				for (int s = 0; s < nHorizontalOrder; s++) {
 
 					// Update density: Variational formulation
@@ -1207,11 +1209,7 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 #endif
 				}
 
-				// Calculate derivatives in the beta direction
-				double dDbRhoFluxB = 0.0;
-				double dDbPressureFluxB = 0.0;
-
-#pragma unroll
+				// Beta derivatives
 				for (int s = 0; s < nHorizontalOrder; s++) {
 
 					// Update density: Variational formulation
