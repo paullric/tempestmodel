@@ -326,17 +326,17 @@ protected:
 	///	<summary>
 	///		Buffer state.
 	///	</summary>
-	DataArray2D<double> m_dBufferState;
+	DataArray3D<double> m_dBufferState;
 
 	///	<summary>
 	///		Buffer J gradient, used in hyperviscosity calculation.
 	///	</summary>
-	DataArray2D<double> m_dJGradientA;
+	DataArray3D<double> m_dJGradientA;
 
 	///	<summary>
 	///		Buffer J gradient, used in hyperviscosity calculation.
 	///	</summary>
-	DataArray2D<double> m_dJGradientB;
+	DataArray3D<double> m_dJGradientB;
 
 protected:
 	///	<summary>

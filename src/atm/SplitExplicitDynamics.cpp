@@ -229,16 +229,19 @@ void SplitExplicitDynamics::Initialize() {
 	// Buffer state
 	m_dBufferState.Allocate(
 		m_nHorizontalOrder,
-		m_nHorizontalOrder);
+		m_nHorizontalOrder,
+		nRElements+1);
 	
 	// Initialize buffers for derivatives of Jacobian
 	m_dJGradientA.Allocate(
 		m_nHorizontalOrder,
-		m_nHorizontalOrder);
+		m_nHorizontalOrder,
+		nRElements+1);
 
 	m_dJGradientB.Allocate(
 		m_nHorizontalOrder,
-		m_nHorizontalOrder);
+		m_nHorizontalOrder,
+		nRElements+1);
 
 	// LAPACK info structure
 	m_nInfo.Allocate(
@@ -514,6 +517,7 @@ void SplitExplicitDynamics::CalculateTendencies(
 			// Calculate auxiliary quantities on model levels
 			for (int i = 0; i < m_nHorizontalOrder; i++) {
 			for (int j = 0; j < m_nHorizontalOrder; j++) {
+#pragma simd
 			for (int k = 0; k < nRElements; k++) {
 
 				const int iA = iElementA + i;
@@ -581,6 +585,7 @@ void SplitExplicitDynamics::CalculateTendencies(
 			// Calculate nodal updates
 			for (int i = 0; i < m_nHorizontalOrder; i++) {
 			for (int j = 0; j < m_nHorizontalOrder; j++) {
+#pragma simd
 			for (int k = 0; k < nRElements; k++) {
 
 				const int iA = iElementA + i;
@@ -848,6 +853,7 @@ void SplitExplicitDynamics::CalculateTendencies(
 			// the vertical flux of horizontal momentum.
 			for (int i = 0; i < m_nHorizontalOrder; i++) {
 			for (int j = 0; j < m_nHorizontalOrder; j++) {
+#pragma simd
 			for (int k = 1; k < nRElements; k++) {
 
 				const int iA = iElementA + i;
@@ -934,6 +940,7 @@ void SplitExplicitDynamics::CalculateTendencies(
 
 			for (int i = box.GetAInteriorBegin(); i < box.GetAInteriorEnd(); i++) {
 			for (int j = box.GetBInteriorBegin(); j < box.GetBInteriorEnd(); j++) {
+#pragma simd
 			for (int k = 0; k < nRElements; k++) {
 				dataPressure(i,j,k) *=
 					phys.GetGamma()
@@ -2382,14 +2389,14 @@ void SplitExplicitDynamics::ApplyScalarHyperdiffusion(
 
 		const DataArray4D<double> & dataRefREdge =
 			pPatch->GetReferenceState(DataLocation_REdge);
-/*
+
 		// Tracer data
 		DataArray4D<double> & dataInitialTracer =
 			pPatch->GetDataTracers(iDataInitial);
 
 		DataArray4D<double> & dataUpdateTracer =
 			pPatch->GetDataTracers(iDataUpdate);
-*/
+
 		// Element grid spacing and derivative coefficients
 		const double dElementDeltaA = pPatch->GetElementDeltaA();
 		const double dElementDeltaB = pPatch->GetElementDeltaB();
@@ -2472,9 +2479,8 @@ void SplitExplicitDynamics::ApplyScalarHyperdiffusion(
 					}
 
 				} else {
-					_EXCEPTION();
-					//pDataInitial = &dataInitialTracer;
-					//pDataUpdate = &dataUpdateTracer;
+					pDataInitial = &dataInitialTracer;
+					pDataUpdate = &dataUpdateTracer;
 					nElementCountR = nRElements;
 					pJacobian = &dJacobianNode;
 				}
@@ -2482,7 +2488,6 @@ void SplitExplicitDynamics::ApplyScalarHyperdiffusion(
 				// Loop over all finite elements
 				for (int a = 0; a < nElementCountA; a++) {
 				for (int b = 0; b < nElementCountB; b++) {
-				for (int k = 0; k < nElementCountR; k++) {
 
 					const int iElementA =
 						a * m_nHorizontalOrder + box.GetHaloElements();
@@ -2492,11 +2497,14 @@ void SplitExplicitDynamics::ApplyScalarHyperdiffusion(
 					// Store the buffer state
 					for (int i = 0; i < m_nHorizontalOrder; i++) {
 					for (int j = 0; j < m_nHorizontalOrder; j++) {
-						int iA = iElementA + i;
-						int iB = iElementB + j;
+#pragma simd
+					for (int k = 0; k < nElementCountR; k++) {
+						const int iA = iElementA + i;
+						const int iB = iElementB + j;
 
-						m_dBufferState(i,j) =
+						m_dBufferState(i,j,k) =
 							(*pDataInitial)(c,iA,iB,k);
+					}
 					}
 					}
 
@@ -2504,11 +2512,14 @@ void SplitExplicitDynamics::ApplyScalarHyperdiffusion(
 					if (fRemoveRefState) {
 						for (int i = 0; i < m_nHorizontalOrder; i++) {
 						for (int j = 0; j < m_nHorizontalOrder; j++) {
-							int iA = iElementA + i;
-							int iB = iElementB + j;
+#pragma simd
+						for (int k = 0; k < nElementCountR; k++) {
+							const int iA = iElementA + i;
+							const int iB = iElementB + j;
 
-							m_dBufferState(i,j) -=
+							m_dBufferState(i,j,k) -=
 								(*pDataRef)(c,iA,iB,k);
+						}
 						}
 						}
 					}
@@ -2516,41 +2527,49 @@ void SplitExplicitDynamics::ApplyScalarHyperdiffusion(
 					// Calculate the pointwise gradient of the scalar field
 					for (int i = 0; i < m_nHorizontalOrder; i++) {
 					for (int j = 0; j < m_nHorizontalOrder; j++) {
-						int iA = iElementA + i;
-						int iB = iElementB + j;
+#pragma simd
+					for (int k = 0; k < nElementCountR; k++) {
+
+						const int iA = iElementA + i;
+						const int iB = iElementB + j;
 
 						double dDaPsi = 0.0;
 						double dDbPsi = 0.0;
+
 						for (int s = 0; s < m_nHorizontalOrder; s++) {
 							dDaPsi +=
-								m_dBufferState(s,j)
+								m_dBufferState(s,j,k)
 								* dDxBasis1D(s,i);
 
 							dDbPsi +=
-								m_dBufferState(i,s)
+								m_dBufferState(i,s,k)
 								* dDxBasis1D(s,j);
 						}
 
 						dDaPsi *= dInvElementDeltaA;
 						dDbPsi *= dInvElementDeltaB;
 
-						m_dJGradientA(i,j) =
+						m_dJGradientA(i,j,k) =
 							(*pJacobian)(iA,iB,k) * (
 								+ dContraMetricA(iA,iB,0) * dDaPsi
 								+ dContraMetricA(iA,iB,1) * dDbPsi);
 
-						m_dJGradientB(i,j) =
+						m_dJGradientB(i,j,k) =
 							(*pJacobian)(iA,iB,k) * (
 								+ dContraMetricB(iA,iB,0) * dDaPsi
 								+ dContraMetricB(iA,iB,1) * dDbPsi);
+					}
 					}
 					}
 
 					// Pointwise updates
 					for (int i = 0; i < m_nHorizontalOrder; i++) {
 					for (int j = 0; j < m_nHorizontalOrder; j++) {
-						int iA = iElementA + i;
-						int iB = iElementB + j;
+#pragma simd
+					for (int k = 0; k < nElementCountR; k++) {
+
+						const int iA = iElementA + i;
+						const int iB = iElementB + j;
 
 						// Inverse Jacobian and Jacobian
 						const double dInvJacobian =
@@ -2562,11 +2581,11 @@ void SplitExplicitDynamics::ApplyScalarHyperdiffusion(
 
 						for (int s = 0; s < m_nHorizontalOrder; s++) {
 							dUpdateA +=
-								m_dJGradientA(s,j)
+								m_dJGradientA(s,j,k)
 								* dStiffness1D(i,s);
 
 							dUpdateB +=
-								m_dJGradientB(i,s)
+								m_dJGradientB(i,s,k)
 								* dStiffness1D(j,s);
 						}
 
@@ -2579,7 +2598,7 @@ void SplitExplicitDynamics::ApplyScalarHyperdiffusion(
 								* (dUpdateA + dUpdateB);
 					}
 					}
-				}
+					}
 				}
 				}
 			}
@@ -2724,6 +2743,7 @@ void SplitExplicitDynamics::ApplyVectorHyperdiffusion(
 			// Pointwise update of horizontal velocities
 			for (int i = 0; i < m_nHorizontalOrder; i++) {
 			for (int j = 0; j < m_nHorizontalOrder; j++) {
+#pragma simd
 			for (int k = 0; k < nRElements; k++) {
 
 				const int iA = iElementA + i;
