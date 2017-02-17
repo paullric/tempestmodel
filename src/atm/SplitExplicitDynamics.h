@@ -88,6 +88,16 @@ public:
 	);
 
 	///	<summary>
+	///		Perform the updates from the first acoustic loop.
+	///	</summary>
+	void FirstAcousticLoop(
+		int iDataInitial,
+		int iDataTendencies,
+		int iDataAcoustic2,
+		double dDeltaT
+	);
+
+	///	<summary>
 	///		Perform the updates from the acoustic loop.
 	///	</summary>
 	void PerformAcousticLoop(
