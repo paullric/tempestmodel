@@ -471,7 +471,7 @@ void SplitExplicitDynamics::CalculateTendencies(
 
 				// Note that we store theta not rhotheta
 				dataInitialREdge(PIx,iA,iB,k) =
-					0.5 * dInvRhoREdge *
+					dInvRhoREdge * 0.5 *
 						(dataInitialNode(PIx,iA,iB,k-1)
 						+ dataInitialNode(PIx,iA,iB,k));
 
@@ -500,7 +500,8 @@ void SplitExplicitDynamics::CalculateTendencies(
 
 				// Horizontal vertical momentum flux
 				const double dVerticalMomentumBaseFluxREdge =
-					dataInitialREdge(WIx,iA,iB,k)
+					dJacobianREdge(iA,iB,k)
+					* dataInitialREdge(WIx,iA,iB,k)
 					* dInvRhoREdge;
 
 				m_dAlphaVerticalMomentumFluxREdge(i,j,k) =
@@ -573,7 +574,7 @@ void SplitExplicitDynamics::CalculateTendencies(
 				// Vertical flux of momentum
 				m_dSDotWNode(i,j,k) =
 					0.5 * (dataInitialREdge(WIx,iA,iB,k)
-						+ dataInitialREdge(WIx,iA,iB,k))
+						+ dataInitialREdge(WIx,iA,iB,k+1))
 					- dDerivRNode(iA,iB,k,0)
 						* dataInitialNode(UIx,iA,iB,k)
 					- dDerivRNode(iA,iB,k,1)
@@ -755,8 +756,8 @@ void SplitExplicitDynamics::CalculateTendencies(
 				const double dInvJacobian2D =
 					1.0 / dJacobian2D(iA,iB);
 
-				const double dInvDeltaZ = 1.0 / (
-					dataZi(iA,iB,k+1)
+				const double dInvDeltaZ =
+					1.0 / (dataZi(iA,iB,k+1)
 						- dataZi(iA,iB,k));
 
 				// Total horizontal flux divergence
@@ -766,25 +767,15 @@ void SplitExplicitDynamics::CalculateTendencies(
 						+ dDbMassFluxBeta);
 
 				// Vertical fluxes
-				const double dDsAlphaMomentumFluxS =
+				const double dDzAlphaMomentumFluxS =
 					dInvDeltaZ * (
 						  m_dSDotUaREdge(i,j,k+1)
 						- m_dSDotUaREdge(i,j,k  ));
 
-				const double dDsBetaMomentumFluxS =
+				const double dDzBetaMomentumFluxS =
 					dInvDeltaZ * (
 						  m_dSDotUbREdge(i,j,k+1)
 						- m_dSDotUbREdge(i,j,k  ));
-
-				const double dDzMassFluxVertical =
-					dInvDeltaZ * (
-						  m_dSDotREdge(i,j,k+1)
-						- m_dSDotREdge(i,j,k  ));
-
-				const double dDzPressureFluxVertical =
-					dInvDeltaZ * (
-						  m_dSDotThetaREdge(i,j,k+1)
-						- m_dSDotThetaREdge(i,j,k  ));
 
 				// Compute vorticity term
 				const double dAbsVorticity = 
@@ -803,7 +794,7 @@ void SplitExplicitDynamics::CalculateTendencies(
 					- dataInitialNode(RIx,iA,iB,k)
  						* (dConDaKE + dVorticityAlpha)
 					- dTotalHorizFluxDiv * m_d2DConUa(i,j,k)
-					- dDsAlphaMomentumFluxS;
+					- dDzAlphaMomentumFluxS;
 
 /*
 				printf("%1.5e %1.5e %1.5e %1.5e %1.5e %1.5e : %1.5e\n",
@@ -821,7 +812,7 @@ void SplitExplicitDynamics::CalculateTendencies(
 					- dataInitialNode(RIx,iA,iB,k)
  						* (dConDbKE + dVorticityBeta)
 					- dTotalHorizFluxDiv * m_d2DConUb(i,j,k)
-					- dDsBetaMomentumFluxS;
+					- dDzBetaMomentumFluxS;
 
 /*
 				if (fabs(dataInitialNode(RIx,iA,iB,k) * dConDbKE) < 0.1 * fabs(dConDbP)) {
@@ -836,9 +827,21 @@ void SplitExplicitDynamics::CalculateTendencies(
 				}
 */
 
+				// Density tendencies
+				const double dDzMassFluxVertical =
+					dInvDeltaZ * (
+						  m_dSDotREdge(i,j,k+1)
+						- m_dSDotREdge(i,j,k  ));
+
 				dataTendenciesNode(RIx,iA,iB,k) =
 					- dTotalHorizFluxDiv
 					- dDzMassFluxVertical;
+
+				// Rhotheta (pressure) tendencies
+				const double dDzPressureFluxVertical =
+					dInvDeltaZ * (
+						  m_dSDotThetaREdge(i,j,k+1)
+						- m_dSDotThetaREdge(i,j,k  ));
 
 				dataTendenciesNode(PIx,iA,iB,k) =
 					- dInvJacobian * (
@@ -883,8 +886,8 @@ void SplitExplicitDynamics::CalculateTendencies(
 				dDaVerticalMomentumFluxAlpha *= dInvElementDeltaA;
 				dDbVerticalMomentumFluxBeta  *= dInvElementDeltaB;
 
-				const double dInvDeltaZ = 1.0 / (
-					dataZn(iA,iB,k)
+				const double dInvDeltaZ =
+					1.0 / (dataZn(iA,iB,k)
 						- dataZn(iA,iB,k-1));
 
 				const double dDzVerticalMomentumFluxW =
@@ -1217,15 +1220,15 @@ void SplitExplicitDynamics::FirstAcousticLoop(
 				dDaPressureFlux *= dInvElementDeltaA * dInvJacobian;
 				dDbPressureFlux *= dInvElementDeltaB * dInvJacobian;
 
-				m_dNodalMassUpdate(i,j,k) = - dDeltaT * (
-					  dDaMassFlux
-					+ dDbMassFlux
-					- dataTendenciesNode(RIx,iA,iB,k));
+				m_dNodalMassUpdate(i,j,k) = dDeltaT * (
+					- dDaMassFlux
+					- dDbMassFlux
+					+ dataTendenciesNode(RIx,iA,iB,k));
 
-				m_dNodalPressureUpdate(i,j,k) = - dDeltaT * (
-					  dDaPressureFlux
-					+ dDbPressureFlux
-					- dataTendenciesNode(PIx,iA,iB,k));
+				m_dNodalPressureUpdate(i,j,k) = dDeltaT * (
+					- dDaPressureFlux
+					- dDbPressureFlux
+					+ dataTendenciesNode(PIx,iA,iB,k));
 			}
 			}
 			}
@@ -2165,11 +2168,20 @@ void SplitExplicitDynamics::StepExplicit(
 			const DataArray4D<double> & dataInitialNode =
 				pPatch->GetDataState(iDataInitial, DataLocation_Node);
 
+			const DataArray4D<double> & dataInitialREdge =
+				pPatch->GetDataState(iDataInitial, DataLocation_REdge);
+
 			const DataArray4D<double> & dataTendenciesNode =
 				pPatch->GetDataState(iDataTendenciesIx, DataLocation_Node);
 
+			const DataArray4D<double> & dataTendenciesREdge =
+				pPatch->GetDataState(iDataTendenciesIx, DataLocation_REdge);
+
 			DataArray4D<double> & dataUpdateNode =
 				pPatch->GetDataState(iDataUpdate, DataLocation_Node);
+
+			DataArray4D<double> & dataUpdateREdge =
+				pPatch->GetDataState(iDataUpdate, DataLocation_REdge);
 
 			for (int i = box.GetAInteriorBegin(); i < box.GetAInteriorEnd(); i++) {
 			for (int j = box.GetBInteriorBegin(); j < box.GetBInteriorEnd(); j++) {
@@ -2182,6 +2194,8 @@ void SplitExplicitDynamics::StepExplicit(
 					dDeltaT * dataTendenciesNode(RIx,i,j,k);
 				dataUpdateNode(PIx,i,j,k) +=
 					dDeltaT * dataTendenciesNode(PIx,i,j,k);
+				dataUpdateREdge(WIx,i,j,k) +=
+					dDeltaT * dataTendenciesREdge(WIx,i,j,k);
 			}
 			}
 			}

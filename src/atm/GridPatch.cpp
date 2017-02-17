@@ -600,7 +600,8 @@ void GridPatch::ComputePressure(
 		m_dataPressure[i][j][k] = dataNode[PIx][i][j][k];
 #endif
 #if defined(FORMULATION_RHOTHETA_PI) || defined(FORMULATION_RHOTHETA_P)
-		m_dataPressure[i][j][k] = phys.PressureFromRhoTheta(dataNode[PIx][i][j][k]);
+		m_dataPressure[i][j][k] =
+			phys.PressureFromRhoTheta(dataNode[PIx][i][j][k]);
 #endif
 #if defined(FORMULATION_THETA) || defined(FORMULATION_THETA_FLUX)
 		m_dataPressure[i][j][k] =
