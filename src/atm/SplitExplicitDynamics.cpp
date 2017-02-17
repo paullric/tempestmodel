@@ -1205,11 +1205,11 @@ void SplitExplicitDynamics::FirstAcousticLoop(
 				}
 
 				for (int s = 0; s < m_nHorizontalOrder; s++) {
-					dDaMassFlux -=
+					dDbMassFlux -=
 						m_dBetaMassFlux(i,s,k)
 						* dStiffness1D(j,s);
 
-					dDaPressureFlux -=
+					dDbPressureFlux -=
 						m_dBetaPressureFlux(i,s,k)
 						* dStiffness1D(j,s);
 				}
@@ -1806,11 +1806,11 @@ void SplitExplicitDynamics::PerformAcousticLoop(
 				}
 
 				for (int s = 0; s < m_nHorizontalOrder; s++) {
-					dDaMassFlux -=
+					dDbMassFlux -=
 						m_dBetaMassFlux(i,s,k)
 						* dStiffness1D(j,s);
 
-					dDaPressureFlux -=
+					dDbPressureFlux -=
 						m_dBetaPressureFlux(i,s,k)
 						* dStiffness1D(j,s);
 				}
