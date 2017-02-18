@@ -1,11 +1,11 @@
 ///////////////////////////////////////////////////////////////////////////////
 ///
-///	\file    SplitExplicitDynamics.cpp
+///	\file    HighSpeedDynamics.cpp
 ///	\author  Paul Ullrich
-///	\version September 19, 2013
+///	\version February 18, 2017
 ///
 ///	<remarks>
-///		Copyright 2000-2010 Paul Ullrich
+///		Copyright 2000-2017 Paul Ullrich
 ///
 ///		This file is distributed as part of the Tempest source code package.
 ///		Permission is granted to use, copy, modify and distribute this
@@ -15,7 +15,7 @@
 ///	</remarks>
 
 #include "Defines.h"
-#include "SplitExplicitDynamics.h"
+#include "HighSpeedDynamics.h"
 #include "PhysicalConstants.h"
 #include "Model.h"
 #include "Grid.h"
@@ -30,7 +30,7 @@
 
 ///////////////////////////////////////////////////////////////////////////////
 
-SplitExplicitDynamics::SplitExplicitDynamics(
+HighSpeedDynamics::HighSpeedDynamics(
 	Model & model,
 	int nHorizontalOrder,
 	int nHyperviscosityOrder,
@@ -45,15 +45,13 @@ SplitExplicitDynamics::SplitExplicitDynamics(
 	m_dNuScalar(dNuScalar),
 	m_dNuDiv(dNuDiv),
 	m_dNuVort(dNuVort),
-	m_dInstepNuDiv(dInstepNuDiv),
-	m_dBd(0.1),
-	m_dBs(0.1)
+	m_dInstepNuDiv(dInstepNuDiv)
 {
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void SplitExplicitDynamics::Initialize() {
+void HighSpeedDynamics::Initialize() {
 
 #if !defined(PROGNOSTIC_CONTRAVARIANT_MOMENTA)
 	_EXCEPTIONT("Prognostic covariant velocities not supported");
@@ -125,12 +123,6 @@ void SplitExplicitDynamics::Initialize() {
 		m_nHorizontalOrder,
 		nRElements);
 
-	// Contravariant vertical momentum on interfaces
-	m_dSDotREdge.Allocate(
-		m_nHorizontalOrder,
-		m_nHorizontalOrder,
-		nRElements+1);
-
 	// Initialize the diagnosed vertial alpha momentum flux
 	m_dSDotUaREdge.Allocate(
 		m_nHorizontalOrder,
@@ -139,12 +131,6 @@ void SplitExplicitDynamics::Initialize() {
 
 	// Initialize the diagnosed vertial beta momentum flux
 	m_dSDotUbREdge.Allocate(
-		m_nHorizontalOrder,
-		m_nHorizontalOrder,
-		nRElements+1);
-
-	// Initialize the diagnosed vertical theta flux
-	m_dSDotThetaREdge.Allocate(
 		m_nHorizontalOrder,
 		m_nHorizontalOrder,
 		nRElements+1);
@@ -165,16 +151,6 @@ void SplitExplicitDynamics::Initialize() {
 		m_nHorizontalOrder,
 		m_nHorizontalOrder,
 		nRElements);
-
-	m_dZMassFluxREdge1.Allocate(
-		m_nHorizontalOrder,
-		m_nHorizontalOrder,
-		nRElements+1);
-
-	m_dZMassFluxREdge2.Allocate(
-		m_nHorizontalOrder,
-		m_nHorizontalOrder,
-		nRElements+1);
 
 	// Initialize the alpha and beta momentum fluxes
 	m_dAlphaVerticalMomentumFluxREdge.Allocate(
@@ -198,30 +174,8 @@ void SplitExplicitDynamics::Initialize() {
 		m_nHorizontalOrder,
 		nRElements);
 
-	m_dZPressureFluxREdge1.Allocate(
-		m_nHorizontalOrder,
-		m_nHorizontalOrder,
-		nRElements+1);
-
-	m_dZPressureFluxREdge2.Allocate(
-		m_nHorizontalOrder,
-		m_nHorizontalOrder,
-		nRElements+1);
-
-	// Nodel mass update, used in vertical implicit calculation
-	m_dNodalMassUpdate.Allocate(
-		m_nHorizontalOrder,
-		m_nHorizontalOrder,
-		nRElements);
-
-	// Nodel pressure update, used in vertical implicit calculation
-	m_dNodalPressureUpdate.Allocate(
-		m_nHorizontalOrder,
-		m_nHorizontalOrder,
-		nRElements);
-
 	// Acoustic pressure term used in vertical update
-	m_dAcousticPressureTerm.Allocate(
+	m_dDpDTheta.Allocate(
 		m_nHorizontalOrder,
 		m_nHorizontalOrder,
 		nRElements);
@@ -251,7 +205,7 @@ void SplitExplicitDynamics::Initialize() {
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void SplitExplicitDynamics::FilterNegativeTracers(
+void HighSpeedDynamics::FilterNegativeTracers(
 	int iDataUpdate
 ) {
 #ifdef POSITIVE_DEFINITE_FILTER_TRACERS
@@ -344,9 +298,10 @@ void SplitExplicitDynamics::FilterNegativeTracers(
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void SplitExplicitDynamics::CalculateTendencies(
+void HighSpeedDynamics::StepExplicit(
 	int iDataInitial,
-	int iDataTendencies,
+	int iDataUpdate,
+	const Time & time,
 	double dDeltaT
 ) {
 	// Start the function timer
@@ -412,14 +367,14 @@ void SplitExplicitDynamics::CalculateTendencies(
 		DataArray4D<double> & dataInitialNode =
 			pPatch->GetDataState(iDataInitial, DataLocation_Node);
 
-		DataArray4D<double> & dataTendenciesNode =
-			pPatch->GetDataState(iDataTendencies, DataLocation_Node);
+		DataArray4D<double> & dataUpdateNode =
+			pPatch->GetDataState(iDataUpdate, DataLocation_Node);
 
 		DataArray4D<double> & dataInitialREdge =
 			pPatch->GetDataState(iDataInitial, DataLocation_REdge);
 
-		DataArray4D<double> & dataTendenciesREdge =
-			pPatch->GetDataState(iDataTendencies, DataLocation_REdge);
+		DataArray4D<double> & dataUpdateREdge =
+			pPatch->GetDataState(iDataUpdate, DataLocation_REdge);
 
 		const DataArray3D<double> & dataPressure =
 			pPatch->GetDataPressure();
@@ -449,6 +404,7 @@ void SplitExplicitDynamics::CalculateTendencies(
 			// auxiliary quantities on model interfaces.
 			for (int i = 0; i < m_nHorizontalOrder; i++) {
 			for (int j = 0; j < m_nHorizontalOrder; j++) {
+#pragma simd
 			for (int k = 1; k < nRElements; k++) {
 
 				const int iA = iElementA + i;
@@ -476,7 +432,7 @@ void SplitExplicitDynamics::CalculateTendencies(
 						+ dataInitialNode(PIx,iA,iB,k));
 
 				// Vertical flux of conserved quantities
-				m_dSDotREdge(i,j,k) =
+				const double dSDotREdge =
 					dataInitialREdge(WIx,iA,iB,k)
 						- dataInitialREdge(UIx,iA,iB,k)
 							* dDerivRREdge(iA,iB,k,0)
@@ -484,7 +440,7 @@ void SplitExplicitDynamics::CalculateTendencies(
 							* dDerivRREdge(iA,iB,k,1);
 
 				const double dSDotInvRhoREdge =
-					m_dSDotREdge(i,j,k) * dInvRhoREdge;
+					dSDotREdge * dInvRhoREdge;
 
 				m_dSDotUaREdge(i,j,k) =
 					dSDotInvRhoREdge
@@ -493,10 +449,6 @@ void SplitExplicitDynamics::CalculateTendencies(
 				m_dSDotUbREdge(i,j,k) =
 					dSDotInvRhoREdge
 					* dataInitialREdge(VIx,iA,iB,k);
-
-				m_dSDotThetaREdge(i,j,k) =
-					m_dSDotREdge(i,j,k)
-					* dataInitialREdge(PIx,iA,iB,k);
 
 				// Horizontal vertical momentum flux
 				const double dVerticalMomentumBaseFluxREdge =
@@ -789,12 +741,13 @@ void SplitExplicitDynamics::CalculateTendencies(
 					  dAbsVorticity * dInvJacobian2D * m_d2DCovUa(i,j,k);
 
 				// Compose explicit tendencies on levels
-				dataTendenciesNode(UIx,iA,iB,k) =
-					- dConDaP
-					- dataInitialNode(RIx,iA,iB,k)
- 						* (dConDaKE + dVorticityAlpha)
-					- dTotalHorizFluxDiv * m_d2DConUa(i,j,k)
-					- dDzAlphaMomentumFluxS;
+				dataUpdateNode(UIx,iA,iB,k) +=
+					dDeltaT * (
+						- dConDaP
+						- dataInitialNode(RIx,iA,iB,k)
+ 							* (dConDaKE + dVorticityAlpha)
+						- dTotalHorizFluxDiv * m_d2DConUa(i,j,k)
+						- dDzAlphaMomentumFluxS);
 
 /*
 				printf("%1.5e %1.5e %1.5e %1.5e %1.5e %1.5e : %1.5e\n",
@@ -804,15 +757,16 @@ void SplitExplicitDynamics::CalculateTendencies(
 					- dTotalHorizFluxDiv * m_d2DConUa(i,j,k),
 					- dDsAlphaMomentumFluxS,
 					- dataInitialNode(RIx,iA,iB,k) * dVorticityAlpha,
-					dataTendenciesNode(UIx,iA,iB,k));
+					dataUpdateNode(UIx,iA,iB,k));
 */
 
-				dataTendenciesNode(VIx,iA,iB,k) =
-					- dConDbP
-					- dataInitialNode(RIx,iA,iB,k)
- 						* (dConDbKE + dVorticityBeta)
-					- dTotalHorizFluxDiv * m_d2DConUb(i,j,k)
-					- dDzBetaMomentumFluxS;
+				dataUpdateNode(VIx,iA,iB,k) +=
+					dDeltaT * (
+						- dConDbP
+						- dataInitialNode(RIx,iA,iB,k)
+ 							* (dConDbKE + dVorticityBeta)
+						- dTotalHorizFluxDiv * m_d2DConUb(i,j,k)
+						- dDzBetaMomentumFluxS);
 
 /*
 				if (fabs(dataInitialNode(RIx,iA,iB,k) * dConDbKE) < 0.1 * fabs(dConDbP)) {
@@ -823,31 +777,19 @@ void SplitExplicitDynamics::CalculateTendencies(
 						- dDsBetaMomentumFluxS,
 						- dCoriolisF(iA,iB] * dInvJacobian2D * m_d2DCovUa[i,j,k),
 						- dInvJacobian2D * (dDaCovUb - dDbCovUa) * dInvJacobian2D * m_d2DCovUa(i,j,k),
-						dataTendenciesNode(VIx,iA,iB,k));
+						dataUpdateNode(VIx,iA,iB,k));
 				}
 */
 
 				// Density tendencies
-				const double dDzMassFluxVertical =
-					dInvDeltaZ * (
-						  m_dSDotREdge(i,j,k+1)
-						- m_dSDotREdge(i,j,k  ));
-
-				dataTendenciesNode(RIx,iA,iB,k) =
-					- dTotalHorizFluxDiv
-					- dDzMassFluxVertical;
+				dataUpdateNode(RIx,iA,iB,k) +=
+					- dDeltaT * dTotalHorizFluxDiv;
 
 				// Rhotheta (pressure) tendencies
-				const double dDzPressureFluxVertical =
-					dInvDeltaZ * (
-						  m_dSDotThetaREdge(i,j,k+1)
-						- m_dSDotThetaREdge(i,j,k  ));
-
-				dataTendenciesNode(PIx,iA,iB,k) =
-					- dInvJacobian * (
+				dataUpdateNode(PIx,iA,iB,k) +=
+					- dDeltaT * dInvJacobian * (
 						  dDaPressureFluxAlpha
-						+ dDbPressureFluxBeta)
-					- dDzPressureFluxVertical;
+						+ dDbPressureFluxBeta);
 			}
 			}
 			}
@@ -894,11 +836,6 @@ void SplitExplicitDynamics::CalculateTendencies(
 					dInvDeltaZ
 					* (m_dSDotWNode(i,j,k)
 						- m_dSDotWNode(i,j,k-1));
-
-				const double dDzPressure =
-					dInvDeltaZ
-					* (dataPressure(iA,iB,k)
-						- dataPressure(iA,iB,k-1));
 /*
 				printf("%1.10e %1.10e %1.10e %1.10e\n",
 					dDzPressure,
@@ -909,13 +846,12 @@ void SplitExplicitDynamics::CalculateTendencies(
 					dDzVerticalMomentumFluxW
 					);
 */
-				dataTendenciesREdge(WIx,iA,iB,k) =
-					- dDzPressure
-					- dataInitialREdge(RIx,iA,iB,k) * phys.GetG()
-					- dInvJacobianREdge * (
-						  dDaVerticalMomentumFluxAlpha
-						+ dDbVerticalMomentumFluxBeta)
-					- dDzVerticalMomentumFluxW;
+				dataUpdateREdge(WIx,iA,iB,k) +=
+					- dDeltaT * (
+						+ dInvJacobianREdge * (
+							  dDaVerticalMomentumFluxAlpha
+							+ dDbVerticalMomentumFluxBeta)
+						+ dDzVerticalMomentumFluxW);
 			}
 			}
 			}
@@ -924,47 +860,17 @@ void SplitExplicitDynamics::CalculateTendencies(
 	}
 
 	// Apply direct stiffness summation to tendencies
-	pGrid->ApplyDSS(iDataTendencies, DataType_State);
-
-	// Pre-calculate diagnostic pressure tendency on model levels
-	// (needed in acoustic loop calculations)
-	{
-		for (int n = 0; n < pGrid->GetActivePatchCount(); n++) {
-			GridPatchGLL * pPatch =
-				dynamic_cast<GridPatchGLL*>(pGrid->GetActivePatch(n));
-
-			const PatchBox & box = pPatch->GetPatchBox();
-
-			DataArray3D<double> & dataPressure =
-				pPatch->GetDataPressure();
-
-			const DataArray4D<double> & dataInitialNode =
-				pPatch->GetDataState(iDataInitial, DataLocation_Node);
-
-			for (int i = box.GetAInteriorBegin(); i < box.GetAInteriorEnd(); i++) {
-			for (int j = box.GetBInteriorBegin(); j < box.GetBInteriorEnd(); j++) {
-#pragma simd
-			for (int k = 0; k < nRElements; k++) {
-
-				dataPressure(i,j,k) *=
-					phys.GetGamma()
-					/ dataInitialNode(PIx,i,j,k);
-			}
-			}
-			}
-		}
-	}
+	//pGrid->ApplyDSS(iDataUpdate, DataType_State);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void SplitExplicitDynamics::FirstAcousticLoop(
+void HighSpeedDynamics::StepImplicit(
 	int iDataInitial,
-	int iDataTendencies,
-	int iDataAcoustic2,
+	int iDataUpdate,
+	const Time & time,
 	double dDeltaT
 ) {
-
 	// Start the function timer
 	FunctionTimer timer("AcousticLoop");
 
@@ -1013,25 +919,19 @@ void SplitExplicitDynamics::FirstAcousticLoop(
 			pPatch->GetZInterfaces();
 
 		// Data
-		const DataArray4D<double> & dataInitialNode =
+		DataArray4D<double> & dataInitialNode =
 			pPatch->GetDataState(iDataInitial, DataLocation_Node);
 
-		const DataArray4D<double> & dataInitialREdge =
+		DataArray4D<double> & dataInitialREdge =
 			pPatch->GetDataState(iDataInitial, DataLocation_REdge);
 
-		const DataArray4D<double> & dataTendenciesNode =
-			pPatch->GetDataState(iDataTendencies, DataLocation_Node);
+		DataArray4D<double> & dataUpdateNode =
+			pPatch->GetDataState(iDataUpdate, DataLocation_Node);
 
-		const DataArray4D<double> & dataTendenciesREdge =
-			pPatch->GetDataState(iDataTendencies, DataLocation_REdge);
+		DataArray4D<double> & dataUpdateREdge =
+			pPatch->GetDataState(iDataUpdate, DataLocation_REdge);
 
-		DataArray4D<double> & dataAcoustic2Node =
-			pPatch->GetDataState(iDataAcoustic2, DataLocation_Node);
-
-		DataArray4D<double> & dataAcoustic2REdge =
-			pPatch->GetDataState(iDataAcoustic2, DataLocation_REdge);
-
-		const DataArray3D<double> & dataPressure =
+		DataArray3D<double> & dataPressure =
 			pPatch->GetDataPressure();
 
 		// Element grid spacing and derivative coefficients
@@ -1055,7 +955,7 @@ void SplitExplicitDynamics::FirstAcousticLoop(
 			const int iElementA = a * m_nHorizontalOrder + box.GetHaloElements();
 			const int iElementB = b * m_nHorizontalOrder + box.GetHaloElements();
 
-			// Apply pressure gradient force to horizontal momentum
+			// Pre-compute pressure tendency
 			for (int i = 0; i < m_nHorizontalOrder; i++) {
 			for (int j = 0; j < m_nHorizontalOrder; j++) {
 #pragma simd
@@ -1064,695 +964,14 @@ void SplitExplicitDynamics::FirstAcousticLoop(
 				const int iA = iElementA + i;
 				const int iB = iElementB + j;
 
-				// Update the horizontal momentum
-				dataAcoustic2Node(UIx,iA,iB,k) =
-					dDeltaT * dataTendenciesNode(UIx,iA,iB,k);
-
-				dataAcoustic2Node(VIx,iA,iB,k) =
-					dDeltaT * dataTendenciesNode(VIx,iA,iB,k);
-			}
-			}
-			}
-/*
-		}
-		}
-	}
-
-	// Compute remaining update
-	for (int n = 0; n < pGrid->GetActivePatchCount(); n++) {
-		GridPatchGLL * pPatch =
-			dynamic_cast<GridPatchGLL*>(pGrid->GetActivePatch(n));
-
-		const PatchBox & box = pPatch->GetPatchBox();
-
-		// Metric terms
-		const DataArray3D<double> & dJacobian =
-			pPatch->GetJacobian();
-		const DataArray3D<double> & dJacobianREdge =
-			pPatch->GetJacobianREdge();
-
-		const DataArray4D<double> & dDerivRNode =
-			pPatch->GetDerivRNode();
-		const DataArray4D<double> & dDerivRREdge =
-			pPatch->GetDerivRREdge();
-
-		const DataArray3D<double> & dataZn =
-			pPatch->GetZLevels();
-		const DataArray3D<double> & dataZi =
-			pPatch->GetZInterfaces();
-
-		// Altitude on levels and interfaces
-		const DataArray3D<double> & dataPressure =
-			pPatch->GetDataPressure();
-
-		const DataArray4D<double> & dataInitialNode =
-			pPatch->GetDataState(iDataInitial, DataLocation_Node);
-
-		const DataArray4D<double> & dataInitialREdge =
-			pPatch->GetDataState(iDataInitial, DataLocation_REdge);
-
-		const DataArray4D<double> & dataTendenciesNode =
-			pPatch->GetDataState(iDataTendencies, DataLocation_Node);
-
-		const DataArray4D<double> & dataTendenciesREdge =
-			pPatch->GetDataState(iDataTendencies, DataLocation_REdge);
-
-		DataArray4D<double> & dataAcoustic2Node =
-			pPatch->GetDataState(iDataAcoustic2, DataLocation_Node);
-
-		DataArray4D<double> & dataAcoustic2REdge =
-			pPatch->GetDataState(iDataAcoustic2, DataLocation_REdge);
-
-		const DataArray2D<double> & dStiffness1D = pGrid->GetStiffness1D();
-
-		// Get number of finite elements in each coordinate direction
-		const int nElementCountA = pPatch->GetElementCountA();
-		const int nElementCountB = pPatch->GetElementCountB();
-
-		// Element grid spacing and derivative coefficients
-		const double dElementDeltaA = pPatch->GetElementDeltaA();
-		const double dElementDeltaB = pPatch->GetElementDeltaB();
-
-		const double dInvElementDeltaA = 1.0 / dElementDeltaA;
-		const double dInvElementDeltaB = 1.0 / dElementDeltaB;
-
-		// Loop over all elements
-		for (int a = 0; a < nElementCountA; a++) {
-		for (int b = 0; b < nElementCountB; b++) {
-
-			const int iElementA = a * m_nHorizontalOrder + box.GetHaloElements();
-			const int iElementB = b * m_nHorizontalOrder + box.GetHaloElements();
-*/
-			// Compute horizontal fluxes of rho and rhotheta
-			for (int i = 0; i < m_nHorizontalOrder; i++) {
-			for (int j = 0; j < m_nHorizontalOrder; j++) {
-#pragma simd
-			for (int k = 0; k < nRElements; k++) {
-
-				const int iA = iElementA + i;
-				const int iB = iElementB + j;
-
-				// Inverse density
-				double dInvRhoInitial = 1.0 / dataInitialNode(RIx,iA,iB,k);
-
-				// Alpha mass flux
-				m_dAlphaMassFlux(i,j,k) =
-					dJacobian(iA,iB,k)
-					* dataAcoustic2Node(UIx,iA,iB,k);
-
-				// Beta mass flux
-				m_dBetaMassFlux(i,j,k) =
-					dJacobian(iA,iB,k)
-					* dataAcoustic2Node(VIx,iA,iB,k);
-
-				// Alpha pressure flux
-				m_dAlphaPressureFlux(i,j,k) =
-					dJacobian(iA,iB,k)
-					* dInvRhoInitial
-					* dataAcoustic2Node(UIx,iA,iB,k)
-					* dataInitialNode(PIx,iA,iB,k);
-
-				// Beta mass flux
-				m_dBetaPressureFlux(i,j,k) =
-					dJacobian(iA,iB,k)
-					* dInvRhoInitial
-					* dataAcoustic2Node(VIx,iA,iB,k)
-					* dataInitialNode(PIx,iA,iB,k);
-			}
-			}
-			}
-
-			// Compute forward and forward/backward updates to rho and rhotheta
-			for (int i = 0; i < m_nHorizontalOrder; i++) {
-			for (int j = 0; j < m_nHorizontalOrder; j++) {
-#pragma simd
-			for (int k = 0; k < nRElements; k++) {
-
-				const int iA = iElementA + i;
-				const int iB = iElementB + j;
-
-				const double dInvJacobian =
-					1.0 / dJacobian(iA,iB,k);
-
-				const double dInvDeltaZn =
-					1.0 / (dataZi(iA,iB,k+1)
-						- dataZi(iA,iB,k));
-
-				double dDaMassFlux = 0.0;
-				double dDbMassFlux = 0.0;
-
-				double dDaPressureFlux = 0.0;
-				double dDbPressureFlux = 0.0;
-
-				for (int s = 0; s < m_nHorizontalOrder; s++) {
-					dDaMassFlux -=
-						m_dAlphaMassFlux(s,j,k)
-						* dStiffness1D(i,s);
-
-					dDaPressureFlux -=
-						m_dAlphaPressureFlux(s,j,k)
-						* dStiffness1D(i,s);
-				}
-
-				for (int s = 0; s < m_nHorizontalOrder; s++) {
-					dDbMassFlux -=
-						m_dBetaMassFlux(i,s,k)
-						* dStiffness1D(j,s);
-
-					dDbPressureFlux -=
-						m_dBetaPressureFlux(i,s,k)
-						* dStiffness1D(j,s);
-				}
-
-				dDaMassFlux *= dInvElementDeltaA * dInvJacobian;
-				dDbMassFlux *= dInvElementDeltaB * dInvJacobian;
-
-				dDaPressureFlux *= dInvElementDeltaA * dInvJacobian;
-				dDbPressureFlux *= dInvElementDeltaB * dInvJacobian;
-
-				m_dNodalMassUpdate(i,j,k) = dDeltaT * (
-					- dDaMassFlux
-					- dDbMassFlux
-					+ dataTendenciesNode(RIx,iA,iB,k));
-
-				m_dNodalPressureUpdate(i,j,k) = dDeltaT * (
-					- dDaPressureFlux
-					- dDbPressureFlux
-					+ dataTendenciesNode(PIx,iA,iB,k));
-			}
-			}
-			}
-
-			// Timescale terms
-			const double dTimeScale = dDeltaT * 0.5 * (1.0 + m_dBs);
-			const double dTimeScale2 = dTimeScale * dTimeScale;
-
-			// Fill in vertical column arrays
-			for (int i = 0; i < m_nHorizontalOrder; i++) {
-			for (int j = 0; j < m_nHorizontalOrder; j++) {
-				m_dA(i,j,0) = 0.0;
-				m_dB(i,j,0) = 1.0;
-				m_dB(i,j,nRElements) = 1.0;
-				m_dC(i,j,0) = 0.0;
-				m_dD(i,j,0) = 0.0;
-				m_dD(i,j,nRElements) = 0.0;
-			}
-			}
-
-			for (int i = 0; i < m_nHorizontalOrder; i++) {
-			for (int j = 0; j < m_nHorizontalOrder; j++) {
-#pragma simd
-			for (int k = 1; k < nRElements; k++) {
-
-				const int iA = iElementA + i;
-				const int iB = iElementB + j;
-
-				const double dInvDeltaZk =
-					1.0 / (dataZi(iA,iB,k+1)
-						- dataZi(iA,iB,k));
-
-				const double dInvDeltaZkm =
-					1.0 / (dataZi(iA,iB,k)
-						- dataZi(iA,iB,k-1));
-
-				const double dInvDeltaZhat =
-					1.0 / (dataZn(iA,iB,k)
-						- dataZn(iA,iB,k-1));
-
-				// Note that we have stored theta in dataInitialREdge[PIx]
-				m_dA(i,j,k-1) = - dTimeScale2 * dInvDeltaZkm * (
-					dInvDeltaZhat
-						* dataPressure(iA,iB,k-1)
-						* dataInitialREdge(PIx,iA,iB,k-1)
-					- 0.5 * phys.GetG());
-
-				m_dB(i,j,k) = 1.0 + dTimeScale2 * (
-					dInvDeltaZhat
-						* dataInitialREdge(PIx,iA,iB,k)
-						* (dataPressure(iA,iB,k) * dInvDeltaZk
-							+ dataPressure(iA,iB,k-1) * dInvDeltaZkm)
-					+ 0.5 * phys.GetG()
-						* (dInvDeltaZk - dInvDeltaZkm));
-
-				m_dC(i,j,k) = - dTimeScale2 * dInvDeltaZk * (
-					+ dInvDeltaZhat
-						* dataPressure(iA,iB,k)
-						* dataInitialREdge(PIx,iA,iB,k+1)
-					+ 0.5 * phys.GetG());
-
-				const double dDzPressureUpdate = dInvDeltaZhat
-					* (m_dNodalPressureUpdate(i,j,k)
-						- m_dNodalPressureUpdate(i,j,k-1));
-
-				const double dIntRhoUpdate =
-					0.5 * phys.GetG() * (
-						m_dNodalMassUpdate(i,j,k)
-						+ m_dNodalMassUpdate(i,j,k-1));
-
-				m_dD(i,j,k) =
-					dDeltaT * dataTendenciesREdge(WIx,iA,iB,k)
-					- dTimeScale * (
-						dDzPressureUpdate
-						+ dIntRhoUpdate);
-			}
-			}
-			}
-
-			// Perform a tridiagonal solve for dataAcoustic2REdge
-			int nREdges = nRElements+1;
-			int nRHS = 1;
-			int nLDB = nREdges;
-
-			for (int i = 0; i < m_nHorizontalOrder; i++) {
-			for (int j = 0; j < m_nHorizontalOrder; j++) {
-
-				const int iA = iElementA + i;
-				const int iB = iElementB + j;
-
-#ifdef TEMPEST_LAPACK_ACML_INTERFACE
-				dgtsv(
-					nREdges,
-					nRHS,
-					&(m_dA(i,j,0)),
-					&(m_dB(i,j,0)),
-					&(m_dC(i,j,0)),
-					&(m_dD(i,j,0)),
-					nLDB,
-					&(m_nInfo(i,j)));
-#endif
-#ifdef TEMPEST_LAPACK_ESSL_INTERFACE
-				dgtsv(
-					nREdges,
-					nRHS,
-					&(m_dA(i,j,0)),
-					&(m_dB(i,j,0)),
-					&(m_dC(i,j,0)),
-					&(m_dD(i,j,0)),
-					nLDB);
-				m_nInfo(i,j) = 0;
-#endif
-#ifdef TEMPEST_LAPACK_FORTRAN_INTERFACE
-				dgtsv_(
-					&nREdges,
-					&nRHS,
-					&(m_dA(i,j,0)),
-					&(m_dB(i,j,0)),
-					&(m_dC(i,j,0)),
-					&(m_dD(i,j,0)),
-					&nLDB,
-					&(m_nInfo(i,j)));
-#endif
-
-				// DEBUG
-				//for (int k = 0; k < nREdges; k++) {
-				//	m_dD(i,j,k) = 0.0; //dDeltaT * dataTendenciesREdge(WIx,iA,iB,k);
-				//}
-			}
-			}
-
-			// Check return values from tridiagonal solve
-			for (int i = 0; i < m_nHorizontalOrder; i++) {
-			for (int j = 0; j < m_nHorizontalOrder; j++) {
-				if (m_nInfo(i,j) != 0) {
-					_EXCEPTION1("Failure in tridiagonal solve: %i",
-						m_nInfo(i,j));
-				}
-			}
-			}
-
-			// Perform update to mass and potential temperature
-			for (int i = 0; i < m_nHorizontalOrder; i++) {
-			for (int j = 0; j < m_nHorizontalOrder; j++) {
-#pragma simd
-			for (int k = 0; k < nRElements; k++) {
-
-				const int iA = iElementA + i;
-				const int iB = iElementB + j;
-
-				const double dInvDeltaZn =
-					1.0 / (dataZi(iA,iB,k+1)
-						- dataZi(iA,iB,k));
-
-				// Store updated vertical momentum
-				dataAcoustic2REdge(WIx,iA,iB,k) =
-					m_dD(i,j,k);
-
-				// Updated vertical mass flux
-				const double dDzMassFlux =
-					dInvDeltaZn * (
-						m_dD(i,j,k+1)
-						- m_dD(i,j,k));
-
-				// Store updated density
-				dataAcoustic2Node(RIx,iA,iB,k) =
-					m_dNodalMassUpdate(i,j,k)
-					+ dDeltaT * (- 0.5 * (1.0 + m_dBs) * dDzMassFlux);
-
-				const double dDzPressureFlux = dInvDeltaZn
-					* (m_dD(i,j,k+1)
-						* dataInitialREdge(PIx,iA,iB,k+1)
-					- m_dD(i,j,k)
-						* dataInitialREdge(PIx,iA,iB,k));
-
-				// Store updated potential temperature density
-				dataAcoustic2Node(PIx,iA,iB,k) =
-					m_dNodalPressureUpdate(i,j,k)
-					+ dDeltaT * (- 0.5 * (1.0 + m_dBs) * dDzPressureFlux);
-			}
-			}
-			}
-
-#pragma message "Fix"
-			// Apply boundary condition to W
-			for (int i = 0; i < m_nHorizontalOrder; i++) {
-			for (int j = 0; j < m_nHorizontalOrder; j++) {
-
-				const int iA = iElementA + i;
-				const int iB = iElementB + j;
-
-				dataAcoustic2REdge(WIx,iA,iB,0) = 0.0;
-			}
-			}
-		}
-		}
-	}
-
-	// Apply direct stiffness summation
-	pGrid->ApplyDSS(iDataAcoustic2, DataType_State);
-
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
-void SplitExplicitDynamics::PerformAcousticLoop(
-	int iDataInitial,
-	int iDataTendencies,
-	int iDataAcoustic0,
-	int iDataAcoustic1,
-	int iDataAcoustic2,
-	double dDeltaT
-) {
-
-	// Start the function timer
-	FunctionTimer timer("AcousticLoop");
-
-	// Get a copy of the GLL grid
-	GridGLL * pGrid = dynamic_cast<GridGLL*>(m_model.GetGrid());
-
-	// Number of vertical elements
-	const int nRElements = pGrid->GetRElements();
-
-	// Physical constants
-	const PhysicalConstants & phys = m_model.GetPhysicalConstants();
-
-	// Indices of EquationSet variables
-	const int UIx = 0;
-	const int VIx = 1;
-	const int PIx = 2;
-	const int WIx = 3;
-	const int RIx = 4;
-
-	// Update horizontal velocities
-	for (int n = 0; n < pGrid->GetActivePatchCount(); n++) {
-		GridPatchGLL * pPatch =
-			dynamic_cast<GridPatchGLL*>(pGrid->GetActivePatch(n));
-
-		const PatchBox & box = pPatch->GetPatchBox();
-
-		// Metric terms
-		const DataArray3D<double> & dJacobian =
-			pPatch->GetJacobian();
-		const DataArray3D<double> & dJacobianREdge =
-			pPatch->GetJacobianREdge();
-
-		const DataArray3D<double> & dContraMetric2DA =
-			pPatch->GetContraMetric2DA();
-		const DataArray3D<double> & dContraMetric2DB =
-			pPatch->GetContraMetric2DB();
-
-		const DataArray4D<double> & dDerivRNode =
-			pPatch->GetDerivRNode();
-		const DataArray4D<double> & dDerivRREdge =
-			pPatch->GetDerivRREdge();
-
-		const DataArray3D<double> & dataZn =
-			pPatch->GetZLevels();
-		const DataArray3D<double> & dataZi =
-			pPatch->GetZInterfaces();
-
-		// Data
-		const DataArray4D<double> & dataInitialNode =
-			pPatch->GetDataState(iDataInitial, DataLocation_Node);
-
-		const DataArray4D<double> & dataInitialREdge =
-			pPatch->GetDataState(iDataInitial, DataLocation_REdge);
-
-		const DataArray4D<double> & dataTendenciesNode =
-			pPatch->GetDataState(iDataTendencies, DataLocation_Node);
-
-		const DataArray4D<double> & dataTendenciesREdge =
-			pPatch->GetDataState(iDataTendencies, DataLocation_REdge);
-
-		const DataArray4D<double> & dataAcoustic0Node =
-			pPatch->GetDataState(iDataAcoustic0, DataLocation_Node);
-
-		const DataArray4D<double> & dataAcoustic1Node =
-			pPatch->GetDataState(iDataAcoustic1, DataLocation_Node);
-
-		const DataArray4D<double> & dataAcoustic1REdge =
-			pPatch->GetDataState(iDataAcoustic1, DataLocation_Node);
-
-		DataArray4D<double> & dataAcoustic2Node =
-			pPatch->GetDataState(iDataAcoustic2, DataLocation_Node);
-
-		DataArray4D<double> & dataAcoustic2REdge =
-			pPatch->GetDataState(iDataAcoustic2, DataLocation_REdge);
-
-		const DataArray3D<double> & dataPressure =
-			pPatch->GetDataPressure();
-
-		// Element grid spacing and derivative coefficients
-		const double dElementDeltaA = pPatch->GetElementDeltaA();
-		const double dElementDeltaB = pPatch->GetElementDeltaB();
-
-		const double dInvElementDeltaA = 1.0 / dElementDeltaA;
-		const double dInvElementDeltaB = 1.0 / dElementDeltaB;
-
-		const DataArray2D<double> & dDxBasis1D = pGrid->GetDxBasis1D();
-		const DataArray2D<double> & dStiffness1D = pGrid->GetStiffness1D();
-
-		// Get number of finite elements in each coordinate direction
-		const int nElementCountA = pPatch->GetElementCountA();
-		const int nElementCountB = pPatch->GetElementCountB();
-
-		// Loop over all elements
-		for (int a = 0; a < nElementCountA; a++) {
-		for (int b = 0; b < nElementCountB; b++) {
-
-			const int iElementA = a * m_nHorizontalOrder + box.GetHaloElements();
-			const int iElementB = b * m_nHorizontalOrder + box.GetHaloElements();
-
-			// Calculate updated acoustic pressure
-			for (int i = 0; i < m_nHorizontalOrder; i++) {
-			for (int j = 0; j < m_nHorizontalOrder; j++) {
-#pragma simd
-			for (int k = 0; k < nRElements; k++) {
-
-				const int iA = iElementA + i;
-				const int iB = iElementB + j;
-
-				m_dAcousticPressureTerm(i,j,k) =
+				dataPressure[iA][iB][k] =
+					phys.PressureFromRhoTheta(
+						dataInitialNode(PIx,iA,iB,k));
+
+				m_dDpDTheta(i,j,k) =
 					dataPressure(iA,iB,k)
-					* ((1.0 + m_dBd) * dataAcoustic1Node(PIx,iA,iB,k)
-						- m_dBd * dataAcoustic0Node(PIx,iA,iB,k));
-			}
-			}
-			}
-
-			// Apply pressure gradient force to horizontal momentum
-			for (int i = 0; i < m_nHorizontalOrder; i++) {
-			for (int j = 0; j < m_nHorizontalOrder; j++) {
-#pragma simd
-			for (int k = 0; k < nRElements; k++) {
-
-				const int iA = iElementA + i;
-				const int iB = iElementB + j;
-
-				// Horizontal derivatives of the acoustic pressure field
-				double dDaP = 0.0;
-				double dDbP = 0.0;
-
-				for (int s = 0; s < m_nHorizontalOrder; s++) {
-					dDaP +=
-						m_dAcousticPressureTerm(s,j,k)
-						* dDxBasis1D(s,i);
-
-					dDbP +=
-						m_dAcousticPressureTerm(i,s,k)
-						* dDxBasis1D(s,j);
-				}
-
-				dDaP *= dInvElementDeltaA;
-				dDbP *= dInvElementDeltaB;
-
-				// Vertical derivative of the acoustic pressure field
-				double dDzP = 0.0;
-				if (k == 0) {
-					dDzP = (m_dAcousticPressureTerm(i,j,k+1)
-						- m_dAcousticPressureTerm(i,j,k))
-						/ (dataZn(iA,iB,k+1)
-							- dataZn(iA,iB,k));
-
-				} else if (k == nRElements-1) {
-					dDzP = (m_dAcousticPressureTerm(i,j,k)
-						- m_dAcousticPressureTerm(i,j,k-1))
-						/ (dataZn(iA,iB,k)
-							- dataZn(iA,iB,k-1));
-
-				} else {
-					dDzP = (m_dAcousticPressureTerm(i,j,k+1)
-						- m_dAcousticPressureTerm(i,j,k-1))
-						/ (dataZn(iA,iB,k+1)
-							- dataZn(iA,iB,k-1));
-				}
-
-				// Convert derivatives along s surfaces to z surfaces
-				dDaP -= dDerivRNode(iA,iB,k,0) * dDzP;
-				dDbP -= dDerivRNode(iA,iB,k,1) * dDzP;
-
-				// Convert from covariant derivatives to contravariant
-				const double dConDaP =
-					  dContraMetric2DA(iA,iB,0) * dDaP
-					+ dContraMetric2DA(iA,iB,1) * dDbP;
-
-				const double dConDbP =
-					  dContraMetric2DB(iA,iB,0) * dDaP
-					+ dContraMetric2DB(iA,iB,1) * dDbP;
-
-				// Update the horizontal momentum
-				dataAcoustic2Node(UIx,iA,iB,k) =
-					dataAcoustic1Node(UIx,iA,iB,k)
-					- dDeltaT * dConDaP
-					+ dDeltaT * dataTendenciesNode(UIx,iA,iB,k);
-
-				dataAcoustic2Node(VIx,iA,iB,k) =
-					dataAcoustic1Node(VIx,iA,iB,k)
-					- dDeltaT * dConDbP
-					+ dDeltaT * dataTendenciesNode(VIx,iA,iB,k);
-			}
-			}
-			}
-/*
-		}
-		}
-	}
-
-	// Compute remaining update
-	for (int n = 0; n < pGrid->GetActivePatchCount(); n++) {
-		GridPatchGLL * pPatch =
-			dynamic_cast<GridPatchGLL*>(pGrid->GetActivePatch(n));
-
-		const PatchBox & box = pPatch->GetPatchBox();
-
-		// Metric terms
-		const DataArray3D<double> & dJacobian =
-			pPatch->GetJacobian();
-		const DataArray3D<double> & dJacobianREdge =
-			pPatch->GetJacobianREdge();
-
-		const DataArray4D<double> & dDerivRNode =
-			pPatch->GetDerivRNode();
-		const DataArray4D<double> & dDerivRREdge =
-			pPatch->GetDerivRREdge();
-
-		const DataArray3D<double> & dataZn =
-			pPatch->GetZLevels();
-		const DataArray3D<double> & dataZi =
-			pPatch->GetZInterfaces();
-
-		// Altitude on levels and interfaces
-		const DataArray3D<double> & dataPressure =
-			pPatch->GetDataPressure();
-
-		const DataArray4D<double> & dataInitialNode =
-			pPatch->GetDataState(iDataInitial, DataLocation_Node);
-
-		const DataArray4D<double> & dataInitialREdge =
-			pPatch->GetDataState(iDataInitial, DataLocation_REdge);
-
-		const DataArray4D<double> & dataTendenciesNode =
-			pPatch->GetDataState(iDataTendencies, DataLocation_Node);
-
-		const DataArray4D<double> & dataTendenciesREdge =
-			pPatch->GetDataState(iDataTendencies, DataLocation_REdge);
-
-		const DataArray4D<double> & dataAcoustic1Node =
-			pPatch->GetDataState(iDataAcoustic1, DataLocation_Node);
-
-		const DataArray4D<double> & dataAcoustic1REdge =
-			pPatch->GetDataState(iDataAcoustic1, DataLocation_REdge);
-
-		DataArray4D<double> & dataAcoustic2Node =
-			pPatch->GetDataState(iDataAcoustic2, DataLocation_Node);
-
-		DataArray4D<double> & dataAcoustic2REdge =
-			pPatch->GetDataState(iDataAcoustic2, DataLocation_REdge);
-
-		const DataArray2D<double> & dStiffness1D = pGrid->GetStiffness1D();
-
-		// Get number of finite elements in each coordinate direction
-		const int nElementCountA = pPatch->GetElementCountA();
-		const int nElementCountB = pPatch->GetElementCountB();
-
-		// Element grid spacing and derivative coefficients
-		const double dElementDeltaA = pPatch->GetElementDeltaA();
-		const double dElementDeltaB = pPatch->GetElementDeltaB();
-
-		const double dInvElementDeltaA = 1.0 / dElementDeltaA;
-		const double dInvElementDeltaB = 1.0 / dElementDeltaB;
-
-		// Loop over all elements
-		for (int a = 0; a < nElementCountA; a++) {
-		for (int b = 0; b < nElementCountB; b++) {
-
-			const int iElementA = a * m_nHorizontalOrder + box.GetHaloElements();
-			const int iElementB = b * m_nHorizontalOrder + box.GetHaloElements();
-*/
-			// Compute horizontal fluxes of rho and rhotheta
-			for (int i = 0; i < m_nHorizontalOrder; i++) {
-			for (int j = 0; j < m_nHorizontalOrder; j++) {
-#pragma simd
-			for (int k = 0; k < nRElements; k++) {
-
-				const int iA = iElementA + i;
-				const int iB = iElementB + j;
-
-				// Inverse density
-				double dInvRhoInitial = 1.0 / dataInitialNode(RIx,iA,iB,k);
-
-				// Alpha mass flux
-				m_dAlphaMassFlux(i,j,k) =
-					dJacobian(iA,iB,k)
-					* dataAcoustic2Node(UIx,iA,iB,k);
-
-				// Beta mass flux
-				m_dBetaMassFlux(i,j,k) =
-					dJacobian(iA,iB,k)
-					* dataAcoustic2Node(VIx,iA,iB,k);
-
-				// Alpha pressure flux
-				m_dAlphaPressureFlux(i,j,k) =
-					dJacobian(iA,iB,k)
-					* dInvRhoInitial
-					* dataAcoustic2Node(UIx,iA,iB,k)
-					* dataInitialNode(PIx,iA,iB,k);
-
-				// Beta mass flux
-				m_dBetaPressureFlux(i,j,k) =
-					dJacobian(iA,iB,k)
-					* dInvRhoInitial
-					* dataAcoustic2Node(VIx,iA,iB,k)
-					* dataInitialNode(PIx,iA,iB,k);
+					* phys.GetGamma()
+					/ dataInitialNode(PIx,iA,iB,k);
 			}
 			}
 			}
@@ -1766,120 +985,20 @@ void SplitExplicitDynamics::PerformAcousticLoop(
 				const int iA = iElementA + i;
 				const int iB = iElementB + j;
 
-				m_dZMassFluxREdge1(i,j,k) =
-					dataAcoustic1REdge(WIx,iA,iB,k)
-					- dDerivRREdge(iA,iB,k,0) * 0.5 * (
-						dataAcoustic1Node(UIx,iA,iB,k-1)
-						+ dataAcoustic1Node(UIx,iA,iB,k))
-					- dDerivRREdge(iA,iB,k,1) * 0.5 * (
-						dataAcoustic1Node(VIx,iA,iB,k-1)
-						+ dataAcoustic1Node(VIx,iA,iB,k));
+				dataInitialREdge(RIx,iA,iB,k) = 0.5 * (
+					dataInitialNode(RIx,iA,iB,k)
+					+ dataInitialNode(RIx,iA,iB,k-1));
 
-				// Note that we have stored theta in dataInitialREdge[PIx]
-				m_dZPressureFluxREdge1(i,j,k) =
-					m_dZMassFluxREdge1(i,j,k)
-					* dataInitialREdge(PIx,iA,iB,k);
+				const double dInvRhoREdge =
+					1.0 / dataInitialREdge(RIx,iA,iB,k);
 
-				m_dZMassFluxREdge2(i,j,k) =
-					- dDerivRREdge(iA,iB,k,0) * 0.5 * (
-						dataAcoustic1Node(UIx,iA,iB,k-1)
-						+ dataAcoustic1Node(UIx,iA,iB,k))
-					- dDerivRREdge(iA,iB,k,1) * 0.5 * (
-						dataAcoustic1Node(VIx,iA,iB,k-1)
-						+ dataAcoustic1Node(VIx,iA,iB,k));
-
-				// Note that we have stored theta in dataInitialREdge[PIx]
-				m_dZPressureFluxREdge2(i,j,k) =
-					m_dZMassFluxREdge2(i,j,k)
-					* dataInitialREdge(PIx,iA,iB,k);
+				dataInitialREdge(PIx,iA,iB,k) =
+					0.5 * dInvRhoREdge * (
+						dataInitialNode(PIx,iA,iB,k)
+						+ dataInitialNode(PIx,iA,iB,k-1));
 			}
 			}
 			}
-
-			// Compute forward and forward/backward updates to rho and rhotheta
-			for (int i = 0; i < m_nHorizontalOrder; i++) {
-			for (int j = 0; j < m_nHorizontalOrder; j++) {
-#pragma simd
-			for (int k = 0; k < nRElements; k++) {
-
-				const int iA = iElementA + i;
-				const int iB = iElementB + j;
-
-				const double dInvJacobian =
-					1.0 / dJacobian(iA,iB,k);
-
-				const double dInvDeltaZn =
-					1.0 / (dataZi(iA,iB,k+1)
-						- dataZi(iA,iB,k));
-
-				double dDaMassFlux = 0.0;
-				double dDbMassFlux = 0.0;
-
-				double dDaPressureFlux = 0.0;
-				double dDbPressureFlux = 0.0;
-
-				for (int s = 0; s < m_nHorizontalOrder; s++) {
-					dDaMassFlux -=
-						m_dAlphaMassFlux(s,j,k)
-						* dStiffness1D(i,s);
-
-					dDaPressureFlux -=
-						m_dAlphaPressureFlux(s,j,k)
-						* dStiffness1D(i,s);
-				}
-
-				for (int s = 0; s < m_nHorizontalOrder; s++) {
-					dDbMassFlux -=
-						m_dBetaMassFlux(i,s,k)
-						* dStiffness1D(j,s);
-
-					dDbPressureFlux -=
-						m_dBetaPressureFlux(i,s,k)
-						* dStiffness1D(j,s);
-				}
-
-				dDaMassFlux *= dInvElementDeltaA * dInvJacobian;
-				dDbMassFlux *= dInvElementDeltaB * dInvJacobian;
-
-				dDaPressureFlux *= dInvElementDeltaA * dInvJacobian;
-				dDbPressureFlux *= dInvElementDeltaB * dInvJacobian;
-
-				const double dDzMassFlux1 = dInvDeltaZn
-					* (m_dZMassFluxREdge1(i,j,k+1)
-					- m_dZMassFluxREdge1(i,j,k));
-
-				const double dDzMassFlux2 = dInvDeltaZn
-					* (m_dZMassFluxREdge2(i,j,k+1)
-					- m_dZMassFluxREdge2(i,j,k));
-
-				const double dDzPressureFlux1 = dInvDeltaZn
-					* (m_dZPressureFluxREdge1(i,j,k+1)
-					- m_dZPressureFluxREdge1(i,j,k));
-
-				const double dDzPressureFlux2 = dInvDeltaZn
-					* (m_dZPressureFluxREdge2(i,j,k+1)
-					- m_dZPressureFluxREdge2(i,j,k));
-
-				m_dNodalMassUpdate(i,j,k) = - dDeltaT * (
-					  dDaMassFlux
-					+ dDbMassFlux
-					+ 0.5 * (1.0 - m_dBs) * dDzMassFlux1
-					+ 0.5 * (1.0 + m_dBs) * dDzMassFlux2
-					- dataTendenciesNode(RIx,iA,iB,k));
-
-				m_dNodalPressureUpdate(i,j,k) = - dDeltaT * (
-					  dDaPressureFlux
-					+ dDbPressureFlux
-					+ 0.5 * (1.0 - m_dBs) * dDzPressureFlux1
-					+ 0.5 * (1.0 + m_dBs) * dDzPressureFlux2
-					- dataTendenciesNode(PIx,iA,iB,k));
-			}
-			}
-			}
-
-			// Timescale terms
-			const double dTimeScale = dDeltaT * 0.5 * (1.0 + m_dBs);
-			const double dTimeScale2 = dTimeScale * dTimeScale;
 
 			// Fill in vertical column arrays
 			for (int i = 0; i < m_nHorizontalOrder; i++) {
@@ -1892,6 +1011,9 @@ void SplitExplicitDynamics::PerformAcousticLoop(
 				m_dD(i,j,nRElements) = 0.0;
 			}
 			}
+
+			// Timestep size squared
+			const double dDeltaT2 = dDeltaT * dDeltaT;
 
 			for (int i = 0; i < m_nHorizontalOrder; i++) {
 			for (int j = 0; j < m_nHorizontalOrder; j++) {
@@ -1914,60 +1036,62 @@ void SplitExplicitDynamics::PerformAcousticLoop(
 						- dataZn(iA,iB,k-1));
 
 				// Note that we have stored theta in dataInitialREdge[PIx]
-				m_dA(i,j,k-1) = - dTimeScale2 * dInvDeltaZkm * (
+				m_dA(i,j,k-1) = - dDeltaT2 * dInvDeltaZkm * (
 					dInvDeltaZhat
-						* dataPressure(iA,iB,k-1)
+						* m_dDpDTheta(i,j,k-1)
 						* dataInitialREdge(PIx,iA,iB,k-1)
 					- 0.5 * phys.GetG());
 
-				m_dB(i,j,k) = 1.0 + dTimeScale2 * (
+				m_dB(i,j,k) = 1.0 + dDeltaT2 * (
 					dInvDeltaZhat
 						* dataInitialREdge(PIx,iA,iB,k)
-						* (dataPressure(iA,iB,k) * dInvDeltaZk
-							+ dataPressure(iA,iB,k-1) * dInvDeltaZkm)
+						* (m_dDpDTheta(i,j,k) * dInvDeltaZk
+							+ m_dDpDTheta(i,j,k-1) * dInvDeltaZkm)
 					+ 0.5 * phys.GetG()
 						* (dInvDeltaZk - dInvDeltaZkm));
 
-				m_dC(i,j,k) = - dTimeScale2 * dInvDeltaZk * (
+				m_dC(i,j,k) = - dDeltaT2 * dInvDeltaZk * (
 					+ dInvDeltaZhat
-						* dataPressure(iA,iB,k)
+						* m_dDpDTheta(i,j,k)
 						* dataInitialREdge(PIx,iA,iB,k+1)
 					+ 0.5 * phys.GetG());
 
 				const double dDzPressure = dInvDeltaZhat
 					* (dataPressure(iA,iB,k)
-						* dataAcoustic1Node(PIx,iA,iB,k)
-					- dataPressure(iA,iB,k-1)
-						* dataAcoustic1Node(PIx,iA,iB,k-1));
-
-				const double dDzPressureUpdate = dInvDeltaZhat
-					* (m_dNodalPressureUpdate(i,j,k)
-						- m_dNodalPressureUpdate(i,j,k-1));
+					- dataPressure(iA,iB,k-1));
 
 				const double dIntRho =
-					0.5 * phys.GetG() * (
-						dataAcoustic1Node(RIx,iA,iB,k)
-						+ dataAcoustic1Node(RIx,iA,iB,k-1));
-
-				const double dIntRhoUpdate =
-					0.5 * phys.GetG() * (
-						m_dNodalMassUpdate(i,j,k)
-						+ m_dNodalMassUpdate(i,j,k-1));
+					phys.GetG() * dataInitialREdge(RIx,iA,iB,k);
 
 				m_dD(i,j,k) =
-					dataAcoustic1REdge(WIx,iA,iB,k)
-					- dDeltaT * (
-						dDzPressure
-						+ dIntRho
-						- dataTendenciesREdge(WIx,iA,iB,k))
-					- dTimeScale * (
-						dDzPressureUpdate
-						+ dIntRhoUpdate);
+					dataInitialREdge(WIx,iA,iB,k)
+					- dDeltaT * (dDzPressure + dIntRho);
+/*
+				if ((i == 0) && (j == 0)) {
+					printf("%1.5e %1.5e %1.5e %1.5e %1.5e %1.5e\n",
+						dInvDeltaZhat
+							* m_dDpDTheta(i,j,k-1)
+							* dataInitialREdge(PIx,iA,iB,k-1),
+						- 0.5 * phys.GetG(),
+						+ dInvDeltaZhat
+							* m_dDpDTheta(i,j,k)
+							* dataInitialREdge(PIx,iA,iB,k+1),
+						+ 0.5 * phys.GetG(),
+						dataInitialREdge(PIx,iA,iB,k)
+							* (m_dDpDTheta(i,j,k) * dInvDeltaZk
+							+ m_dDpDTheta(i,j,k-1) * dInvDeltaZkm),
+						0.5 * phys.GetG()
+							* (dInvDeltaZk - dInvDeltaZkm));
+
+						//dDzPressure + dIntRho, dataPressure(iA,iB,k));
+						//m_dA(i,j,k-1), m_dB(i,j,k), m_dC(i,j,k), m_dD(i,j,k));
+				}
+*/
 			}
 			}
 			}
 
-			// Perform a tridiagonal solve for dataAcoustic2REdge
+			// Perform a tridiagonal solve for dataUpdate
 			int nREdges = nRElements+1;
 			int nRHS = 1;
 			int nLDB = nREdges;
@@ -2011,11 +1135,19 @@ void SplitExplicitDynamics::PerformAcousticLoop(
 					&nLDB,
 					&(m_nInfo(i,j)));
 #endif
-
+/*
+				if ((i == 0) && (j == 0)) {
+					for (int k = 0; k <= nRElements; k++) {
+						printf("0: %1.5e\n", m_dD(i,j,k));
+					}
+				}
+*/
+/*
 				// DEBUG
-				//for (int k = 0; k < nREdges; k++) {
-				//	m_dD(i,j,k) = dDeltaT * dataTendenciesREdge(WIx,iA,iB,k);
-				//}
+				for (int k = 0; k < nREdges; k++) {
+					m_dD(i,j,k) = dDeltaT * dataUpdateREdge(WIx,iA,iB,k);
+				}
+*/
 			}
 			}
 
@@ -2043,8 +1175,9 @@ void SplitExplicitDynamics::PerformAcousticLoop(
 						- dataZi(iA,iB,k));
 
 				// Store updated vertical momentum
-				dataAcoustic2REdge(WIx,iA,iB,k) =
-					m_dD(i,j,k);
+				dataUpdateREdge(WIx,iA,iB,k) +=
+					(m_dD(i,j,k)
+						- dataInitialREdge(WIx,iA,iB,k));
 
 				// Updated vertical mass flux
 				const double dDzMassFlux =
@@ -2053,11 +1186,10 @@ void SplitExplicitDynamics::PerformAcousticLoop(
 						- m_dD(i,j,k));
 
 				// Store updated density
-				dataAcoustic2Node(RIx,iA,iB,k) =
-					dataAcoustic1Node(RIx,iA,iB,k)
-					+ m_dNodalMassUpdate(i,j,k)
-					+ dDeltaT * (- 0.5 * (1.0 + m_dBs) * dDzMassFlux);
+				dataUpdateNode(RIx,iA,iB,k) +=
+					- dDeltaT * dDzMassFlux;
 
+				// Updated vertical pressure flux
 				const double dDzPressureFlux = dInvDeltaZn
 					* (m_dD(i,j,k+1)
 						* dataInitialREdge(PIx,iA,iB,k+1)
@@ -2065,10 +1197,8 @@ void SplitExplicitDynamics::PerformAcousticLoop(
 						* dataInitialREdge(PIx,iA,iB,k));
 
 				// Store updated potential temperature density
-				dataAcoustic2Node(PIx,iA,iB,k) =
-					dataAcoustic1Node(PIx,iA,iB,k)
-					+ m_dNodalPressureUpdate(i,j,k)
-					+ dDeltaT * (- 0.5 * (1.0 + m_dBs) * dDzPressureFlux);
+				dataUpdateNode(PIx,iA,iB,k) +=
+					- dDeltaT * dDzPressureFlux;
 			}
 			}
 			}
@@ -2081,7 +1211,7 @@ void SplitExplicitDynamics::PerformAcousticLoop(
 				const int iA = iElementA + i;
 				const int iB = iElementB + j;
 
-				dataAcoustic2REdge(WIx,iA,iB,0) = 0.0;
+				dataUpdateREdge(WIx,iA,iB,0) = 0.0;
 			}
 			}
 		}
@@ -2089,283 +1219,13 @@ void SplitExplicitDynamics::PerformAcousticLoop(
 	}
 
 	// Apply direct stiffness summation
-	pGrid->ApplyDSS(iDataAcoustic2, DataType_State);
+	pGrid->ApplyDSS(iDataUpdate, DataType_State);
 
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void SplitExplicitDynamics::StepExplicit(
-	int iDataInitial,
-	int iDataUpdate,
-	const Time & time,
-	double dDeltaT
-) {
-	if (iDataInitial == iDataUpdate) {
-		_EXCEPTIONT(
-			"HorizontalDynamics Step must have iDataInitial != iDataUpdate");
-	}
-
-	// Start the function timer
-	FunctionTimer timer("HorizontalStepNonhydrostaticPrimitive");
-
-	// Indices of EquationSet variables
-	const int UIx = 0;
-	const int VIx = 1;
-	const int PIx = 2;
-	const int WIx = 3;
-	const int RIx = 4;
-
-	// Check formulation
-#ifndef FORMULATION_RHOTHETA_PI
-	_EXCEPTIONT("Only FORMULATION_RHOTHETA_PI is supported");
-#endif
-
-	// Get a copy of the GLL grid
-	GridGLL * pGrid = dynamic_cast<GridGLL*>(m_model.GetGrid());
-
-	// Number of vertical elements
-	const int nRElements = pGrid->GetRElements();
-
-	// Equation set
-	const EquationSet & eqn = m_model.GetEquationSet();
-
-	if (eqn.GetType() != EquationSet::PrimitiveNonhydrostaticEquations) {
-		_EXCEPTIONT("Only EquationSet::PrimitiveNonhydrostaticEquations supported");
-	}
-
-	// Check variable locations
-	if ((pGrid->GetVarLocation(UIx) != DataLocation_Node) ||
-	    (pGrid->GetVarLocation(VIx) != DataLocation_Node) ||
-	    (pGrid->GetVarLocation(PIx) != DataLocation_Node) ||
-	    (pGrid->GetVarLocation(WIx) != DataLocation_REdge) ||
-	    (pGrid->GetVarLocation(RIx) != DataLocation_Node)
-	) {
-		_EXCEPTIONT("Only Lorenz staggering is supported");
-	}
-
-	// Physical constants
-	const PhysicalConstants & phys = m_model.GetPhysicalConstants();
-
-	// First data instance reserved for this class
-	const int iDataTendenciesIx = m_model.GetFirstHorizontalDynamicsDataInstance();
-	const int iDataAcousticIndex0 = iDataTendenciesIx+1;
-	const int iDataAcousticIndex1 = iDataTendenciesIx+2;
-	const int iDataAcousticIndex2 = iDataTendenciesIx+3;
-
-	// Calculate the explicit tendencies in the momentum variables
-	CalculateTendencies(iDataInitial, iDataTendenciesIx, dDeltaT);
-/*
-	// Add hyperviscosity tendencies to bulk tendencies
-	{
-		// Apply scalar and vector hyperviscosity (first application)
-		pGrid->ZeroData(iDataAcousticIndex0, DataType_State);
-
-		ApplyScalarHyperdiffusion(
-			iDataInitial, iDataAcousticIndex0, 1.0, 1.0, false);
-		ApplyVectorHyperdiffusion(
-			iDataInitial, iDataInitial, iDataAcousticIndex0, 1.0, 1.0, 1.0, false);
-
-		// Apply Direct Stiffness Summation
-		pGrid->ApplyDSS(iDataAcousticIndex0, DataType_State);
-		//pGrid->ApplyDSS(iDataAcousticIndex0, DataType_Tracers);
-
-		// Apply scalar and vector hyperviscosity (second application)
-		ApplyScalarHyperdiffusion(
-			iDataAcousticIndex0, iDataTendenciesIx, -1.0, m_dNuScalar, true);
-		ApplyVectorHyperdiffusion(
-			iDataInitial, iDataAcousticIndex0, iDataTendenciesIx, -1.0, m_dNuDiv, m_dNuVort, true);
-	}
-*/
-/*
-	// DEBUG: UPDATE
-	{
-		for (int n = 0; n < pGrid->GetActivePatchCount(); n++) {
-			GridPatchGLL * pPatch =
-				dynamic_cast<GridPatchGLL*>(pGrid->GetActivePatch(n));
-
-			const PatchBox & box = pPatch->GetPatchBox();
-
-			DataArray3D<double> & dataPressure =
-				pPatch->GetDataPressure();
-
-			const DataArray4D<double> & dataInitialNode =
-				pPatch->GetDataState(iDataInitial, DataLocation_Node);
-
-			const DataArray4D<double> & dataInitialREdge =
-				pPatch->GetDataState(iDataInitial, DataLocation_REdge);
-
-			const DataArray4D<double> & dataTendenciesNode =
-				pPatch->GetDataState(iDataTendenciesIx, DataLocation_Node);
-
-			const DataArray4D<double> & dataTendenciesREdge =
-				pPatch->GetDataState(iDataTendenciesIx, DataLocation_REdge);
-
-			DataArray4D<double> & dataUpdateNode =
-				pPatch->GetDataState(iDataUpdate, DataLocation_Node);
-
-			DataArray4D<double> & dataUpdateREdge =
-				pPatch->GetDataState(iDataUpdate, DataLocation_REdge);
-
-			for (int i = box.GetAInteriorBegin(); i < box.GetAInteriorEnd(); i++) {
-			for (int j = box.GetBInteriorBegin(); j < box.GetBInteriorEnd(); j++) {
-			for (int k = 0; k < nRElements; k++) {
-				dataUpdateNode(UIx,i,j,k) +=
-					dDeltaT * dataTendenciesNode(UIx,i,j,k);
-				dataUpdateNode(VIx,i,j,k) +=
-					dDeltaT * dataTendenciesNode(VIx,i,j,k);
-				dataUpdateNode(RIx,i,j,k) +=
-					dDeltaT * dataTendenciesNode(RIx,i,j,k);
-				dataUpdateNode(PIx,i,j,k) +=
-					dDeltaT * dataTendenciesNode(PIx,i,j,k);
-				dataUpdateREdge(WIx,i,j,k) +=
-					dDeltaT * dataTendenciesREdge(WIx,i,j,k);
-			}
-			}
-			}
-		}
-	}
-
-	return;
-*/
-/*
-	// Perform one sub-cycle of the acoustic loop
-	{
-		pGrid->ZeroData(iDataAcousticIndex2, DataType_State);
-
-		FirstAcousticLoop(
-			iDataInitial,
-			iDataTendenciesIx,
-			iDataAcousticIndex2,
-			dDeltaT);
-	}
-*/
-
-	// Perform three sub-cycles of the acoustic loop
-	{
-		pGrid->ZeroData(iDataAcousticIndex0, DataType_State);
-		pGrid->ZeroData(iDataAcousticIndex1, DataType_State);
-		pGrid->ZeroData(iDataAcousticIndex2, DataType_State);
-
-		FirstAcousticLoop(
-			iDataInitial,
-			iDataTendenciesIx,
-			iDataAcousticIndex0,
-			dDeltaT / 3.0);
-
-		PerformAcousticLoop(
-			iDataInitial,
-			iDataTendenciesIx,
-			iDataAcousticIndex2,
-			iDataAcousticIndex0,
-			iDataAcousticIndex1,
-			dDeltaT / 3.0);
-
-		PerformAcousticLoop(
-			iDataInitial,
-			iDataTendenciesIx,
-			iDataAcousticIndex0,
-			iDataAcousticIndex1,
-			iDataAcousticIndex2,
-			dDeltaT / 3.0);
-	}
-
-	// Apply direct stiffness summation to tendencies
-	//pGrid->ApplyDSS(iDataAcousticIndex2, DataType_State);
-
-	// Perform the final update
-	{
-		for (int n = 0; n < pGrid->GetActivePatchCount(); n++) {
-			GridPatchGLL * pPatch =
-				dynamic_cast<GridPatchGLL*>(pGrid->GetActivePatch(n));
-
-			const PatchBox & box = pPatch->GetPatchBox();
-
-			const DataArray4D<double> & dataAcoustic2Node =
-				pPatch->GetDataState(iDataAcousticIndex2, DataLocation_Node);
-
-			const DataArray4D<double> & dataAcoustic2REdge =
-				pPatch->GetDataState(iDataAcousticIndex2, DataLocation_REdge);
-
-			DataArray4D<double> & dataUpdateNode =
-				pPatch->GetDataState(iDataUpdate, DataLocation_Node);
-
-			DataArray4D<double> & dataUpdateREdge =
-				pPatch->GetDataState(iDataUpdate, DataLocation_REdge);
-
-			for (int i = box.GetAInteriorBegin(); i < box.GetAInteriorEnd(); i++) {
-			for (int j = box.GetBInteriorBegin(); j < box.GetBInteriorEnd(); j++) {
-#pragma simd
-			for (int k = 0; k < nRElements; k++) {
-				dataUpdateNode(UIx,i,j,k) +=
-					dataAcoustic2Node(UIx,i,j,k);
-				dataUpdateNode(VIx,i,j,k) +=
-					dataAcoustic2Node(VIx,i,j,k);
-				dataUpdateNode(RIx,i,j,k) +=
-					dataAcoustic2Node(RIx,i,j,k);
-				dataUpdateNode(PIx,i,j,k) +=
-					dataAcoustic2Node(PIx,i,j,k);
-				dataUpdateREdge(WIx,i,j,k) +=
-					dataAcoustic2REdge(WIx,i,j,k);
-			}
-			}
-			}
-		}
-	}
-
-	return;
-
-	// Apply positive definite filter to tracers
-	//FilterNegativeTracers(iDataUpdate);
-
-/*
-	// Uniform diffusion of U and V with vector diffusion coeff
-	if (pGrid->HasUniformDiffusion()) {
-		ApplyVectorHyperdiffusion(
-			iDataInitial,
-			iDataUpdate,
-			dDeltaT,
-			- pGrid->GetVectorUniformDiffusionCoeff(),
-			- pGrid->GetVectorUniformDiffusionCoeff(),
-			false);
-
-		ApplyVectorHyperdiffusion(
-			DATA_INDEX_REFERENCE,
-			iDataUpdate,
-			dDeltaT,
-			pGrid->GetVectorUniformDiffusionCoeff(),
-			pGrid->GetVectorUniformDiffusionCoeff(),
-			false);
-
-		if (eqn.GetType() == EquationSet::PrimitiveNonhydrostaticEquations) {
-
-			// Uniform diffusion of Theta with scalar diffusion coeff
-			ApplyScalarHyperdiffusion(
-				iDataInitial,
-				iDataUpdate,
-				dDeltaT,
-				pGrid->GetScalarUniformDiffusionCoeff(),
-				false,
-				2,
-				true);
-
-			// Uniform diffusion of W with vector diffusion coeff
-			ApplyScalarHyperdiffusion(
-				iDataInitial,
-				iDataUpdate,
-				dDeltaT,
-				pGrid->GetVectorUniformDiffusionCoeff(),
-				false,
-				3,
-				true);
-		}
-	}
-*/
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
-void SplitExplicitDynamics::ApplyScalarHyperdiffusion(
+void HighSpeedDynamics::ApplyScalarHyperdiffusion(
 	int iDataInitial,
 	int iDataUpdate,
 	double dDeltaT,
@@ -2647,7 +1507,7 @@ void SplitExplicitDynamics::ApplyScalarHyperdiffusion(
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void SplitExplicitDynamics::ApplyVectorHyperdiffusion(
+void HighSpeedDynamics::ApplyVectorHyperdiffusion(
 	int iDataInitial,
 	int iDataWorking,
 	int iDataUpdate,
@@ -2859,7 +1719,7 @@ void SplitExplicitDynamics::ApplyVectorHyperdiffusion(
 
 //#pragma message "jeguerra: Clean up this function"
 
-void SplitExplicitDynamics::ApplyRayleighFriction(
+void HighSpeedDynamics::ApplyRayleighFriction(
 	int iDataUpdate,
 	double dDeltaT
 ) {
@@ -2997,7 +1857,7 @@ void SplitExplicitDynamics::ApplyRayleighFriction(
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void SplitExplicitDynamics::StepAfterSubCycle(
+void HighSpeedDynamics::StepAfterSubCycle(
 	int iDataInitial,
 	int iDataUpdate,
 	int iDataWorking,

@@ -33,6 +33,7 @@
 #include "HorizontalDynamicsFEM.h"
 #include "HorizontalDynamicsFEMV2.h"
 #include "SplitExplicitDynamics.h"
+#include "HighSpeedDynamics.h"
 #include "VerticalDynamicsStub.h"
 #include "VerticalDynamicsFEM.h"
 #include "VerticalDynamicsFEMV2.h"
@@ -316,6 +317,17 @@ void _TempestSetupMethodOfLines(
 	} else if (vars.strHorizontalDynamics == "spex") {
 		model.SetHorizontalDynamics(
 			new SplitExplicitDynamics(
+				model,
+				vars.nHorizontalOrder,
+				vars.nHyperviscosityOrder,
+				vars.dNuScalar,
+				vars.dNuDiv,
+				vars.dNuVort,
+				vars.dInstepNuDiv));
+
+	} else if (vars.strHorizontalDynamics == "hs") {
+		model.SetHorizontalDynamics(
+			new HighSpeedDynamics(
 				model,
 				vars.nHorizontalOrder,
 				vars.nHyperviscosityOrder,

@@ -33,6 +33,7 @@ FILES= CubedSphereTrans.cpp \
        VerticalDynamicsFEMV2.cpp \
        VerticalDynamicsSchur.cpp \
        SplitExplicitDynamics.cpp \
+       HighSpeedDynamics.cpp \
        JacobianFreeNewtonKrylov.cpp \
        FluxCorrectionFunction.cpp \
        LinearColumnOperator.cpp \

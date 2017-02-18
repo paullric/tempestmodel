@@ -471,6 +471,7 @@ void TimestepSchemeStrang::Step(
 	// Vertical timestep
 	if (fFirstStep) {
 		pVerticalDynamics->StepImplicit(0, 0, time, dHalfDeltaT);
+		pHorizontalDynamics->StepImplicit(0, 0, time, dHalfDeltaT);
 
 	} else {
 		pGrid->LinearCombineData(m_dCarryoverCombination, 0, DataType_State);
@@ -645,6 +646,7 @@ void TimestepSchemeStrang::Step(
 	pGrid->CopyData(1, 0, DataType_State);
 	pGrid->CopyData(1, 0, DataType_Tracers);
 	pVerticalDynamics->StepImplicit(0, 0, time, dOffCenterDeltaT);
+	pHorizontalDynamics->StepImplicit(0, 0, time, dOffCenterDeltaT);
 
 	pGrid->LinearCombineData(m_dOffCenteringCombination, 0, DataType_State);
 	pGrid->LinearCombineData(m_dOffCenteringCombination, 0, DataType_Tracers);
