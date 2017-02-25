@@ -19,6 +19,8 @@
 #include "Grid.h"
 #include "HorizontalDynamics.h"
 #include "VerticalDynamics.h"
+#include "Announce.h"
+#include "Defines.h"
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -116,6 +118,7 @@ TimestepSchemeStrang::TimestepSchemeStrang(
 	m_dSSPRK53CombinationC[3] = 0.0;
 	m_dSSPRK53CombinationC[4] = 0.0;
 
+	m_dResCombine.Allocate(5);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -242,7 +245,7 @@ int TimestepSchemeStrang::SubStep(
 			pVerticalDynamics->FilterNegativeTracers(0);
 		}
 	}
-	
+
 	// Forward Euler
 	if (m_eExplicitDiscretization == ForwardEuler) {
 		if (iSubStep == 0) {
@@ -440,7 +443,7 @@ int TimestepSchemeStrang::SubStep(
 		return (-1);
 
 	}
-	
+
 	// Invalid substep
 	_EXCEPTIONT("Invalid iSubStep");
 }
@@ -453,7 +456,7 @@ void TimestepSchemeStrang::Step(
 	const Time & time,
 	double dDeltaT
 ) {
-
+	//Announce("Top of the time Step... %s");
 	// Get a copy of the grid
 	Grid * pGrid = m_model.GetGrid();
 
@@ -470,8 +473,33 @@ void TimestepSchemeStrang::Step(
 
 	// Vertical timestep
 	if (fFirstStep) {
+#if defined(RESIDUAL_DIFFUSION)
+		pGrid->ZeroData(0, DataType_Residual);
+		pGrid->ZeroData(1, DataType_Residual);
+		pGrid->ZeroData(2, DataType_Residual);
+
+		pGrid->CopyData(0, 4, DataType_State);
+		pGrid->CopyData(0, 4, DataType_Tracers);
+		pVerticalDynamics->StepImplicit(0, 4, time, dHalfDeltaT);
+		pHorizontalDynamics->StepImplicit(0, 4, time, dHalfDeltaT);
+
+		//std::cout << "Before computing G function in TimestepSchemeStrang";
+		// Send the function G (implicit stuff) to index 0 in residual storage
+		//DataArray1D<double> m_dResCombine;
+		//m_dResCombine.Allocate(5);
+		m_dResCombine[0] = -1.0 / dDeltaT;
+		m_dResCombine[1] = 0.0;
+		m_dResCombine[2] = 0.0;
+		m_dResCombine[3] = 0.0;
+		m_dResCombine[4] = 1.0 / dDeltaT;
+		pGrid->LinearCombineData2Residual(m_dResCombine, 0, DataType_Residual);
+
+		pGrid->CopyData(4, 0, DataType_State);
+		pGrid->CopyData(4, 0, DataType_Tracers);
+#else
 		pVerticalDynamics->StepImplicit(0, 0, time, dHalfDeltaT);
 		pHorizontalDynamics->StepImplicit(0, 0, time, dHalfDeltaT);
+#endif
 
 	} else {
 		pGrid->LinearCombineData(m_dCarryoverCombination, 0, DataType_State);
@@ -488,6 +516,18 @@ void TimestepSchemeStrang::Step(
 		pVerticalDynamics->StepExplicit(0, 4, time, dDeltaT);
 		pGrid->PostProcessSubstage(4, DataType_State);
 		pGrid->PostProcessSubstage(4, DataType_Tracers);
+
+#if defined(RESIDUAL_DIFFUSION)
+		// Send the function F (explicit stuff) to index 1 in residual storage
+		//DataArray1D<double> m_dResCombine;
+		//m_dResCombine.Initialize(5);
+		m_dResCombine[0] = -1.0 / dDeltaT;
+		m_dResCombine[1] = 0.0;
+		m_dResCombine[2] = 0.0;
+		m_dResCombine[3] = 0.0;
+		m_dResCombine[4] = 1.0 / dDeltaT;
+		pGrid->LinearCombineData2Residual(m_dResCombine, 1, DataType_Residual);
+#endif
 
 	// Explicit fourth-order Runge-Kutta
 	} else if (m_eExplicitDiscretization == RungeKutta4) {
@@ -520,6 +560,18 @@ void TimestepSchemeStrang::Step(
 		pGrid->PostProcessSubstage(4, DataType_State);
 		pGrid->PostProcessSubstage(4, DataType_Tracers);
 
+#if defined(RESIDUAL_DIFFUSION)
+		// Send the function F (explicit stuff) to index 1 in residual storage
+		//DataArray1D<double> m_dResCombine;
+		//m_dResCombine.Initialize(5);
+		m_dResCombine[0] = +2.0 / dDeltaT;
+		m_dResCombine[1] = -2.0 / dDeltaT;
+		m_dResCombine[2] = -4.0 / dDeltaT;
+		m_dResCombine[3] = -2.0 / dDeltaT;
+		m_dResCombine[4] = +6.0 / dDeltaT;
+		pGrid->LinearCombineData2Residual(m_dResCombine, 1, DataType_Residual);
+#endif
+
 	// Explicit strong stability preserving third-order Runge-Kutta
 	} else if (m_eExplicitDiscretization == RungeKuttaSSP3) {
 
@@ -543,6 +595,18 @@ void TimestepSchemeStrang::Step(
 		pVerticalDynamics->StepExplicit(2, 4, time, (2.0/3.0) * dDeltaT);
 		pGrid->PostProcessSubstage(4, DataType_State);
 		pGrid->PostProcessSubstage(4, DataType_Tracers);
+
+#if defined(RESIDUAL_DIFFUSION)
+		// Send the function F (explicit stuff) to index 1 in residual storage
+		//DataArray1D<double> m_dResCombine;
+		//m_dResCombine.Initialize(5);
+		m_dResCombine[0] = -1.0 / (2.0 * dDeltaT);
+		m_dResCombine[1] = 0.0;
+		m_dResCombine[2] = -1.0 / dDeltaT;
+		m_dResCombine[3] = 0.0;
+		m_dResCombine[4] = +3.0 / (2.0 * dDeltaT);
+		pGrid->LinearCombineData2Residual(m_dResCombine, 1, DataType_Residual);
+#endif
 
 	// Explicit Kinnmark, Gray and Ullrich third-order five-stage Runge-Kutta
 	} else if (m_eExplicitDiscretization == KinnmarkGrayUllrich35) {
@@ -583,6 +647,18 @@ void TimestepSchemeStrang::Step(
 		pVerticalDynamics->StepExplicit(2, 4, time, 3.0 * dDeltaT / 4.0);
 		pGrid->PostProcessSubstage(4, DataType_State);
 		pGrid->PostProcessSubstage(4, DataType_Tracers);
+
+#if defined(RESIDUAL_DIFFUSION)
+		// Send the function F (explicit stuff) to index 1 in residual storage
+		//DataArray1D<double> m_dResCombine;
+		//m_dResCombine.Initialize(5);
+		m_dResCombine[0] = +1.0 / (3.0 * dDeltaT);
+		m_dResCombine[1] = -5.0 / (3.0 * dDeltaT);
+		m_dResCombine[2] = 0.0;
+		m_dResCombine[3] = 0.0;
+		m_dResCombine[4] = +3.0 / (4.0 * dDeltaT);
+		pGrid->LinearCombineData2Residual(m_dResCombine, 1, DataType_Residual);
+#endif
 
 	// Explicit strong stability preserving five-stage third-order Runge-Kutta
 	} else if (m_eExplicitDiscretization == RungeKuttaSSPRK53) {
@@ -630,10 +706,44 @@ void TimestepSchemeStrang::Step(
 		pGrid->PostProcessSubstage(4, DataType_State);
 		pGrid->PostProcessSubstage(4, DataType_Tracers);
 
+#if defined(RESIDUAL_DIFFUSION)
+		// Send the function F (explicit stuff) to index 1 in residual storage
+		//DataArray1D<double> m_dResCombine;
+		//m_dResCombine.Initialize(5);
+		m_dResCombine[0] = -m_dSSPRK53CombinationC[0] / (dStepFive * dDeltaT);
+		m_dResCombine[1] = 0.0;
+		m_dResCombine[2] = -m_dSSPRK53CombinationC[2] / (dStepFive * dDeltaT);
+		m_dResCombine[3] = 0.0;
+		m_dResCombine[4] = +1.0 / (dStepFive * dDeltaT);
+		pGrid->LinearCombineData2Residual(m_dResCombine, 1, DataType_Residual);
+#endif
+
 	// Invalid explicit discretization
 	} else {
 		_EXCEPTIONT("Invalid explicit discretization");
 	}
+
+#if defined(RESIDUAL_DIFFUSION)
+		// Estimate the total time derivative and send to index 2 residual storage
+		//DataArray1D<double> m_dResCombine;
+		//m_dResCombine.Initialize(5);
+		m_dResCombine[0] = -1.0 / dDeltaT;
+		m_dResCombine[1] = 0.0;
+		m_dResCombine[2] = 0.0;
+		m_dResCombine[3] = 0.0;
+		m_dResCombine[4] = +1.0 / dDeltaT;
+		pGrid->LinearCombineData2Residual(m_dResCombine, 2, DataType_Residual);
+
+		// Estimate the residual and send to index 2 of residual storage
+		//DataArray1D<double> m_dResCombine;
+		//m_dResCombine.Initialize(3);
+		m_dResCombine[0] = -1.0;
+		m_dResCombine[1] = -1.0;
+		m_dResCombine[2] = 1.0;
+		m_dResCombine[3] = 0.0;
+		m_dResCombine[4] = 0.0;
+		pGrid->LinearCombineData(m_dResCombine, 2, DataType_Residual);
+#endif
 
 	// Apply hyperdiffusion
 	pGrid->CopyData(4, 1, DataType_State);
@@ -674,4 +784,3 @@ void TimestepSchemeStrang::Step(
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-

@@ -124,6 +124,11 @@ private:
 	int m_nExplicitSubSteps;
 
 	///	<summary>
+	///		Residual evaluation combination.
+	///	</summary>
+	DataArray1D<double> m_dResCombine;
+
+	///	<summary>
 	///		Carryover combination.
 	///	</summary>
 	DataArray1D<double> m_dCarryoverCombination;
@@ -178,4 +183,3 @@ private:
 ///////////////////////////////////////////////////////////////////////////////
 
 #endif
-

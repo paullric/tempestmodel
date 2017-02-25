@@ -473,7 +473,7 @@ void Grid::Checksum(
 	if (eDataType == DataType_State) {
 		dChecksumsLocal.Allocate(m_model.GetEquationSet().GetComponents());
 
-	} else if (eDataType == DataType_Tracers) { 
+	} else if (eDataType == DataType_Tracers) {
 		int nTracers = m_model.GetEquationSet().GetTracers();
 		if (nTracers == 0) {
 			return;
@@ -828,7 +828,7 @@ void Grid::ComputeRichardson(
 	// Loop over all grid patches
 	for (int n = 0; n < m_vecActiveGridPatches.size(); n++) {
 
-		GridPatchGLL * pGLLGrid = 
+		GridPatchGLL * pGLLGrid =
 					dynamic_cast<GridPatchGLL*>(m_vecActiveGridPatches[n]);
 			if (pGLLGrid == NULL) {
 				_EXCEPTIONT("Logic error");
@@ -1610,6 +1610,20 @@ void Grid::LinearCombineData(
 
 ///////////////////////////////////////////////////////////////////////////////
 
+void Grid::LinearCombineData2Residual(
+	const DataArray1D<double> & dCoeff,
+	int ixDest,
+	DataType eDataType
+) {
+	// Loop over all grid patches
+	for (int n = 0; n < m_vecActiveGridPatches.size(); n++) {
+		m_vecActiveGridPatches[n]->
+			LinearCombineData2Residual(dCoeff, eDataType);
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
 void Grid::ZeroData(
 	int ixData,
 	DataType eDataType
@@ -1632,4 +1646,3 @@ void Grid::AddReferenceState(
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-

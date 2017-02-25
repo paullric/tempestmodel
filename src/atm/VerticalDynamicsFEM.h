@@ -239,6 +239,19 @@ public:
 		double * dF
 	);
 
+	///     <summary>
+  ///             Compute the field of residual based coefficients
+  ///     </summary>
+  virtual void ComputeResidualCoefficients(
+          GridPatch * pPatch,
+          int i,
+          int j,
+        	DataArray4D<double> & dataResidualNode,
+          const DataArray4D<double> & dataInitialNode,
+          DataArray4D<double> & dataResidualREdge,
+          const DataArray4D<double> & dataInitialREdge
+  );
+
 protected:
 	///	<summary>
 	///		Update tracers in the vertical.
@@ -305,6 +318,11 @@ protected:
 	double m_dHypervisCoeff;
 
 	///	<summary>
+	///		Residual hyperdiffusion coefficient.
+	///	</summary>
+	double m_dResdiffCoeff;
+
+	///	<summary>
 	///		Upwind coefficient.
 	///	</summary>
 	double m_dUpwindCoeff;
@@ -318,6 +336,11 @@ protected:
 	///		Variables to target with hyperviscosity.
 	///	</summary>
 	DataArray1D<bool> m_fHypervisVar;
+
+	///	<summary>
+	///		Variables to target with residual diffusion.
+	///	</summary>
+	DataArray1D<bool> m_fResdiffVar;
 
 	///	<summary>
 	///		Variables to target with uniform diffusion.
@@ -405,6 +428,16 @@ protected:
 	///		State vector on model interfaces, used by StepImplicit.
 	///	</summary>
 	DataArray2D<double> m_dStateREdge;
+
+	///	<summary>
+	///		Residual vector on model levels.
+	///	</summary>
+	DataArray2D<double> m_dResidualNode;
+
+	///	<summary>
+	///		Residual vector on model interfaces.
+	///	</summary>
+	DataArray2D<double> m_dResidualREdge;
 
 	///	<summary>
 	///		Auxiliary state data.
@@ -750,4 +783,3 @@ PetscErrorCode VerticalDynamicsFEM_FormFunction(
 ///////////////////////////////////////////////////////////////////////////////
 
 #endif
-

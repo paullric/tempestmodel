@@ -100,6 +100,7 @@ public:
 	virtual void InitializeDataLocal(
 		bool fAllocateGeometric = true,
 		bool fAllocateActiveState = true,
+		bool fAllocateActiveResidual = true,
 		bool fAllocateBufferState = true,
 		bool fAllocateAuxiliary = true
 	);
@@ -272,6 +273,15 @@ public:
 	);
 
 	///	<summary>
+	///		Compute a linear combination of data and store at residual array.
+	///	</summary>
+	void LinearCombineData2Residual(
+		const DataArray1D<double> & dCoeff,
+		int ixDest,
+		DataType eDataType = DataType_Residual
+	);
+
+	///	<summary>
 	///		Zero the data at the specified index.
 	///	</summary>
 	void ZeroData(
@@ -377,6 +387,13 @@ public:
 		return m_dcBufferState;
 	}
 
+		///	<summary>
+	///		Get the DataContainer for storing active residual data.
+	///	</summary>
+	DataContainer & GetDataContainerActiveResidual() {
+		return m_dcActiveResidual;
+	}
+
 	///	<summary>
 	///		Get the DataContainer for storing auxiliary data.
 	///	</summary>
@@ -404,6 +421,13 @@ public:
 	///	</summary>
 	const DataContainer & GetDataContainerBufferState() const {
 		return m_dcBufferState;
+	}
+
+	///	<summary>
+	///		Get the DataContainer for storing active residual data.
+	///	</summary>
+	const DataContainer & GetDataContainerActiveResidual() const {
+		return m_dcActiveResidual;
 	}
 
 	///	<summary>
@@ -810,27 +834,9 @@ public:
 	}
 
 	///	<summary>
-	///		Get the reference state.
+	///		Get the residual data matrix with the specified index.
 	///	</summary>
-	const DataArray4D<double> & GetReferenceState(
-		DataLocation loc = DataLocation_Node
-	) const {
-		if (!m_fContainsData) {
-			_EXCEPTIONT("Stub patch does not store data.");
-		}
-		if (loc == DataLocation_Node) {
-			return m_dataRefStateNode;
-		} else if (loc == DataLocation_REdge) {
-			return m_dataRefStateREdge;
-		} else {
-			_EXCEPTIONT("Invalid DataLocation");
-		}
-	}
-
-	///	<summary>
-	///		Get the state data matrix with the specified index.
-	///	</summary>
-	DataArray4D<double> & GetDataState(
+	DataArray4D<double> & GetDataResidual(
 		int ix,
 		DataLocation loc = DataLocation_Node
 	) {
@@ -838,16 +844,16 @@ public:
 			_EXCEPTIONT("Stub patch does not store data.");
 		}
 		if (loc == DataLocation_Node) {
-			if ((ix < 0) || (ix > m_datavecStateNode.size())) {
-				_EXCEPTIONT("Invalid index in StateData vector.");
+			if ((ix < 0) || (ix > 2)) {
+				_EXCEPTIONT("Invalid index in ResidualData vector.");
 			}
-			return m_datavecStateNode[ix];
+			return m_datavecResidualNode[ix];
 
 		} else if (loc == DataLocation_REdge) {
-			if ((ix < 0) || (ix > m_datavecStateREdge.size())) {
-				_EXCEPTIONT("Invalid index in StateData vector.");
+			if ((ix < 0) || (ix > 2)) {
+				_EXCEPTIONT("Invalid index in ResidualData vector.");
 			}
-			return m_datavecStateREdge[ix];
+			return m_datavecResidualREdge[ix];
 
 		} else {
 			_EXCEPTIONT("Invalid DataLocation");
@@ -865,13 +871,40 @@ public:
 			_EXCEPTIONT("Stub patch does not store data.");
 		}
 		if (loc == DataLocation_Node) {
-			if ((ix < 0) || (ix > m_datavecStateNode.size())) {
+			if ((ix < 0) || (ix > m_datavecStateNode.size() - 1)) {
 				_EXCEPTIONT("Invalid index in StateData vector.");
 			}
 			return m_datavecStateNode[ix];
 
 		} else if (loc == DataLocation_REdge) {
-			if ((ix < 0) || (ix > m_datavecStateREdge.size())) {
+			if ((ix < 0) || (ix > m_datavecStateREdge.size() - 1)) {
+				_EXCEPTIONT("Invalid index in StateData vector.");
+			}
+			return m_datavecStateREdge[ix];
+
+		} else {
+			_EXCEPTIONT("Invalid DataLocation");
+		}
+	}
+
+	///	<summary>
+	///		Get the state data matrix with the specified index.
+	///	</summary>
+	DataArray4D<double> & GetDataState(
+		int ix,
+		DataLocation loc = DataLocation_Node
+	) {
+		if (!m_fContainsData) {
+			_EXCEPTIONT("Stub patch does not store data.");
+		}
+		if (loc == DataLocation_Node) {
+			if ((ix < 0) || (ix > m_datavecStateNode.size() - 1)) {
+				_EXCEPTIONT("Invalid index in StateData vector.");
+			}
+			return m_datavecStateNode[ix];
+
+		} else if (loc == DataLocation_REdge) {
+			if ((ix < 0) || (ix > m_datavecStateREdge.size() - 1)) {
 				_EXCEPTIONT("Invalid index in StateData vector.");
 			}
 			return m_datavecStateREdge[ix];
@@ -1124,6 +1157,11 @@ protected:
 	DataContainer m_dcBufferState;
 
 	///	<summary>
+	///		DataContainer for storing active residual data.
+	///	</summary>
+	DataContainer m_dcActiveResidual;
+
+	///	<summary>
 	///		DataContainer for storing auxiliary data.
 	///	</summary>
 	DataContainer m_dcAuxiliary;
@@ -1298,6 +1336,11 @@ public:
 	DataArray1D<size_t> m_iActiveStatePatchIx;
 
 	///	<summary>
+	///		Active Residual patch index.
+	///	</summary>
+	DataArray1D<size_t> m_iActiveResidualPatchIx;
+
+	///	<summary>
 	///		Grid data for the reference state on model levels (State).
 	///	</summary>
 	DataArray4D<double> m_dataRefStateNode;
@@ -1316,6 +1359,16 @@ public:
 	///		Grid data on model interfaces for state variables (State).
 	///	</summary>
 	DataArray4DVector m_datavecStateREdge;
+
+	///	<summary>
+	///		Grid data for the residual state on model levels (State).
+	///	</summary>
+	DataArray4DVector m_datavecResidualNode;
+
+	///	<summary>
+	///		Grid data on model interfaces for the residual state (State).
+	///	</summary>
+	DataArray4DVector m_datavecResidualREdge;
 
 	///	<summary>
 	///		Grid data for tracer variables (State).
@@ -1389,4 +1442,3 @@ class GridPatchVector
 ///////////////////////////////////////////////////////////////////////////////
 
 #endif
-

@@ -561,6 +561,15 @@ public:
 	);
 
 	///	<summary>
+	///		Compute a linear combination of data and store to residual array.
+	///	</summary>
+	void LinearCombineData2Residual(
+		const DataArray1D<double> & dCoeff,
+		int ixDest,
+		DataType eDataType = DataType_Residual
+	);
+
+	///	<summary>
 	///		Set the state to zero.
 	///	</summary>
 	void ZeroData(
@@ -1096,4 +1105,3 @@ protected:
 ///////////////////////////////////////////////////////////////////////////////
 
 #endif
-

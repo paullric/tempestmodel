@@ -18,11 +18,13 @@
 #include "VerticalDynamicsFEM.h"
 #include "TimestepScheme.h"
 #include "FunctionTimer.h"
+#include "Announce.h"
 
 #include "Announce.h"
 #include "Model.h"
 #include "Grid.h"
 #include "GridCSGLL.h"
+#include "GridCartesianGLL.h"
 #include "EquationSet.h"
 #include "TimeObj.h"
 #include "PolynomialInterp.h"
@@ -34,15 +36,18 @@
 //#define HYPERVISC_THERMO
 //#define HYPERVISC_VERTICAL_VELOCITY
 
-#define UPWIND_HORIZONTAL_VELOCITIES
-#define UPWIND_THERMO
-#define UPWIND_VERTICAL_VELOCITY
-#define UPWIND_RHO_AND_TRACERS
+#define RESIDUAL_DIFFUSION_THERMO
+//#define RESIDUAL_DIFFUSION_VERTICAL_VELOCITY
 
-#define UNIFORM_DIFFUSION_HORIZONTAL_VELOCITIES
-#define UNIFORM_DIFFUSION_THERMO
-#define UNIFORM_DIFFUSION_VERTICAL_VELOCITY
-#define UNIFORM_DIFFUSION_TRACERS
+//#define UPWIND_HORIZONTAL_VELOCITIES
+//#define UPWIND_THERMO
+//#define UPWIND_VERTICAL_VELOCITY
+//#define UPWIND_RHO_AND_TRACERS
+
+//#define UNIFORM_DIFFUSION_HORIZONTAL_VELOCITIES
+//#define UNIFORM_DIFFUSION_THERMO
+//#define UNIFORM_DIFFUSION_VERTICAL_VELOCITY
+//#define UNIFORM_DIFFUSION_TRACERS
 
 #define VERTICAL_VELOCITY_ADVECTION_CLARK
 
@@ -77,6 +82,17 @@ VerticalDynamicsFEM::VerticalDynamicsFEM(
 	if (nHypervisOrder < 0) {
 		_EXCEPTIONT("Vertical hyperdiffusion order must be nonnegative.");
 	}
+
+	#if defined(RESIDUAL_DIFFUSION_THERMO)
+		if (nHypervisOrder != 2) {
+			_EXCEPTIONT("Vertical hyperdiffusion order 2 must be specified.");
+		}
+	#endif
+	#if defined(RESIDUAL_DIFFUSION_VERTICAL_VELOCITY)
+		if (nHypervisOrder != 2) {
+			_EXCEPTIONT("Vertical hyperdiffusion order 2 must be specified.");
+		}
+	#endif
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -212,7 +228,7 @@ void VerticalDynamicsFEM::Initialize() {
 	// Initialize Jacobian matrix
 	m_matJacobianF.Allocate(m_nColumnStateSize, m_nColumnStateSize);
 #endif
-	
+
 	// Initialize pivot vector
 	m_vecIPiv.Allocate(m_nColumnStateSize);
 
@@ -223,6 +239,7 @@ void VerticalDynamicsFEM::Initialize() {
 	m_fHypervisVar.Allocate(6);
 	m_fUpwindVar.Allocate(6);
 	m_fUniformDiffusionVar.Allocate(6);
+	m_fResdiffVar.Allocate(6);
 
 #if defined(HYPERVISC_HORIZONTAL_VELOCITIES)
 	Announce("Hyperviscosity on horizontal velocities");
@@ -283,6 +300,15 @@ void VerticalDynamicsFEM::Initialize() {
 	}
 #endif
 
+#if defined(RESIDUAL_DIFFUSION_THERMO)
+	Announce("Residual diffusion on thermodynamic variable");
+	m_fResdiffVar[PIx] = true;
+#endif
+#if defined(RESIDUAL_DIFFUSION_VERTICAL_VELOCITY)
+	Announce("Residual diffusion on vertical velocity");
+	m_fResdiffVar[WIx] = true;
+#endif
+
 #if defined(EXPLICIT_VERTICAL_VELOCITY_ADVECTION)
 	Announce("Explicit vertical velocity advection");
 #else
@@ -324,6 +350,16 @@ void VerticalDynamicsFEM::Initialize() {
 
 	// State vector at interfaces
 	m_dStateREdge.Allocate(
+		m_model.GetEquationSet().GetComponents(),
+		nRElements+1);
+
+	// Residual vector at levels
+	m_dResidualNode.Allocate(
+		m_model.GetEquationSet().GetComponents(),
+		nRElements);
+
+	// Residual vector at interfaces
+	m_dResidualREdge.Allocate(
 		m_model.GetEquationSet().GetComponents(),
 		nRElements+1);
 
@@ -393,6 +429,10 @@ void VerticalDynamicsFEM::Initialize() {
 	// Compute upwinding coefficient
 	m_dUpwindCoeff = (1.0 / 2.0)
 		* pow(1.0 / static_cast<double>(nRElements), 1.0);
+
+	// Compute the residual diffusion scaling coefficient
+	m_dResdiffCoeff = 1.0
+		* pow(1.0 / static_cast<double>(nRElements), 2.0);
 
 	// Compute hyperviscosity coefficient
 	if (m_nHypervisOrder == 0) {
@@ -608,7 +648,7 @@ void VerticalDynamicsFEM::StepImplicitTermsExplicitly(
 				dataUpdateTracer);
 		}
 		}
-	}	     
+	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -690,6 +730,13 @@ void VerticalDynamicsFEM::StepExplicit(
 		DataArray4D<double> & dataUpdateTracer =
 			pPatch->GetDataTracers(iDataUpdate);
 
+		// Get state residual from index 2
+		DataArray4D<double> & dataResidualNode =
+			pPatch->GetDataResidual(2, DataLocation_Node);
+
+		DataArray4D<double> & dataResidualREdge =
+			pPatch->GetDataResidual(2, DataLocation_REdge);
+
 		// Metric quantities
 		const DataArray4D<double> & dContraMetricXi =
 			pPatch->GetContraMetricXi();
@@ -755,6 +802,16 @@ void VerticalDynamicsFEM::StepExplicit(
 					dataInitialNode,
 					dataRefREdge,
 					dataInitialREdge);
+
+#if defined(RESIDUAL_DIFFUSION)
+				// Compute residual diffusion coefficients for the column
+				ComputeResidualCoefficients(
+					pPatch, i, j,
+					dataResidualNode,
+					dataInitialNode,
+					dataResidualREdge,
+					dataInitialREdge);
+#endif
 
 				// Evaluate the time tendency equations
 				Evaluate(m_dColumnState, m_dSoln);
@@ -2014,7 +2071,7 @@ void VerticalDynamicsFEM::PrepareColumn(
 #if defined(FORMULATION_THETA) || defined(FORMULATION_THETA_FLUX)
 
 		// Theta on model levels
-		if (pGrid->GetVarLocation(PIx) == DataLocation_Node) {	
+		if (pGrid->GetVarLocation(PIx) == DataLocation_Node) {
 			// Theta is needed on model interfaces
 			pGrid->InterpolateNodeToREdge(
 				m_dStateNode[PIx],
@@ -2133,7 +2190,7 @@ void VerticalDynamicsFEM::PrepareColumn(
 						m_dStateAux,
 						m_dDiffDiffStateHypervis[c],
 						(nRElements+1) * sizeof(double));
-	
+
 					pGrid->DiffDiffREdgeToREdge(
 						m_dStateAux,
 						m_dDiffDiffStateHypervis[c]
@@ -2744,6 +2801,64 @@ void VerticalDynamicsFEM::BuildF(
 		}
 	}
 
+	//DataArray1D<double> dDiffU;
+	//DataArray1D<double> dDiffV;
+	DataArray1D<double> dDiffCNode;
+	DataArray1D<double> dDiffCREdge;
+
+	//dDiffU.Allocate(nRElements);
+	//dDiffV.Allocate(nRElements);
+	dDiffCNode.Allocate(nRElements);
+	dDiffCREdge.Allocate(nRElements + 1);
+	// Apply residual hyperviscosity
+	for (int c = 2; c < 4; c++) {
+
+		// Only diffuse select variables
+		if (!m_fResdiffVar[c]) {
+			continue;
+		}
+
+		// Residual hyperviscosity on interfaces
+		if (pGrid->GetVarLocation(c) == DataLocation_REdge) {
+			pGrid->DifferentiateREdgeToREdge(
+							m_dStateREdge[c],
+							dDiffCREdge);
+
+			for (int k = 0; k <= nRElements; k++) {
+							m_dResidualREdge[c][k] = m_dResidualREdge[RIx][k]
+											* dDiffCREdge[k];
+			}
+
+			pGrid->DifferentiateREdgeToREdge(
+							m_dResidualREdge[c],
+							dDiffCREdge);
+
+			// Apply the update (do not update boundaries)
+			for (int k = 0; k <= nRElements; k++) {
+							dF[VecFIx(FIxFromCIx(c), k)] += dDiffCREdge[k];
+			}
+		// Residual hyperviscosity on levels
+		} else {
+			pGrid->DifferentiateNodeToNode(
+							m_dStateNode[c],
+							dDiffCNode);
+
+			for (int k = 0; k < nRElements; k++) {
+							m_dResidualNode[c][k] = m_dResidualNode[RIx][k]
+											* dDiffCNode[k];
+			}
+
+			pGrid->DifferentiateNodeToNode(
+							m_dResidualNode[c],
+							dDiffCNode);
+
+			// Apply the update (do not update boundaries)
+			for (int k = 0; k < nRElements; k++) {
+							dF[VecFIx(FIxFromCIx(c), k)] += dDiffCNode[k];
+			}
+		}
+	}
+
 	if (dF[VecFIx(FWIx, 0)] != 0.0) {
 		dF[VecFIx(FWIx, 0)] = 0.0;
 	}
@@ -3093,7 +3208,7 @@ void VerticalDynamicsFEM::BuildJacobianF_LOR_RhoTheta_Pi(
 			int n = iInterpNodeToREdgeBegin[m];
 			for (; n < iInterpNodeToREdgeEnd[m]; n++) {
 
-				double dCoeffVerticalFlux = 
+				double dCoeffVerticalFlux =
 					dDiffREdgeToNode[k][m]
 					* m_dColumnJacobianREdge[m]
 					* m_dColumnInvJacobianNode[k]
@@ -3111,7 +3226,7 @@ void VerticalDynamicsFEM::BuildJacobianF_LOR_RhoTheta_Pi(
 	for (int k = 1; k < nRElements; k++) {
 
 		// dW_k/dP_m (in pressure gradient)
-		double dRHSWCoeffA = 
+		double dRHSWCoeffA =
 			m_dStateREdge[PIx][k]
 			* phys.GetR()
 			/ (m_dStateREdge[RIx][k]
@@ -3120,14 +3235,14 @@ void VerticalDynamicsFEM::BuildJacobianF_LOR_RhoTheta_Pi(
 		int m = iDiffNodeToREdgeBegin[k];
 		for (; m < iDiffNodeToREdgeEnd[k]; m++) {
 			dDG[MatFIx(FPIx, m, FWIx, k)] +=
-				dRHSWCoeffA 
+				dRHSWCoeffA
 				* dDiffNodeToREdge[k][m]
 				* m_dExnerNode[m]
 				/ m_dStateNode[PIx][m];
 		}
 
 		// Rhotheta/rho term in front of pressure gradient
-		double dRHSWCoeffB = 
+		double dRHSWCoeffB =
 			1.0 / (m_dStateREdge[RIx][k] * m_dStateREdge[RIx][k])
 			* m_dDiffPREdge[k];
 
@@ -3403,7 +3518,7 @@ void VerticalDynamicsFEM::BuildJacobianF(
 		int m = iDiffREdgeToNodeBegin[k];
 		for (; m < iDiffREdgeToNodeEnd[k]; m++) {
 
-			double dFluxCoeff = 
+			double dFluxCoeff =
 				dDiffREdgeToNode[k][m]
 				* m_dColumnJacobianREdge[m]
 				* m_dColumnInvJacobianNode[k];
@@ -3429,7 +3544,7 @@ void VerticalDynamicsFEM::BuildJacobianF(
 	// dW_k/dP_m (in pressure gradient)
 	for (int k = 1; k < nRElements; k++) {
 
-		double dRHSWCoeff = 
+		double dRHSWCoeff =
 			m_dStateREdge[PIx][k]
 			/ m_dStateREdge[RIx][k]
 			* phys.GetR()
@@ -3438,7 +3553,7 @@ void VerticalDynamicsFEM::BuildJacobianF(
 		int m = iDiffNodeToREdgeBegin[k];
 		for (; m < iDiffNodeToREdgeEnd[k]; m++) {
 			dDG[MatFIx(FPIx, m, FWIx, k)] +=
-				dRHSWCoeff 
+				dRHSWCoeff
 				* dDiffNodeToREdge[k][m]
 				* m_dExnerNode[m]
 				/ m_dStateNode[PIx][m];
@@ -3512,7 +3627,7 @@ void VerticalDynamicsFEM::BuildJacobianF(
 		// dW_k/dT_m and dW_k/dR_m
 		for (int k = 1; k < nRElements; k++) {
 
-			double dRHSWCoeff = 
+			double dRHSWCoeff =
 				m_dStateREdge[PIx][k]
 				* phys.GetR()
 				/ phys.GetCv();
@@ -3521,7 +3636,7 @@ void VerticalDynamicsFEM::BuildJacobianF(
 			for (; m < iDiffNodeToREdgeEnd[k]; m++) {
 
 				dDG[MatFIx(FPIx, m, FWIx, k)] +=
-					dRHSWCoeff 
+					dRHSWCoeff
 					* dDiffNodeToREdge[k][m]
 					* m_dExnerNode[m]
 					/ m_dStateNode[PIx][m];
@@ -3570,7 +3685,7 @@ void VerticalDynamicsFEM::BuildJacobianF(
 		// dW_k/dT_l and dW_k/dR_m
 		for (int k = 1; k < nRElements; k++) {
 
-			double dRHSWCoeff = 
+			double dRHSWCoeff =
 				m_dStateREdge[PIx][k]
 				* phys.GetR()
 				/ phys.GetCv();
@@ -3579,7 +3694,7 @@ void VerticalDynamicsFEM::BuildJacobianF(
 			for (; m < iDiffNodeToREdgeEnd[k]; m++) {
 
 				double dTEntry =
-					dRHSWCoeff 
+					dRHSWCoeff
 					* dDiffNodeToREdge[k][m]
 					* m_dExnerNode[m]
 					/ m_dStateNode[PIx][m];
@@ -3614,7 +3729,7 @@ void VerticalDynamicsFEM::BuildJacobianF(
 			int m = iDiffREdgeToNodeBegin[k];
 			for (; m < iDiffREdgeToNodeEnd[k]; m++) {
 
-				double dFluxCoeff = 
+				double dFluxCoeff =
 					dDiffREdgeToNode[k][m]
 					* m_dColumnJacobianREdge[m]
 					* m_dColumnInvJacobianNode[k];
@@ -4347,6 +4462,213 @@ void VerticalDynamicsFEM::FilterNegativeTracers(
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+
+void VerticalDynamicsFEM::ComputeResidualCoefficients(
+	GridPatch * pPatch,
+	int iA,
+	int iB,
+	DataArray4D<double> & dataResidualNode,
+  const DataArray4D<double> & dataInitialNode,
+  DataArray4D<double> & dataResidualREdge,
+  const DataArray4D<double> & dataInitialREdge
+) {
+  // Get a copy of the grid
+  GridGLL * pGrid = dynamic_cast<GridGLL *>(m_model.GetGrid());
+
+  GridCartesianGLL * gridCartesianGLL =
+          dynamic_cast<GridCartesianGLL *>(m_model.GetGrid());
+
+  // Physical constants
+  const PhysicalConstants & phys = m_model.GetPhysicalConstants();
+
+  // Indices of EquationSet variables
+  const int UIx = 0;
+  const int VIx = 1;
+  const int PIx = 2;
+  const int WIx = 3;
+  const int RIx = 4;
+
+  // Number of elements
+  const int nRElements = pGrid->GetRElements();
+
+  double dZtop = pGrid->GetZtop();
+  bool fCartesianXZ = gridCartesianGLL->GetIsCartesianXZ();
+  double dResidualDiffusionCoeff = m_dResdiffCoeff;
+
+  // Number of finite elements in the vertical
+  int nFiniteElements = nRElements / m_nVerticalOrder;
+  int nNodesPerFiniteElement = m_nVerticalOrder;
+
+  if (pGrid->GetVerticalDiscretization() ==
+          Grid::VerticalDiscretization_FiniteVolume
+  ) {
+          nFiniteElements = nRElements;
+          nNodesPerFiniteElement = 1;
+  }
+
+	// Loop over all nodes
+	double dColAvgU = 0.0;
+	double dColAvgV = 0.0;
+	double dColAvgW = 0.0;
+	double dColAvgP = 0.0;
+	double dColAvgR = 0.0;
+
+	double dResU = 0.0;
+	double dResV = 0.0;
+	double dResW = 0.0;
+	double dResP = 0.0;
+	double dResR = 0.0;
+	double dResMax = 0.0;
+	double dResCoeff = 0.0;
+	double dNuMax = 0.0;
+
+	// Store residual for all variables
+	for (int k = 0; k < nRElements; k++) {
+		m_dResidualNode[UIx][k] = dataResidualNode[UIx][iA][iB][k];
+		m_dResidualNode[VIx][k] = dataResidualNode[VIx][iA][iB][k];
+		m_dResidualNode[RIx][k] = dataResidualNode[RIx][iA][iB][k];
+		// Sum U and V over the column
+		dColAvgU += dataInitialNode[UIx][iA][iB][k];
+		dColAvgV += dataInitialNode[VIx][iA][iB][k];
+		dColAvgR += dataInitialNode[RIx][iA][iB][k];
+	}
+	dColAvgU /= nRElements;
+	dColAvgV /= nRElements;
+	dColAvgR /= nRElements;
+
+	pGrid->InterpolateNodeToREdge(
+		m_dResidualNode[UIx],
+		m_dResidualREdge[UIx]);
+
+	pGrid->InterpolateNodeToREdge(
+		m_dResidualNode[VIx],
+		m_dResidualREdge[VIx]);
+
+	pGrid->InterpolateNodeToREdge(
+		m_dResidualNode[RIx],
+		m_dResidualREdge[RIx]);
+
+	// Store residual for W and compute column averages
+	if (pGrid->GetVarLocation(WIx) == DataLocation_Node) {
+		for (int k = 0; k < nRElements; k++) {
+			m_dResidualNode[WIx][k] = dataResidualNode[WIx][iA][iB][k];
+
+			// Sum W over the column
+			dColAvgW += dataResidualNode[WIx][iA][iB][k];
+		}
+
+		dColAvgW /= nRElements;
+
+		pGrid->InterpolateNodeToREdge(
+			m_dResidualNode[WIx],
+			m_dResidualREdge[WIx]);
+
+	} else {
+		for (int k = 0; k <= nRElements; k++) {
+			m_dResidualREdge[WIx][k] = dataResidualREdge[WIx][iA][iB][k];
+
+			// Sum W over the column
+			dColAvgW += dataInitialREdge[WIx][iA][iB][k];
+		}
+
+		dColAvgW /= (nRElements + 1);
+
+		pGrid->InterpolateREdgeToNode(
+			m_dResidualREdge[WIx],
+			m_dResidualNode[WIx]);
+	}
+
+	// Store residual for theta
+	if (pGrid->GetVarLocation(PIx) == DataLocation_Node) {
+		for (int k = 0; k < nRElements; k++) {
+			m_dResidualNode[PIx][k] = dataResidualNode[PIx][iA][iB][k];
+
+			// Sum P over the column
+			dColAvgP += dataInitialNode[PIx][iA][iB][k];
+		}
+
+		dColAvgP /= nRElements;
+
+		pGrid->InterpolateNodeToREdge(
+			m_dResidualNode[PIx],
+			m_dResidualREdge[PIx]);
+
+	} else {
+		for (int k = 0; k <= nRElements; k++) {
+			m_dResidualREdge[PIx][k] = dataResidualREdge[PIx][iA][iB][k];
+
+			// Sum P over the column
+			dColAvgP += dataInitialREdge[PIx][iA][iB][k];
+		}
+
+		dColAvgP /= nRElements + 1;
+
+		pGrid->InterpolateREdgeToNode(
+			m_dResidualREdge[PIx],
+			m_dResidualNode[PIx]);
+	}
+
+	// Compute the local diffusion coefficient
+	for (int k = 0; k <= nRElements; k++) {
+		dResU = std::abs(m_dResidualREdge[UIx][k]);
+		if (!fCartesianXZ) {
+			dResV = std::abs(m_dResidualREdge[VIx][k]);
+		}
+		dResW = std::abs(m_dResidualREdge[WIx][k]);
+		dResP = std::abs(m_dResidualREdge[PIx][k]);
+		dResR = std::abs(m_dResidualREdge[RIx][k]);
+
+		// Select the maximum residual
+		dResMax = std::max(dResU, dResV);
+		dResMax = std::max(dResMax, dResW);
+		dResMax = std::max(dResMax, dResP);
+		dResMax = std::max(dResMax, dResR);
+
+		// Normalize maximum residual (ignore BCs)
+		if (dResMax > 0.0) {
+			if (dResMax == dResU) {
+				dResCoeff = dResU / std::abs(
+				dataInitialREdge[UIx][iA][iB][k] - dColAvgU);
+			} else if (dResMax == dResV) {
+				dResCoeff = dResV / std::abs(
+				dataInitialREdge[VIx][iA][iB][k] - dColAvgV);
+			} else if (dResMax == dResW) {
+				dResCoeff = dResW / std::abs(
+				dataInitialREdge[WIx][iA][iB][k] - dColAvgW);
+			} else if (dResMax == dResP) {
+				dResCoeff = dResP / std::abs(
+				dataInitialREdge[PIx][iA][iB][k] - dColAvgP);
+			} else if (dResMax == dResR) {
+				dResCoeff = dResR / std::abs(
+				dataInitialREdge[RIx][iA][iB][k] - dColAvgR);
+			} else {
+				dResCoeff = 0.0;
+			}
+		}
+
+		dResidualDiffusionCoeff *= dResCoeff;
+
+		// Upwind coefficient
+		dNuMax = m_dHypervisCoeff *
+				fabs(m_dXiDotNode[k]);
+
+		if (std::abs(dResidualDiffusionCoeff) >= dNuMax) {
+			dResidualDiffusionCoeff = dNuMax;
+		}
+
+		// Store the column coefficients in residual data
+		m_dResidualREdge[RIx][k] = dResidualDiffusionCoeff;
+		//Announce("%1.10e", dResidualDiffusionCoeff);
+		//Announce("%1.10e %1.10e %1.10e %1.10e %1.10e", dResU, dResV, dResW, dResP, dResR);
+	}
+
+	// Interpolate the coefficients to nodes for this column
+	pGrid->InterpolateREdgeToNode(
+			m_dResidualREdge[RIx],
+			m_dResidualNode[RIx]);
+}
+
+///////////////////////////////////////////////////////////////////////////////
 // GLOBAL CONTEXT
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -4376,4 +4698,3 @@ PetscErrorCode VerticalDynamicsFEM_FormFunction(
 }
 #endif
 ///////////////////////////////////////////////////////////////////////////////
-

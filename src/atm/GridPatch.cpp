@@ -56,6 +56,7 @@ void GridPatch::InitializeDataRemote(
 void GridPatch::InitializeDataLocal(
 	bool fAllocateGeometric,
 	bool fAllocateActiveState,
+	bool fAllocateActiveResidual,
 	bool fAllocateBufferState,
 	bool fAllocateAuxiliary
 ) {
@@ -237,6 +238,7 @@ void GridPatch::InitializeDataLocal(
 
 	// Active State Patch Index
 	m_iActiveStatePatchIx.SetSize(1);
+	m_iActiveResidualPatchIx.SetSize(3);
 
 	// Initialize reference state
 	m_dataRefStateNode.SetDataType(DataType_State);
@@ -356,8 +358,37 @@ void GridPatch::InitializeDataLocal(
 	m_dcActiveState.PushDataChunk(&m_datavecStateREdge[0]);
 
 	for (int m = 1; m < model.GetComponentDataInstances(); m++) {
-		m_dcBufferState.PushDataChunk(&m_datavecStateNode[m]);
-		m_dcBufferState.PushDataChunk(&m_datavecStateREdge[m]);
+  	m_dcBufferState.PushDataChunk(&m_datavecStateNode[m]);
+    m_dcBufferState.PushDataChunk(&m_datavecStateREdge[m]);
+  }
+
+	// Initialize component residual data
+	m_datavecResidualNode .resize(3);
+	m_datavecResidualREdge.resize(3);
+
+	for (int m = 0; m < 3; m++) {
+
+		m_datavecResidualNode[m].SetDataType(DataType_Residual);
+		m_datavecResidualNode[m].SetDataLocation(DataLocation_Node);
+		m_datavecResidualNode[m].SetSize(
+			eqn.GetComponents(),
+			m_box.GetATotalWidth(),
+			m_box.GetBTotalWidth(),
+			m_grid.GetRElements());
+
+		m_datavecResidualREdge[m].SetDataType(DataType_Residual);
+		m_datavecResidualREdge[m].SetDataLocation(DataLocation_REdge);
+		m_datavecResidualREdge[m].SetSize(
+			eqn.GetComponents(),
+			m_box.GetATotalWidth(),
+			m_box.GetBTotalWidth(),
+			m_grid.GetRElements()+1);
+	}
+
+	m_dcActiveResidual.PushDataChunk(&m_iActiveResidualPatchIx);
+	for (int m = 0; m < 3; m++) {
+		m_dcActiveResidual.PushDataChunk(&m_datavecResidualNode[m]);
+		m_dcActiveResidual.PushDataChunk(&m_datavecResidualREdge[m]);
 	}
 
 	// Initialize tracer data
@@ -392,6 +423,10 @@ void GridPatch::InitializeDataLocal(
 	}
 	if (fAllocateBufferState) {
 		m_dcBufferState.Allocate();
+	}
+
+	if (fAllocateActiveResidual) {
+		m_dcActiveResidual.Allocate();
 	}
 
 	// Pressure data
@@ -478,6 +513,9 @@ void GridPatch::InitializeDataLocal(
 	// Mark Patch index
 	m_iGeometricPatchIx[0] = m_ixPatch;
 	m_iActiveStatePatchIx[0] = m_ixPatch;
+	m_iActiveResidualPatchIx[0] = m_ixPatch;
+	m_iActiveResidualPatchIx[1] = m_ixPatch;
+	m_iActiveResidualPatchIx[2] = m_ixPatch;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1458,9 +1496,73 @@ void GridPatch::LinearCombineData(
 				m_datavecTracers[m], dCoeff[m]);
 		}
 
+	// Check bounds on ixDest for Residual data
+	} else if (eDataType == DataType_Residual) {
+			if ((ixDest < 0) || (ixDest >= 3)) {
+				_EXCEPTIONT("Invalid ixDest index in LinearCombineData.");
+			}
+			if (dCoeff.GetRows() > m_datavecStateNode.size()) {
+				_EXCEPTIONT("Too many elements in coefficient vector.");
+			}
+
+			// Premultiply
+			if (dCoeff[ixDest] == 0.0) {
+				m_datavecResidualNode [ixDest].Zero();
+				m_datavecResidualREdge[ixDest].Zero();
+			} else {
+				m_datavecResidualNode [ixDest].Scale(dCoeff[ixDest]);
+				m_datavecResidualREdge[ixDest].Scale(dCoeff[ixDest]);
+			}
+
+			// Consider all other terms
+			for (int m = 0; m < dCoeff.GetRows(); m++) {
+				if (m == ixDest) {
+					continue;
+				}
+				if (dCoeff[m] == 0.0) {
+					continue;
+				}
+
+				m_datavecResidualNode[ixDest].AddProduct(
+					m_datavecResidualNode[m], dCoeff[m]);
+				m_datavecResidualREdge[ixDest].AddProduct(
+					m_datavecResidualREdge[m], dCoeff[m]);
+			}
+		} else {
+		_EXCEPTIONT("Invalid DataType specified for LinearCombineData.");
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void GridPatch::LinearCombineData2Residual(
+	const DataArray1D<double> & dCoeff,
+	int ixDest,
+	DataType eDataType
+) {
+	// Check bounds on ixDest for State data
+	if (eDataType == DataType_Residual) {
+		if ((ixDest < 0) || (ixDest >= 3)) {
+			_EXCEPTIONT("Invalid ixDest index in LinearCombineData2Residual.");
+		}
+		if (dCoeff.GetRows() > m_datavecStateNode.size()) {
+			_EXCEPTIONT("Too many elements in coefficient vector.");
+		}
+
+		// Consider all terms
+		for (int m = 0; m < dCoeff.GetRows(); m++) {
+			if (dCoeff[m] == 0.0) {
+				continue;
+			}
+
+			m_datavecResidualNode[ixDest].AddProduct(
+				m_datavecStateNode[m], dCoeff[m]);
+			m_datavecResidualREdge[ixDest].AddProduct(
+				m_datavecStateREdge[m], dCoeff[m]);
+		}
 	// Invalid datatype; only State or Tracers expected
 	} else {
-		_EXCEPTIONT("Invalid DataType specified for LinearCombineData.");
+		_EXCEPTIONT("Invalid DataType specified for LinearCombineData2Residual.");
 	}
 }
 
@@ -1473,16 +1575,25 @@ void GridPatch::ZeroData(
 	// Check bounds on ixDest for State data
 	if (eDataType == DataType_State) {
 		if ((ixData < 0) || (ixData >= m_datavecStateNode.size())) {
-			_EXCEPTIONT("Invalid ixData index in LinearCombineData.");
+			_EXCEPTIONT("Invalid ixData index in ZeroData.");
 		}
 
 		m_datavecStateNode [ixData].Zero();
 		m_datavecStateREdge[ixData].Zero();
 
+	// Check the bounds of ixDest for Residual data
+	} else if (eDataType == DataType_Residual) {
+		if ((ixData < 0) || (ixData > 2)) {
+			_EXCEPTIONT("Invalid ixData index in ZeroData.");
+		}
+
+		m_datavecResidualNode [ixData].Zero();
+		m_datavecResidualREdge[ixData].Zero();
+
 	// Check bounds on ixDest for Tracers data
 	} else if (eDataType == DataType_Tracers) {
 		if ((ixData < 0) || (ixData >= m_datavecTracers.size())) {
-			_EXCEPTIONT("Invalid ixData index in LinearCombineData.");
+			_EXCEPTIONT("Invalid ixData index in ZeroData.");
 		}
 
 		if (!m_datavecTracers[ixData].IsAttached()) {
@@ -1544,4 +1655,3 @@ void GridPatch::InterpolateData(
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-
