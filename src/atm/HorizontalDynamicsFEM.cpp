@@ -35,7 +35,7 @@
 
 //#define FIX_ELEMENT_MASS_NONHYDRO
 
-#define RESIDUAL_DIFFUSION_THERMO
+//#define RESIDUAL_DIFFUSION_THERMO
 //#define RESIDUAL_DIFFUSION_VERTICAL_VELOCITY
 
 ///////////////////////////////////////////////////////////////////////////////

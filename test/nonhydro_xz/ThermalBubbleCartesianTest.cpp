@@ -94,8 +94,8 @@ public:
 		// Set the dimensions of the box
 		m_dGDim[0] = 0.0;
 		m_dGDim[1] = 1000.0;
-		m_dGDim[2] = -500.0;
-		m_dGDim[3] = 500.0;
+		m_dGDim[2] = -10.0;
+		m_dGDim[3] = 10.0;
 		m_dGDim[4] = 0.0;
 		m_dGDim[5] = 1000.0;
 
@@ -316,7 +316,7 @@ try {
 	Model model(EquationSet::PrimitiveNonhydrostaticEquations);
 
 	// Setup the cartesian model with dimensions and reference latitude
-	TempestSetupCartesianModel(model, test->m_dGDim, 0.0, 
+	TempestSetupCartesianModel(model, test->m_dGDim, 0.0,
 								test->m_iLatBC,  true);
 
 	// Set the reference length to reduce diffusion relative to global scale
@@ -352,4 +352,3 @@ try {
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-

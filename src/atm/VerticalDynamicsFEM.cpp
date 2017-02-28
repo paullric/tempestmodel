@@ -36,7 +36,7 @@
 //#define HYPERVISC_THERMO
 //#define HYPERVISC_VERTICAL_VELOCITY
 
-#define RESIDUAL_DIFFUSION_THERMO
+//#define RESIDUAL_DIFFUSION_THERMO
 //#define RESIDUAL_DIFFUSION_VERTICAL_VELOCITY
 
 //#define UPWIND_HORIZONTAL_VELOCITIES
@@ -2833,9 +2833,9 @@ void VerticalDynamicsFEM::BuildF(
 							m_dResidualREdge[c],
 							dDiffCREdge);
 
-			// Apply the update (do not update boundaries)
+			// Apply the update
 			for (int k = 0; k <= nRElements; k++) {
-							dF[VecFIx(FIxFromCIx(c), k)] += dDiffCREdge[k];
+							dF[VecFIx(FIxFromCIx(c), k)] -= dDiffCREdge[k];
 			}
 		// Residual hyperviscosity on levels
 		} else {
@@ -2852,9 +2852,9 @@ void VerticalDynamicsFEM::BuildF(
 							m_dResidualNode[c],
 							dDiffCNode);
 
-			// Apply the update (do not update boundaries)
+			// Apply the update
 			for (int k = 0; k < nRElements; k++) {
-							dF[VecFIx(FIxFromCIx(c), k)] += dDiffCNode[k];
+							dF[VecFIx(FIxFromCIx(c), k)] -= dDiffCNode[k];
 			}
 		}
 	}
