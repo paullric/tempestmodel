@@ -2546,11 +2546,11 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusionResidual(
             int iB = iElementB + j;
 
             // Compute the local diffusion coefficient
-            dResU = std::abs((*pDataResidual)(UIx,iA,iB,k));
-            dResV = std::abs((*pDataResidual)(VIx,iA,iB,k));
-            dResW = std::abs((*pDataResidual)(WIx,iA,iB,k));
-            dResP = std::abs((*pDataResidual)(PIx,iA,iB,k));
-            dResR = std::abs((*pDataResidual)(RIx,iA,iB,k));
+            dResU = fabs((*pDataResidual)(UIx,iA,iB,k));
+            dResV = fabs((*pDataResidual)(VIx,iA,iB,k));
+            dResW = fabs((*pDataResidual)(WIx,iA,iB,k));
+            dResP = fabs((*pDataResidual)(PIx,iA,iB,k));
+            dResR = fabs((*pDataResidual)(RIx,iA,iB,k));
 
             // Select the maximum residual
             dResMax = std::max(dResU, dResV);
@@ -2560,19 +2560,19 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusionResidual(
 
 						if (dResMax > 0.0) {
 	            if (dResMax == dResU) {
-	                    dResCoeff = dResU / std::abs(
+	                    dResCoeff = dResU / fabs(
 	                    (*pDataInitial)(UIx,iA,iB,k) - dEAvgU);
 	            } else if (dResMax == dResV){
-	                    dResCoeff = dResV / std::abs(
+	                    dResCoeff = dResV / fabs(
 	                    (*pDataInitial)(VIx,iA,iB,k) - dEAvgV);
 	            } else if (dResMax == dResW) {
-	                    dResCoeff = dResW / std::abs(
+	                    dResCoeff = dResW / fabs(
 	                    (*pDataInitial)(WIx,iA,iB,k) - dEAvgW);
 	            } else if (dResMax == dResP) {
-	                    dResCoeff = dResP / std::abs(
+	                    dResCoeff = dResP / fabs(
 	                    (*pDataInitial)(PIx,iA,iB,k) - dEAvgP);
 	            } else if (dResMax == dResR) {
-	                    dResCoeff = dResR / std::abs(
+	                    dResCoeff = dResR / fabs(
 	                    (*pDataInitial)(RIx,iA,iB,k) - dEAvgR);
 	            } else {
 	                    dResCoeff = 0.0;
@@ -2582,42 +2582,19 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusionResidual(
 						}
 
             // Scale to the average element length
-            dResNu[i][j] = dGridLength * dGridLength * std::abs(dResCoeff);
+            dResNu[i][j] = dGridLength * dGridLength * fabs(dResCoeff);
 
             // Get the maximum possible coefficient (upwind)
-            if (c != WIx) {
-              // Use the total maximum wind speed
-              dNuMax = m_dAuxDataNode(KIx,i,j,k)
-												/ pGrid->GetReferenceLength();
-            } else {
-							// Use the total maximum wind speed
-							dNuMax = m_dAuxDataNode(KIx,i,j,k)
-												/ pGrid->GetReferenceLength();
-							/*
-                    // Contravariant velocities
-                    double dCovUa = (*pDataInitial)(UIx,iA,iB,k);
-                    double dCovUb = (*pDataInitial)(VIx,iA,iB,k);
-
-                    // Calculate covariant xi velocity and store
-                    double dCovUx =
-                              (*pDataInitial)(WIx,iA,iB,k);
-
-                    // Use the vertical wind speed only
-                    double dXiDot =
-                             (*pContraMetricA)(k,iA,iB,2) * dCovUa
-                            + (*pContraMetricB)(k,iA,iB,2) * dCovUb
-                            + (*pContraMetricXi)(k,iA,iB,2) * dCovUx;
-                    dNuMax = dXiDot;
-							*/
-            }
+            dNuMax = m_dAuxDataNode(KIx,i,j,k)
+											/ pGrid->GetReferenceLength();
 
             // Limit the coefficients to the upwind value
-            if (std::abs(dResNu[i][j]) > dNuMax) {
-              dResNu[i][j] = std::abs(dNuMax);
+            if (fabs(dResNu[i][j]) > dNuMax) {
+              dResNu[i][j] = fabs(dNuMax);
             }
             // Check for Inf or NaN and adjust
             if (!std::isfinite(dResNu[i][j])) {
-              dResNu[i][j] = std::abs(dNuMax);
+              dResNu[i][j] = fabs(dNuMax);
             }
 					}
 					}

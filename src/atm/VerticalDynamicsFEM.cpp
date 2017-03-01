@@ -4649,6 +4649,8 @@ void VerticalDynamicsFEM::ComputeResidualCoefficients(
 			} else {
 				dResCoeff = 0.0;
 			}
+		} else {
+			dResCoeff = 0.0;
 		}
 
 		dResidualDiffusionCoeff *= dResCoeff;
