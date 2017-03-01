@@ -2820,16 +2820,21 @@ void VerticalDynamicsFEM::BuildF(
 
 		// Residual hyperviscosity on interfaces
 		if (pGrid->GetVarLocation(c) == DataLocation_REdge) {
-			pGrid->DifferentiateREdgeToREdge(
-							m_dStateREdge[c],
-							dDiffCREdge);
-
 			for (int k = 0; k <= nRElements; k++) {
-							m_dResidualAuxREdge[k] *= dDiffCREdge[k];
+							m_dStateAux[k] = m_dStateREdge[c][k] -
+																	m_dStateRefREdge[c][k];
 			}
 
 			pGrid->DifferentiateREdgeToREdge(
-							m_dResidualAuxREdge,
+							m_dStateAux,
+							dDiffCREdge);
+
+			for (int k = 0; k <= nRElements; k++) {
+							dDiffCREdge[k] *= m_dResidualAuxREdge[k];
+			}
+
+			pGrid->DifferentiateREdgeToREdge(
+							dDiffCREdge,
 							m_dResidualAuxDiffREdge);
 
 			// Apply the update
@@ -2838,16 +2843,21 @@ void VerticalDynamicsFEM::BuildF(
 			}
 		// Residual hyperviscosity on levels
 		} else {
-			pGrid->DifferentiateNodeToNode(
-							m_dStateNode[c],
-							dDiffCNode);
-
-			for (int k = 0; k < nRElements; k++) {
-				m_dResidualAuxNode[k] *= dDiffCNode[k];
+			for (int k = 0; k <= nRElements; k++) {
+							m_dStateAux[k] = m_dStateNode[c][k] -
+																	m_dStateRefNode[c][k];
 			}
 
 			pGrid->DifferentiateNodeToNode(
-							m_dResidualAuxNode,
+							m_dStateAux,
+							dDiffCNode);
+
+			for (int k = 0; k < nRElements; k++) {
+				dDiffCNode[k] *= m_dResidualAuxNode[k];
+			}
+
+			pGrid->DifferentiateNodeToNode(
+							dDiffCNode,
 							m_dResidualAuxDiffNode);
 
 			// Apply the update
@@ -4607,11 +4617,11 @@ void VerticalDynamicsFEM::ComputeResidualCoefficients(
 
 	// Compute the local diffusion coefficient
 	for (int k = 0; k <= nRElements; k++) {
-		dResU = std::abs(m_dResidualREdge[UIx][k]);
-		dResV = std::abs(m_dResidualREdge[VIx][k]);
-		dResW = std::abs(m_dResidualREdge[WIx][k]);
-		dResP = std::abs(m_dResidualREdge[PIx][k]);
-		dResR = std::abs(m_dResidualREdge[RIx][k]);
+		dResU = fabs(m_dResidualREdge[UIx][k]);
+		dResV = fabs(m_dResidualREdge[VIx][k]);
+		dResW = fabs(m_dResidualREdge[WIx][k]);
+		dResP = fabs(m_dResidualREdge[PIx][k]);
+		dResR = fabs(m_dResidualREdge[RIx][k]);
 
 		// Select the maximum residual
 		dResMax = std::max(dResU, dResV);
@@ -4622,19 +4632,19 @@ void VerticalDynamicsFEM::ComputeResidualCoefficients(
 		// Normalize maximum residual (ignore BCs)
 		if (dResMax > 0.0) {
 			if (dResMax == dResU) {
-				dResCoeff = dResU / std::abs(
+				dResCoeff = dResU / fabs(
 				dataInitialREdge[UIx][iA][iB][k] - dColAvgU);
 			} else if (dResMax == dResV) {
-				dResCoeff = dResV / std::abs(
+				dResCoeff = dResV / fabs(
 				dataInitialREdge[VIx][iA][iB][k] - dColAvgV);
 			} else if (dResMax == dResW) {
-				dResCoeff = dResW / std::abs(
+				dResCoeff = dResW / fabs(
 				dataInitialREdge[WIx][iA][iB][k] - dColAvgW);
 			} else if (dResMax == dResP) {
-				dResCoeff = dResP / std::abs(
+				dResCoeff = dResP / fabs(
 				dataInitialREdge[PIx][iA][iB][k] - dColAvgP);
 			} else if (dResMax == dResR) {
-				dResCoeff = dResR / std::abs(
+				dResCoeff = dResR / fabs(
 				dataInitialREdge[RIx][iA][iB][k] - dColAvgR);
 			} else {
 				dResCoeff = 0.0;
@@ -4647,7 +4657,7 @@ void VerticalDynamicsFEM::ComputeResidualCoefficients(
 		dNuMax = m_dHypervisCoeff *
 				fabs(m_dXiDotNode[k]);
 
-		if (std::abs(dResidualDiffusionCoeff) >= dNuMax) {
+		if (fabs(dResidualDiffusionCoeff) >= dNuMax) {
 			dResidualDiffusionCoeff = dNuMax;
 		}
 

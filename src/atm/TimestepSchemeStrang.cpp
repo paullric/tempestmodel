@@ -739,7 +739,7 @@ void TimestepSchemeStrang::Step(
 		//m_dResCombine.Initialize(3);
 		m_dResCombine[0] = -1.0;
 		m_dResCombine[1] = -1.0;
-		m_dResCombine[2] = 1.0;
+		m_dResCombine[2] = +1.0;
 		m_dResCombine[3] = 0.0;
 		m_dResCombine[4] = 0.0;
 		pGrid->LinearCombineData(m_dResCombine, 2, DataType_Residual);
