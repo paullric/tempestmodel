@@ -440,6 +440,26 @@ protected:
 	DataArray2D<double> m_dResidualREdge;
 
 	///	<summary>
+	///		Auxiliary residual data on model levels.
+	///	</summary>
+	DataArray1D<double> m_dResidualAuxNode;
+
+	///	<summary>
+	///		Auxiliary residual data on model interfaces.
+	///	</summary>
+	DataArray1D<double> m_dResidualAuxREdge;
+
+	///	<summary>
+	///		Derivative of auxiliary residual data on model levels.
+	///	</summary>
+	DataArray1D<double> m_dResidualAuxDiffNode;
+
+	///	<summary>
+	///		Derivative of auxiliary residual data on model interfaces.
+	///	</summary>
+	DataArray1D<double> m_dResidualAuxDiffREdge;
+
+	///	<summary>
 	///		Auxiliary state data.
 	///	</summary>
 	DataArray1D<double> m_dStateAux;

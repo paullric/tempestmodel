@@ -36,13 +36,13 @@
 //#define HYPERVISC_THERMO
 //#define HYPERVISC_VERTICAL_VELOCITY
 
-//#define RESIDUAL_DIFFUSION_THERMO
+#define RESIDUAL_DIFFUSION_THERMO
 //#define RESIDUAL_DIFFUSION_VERTICAL_VELOCITY
 
-//#define UPWIND_HORIZONTAL_VELOCITIES
-//#define UPWIND_THERMO
-//#define UPWIND_VERTICAL_VELOCITY
-//#define UPWIND_RHO_AND_TRACERS
+#define UPWIND_HORIZONTAL_VELOCITIES
+#define UPWIND_THERMO
+#define UPWIND_VERTICAL_VELOCITY
+#define UPWIND_RHO_AND_TRACERS
 
 //#define UNIFORM_DIFFUSION_HORIZONTAL_VELOCITIES
 //#define UNIFORM_DIFFUSION_THERMO
@@ -366,6 +366,11 @@ void VerticalDynamicsFEM::Initialize() {
 	// Auxiliary variables
 	m_dStateAux.Allocate(nRElements+1);
 	m_dStateAuxDiff.Allocate(nRElements+1);
+
+	m_dResidualAuxNode.Allocate(nRElements);
+	m_dResidualAuxREdge.Allocate(nRElements+1);
+	m_dResidualAuxDiffNode.Allocate(nRElements);
+	m_dResidualAuxDiffREdge.Allocate(nRElements+1);
 
 	m_dXiDotNode.Allocate(nRElements);
 	m_dXiDotREdge.Allocate(nRElements+1);
@@ -2801,13 +2806,8 @@ void VerticalDynamicsFEM::BuildF(
 		}
 	}
 
-	//DataArray1D<double> dDiffU;
-	//DataArray1D<double> dDiffV;
 	DataArray1D<double> dDiffCNode;
 	DataArray1D<double> dDiffCREdge;
-
-	//dDiffU.Allocate(nRElements);
-	//dDiffV.Allocate(nRElements);
 	dDiffCNode.Allocate(nRElements);
 	dDiffCREdge.Allocate(nRElements + 1);
 	// Apply residual hyperviscosity
@@ -2825,17 +2825,16 @@ void VerticalDynamicsFEM::BuildF(
 							dDiffCREdge);
 
 			for (int k = 0; k <= nRElements; k++) {
-							m_dResidualREdge[c][k] = m_dResidualREdge[RIx][k]
-											* dDiffCREdge[k];
+							m_dResidualAuxREdge[k] *= dDiffCREdge[k];
 			}
 
 			pGrid->DifferentiateREdgeToREdge(
-							m_dResidualREdge[c],
-							dDiffCREdge);
+							m_dResidualAuxREdge,
+							m_dResidualAuxDiffREdge);
 
 			// Apply the update
 			for (int k = 0; k <= nRElements; k++) {
-							dF[VecFIx(FIxFromCIx(c), k)] -= dDiffCREdge[k];
+							dF[VecFIx(FIxFromCIx(c), k)] -= m_dResidualAuxDiffREdge[k];
 			}
 		// Residual hyperviscosity on levels
 		} else {
@@ -2844,17 +2843,16 @@ void VerticalDynamicsFEM::BuildF(
 							dDiffCNode);
 
 			for (int k = 0; k < nRElements; k++) {
-							m_dResidualNode[c][k] = m_dResidualNode[RIx][k]
-											* dDiffCNode[k];
+				m_dResidualAuxNode[k] *= dDiffCNode[k];
 			}
 
 			pGrid->DifferentiateNodeToNode(
-							m_dResidualNode[c],
-							dDiffCNode);
+							m_dResidualAuxNode,
+							m_dResidualAuxDiffNode);
 
 			// Apply the update
 			for (int k = 0; k < nRElements; k++) {
-							dF[VecFIx(FIxFromCIx(c), k)] -= dDiffCNode[k];
+							dF[VecFIx(FIxFromCIx(c), k)] -= m_dResidualAuxDiffNode[k];
 			}
 		}
 	}
@@ -4492,7 +4490,6 @@ void VerticalDynamicsFEM::ComputeResidualCoefficients(
   const int nRElements = pGrid->GetRElements();
 
   double dZtop = pGrid->GetZtop();
-  bool fCartesianXZ = gridCartesianGLL->GetIsCartesianXZ();
   double dResidualDiffusionCoeff = m_dResdiffCoeff;
 
   // Number of finite elements in the vertical
@@ -4611,9 +4608,7 @@ void VerticalDynamicsFEM::ComputeResidualCoefficients(
 	// Compute the local diffusion coefficient
 	for (int k = 0; k <= nRElements; k++) {
 		dResU = std::abs(m_dResidualREdge[UIx][k]);
-		if (!fCartesianXZ) {
-			dResV = std::abs(m_dResidualREdge[VIx][k]);
-		}
+		dResV = std::abs(m_dResidualREdge[VIx][k]);
 		dResW = std::abs(m_dResidualREdge[WIx][k]);
 		dResP = std::abs(m_dResidualREdge[PIx][k]);
 		dResR = std::abs(m_dResidualREdge[RIx][k]);
@@ -4657,15 +4652,18 @@ void VerticalDynamicsFEM::ComputeResidualCoefficients(
 		}
 
 		// Store the column coefficients in residual data
-		m_dResidualREdge[RIx][k] = dResidualDiffusionCoeff;
+		m_dResidualAuxREdge[k] = dResidualDiffusionCoeff;
 		//Announce("%1.10e", dResidualDiffusionCoeff);
 		//Announce("%1.10e %1.10e %1.10e %1.10e %1.10e", dResU, dResV, dResW, dResP, dResR);
 	}
 
+	m_dResidualAuxREdge[0] = 0.0;
+	m_dResidualAuxREdge[nRElements] = 0.0;
+
 	// Interpolate the coefficients to nodes for this column
 	pGrid->InterpolateREdgeToNode(
-			m_dResidualREdge[RIx],
-			m_dResidualNode[RIx]);
+			m_dResidualAuxREdge,
+			m_dResidualAuxNode);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
