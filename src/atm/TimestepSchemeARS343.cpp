@@ -27,9 +27,9 @@ TimestepSchemeARS343::TimestepSchemeARS343(
 ) :
 	TimestepScheme(model)
 {
-	m_dU2fCombo.Allocate(8);
-	m_dU3fCombo.Allocate(9);
-	m_dU4fCombo.Allocate(10);
+	m_dU2fCombo.Allocate(7);
+	m_dU3fCombo.Allocate(7);
+	m_dU4fCombo.Allocate(7);
 
 	m_dDiagExpCf.Allocate(4);
 	m_dDiagImpCf.Allocate(4);
@@ -93,7 +93,6 @@ TimestepSchemeARS343::TimestepSchemeARS343(
 	m_dU2fCombo[4] = 0.0;
 	m_dU2fCombo[5] = 0.0;
 	m_dU2fCombo[6] = 0.0;
-	m_dU2fCombo[7] = 0.0;
 
 	// u3 explicit evaluation combination
 	m_dU3fCombo[0] = 1.0 - dExpCf[2][0] / dExpCf[0][0];
@@ -105,8 +104,8 @@ TimestepSchemeARS343::TimestepSchemeARS343(
 	m_dU3fCombo[4] = dImpCf[2][1] / dImpCf[1][1];
 	m_dU3fCombo[5] = 0.0;
 	m_dU3fCombo[6] = 0.0;
-	m_dU3fCombo[7] = -dExpCf[2][1] / dExpCf[1][1];
-	m_dU3fCombo[8] = 0.0;
+
+	const double dU3fCombo7 = -dExpCf[2][1] / dExpCf[1][1];
 	
 	// u4 explicit evaluation combination
 	m_dU4fCombo[0] = 1.0 - dExpCf[3][0] / dExpCf[0][0];
@@ -119,26 +118,27 @@ TimestepSchemeARS343::TimestepSchemeARS343(
 	m_dU4fCombo[5] = dExpCf[3][2] / dExpCf[2][2] - 
 					 dImpCf[3][2] / dImpCf[2][2];
 	m_dU4fCombo[6] = dImpCf[3][2] / dImpCf[2][2];
-	m_dU4fCombo[7] = -dExpCf[3][1] / dExpCf[1][1];
-	m_dU4fCombo[8] = -dExpCf[3][2] / dExpCf[2][2];
-	m_dU4fCombo[9] = 0.0;
+
+	const double dU4fCombo7 = -dExpCf[3][1] / dExpCf[1][1];
+	const double dU4fCombo8 = -dExpCf[3][2] / dExpCf[2][2];
 
 	// Recombination terms
-	m_dU3fCombo[0] += m_dU3fCombo[7] * m_dU2fCombo[0];
-	m_dU3fCombo[1] += m_dU3fCombo[7] * m_dU2fCombo[1];
-	m_dU3fCombo[2] += m_dU3fCombo[7] * m_dU2fCombo[2];
+	m_dU3fCombo[0] += dU3fCombo7 * m_dU2fCombo[0];
+	m_dU3fCombo[1] += dU3fCombo7 * m_dU2fCombo[1];
+	m_dU3fCombo[2] += dU3fCombo7 * m_dU2fCombo[2];
 
 	m_dU4fCombo[0] +=
-		  m_dU4fCombo[7] * m_dU2fCombo[0]
-		+ m_dU4fCombo[8] * m_dU3fCombo[0];
+		  dU4fCombo7 * m_dU2fCombo[0]
+		+ dU4fCombo8 * m_dU3fCombo[0];
 	m_dU4fCombo[1] +=
-		  m_dU4fCombo[7] * m_dU2fCombo[1]
-		+ m_dU4fCombo[8] * m_dU3fCombo[1];
+		  dU4fCombo7 * m_dU2fCombo[1]
+		+ dU4fCombo8 * m_dU3fCombo[1];
 	m_dU4fCombo[2] +=
-		  m_dU4fCombo[7] * m_dU2fCombo[2]
-		+ m_dU4fCombo[8] * m_dU3fCombo[2];
-	m_dU4fCombo[3] += m_dU4fCombo[8] * m_dU3fCombo[3];
-	m_dU4fCombo[4] += m_dU4fCombo[8] * m_dU3fCombo[4];
+		  dU4fCombo7 * m_dU2fCombo[2]
+		+ dU4fCombo8 * m_dU3fCombo[2];
+
+	m_dU4fCombo[3] += dU4fCombo8 * m_dU3fCombo[3];
+	m_dU4fCombo[4] += dU4fCombo8 * m_dU3fCombo[4];
 }
 
 ///////////////////////////////////////////////////////////////////////////////
