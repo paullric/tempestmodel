@@ -33,7 +33,7 @@
 
 //#define INSTEP_DIVERGENCE_DAMPING
 
-//#define FIX_ELEMENT_MASS_NONHYDRO
+#define FIX_ELEMENT_MASS_NONHYDRO
 
 #define RESIDUAL_DIFFUSION_THERMO
 //#define RESIDUAL_DIFFUSION_VERTICAL_VELOCITY
@@ -2319,7 +2319,8 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusionResidual(
 		const double dElementDeltaA = pPatch->GetElementDeltaA();
 		const double dElementDeltaB = pPatch->GetElementDeltaB();
 
-		const double dElementLength = 0.5 * (dElementDeltaA + dElementDeltaB);
+		const double dElementLength = 0.5 *
+			(dElementDeltaA + dElementDeltaB);
 
 		const double dInvElementDeltaA = 1.0 / dElementDeltaA;
 		const double dInvElementDeltaB = 1.0 / dElementDeltaB;
@@ -2452,229 +2453,217 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusionResidual(
 			}
 		}
 
-    // Compute maximum local wave speed in an element
-    for (int i = 0; i < nHorizontalOrder; i++) {
-    for (int j = 0; j < nHorizontalOrder; j++) {
-      int iA = iElementA + i;
-      int iB = iElementB + j;
+		// Compute maximum local wave speed in an element
+		for (int i = 0; i < nHorizontalOrder; i++) {
+		for (int j = 0; j < nHorizontalOrder; j++) {
+			int iA = iElementA + i;
+			int iB = iElementB + j;
 
-      // Contravariant velocities
-      double dCovUa = (*pDataInitial)(UIx,iA,iB,k);
-      double dCovUb = (*pDataInitial)(VIx,iA,iB,k);
+			// Contravariant velocities
+			double dCovUa = (*pDataInitial)(UIx,iA,iB,k);
+			double dCovUb = (*pDataInitial)(VIx,iA,iB,k);
 
-      // Contravariant velocities
-      m_dAuxDataNode(ConUaIx,i,j,k) =
-                dContraMetric2DA(iA,iB,0) * dCovUa
-              + dContraMetric2DA(iA,iB,1) * dCovUb;
+			// Contravariant velocities
+			m_dAuxDataNode(ConUaIx,i,j,k) =
+				dContraMetric2DA(iA,iB,0) * dCovUa
+			      + dContraMetric2DA(iA,iB,1) * dCovUb;
 
-      m_dAuxDataNode(ConUbIx,i,j,k) =
-                dContraMetric2DB(iA,iB,0) * dCovUa
-              + dContraMetric2DB(iA,iB,1) * dCovUb;
+			m_dAuxDataNode(ConUbIx,i,j,k) =
+				dContraMetric2DB(iA,iB,0) * dCovUa
+			      + dContraMetric2DB(iA,iB,1) * dCovUb;
 
-    	double dRhoTheta = 0.0;
+			double dRhoTheta = 0.0;
 #if defined(FORMULATION_THETA)
-      dRhoTheta = (*pDataInitial)(PIx,iA,iB,k) *
-                  (*pDataInitial)(RIx,iA,iB,k);
+			dRhoTheta = (*pDataInitial)(PIx,iA,iB,k) *
+				  (*pDataInitial)(RIx,iA,iB,k);
 #endif
 
 #if defined(FORMULATION_RHOTHETA_P) || defined(FORMULATION_RHOTHETA_PI)
-	    dRhoTheta = (*pDataInitial)(PIx,iA,iB,k);
+			dRhoTheta = (*pDataInitial)(PIx,iA,iB,k);
 #endif
 
-	    // Maximum wave speed in this element
-	    m_dAuxDataNode(KIx,i,j,k) = sqrt(
-	              m_dAuxDataNode(ConUaIx,i,j,k) * dCovUa
-	            + m_dAuxDataNode(ConUbIx,i,j,k) * dCovUb)
-	            + sqrt(phys.GetGamma() *
-	                       phys.PressureFromRhoTheta(dRhoTheta) /
-	                       (*pDataInitial)(RIx,iA,iB,k));
-    }
-    }
+			// Maximum wave speed in this element
+			m_dAuxDataNode(KIx,i,j,k) = sqrt(
+			      m_dAuxDataNode(ConUaIx,i,j,k) * dCovUa
+			    + m_dAuxDataNode(ConUbIx,i,j,k) * dCovUb)
+			    + sqrt(phys.GetGamma() *
+				       phys.PressureFromRhoTheta(dRhoTheta) /
+				       (*pDataInitial)(RIx,iA,iB,k));
+		}
+		}
 
-    double dAvgA = 0.0;
-    double dAvgB = 0.0;
-    double dEAvgU = 0.0;
-    double dEAvgV = 0.0;
-    double dEAvgW = 0.0;
-    double dEAvgP = 0.0;
-    double dEAvgR = 0.0;
-    // Calculate the element average of the scalar field
-    for (int i = 0; i < nHorizontalOrder; i++) {
-    for (int j = 0; j < nHorizontalOrder; j++) {
-      int iA = iElementA + i;
-      int iB = iElementB + j;
+		double dAvgA = 0.0;
+		double dAvgB = 0.0;
+		double dEAvgU = 0.0;
+		double dEAvgV = 0.0;
+		double dEAvgW = 0.0;
+		double dEAvgP = 0.0;
+		double dEAvgR = 0.0;
+		// Calculate the element average of the scalar field
+		for (int i = 0; i < nHorizontalOrder; i++) {
+		for (int j = 0; j < nHorizontalOrder; j++) {
+			int iA = iElementA + i;
+			int iB = iElementB + j;
 
-      for (int o = 0; o < m_model.GetEquationSet().GetComponents(); o++) {
-        for (int s = 0; s < nHorizontalOrder; s++) {
-          dAvgA +=
-                  (*pDataInitial)(o,s,iB,k)
-                  * dStiffness1D(i,s);
+			for (int o = 0; o < m_model.GetEquationSet().GetComponents(); o++) {
+				for (int s = 0; s < nHorizontalOrder; s++) {
+					dAvgA +=
+					  (*pDataInitial)(o,s,iB,k)
+					  * dStiffness1D(i,s);
 
-          dAvgB +=
-                  (*pDataInitial)(o,iA,s,k)
-                  * dStiffness1D(j,s);
-        }
-
-        dAvgA *= dInvElementDeltaA;
-        dAvgB *= dInvElementDeltaB;
-
-        switch (o) {
-          case 0: dEAvgU = 0.5 * (dAvgA + dAvgB); break;
-          case 1: dEAvgV = 0.5 * (dAvgA + dAvgB); break;
-          case 2: dEAvgW = 0.5 * (dAvgA + dAvgB); break;
-          case 3: dEAvgP = 0.5 * (dAvgA + dAvgB); break;
-          case 4: dEAvgR = 0.5 * (dAvgA + dAvgB); break;
-        }
-      }
-    }
-    }
-
-    double dResU = 0.0;
-    double dResV = 0.0;
-    double dResW = 0.0;
-    double dResP = 0.0;
-    double dResR = 0.0;
-    double dResMax = 0.0;
-		double dResCoeff = 0.0;
-    double dNuMax = 0.0;
-    double dGridLength = dElementLength / (nHorizontalOrder - 1);
-
-    // Compute the local diffusion coefficient
-    for (int i = 0; i < nHorizontalOrder; i++) {
-    for (int j = 0; j < nHorizontalOrder; j++) {
-            int iA = iElementA + i;
-            int iB = iElementB + j;
-
-            // Compute the local diffusion coefficient
-            dResU = fabs((*pDataResidual)(UIx,iA,iB,k));
-            dResV = fabs((*pDataResidual)(VIx,iA,iB,k));
-            dResW = fabs((*pDataResidual)(WIx,iA,iB,k));
-            dResP = fabs((*pDataResidual)(PIx,iA,iB,k));
-            dResR = fabs((*pDataResidual)(RIx,iA,iB,k));
-
-            // Select the maximum residual
-            dResMax = std::max(dResU, dResV);
-            dResMax = std::max(dResMax, dResW);
-            dResMax = std::max(dResMax, dResP);
-            dResMax = std::max(dResMax, dResR);
-
-						if (dResMax > 0.0) {
-	            if (dResMax == dResU) {
-	                    dResCoeff = dResU / fabs(
-	                    (*pDataInitial)(UIx,iA,iB,k) - dEAvgU);
-	            } else if (dResMax == dResV){
-	                    dResCoeff = dResV / fabs(
-	                    (*pDataInitial)(VIx,iA,iB,k) - dEAvgV);
-	            } else if (dResMax == dResW) {
-	                    dResCoeff = dResW / fabs(
-	                    (*pDataInitial)(WIx,iA,iB,k) - dEAvgW);
-	            } else if (dResMax == dResP) {
-	                    dResCoeff = dResP / fabs(
-	                    (*pDataInitial)(PIx,iA,iB,k) - dEAvgP);
-	            } else if (dResMax == dResR) {
-	                    dResCoeff = dResR / fabs(
-	                    (*pDataInitial)(RIx,iA,iB,k) - dEAvgR);
-	            } else {
-	                    dResCoeff = 0.0;
-	            }
-						} else {
-							dResCoeff = 0.0;
-						}
-
-            // Scale to the average element length
-            dResNu[i][j] = dGridLength * dGridLength * fabs(dResCoeff);
-
-            // Get the maximum possible coefficient (upwind)
-            dNuMax = m_dAuxDataNode(KIx,i,j,k)
-											/ pGrid->GetReferenceLength();
-
-            // Limit the coefficients to the upwind value
-            if (fabs(dResNu[i][j]) > dNuMax) {
-              dResNu[i][j] = fabs(dNuMax);
-            }
-            // Check for Inf or NaN and adjust
-            if (!std::isfinite(dResNu[i][j])) {
-              dResNu[i][j] = fabs(dNuMax);
-            }
-					}
-					}
-
-					// Calculate the pointwise gradient of the scalar field
-					for (int i = 0; i < nHorizontalOrder; i++) {
-					for (int j = 0; j < nHorizontalOrder; j++) {
-						int iA = iElementA + i;
-						int iB = iElementB + j;
-
-						double dDaPsi = 0.0;
-						double dDbPsi = 0.0;
-						for (int s = 0; s < nHorizontalOrder; s++) {
-							dDaPsi +=
-								m_dBufferState(s,j)
-								* dDxBasis1D(s,i);
-
-							dDbPsi +=
-								m_dBufferState(i,s)
-								* dDxBasis1D(s,j);
-						}
-
-						dDaPsi *= dInvElementDeltaA;
-						dDbPsi *= dInvElementDeltaB;
-
-						dDaPsi *= dResNu[i][j];
-						dDbPsi *= dResNu[i][j];
-
-						m_dJGradientA(i,j) =
-							(*pJacobian)(iA,iB,k) * (
-								+ dContraMetric2DA(iA,iB,0) * dDaPsi
-								+ dContraMetric2DA(iA,iB,1) * dDbPsi);
-
-						m_dJGradientB(i,j) =
-							(*pJacobian)(iA,iB,k) * (
-								+ dContraMetric2DB(iA,iB,0) * dDaPsi
-								+ dContraMetric2DB(iA,iB,1) * dDbPsi);
-					}
-					}
-
-					// Pointwise updates
-					for (int i = 0; i < nHorizontalOrder; i++) {
-					for (int j = 0; j < nHorizontalOrder; j++) {
-						int iA = iElementA + i;
-						int iB = iElementB + j;
-
-						// Inverse Jacobian and Jacobian
-						const double dInvJacobian = 1.0 / (*pJacobian)(iA,iB,k);
-
-						// Compute integral term
-						double dUpdateA = 0.0;
-						double dUpdateB = 0.0;
-
-						for (int s = 0; s < nHorizontalOrder; s++) {
-							dUpdateA +=
-								m_dJGradientA(s,j)
-								* dStiffness1D(i,s);
-
-							dUpdateB +=
-								m_dJGradientB(i,s)
-								* dStiffness1D(j,s);
-						}
-
-						dUpdateA *= dInvElementDeltaA;
-						dUpdateB *= dInvElementDeltaB;
-
-						// Apply update
-						(*pDataUpdate)(c,iA,iB,k) -=
-							dDeltaT * dInvJacobian
-								* (dUpdateA + dUpdateB);
-
-						//Announce("%1.10e %1.10e %1.10e %1.10e", dResNu[i][j], dUpdateA, dUpdateB, (*pDataUpdate)(c,iA,iB,k));
-					}
-					}
+					dAvgB +=
+					  (*pDataInitial)(o,iA,s,k)
+					  * dStiffness1D(j,s);
 				}
-				}
+
+				dAvgA *= dInvElementDeltaA;
+				dAvgB *= dInvElementDeltaB;
+
+				switch (o) {
+				  case 0: dEAvgU = 0.5 * (dAvgA + dAvgB); break;
+				  case 1: dEAvgV = 0.5 * (dAvgA + dAvgB); break;
+				  case 2: dEAvgW = 0.5 * (dAvgA + dAvgB); break;
+				  case 3: dEAvgP = 0.5 * (dAvgA + dAvgB); break;
+				  case 4: dEAvgR = 0.5 * (dAvgA + dAvgB); break;
 				}
 			}
 		}
+		}
+
+		double dResU = 0.0;
+		double dResV = 0.0;
+		double dResW = 0.0;
+		double dResP = 0.0;
+		double dResR = 0.0;
+		double dResMax = 0.0;
+		double dResCoeff = 0.0;
+		double dNuMax = 0.0;
+		double dGridLength = dElementLength / (nHorizontalOrder - 1);
+
+		// Compute the local diffusion coefficient
+		for (int i = 0; i < nHorizontalOrder; i++) {
+		for (int j = 0; j < nHorizontalOrder; j++) {
+			int iA = iElementA + i;
+			int iB = iElementB + j;
+
+			// Compute the local diffusion coefficient
+			dResU = fabs((*pDataResidual)(UIx,iA,iB,k))  / fabs(
+	                             (*pDataInitial)(UIx,iA,iB,k) - dEAvgU);
+			dResV = fabs((*pDataResidual)(VIx,iA,iB,k))  / fabs(
+	                             (*pDataInitial)(VIx,iA,iB,k) - dEAvgV);
+			dResW = fabs((*pDataResidual)(WIx,iA,iB,k))  / fabs(
+	                             (*pDataInitial)(WIx,iA,iB,k) - dEAvgW);
+			dResP = fabs((*pDataResidual)(PIx,iA,iB,k)) / fabs(
+				     (*pDataInitial)(PIx,iA,iB,k) - dEAvgP);
+			dResR = fabs((*pDataResidual)(RIx,iA,iB,k)) / fabs(
+				     (*pDataInitial)(RIx,iA,iB,k) - dEAvgR);
+
+			// Select the maximum residual
+			dResMax = std::max(dResU, dResV);
+			dResMax = std::max(dResMax, dResW);
+			dResMax = std::max(dResMax, dResP);
+			dResMax = std::max(dResMax, dResR);
+
+			if (dResMax > 0.0) {
+			    dResCoeff = dResMax;
+			} else {
+			    dResCoeff = 0.0;
+			}
+
+			// Scale to the average element length
+			dResNu[i][j] = dGridLength * dGridLength * fabs(dResCoeff);
+
+			// Get the maximum possible coefficient (upwind)
+			dNuMax = m_dAuxDataNode(KIx,i,j,k)
+				/ pGrid->GetReferenceLength();
+
+			// Limit the coefficients to the upwind value
+			if (fabs(dResNu[i][j]) > dNuMax) {
+				dResNu[i][j] = fabs(dNuMax);
+			}
+			// Check for Inf or NaN and adjust
+			if (!std::isfinite(dResNu[i][j])) {
+				dResNu[i][j] = fabs(dNuMax);
+			}
+		}
+		}
+
+		// Calculate the pointwise gradient of the scalar field
+		for (int i = 0; i < nHorizontalOrder; i++) {
+		for (int j = 0; j < nHorizontalOrder; j++) {
+			int iA = iElementA + i;
+			int iB = iElementB + j;
+
+			double dDaPsi = 0.0;
+			double dDbPsi = 0.0;
+			for (int s = 0; s < nHorizontalOrder; s++) {
+				dDaPsi +=
+					m_dBufferState(s,j)
+					* dDxBasis1D(s,i);
+
+				dDbPsi +=
+					m_dBufferState(i,s)
+					* dDxBasis1D(s,j);
+			}
+
+				dDaPsi *= dInvElementDeltaA;
+				dDbPsi *= dInvElementDeltaB;
+
+				dDaPsi *= dResNu[i][j];
+				dDbPsi *= dResNu[i][j];
+
+				m_dJGradientA(i,j) =
+					(*pJacobian)(iA,iB,k) * (
+						+ dContraMetric2DA(iA,iB,0) * dDaPsi
+						+ dContraMetric2DA(iA,iB,1) * dDbPsi);
+
+				m_dJGradientB(i,j) =
+					(*pJacobian)(iA,iB,k) * (
+						+ dContraMetric2DB(iA,iB,0) * dDaPsi
+						+ dContraMetric2DB(iA,iB,1) * dDbPsi);
+		}
+		}
+
+		// Pointwise updates
+		for (int i = 0; i < nHorizontalOrder; i++) {
+		for (int j = 0; j < nHorizontalOrder; j++) {
+			int iA = iElementA + i;
+			int iB = iElementB + j;
+
+			// Inverse Jacobian and Jacobian
+			const double dInvJacobian = 1.0 / (*pJacobian)(iA,iB,k);
+
+			// Compute integral term
+			double dUpdateA = 0.0;
+			double dUpdateB = 0.0;
+
+			for (int s = 0; s < nHorizontalOrder; s++) {
+				dUpdateA +=
+					m_dJGradientA(s,j)
+					* dStiffness1D(i,s);
+
+				dUpdateB +=
+					m_dJGradientB(i,s)
+					* dStiffness1D(j,s);
+			}
+
+			dUpdateA *= dInvElementDeltaA;
+			dUpdateB *= dInvElementDeltaB;
+
+			// Apply update
+			(*pDataUpdate)(c,iA,iB,k) -=
+				dDeltaT * dInvJacobian
+					* (dUpdateA + dUpdateB);
+
+			//Announce("%1.10e %1.10e %1.10e %1.10e", dResNu[i][j], dUpdateA, dUpdateB, (*pDataUpdate)(c,iA,iB,k));
+		}
+		}
 	}
+	}
+	}
+	}
+	}
+}
 }
 
 ///////////////////////////////////////////////////////////////////////////////

@@ -4476,42 +4476,39 @@ void VerticalDynamicsFEM::ComputeResidualCoefficients(
 	int iA,
 	int iB,
 	DataArray4D<double> & dataResidualNode,
-  const DataArray4D<double> & dataInitialNode,
-  DataArray4D<double> & dataResidualREdge,
-  const DataArray4D<double> & dataInitialREdge
+  	const DataArray4D<double> & dataInitialNode,
+  	DataArray4D<double> & dataResidualREdge,
+  	const DataArray4D<double> & dataInitialREdge
 ) {
-  // Get a copy of the grid
-  GridGLL * pGrid = dynamic_cast<GridGLL *>(m_model.GetGrid());
+	// Get a copy of the grid
+	GridGLL * pGrid = dynamic_cast<GridGLL *>(m_model.GetGrid());
 
-  GridCartesianGLL * gridCartesianGLL =
-          dynamic_cast<GridCartesianGLL *>(m_model.GetGrid());
+	// Physical constants
+	const PhysicalConstants & phys = m_model.GetPhysicalConstants();
 
-  // Physical constants
-  const PhysicalConstants & phys = m_model.GetPhysicalConstants();
+	// Indices of EquationSet variables
+	const int UIx = 0;
+	const int VIx = 1;
+	const int PIx = 2;
+	const int WIx = 3;
+	const int RIx = 4;
 
-  // Indices of EquationSet variables
-  const int UIx = 0;
-  const int VIx = 1;
-  const int PIx = 2;
-  const int WIx = 3;
-  const int RIx = 4;
+	// Number of elements
+	const int nRElements = pGrid->GetRElements();
 
-  // Number of elements
-  const int nRElements = pGrid->GetRElements();
+	double dZtop = pGrid->GetZtop();
+	double dResidualDiffusionCoeff = m_dResdiffCoeff;
 
-  double dZtop = pGrid->GetZtop();
-  double dResidualDiffusionCoeff = m_dResdiffCoeff;
+	// Number of finite elements in the vertical
+	int nFiniteElements = nRElements / m_nVerticalOrder;
+	int nNodesPerFiniteElement = m_nVerticalOrder;
 
-  // Number of finite elements in the vertical
-  int nFiniteElements = nRElements / m_nVerticalOrder;
-  int nNodesPerFiniteElement = m_nVerticalOrder;
-
-  if (pGrid->GetVerticalDiscretization() ==
-          Grid::VerticalDiscretization_FiniteVolume
-  ) {
-          nFiniteElements = nRElements;
-          nNodesPerFiniteElement = 1;
-  }
+	if (pGrid->GetVerticalDiscretization() ==
+	  Grid::VerticalDiscretization_FiniteVolume
+	) {
+	  nFiniteElements = nRElements;
+	  nNodesPerFiniteElement = 1;
+	}
 
 	// Loop over all nodes
 	double dColAvgU = 0.0;
@@ -4617,54 +4614,41 @@ void VerticalDynamicsFEM::ComputeResidualCoefficients(
 
 	// Compute the local diffusion coefficient
 	for (int k = 0; k <= nRElements; k++) {
-		dResU = fabs(m_dResidualREdge[UIx][k]);
-		dResV = fabs(m_dResidualREdge[VIx][k]);
-		dResW = fabs(m_dResidualREdge[WIx][k]);
-		dResP = fabs(m_dResidualREdge[PIx][k]);
-		dResR = fabs(m_dResidualREdge[RIx][k]);
+		dResU = fabs(m_dResidualREdge[UIx][k])  / fabs(
+                                dataInitialREdge[UIx][iA][iB][k] - dColAvgU);
+		dResV = fabs(m_dResidualREdge[VIx][k])  / fabs(
+                                dataInitialREdge[VIx][iA][iB][k] - dColAvgV);
+		dResW = fabs(m_dResidualREdge[WIx][k])  / fabs(
+                                dataInitialREdge[WIx][iA][iB][k] - dColAvgW);
+		dResP = fabs(m_dResidualREdge[PIx][k]) / fabs(
+                                dataInitialREdge[PIx][iA][iB][k] - dColAvgP);
+		dResR = fabs(m_dResidualREdge[RIx][k]) / fabs(
+                               dataInitialREdge[RIx][iA][iB][k] - dColAvgR);
 
 		// Select the maximum residual
 		dResMax = std::max(dResU, dResV);
 		dResMax = std::max(dResMax, dResW);
 		dResMax = std::max(dResMax, dResP);
 		dResMax = std::max(dResMax, dResR);
-
-		// Normalize maximum residual (ignore BCs)
 		if (dResMax > 0.0) {
-			if (dResMax == dResU) {
-				dResCoeff = dResU / fabs(
-				dataInitialREdge[UIx][iA][iB][k] - dColAvgU);
-			} else if (dResMax == dResV) {
-				dResCoeff = dResV / fabs(
-				dataInitialREdge[VIx][iA][iB][k] - dColAvgV);
-			} else if (dResMax == dResW) {
-				dResCoeff = dResW / fabs(
-				dataInitialREdge[WIx][iA][iB][k] - dColAvgW);
-			} else if (dResMax == dResP) {
-				dResCoeff = dResP / fabs(
-				dataInitialREdge[PIx][iA][iB][k] - dColAvgP);
-			} else if (dResMax == dResR) {
-				dResCoeff = dResR / fabs(
-				dataInitialREdge[RIx][iA][iB][k] - dColAvgR);
-			} else {
-				dResCoeff = 0.0;
-			}
+			dResCoeff = dResMax;
 		} else {
 			dResCoeff = 0.0;
 		}
 
-		dResidualDiffusionCoeff *= dResCoeff;
+		dResCoeff *= dResidualDiffusionCoeff;
 
 		// Upwind coefficient
-		dNuMax = m_dHypervisCoeff *
-				fabs(m_dXiDotNode[k]);
-
-		if (fabs(dResidualDiffusionCoeff) >= dNuMax) {
-			dResidualDiffusionCoeff = dNuMax;
+		dNuMax = m_dHypervisCoeff * fabs(m_dXiDotREdge[k])
+			/ m_dColumnDerivRREdge[k][2];
+		if (fabs(dResCoeff) >= dNuMax) {
+			dResCoeff = dNuMax;
 		}
 
 		// Store the column coefficients in residual data
-		m_dResidualAuxREdge[k] = dResidualDiffusionCoeff;
+		m_dResidualAuxREdge[k] = dResCoeff;
+		dResCoeff = 0.0;
+		dResMax = 0.0;
 		//Announce("%1.10e", dResidualDiffusionCoeff);
 		//Announce("%1.10e %1.10e %1.10e %1.10e %1.10e", dResU, dResV, dResW, dResP, dResR);
 	}
