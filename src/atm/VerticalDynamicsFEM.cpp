@@ -363,6 +363,9 @@ void VerticalDynamicsFEM::Initialize() {
 		m_model.GetEquationSet().GetComponents(),
 		nRElements+1);
 
+	m_dDiffCNode.Allocate(nRElements);
+	m_dDiffCREdge.Allocate(nRElements + 1);
+
 	// Auxiliary variables
 	m_dStateAux.Allocate(nRElements+1);
 	m_dStateAuxDiff.Allocate(nRElements+1);
@@ -2806,10 +2809,6 @@ void VerticalDynamicsFEM::BuildF(
 		}
 	}
 
-	DataArray1D<double> dDiffCNode;
-	DataArray1D<double> dDiffCREdge;
-	dDiffCNode.Allocate(nRElements);
-	dDiffCREdge.Allocate(nRElements + 1);
 	// Apply residual hyperviscosity
 	for (int c = 2; c < 4; c++) {
 
@@ -2821,48 +2820,48 @@ void VerticalDynamicsFEM::BuildF(
 		// Residual hyperviscosity on interfaces
 		if (pGrid->GetVarLocation(c) == DataLocation_REdge) {
 			for (int k = 0; k <= nRElements; k++) {
-							m_dStateAux[k] = m_dStateREdge[c][k] -
+				m_dStateAux[k] = m_dStateREdge[c][k] -
 																	m_dStateRefREdge[c][k];
 			}
 
 			pGrid->DifferentiateREdgeToREdge(
-							m_dStateAux,
-							dDiffCREdge);
+				m_dStateAux,
+				m_dDiffCREdge);
 
 			for (int k = 0; k <= nRElements; k++) {
-							dDiffCREdge[k] *= m_dResidualAuxREdge[k];
+				m_dDiffCREdge[k] *= m_dResidualAuxREdge[k];
 			}
 
 			pGrid->DifferentiateREdgeToREdge(
-							dDiffCREdge,
-							m_dResidualAuxDiffREdge);
+				m_dDiffCREdge,
+				m_dResidualAuxDiffREdge);
 
 			// Apply the update
 			for (int k = 0; k <= nRElements; k++) {
-							dF[VecFIx(FIxFromCIx(c), k)] -= m_dResidualAuxDiffREdge[k];
+				dF[VecFIx(FIxFromCIx(c), k)] -= m_dResidualAuxDiffREdge[k];
 			}
 		// Residual hyperviscosity on levels
 		} else {
 			for (int k = 0; k <= nRElements; k++) {
-							m_dStateAux[k] = m_dStateNode[c][k] -
+				m_dStateAux[k] = m_dStateNode[c][k] -
 																	m_dStateRefNode[c][k];
 			}
 
 			pGrid->DifferentiateNodeToNode(
-							m_dStateAux,
-							dDiffCNode);
+				m_dStateAux,
+				m_dDiffCNode);
 
 			for (int k = 0; k < nRElements; k++) {
-				dDiffCNode[k] *= m_dResidualAuxNode[k];
+				m_dDiffCNode[k] *= m_dResidualAuxNode[k];
 			}
 
 			pGrid->DifferentiateNodeToNode(
-							dDiffCNode,
-							m_dResidualAuxDiffNode);
+				m_dDiffCNode,
+				m_dResidualAuxDiffNode);
 
 			// Apply the update
 			for (int k = 0; k < nRElements; k++) {
-							dF[VecFIx(FIxFromCIx(c), k)] -= m_dResidualAuxDiffNode[k];
+				dF[VecFIx(FIxFromCIx(c), k)] -= m_dResidualAuxDiffNode[k];
 			}
 		}
 	}
