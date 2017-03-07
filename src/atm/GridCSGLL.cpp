@@ -306,8 +306,10 @@ void GridCSGLL::GetPatchFromCoordinateIndex(
 		int iP = vecPanel[i];
 
 		// Transform to alternative panel if necessary
-		if ((vecIxA[i] < 0) || (vecIxA[i] >= nLocalResolution) ||
-			(vecIxB[i] < 0) || (vecIxB[i] >= nLocalResolution)
+		if ((vecIxA[i] < 0) ||
+			(vecIxA[i] >= nLocalResolution) ||
+			(vecIxB[i] < 0) ||
+			(vecIxB[i] >= nLocalResolution)
 		) {
 			bool fSwitchAB;
 			bool fSwitchPar;
@@ -315,7 +317,9 @@ void GridCSGLL::GetPatchFromCoordinateIndex(
 
 			CubedSphereTrans::RelativeCoord(
 				nLocalResolution,
-				vecPanel[i], vecIxA[i], vecIxB[i],
+				vecPanel[i],
+				vecIxA[i],
+				vecIxB[i],
 				iP, iA, iB,
 				fSwitchAB,
 				fSwitchPar,
@@ -520,35 +524,35 @@ void GridCSGLL::ApplyDSS(
 				DataArray4D<double> & dState =
 					pPatch->GetDataState(iDataUpdate, GetVarLocation(c));
 
-				pDataUpdate.AttachToData(&(dState[c][0][0][0]));
+				pDataUpdate.AttachToData(&(dState(c,0,0,0)));
 
 			// Tracer data
 			} else if (eDataType == DataType_Tracers) {
 				DataArray4D<double> & dTracers =
 					pPatch->GetDataTracers(iDataUpdate);
 
-				pDataUpdate.AttachToData(&(dTracers[c][0][0][0]));
+				pDataUpdate.AttachToData(&(dTracers(c,0,0,0)));
 
 			// Vorticity data
 			} else if (eDataType == DataType_Vorticity) {
 				DataArray3D<double> & dVorticity =
 					pPatch->GetDataVorticity();
 
-				pDataUpdate.AttachToData(&(dVorticity[0][0][0]));
+				pDataUpdate.AttachToData(&(dVorticity(0,0,0)));
 
 			// Divergence data
 			} else if (eDataType == DataType_Divergence) {
 				DataArray3D<double> & dDivergence =
 					pPatch->GetDataDivergence();
 
-				pDataUpdate.AttachToData(&(dDivergence[0][0][0]));
+				pDataUpdate.AttachToData(&(dDivergence(0,0,0)));
 
 			// Topographic derivative data
 			} else if (eDataType == DataType_TopographyDeriv) {
 				DataArray3D<double> & dTopographyDeriv =
 					pPatch->GetTopographyDeriv();
 
-				pDataUpdate.AttachToData(&(dTopographyDeriv[0][0][0]));
+				pDataUpdate.AttachToData(&(dTopographyDeriv(0,0,0)));
 			}
 
 			for (int k = 0; k < nRElements; k++) {
@@ -578,11 +582,12 @@ void GridCSGLL::ApplyDSS(
 
 					// Perform averaging across edge
 					for (int j = jBegin; j < jEnd; j++) {
-						pDataUpdate[iA][j][k] = 0.5 * (
-							+ pDataUpdate[iA  ][j][k]
-							+ pDataUpdate[iA-1][j][k]);
+						pDataUpdate(iA,j,k) = 0.5 * (
+							+ pDataUpdate(iA  ,j,k)
+							+ pDataUpdate(iA-1,j,k));
 
-						pDataUpdate[iA-1][j][k] = pDataUpdate[iA][j][k];
+						pDataUpdate(iA-1,j,k) =
+							pDataUpdate(iA,j,k);
 					}
 				}
 
@@ -610,11 +615,12 @@ void GridCSGLL::ApplyDSS(
 					}
 
 					for (int i = iBegin; i < iEnd; i++) {
-						pDataUpdate[i][iB][k] = 0.5 * (
-							+ pDataUpdate[i][iB  ][k]
-							+ pDataUpdate[i][iB-1][k]);
+						pDataUpdate(i,iB,k) = 0.5 * (
+							+ pDataUpdate(i,iB  ,k)
+							+ pDataUpdate(i,iB-1,k));
 
-						pDataUpdate[i][iB-1][k] = pDataUpdate[i][iB][k];
+						pDataUpdate(i,iB-1,k) =
+							pDataUpdate(i,iB,k);
 					}
 				}
 
@@ -623,40 +629,40 @@ void GridCSGLL::ApplyDSS(
 					int iA = box.GetAInteriorEnd()-1;
 					int iB = box.GetBInteriorEnd()-1;
 
-					pDataUpdate[iA][iB][k] = (1.0/3.0) * (
-						+ pDataUpdate[iA  ][iB  ][k]
-						+ pDataUpdate[iA+1][iB  ][k]
-						+ pDataUpdate[iA  ][iB+1][k]);
+					pDataUpdate(iA,iB,k) = (1.0/3.0) * (
+						+ pDataUpdate(iA  ,iB  ,k)
+						+ pDataUpdate(iA+1,iB  ,k)
+						+ pDataUpdate(iA  ,iB+1,k));
 				}
 
 				if (ixTopLeftPanel == InvalidPanel) {
 					int iA = box.GetAInteriorBegin();
 					int iB = box.GetBInteriorEnd()-1;
 
-					pDataUpdate[iA][iB][k] = (1.0/3.0) * (
-						+ pDataUpdate[iA  ][iB  ][k]
-						+ pDataUpdate[iA-1][iB  ][k]
-						+ pDataUpdate[iA  ][iB+1][k]);
+					pDataUpdate(iA,iB,k) = (1.0/3.0) * (
+						+ pDataUpdate(iA  ,iB  ,k)
+						+ pDataUpdate(iA-1,iB  ,k)
+						+ pDataUpdate(iA  ,iB+1,k));
 				}
 
 				if (ixBottomLeftPanel == InvalidPanel) {
 					int iA = box.GetAInteriorBegin();
 					int iB = box.GetBInteriorBegin();
 
-					pDataUpdate[iA][iB][k] = (1.0/3.0) * (
-						+ pDataUpdate[iA  ][iB  ][k]
-						+ pDataUpdate[iA-1][iB  ][k]
-						+ pDataUpdate[iA  ][iB-1][k]);
+					pDataUpdate(iA,iB,k) = (1.0/3.0) * (
+						+ pDataUpdate(iA  ,iB  ,k)
+						+ pDataUpdate(iA-1,iB  ,k)
+						+ pDataUpdate(iA  ,iB-1,k));
 				}
 
 				if (ixBottomRightPanel == InvalidPanel) {
 					int iA = box.GetAInteriorEnd()-1;
 					int iB = box.GetBInteriorBegin();
 
-					pDataUpdate[iA][iB][k] = (1.0/3.0) * (
-						+ pDataUpdate[iA  ][iB  ][k]
-						+ pDataUpdate[iA+1][iB  ][k]
-						+ pDataUpdate[iA  ][iB-1][k]);
+					pDataUpdate(iA,iB,k) = (1.0/3.0) * (
+						+ pDataUpdate(iA  ,iB  ,k)
+						+ pDataUpdate(iA+1,iB  ,k)
+						+ pDataUpdate(iA  ,iB-1,k));
 				}
 			}
 		}
