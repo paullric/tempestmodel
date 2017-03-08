@@ -637,7 +637,7 @@ void Grid::Exchange(
 
 #ifdef TEMPEST_MPIOMP
 	// Verify all processors are prepared to exchange
-	MPI_Barrier(MPI_COMM_WORLD);
+	m_aExchangeBufferRegistry.WaitSend();
 #endif
 
 	// Set up asynchronous recvs

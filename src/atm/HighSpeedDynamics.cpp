@@ -63,144 +63,159 @@ void HighSpeedDynamics::Initialize() {
 		_EXCEPTIONT("Grid must be of type GridGLL");
 	}
 
-	// Number of vertical levels
+#if defined(FIXED_HORIZONTAL_ORDER)
+	const int nHorizontalOrder = FIXED_HORIZONTAL_ORDER;
+	if (nHorizontalOrder != m_nHorizontalOrder) {
+		_EXCEPTIONT("Command line order must match FIXED_HORIZONTAL_ORDER");
+	}
+#else
+	const int nHorizontalOrder = m_nHorizontalOrder;
+#endif
+
+#if defined(FIXED_RELEMENTS)
+	const int nRElements = FIXED_RELEMENTS;
+	if (nRElements != pGrid->GetRElements()) {
+		_EXCEPTIONT("Command line levels must match FIXED_RELEMENTS");
+	}
+#else
 	const int nRElements = pGrid->GetRElements();
+#endif
 
 	// Number of tracers
 	const int nTracerCount = m_model.GetEquationSet().GetTracers();
 
 	// Vertical implicit terms (A)
 	m_dA.Allocate(
-		m_nHorizontalOrder,
-		m_nHorizontalOrder,
+		nHorizontalOrder,
+		nHorizontalOrder,
 		nRElements+1);
 
 	// Vertical implicit terms (B)
 	m_dB.Allocate(
-		m_nHorizontalOrder,
-		m_nHorizontalOrder,
+		nHorizontalOrder,
+		nHorizontalOrder,
 		nRElements+1);
 
 	// Vertical implicit terms (C)
 	m_dC.Allocate(
-		m_nHorizontalOrder,
-		m_nHorizontalOrder,
+		nHorizontalOrder,
+		nHorizontalOrder,
 		nRElements+1);
 
 	// Vertical implicit terms (D)
 	m_dD.Allocate(
-		m_nHorizontalOrder,
-		m_nHorizontalOrder,
+		nHorizontalOrder,
+		nHorizontalOrder,
 		nRElements+1);
 
 	// Initialize the diagnosed 2D kinetic energy
 	m_dK2.Allocate(
-		m_nHorizontalOrder,
-		m_nHorizontalOrder,
+		nHorizontalOrder,
+		nHorizontalOrder,
 		nRElements);
 
 	// Initialize the diagnosed 2D contravariant alpha velocity
 	m_d2DConUa.Allocate(
-		m_nHorizontalOrder,
-		m_nHorizontalOrder,
+		nHorizontalOrder,
+		nHorizontalOrder,
 		nRElements);
 
 	// Initialize the diagnosed 2D contravariant beta velocity
 	m_d2DConUb.Allocate(
-		m_nHorizontalOrder,
-		m_nHorizontalOrder,
+		nHorizontalOrder,
+		nHorizontalOrder,
 		nRElements);
 
 	// Initialize the diagnosed 2D covariant alpha velocity
 	m_d2DCovUa.Allocate(
-		m_nHorizontalOrder,
-		m_nHorizontalOrder,
+		nHorizontalOrder,
+		nHorizontalOrder,
 		nRElements);
 
 	// Initialize the diagnosed 2D covariant beta velocity
 	m_d2DCovUb.Allocate(
-		m_nHorizontalOrder,
-		m_nHorizontalOrder,
+		nHorizontalOrder,
+		nHorizontalOrder,
 		nRElements);
 
 	// Initialize the diagnosed vertial alpha momentum flux
 	m_dSDotUaREdge.Allocate(
-		m_nHorizontalOrder,
-		m_nHorizontalOrder,
+		nHorizontalOrder,
+		nHorizontalOrder,
 		nRElements+1);
 
 	// Initialize the diagnosed vertial beta momentum flux
 	m_dSDotUbREdge.Allocate(
-		m_nHorizontalOrder,
-		m_nHorizontalOrder,
+		nHorizontalOrder,
+		nHorizontalOrder,
 		nRElements+1);
 
 	// Initialize the diagnosed vertical vertical momentum flux
 	m_dSDotWNode.Allocate(
-		m_nHorizontalOrder,
-		m_nHorizontalOrder,
+		nHorizontalOrder,
+		nHorizontalOrder,
 		nRElements);
 
 	// Initialize the alpha and beta mass fluxes
 	m_dAlphaMassFlux.Allocate(
-		m_nHorizontalOrder,
-		m_nHorizontalOrder,
+		nHorizontalOrder,
+		nHorizontalOrder,
 		nRElements);
 
 	m_dBetaMassFlux.Allocate(
-		m_nHorizontalOrder,
-		m_nHorizontalOrder,
+		nHorizontalOrder,
+		nHorizontalOrder,
 		nRElements);
 
 	// Initialize the alpha and beta momentum fluxes
 	m_dAlphaVerticalMomentumFluxREdge.Allocate(
-		m_nHorizontalOrder,
-		m_nHorizontalOrder,
+		nHorizontalOrder,
+		nHorizontalOrder,
 		nRElements+1);
 
 	m_dBetaVerticalMomentumFluxREdge.Allocate(
-		m_nHorizontalOrder,
-		m_nHorizontalOrder,
+		nHorizontalOrder,
+		nHorizontalOrder,
 		nRElements+1);
 
 	// Initialize the alpha and beta pressure fluxes
 	m_dAlphaPressureFlux.Allocate(
-		m_nHorizontalOrder,
-		m_nHorizontalOrder,
+		nHorizontalOrder,
+		nHorizontalOrder,
 		nRElements);
 
 	m_dBetaPressureFlux.Allocate(
-		m_nHorizontalOrder,
-		m_nHorizontalOrder,
+		nHorizontalOrder,
+		nHorizontalOrder,
 		nRElements);
 
 	// Acoustic pressure term used in vertical update
 	m_dDpDTheta.Allocate(
-		m_nHorizontalOrder,
-		m_nHorizontalOrder,
+		nHorizontalOrder,
+		nHorizontalOrder,
 		nRElements);
 
 	// Buffer state
 	m_dBufferState.Allocate(
-		m_nHorizontalOrder,
-		m_nHorizontalOrder,
+		nHorizontalOrder,
+		nHorizontalOrder,
 		nRElements+1);
 	
 	// Initialize buffers for derivatives of Jacobian
 	m_dJGradientA.Allocate(
-		m_nHorizontalOrder,
-		m_nHorizontalOrder,
+		nHorizontalOrder,
+		nHorizontalOrder,
 		nRElements+1);
 
 	m_dJGradientB.Allocate(
-		m_nHorizontalOrder,
-		m_nHorizontalOrder,
+		nHorizontalOrder,
+		nHorizontalOrder,
 		nRElements+1);
 
 	// LAPACK info structure
 	m_nInfo.Allocate(
-		m_nHorizontalOrder,
-		m_nHorizontalOrder);
+		nHorizontalOrder,
+		nHorizontalOrder);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -212,8 +227,23 @@ void HighSpeedDynamics::FilterNegativeTracers(
 	// Get a copy of the GLL grid
 	GridGLL * pGrid = dynamic_cast<GridGLL*>(m_model.GetGrid());
 
-	// Number of vertical elements
+#if defined(FIXED_HORIZONTAL_ORDER)
+	const int nHorizontalOrder = FIXED_HORIZONTAL_ORDER;
+	if (nHorizontalOrder != m_nHorizontalOrder) {
+		_EXCEPTIONT("Command line order must match FIXED_HORIZONTAL_ORDER");
+	}
+#else
+	const int nHorizontalOrder = m_nHorizontalOrder;
+#endif
+
+#if defined(FIXED_RELEMENTS)
+	const int nRElements = FIXED_RELEMENTS;
+	if (nRElements != pGrid->GetRElements()) {
+		_EXCEPTIONT("Command line levels must match FIXED_RELEMENTS");
+	}
+#else
 	const int nRElements = pGrid->GetRElements();
+#endif
 
 	// Perform local update
 	for (int n = 0; n < pGrid->GetActivePatchCount(); n++) {
@@ -248,11 +278,11 @@ void HighSpeedDynamics::FilterNegativeTracers(
 				double dTotalMass = 0.0;
 				double dNonNegativeMass = 0.0;
 
-				for (int i = 0; i < m_nHorizontalOrder; i++) {
-				for (int j = 0; j < m_nHorizontalOrder; j++) {
+				for (int i = 0; i < nHorizontalOrder; i++) {
+				for (int j = 0; j < nHorizontalOrder; j++) {
 
-					int iA = a * m_nHorizontalOrder + i + box.GetHaloElements();
-					int iB = b * m_nHorizontalOrder + j + box.GetHaloElements();
+					int iA = a * nHorizontalOrder + i + box.GetHaloElements();
+					int iB = b * nHorizontalOrder + j + box.GetHaloElements();
 
 					double dPointwiseMass =
 						  dataUpdateTracer(c,iA,iB,k)
@@ -275,11 +305,11 @@ void HighSpeedDynamics::FilterNegativeTracers(
 				// Apply scaling ratio to points with non-negative mass
 				double dR = dTotalMass / dNonNegativeMass;
 
-				for (int i = 0; i < m_nHorizontalOrder; i++) {
-				for (int j = 0; j < m_nHorizontalOrder; j++) {
+				for (int i = 0; i < nHorizontalOrder; i++) {
+				for (int j = 0; j < nHorizontalOrder; j++) {
 
-					int iA = a * m_nHorizontalOrder + i + box.GetHaloElements();
-					int iB = b * m_nHorizontalOrder + j + box.GetHaloElements();
+					int iA = a * nHorizontalOrder + i + box.GetHaloElements();
+					int iB = b * nHorizontalOrder + j + box.GetHaloElements();
 
 					if (dataUpdateTracer(c,iA,iB,k) > 0.0) {
 						dataUpdateTracer(c,iA,iB,k) *= dR;
@@ -310,8 +340,23 @@ void HighSpeedDynamics::StepExplicit(
 	// Get a copy of the GLL grid
 	GridGLL * pGrid = dynamic_cast<GridGLL*>(m_model.GetGrid());
 
-	// Number of vertical elements
+#if defined(FIXED_HORIZONTAL_ORDER)
+	const int nHorizontalOrder = FIXED_HORIZONTAL_ORDER;
+	if (nHorizontalOrder != m_nHorizontalOrder) {
+		_EXCEPTIONT("Command line order must match FIXED_HORIZONTAL_ORDER");
+	}
+#else
+	const int nHorizontalOrder = m_nHorizontalOrder;
+#endif
+
+#if defined(FIXED_RELEMENTS)
+	const int nRElements = FIXED_RELEMENTS;
+	if (nRElements != pGrid->GetRElements()) {
+		_EXCEPTIONT("Command line levels must match FIXED_RELEMENTS");
+	}
+#else
 	const int nRElements = pGrid->GetRElements();
+#endif
 
 	// Physical constants
 	const PhysicalConstants & phys = m_model.GetPhysicalConstants();
@@ -397,13 +442,13 @@ void HighSpeedDynamics::StepExplicit(
 		for (int a = 0; a < nElementCountA; a++) {
 		for (int b = 0; b < nElementCountB; b++) {
 
-			const int iElementA = a * m_nHorizontalOrder + box.GetHaloElements();
-			const int iElementB = b * m_nHorizontalOrder + box.GetHaloElements();
+			const int iElementA = a * nHorizontalOrder + box.GetHaloElements();
+			const int iElementB = b * nHorizontalOrder + box.GetHaloElements();
 
 			// Perform interpolation from levels to interfaces and calculate
 			// auxiliary quantities on model interfaces.
-			for (int i = 0; i < m_nHorizontalOrder; i++) {
-			for (int j = 0; j < m_nHorizontalOrder; j++) {
+			for (int i = 0; i < nHorizontalOrder; i++) {
+			for (int j = 0; j < nHorizontalOrder; j++) {
 #pragma simd
 			for (int k = 1; k < nRElements; k++) {
 
@@ -468,8 +513,8 @@ void HighSpeedDynamics::StepExplicit(
 			}
 
 			// Calculate auxiliary quantities on model levels
-			for (int i = 0; i < m_nHorizontalOrder; i++) {
-			for (int j = 0; j < m_nHorizontalOrder; j++) {
+			for (int i = 0; i < nHorizontalOrder; i++) {
+			for (int j = 0; j < nHorizontalOrder; j++) {
 #pragma simd
 			for (int k = 0; k < nRElements; k++) {
 
@@ -536,8 +581,8 @@ void HighSpeedDynamics::StepExplicit(
 			}
 
 			// Calculate nodal updates
-			for (int i = 0; i < m_nHorizontalOrder; i++) {
-			for (int j = 0; j < m_nHorizontalOrder; j++) {
+			for (int i = 0; i < nHorizontalOrder; i++) {
+			for (int j = 0; j < nHorizontalOrder; j++) {
 #pragma simd
 			for (int k = 0; k < nRElements; k++) {
 
@@ -565,7 +610,7 @@ void HighSpeedDynamics::StepExplicit(
 				double dDbCovUa = 0.0;
 
 				// Alpha derivatives
-				for (int s = 0; s < m_nHorizontalOrder; s++) {
+				for (int s = 0; s < nHorizontalOrder; s++) {
 
 					// Alpha derivative of mass flux
 					dDaMassFluxAlpha -=
@@ -604,7 +649,7 @@ void HighSpeedDynamics::StepExplicit(
 				}
 
 				// Beta derivatives
-				for (int s = 0; s < m_nHorizontalOrder; s++) {
+				for (int s = 0; s < nHorizontalOrder; s++) {
 
 					// Beta derivative of mass flux
 					dDbMassFluxBeta -=
@@ -796,8 +841,8 @@ void HighSpeedDynamics::StepExplicit(
 
 			// Calculate explicit tendencies on interfaces
 			// the vertical flux of horizontal momentum.
-			for (int i = 0; i < m_nHorizontalOrder; i++) {
-			for (int j = 0; j < m_nHorizontalOrder; j++) {
+			for (int i = 0; i < nHorizontalOrder; i++) {
+			for (int j = 0; j < nHorizontalOrder; j++) {
 #pragma simd
 			for (int k = 1; k < nRElements; k++) {
 
@@ -812,14 +857,14 @@ void HighSpeedDynamics::StepExplicit(
 				double dDbVerticalMomentumFluxBeta = 0.0;
 
 				// Alpha derivative
-				for (int s = 0; s < m_nHorizontalOrder; s++) {
+				for (int s = 0; s < nHorizontalOrder; s++) {
 					dDaVerticalMomentumFluxAlpha -=
 						m_dAlphaVerticalMomentumFluxREdge(s,j,k)
 						* dStiffness1D(i,s);
 				}
 
 				// Beta derivative
-				for (int s = 0; s < m_nHorizontalOrder; s++) {
+				for (int s = 0; s < nHorizontalOrder; s++) {
 					dDbVerticalMomentumFluxBeta -=
 						m_dBetaVerticalMomentumFluxREdge(i,s,k)
 						* dStiffness1D(j,s);
@@ -877,8 +922,23 @@ void HighSpeedDynamics::StepImplicit(
 	// Get a copy of the GLL grid
 	GridGLL * pGrid = dynamic_cast<GridGLL*>(m_model.GetGrid());
 
-	// Number of vertical elements
+#if defined(FIXED_HORIZONTAL_ORDER)
+	const int nHorizontalOrder = FIXED_HORIZONTAL_ORDER;
+	if (nHorizontalOrder != m_nHorizontalOrder) {
+		_EXCEPTIONT("Command line order must match FIXED_HORIZONTAL_ORDER");
+	}
+#else
+	const int nHorizontalOrder = m_nHorizontalOrder;
+#endif
+
+#if defined(FIXED_RELEMENTS)
+	const int nRElements = FIXED_RELEMENTS;
+	if (nRElements != pGrid->GetRElements()) {
+		_EXCEPTIONT("Command line levels must match FIXED_RELEMENTS");
+	}
+#else
 	const int nRElements = pGrid->GetRElements();
+#endif
 
 	// Physical constants
 	const PhysicalConstants & phys = m_model.GetPhysicalConstants();
@@ -952,12 +1012,12 @@ void HighSpeedDynamics::StepImplicit(
 		for (int a = 0; a < nElementCountA; a++) {
 		for (int b = 0; b < nElementCountB; b++) {
 
-			const int iElementA = a * m_nHorizontalOrder + box.GetHaloElements();
-			const int iElementB = b * m_nHorizontalOrder + box.GetHaloElements();
+			const int iElementA = a * nHorizontalOrder + box.GetHaloElements();
+			const int iElementB = b * nHorizontalOrder + box.GetHaloElements();
 
 			// Pre-compute pressure tendency
-			for (int i = 0; i < m_nHorizontalOrder; i++) {
-			for (int j = 0; j < m_nHorizontalOrder; j++) {
+			for (int i = 0; i < nHorizontalOrder; i++) {
+			for (int j = 0; j < nHorizontalOrder; j++) {
 #pragma simd
 			for (int k = 0; k < nRElements; k++) {
 
@@ -977,8 +1037,8 @@ void HighSpeedDynamics::StepImplicit(
 			}
 
 			// Compute vertical fluxes of rho and rhotheta
-			for (int i = 0; i < m_nHorizontalOrder; i++) {
-			for (int j = 0; j < m_nHorizontalOrder; j++) {
+			for (int i = 0; i < nHorizontalOrder; i++) {
+			for (int j = 0; j < nHorizontalOrder; j++) {
 #pragma simd
 			for (int k = 1; k < nRElements; k++) {
 
@@ -1001,8 +1061,8 @@ void HighSpeedDynamics::StepImplicit(
 			}
 
 			// Fill in vertical column arrays
-			for (int i = 0; i < m_nHorizontalOrder; i++) {
-			for (int j = 0; j < m_nHorizontalOrder; j++) {
+			for (int i = 0; i < nHorizontalOrder; i++) {
+			for (int j = 0; j < nHorizontalOrder; j++) {
 				m_dA(i,j,0) = 0.0;
 				m_dB(i,j,0) = 1.0;
 				m_dB(i,j,nRElements) = 1.0;
@@ -1015,8 +1075,8 @@ void HighSpeedDynamics::StepImplicit(
 			// Timestep size squared
 			const double dDeltaT2 = dDeltaT * dDeltaT;
 
-			for (int i = 0; i < m_nHorizontalOrder; i++) {
-			for (int j = 0; j < m_nHorizontalOrder; j++) {
+			for (int i = 0; i < nHorizontalOrder; i++) {
+			for (int j = 0; j < nHorizontalOrder; j++) {
 #pragma simd
 			for (int k = 1; k < nRElements; k++) {
 
@@ -1096,8 +1156,8 @@ void HighSpeedDynamics::StepImplicit(
 			int nRHS = 1;
 			int nLDB = nREdges;
 
-			for (int i = 0; i < m_nHorizontalOrder; i++) {
-			for (int j = 0; j < m_nHorizontalOrder; j++) {
+			for (int i = 0; i < nHorizontalOrder; i++) {
+			for (int j = 0; j < nHorizontalOrder; j++) {
 
 				const int iA = iElementA + i;
 				const int iB = iElementB + j;
@@ -1152,8 +1212,8 @@ void HighSpeedDynamics::StepImplicit(
 			}
 
 			// Check return values from tridiagonal solve
-			for (int i = 0; i < m_nHorizontalOrder; i++) {
-			for (int j = 0; j < m_nHorizontalOrder; j++) {
+			for (int i = 0; i < nHorizontalOrder; i++) {
+			for (int j = 0; j < nHorizontalOrder; j++) {
 				if (m_nInfo(i,j) != 0) {
 					_EXCEPTION1("Failure in tridiagonal solve: %i",
 						m_nInfo(i,j));
@@ -1162,8 +1222,8 @@ void HighSpeedDynamics::StepImplicit(
 			}
 
 			// Perform update to mass and potential temperature
-			for (int i = 0; i < m_nHorizontalOrder; i++) {
-			for (int j = 0; j < m_nHorizontalOrder; j++) {
+			for (int i = 0; i < nHorizontalOrder; i++) {
+			for (int j = 0; j < nHorizontalOrder; j++) {
 #pragma simd
 			for (int k = 0; k < nRElements; k++) {
 
@@ -1205,8 +1265,8 @@ void HighSpeedDynamics::StepImplicit(
 
 #pragma message "Fix"
 			// Apply boundary condition to W
-			for (int i = 0; i < m_nHorizontalOrder; i++) {
-			for (int j = 0; j < m_nHorizontalOrder; j++) {
+			for (int i = 0; i < nHorizontalOrder; i++) {
+			for (int j = 0; j < nHorizontalOrder; j++) {
 
 				const int iA = iElementA + i;
 				const int iB = iElementB + j;
@@ -1244,8 +1304,23 @@ void HighSpeedDynamics::ApplyScalarHyperdiffusion(
 	// Get a copy of the GLL grid
 	GridGLL * pGrid = dynamic_cast<GridGLL*>(m_model.GetGrid());
 
-	// Number of radial elements in grid
+#if defined(FIXED_HORIZONTAL_ORDER)
+	const int nHorizontalOrder = FIXED_HORIZONTAL_ORDER;
+	if (nHorizontalOrder != m_nHorizontalOrder) {
+		_EXCEPTIONT("Command line order must match FIXED_HORIZONTAL_ORDER");
+	}
+#else
+	const int nHorizontalOrder = m_nHorizontalOrder;
+#endif
+
+#if defined(FIXED_RELEMENTS)
+	const int nRElements = FIXED_RELEMENTS;
+	if (nRElements != pGrid->GetRElements()) {
+		_EXCEPTIONT("Command line levels must match FIXED_RELEMENTS");
+	}
+#else
 	const int nRElements = pGrid->GetRElements();
+#endif
 
 	// Check argument
 	if (iComponent < (-1)) {
@@ -1389,13 +1464,13 @@ void HighSpeedDynamics::ApplyScalarHyperdiffusion(
 				for (int b = 0; b < nElementCountB; b++) {
 
 					const int iElementA =
-						a * m_nHorizontalOrder + box.GetHaloElements();
+						a * nHorizontalOrder + box.GetHaloElements();
 					const int iElementB =
-						b * m_nHorizontalOrder + box.GetHaloElements();
+						b * nHorizontalOrder + box.GetHaloElements();
 
 					// Store the buffer state
-					for (int i = 0; i < m_nHorizontalOrder; i++) {
-					for (int j = 0; j < m_nHorizontalOrder; j++) {
+					for (int i = 0; i < nHorizontalOrder; i++) {
+					for (int j = 0; j < nHorizontalOrder; j++) {
 #pragma simd
 					for (int k = 0; k < nElementCountR; k++) {
 						const int iA = iElementA + i;
@@ -1409,8 +1484,8 @@ void HighSpeedDynamics::ApplyScalarHyperdiffusion(
 
 					// Remove the reference state from the buffer state
 					if (fRemoveRefState) {
-						for (int i = 0; i < m_nHorizontalOrder; i++) {
-						for (int j = 0; j < m_nHorizontalOrder; j++) {
+						for (int i = 0; i < nHorizontalOrder; i++) {
+						for (int j = 0; j < nHorizontalOrder; j++) {
 #pragma simd
 						for (int k = 0; k < nElementCountR; k++) {
 							const int iA = iElementA + i;
@@ -1424,8 +1499,8 @@ void HighSpeedDynamics::ApplyScalarHyperdiffusion(
 					}
 
 					// Calculate the pointwise gradient of the scalar field
-					for (int i = 0; i < m_nHorizontalOrder; i++) {
-					for (int j = 0; j < m_nHorizontalOrder; j++) {
+					for (int i = 0; i < nHorizontalOrder; i++) {
+					for (int j = 0; j < nHorizontalOrder; j++) {
 #pragma simd
 					for (int k = 0; k < nElementCountR; k++) {
 
@@ -1435,7 +1510,7 @@ void HighSpeedDynamics::ApplyScalarHyperdiffusion(
 						double dDaPsi = 0.0;
 						double dDbPsi = 0.0;
 
-						for (int s = 0; s < m_nHorizontalOrder; s++) {
+						for (int s = 0; s < nHorizontalOrder; s++) {
 							dDaPsi +=
 								m_dBufferState(s,j,k)
 								* dDxBasis1D(s,i);
@@ -1462,8 +1537,8 @@ void HighSpeedDynamics::ApplyScalarHyperdiffusion(
 					}
 
 					// Pointwise updates
-					for (int i = 0; i < m_nHorizontalOrder; i++) {
-					for (int j = 0; j < m_nHorizontalOrder; j++) {
+					for (int i = 0; i < nHorizontalOrder; i++) {
+					for (int j = 0; j < nHorizontalOrder; j++) {
 #pragma simd
 					for (int k = 0; k < nElementCountR; k++) {
 
@@ -1478,7 +1553,7 @@ void HighSpeedDynamics::ApplyScalarHyperdiffusion(
 						double dUpdateA = 0.0;
 						double dUpdateB = 0.0;
 
-						for (int s = 0; s < m_nHorizontalOrder; s++) {
+						for (int s = 0; s < nHorizontalOrder; s++) {
 							dUpdateA +=
 								m_dJGradientA(s,j,k)
 								* dStiffness1D(i,s);
@@ -1532,8 +1607,23 @@ void HighSpeedDynamics::ApplyVectorHyperdiffusion(
 	// Get a copy of the GLL grid
 	GridGLL * pGrid = dynamic_cast<GridGLL*>(m_model.GetGrid());
 
-	// Number of vertical elements
+#if defined(FIXED_HORIZONTAL_ORDER)
+	const int nHorizontalOrder = FIXED_HORIZONTAL_ORDER;
+	if (nHorizontalOrder != m_nHorizontalOrder) {
+		_EXCEPTIONT("Command line order must match FIXED_HORIZONTAL_ORDER");
+	}
+#else
+	const int nHorizontalOrder = m_nHorizontalOrder;
+#endif
+
+#if defined(FIXED_RELEMENTS)
+	const int nRElements = FIXED_RELEMENTS;
+	if (nRElements != pGrid->GetRElements()) {
+		_EXCEPTIONT("Command line levels must match FIXED_RELEMENTS");
+	}
+#else
 	const int nRElements = pGrid->GetRElements();
+#endif
 
 	// Apply viscosity to reference state
 	bool fApplyToRefState = false;
@@ -1636,12 +1726,12 @@ void HighSpeedDynamics::ApplyVectorHyperdiffusion(
 		for (int a = 0; a < nElementCountA; a++) {
 		for (int b = 0; b < nElementCountB; b++) {
 
-			const int iElementA = a * m_nHorizontalOrder + box.GetHaloElements();
-			const int iElementB = b * m_nHorizontalOrder + box.GetHaloElements();
+			const int iElementA = a * nHorizontalOrder + box.GetHaloElements();
+			const int iElementB = b * nHorizontalOrder + box.GetHaloElements();
 
 			// Pointwise update of horizontal velocities
-			for (int i = 0; i < m_nHorizontalOrder; i++) {
-			for (int j = 0; j < m_nHorizontalOrder; j++) {
+			for (int i = 0; i < nHorizontalOrder; i++) {
+			for (int j = 0; j < nHorizontalOrder; j++) {
 #pragma simd
 			for (int k = 0; k < nRElements; k++) {
 
@@ -1655,7 +1745,7 @@ void HighSpeedDynamics::ApplyVectorHyperdiffusion(
 				double dDaCurl = 0.0;
 				double dDbCurl = 0.0;
 
-				for (int s = 0; s < m_nHorizontalOrder; s++) {
+				for (int s = 0; s < nHorizontalOrder; s++) {
 					dDaDiv -=
 						  dStiffness1D(i,s)
 						* dataDiv(iElementA+s,iB,k);
@@ -1726,8 +1816,23 @@ void HighSpeedDynamics::ApplyRayleighFriction(
 	// Get a copy of the GLL grid
 	GridGLL * pGrid = dynamic_cast<GridGLL*>(m_model.GetGrid());
 
-	// Number of vertical levels
+#if defined(FIXED_HORIZONTAL_ORDER)
+	const int nHorizontalOrder = FIXED_HORIZONTAL_ORDER;
+	if (nHorizontalOrder != m_nHorizontalOrder) {
+		_EXCEPTIONT("Command line order must match FIXED_HORIZONTAL_ORDER");
+	}
+#else
+	const int nHorizontalOrder = m_nHorizontalOrder;
+#endif
+
+#if defined(FIXED_RELEMENTS)
+	const int nRElements = FIXED_RELEMENTS;
+	if (nRElements != pGrid->GetRElements()) {
+		_EXCEPTIONT("Command line levels must match FIXED_RELEMENTS");
+	}
+#else
 	const int nRElements = pGrid->GetRElements();
+#endif
 
 	// Number of components to hit with friction
 	int nComponents = m_model.GetEquationSet().GetComponents();

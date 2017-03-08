@@ -441,19 +441,30 @@ protected:
 	std::vector<char *> m_vecSendBuffers;
 
 	///	<summary>
-	///		Vector of MPI_Requests.
+	///		Vector of MPI_Requests for receive.
 	///	</summary>
 	std::vector<MPI_Request> m_vecRecvRequest;
 
 	///	<summary>
-	///		Vector of MPI_Requests.
+	///		Vector of MPI_Requests for send.
 	///	</summary>
 	std::vector<MPI_Request> m_vecSendRequest;
+
+	///	<summary>
+	///		Vector of MPI_Statuses for send.
+	///	</summary>
+	std::vector<MPI_Status> m_vecSendStatus;
 
 	///	<summary>
 	///		Vector of booleans indicating which processors have sent messages.
 	///	</summary>
 	std::vector<bool> m_vecMessageReceived;
+
+protected:
+	///	<summary>
+	///		Flag indicating active Isend requests.
+	///	</summary>
+	bool m_fActiveAsyncSend;
 
 protected:
 	///	<summary>

@@ -675,7 +675,8 @@ void ExchangeBuffer::Unpack(
 // ExchangeBufferRegistry
 ///////////////////////////////////////////////////////////////////////////////
 
-ExchangeBufferRegistry::ExchangeBufferRegistry()
+ExchangeBufferRegistry::ExchangeBufferRegistry() :
+	m_fActiveAsyncSend(false)
 { }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -845,6 +846,7 @@ void ExchangeBufferRegistry::Allocate() {
 	// Allocate number of receive and send requests
 	m_vecRecvRequest.resize(m_vecProcessors.size());
 	m_vecSendRequest.resize(m_vecProcessors.size());
+	m_vecSendStatus.resize(m_vecProcessors.size());
 
 	m_vecMessageReceived.resize(m_vecProcessors.size());
 }
@@ -889,6 +891,10 @@ void ExchangeBufferRegistry::PrepareExchange() {
 void ExchangeBufferRegistry::Send() {
 
 #ifdef TEMPEST_MPIOMP
+	if (m_fActiveAsyncSend) {
+		_EXCEPTIONT("Attempting to Send() with active asynchronous sends");
+	}
+
 	for (int p = 0; p < m_vecProcessors.size(); p++) {
 		MPI_Isend(
 			m_vecSendBuffers[p],
@@ -908,6 +914,9 @@ void ExchangeBufferRegistry::Send() {
 			m_vecProcessors[p]);
 */
 	}
+
+	// Activate
+	m_fActiveAsyncSend = true;
 #endif
 }
 
@@ -1028,9 +1037,12 @@ const std::vector<ExchangeBuffer *> * ExchangeBufferRegistry::WaitReceive() {
 
 void ExchangeBufferRegistry::WaitSend() {
 #ifdef TEMPEST_MPIOMP
-	for (int r = 0; r < m_vecSendRequest.size(); r++) {
-		MPI_Status status;
-		MPI_Wait(&m_vecSendRequest[r], &status);
+	if (m_fActiveAsyncSend) {
+		MPI_Waitall(
+			m_vecSendRequest.size(),
+			&(m_vecSendRequest[0]),
+			&(m_vecSendStatus[0]));
+		m_fActiveAsyncSend = false;
 	}
 #endif
 }
