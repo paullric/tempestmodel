@@ -541,7 +541,7 @@ void GridPatch::ComputeSurfacePressure(
 
 #if defined(FIXED_RELEMENTS)
 	const int nRElements = FIXED_RELEMENTS;
-	if (nRElements != pGrid->GetRElements()) {
+	if (nRElements != m_grid.GetRElements()) {
 		_EXCEPTIONT("Command line levels must match FIXED_RELEMENTS");
 	}
 #else
@@ -587,7 +587,7 @@ void GridPatch::ComputePressure(
 
 #if defined(FIXED_RELEMENTS)
 	const int nRElements = FIXED_RELEMENTS;
-	if (nRElements != pGrid->GetRElements()) {
+	if (nRElements != m_grid.GetRElements()) {
 		_EXCEPTIONT("Command line levels must match FIXED_RELEMENTS");
 	}
 #else
@@ -641,7 +641,7 @@ void GridPatch::ComputeTemperature(
 
 #if defined(FIXED_RELEMENTS)
 	const int nRElements = FIXED_RELEMENTS;
-	if (nRElements != pGrid->GetRElements()) {
+	if (nRElements != m_grid.GetRElements()) {
 		_EXCEPTIONT("Command line levels must match FIXED_RELEMENTS");
 	}
 #else
@@ -745,7 +745,7 @@ void GridPatch::Checksum(
 
 #if defined(FIXED_RELEMENTS)
 	const int nRElements = FIXED_RELEMENTS;
-	if (nRElements != pGrid->GetRElements()) {
+	if (nRElements != m_grid.GetRElements()) {
 		_EXCEPTIONT("Command line levels must match FIXED_RELEMENTS");
 	}
 #else
@@ -925,7 +925,7 @@ double GridPatch::ComputeTotalEnergy(
 
 #if defined(FIXED_RELEMENTS)
 	const int nRElements = FIXED_RELEMENTS;
-	if (nRElements != pGrid->GetRElements()) {
+	if (nRElements != m_grid.GetRElements()) {
 		_EXCEPTIONT("Command line levels must match FIXED_RELEMENTS");
 	}
 #else
@@ -1142,7 +1142,7 @@ double GridPatch::ComputeTotalPotentialEnstrophy(
 
 #if defined(FIXED_RELEMENTS)
 	const int nRElements = FIXED_RELEMENTS;
-	if (nRElements != pGrid->GetRElements()) {
+	if (nRElements != m_grid.GetRElements()) {
 		_EXCEPTIONT("Command line levels must match FIXED_RELEMENTS");
 	}
 #else
@@ -1226,7 +1226,7 @@ double GridPatch::ComputeTotalVerticalMomentum(
 
 #if defined(FIXED_RELEMENTS)
 	const int nRElements = FIXED_RELEMENTS;
-	if (nRElements != pGrid->GetRElements()) {
+	if (nRElements != m_grid.GetRElements()) {
 		_EXCEPTIONT("Command line levels must match FIXED_RELEMENTS");
 	}
 #else
