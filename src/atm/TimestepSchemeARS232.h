@@ -46,14 +46,14 @@ public:
 	///		Get the number of component data instances.
 	///	</summary>
 	virtual int GetComponentDataInstances() const {
-		return 7;
+		return 5;
 	}
 
 	///	<summary>
 	///		Get the number of tracer data instances.
 	///	</summary>
 	virtual int GetTracerDataInstances() const {
-		return 7;
+		return 5;
 	}
 
 protected:
@@ -69,37 +69,26 @@ protected:
 
 private:
 	///	<summary>
-	///		ARS232 parameter gamma
+	///		Diagonal explicit coefficients.
 	///	</summary>
-	static const double m_dgamma;
+	DataArray1D<double> m_dDiagExpCf;
 
 	///	<summary>
-	///		ARS232 parameter delta
+	///		Diagonal implicit coefficients.
 	///	</summary>
-	static const double m_ddelta;
+	DataArray1D<double> m_dDiagImpCf;
 
 	///	<summary>
-	///		Coefficients for the explicit ARS232.
+	///		Linear combination at the 2nd substage.
 	///	</summary>
-	static const double m_dExpCf[3][3];
+	DataArray1D<double> m_dU2fCombo;
 
 	///	<summary>
-	///		Coefficients for the explicit ARS232.
+	///		Linear combination at the 3rd substage.
 	///	</summary>
-	static const double m_dImpCf[3][3];
-
-	///		Explicit evaluation at the 2nd substage
-	///	</summary>
-	DataArray1D<double> m_du2fCombo;
-
-	///	<summary>
-	///		Explicit evaluation at the 3rd substage
-	///	</summary>
-	DataArray1D<double> m_du3fCombo;
+	DataArray1D<double> m_dU3fCombo;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
 
 #endif
-
-

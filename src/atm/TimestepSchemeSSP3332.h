@@ -46,14 +46,14 @@ public:
 	///		Get the number of component data instances.
 	///	</summary>
 	virtual int GetComponentDataInstances() const {
-		return 9;
+		return 7;
 	}
 
 	///	<summary>
 	///		Get the number of tracer data instances.
 	///	</summary>
 	virtual int GetTracerDataInstances() const {
-		return 9;
+		return 7;
 	}
 
 protected:
@@ -69,42 +69,31 @@ protected:
 
 private:
 	///	<summary>
-	///		SSP3(332) parameter gamma
+	///		Diagonal explicit coefficients.
 	///	</summary>
-	static const double m_dgamma;
-
-	///	<summary>H
-	///		Coefficients for the time increment SSP3(332).
-	///	</summary>
-	static const double m_dTimeCf[4];
+	DataArray1D<double> m_dDiagExpCf;
 
 	///	<summary>
-	///		Coefficients for the explicit SSP3(332).
+	///		Diagonal implicit coefficients.
 	///	</summary>
-	static const double m_dExpCf[4][4];
+	DataArray1D<double> m_dDiagImpCf;
 
 	///	<summary>
-	///		Coefficients for the explicit SSP3(332).
+	///		Linear combination at the 2nd substage.
 	///	</summary>
-	static const double m_dImpCf[4][4];
-
-	///		Explicit evaluation at the 2nd substage
-	///	</summary>
-	DataArray1D<double> m_du2fCombo;
+	DataArray1D<double> m_dU2fCombo;
 
 	///	<summary>
-	///		Explicit evaluation at the 3rd substage
+	///		Linear combination at the 3rd substage.
 	///	</summary>
-	DataArray1D<double> m_du3fCombo;
+	DataArray1D<double> m_dU3fCombo;
 
 	///	<summary>
-	///		Explicit evaluation at the 4th substage
+	///		Linear combination at the 4th substage.
 	///	</summary>
-	DataArray1D<double> m_du4fCombo;
+	DataArray1D<double> m_dU4fCombo;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
 
 #endif
-
-

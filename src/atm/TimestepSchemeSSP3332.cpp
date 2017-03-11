@@ -21,32 +21,102 @@
 #include "VerticalDynamics.h"
 
 ///////////////////////////////////////////////////////////////////////////////
-// COEFFICIENTS COMPUTED FROM THE ORIGINAL TABLEAUX
-// IMPLEMENTS ARS(3,4,3) FROM ASCHER ET AL. 1997 PG. 9
-
-const double TimestepSchemeSSP3332::m_dgamma = 1.0 - 1.0 / sqrt(2.0);
-// Implicit stage coefficients - Converted to U from Pareschi and Russo 2005 T.5
-const double TimestepSchemeSSP3332::m_dImpCf[4][4] = {
-	{m_dgamma, 0., 0., 0.},
-	{(1.0 - 2.0 * m_dgamma), m_dgamma, 0., 0.},
-	{0.5 - m_dgamma, 0.0, m_dgamma, 0.},
-	{1.0 / 6.0, 1.0 / 6.0, 2.0 / 3.0, 0.}};
-
-// Explicit stage coefficients - Converted to U from Pareschi and Russo 2005 T.5
-const double TimestepSchemeSSP3332::m_dExpCf[4][4] = {
-	{0.0, 0., 0., 0.},
-	{1.0, 0., 0., 0.},
-	{0.25, 0.25, 0., 0.},
-	{1.0 / 6.0, 1.0 / 6.0, 2.0 / 3.0, 0.}};
 
 TimestepSchemeSSP3332::TimestepSchemeSSP3332(
 	Model & model
 ) :
 	TimestepScheme(model)
 {
-	m_du2fCombo.Allocate(8);
-	m_du3fCombo.Allocate(9);
-	m_du4fCombo.Allocate(9);
+	m_dU2fCombo.Allocate(7);
+	m_dU3fCombo.Allocate(7);
+	m_dU4fCombo.Allocate(7);
+
+	m_dDiagExpCf.Allocate(4);
+	m_dDiagImpCf.Allocate(4);
+
+	///////////////////////////////////////////////////////////////////////////////
+	// COEFFICIENTS COMPUTED FROM THE ORIGINAL TABLEAUX
+	// IMPLEMENTS SSP(3,3,2) FROM WELLER ET AL. 2015
+
+	const double dGamma = 1.0 - 1.0 / sqrt(2.0);
+	// Implicit stage coefficients
+	const double dImpCf[4][4] = {
+		{dGamma, 0., 0., 0.},
+		{(1.0 - 2.0 * dGamma), dGamma, 0., 0.},
+		{0.5 - dGamma, 0., dGamma, 0.},
+		{1.0 / 6.0, 1.0 / 6.0, 2.0 / 3.0, 0.}};
+
+	// Explicit stage coefficients
+	const double dExpCf[4][4] = {
+		{0., 0., 0., 0.},
+		{1.0, 0., 0., 0.},
+		{0.25, 0.25, 0., 0.},
+		{1.0 / 6.0, 1.0 / 6.0, 2.0 / 3.0, 0.}};
+
+	// Diagnoal explicit coefficients
+	m_dDiagExpCf[0] = dExpCf[0][0];
+	m_dDiagExpCf[1] = dExpCf[1][0];
+	m_dDiagExpCf[2] = dExpCf[2][1];
+	m_dDiagExpCf[3] = dExpCf[3][2];
+
+	// Diagnoal implicit coefficients
+	m_dDiagImpCf[0] = dImpCf[0][0];
+	m_dDiagImpCf[1] = dImpCf[1][1];
+	m_dDiagImpCf[2] = dImpCf[2][2];
+	m_dDiagImpCf[3] = dImpCf[3][3];
+
+	// u2 explicit evaluation combination
+	m_dU2fCombo[0] = 1.0 - dImpCf[1][0] / dImpCf[0][0];
+	m_dU2fCombo[1] = 0.0;
+	m_dU2fCombo[2] = dImpCf[1][0] / dImpCf[0][0];
+	m_dU2fCombo[3] = 0.0;
+	m_dU2fCombo[4] = 0.0;
+	m_dU2fCombo[5] = 0.0;
+	m_dU2fCombo[6] = 0.0;
+
+	// u3 explicit evaluation combination
+	m_dU3fCombo[0] = 1.0 + dImpCf[1][0] / dImpCf[0][0] *
+				   dExpCf[2][0] / dExpCf[1][0] -
+				   dExpCf[2][0] / dExpCf[1][0] -
+				   dImpCf[2][0] / dImpCf[0][0];
+	m_dU3fCombo[1] = 0.0;
+	m_dU3fCombo[2] = dImpCf[2][0] / dImpCf[0][0] -
+				 dImpCf[1][0] / dImpCf[0][0] *
+				 dExpCf[2][0] / dExpCf[1][0];
+	m_dU3fCombo[3] = dExpCf[2][0] / dExpCf[1][0];
+	m_dU3fCombo[4] = 0.0;
+	m_dU3fCombo[5] = 0.0;
+	m_dU3fCombo[6] = 0.0;
+
+	const double dU3fCombo7 = -dExpCf[2][1] / dExpCf[1][1];
+
+	// u4 explicit evaluation combination
+	m_dU4fCombo[0] = 1.0 - dExpCf[3][0] / dImpCf[0][0];
+	m_dU4fCombo[1] = 0.0;
+	m_dU4fCombo[2] = dImpCf[3][0] / dImpCf[0][0];
+	m_dU4fCombo[3] = dExpCf[3][0] / dExpCf[1][0] -
+					 dImpCf[3][1] / dImpCf[1][1];
+	m_dU4fCombo[4] = dImpCf[3][1] / dImpCf[1][1];
+	m_dU4fCombo[5] = dExpCf[3][1] / dExpCf[2][1] -
+					 dImpCf[3][2] / dImpCf[2][2];
+	m_dU4fCombo[6] = dImpCf[3][2] / dImpCf[2][2];
+
+	const double dU4fCombo7 = -dExpCf[3][0] / dExpCf[1][0];
+	const double dU4fCombo8 = -dExpCf[3][1] / dExpCf[2][1];
+
+	// Recombination terms
+	m_dU4fCombo[0] +=
+		  dU4fCombo7 * m_dU2fCombo[0]
+		+ dU4fCombo8 * m_dU3fCombo[0];
+	m_dU4fCombo[1] +=
+		  dU4fCombo7 * m_dU2fCombo[1]
+		+ dU4fCombo8 * m_dU3fCombo[1];
+	m_dU4fCombo[2] +=
+		  dU4fCombo7 * m_dU2fCombo[2]
+		+ dU4fCombo8 * m_dU3fCombo[2];
+
+	m_dU4fCombo[3] += dU4fCombo8 * m_dU3fCombo[3];
+	m_dU4fCombo[4] += dU4fCombo8 * m_dU3fCombo[4];
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -66,65 +136,21 @@ void TimestepSchemeSSP3332::Step(
 	// Get a copy of the VerticalDynamics
 	VerticalDynamics * pVerticalDynamics = m_model.GetVerticalDynamics();
 
-	// u2 explicit evaluation combination
-	m_du2fCombo[0] = 1.0 - m_dImpCf[1][0] / m_dImpCf[0][0];
-	m_du2fCombo[1] = 0.0;
-	m_du2fCombo[2] = m_dImpCf[1][0] / m_dImpCf[0][0];
-	m_du2fCombo[3] = 0.0;
-	m_du2fCombo[4] = 0.0;
-	m_du2fCombo[5] = 0.0;
-	m_du2fCombo[6] = 0.0;
-	m_du2fCombo[7] = 0.0;
-
-	// u3 explicit evaluation combination
-	m_du3fCombo[0] = 1.0 + m_dImpCf[1][0] / m_dImpCf[0][0] *
-						   m_dExpCf[2][0] / m_dExpCf[1][0] -
-						   m_dExpCf[2][0] / m_dExpCf[1][0] -
-						   m_dImpCf[2][0] / m_dImpCf[0][0];
-	m_du3fCombo[1] = 0.0;
-	m_du3fCombo[2] = m_dImpCf[2][0] / m_dImpCf[0][0] - 
-					 m_dImpCf[1][0] / m_dImpCf[0][0] *
-					 m_dExpCf[2][0] / m_dExpCf[1][0];
-	m_du3fCombo[3] = m_dExpCf[2][0] / m_dExpCf[1][0];
-	m_du3fCombo[4] = 0.0;
-	m_du3fCombo[5] = 0.0;
-	m_du3fCombo[6] = 0.0;
-	m_du3fCombo[7] = 0.0;
-	m_du3fCombo[8] = 0.0;
-	
-	// u4 explicit evaluation combination
-	m_du4fCombo[0] = 1.0 - m_dExpCf[3][0] / m_dImpCf[0][0];
-	m_du4fCombo[1] = 0.0;
-	m_du4fCombo[2] = m_dImpCf[3][0] / m_dImpCf[0][0];
-	m_du4fCombo[3] = m_dExpCf[3][0] / m_dExpCf[1][0] - 
-					 m_dImpCf[3][1] / m_dImpCf[1][1];
-	m_du4fCombo[4] = m_dImpCf[3][1] / m_dImpCf[1][1];
-	m_du4fCombo[5] = m_dExpCf[3][1] / m_dExpCf[2][1] - 
-					 m_dImpCf[3][2] / m_dImpCf[2][2];
-	m_du4fCombo[6] = m_dImpCf[3][2] / m_dImpCf[2][2];
-	m_du4fCombo[7] = -m_dExpCf[3][0] / m_dExpCf[1][0];
-	m_du4fCombo[8] = -m_dExpCf[3][1] / m_dExpCf[2][1];
-
 	// STAGE 1
 	// Compute u1 into index 2
 	pGrid->CopyData(0, 2, DataType_State);
 	pGrid->CopyData(0, 2, DataType_State);
 	pVerticalDynamics->StepImplicit(
-		2, 2, time, m_dImpCf[0][0] * dDeltaT);
-	pGrid->PostProcessSubstage(2, DataType_State);
-	pGrid->PostProcessSubstage(2, DataType_Tracers);
+		2, 2, time, m_dDiagImpCf[0] * dDeltaT);
 
 	// STAGE 2
-	// Compute uf1 from u0 (index 2) into index 7
-	pGrid->LinearCombineData(m_du2fCombo, 7, DataType_State);
-	pGrid->LinearCombineData(m_du2fCombo, 7, DataType_Tracers);
-	pGrid->CopyData(7, 3, DataType_State);
-	pGrid->CopyData(7, 3, DataType_Tracers);
-
+	// Compute uf1 from u0 (index 2) into index 3
+	pGrid->LinearCombineData(m_dU2fCombo, 3, DataType_State);
+	pGrid->LinearCombineData(m_dU2fCombo, 3, DataType_Tracers);
 	pHorizontalDynamics->StepExplicit(
-		2, 3, time, m_dExpCf[1][0] * dDeltaT);
+		2, 3, time, m_dDiagExpCf[1] * dDeltaT);
 	pVerticalDynamics->StepExplicit(
-		2, 3, time, m_dExpCf[1][0] * dDeltaT);
+		2, 3, time, m_dDiagExpCf[1] * dDeltaT);
 	pGrid->PostProcessSubstage(3, DataType_State);
 	pGrid->PostProcessSubstage(3, DataType_Tracers);
 
@@ -132,20 +158,16 @@ void TimestepSchemeSSP3332::Step(
 	pGrid->CopyData(3, 4, DataType_State);
 	pGrid->CopyData(3, 4, DataType_State);
 	pVerticalDynamics->StepImplicit(
-		4, 4, time, m_dImpCf[1][1] * dDeltaT);
-	pGrid->PostProcessSubstage(4, DataType_State);
-	pGrid->PostProcessSubstage(4, DataType_Tracers);
+		4, 4, time, m_dDiagImpCf[1] * dDeltaT);
 
 	// STAGE 3
-	// Compute uf3 from u2 (index 4) into index 8
-	pGrid->LinearCombineData(m_du3fCombo, 8, DataType_State);
-	pGrid->LinearCombineData(m_du3fCombo, 8, DataType_Tracers);
-	pGrid->CopyData(8, 5, DataType_State);
-	pGrid->CopyData(8, 5, DataType_Tracers);
+	// Compute uf3 from u2 (index 4) into index 5
+	pGrid->LinearCombineData(m_dU3fCombo, 5, DataType_State);
+	pGrid->LinearCombineData(m_dU3fCombo, 5, DataType_Tracers);
 	pHorizontalDynamics->StepExplicit(
-		4, 5, time, m_dExpCf[2][1] * dDeltaT);
+		4, 5, time, m_dDiagExpCf[2] * dDeltaT);
 	pVerticalDynamics->StepExplicit(
-		4, 5, time, m_dExpCf[2][1] * dDeltaT);
+		4, 5, time, m_dDiagExpCf[2] * dDeltaT);
 	pGrid->PostProcessSubstage(5, DataType_State);
 	pGrid->PostProcessSubstage(5, DataType_Tracers);
 
@@ -153,30 +175,25 @@ void TimestepSchemeSSP3332::Step(
 	pGrid->CopyData(5, 6, DataType_State);
 	pGrid->CopyData(5, 6, DataType_State);
 	pVerticalDynamics->StepImplicit(
-		6, 6, time, m_dImpCf[2][2] * dDeltaT);
-	pGrid->PostProcessSubstage(6, DataType_State);
-	pGrid->PostProcessSubstage(6, DataType_Tracers);
+		6, 6, time, m_dDiagImpCf[2] * dDeltaT);
 
 	// STAGE 4
 	// Compute uf4 from u3 (index 6) into index 9
-	pGrid->LinearCombineData(m_du4fCombo, 1, DataType_State);
-	pGrid->LinearCombineData(m_du4fCombo, 1, DataType_Tracers);
+	pGrid->LinearCombineData(m_dU4fCombo, 1, DataType_State);
+	pGrid->LinearCombineData(m_dU4fCombo, 1, DataType_Tracers);
 	pHorizontalDynamics->StepExplicit(
-		6, 1, time, m_dExpCf[3][2] * dDeltaT);
+		6, 1, time, m_dDiagExpCf[3] * dDeltaT);
 	pVerticalDynamics->StepExplicit(
-		6, 1, time, m_dExpCf[3][2] * dDeltaT);
+		6, 1, time, m_dDiagExpCf[3] * dDeltaT);
 	pGrid->PostProcessSubstage(1, DataType_State);
 	pGrid->PostProcessSubstage(1, DataType_Tracers);
 
 	// NO IMPLICIT STEP ON THE LAST STAGE
 
-	// Apply hyperdiffusion at the end of the explicit substep (ask Paul)
-	pGrid->CopyData(1, 2, DataType_State);
-	pGrid->CopyData(1, 2, DataType_Tracers);
-	pHorizontalDynamics->StepAfterSubCycle(2, 1, 3, time, dDeltaT);
+	// Apply hyperdiffusion at the end of the explicit substep
 	pGrid->CopyData(1, 0, DataType_State);
 	pGrid->CopyData(1, 0, DataType_Tracers);
+	pHorizontalDynamics->StepAfterSubCycle(1, 0, 2, time, dDeltaT);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-

@@ -39,32 +39,32 @@ TimestepSchemeARS343::TimestepSchemeARS343(
 	// IMPLEMENTS ARS(3,4,3) FROM ASCHER ET AL. 1997 PG. 9
 	//
 	const double dGamma = 0.4358665215084590;
- 
+
 	const double dB1 = -1.5 * dGamma * dGamma + 4.0 * dGamma - 0.25;
 	const double dB2 = 1.5 * dGamma * dGamma - 5.0 * dGamma + 1.25;
- 
+
 	const double dA42 = 0.5529291480359398;
 	const double dA43 = 0.5529291480359398;
- 
+
 	const double dA31 =
 		(1.0 - 4.5 * dGamma + 1.5 * dGamma * dGamma) * dA42
 			+ (2.75 - 10.5 * dGamma + 3.75 * dGamma * dGamma) * dA43
  	 		- 3.5 + 13 * dGamma - 4.5 * dGamma * dGamma;
- 
+
 	const double dA32 =
 		(-1.0 + 4.5 * dGamma - 1.5 * dGamma * dGamma) * dA42
 			+ (-2.75 + 10.5 * dGamma - 3.75 * dGamma * dGamma) * dA43
 			+ 4.0 - 12.5 * dGamma + 4.5 * dGamma * dGamma;
- 
+
 	const double dA41 = 1.0 - dA42 - dA43;
- 
+
 	// Implicit stage coefficients
 	const double dImpCf[4][4] = {
                 {dGamma, 0., 0., 0.},
                 {0.5 * (1.0 - dGamma), dGamma, 0., 0.},
                 {dB1, dB2, dGamma, 0.},
                 {dB1, dB2, dGamma, 0.}};
- 
+
 	// Explicit stage coefficients
 	const double dExpCf[4][4] = {
                 {dGamma, 0., 0., 0.},
@@ -86,7 +86,7 @@ TimestepSchemeARS343::TimestepSchemeARS343(
 
 	// u2 explicit evaluation combination
 	m_dU2fCombo[0] = 1.0 - dExpCf[1][0] / dExpCf[0][0];
-	m_dU2fCombo[1] = dExpCf[1][0] / dExpCf[0][0] - 
+	m_dU2fCombo[1] = dExpCf[1][0] / dExpCf[0][0] -
 					 dImpCf[1][0] / dImpCf[0][0];
 	m_dU2fCombo[2] = dImpCf[1][0] / dImpCf[0][0];
 	m_dU2fCombo[3] = 0.0;
@@ -96,26 +96,26 @@ TimestepSchemeARS343::TimestepSchemeARS343(
 
 	// u3 explicit evaluation combination
 	m_dU3fCombo[0] = 1.0 - dExpCf[2][0] / dExpCf[0][0];
-	m_dU3fCombo[1] = dExpCf[2][0] / dExpCf[0][0] - 
+	m_dU3fCombo[1] = dExpCf[2][0] / dExpCf[0][0] -
 					 dImpCf[2][0] / dImpCf[0][0];
 	m_dU3fCombo[2] = dImpCf[2][0] / dImpCf[0][0];
-	m_dU3fCombo[3] = dExpCf[2][1] / dExpCf[1][1] - 
+	m_dU3fCombo[3] = dExpCf[2][1] / dExpCf[1][1] -
 					 dImpCf[2][1] / dImpCf[1][1];
 	m_dU3fCombo[4] = dImpCf[2][1] / dImpCf[1][1];
 	m_dU3fCombo[5] = 0.0;
 	m_dU3fCombo[6] = 0.0;
 
 	const double dU3fCombo7 = -dExpCf[2][1] / dExpCf[1][1];
-	
+
 	// u4 explicit evaluation combination
 	m_dU4fCombo[0] = 1.0 - dExpCf[3][0] / dExpCf[0][0];
-	m_dU4fCombo[1] = dExpCf[3][0] / dExpCf[0][0] - 
+	m_dU4fCombo[1] = dExpCf[3][0] / dExpCf[0][0] -
 					 dImpCf[3][0] / dImpCf[0][0];
 	m_dU4fCombo[2] = dImpCf[3][0] / dImpCf[0][0];
-	m_dU4fCombo[3] = dExpCf[3][1] / dExpCf[1][1] - 
+	m_dU4fCombo[3] = dExpCf[3][1] / dExpCf[1][1] -
 					 dImpCf[3][1] / dImpCf[1][1];
 	m_dU4fCombo[4] = dImpCf[3][1] / dImpCf[1][1];
-	m_dU4fCombo[5] = dExpCf[3][2] / dExpCf[2][2] - 
+	m_dU4fCombo[5] = dExpCf[3][2] / dExpCf[2][2] -
 					 dImpCf[3][2] / dImpCf[2][2];
 	m_dU4fCombo[6] = dImpCf[3][2] / dImpCf[2][2];
 
@@ -178,7 +178,7 @@ void TimestepSchemeARS343::Step(
 		2, 2, time, m_dDiagImpCf[0] * dDeltaT);
 
 	// STAGE 2
-	// Compute uf2 from u1 (index 2) into index 7
+	// Compute uf2 from u1 (index 2) into index 3
 	pGrid->LinearCombineData(m_dU2fCombo, 3, DataType_State);
 	pGrid->LinearCombineData(m_dU2fCombo, 3, DataType_Tracers);
 	pHorizontalDynamics->StepExplicit(
@@ -207,7 +207,7 @@ void TimestepSchemeARS343::Step(
 	pGrid->PostProcessSubstage(5, DataType_State);
 	pGrid->PostProcessSubstage(5, DataType_Tracers);
 
-	// Compute u3 from uf3 (index 3) into index 6
+	// Compute u3 from uf3 (index 5) into index 6
 	pGrid->CopyData(5, 6, DataType_State);
 	pGrid->CopyData(5, 6, DataType_Tracers);
 	pVerticalDynamics->StepImplicit(
@@ -216,7 +216,7 @@ void TimestepSchemeARS343::Step(
 		6, 6, time, m_dDiagImpCf[2] * dDeltaT);
 
 	// STAGE 4
-	// Compute uf4 from u3 (index 6) into index 9
+	// Compute uf4 from u3 (index 6) into index 1
 	pGrid->LinearCombineData(m_dU4fCombo, 1, DataType_State);
 	pGrid->LinearCombineData(m_dU4fCombo, 1, DataType_Tracers);
 	pHorizontalDynamics->StepExplicit(
@@ -235,4 +235,3 @@ void TimestepSchemeARS343::Step(
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-

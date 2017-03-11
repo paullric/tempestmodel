@@ -49,14 +49,14 @@ public:
 	///		Get the number of component data instances.
 	///	</summary>
 	virtual int GetComponentDataInstances() const {
-		return 8;
+		return 6;
 	}
 
 	///	<summary>
 	///		Get the number of tracer data instances.
 	///	</summary>
 	virtual int GetTracerDataInstances() const {
-		return 8;
+		return 6;
 	}
 
 protected:
@@ -103,42 +103,26 @@ private:
 
 private:
 	///	<summary>
-	///		ARK232 parameter gamma
+	///		Diagonal explicit coefficients.
 	///	</summary>
-	static const double m_dgamma;
+	DataArray1D<double> m_dDiagExpCf;
 
 	///	<summary>
-	///		ARK232 parameter alpha
+	///		Diagonal implicit coefficients.
 	///	</summary>
-	static const double m_dalpha;
+	DataArray1D<double> m_dDiagImpCf;
 
 	///	<summary>
-	///		ARK232 parameter delta
+	///		Linear combination at the 2nd substage.
 	///	</summary>
-	static const double m_ddelta;
+	DataArray1D<double> m_dU2fCombo;
 
 	///	<summary>
-	///		Coefficients for the explicit ARK232.
+	///		Linear combination at the 3rd substage.
 	///	</summary>
-	static const double m_dExpCf[3][3];
-
-	///	<summary>
-	///		Coefficients for the explicit ARK232.
-	///	</summary>
-	static const double m_dImpCf[3][3];
-
-	///		Explicit evaluation at the 2nd substage
-	///	</summary>
-	DataArray1D<double> m_du2fCombo;
-
-	///	<summary>
-	///		Explicit evaluation at the 3rd substage
-	///	</summary>
-	DataArray1D<double> m_du3fCombo;
+	DataArray1D<double> m_dU3fCombo;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
 
 #endif
-
-
