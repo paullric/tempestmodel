@@ -51,3 +51,5 @@ util/CFConverter/CFConverter
 test/nonhydro_xz/ThermalBubbleCartesian3DTest
 
 test/nonhydro_xz/ShearJetMtnWave2DCartesianTest
+
+test/nonhydro_xz/ShearJetMtnWave3DCartesianTest
