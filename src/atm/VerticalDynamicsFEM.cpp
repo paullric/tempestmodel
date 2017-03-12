@@ -2809,6 +2809,7 @@ void VerticalDynamicsFEM::BuildF(
 		}
 	}
 
+#if defined(RESIDUAL_DIFFUSION)
 	// Apply residual hyperviscosity
 	for (int c = 2; c < 4; c++) {
 
@@ -2842,9 +2843,8 @@ void VerticalDynamicsFEM::BuildF(
 			}
 		// Residual hyperviscosity on levels
 		} else {
-			for (int k = 0; k <= nRElements; k++) {
-				m_dStateAux[k] = m_dStateNode[c][k] -
-																	m_dStateRefNode[c][k];
+			for (int k = 0; k < nRElements; k++) {
+				m_dStateAux[k] = m_dStateNode[c][k] -												m_dStateRefNode[c][k];
 			}
 
 			pGrid->DifferentiateNodeToNode(
@@ -2865,6 +2865,7 @@ void VerticalDynamicsFEM::BuildF(
 			}
 		}
 	}
+#endif
 
 	if (dF[VecFIx(FWIx, 0)] != 0.0) {
 		dF[VecFIx(FWIx, 0)] = 0.0;
