@@ -1,6 +1,6 @@
 ///////////////////////////////////////////////////////////////////////////////
 ///
-///	\file    ShearJetMtnWave2DCartesianTest.cpp
+///	\file    ShearJetMtnWave3DCartesianTest.cpp
 ///	\author  Paul Ullrich, Jorge Guerra
 ///	\version January 13, 2015
 ///
@@ -20,11 +20,11 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 ///	<summary>
-///		Giraldo, Ullrich (2016)
+///		Guerra, Ullrich (2016)
 ///
 ///		Thermal rising bubble test case.
 ///	</summary>
-class ShearJetMtnWave2DCartesianTest : public TestCase {
+class ShearJetMtnWave3DCartesianTest : public TestCase {
 
 public:
 	/// <summary>
@@ -41,16 +41,6 @@ public:
 	///		Parameter reference height for topography disturbance
 	///	</summary>
 	double m_dhC;
-
-	///	<summary>
-	///		Rayleigh layer depth.
-	///	</summary>
-	double m_dRayleighDepth;
-
-	///	<summary>
-	///		Rayleigh layer nominal strength.
-	///	</summary>
-	double m_dRayleighStrength;
 
 private:
 
@@ -168,7 +158,7 @@ public:
 	///	<summary>
 	///		Constructor. (with physical constants defined privately here)
 	///	</summary>
-	ShearJetMtnWave2DCartesianTest(
+	ShearJetMtnWave3DCartesianTest(
 		const PhysicalConstants & phys,
 		double dbC,
 		double dU0,
@@ -199,16 +189,12 @@ public:
 		m_dpiC = M_PI;
 
 		// Set the dimensions of the box
-		m_dGDim[0] = -80000.0;
-		m_dGDim[1] = 80000.0;
-		m_dGDim[2] = -100.0;
-		m_dGDim[3] = 100.0;
+		m_dGDim[0] = -35000.0;
+		m_dGDim[1] = 55000.0;
+		m_dGDim[2] = -25000.0;
+		m_dGDim[3] = 25000.0;
 		m_dGDim[4] = 0.0;
 		m_dGDim[5] = 35000.0;
-
-		// Set the Rayleigh layer depth and nominal strength
-		m_dRayleighDepth = 6000.0;
-		m_dRayleighStrength = 1.0E-2;
 
 		// Set the center of the domain in Y
 		m_dY0 = 0.5 * (m_dGDim[3] - m_dGDim[2]);
@@ -299,9 +285,11 @@ public:
 		double dXp,
 		double dYp
 	) const {
-		// Specify the Schar Mountain (Test case 5 from Giraldo et al. 2008)
-		double hsm = m_dhC * exp(-dXp/m_daC * dXp/m_daC) *
-					 cos(M_PI * dXp / m_dlC) * cos(M_PI * dXp / m_dlC);
+		// Specify the Schar Mountain in 2D (Guerra and Ullrich, 2016)
+		double hsm = m_dhC * exp(-dXp/m_daC * dXp/m_daC) * 
+						exp(-dYp/m_daC * dYp/m_daC * dYp/m_daC * dYp/m_daC) * 
+						cos(M_PI * dXp / m_dlC) * cos(M_PI * dXp / m_dlC);
+					 //cos(M_PI * dYp / m_dlC) * cos(M_PI * dYp / m_dlC);
 		//std::cout << hsm << "\n";
 
 		return hsm;
@@ -315,28 +303,6 @@ public:
 	}
 
 	///	<summary>
-	///		Get the depth of the Rayleigh layer
-	///	</summary>
-	virtual double GetRayleighDepth() const {
-		if (!m_fNoRayleighFriction) {
-			return m_dRayleighDepth;
-		} else {
-			return 0.0;
-		}
-	}
-
-	///	<summary>
-	///		Get the strength of the Rayleigh layer
-	///	</summary>
-	virtual double GetRayleighStrength() const {
-		if (!m_fNoRayleighFriction) {
-			return m_dRayleighStrength;
-		} else {
-			return 0.0;
-		}
-	}
-
-	///	<summary>
 	///		Evaluate the Rayleigh friction strength at the given point.
 	///	</summary>
 	virtual double EvaluateRayleighStrength(
@@ -344,47 +310,58 @@ public:
 		double dXp,
 		double dYp
 	) const {
-		const double dRayleighStrengthZ = 1.0E-2;//8.0e-3;
+		const double dRayleighStrengthZ = 5.0E-3;//8.0e-3;
 		const double dRayleighStrengthX = 1.0 * dRayleighStrengthZ;
-		const double dRayleighDepth = 10000.0;
-		const double dRayDepthXi = dRayleighDepth / m_dGDim[5];
+		const double dRayleighDepth = 7500.0;
 		const double dRayleighWidth = 10000.0;
 
 		double dNuDepth = 0.0;
 		double dNuRight = 0.0;
 		double dNuLeft  = 0.0;
-		double dNu = 0.0;
 
 		// Using cosine ramp up
-		double dLayerZ = 1.0 - dRayDepthXi;
-//		double dLayerZ = m_dGDim[5] - dRayleighDepth;
-		double dLayerR = m_dGDim[1] - dRayleighWidth;
-		double dLayerL = m_dGDim[0] + dRayleighWidth;
-		if (dZ > dLayerZ) {
-			double dNormZ = (1.0 - dZ) / dRayDepthXi;
+		if (dZ > m_dGDim[5] - dRayleighDepth) {
+			double dNormZ = (m_dGDim[5] - dZ) / dRayleighDepth;
 			dNuDepth = 0.5 * dRayleighStrengthZ * (1.0 + cos(M_PI * dNormZ));
-			dNu = dNuDepth;
 		}
-		if (dXp > dLayerR) {
+		if (dXp > m_dGDim[1] - dRayleighWidth) {
 			double dNormX = (m_dGDim[1] - dXp) / dRayleighWidth;
 			dNuRight = 0.5 * dRayleighStrengthX * (1.0 + cos(M_PI * dNormX));
-			dNu = dNuRight;
 		}
-		if (dXp < dLayerL) {
+		if (dXp < m_dGDim[0] + dRayleighWidth) {
 			double dNormX = (dXp - m_dGDim[0]) / dRayleighWidth;
 			dNuLeft = 0.5 * dRayleighStrengthX * (1.0 + cos(M_PI * dNormX));
-			dNu = dNuLeft;
 		}
-
-		// Handle the corners of the layer domain
-		if ((dZ > dLayerZ) && (dXp > dLayerR)) {
-			dNu = sqrt(dNuDepth * dNuDepth + dNuRight * dNuRight);
+/*
+		// Using high order cosine ramp up
+		int nPower = 3;
+		if (dZ > m_dGDim[5] - dRayleighDepth) {
+			double dNormZ = (m_dGDim[5] - dZ - dRayleighDepth) /
+							dRayleighDepth;
+			dNuDepth = dRayleighStrengthZ * (1.0 - 
+					pow(0.5, nPower) * pow(1.0 + cos(M_PI * dNormZ), nPower));
 		}
-
-		if ((dZ > dLayerZ) && (dXp < dLayerL)) {
-			dNu = sqrt(dNuDepth * dNuDepth + dNuLeft * dNuLeft);
+		if (dXp > m_dGDim[1] - dRayleighWidth) {
+			double dNormX = (m_dGDim[1] - dXp - dRayleighWidth) /
+							dRayleighWidth;
+			dNuRight = dRayleighStrengthX * (1.0 - 
+					pow(0.5, nPower) * pow(1.0 + cos(M_PI * dNormX), nPower));
 		}
-		return dNu;
+		if (dXp < m_dGDim[0] + dRayleighWidth) {
+			double dNormX = (dXp - m_dGDim[0] - 2.0 * dRayleighWidth) /
+							dRayleighWidth;
+			dNuLeft = dRayleighStrengthX * (1.0 - 
+					pow(0.5, nPower) * pow(1.0 + cos(M_PI * dNormX), nPower));
+		}
+*/
+		//std::cout << dXp << ' ' << dZ << ' ' << dNuDepth << std::endl;
+		if ((dNuDepth >= dNuRight) && (dNuDepth >= dNuLeft)) {
+			return dNuDepth;
+		}
+		if (dNuRight >= dNuLeft) {
+			return dNuRight;
+		}
+		return dNuLeft;
 	}
 
 	///	<summary>
@@ -539,7 +516,15 @@ public:
 
 		// Tropospheric branch of the jet
 		double dExpDecay = exp(-(log(dEta) / m_dbC) * (log(dEta) / m_dbC));
-		double dUlon = -m_dUj * log(dEta) * dExpDecay;
+		double dUlon = -m_dUj * pow(log(dEta), 1.0) * dExpDecay;
+
+		// Include a meridional variation
+		double dNormYp = dYp / (0.5 * dLy);
+		dUlon *= exp(-dNormYp * dNormYp) * cos(0.5 * M_PI * dNormYp)
+										 * cos(0.5 * M_PI * dNormYp)
+										 * cos(0.5 * M_PI * dNormYp)
+										 * cos(0.5 * M_PI * dNormYp);
+		//Announce("%1.16e %1.16e %1.16e", dXp, dNormYp, dUlon);
 
 		dState[0] = m_dU0 + dUlon;
 
@@ -634,7 +619,7 @@ try {
 	bool fNoRayleighFriction;
 
 	// Parse the command line
-	BeginTempestCommandLine("ShearJetMtnWave2DCartesianTest");
+	BeginTempestCommandLine("ShearJetMtnWave3DCartesianTest");
 		SetDefaultResolutionX(288);
 		SetDefaultResolutionY(48);
 		SetDefaultLevels(32);
@@ -669,8 +654,8 @@ try {
 	const PhysicalConstants & phys = model.GetPhysicalConstants();
 
 	// Create a new instance of the test
-	ShearJetMtnWave2DCartesianTest * test =
-		new ShearJetMtnWave2DCartesianTest(phys, dbC,
+	ShearJetMtnWave3DCartesianTest * test =
+		new ShearJetMtnWave3DCartesianTest(phys, dbC,
 				dU0,
 				dUj,
 				ddTdz,
@@ -685,7 +670,7 @@ try {
 
 	// Setup the cartesian model with dimensions and reference latitude
 	TempestSetupCartesianModel(model, test->m_dGDim, 0.0, 
-								test->m_iLatBC, true);
+								test->m_iLatBC, false);
 
 	// Set the reference length to reduce diffusion relative to global scale
 	const double XL = std::abs(test->m_dGDim[1] - test->m_dGDim[0]);

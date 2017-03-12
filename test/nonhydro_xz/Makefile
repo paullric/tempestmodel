@@ -1,13 +1,13 @@
 # Copyright (c) 2016      Bryce Adelstein-Lelbach aka wash
-# Copyright (c) 2000-2016 Paul Ullrich 
+# Copyright (c) 2000-2016 Paul Ullrich
 #
-# Distributed under the Boost Software License, Version 1.0. (See accompanying 
+# Distributed under the Boost Software License, Version 1.0. (See accompanying
 # file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 # Base directory.
 TEMPESTBASEDIR= ../..
 
-# Load Makefile framework. 
+# Load Makefile framework.
 include $(TEMPESTBASEDIR)/mk/framework.make
 
 FILES= InertialGravityCartesianXZTest.cpp \
@@ -15,6 +15,8 @@ FILES= InertialGravityCartesianXZTest.cpp \
        ThermalBubbleCartesianTest.cpp \
        ThermalBubbleCartesian3DTest.cpp \
        ScharMountainCartesianTest.cpp \
+       ShearJetMtnWave2DCartesianTest.cpp \
+       ShearJetMtnWave3DCartesianTest.cpp \
        HydrostaticMountainCartesianTest.cpp \
        NonHydroMountainCartesianTest.cpp \
        Baroclinic3DCartesianTest.cpp \
@@ -27,11 +29,11 @@ CLEAN_TARGETS= $(addsuffix .clean,$(EXEC_TARGETS))
 
 .PHONY: all clean
 
-# Build rules. 
+# Build rules.
 all: $(EXEC_TARGETS)
 
 $(EXEC_TARGETS): %: $(BUILDDIR)/%.o $(TEMPESTLIBS)
-	$(CXX) $(LDFLAGS) -o $@ $(BUILDDIR)/$*.o $(LIBRARIES) 
+	$(CXX) $(LDFLAGS) -o $@ $(BUILDDIR)/$*.o $(LIBRARIES)
 
 # Go up to the root directory and build the libraries if needed.
 $(TEMPESTBASEDIR)/%.a:
