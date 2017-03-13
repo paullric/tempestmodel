@@ -1673,13 +1673,49 @@ void GridPatchCartesianGLL::InterpolateData(
 
 				dColumnData[k] = 0.0;
 
-				for (int m = 0; m < m_nHorizontalOrder; m++) {
-				for (int n = 0; n < m_nHorizontalOrder; n++) {
-					dColumnData[k] +=
-						  dAInterpCoeffs[m]
-						* dBInterpCoeffs[n]
-						* pData[iA+m][iB+n][k];
-				}
+				// Rescale vertical velocity
+				const int WIx = 3;
+				if ((c == WIx) && (fConvertToPrimitive)) {
+					if (m_grid.GetVarLocation(WIx) == DataLocation_REdge) {
+						for (int m = 0; m < m_nHorizontalOrder; m++) {
+						for (int n = 0; n < m_nHorizontalOrder; n++) {
+
+#if defined(PROGNOSTIC_CONTRAVARIANT_MOMENTA)
+							dColumnData[k] +=
+								  dAInterpCoeffs[m]
+								* dBInterpCoeffs[n]
+								* pData(iA+m,iB+n,k);
+#else
+							dColumnData[k] +=
+								  dAInterpCoeffs[m]
+								* dBInterpCoeffs[n]
+								* pData(iA+m,iB+n,k)
+								/ m_dataDerivRREdge(iA,iB,k,2);
+#endif
+						}
+						}
+
+					} else {
+						for (int m = 0; m < m_nHorizontalOrder; m++) {
+						for (int n = 0; n < m_nHorizontalOrder; n++) {
+							dColumnData[k] +=
+								  dAInterpCoeffs[m]
+								* dBInterpCoeffs[n]
+								* pData(iA+m,iB+n,k)
+								/ m_dataDerivRNode(iA,iB,k,2);
+						}
+						}
+					}
+
+				} else {
+					for (int m = 0; m < m_nHorizontalOrder; m++) {
+					for (int n = 0; n < m_nHorizontalOrder; n++) {
+						dColumnData[k] +=
+							  dAInterpCoeffs[m]
+							* dBInterpCoeffs[n]
+							* pData(iA+m,iB+n,k);
+					}
+					}
 				}
 
 				// Do not include the reference state
