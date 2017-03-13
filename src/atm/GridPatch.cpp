@@ -204,9 +204,9 @@ void GridPatch::InitializeDataLocal(
 	// Topography derivatives at each node
 	m_dataTopographyDeriv.SetDataType(DataType_TopographyDeriv);
 	m_dataTopographyDeriv.SetSize(
-		2,
 		m_box.GetATotalWidth(),
-		m_box.GetBTotalWidth());
+		m_box.GetBTotalWidth(),
+		2);
 
 	// Longitude at each node
 	m_dataLon.SetSize(

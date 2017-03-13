@@ -184,8 +184,8 @@ void GridPatchCartesianGLL::EvaluateTopography(
 			dDaZs /= GetElementDeltaA();
 			dDbZs /= GetElementDeltaB();
 
-			m_dataTopographyDeriv[0][iA][iB] = dDaZs;
-			m_dataTopographyDeriv[1][iA][iB] = dDbZs;
+			m_dataTopographyDeriv[iA][iB][0] = dDaZs;
+			m_dataTopographyDeriv[iA][iB][1] = dDbZs;
 		}
 		}
 	}
@@ -275,8 +275,8 @@ void GridPatchCartesianGLL::EvaluateGeometricTerms() {
 
 			// Topography height and its derivatives
 			double dZs = m_dataTopography[iA][iB];
-			double dDaZs = m_dataTopographyDeriv[0][iA][iB];
-			double dDbZs = m_dataTopographyDeriv[1][iA][iB];
+			double dDaZs = m_dataTopographyDeriv[iA][iB][0];
+			double dDbZs = m_dataTopographyDeriv[iA][iB][1];
 
 			// Initialize 2D Jacobian
 			m_dataJacobian2D[iA][iB] = 1.0;
