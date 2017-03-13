@@ -1587,6 +1587,9 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 						- ( dContraMetricXiREdge(iA,iB,0,0) * dU0
 						  + dContraMetricXiREdge(iA,iB,0,1) * dV0)
 							/ dContraMetricXiREdge(iA,iB,0,2);
+
+					// Update vertical velocity on top boundary
+                                        dataUpdateREdge(WIx,iA,iB,nRElements) = 0.0;
 				}
 				}
 
