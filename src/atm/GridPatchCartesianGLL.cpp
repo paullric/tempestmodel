@@ -58,7 +58,6 @@ GridPatchCartesianGLL::GridPatchCartesianGLL(
 void GridPatchCartesianGLL::InitializeDataLocal(
 	bool fAllocateGeometric,
 	bool fAllocateActiveState,
-	bool fAllocateActiveResidual,
 	bool fAllocateBufferState,
 	bool fAllocateAuxiliary
 ) {
@@ -66,7 +65,6 @@ void GridPatchCartesianGLL::InitializeDataLocal(
 	GridPatch::InitializeDataLocal(
 		fAllocateGeometric,
 		fAllocateActiveState,
-		fAllocateActiveResidual,
 		fAllocateBufferState,
 		fAllocateAuxiliary
 	);
@@ -93,11 +91,11 @@ void GridPatchCartesianGLL::InitializeCoordinateData() {
 	double dElementDeltaA = (gridCartesianGLL.GetMaximumX() -
 							 gridCartesianGLL.GetMinimumX())
 		/ static_cast<double>(m_grid.GetABaseResolution());
-	double dElementDeltaB = (gridCartesianGLL.GetMaximumY() -
+	double dElementDeltaB = (gridCartesianGLL.GetMaximumY() - 
 							 gridCartesianGLL.GetMinimumY())
 		/ static_cast<double>(m_grid.GetBBaseResolution());
 
-
+	
 	double X0 = gridCartesianGLL.GetMinimumX();
 	double Y0 = gridCartesianGLL.GetMinimumY();
 	GridSpacingGaussLobattoRepeated
@@ -133,7 +131,7 @@ void GridPatchCartesianGLL::EvaluateTopography(
 	const TestCase & test
 ) {
 	const PhysicalConstants & phys = m_grid.GetModel().GetPhysicalConstants();
-
+	
 	// Get the cartesian grid
 	GridCartesianGLL & gridCartesianGLL =
 		dynamic_cast<GridCartesianGLL &>(m_grid);
@@ -186,8 +184,8 @@ void GridPatchCartesianGLL::EvaluateTopography(
 			dDaZs /= GetElementDeltaA();
 			dDbZs /= GetElementDeltaB();
 
-			m_dataTopographyDeriv[0][iA][iB] = dDaZs;
-			m_dataTopographyDeriv[1][iA][iB] = dDbZs;
+			m_dataTopographyDeriv[iA][iB][0] = dDaZs;
+			m_dataTopographyDeriv[iA][iB][1] = dDbZs;
 		}
 		}
 	}
@@ -243,10 +241,10 @@ void GridPatchCartesianGLL::EvaluateGeometricTerms() {
 	// Initialize the Coriolis force at each node
 	bool fCartesianXZ = gridCartesianGLL.GetIsCartesianXZ();
 	double dRefLat = gridCartesianGLL.GetReferenceLatitude();
-	double dy0 = 0.5 * fabs(gridCartesianGLL.GetMaximumY() -
+	double dy0 = 0.5 * fabs(gridCartesianGLL.GetMaximumY() - 
 							gridCartesianGLL.GetMinimumY());
 	double dfp = 2.0 * phys.GetOmega() * sin(dRefLat);
-	double dbetap = 2.0 * phys.GetOmega() * cos(dRefLat) /
+	double dbetap = 2.0 * phys.GetOmega() * cos(dRefLat) / 
 					phys.GetEarthRadius();
 	for (int i = 0; i < m_box.GetATotalWidth(); i++) {
 	for (int j = 0; j < m_box.GetBTotalWidth(); j++) {
@@ -277,8 +275,8 @@ void GridPatchCartesianGLL::EvaluateGeometricTerms() {
 
 			// Topography height and its derivatives
 			double dZs = m_dataTopography[iA][iB];
-			double dDaZs = m_dataTopographyDeriv[0][iA][iB];
-			double dDbZs = m_dataTopographyDeriv[1][iA][iB];
+			double dDaZs = m_dataTopographyDeriv[iA][iB][0];
+			double dDbZs = m_dataTopographyDeriv[iA][iB][1];
 
 			// Initialize 2D Jacobian
 			m_dataJacobian2D[iA][iB] = 1.0;
@@ -303,13 +301,12 @@ void GridPatchCartesianGLL::EvaluateGeometricTerms() {
 				// Gal-Chen and Somerville (1975) terrain following coord
 				// 6th order fancy decay function by Jorge (less noisy)
 				double dREta = m_grid.GetREtaLevel(k);
-//
+/*
 				double dZ = dZs + (m_grid.GetZtop() - dZs) * dREta;
 				double dDaZ = (1.0 - dREta) * dDaZs;
 				double dDbZ = (1.0 - dREta) * dDbZs;
 				double dDxZ = (m_grid.GetZtop() - dZs);
-//
-/*
+*/
 				double power = 6.0;
 				double botRate = 1.0;
 				double dZ = m_grid.GetZtop() * dREta +
@@ -327,15 +324,15 @@ void GridPatchCartesianGLL::EvaluateGeometricTerms() {
 
 				double dDxZ = m_grid.GetZtop() + dZs *
 
-					(-std::pow(std::cos(0.5 * M_PI * dREta), power) -
-						0.25 * dREta * std::sin(0.5 * M_PI * dREta) +
-					(1.0 - botRate * dREta) *
-					(-3.0 * M_PI *
-						std::pow(std::cos(0.5 * M_PI * dREta), power - 1.0) *
+					(-std::pow(std::cos(0.5 * M_PI * dREta), power) - 
+						0.25 * dREta * std::sin(0.5 * M_PI * dREta) + 
+					(1.0 - botRate * dREta) * 
+					(-3.0 * M_PI * 
+						std::pow(std::cos(0.5 * M_PI * dREta), power - 1.0) * 
 						std::sin(0.5 * M_PI * dREta) +
 					0.25 * std::sin(0.5 * M_PI * dREta) +
 					M_PI / 8.0 * dREta * std::cos(0.5 * M_PI * dREta)));
-*/
+
 //printf("%.16E %.16E %.16E %.16E %.16E %.16E \n",m_dataLon[iA][iB],m_dataLat[iA][iB],dZ,dDaZ,dDbZ,dDxZ);
 
 				// Calculate pointwise Jacobian
@@ -383,13 +380,13 @@ void GridPatchCartesianGLL::EvaluateGeometricTerms() {
 				// Gal-Chen and Somerville (1975) terrain following coord
 				// 6th order fancy decay function by Jorge (less noisy)
 				double dREta = m_grid.GetREtaInterface(k);
-//
+/*
 				double dZ = dZs + (m_grid.GetZtop() - dZs) * dREta;
 				double dDaZ = (1.0 - dREta) * dDaZs;
 				double dDbZ = (1.0 - dREta) * dDbZs;
 				double dDxZ = (m_grid.GetZtop() - dZs);
+*/
 //
-/*
 				double power = 6.0;
 				double botRate = 1.0;
 				double dZ = m_grid.GetZtop() * dREta +
@@ -406,15 +403,15 @@ void GridPatchCartesianGLL::EvaluateGeometricTerms() {
 					0.25 * dREta * std::sin(0.5 * M_PI * dREta)) * dDbZs;
 
 				double dDxZ = m_grid.GetZtop() + dZs *
-					(-std::pow(std::cos(0.5 * M_PI * dREta), power) -
-						0.25 * dREta * std::sin(0.5 * M_PI * dREta) +
-					(1.0 - botRate * dREta) *
-					(-3.0 * M_PI *
-						std::pow(std::cos(0.5 * M_PI * dREta), power - 1.0) *
+					(-std::pow(std::cos(0.5 * M_PI * dREta), power) - 
+						0.25 * dREta * std::sin(0.5 * M_PI * dREta) + 
+					(1.0 - botRate * dREta) * 
+					(-3.0 * M_PI * 
+						std::pow(std::cos(0.5 * M_PI * dREta), power - 1.0) * 
 						std::sin(0.5 * M_PI * dREta) +
 					0.25 * std::sin(0.5 * M_PI * dREta) +
 					M_PI / 8.0 * dREta * std::cos(0.5 * M_PI * dREta)));
-*/
+
 //printf("%.16E %.16E %.16E %.16E %.16E %.16E \n",m_dataLon[iA][iB],m_dataLat[iA][iB],dZ,dDaZ,dDbZ,dDxZ);
 
 				// Calculate pointwise Jacobian
@@ -505,7 +502,7 @@ void GridPatchCartesianGLL::EvaluateTestCase(
 		if (m_dataTopography[i][j] >= m_grid.GetZtop()) {
 			_EXCEPTIONT("TestCase topography exceeds model top.");
 		}
-//
+/*
 		// Gal-Chen and Sommerville vertical coordinate
 		for (int k = 0; k < m_grid.GetRElements(); k++) {
 			m_dataZLevels[i][j][k] =
@@ -519,8 +516,8 @@ void GridPatchCartesianGLL::EvaluateTestCase(
 					+ m_grid.GetREtaInterface(k)
 						* (m_grid.GetZtop() - m_dataTopography[i][j]);
 		}
+*/
 //
-/*
 		// 10th order cosine decay with finite bottom slope vertical coordinate
 		double power = 6.0;
 		double botRate = 1.0;
@@ -529,8 +526,8 @@ void GridPatchCartesianGLL::EvaluateTestCase(
 			m_grid.GetZtop() * m_grid.GetREtaLevel(k) +
 				(1.0 - botRate * m_grid.GetREtaLevel(k)) *
 				(std::pow(std::cos(0.5 * M_PI * m_grid.GetREtaLevel(k)), power) +
-				0.25 * m_grid.GetREtaLevel(k) *
-				std::sin(0.5 * M_PI * m_grid.GetREtaLevel(k))) *
+				0.25 * m_grid.GetREtaLevel(k) * 
+				std::sin(0.5 * M_PI * m_grid.GetREtaLevel(k))) * 
 				m_dataTopography[i][j];
 		}
 		for (int k = 0; k <= m_grid.GetRElements(); k++) {
@@ -538,11 +535,11 @@ void GridPatchCartesianGLL::EvaluateTestCase(
 			m_grid.GetZtop() * m_grid.GetREtaInterface(k) +
 				(1.0 - botRate * m_grid.GetREtaInterface(k)) *
 				(std::pow(std::cos(0.5 * M_PI * m_grid.GetREtaInterface(k)), power) +
-				0.25 * m_grid.GetREtaInterface(k) *
-				std::sin(0.5 * M_PI * m_grid.GetREtaInterface(k))) *
+				0.25 * m_grid.GetREtaInterface(k) * 
+				std::sin(0.5 * M_PI * m_grid.GetREtaInterface(k))) * 
 				m_dataTopography[i][j];
 		}
-*/
+//
 	}
 	}
 
@@ -721,7 +718,7 @@ void GridPatchCartesianGLL::ApplyBoundaryConditions(
 		// Impose boundary conditions along right edge
 		Grid::BoundaryCondition eBoundaryRight =
 			m_grid.GetBoundaryCondition(Direction_Right);
-		if ((eBoundaryRight != Grid::BoundaryCondition_Periodic) &&
+		if ((eBoundaryRight != Grid::BoundaryCondition_Periodic) && 
 			(m_box.GetAGlobalEnd() == nGlobalAEndIndex)) {
 			int i = m_box.GetATotalWidth() - 1;
 
@@ -738,10 +735,10 @@ void GridPatchCartesianGLL::ApplyBoundaryConditions(
 						- m_datavecStateNode[iDataIndex][WIx][i-1][j][k];
 				} else if (eBoundaryRight != Grid::BoundaryCondition_NoFlux) {
 					// DSS the local boundary u_beta and u_xi
-					dUb_hat = 0.5 *
+					dUb_hat = 0.5 * 
 						(m_datavecStateNode[iDataIndex][VIx][i][j][k] +
 						m_datavecStateNode[iDataIndex][VIx][i-1][j][k]);
-					dUx_hat = 0.5 *
+					dUx_hat = 0.5 * 
 						(m_datavecStateNode[iDataIndex][WIx][i][j][k] +
 						m_datavecStateNode[iDataIndex][WIx][i-1][j][k]);
 					//dUx_hat *= m_dataDerivRNode[k][i-1][j][2];
@@ -765,7 +762,7 @@ void GridPatchCartesianGLL::ApplyBoundaryConditions(
 		// Impose boundary conditions along top edge
 		Grid::BoundaryCondition eBoundaryTop =
 			m_grid.GetBoundaryCondition(Direction_Top);
-		if ((eBoundaryTop != Grid::BoundaryCondition_Periodic) &&
+		if ((eBoundaryTop != Grid::BoundaryCondition_Periodic) && 
 			(m_box.GetBGlobalEnd() == nGlobalBEndIndex)) {
 			int j = m_box.GetBTotalWidth() - 1;
 
@@ -782,10 +779,10 @@ void GridPatchCartesianGLL::ApplyBoundaryConditions(
 						- m_datavecStateNode[iDataIndex][WIx][i][j-1][k];
 				} else if (eBoundaryTop != Grid::BoundaryCondition_NoFlux) {
 					// DSS the local boundary u_alpha and u_xi
-					dUa_hat = 0.5 *
+					dUa_hat = 0.5 * 
 						(m_datavecStateNode[iDataIndex][UIx][i][j][k] +
 						m_datavecStateNode[iDataIndex][UIx][i][j-1][k]);
-					dUx_hat = 0.5 *
+					dUx_hat = 0.5 * 
 						(m_datavecStateNode[iDataIndex][WIx][i][j][k] +
 						m_datavecStateNode[iDataIndex][WIx][i][j-1][k]);
 					//dUx_hat *= m_dataDerivRNode[i][j-1][k][2];
@@ -810,7 +807,7 @@ void GridPatchCartesianGLL::ApplyBoundaryConditions(
 		// Impose boundary conditions along left edge
 		Grid::BoundaryCondition eBoundaryLeft =
 			m_grid.GetBoundaryCondition(Direction_Left);
-		if ((eBoundaryLeft != Grid::BoundaryCondition_Periodic) &&
+		if ((eBoundaryLeft != Grid::BoundaryCondition_Periodic) && 
 			(m_box.GetAGlobalBegin() == nGlobalABeginIndex)) {
 			int i = 0;
 
@@ -827,10 +824,10 @@ void GridPatchCartesianGLL::ApplyBoundaryConditions(
 						- m_datavecStateNode[iDataIndex][WIx][i+1][j][k];
 				} else if (eBoundaryLeft == Grid::BoundaryCondition_NoFlux) {
 					// DSS the local boundary u_beta and u_xi
-					dUb_hat = 0.5 *
+					dUb_hat = 0.5 * 
 						(m_datavecStateNode[iDataIndex][VIx][i][j][k] +
 						m_datavecStateNode[iDataIndex][VIx][i+1][j][k]);
-					dUx_hat = 0.5 *
+					dUx_hat = 0.5 * 
 						(m_datavecStateNode[iDataIndex][WIx][i][j][k] +
 						m_datavecStateNode[iDataIndex][WIx][i+1][j][k]);
 					//dUx_hat *= m_dataDerivRNode[i+1][j][k][2];
@@ -854,7 +851,7 @@ void GridPatchCartesianGLL::ApplyBoundaryConditions(
 		// Impose boundary conditions along bottom edge
 		Grid::BoundaryCondition eBoundaryBottom =
 			m_grid.GetBoundaryCondition(Direction_Bottom);
-		if ((eBoundaryBottom != Grid::BoundaryCondition_Periodic) &&
+		if ((eBoundaryBottom != Grid::BoundaryCondition_Periodic) && 
 			(m_box.GetBGlobalBegin() == nGlobalBBeginIndex)) {
 			int j = 0;
 
@@ -871,10 +868,10 @@ void GridPatchCartesianGLL::ApplyBoundaryConditions(
 						- m_datavecStateNode[iDataIndex][WIx][i][j+1][k];
 				} else if (eBoundaryBottom == Grid::BoundaryCondition_NoFlux) {
 					// DSS the local boundary u_alpha and u_xi
-					dUa_hat = 0.5 *
+					dUa_hat = 0.5 * 
 						(m_datavecStateNode[iDataIndex][UIx][i][j][k] +
 						m_datavecStateNode[iDataIndex][UIx][i][j+1][k]);
-					dUx_hat = 0.5 *
+					dUx_hat = 0.5 * 
 						(m_datavecStateNode[iDataIndex][WIx][i][j][k] +
 						m_datavecStateNode[iDataIndex][WIx][i][j+1][k]);
 					//dUx_hat *= m_dataDerivRNode[i][j+1][k][2];
@@ -900,10 +897,10 @@ void GridPatchCartesianGLL::ApplyBoundaryConditions(
 		// Impose boundary conditions along right (alpha+) edge
 		Grid::BoundaryCondition eBoundaryRight =
 			m_grid.GetBoundaryCondition(Direction_Right);
-		if ((eBoundaryRight != Grid::BoundaryCondition_Periodic) &&
+		if ((eBoundaryRight != Grid::BoundaryCondition_Periodic) && 
 			(m_box.GetAGlobalEnd() == nGlobalAEndIndex)) {
 			int i = m_box.GetATotalWidth() - 1;
-
+			
 			for (int j = 0; j < m_box.GetBTotalWidth(); j++) {
 			for (int k = 0; k < m_grid.GetRElements(); k++) {
 				if (eBoundaryRight == Grid::BoundaryCondition_NoSlip) {
@@ -917,10 +914,10 @@ void GridPatchCartesianGLL::ApplyBoundaryConditions(
 						- m_datavecStateNode[iDataIndex][WIx][i-1][j][k];
 				} else if (eBoundaryRight == Grid::BoundaryCondition_NoFlux) {
 					// DSS the local boundary u_beta and u_xi
-					dUb_hat = 0.5 *
+					dUb_hat = 0.5 * 
 						(m_datavecStateNode[iDataIndex][VIx][i][j][k] +
 						m_datavecStateNode[iDataIndex][VIx][i-1][j][k]);
-					dUx_hat = 0.5 *
+					dUx_hat = 0.5 * 
 						(m_datavecStateNode[iDataIndex][WIx][i][j][k] +
 						m_datavecStateNode[iDataIndex][WIx][i-1][j][k]);
 					//dUx_hat *= m_dataDerivRNode[i-1][j][k][2];
@@ -951,10 +948,10 @@ void GridPatchCartesianGLL::ApplyBoundaryConditions(
 						- m_datavecStateREdge[iDataIndex][WIx][i-1][j][k];
 				} else if (eBoundaryRight == Grid::BoundaryCondition_NoFlux) {
 					// DSS the local boundary u_beta and u_xi
-					dUb_hat = 0.5 *
+					dUb_hat = 0.5 * 
 						(m_datavecStateREdge[iDataIndex][VIx][i][j][k] +
 						m_datavecStateREdge[iDataIndex][VIx][i-1][j][k]);
-					dUx_hat = 0.5 *
+					dUx_hat = 0.5 * 
 						(m_datavecStateREdge[iDataIndex][WIx][i][j][k] +
 						m_datavecStateREdge[iDataIndex][WIx][i-1][j][k]);
 					//dUx_hat *= m_dataDerivRREdge[i-1][j][k][2];
@@ -978,7 +975,7 @@ void GridPatchCartesianGLL::ApplyBoundaryConditions(
 		// Impose boundary conditions along top (beta+) edge
 		Grid::BoundaryCondition eBoundaryTop =
 			m_grid.GetBoundaryCondition(Direction_Top);
-		if ((eBoundaryTop != Grid::BoundaryCondition_Periodic) &&
+		if ((eBoundaryTop != Grid::BoundaryCondition_Periodic) && 
 			(m_box.GetBGlobalEnd() == nGlobalBEndIndex)) {
 			int j = m_box.GetBTotalWidth() - 1;
 
@@ -995,10 +992,10 @@ void GridPatchCartesianGLL::ApplyBoundaryConditions(
 						- m_datavecStateNode[iDataIndex][WIx][i][j-1][k];
 				} else if (eBoundaryTop == Grid::BoundaryCondition_NoFlux) {
 					// DSS the local boundary u_alpha and u_xi
-					dUa_hat = 0.5 *
+					dUa_hat = 0.5 * 
 						(m_datavecStateNode[iDataIndex][UIx][i][j][k] +
 						m_datavecStateNode[iDataIndex][UIx][i][j-1][k]);
-					dUx_hat = 0.5 *
+					dUx_hat = 0.5 * 
 						(m_datavecStateNode[iDataIndex][WIx][i][j][k] +
 						m_datavecStateNode[iDataIndex][WIx][i][j-1][k]);
 					//dUx_hat *= m_dataDerivRNode[i][j-1][k][2];
@@ -1029,10 +1026,10 @@ void GridPatchCartesianGLL::ApplyBoundaryConditions(
 						- m_datavecStateREdge[iDataIndex][WIx][i][j-1][k];
 				} else if (eBoundaryTop == Grid::BoundaryCondition_NoFlux) {
 					// DSS the local boundary u_alpha and u_xi
-					dUa_hat = 0.5 *
+					dUa_hat = 0.5 * 
 						(m_datavecStateREdge[iDataIndex][UIx][i][j][k] +
 						m_datavecStateREdge[iDataIndex][UIx][i][j-1][k]);
-					dUx_hat = 0.5 *
+					dUx_hat = 0.5 * 
 						(m_datavecStateREdge[iDataIndex][WIx][i][j][k] +
 						m_datavecStateREdge[iDataIndex][WIx][i][j-1][k]);
 					//dUx_hat *= m_dataDerivRREdge[i][j-1][k][2];
@@ -1056,10 +1053,10 @@ void GridPatchCartesianGLL::ApplyBoundaryConditions(
 		// Impose boundary conditions along left (alpha-) edge
 		Grid::BoundaryCondition eBoundaryLeft =
 			m_grid.GetBoundaryCondition(Direction_Left);
-		if ((eBoundaryLeft != Grid::BoundaryCondition_Periodic) &&
+		if ((eBoundaryLeft != Grid::BoundaryCondition_Periodic) && 
 			(m_box.GetAGlobalBegin() == nGlobalABeginIndex)) {
 			int i = 0;
-
+			
 			for (int j = 0; j < m_box.GetBTotalWidth(); j++) {
 			for (int k = 0; k < m_grid.GetRElements(); k++) {
 				if (eBoundaryLeft == Grid::BoundaryCondition_NoSlip) {
@@ -1073,10 +1070,10 @@ void GridPatchCartesianGLL::ApplyBoundaryConditions(
 						- m_datavecStateNode[iDataIndex][WIx][i+1][j][k];
 				} else if (eBoundaryLeft == Grid::BoundaryCondition_NoFlux) {
 					// DSS the local boundary u_beta and u_xi
-					dUb_hat = 0.5 *
+					dUb_hat = 0.5 * 
 						(m_datavecStateNode[iDataIndex][VIx][i][j][k] +
 						m_datavecStateNode[iDataIndex][VIx][i+1][j][k]);
-					dUx_hat = 0.5 *
+					dUx_hat = 0.5 * 
 						(m_datavecStateNode[iDataIndex][WIx][i][j][k] +
 						m_datavecStateNode[iDataIndex][WIx][i+1][j][k]);
 					//dUx_hat *= m_dataDerivRNode[i+1][j][k][2];
@@ -1107,10 +1104,10 @@ void GridPatchCartesianGLL::ApplyBoundaryConditions(
 						- m_datavecStateREdge[iDataIndex][WIx][i+1][j][k];
 				} else if (eBoundaryLeft == Grid::BoundaryCondition_NoFlux) {
 					// DSS the local boundary u_beta and u_xi
-					dUb_hat = 0.5 *
+					dUb_hat = 0.5 * 
 						(m_datavecStateREdge[iDataIndex][VIx][i][j][k] +
 						m_datavecStateREdge[iDataIndex][VIx][i+1][j][k]);
-					dUx_hat = 0.5 *
+					dUx_hat = 0.5 * 
 						(m_datavecStateREdge[iDataIndex][WIx][i][j][k] +
 						m_datavecStateREdge[iDataIndex][WIx][i+1][j][k]);
 					//dUx_hat *= m_dataDerivRREdge[i+1][j][k][2];
@@ -1134,10 +1131,10 @@ void GridPatchCartesianGLL::ApplyBoundaryConditions(
 		// Impose boundary conditions along bottom (beta-) edge
 		Grid::BoundaryCondition eBoundaryBottom =
 			m_grid.GetBoundaryCondition(Direction_Bottom);
-		if ((eBoundaryBottom != Grid::BoundaryCondition_Periodic) &&
+		if ((eBoundaryBottom != Grid::BoundaryCondition_Periodic) && 
 			(m_box.GetBGlobalBegin() == nGlobalBBeginIndex)) {
 			int j = 0;
-
+			
 			for (int i = 0; i < m_box.GetATotalWidth(); i++) {
 			for (int k = 0; k < m_grid.GetRElements(); k++) {
 				if (eBoundaryBottom == Grid::BoundaryCondition_NoSlip) {
@@ -1151,10 +1148,10 @@ void GridPatchCartesianGLL::ApplyBoundaryConditions(
 						- m_datavecStateNode[iDataIndex][WIx][i][j+1][k];
 				} else if (eBoundaryBottom == Grid::BoundaryCondition_NoFlux) {
 					// DSS the local boundary u_alpha and u_xi
-					dUa_hat = 0.5 *
+					dUa_hat = 0.5 * 
 						(m_datavecStateNode[iDataIndex][UIx][i][j][k] +
 						m_datavecStateNode[iDataIndex][UIx][i][j+1][k]);
-					dUx_hat = 0.5 *
+					dUx_hat = 0.5 * 
 						(m_datavecStateNode[iDataIndex][WIx][i][j][k] +
 						m_datavecStateNode[iDataIndex][WIx][i][j+1][k]);
 					//dUx_hat *= m_dataDerivRNode[i][j+1][k][2];
@@ -1185,10 +1182,10 @@ void GridPatchCartesianGLL::ApplyBoundaryConditions(
 						- m_datavecStateREdge[iDataIndex][WIx][i][j+1][k];
 				} else if (eBoundaryBottom == Grid::BoundaryCondition_NoFlux) {
 					// DSS the local boundary u_alpha and u_xi
-					dUa_hat = 0.5 *
+					dUa_hat = 0.5 * 
 						(m_datavecStateREdge[iDataIndex][UIx][i][j][k] +
 						m_datavecStateREdge[iDataIndex][UIx][i][j+1][k]);
-					dUx_hat = 0.5 *
+					dUx_hat = 0.5 * 
 						(m_datavecStateREdge[iDataIndex][WIx][i][j][k] +
 						m_datavecStateREdge[iDataIndex][WIx][i][j+1][k]);
 					//dUx_hat *= m_dataDerivRREdge[i][j+1][k][2];
@@ -1765,3 +1762,4 @@ void GridPatchCartesianGLL::TransformTopographyDeriv() {
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+

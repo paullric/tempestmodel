@@ -272,7 +272,7 @@ void GridPatchCSGLL::EvaluateTopography(
 			dDbZs /= GetElementDeltaB();
 
 			m_dataTopographyDeriv(iA,iB,0) = dDaZs;
-			m_dataTopographyDeriv(1,iA,iB) = dDbZs;
+			m_dataTopographyDeriv(iA,iB,1) = dDbZs;
 		}
 		}
 	}
@@ -365,7 +365,7 @@ void GridPatchCSGLL::EvaluateGeometricTerms() {
 		// Topography height and its derivatives
 		double dZs = m_dataTopography(iA,iB);
 		double dDaZs = m_dataTopographyDeriv(iA,iB,0);
-		double dDbZs = m_dataTopographyDeriv(1,iA,iB);
+		double dDbZs = m_dataTopographyDeriv(iA,iB,1);
 
 		// 2D equations
 		if (fIs2DEquationSet) {
@@ -1755,7 +1755,7 @@ void GridPatchCSGLL::TransformTopographyDeriv() {
 				ixRightPanel,
 				m_box.GetPanel(),
 				m_dataTopographyDeriv(i,j,0),
-				m_dataTopographyDeriv(1,i,j),
+				m_dataTopographyDeriv(i,j,1),
 				tan(m_dANode[i]),
 				tan(m_dBNode[j]));
 		}
@@ -1775,7 +1775,7 @@ void GridPatchCSGLL::TransformTopographyDeriv() {
 				ixTopPanel,
 				m_box.GetPanel(),
 				m_dataTopographyDeriv(i,j,0),
-				m_dataTopographyDeriv(1,i,j),
+				m_dataTopographyDeriv(i,j,1),
 				tan(m_dANode[i]),
 				tan(m_dBNode[j]));
 		}
@@ -1795,7 +1795,7 @@ void GridPatchCSGLL::TransformTopographyDeriv() {
 				ixLeftPanel,
 				m_box.GetPanel(),
 				m_dataTopographyDeriv(i,j,0),
-				m_dataTopographyDeriv(1,i,j),
+				m_dataTopographyDeriv(i,j,1),
 				tan(m_dANode[i]),
 				tan(m_dBNode[j]));
 		}
@@ -1815,7 +1815,7 @@ void GridPatchCSGLL::TransformTopographyDeriv() {
 				ixBottomPanel,
 				m_box.GetPanel(),
 				m_dataTopographyDeriv(i,j,0),
-				m_dataTopographyDeriv(1,i,j),
+				m_dataTopographyDeriv(i,j,1),
 				tan(m_dANode[i]),
 				tan(m_dBNode[j]));
 		}
