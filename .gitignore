@@ -47,9 +47,3 @@ util/MountainWavesSphere/GenerateScharTopography
 util/MountainWavesSphere/GenerateWaveTopography
 test/dcmip2016/out*
 util/CFConverter/CFConverter
-
-test/nonhydro_xz/ThermalBubbleCartesian3DTest
-
-test/nonhydro_xz/ShearJetMtnWave2DCartesianTest
-
-test/nonhydro_xz/ShearJetMtnWave3DCartesianTest

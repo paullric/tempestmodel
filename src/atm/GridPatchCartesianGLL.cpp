@@ -550,16 +550,18 @@ void GridPatchCartesianGLL::EvaluateTestCase(
 		for (int i = 0; i < m_box.GetATotalWidth(); i++) {
 		for (int j = 0; j < m_box.GetBTotalWidth(); j++) {
 			for (int k = 0; k < m_grid.GetRElements(); k++) {
+				//m_dataZLevels[i][j][k],
 				m_dataRayleighStrengthNode[i][j][k] =
 					test.EvaluateRayleighStrength(
-						m_dataZLevels[i][j][k],
+						m_grid.GetREtaLevel(k),
 						m_dataLon[i][j],
 						m_dataLat[i][j]);
 			}
-			for (int k = 0; k < m_grid.GetRElements(); k++) {
+			for (int k = 0; k <= m_grid.GetRElements(); k++) {
+				//m_dataZInterfaces[i][j][k],
 				m_dataRayleighStrengthREdge[i][j][k] =
 					test.EvaluateRayleighStrength(
-						m_dataZInterfaces[i][j][k],
+						m_grid.GetREtaInterface(k),
 						m_dataLon[i][j],
 						m_dataLat[i][j]);
 			}

@@ -20,7 +20,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 ///	<summary>
-///		Giraldo, Ullrich (2016)
+///		Giraldo et al. (2007)
 ///
 ///		Thermal rising bubble test case.
 ///	</summary>
@@ -41,16 +41,6 @@ public:
 	///		Parameter reference height for topography disturbance
 	///	</summary>
 	double m_dhC;
-
-	///	<summary>
-	///		Rayleigh layer depth.
-	///	</summary>
-	double m_dRayleighDepth;
-
-	///	<summary>
-	///		Rayleigh layer nominal strength.
-	///	</summary>
-	double m_dRayleighStrength;
 
 private:
 
@@ -78,7 +68,7 @@ private:
 	///		Assumed lapse rate of absolute temperature (stratosphere)
 	///	</summary>
 	double m_ddTdzSTR;
-	
+
 	///	<summary>
 	///		Reference constant surface absolute temperature
 	///	</summary>
@@ -149,11 +139,6 @@ private:
 	///	</summary>
 	double m_dTPEta2;
 
-	///	<summary>
-	///		Sigma coordinate value at the top of the domain.
-	///	</summary>
-	double m_dZtEta;
-
 	///<summary>
 	///		Uniform diffusion coefficient for scalars.
 	///</summary>
@@ -204,11 +189,7 @@ public:
 		m_dGDim[2] = -100.0;
 		m_dGDim[3] = 100.0;
 		m_dGDim[4] = 0.0;
-		m_dGDim[5] = 30000.0;
-
-		// Set the Rayleigh layer depth and nominal strength
-		m_dRayleighDepth = 6000.0;
-		m_dRayleighStrength = 1.0E-2;
+		m_dGDim[5] = 35000.0;
 
 		// Set the center of the domain in Y
 		m_dY0 = 0.5 * (m_dGDim[3] - m_dGDim[2]);
@@ -230,17 +211,11 @@ public:
 
 		// Get the pressure level at the top of the mixed layer
 		dEta = EtaFromRLL(
-			phys, m_dTPHeight + m_dTPMixedLayerH, 0.0, 0.0, 
+			phys, m_dTPHeight + m_dTPMixedLayerH, 0.0, 0.0,
 			dGeopotential, dTemperature);
 		m_dTPTemp2 = dTemperature;
 		m_dTPEta2 = dEta;
 		m_dTPPhi2 = dGeopotential;
-
-		// Get the eta level at the very top of the domain
-		dEta = EtaFromRLL(
-			phys, m_dGDim[5], 0.0, 0.0, 
-			dGeopotential, dTemperature);
-		m_dZtEta = dEta;
 
 		// Set the boundary conditions for this test
 		m_iLatBC[0] = Grid::BoundaryCondition_Periodic;
@@ -306,34 +281,28 @@ public:
 
 		return hsm;
 	}
-
+//
+/*
+	///	<summary>
+	///		Evaluate the topography at the given point. (cartesian version)
+	///	</summary>
+	virtual double EvaluateTopography(
+		const PhysicalConstants & phys,
+		double dXp,
+		double dYp
+	) const {
+		// Specify the Linear Mountain (case 6 from Giraldo et al. 2008)
+		double hsm = m_dhC / (1.0 + ((dXp - 0.0)/m_daC) * ((dXp - 0.0)/m_daC) *
+									((dXp - 0.0)/m_daC) * ((dXp - 0.0)/m_daC));
+		//std::cout << hsm << "\n";
+		return hsm;
+	}
+*/
 	///	<summary>
 	///		Flag indicating whether or not Rayleigh friction strength is given.
 	///	</summary>
 	virtual bool HasRayleighFriction() const {
 		return !m_fNoRayleighFriction;
-	}
-
-	///	<summary>
-	///		Get the depth of the Rayleigh layer
-	///	</summary>
-	virtual double GetRayleighDepth() const {
-		if (!m_fNoRayleighFriction) {
-			return m_dRayleighDepth;
-		} else {
-			return 0.0;
-		}
-	}
-
-	///	<summary>
-	///		Get the strength of the Rayleigh layer
-	///	</summary>
-	virtual double GetRayleighStrength() const {
-		if (!m_fNoRayleighFriction) {
-			return m_dRayleighStrength;
-		} else {
-			return 0.0;
-		}
 	}
 
 	///	<summary>
@@ -347,44 +316,41 @@ public:
 		const double dRayleighStrengthZ = 1.0E-2;//8.0e-3;
 		const double dRayleighStrengthX = 1.0 * dRayleighStrengthZ;
 		const double dRayleighDepth = 6000.0;
-		const double dRayDepthXi = dRayleighDepth / m_dGDim[5];
 		const double dRayleighWidth = 6000.0;
+		const double dRayDepthXi = dRayleighDepth / m_dGDim[5];
 
 		double dNuDepth = 0.0;
 		double dNuRight = 0.0;
 		double dNuLeft  = 0.0;
-		double dNu = 0.0;
 
-		// Using cosine ramp up
+		double dLayerZ = m_dGDim[5] - dRayleighDepth;
 		double dLayerZ = 1.0 - dRayDepthXi;
-//		double dLayerZ = m_dGDim[5] - dRayleighDepth;
-		double dLayerR = m_dGDim[1] - dRayleighWidth;
-		double dLayerL = m_dGDim[0] + dRayleighWidth;
+		//double dLayerZ = m_dGDim[5] - dRayleighDepth;
+ 		double dLayerR = m_dGDim[1] - dRayleighWidth;
+ 		double dLayerL = m_dGDim[0] + dRayleighWidth;
+
 		if (dZ > dLayerZ) {
+			//double dNormZ = (m_dGDim[5] - dZ) / dRayleighDepth;
 			double dNormZ = (1.0 - dZ) / dRayDepthXi;
 			dNuDepth = 0.5 * dRayleighStrengthZ * (1.0 + cos(M_PI * dNormZ));
-			dNu = dNuDepth;
 		}
 		if (dXp > dLayerR) {
 			double dNormX = (m_dGDim[1] - dXp) / dRayleighWidth;
 			dNuRight = 0.5 * dRayleighStrengthX * (1.0 + cos(M_PI * dNormX));
-			//dNu = dNuRight;
 		}
 		if (dXp < dLayerL) {
 			double dNormX = (dXp - m_dGDim[0]) / dRayleighWidth;
 			dNuLeft = 0.5 * dRayleighStrengthX * (1.0 + cos(M_PI * dNormX));
-			dNu = dNuLeft;
 		}
 
-		// Handle the corners of the layer domain
-		if ((dZ > dLayerZ) && (dXp > dLayerR)) {
-			dNu = sqrt(dNuDepth * dNuDepth + dNuRight * dNuRight);
+		//std::cout << dXp << ' ' << dZ << ' ' << dNuDepth << std::endl;
+		if ((dNuDepth >= dNuRight) && (dNuDepth >= dNuLeft)) {
+			return dNuDepth;
 		}
-
-		if ((dZ > dLayerZ) && (dXp < dLayerL)) {
-			dNu = sqrt(dNuDepth * dNuDepth + dNuLeft * dNuLeft);
+		if (dNuRight >= dNuLeft) {
+			return dNuRight;
 		}
-		return dNu;
+		return dNuLeft;
 	}
 
 	///	<summary>
@@ -428,20 +394,20 @@ public:
 		if (dZp <= m_dTPHeight) {
 			dAvgTemperature = m_dT0 * pow(dEta, dRd * m_ddTdz / dG);
 			dAvgGeopotential =
-					m_dT0 * dG / m_ddTdz * 
+					m_dT0 * dG / m_ddTdz *
 					(1.0 - pow(dEta, dRd * m_ddTdz / dG));
 		}
 		else if ((dZp > m_dTPHeight)&&(dZp <= m_dTPHeight + m_dTPMixedLayerH)) {
 			dAvgTemperature = m_dTPTemp1;
-			dAvgGeopotential = -dRd * m_dTPTemp1 * log(dEta) + 
+			dAvgGeopotential = -dRd * m_dTPTemp1 * log(dEta) +
 								dRd * m_dTPTemp1 * log(m_dTPEta1) + m_dTPPhi1;
 		}
 		else if (dZp > m_dTPHeight + m_dTPMixedLayerH) {
-			dAvgTemperature = m_dTPTemp1 * 
+			dAvgTemperature = m_dTPTemp1 *
 					pow((dEta / m_dTPEta2), dRd * m_ddTdzSTR / dG);
 			dAvgGeopotential =
-					m_dTPTemp1 * dG / m_ddTdzSTR * 
-					(1.0 - pow((dEta / m_dTPEta2), dRd * m_ddTdzSTR / dG)) 
+					m_dTPTemp1 * dG / m_ddTdzSTR *
+					(1.0 - pow((dEta / m_dTPEta2), dRd * m_ddTdzSTR / dG))
 					+ m_dTPPhi2;
 		}
 
@@ -455,7 +421,7 @@ public:
 		// Total geopotential distribution
 		dGeopotential = dAvgGeopotential + dXYGeopotential*
 			dRefProfile1 * dExpDecay;
-		
+
 		// Total temperature distribution
 		dTemperature = dAvgTemperature + dXYGeopotential / dRd *
 			dRefProfile2 * dExpDecay;
@@ -536,22 +502,10 @@ public:
 			phys, dZp, dXp, dYp, dGeopotential, dTemperature);
 
 		// Calculate zonal velocity and set other velocity components
-
-		// Tropospheric branch of the jet
 		double dExpDecay = exp(-(log(dEta) / m_dbC) * (log(dEta) / m_dbC));
-		double dUlon = -m_dUj * log(dEta) * dExpDecay;
+		double dUlon = -m_dUj * 0.5 * log(dEta) * dExpDecay;
 
-		dState[0] = m_dU0 + dUlon;
-
-		// Stratospheric branch of the jet (10% width)
-		double dZSJ = dZp - (0.6 * m_dGDim[5]);
-		double dJW = 0.1 * m_dGDim[5];
-		dExpDecay = m_dUj * exp(-(dZSJ / dJW) * (dZSJ / dJW));
-		dUlon = dExpDecay;
-
-		//std::cout << m_dZtEta << std::endl;
-
-		//dState[0] += dUlon;
+		dState[0] = dUlon + m_dU0;
 		dState[1] = 0.0;
 		dState[3] = 0.0;
 
@@ -599,7 +553,7 @@ int main(int argc, char** argv) {
 try {
 	// Nondimensional vertical width parameter
 	double dbC;
-	
+
 	// Uniform zonal velocity
 	double dU0;
 
@@ -638,9 +592,9 @@ try {
 		SetDefaultResolutionX(288);
 		SetDefaultResolutionY(48);
 		SetDefaultLevels(32);
-		SetDefaultOutputDeltaT("15m");
-		SetDefaultDeltaT("1s");
-		SetDefaultEndTime("10h");
+		SetDefaultOutputDeltaT("3h");
+		SetDefaultDeltaT("300s");
+		SetDefaultEndTime("12d");
 		SetDefaultHorizontalOrder(4);
 		SetDefaultVerticalOrder(1);
 
@@ -684,7 +638,7 @@ try {
 				fNoRayleighFriction);
 
 	// Setup the cartesian model with dimensions and reference latitude
-	TempestSetupCartesianModel(model, test->m_dGDim, 0.0, 
+	TempestSetupCartesianModel(model, test->m_dGDim, 0.0,
 								test->m_iLatBC, true);
 
 	// Set the reference length to reduce diffusion relative to global scale
@@ -721,4 +675,3 @@ try {
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-
