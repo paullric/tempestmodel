@@ -323,7 +323,7 @@ public:
 		double dNuRight = 0.0;
 		double dNuLeft  = 0.0;
 
-		double dLayerZ = m_dGDim[5] - dRayleighDepth;
+		//double dLayerZ = m_dGDim[5] - dRayleighDepth;
 		double dLayerZ = 1.0 - dRayDepthXi;
 		//double dLayerZ = m_dGDim[5] - dRayleighDepth;
  		double dLayerR = m_dGDim[1] - dRayleighWidth;
