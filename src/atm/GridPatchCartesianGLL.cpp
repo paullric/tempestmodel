@@ -303,12 +303,13 @@ void GridPatchCartesianGLL::EvaluateGeometricTerms() {
 				// Gal-Chen and Somerville (1975) terrain following coord
 				// 6th order fancy decay function by Jorge (less noisy)
 				double dREta = m_grid.GetREtaLevel(k);
-/*
+//
 				double dZ = dZs + (m_grid.GetZtop() - dZs) * dREta;
 				double dDaZ = (1.0 - dREta) * dDaZs;
 				double dDbZ = (1.0 - dREta) * dDbZs;
 				double dDxZ = (m_grid.GetZtop() - dZs);
-*/
+//
+/*
 				double power = 6.0;
 				double botRate = 1.0;
 				double dZ = m_grid.GetZtop() * dREta +
@@ -334,7 +335,7 @@ void GridPatchCartesianGLL::EvaluateGeometricTerms() {
 						std::sin(0.5 * M_PI * dREta) +
 					0.25 * std::sin(0.5 * M_PI * dREta) +
 					M_PI / 8.0 * dREta * std::cos(0.5 * M_PI * dREta)));
-
+*/
 //printf("%.16E %.16E %.16E %.16E %.16E %.16E \n",m_dataLon[iA][iB],m_dataLat[iA][iB],dZ,dDaZ,dDbZ,dDxZ);
 
 				// Calculate pointwise Jacobian
@@ -382,13 +383,13 @@ void GridPatchCartesianGLL::EvaluateGeometricTerms() {
 				// Gal-Chen and Somerville (1975) terrain following coord
 				// 6th order fancy decay function by Jorge (less noisy)
 				double dREta = m_grid.GetREtaInterface(k);
-/*
+//
 				double dZ = dZs + (m_grid.GetZtop() - dZs) * dREta;
 				double dDaZ = (1.0 - dREta) * dDaZs;
 				double dDbZ = (1.0 - dREta) * dDbZs;
 				double dDxZ = (m_grid.GetZtop() - dZs);
-*/
 //
+/*
 				double power = 6.0;
 				double botRate = 1.0;
 				double dZ = m_grid.GetZtop() * dREta +
@@ -413,7 +414,7 @@ void GridPatchCartesianGLL::EvaluateGeometricTerms() {
 						std::sin(0.5 * M_PI * dREta) +
 					0.25 * std::sin(0.5 * M_PI * dREta) +
 					M_PI / 8.0 * dREta * std::cos(0.5 * M_PI * dREta)));
-
+*/
 //printf("%.16E %.16E %.16E %.16E %.16E %.16E \n",m_dataLon[iA][iB],m_dataLat[iA][iB],dZ,dDaZ,dDbZ,dDxZ);
 
 				// Calculate pointwise Jacobian
@@ -504,7 +505,7 @@ void GridPatchCartesianGLL::EvaluateTestCase(
 		if (m_dataTopography[i][j] >= m_grid.GetZtop()) {
 			_EXCEPTIONT("TestCase topography exceeds model top.");
 		}
-/*
+//
 		// Gal-Chen and Sommerville vertical coordinate
 		for (int k = 0; k < m_grid.GetRElements(); k++) {
 			m_dataZLevels[i][j][k] =
@@ -518,9 +519,9 @@ void GridPatchCartesianGLL::EvaluateTestCase(
 					+ m_grid.GetREtaInterface(k)
 						* (m_grid.GetZtop() - m_dataTopography[i][j]);
 		}
-*/
 //
-		// 10th order cosine decay with finite bottom slope vertical coordinate
+/*
+		// 6th order cosine decay with finite bottom slope vertical coordinate
 		double power = 6.0;
 		double botRate = 1.0;
 		for (int k = 0; k < m_grid.GetRElements(); k++) {
@@ -541,7 +542,7 @@ void GridPatchCartesianGLL::EvaluateTestCase(
 				std::sin(0.5 * M_PI * m_grid.GetREtaInterface(k))) *
 				m_dataTopography[i][j];
 		}
-//
+*/
 	}
 	}
 
