@@ -358,9 +358,9 @@ void GridPatch::InitializeDataLocal(
 	m_dcActiveState.PushDataChunk(&m_datavecStateREdge[0]);
 
 	for (int m = 1; m < model.GetComponentDataInstances(); m++) {
-  	m_dcBufferState.PushDataChunk(&m_datavecStateNode[m]);
-    m_dcBufferState.PushDataChunk(&m_datavecStateREdge[m]);
-  }
+  		m_dcBufferState.PushDataChunk(&m_datavecStateNode[m]);
+    		m_dcBufferState.PushDataChunk(&m_datavecStateREdge[m]);
+  	}
 
 	// Initialize component residual data
 	m_datavecResidualNode .resize(3);
