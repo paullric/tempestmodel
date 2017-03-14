@@ -78,7 +78,7 @@ private:
 	///		Assumed lapse rate of absolute temperature (stratosphere)
 	///	</summary>
 	double m_ddTdzSTR;
-
+	
 	///	<summary>
 	///		Reference constant surface absolute temperature
 	///	</summary>
@@ -199,12 +199,12 @@ public:
 		m_dpiC = M_PI;
 
 		// Set the dimensions of the box
-		m_dGDim[0] = -80000.0;
-		m_dGDim[1] = 80000.0;
-		m_dGDim[2] = -50.0;
-		m_dGDim[3] = 50.0;
+		m_dGDim[0] = -56000.0;
+		m_dGDim[1] = 56000.0;
+		m_dGDim[2] = -100.0;
+		m_dGDim[3] = 100.0;
 		m_dGDim[4] = 0.0;
-		m_dGDim[5] = 35000.0;
+		m_dGDim[5] = 30000.0;
 
 		// Set the Rayleigh layer depth and nominal strength
 		m_dRayleighDepth = 6000.0;
@@ -230,7 +230,7 @@ public:
 
 		// Get the pressure level at the top of the mixed layer
 		dEta = EtaFromRLL(
-			phys, m_dTPHeight + m_dTPMixedLayerH, 0.0, 0.0,
+			phys, m_dTPHeight + m_dTPMixedLayerH, 0.0, 0.0, 
 			dGeopotential, dTemperature);
 		m_dTPTemp2 = dTemperature;
 		m_dTPEta2 = dEta;
@@ -238,7 +238,7 @@ public:
 
 		// Get the eta level at the very top of the domain
 		dEta = EtaFromRLL(
-			phys, m_dGDim[5], 0.0, 0.0,
+			phys, m_dGDim[5], 0.0, 0.0, 
 			dGeopotential, dTemperature);
 		m_dZtEta = dEta;
 
@@ -346,9 +346,9 @@ public:
 	) const {
 		const double dRayleighStrengthZ = 1.0E-2;//8.0e-3;
 		const double dRayleighStrengthX = 1.0 * dRayleighStrengthZ;
-		const double dRayleighDepth = 10000.0;
+		const double dRayleighDepth = 6000.0;
 		const double dRayDepthXi = dRayleighDepth / m_dGDim[5];
-		const double dRayleighWidth = 10000.0;
+		const double dRayleighWidth = 6000.0;
 
 		double dNuDepth = 0.0;
 		double dNuRight = 0.0;
@@ -368,7 +368,7 @@ public:
 		if (dXp > dLayerR) {
 			double dNormX = (m_dGDim[1] - dXp) / dRayleighWidth;
 			dNuRight = 0.5 * dRayleighStrengthX * (1.0 + cos(M_PI * dNormX));
-			dNu = dNuRight;
+			//dNu = dNuRight;
 		}
 		if (dXp < dLayerL) {
 			double dNormX = (dXp - m_dGDim[0]) / dRayleighWidth;
@@ -428,20 +428,20 @@ public:
 		if (dZp <= m_dTPHeight) {
 			dAvgTemperature = m_dT0 * pow(dEta, dRd * m_ddTdz / dG);
 			dAvgGeopotential =
-					m_dT0 * dG / m_ddTdz *
+					m_dT0 * dG / m_ddTdz * 
 					(1.0 - pow(dEta, dRd * m_ddTdz / dG));
 		}
 		else if ((dZp > m_dTPHeight)&&(dZp <= m_dTPHeight + m_dTPMixedLayerH)) {
 			dAvgTemperature = m_dTPTemp1;
-			dAvgGeopotential = -dRd * m_dTPTemp1 * log(dEta) +
+			dAvgGeopotential = -dRd * m_dTPTemp1 * log(dEta) + 
 								dRd * m_dTPTemp1 * log(m_dTPEta1) + m_dTPPhi1;
 		}
 		else if (dZp > m_dTPHeight + m_dTPMixedLayerH) {
-			dAvgTemperature = m_dTPTemp1 *
+			dAvgTemperature = m_dTPTemp1 * 
 					pow((dEta / m_dTPEta2), dRd * m_ddTdzSTR / dG);
 			dAvgGeopotential =
-					m_dTPTemp1 * dG / m_ddTdzSTR *
-					(1.0 - pow((dEta / m_dTPEta2), dRd * m_ddTdzSTR / dG))
+					m_dTPTemp1 * dG / m_ddTdzSTR * 
+					(1.0 - pow((dEta / m_dTPEta2), dRd * m_ddTdzSTR / dG)) 
 					+ m_dTPPhi2;
 		}
 
@@ -455,7 +455,7 @@ public:
 		// Total geopotential distribution
 		dGeopotential = dAvgGeopotential + dXYGeopotential*
 			dRefProfile1 * dExpDecay;
-
+		
 		// Total temperature distribution
 		dTemperature = dAvgTemperature + dXYGeopotential / dRd *
 			dRefProfile2 * dExpDecay;
@@ -599,7 +599,7 @@ int main(int argc, char** argv) {
 try {
 	// Nondimensional vertical width parameter
 	double dbC;
-
+	
 	// Uniform zonal velocity
 	double dU0;
 
@@ -684,7 +684,7 @@ try {
 				fNoRayleighFriction);
 
 	// Setup the cartesian model with dimensions and reference latitude
-	TempestSetupCartesianModel(model, test->m_dGDim, 0.0,
+	TempestSetupCartesianModel(model, test->m_dGDim, 0.0, 
 								test->m_iLatBC, true);
 
 	// Set the reference length to reduce diffusion relative to global scale
@@ -721,3 +721,4 @@ try {
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+
