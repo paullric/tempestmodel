@@ -89,6 +89,9 @@ OutputManagerReference::OutputManagerReference(
 			dDeltaY * (static_cast<double>(j) + 0.5) + dY0;
 	}
 
+	// Changed to give proper interfaces in a column
+	// DO NOT PUSH THIS CHANGE INTO THE MASTER BRANCH - JEG
+/*
 	if (nZReference == 0) {
 		m_dREtaCoord = grid.GetREtaLevels();
 
@@ -99,6 +102,19 @@ OutputManagerReference::OutputManagerReference(
 		for (int k = 0; k < m_nZReference; k++) {
 			m_dREtaCoord[k] =
 				dDeltaREta * (static_cast<double>(k) + 0.5);
+		}
+	}
+*/
+	if (nZReference == 0) {
+		m_dREtaCoord = grid.GetREtaInterfaces();
+
+	} else {
+		m_fOutputAllVarsOnNodes = true;
+		m_dREtaCoord.Allocate(m_nZReference);
+		double dDeltaREta = 1.0 / static_cast<double>(m_nZReference - 1);
+		for (int k = 0; k < m_nZReference; k++) {
+			m_dREtaCoord[k] =
+				dDeltaREta * static_cast<double>(k);
 		}
 	}
 

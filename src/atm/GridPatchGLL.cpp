@@ -194,10 +194,6 @@ void GridPatchGLL::ComputeRichardson(
 	dVYREdge.Allocate(nRElements+1);
 	dDiffVYREdge.Allocate(nRElements+1);
 
-	// Under this configuration, set fluxes at boundaries to zero
-	bool fZeroBoundaries =
-		(m_grid.GetVarLocation(WIx) == DataLocation_REdge);
-
 	if (m_grid.GetModel().GetEquationSet().GetComponents() < 5) {
 		_EXCEPTIONT("Invalid EquationSet.");
 	}
@@ -238,27 +234,21 @@ void GridPatchGLL::ComputeRichardson(
 
 			pGLLGrid->DifferentiateNodeToNode(
 			dDensityNode,
-			dDiffDensityNode,
-			fZeroBoundaries);
+			dDiffDensityNode);
 
 			pGLLGrid->DifferentiateNodeToNode(
 			dUXNode,
-			dDiffUXNode,
-			fZeroBoundaries);
+			dDiffUXNode);
 
 			pGLLGrid->DifferentiateNodeToNode(
 			dVYNode,
-			dDiffVYNode,
-			fZeroBoundaries);
+			dDiffVYNode);
 
 			for (int k = 0; k < nRElements; k++) {
-				//[i][j][k] = dDiffDensityNode[k];
-				//m_dataRichardson[i][j][k] = dDiffUXNode[k];
 				m_dataRichardson[i][j][k] =
 					phys.GetG() / dDensityNode[k] * dDiffDensityNode[k] / (
 						(dDiffUXNode[k] * dDiffUXNode[k]) +
 						(dDiffVYNode[k] * dDiffVYNode[k]));
-
 //printf("%i %.16E \n",k,m_dataRichardson[i][j][k]);
 			}
 		}
@@ -267,7 +257,6 @@ void GridPatchGLL::ComputeRichardson(
 
 	// Calculate Richardson on interfaces
 	if (loc == DataLocation_REdge) {
-		//_EXCEPTIONT("Richardson number not implemented on interfaces");
 
 		if (m_grid.GetVarLocation(PIx) == DataLocation_Node) {
 			InterpolateNodeToREdge(PIx, iDataIndex);
@@ -308,8 +297,6 @@ void GridPatchGLL::ComputeRichardson(
 			dDiffVYREdge);
 
 			for (int k = 0; k <= nRElements; k++) {
-				//m_dataRichardson[i][j][k] = dDiffUXREdge[k] * dDiffUXREdge[k];
-				//m_dataRichardson[i][j][k] = dDiffDensityREdge[k] / dDensityREdge[k];
 				m_dataRichardson[i][j][k] =
 					phys.GetG() * (dDiffDensityREdge[k] / dDensityREdge[k]) / (
 						(dDiffUXREdge[k] * dDiffUXREdge[k]) +
