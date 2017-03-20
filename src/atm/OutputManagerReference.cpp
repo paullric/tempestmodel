@@ -291,7 +291,7 @@ bool OutputManagerReference::CalculatePatchCoordinates() {
 	if (m_fOutputRichardson) {
 		m_dataRichardson.Allocate(
 			1,
-			1,
+			m_dREtaCoord.GetRows(),
 			m_nXReference * m_nYReference);
 	}
 

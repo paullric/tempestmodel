@@ -108,7 +108,7 @@ public:
 	///	</summary>
 	virtual void ComputeRichardson(
 		int iDataIndex,
-		DataLocation loc = DataLocation_REdge
+		DataLocation loc = DataLocation_Node
 	);
 
 protected:
