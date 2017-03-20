@@ -1343,7 +1343,7 @@ void GridPatchCSGLL::InterpolateData(
 				pDataRef.AttachToData(&(m_dataRefStateNode(c,0,0,0)));
 
 			} else if (eDataLocation == DataLocation_REdge) {
-				DataArray4D<double> & dataStateREdge = m_datavecStateNode[0];
+				DataArray4D<double> & dataStateREdge = m_datavecStateREdge[0];
 				pData.AttachToData(&(dataStateREdge(c,0,0,0)));
 				pDataRef.AttachToData(&(m_dataRefStateREdge(c,0,0,0)));
 
