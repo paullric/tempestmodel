@@ -78,6 +78,7 @@ struct _TempestCommandLineVariables {
 	bool fOutputTemperature;
 	bool fOutputSurfacePressure;
 	bool fOutputRichardson;
+	bool fOutputDynSGS;
 	bool fNoReferenceState;
 	bool fNoTracers;
 	bool fNoHyperviscosity;
@@ -118,6 +119,7 @@ struct _TempestCommandLineVariables {
 	CommandLineBool(_tempestvars.fOutputDivergence, "output_div"); \
 	CommandLineBool(_tempestvars.fOutputTemperature, "output_temp"); \
 	CommandLineBool(_tempestvars.fOutputSurfacePressure, "output_ps"); \
+	CommandLineBool(_tempestvars.fOutputDynSGS, "output_SGS"); \
 	CommandLineBool(_tempestvars.fOutputRichardson, "output_Ri"); \
 	CommandLineBool(_tempestvars.fNoReferenceState, "norefstate"); \
 	CommandLineBool(_tempestvars.fNoTracers, "notracers"); \
@@ -435,6 +437,9 @@ void _TempestSetupOutputManagers(
 		if (vars.fOutputRichardson) {
 			pOutmanRef->OutputRichardson();
 		}
+		if (vars.fOutputDynSGS) {
+			pOutmanRef->OutputDynSGS();
+		}
 
 		model.AttachOutputManager(pOutmanRef);
 		AnnounceEndBlock("Done");
@@ -509,7 +514,7 @@ void _TempestSetupCubedSphereModel(
 	// Construct the Grid
 	if (vars.strRestartFile == "") {
 		AnnounceStartBlock("Constructing grid");
-	
+
 		// Maximum number of patches currently equals communicator size
 		int nCommSize;
 		MPI_Comm_size(MPI_COMM_WORLD, &nCommSize);
@@ -740,4 +745,3 @@ void TempestDeinitialize() {
 ///////////////////////////////////////////////////////////////////////////////
 
 #endif
-

@@ -22,6 +22,7 @@
 #include "VerticalStretch.h"
 #include "ConsolidationStatus.h"
 #include "FunctionTimer.h"
+#include "Announce.h"
 
 #include "Exception.h"
 

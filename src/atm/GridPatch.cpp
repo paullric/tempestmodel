@@ -391,6 +391,26 @@ void GridPatch::InitializeDataLocal(
 		m_dcActiveResidual.PushDataChunk(&m_datavecResidualREdge[m]);
 	}
 
+	// Initialize DynSGS data for output with 3 components
+	m_dataDynSGSNode.SetDataType(DataType_DynSGS);
+	m_dataDynSGSNode.SetDataLocation(DataLocation_Node);
+	m_dataDynSGSNode.SetSize(
+		3,
+		m_box.GetATotalWidth(),
+		m_box.GetBTotalWidth(),
+		m_grid.GetRElements());
+
+	m_dataDynSGSREdge.SetDataType(DataType_DynSGS);
+	m_dataDynSGSREdge.SetDataLocation(DataLocation_REdge);
+	m_dataDynSGSREdge.SetSize(
+		3,
+		m_box.GetATotalWidth(),
+		m_box.GetBTotalWidth(),
+		m_grid.GetRElements()+1);
+
+	m_dcActiveResidual.PushDataChunk(&m_dataDynSGSNode);
+	m_dcActiveResidual.PushDataChunk(&m_dataDynSGSREdge);
+
 	// Initialize tracer data
 	m_datavecTracers.resize(model.GetTracerDataInstances());
 

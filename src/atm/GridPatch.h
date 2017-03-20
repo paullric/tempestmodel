@@ -834,6 +834,24 @@ public:
 	}
 
 	///	<summary>
+	///		Get the DynSGS data for output.
+	///	</summary>
+	DataArray4D<double> & GetDataResidualSGS(
+		DataLocation loc = DataLocation_Node
+	) {
+		if (!m_fContainsData) {
+			_EXCEPTIONT("Stub patch does not store data.");
+		}
+		if (loc == DataLocation_Node) {
+			return m_dataDynSGSNode;
+		} else if (loc == DataLocation_REdge) {
+			return m_dataDynSGSREdge;
+		} else {
+			_EXCEPTIONT("Invalid DataLocation");
+		}
+	}
+
+	///	<summary>
 	///		Get the residual data matrix with the specified index.
 	///	</summary>
 	DataArray4D<double> & GetDataResidual(
@@ -1349,6 +1367,16 @@ public:
 	///		Grid data on model interfaces for the reference state (State).
 	///	</summary>
 	DataArray4D<double> m_dataRefStateREdge;
+
+	///	<summary>
+	///		Grid data  on model levels for the DynSGS output (Residual).
+	///	</summary>
+	DataArray4D<double> m_dataDynSGSNode;
+
+	///	<summary>
+	///		Grid data on model interfaces for the DynSGS output (Residual).
+	///	</summary>
+	DataArray4D<double> m_dataDynSGSREdge;
 
 	///	<summary>
 	///		Grid data for state variables on model levels (State).

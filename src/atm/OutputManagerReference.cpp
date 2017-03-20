@@ -61,6 +61,7 @@ OutputManagerReference::OutputManagerReference(
 	m_fOutputDivergence(false),
 	m_fOutputTemperature(false),
 	m_fOutputSurfacePressure(false),
+	m_fOutputDynSGS(false),
 	m_fOutputRichardson(false),
 	m_fOutputAllVarsOnNodes(fOutputAllVarsOnNodes),
 	m_fRemoveReferenceProfile(fRemoveReferenceProfile)
@@ -175,6 +176,19 @@ void OutputManagerReference::OutputRichardson(
 
 ///////////////////////////////////////////////////////////////////////////////
 
+void OutputManagerReference::OutputDynSGS(
+	bool fOutputDynSGS
+) {
+	m_fOutputDynSGS = fOutputDynSGS;
+
+	if (!fOutputDynSGS) {
+		m_dataDynSGSNode.Deallocate();
+		m_dataDynSGSREdge.Deallocate();
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
 bool OutputManagerReference::CalculatePatchCoordinates() {
 
 	if (m_grid.GetGridStamp() == m_iGridStamp) {
@@ -277,8 +291,22 @@ bool OutputManagerReference::CalculatePatchCoordinates() {
 	if (m_fOutputRichardson) {
 		m_dataRichardson.Allocate(
 			1,
+			1,
+			m_nXReference * m_nYReference);
+	}
+
+	if (m_fOutputDynSGS) {
+		m_dataDynSGSNode.Allocate(
+			3,
 			m_dREtaCoord.GetRows(),
 			m_nXReference * m_nYReference);
+
+		if (!m_fOutputAllVarsOnNodes) {
+			m_dataDynSGSREdge.Allocate(
+				3,
+				m_grid.GetRElements() + 1,
+				m_nXReference * m_nYReference);
+		}
 	}
 
 	// Reduce/Interpolate topography array
@@ -445,11 +473,32 @@ bool OutputManagerReference::OpenFile(
 					"PS", ncDouble, dimTime, dimLat, dimLon);
 		}
 
-		// Richardson number variable
+		// Richardson Number variable
 		if (m_fOutputRichardson) {
 			m_varRichardson =
 				m_pActiveNcOutput->add_var(
-					"Ri", ncDouble, dimTime, dimLev, dimLat, dimLon);
+					"Ri", ncDouble, dimTime, dimLat, dimLon);
+		}
+
+		// DynSGS alpha variable
+		if (m_fOutputDynSGS) {
+			// Create variables
+			const char *names[] = {"SGS alpha", "SGS beta", "SGS xi"};
+			for (int c = 0; c < 3; c++) {
+				if ((m_fOutputAllVarsOnNodes) ||
+					(m_grid.GetVarLocation(c) == DataLocation_Node)
+				) {
+					m_vecDynSGSVar.push_back(
+						m_pActiveNcOutput->add_var(
+							names[c],
+							ncDouble, dimTime, dimLev, dimLat, dimLon));
+				} else {
+					m_vecDynSGSVar.push_back(
+						m_pActiveNcOutput->add_var(
+							names[c],
+							ncDouble, dimTime, dimILev, dimLat, dimLon));
+				}
+			}
 		}
 
 		// User data variables
@@ -511,7 +560,7 @@ bool OutputManagerReference::OpenFile(
 #endif
 
 	return true;
-}	
+}
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -668,7 +717,7 @@ void OutputManagerReference::Output(
 			m_dataTemperature);
 	}
 
-	// Perform Interpolate / Reduction on temperature
+	// Perform Interpolate / Reduction on surface pressure
 	if (m_fOutputSurfacePressure) {
 		m_grid.ComputeSurfacePressure(0);
 
@@ -692,6 +741,36 @@ void OutputManagerReference::Output(
 			m_dBeta,
 			m_iPatch,
 			m_dataRichardson);
+	}
+
+	// Perform Interpolate / Reduction on DynSGS data
+	if (m_fOutputDynSGS) {
+		// Perform Interpolate / Reduction on state data
+		m_dataDynSGSNode.Zero();
+
+		m_grid.ReduceInterpolate(
+			DataType_DynSGS,
+			m_dREtaCoord,
+			m_dAlpha,
+			m_dBeta,
+			m_iPatch,
+			m_dataDynSGSNode,
+			(m_fOutputAllVarsOnNodes)?(DataLocation_None):(DataLocation_Node),
+			false);
+
+		if (!m_fOutputAllVarsOnNodes) {
+			m_dataDynSGSREdge.Zero();
+
+			m_grid.ReduceInterpolate(
+				DataType_DynSGS,
+				m_grid.GetREtaInterfaces(),
+				m_dAlpha,
+				m_dBeta,
+				m_iPatch,
+				m_dataDynSGSREdge,
+				DataLocation_REdge,
+				false);
+		}
 	}
 
 	// Store state variable data
@@ -787,15 +866,30 @@ void OutputManagerReference::Output(
 				m_dXCoord.GetRows());
 		}
 
-		// Store Richardson data
-		if (m_fOutputRichardson) {
-			m_varRichardson->set_cur(m_ixOutputTime, 0, 0, 0);
-			m_varRichardson->put(
-				&(m_dataRichardson[0][0][0]),
-				1,
-				m_dataRichardson.GetColumns(),
-				m_dYCoord.GetRows(),
-				m_dXCoord.GetRows());
+		// Store DynSGS data
+		if (m_fOutputDynSGS) {
+			for (int c = 0; c < 3; c++) {
+				if ((m_fOutputAllVarsOnNodes) ||
+					(m_grid.GetVarLocation(c) == DataLocation_Node)
+				) {
+					m_vecDynSGSVar[c]->set_cur(m_ixOutputTime, 0, 0, 0);
+					m_vecDynSGSVar[c]->put(
+						&(m_dataDynSGSNode[c][0][0]),
+						1,
+						m_dataDynSGSNode.GetColumns(),
+						m_dYCoord.GetRows(),
+						m_dXCoord.GetRows());
+
+				} else {
+					m_vecDynSGSVar[c]->set_cur(m_ixOutputTime, 0, 0, 0);
+					m_vecDynSGSVar[c]->put(
+						&(m_dataDynSGSREdge[c][0][0]),
+						1,
+						m_dataDynSGSREdge.GetColumns(),
+						m_dYCoord.GetRows(),
+						m_dXCoord.GetRows());
+				}
+			}
 		}
 	}
 
@@ -808,4 +902,3 @@ void OutputManagerReference::Output(
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-

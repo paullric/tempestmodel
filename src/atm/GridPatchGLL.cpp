@@ -166,7 +166,7 @@ void GridPatchGLL::ComputeRichardson(
 	const int WIx = 3;
 	const int RIx = 4;
 
-// Column array of density and density gradient
+	// Column array of density and density gradient
 	DataArray1D<double> dDensityNode;
 	DataArray1D<double> dDensityREdge;
 	DataArray1D<double> dDiffDensityNode;
@@ -175,7 +175,7 @@ void GridPatchGLL::ComputeRichardson(
 	dDiffDensityNode.Allocate(nRElements);
 	dDensityREdge.Allocate(nRElements+1);
 	dDiffDensityREdge.Allocate(nRElements+1);
-// Column array of U_x and shear in the zonal wind
+	// Column array of U_x and shear in the zonal wind
 	DataArray1D<double> dUXNode;
 	DataArray1D<double> dUXREdge;
 	DataArray1D<double> dDiffUXNode;
@@ -184,7 +184,7 @@ void GridPatchGLL::ComputeRichardson(
 	dDiffUXNode.Allocate(nRElements);
 	dUXREdge.Allocate(nRElements+1);
 	dDiffUXREdge.Allocate(nRElements+1);
-// Column array of V_y and shear in the meridional wind
+	// Column array of V_y and shear in the meridional wind
 	DataArray1D<double> dVYNode;
 	DataArray1D<double> dVYREdge;
 	DataArray1D<double> dDiffVYNode;
@@ -229,10 +229,10 @@ void GridPatchGLL::ComputeRichardson(
 				dDensityNode[k] = dataNode[RIx][i][j][k];
 
 				// Convert U_alpha and V_beta to X and Y (Lon, Lat)
-				dUXNode[k] = dataNode[UIx][i][j][k] - 
+				dUXNode[k] = dataNode[UIx][i][j][k] -
 							dDerivRNode[i][j][k][0] * dataNode[WIx][i][j][k] * dDerivRNode[i][j][k][2];
 
-				dVYNode[k] = dataNode[VIx][i][j][k] - 
+				dVYNode[k] = dataNode[VIx][i][j][k] -
 							dDerivRNode[i][j][k][1] * dataNode[WIx][i][j][k] * dDerivRNode[i][j][k][2];
 			}
 
@@ -256,7 +256,7 @@ void GridPatchGLL::ComputeRichardson(
 				//m_dataRichardson[i][j][k] = dDiffUXNode[k];
 				m_dataRichardson[i][j][k] =
 					phys.GetG() / dDensityNode[k] * dDiffDensityNode[k] / (
-						(dDiffUXNode[k] * dDiffUXNode[k]) + 
+						(dDiffUXNode[k] * dDiffUXNode[k]) +
 						(dDiffVYNode[k] * dDiffVYNode[k]));
 
 //printf("%i %.16E \n",k,m_dataRichardson[i][j][k]);
@@ -288,10 +288,10 @@ void GridPatchGLL::ComputeRichardson(
 				dDensityREdge[k] = dataREdge[RIx][i][j][k];
 
 				// Convert U_alpha and V_beta to X and Y (Lon, Lat)
-				dUXREdge[k] = dataREdge[UIx][i][j][k] - 
+				dUXREdge[k] = dataREdge[UIx][i][j][k] -
 							dDerivRREdge[i][j][k][0] * dataREdge[WIx][i][j][k] * dDerivRREdge[i][j][k][2];
 
-				dVYREdge[k] = dataREdge[VIx][i][j][k] - 
+				dVYREdge[k] = dataREdge[VIx][i][j][k] -
 							dDerivRREdge[i][j][k][1] * dataREdge[WIx][i][j][k] * dDerivRREdge[i][j][k][2];
 			}
 
@@ -312,7 +312,7 @@ void GridPatchGLL::ComputeRichardson(
 				//m_dataRichardson[i][j][k] = dDiffDensityREdge[k] / dDensityREdge[k];
 				m_dataRichardson[i][j][k] =
 					phys.GetG() * (dDiffDensityREdge[k] / dDensityREdge[k]) / (
-						(dDiffUXREdge[k] * dDiffUXREdge[k]) + 
+						(dDiffUXREdge[k] * dDiffUXREdge[k]) +
 						(dDiffVYREdge[k] * dDiffVYREdge[k]));
 			}
 		}
@@ -321,4 +321,3 @@ void GridPatchGLL::ComputeRichardson(
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-

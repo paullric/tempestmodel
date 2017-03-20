@@ -745,6 +745,13 @@ void VerticalDynamicsFEM::StepExplicit(
 		DataArray4D<double> & dataResidualREdge =
 			pPatch->GetDataResidual(2, DataLocation_REdge);
 
+		// Get the residual storage to update for output_SGS
+		DataArray4D<double> & dataDynSGSNode =
+			pPatch->GetDataResidualSGS(DataLocation_Node);
+
+		DataArray4D<double> & dataDynSGSREdge =
+			pPatch->GetDataResidualSGS(DataLocation_REdge);
+
 		// Metric quantities
 		const DataArray4D<double> & dContraMetricXi =
 			pPatch->GetContraMetricXi();
@@ -829,11 +836,15 @@ void VerticalDynamicsFEM::StepExplicit(
 					for (int k = 0; k <= nRElements; k++) {
 						dataUpdateREdge[PIx][i][j][k] -=
 							dDeltaT * m_dSoln[VecFIx(FPIx, k)];
+
+						dataDynSGSREdge(2, i, j, k) = m_dDiffCREdge[k];
 					}
 				} else {
 					for (int k = 0; k < nRElements; k++) {
 						dataUpdateNode[PIx][i][j][k] -=
 							dDeltaT * m_dSoln[VecFIx(FPIx, k)];
+
+						dataDynSGSNode(2, i, j, k) = m_dDiffCNode[k];
 					}
 				}
 
@@ -2809,7 +2820,6 @@ void VerticalDynamicsFEM::BuildF(
 		}
 	}
 
-#if defined(RESIDUAL_DIFFUSION)
 	// Apply residual hyperviscosity
 	for (int c = 2; c < 4; c++) {
 
@@ -2866,7 +2876,6 @@ void VerticalDynamicsFEM::BuildF(
 			}
 		}
 	}
-#endif
 
 	if (dF[VecFIx(FWIx, 0)] != 0.0) {
 		dF[VecFIx(FWIx, 0)] = 0.0;

@@ -2286,6 +2286,13 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusionResidual(
 		DataArray4D<double> & dataResidualREdge =
 			pPatch->GetDataResidual(iDataResidual, DataLocation_REdge);
 
+		// Get the residual storage to update for output_SGS
+		DataArray4D<double> & dataDynSGSNode =
+			pPatch->GetDataResidualSGS(DataLocation_Node);
+
+		DataArray4D<double> & dataDynSGSREdge =
+			pPatch->GetDataResidualSGS(DataLocation_REdge);
+
 		DataArray4D<double> & dataUpdateNode =
 			pPatch->GetDataState(iDataUpdate, DataLocation_Node);
 
@@ -2371,7 +2378,7 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusionResidual(
 
 				const DataArray4D<double> * pDataInitial;
 				DataArray4D<double> * pDataUpdate;
-				const DataArray4D<double> * pDataResidual;
+			 	const DataArray4D<double> * pDataResidual;
 				const DataArray4D<double> * pDataRef;
 				const DataArray3D<double> * pJacobian;
 				const DataArray4D<double> * pDerivR;
@@ -2622,6 +2629,10 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusionResidual(
 					(*pJacobian)(iA,iB,k) * (
 						+ dContraMetric2DB(iA,iB,0) * dDaPsi
 						+ dContraMetric2DB(iA,iB,1) * dDbPsi);
+
+				// Update the DynSGS stress field for output
+				dataDynSGSNode(0,iA,iB,k) = m_dJGradientA(i,j);
+				dataDynSGSNode(1,iA,iB,k) = m_dJGradientB(i,j);
 		}
 		}
 

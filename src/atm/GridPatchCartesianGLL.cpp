@@ -1468,6 +1468,10 @@ void GridPatchCartesianGLL::InterpolateData(
 	} else if (eDataType == DataType_Richardson) {
 		nComponents = 1;
 
+	// Richardson number Data
+	} else if (eDataType == DataType_DynSGS) {
+		nComponents = 3;
+
 	// 2D User Data
 	} else if (eDataType == DataType_Auxiliary2D) {
 		nComponents = m_dataUserData2D.GetSize(0);
@@ -1610,6 +1614,17 @@ void GridPatchCartesianGLL::InterpolateData(
 
 		} else if (eDataType == DataType_Richardson) {
 			pData.AttachToData(&(m_dataRichardson[0][0][0]));
+
+		} else if (eDataType == DataType_DynSGS) {
+			if (c < 3) {
+				if (eDataLocation == DataLocation_Node) {
+					pData.AttachToData(&(m_dataDynSGSNode[c][0][0][0]));
+				} else if (eDataLocation == DataLocation_REdge) {
+					pData.AttachToData(&(m_dataDynSGSREdge[c][0][0][0]));
+				} else {
+					_EXCEPTIONT("Invalid DataLocation");
+				}
+			}
 
 		} else if (eDataType == DataType_Auxiliary2D) {
 			pData.AttachToData(&(m_dataUserData2D[c][0][0]));

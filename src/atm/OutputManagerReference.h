@@ -100,6 +100,14 @@ public:
 	);
 
 	///	<summary>
+	///		Modify the flag which indicates whether DynSGS should be
+	///		computed and output.
+	///	</summary>
+	void OutputDynSGS(
+		bool fOutputDynSGS = true
+	);
+
+	///	<summary>
 	///		Modify the flag which indicates whether Richardson number should be
 	///		computed and output.
 	///	</summary>
@@ -222,6 +230,11 @@ protected:
 	std::vector<NcVar *> m_vecComponentVar;
 
 	///	<summary>
+	///		Vector of DynSGS component variables.
+	///	</summary>
+	std::vector<NcVar *> m_vecDynSGSVar;
+
+	///	<summary>
 	///		Vector of tracer variables.
 	///	</summary>
 	std::vector<NcVar *> m_vecTracersVar;
@@ -252,6 +265,21 @@ private:
 	///		Interpolated state data on redges on the reference grid.
 	///	</summary>
 	DataArray3D<double> m_dataStateREdge;
+
+	///	<summary>
+	///		Interpolated DynSGS data on nodes on the reference grid.
+	///	</summary>
+	DataArray3D<double> m_dataDynSGSNode;
+
+	///	<summary>
+	///		Interpolated DynSGS data on redges on the reference grid.
+	///	</summary>
+	DataArray3D<double> m_dataDynSGSREdge;
+
+	///	<summary>
+	///		Flag indicating whether DynSGS should be computed and output.
+	///	</summary>
+	bool m_fOutputDynSGS;
 
 	///	<summary>
 	///		Interpolated tracers data on the reference grid.
@@ -345,4 +373,3 @@ private:
 ///////////////////////////////////////////////////////////////////////////////
 
 #endif
-
