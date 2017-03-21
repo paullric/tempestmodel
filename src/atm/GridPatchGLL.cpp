@@ -249,7 +249,10 @@ void GridPatchGLL::ComputeRichardson(
 					phys.GetG() / dDensityNode[k] * dDiffDensityNode[k] / (
 						(dDiffUXNode[k] * dDiffUXNode[k]) +
 						(dDiffVYNode[k] * dDiffVYNode[k]));
-//printf("%i %.16E \n",k,m_dataRichardson[i][j][k]);
+
+				if (m_dataRichardson[i][j][k] >= 10.0) {
+					m_dataRichardson[i][j][k] = 10.0;
+				}
 			}
 		}
 		}
@@ -301,6 +304,9 @@ void GridPatchGLL::ComputeRichardson(
 					phys.GetG() * (dDiffDensityREdge[k] / dDensityREdge[k]) / (
 						(dDiffUXREdge[k] * dDiffUXREdge[k]) +
 						(dDiffVYREdge[k] * dDiffVYREdge[k]));
+				if (m_dataRichardson[i][j][k] >= 10.0) {
+					m_dataRichardson[i][j][k] = 10.0;
+				}
 			}
 		}
 		}
