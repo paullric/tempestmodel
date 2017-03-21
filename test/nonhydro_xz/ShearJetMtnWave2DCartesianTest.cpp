@@ -503,7 +503,7 @@ public:
 
 		// Calculate zonal velocity and set other velocity components
 		double dExpDecay = exp(-(log(dEta) / m_dbC) * (log(dEta) / m_dbC));
-		double dUlon = -m_dUj * 0.5 * log(dEta) * dExpDecay;
+		double dUlon = -m_dUj * log(dEta) * dExpDecay;
 
 		dState[0] = dUlon + m_dU0;
 		dState[1] = 0.0;
