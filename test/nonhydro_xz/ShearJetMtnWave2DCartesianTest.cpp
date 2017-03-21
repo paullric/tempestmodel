@@ -184,12 +184,12 @@ public:
 		m_dpiC = M_PI;
 
 		// Set the dimensions of the box
-		m_dGDim[0] = -56000.0;
-		m_dGDim[1] = 56000.0;
+		m_dGDim[0] = -46000.0;
+		m_dGDim[1] = 46000.0;
 		m_dGDim[2] = -100.0;
 		m_dGDim[3] = 100.0;
 		m_dGDim[4] = 0.0;
-		m_dGDim[5] = 35000.0;
+		m_dGDim[5] = 31000.0;
 
 		// Set the center of the domain in Y
 		m_dY0 = 0.5 * (m_dGDim[3] - m_dGDim[2]);
