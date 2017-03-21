@@ -493,7 +493,7 @@ bool OutputManagerReference::OpenFile(
 		if (m_fOutputRichardson) {
 			m_varRichardson =
 				m_pActiveNcOutput->add_var(
-					"Ri", ncDouble, dimTime, dimLat, dimLon);
+					"Ri", ncDouble, dimTime, dimLev, dimLat, dimLon);
 		}
 
 		// DynSGS alpha variable
