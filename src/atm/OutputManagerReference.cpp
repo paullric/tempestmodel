@@ -882,6 +882,17 @@ void OutputManagerReference::Output(
 				m_dXCoord.GetRows());
 		}
 
+		// Store Richardson number data
+		if (m_fOutputTemperature) {
+			m_varRichardson->set_cur(m_ixOutputTime, 0, 0, 0);
+			m_varRichardson->put(
+				&(m_dataRichardson[0][0][0]),
+				1,
+				m_dataRichardson.GetColumns(),
+				m_dYCoord.GetRows(),
+				m_dXCoord.GetRows());
+		}
+
 		// Store DynSGS data
 		if (m_fOutputDynSGS) {
 			for (int c = 0; c < 3; c++) {
