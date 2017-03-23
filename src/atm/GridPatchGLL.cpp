@@ -226,10 +226,10 @@ void GridPatchGLL::ComputeRichardson(
 
 				// Convert U_alpha and V_beta to X and Y (Lon, Lat)
 				dUXNode[k] = dataNode[UIx][i][j][k] -
-							dDerivRNode[i][j][k][0] * dataNode[WIx][i][j][k] * dDerivRNode[i][j][k][2];
+							dDerivRNode[i][j][k][0] * dataNode[WIx][i][j][k];
 
 				dVYNode[k] = dataNode[VIx][i][j][k] -
-							dDerivRNode[i][j][k][1] * dataNode[WIx][i][j][k] * dDerivRNode[i][j][k][2];
+							dDerivRNode[i][j][k][1] * dataNode[WIx][i][j][k];
 			}
 
 			pGLLGrid->DifferentiateNodeToNode(
@@ -281,10 +281,10 @@ void GridPatchGLL::ComputeRichardson(
 
 				// Convert U_alpha and V_beta to X and Y (Lon, Lat)
 				dUXREdge[k] = dataREdge[UIx][i][j][k] -
-							dDerivRREdge[i][j][k][0] * dataREdge[WIx][i][j][k] * dDerivRREdge[i][j][k][2];
+							dDerivRREdge[i][j][k][0] * dataREdge[WIx][i][j][k];
 
 				dVYREdge[k] = dataREdge[VIx][i][j][k] -
-							dDerivRREdge[i][j][k][1] * dataREdge[WIx][i][j][k] * dDerivRREdge[i][j][k][2];
+							dDerivRREdge[i][j][k][1] * dataREdge[WIx][i][j][k];
 			}
 
 			pGLLGrid->DifferentiateREdgeToREdge(
