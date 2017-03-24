@@ -312,9 +312,13 @@ void GridPatchCartesianGLL::EvaluateGeometricTerms() {
 				double dDxZ = (m_grid.GetZtop() - dZs);
 */
 //
-				double dDaZ = (1.0 - dREta) *
+				double dZ = m_grid.GetZtop() * dREta + (1.0 - dREta) *
 					(std::pow(std::cos(0.5 * M_PI * dREta), dP) +
 					dTopRate * dREta * std::sin(0.5 * M_PI * dREta)) * dZs;
+
+				double dDaZ = (1.0 - dREta) *
+					(std::pow(std::cos(0.5 * M_PI * dREta), dP) +
+					dTopRate * dREta * std::sin(0.5 * M_PI * dREta)) * dDaZs;
 
 				double dDbZ = (1.0 - dREta) *
 					(std::pow(std::cos(0.5 * M_PI * dREta), dP) +
@@ -384,9 +388,13 @@ void GridPatchCartesianGLL::EvaluateGeometricTerms() {
 				double dDxZ = (m_grid.GetZtop() - dZs);
 */
 //
-				double dDaZ = (1.0 - dREta) *
+				double dZ = m_grid.GetZtop() * dREta + (1.0 - dREta) *
 					(std::pow(std::cos(0.5 * M_PI * dREta), dP) +
 					dTopRate * dREta * std::sin(0.5 * M_PI * dREta)) * dZs;
+
+				double dDaZ = (1.0 - dREta) *
+					(std::pow(std::cos(0.5 * M_PI * dREta), dP) +
+					dTopRate * dREta * std::sin(0.5 * M_PI * dREta)) * dDaZs;
 
 				double dDbZ = (1.0 - dREta) *
 					(std::pow(std::cos(0.5 * M_PI * dREta), dP) +
