@@ -301,7 +301,7 @@ void GridPatchCartesianGLL::EvaluateGeometricTerms() {
 			for (int k = 0; k < m_grid.GetRElements(); k++) {
 
 				// Gal-Chen and Somerville (1975) terrain following coord
-				// 6th order fancy decay function by Jorge (less noisy)
+				// 50th order fancy decay function by Jorge (less noisy)
 				double dREta = m_grid.GetREtaLevel(k);
 /*
 				double dZ = dZs + (m_grid.GetZtop() - dZs) * dREta;
@@ -310,31 +310,22 @@ void GridPatchCartesianGLL::EvaluateGeometricTerms() {
 				double dDxZ = (m_grid.GetZtop() - dZs);
 */
 //
-				double power = 6.0;
-				double botRate = 1.0;
+				double power = 50.0;
 				double dZ = m_grid.GetZtop() * dREta +
-					(1.0 - botRate * dREta) *
-					(std::pow(std::cos(0.5 * M_PI * dREta), power) +
-					0.25 * dREta * std::sin(0.5 * M_PI * dREta)) * dZs;
+					(1.0 - dREta) *
+					std::pow(std::cos(0.5 * M_PI * dREta), power) * dZs;
 
-				double dDaZ = (1.0 - botRate * dREta) *
-					(std::pow(std::cos(0.5 * M_PI * dREta), power) +
-					0.25 * dREta * std::sin(0.5 * M_PI * dREta)) * dDaZs;
+				double dDaZ = (1.0 - dREta) *
+					std::pow(std::cos(0.5 * M_PI * dREta), power) * dDaZs;
 
-				double dDbZ = (1.0 - botRate * dREta) *
-					(std::pow(std::cos(0.5 * M_PI * dREta), power) +
-					0.25 * dREta * std::sin(0.5 * M_PI * dREta)) * dDbZs;
+				double dDbZ = (1.0 - dREta) *
+					std::pow(std::cos(0.5 * M_PI * dREta), power) * dDbZs;
 
 				double dDxZ = m_grid.GetZtop() + dZs *
-
-					(-std::pow(std::cos(0.5 * M_PI * dREta), power) -
-						0.25 * dREta * std::sin(0.5 * M_PI * dREta) +
-					(1.0 - botRate * dREta) *
-					(-3.0 * M_PI *
-						std::pow(std::cos(0.5 * M_PI * dREta), power - 1.0) *
-						std::sin(0.5 * M_PI * dREta) +
-					0.25 * std::sin(0.5 * M_PI * dREta) +
-					M_PI / 8.0 * dREta * std::cos(0.5 * M_PI * dREta)));
+					(-std::pow(std::cos(0.5 * M_PI * dREta), power)) +
+					(-0.5 * power * M_PI) * (1.0 - dREta) *
+					(std::pow(std::cos(0.5 * M_PI * dREta), power - 1.0) *
+					 std::sin(0.5 * M_PI * dREta));
 //
 //printf("%.16E %.16E %.16E %.16E %.16E %.16E \n",m_dataLon[iA][iB],m_dataLat[iA][iB],dZ,dDaZ,dDbZ,dDxZ);
 
@@ -381,7 +372,7 @@ void GridPatchCartesianGLL::EvaluateGeometricTerms() {
 			for (int k = 0; k <= m_grid.GetRElements(); k++) {
 
 				// Gal-Chen and Somerville (1975) terrain following coord
-				// 6th order fancy decay function by Jorge (less noisy)
+				// 50th order fancy decay function by Jorge (less noisy)
 				double dREta = m_grid.GetREtaInterface(k);
 /*
 				double dZ = dZs + (m_grid.GetZtop() - dZs) * dREta;
@@ -390,30 +381,22 @@ void GridPatchCartesianGLL::EvaluateGeometricTerms() {
 				double dDxZ = (m_grid.GetZtop() - dZs);
 */
 //
-				double power = 6.0;
-				double botRate = 1.0;
+				double power = 50.0;
 				double dZ = m_grid.GetZtop() * dREta +
-					(1.0 - botRate * dREta) *
-					(std::pow(std::cos(0.5 * M_PI * dREta), power) +
-					0.25 * dREta * std::sin(0.5 * M_PI * dREta)) * dZs;
+					(1.0 - dREta) *
+					std::pow(std::cos(0.5 * M_PI * dREta), power) * dZs;
 
-				double dDaZ = (1.0 - botRate * dREta) *
-					(std::pow(std::cos(0.5 * M_PI * dREta), power) +
-					0.25 * dREta * std::sin(0.5 * M_PI * dREta)) * dDaZs;
+				double dDaZ = (1.0 - dREta) *
+					std::pow(std::cos(0.5 * M_PI * dREta), power) * dDaZs;
 
-				double dDbZ = (1.0 - botRate * dREta) *
-					(std::pow(std::cos(0.5 * M_PI * dREta), power) +
-					0.25 * dREta * std::sin(0.5 * M_PI * dREta)) * dDbZs;
+				double dDbZ = (1.0 - dREta) *
+					std::pow(std::cos(0.5 * M_PI * dREta), power) * dDbZs;
 
 				double dDxZ = m_grid.GetZtop() + dZs *
-					(-std::pow(std::cos(0.5 * M_PI * dREta), power) -
-						0.25 * dREta * std::sin(0.5 * M_PI * dREta) +
-					(1.0 - botRate * dREta) *
-					(-3.0 * M_PI *
-						std::pow(std::cos(0.5 * M_PI * dREta), power - 1.0) *
-						std::sin(0.5 * M_PI * dREta) +
-					0.25 * std::sin(0.5 * M_PI * dREta) +
-					M_PI / 8.0 * dREta * std::cos(0.5 * M_PI * dREta)));
+					(-std::pow(std::cos(0.5 * M_PI * dREta), power)) +
+					(-0.5 * power * M_PI) * (1.0 - dREta) *
+					(std::pow(std::cos(0.5 * M_PI * dREta), power - 1.0) *
+					 std::sin(0.5 * M_PI * dREta));
 //
 //printf("%.16E %.16E %.16E %.16E %.16E %.16E \n",m_dataLon[iA][iB],m_dataLat[iA][iB],dZ,dDaZ,dDbZ,dDxZ);
 
@@ -521,25 +504,20 @@ void GridPatchCartesianGLL::EvaluateTestCase(
 		}
 */
 //
-		// 6th order cosine decay with finite bottom slope vertical coordinate
-		double power = 6.0;
-		double botRate = 1.0;
+		// 50th order cosine decay with finite bottom slope vertical coordinate
+		double power = 50.0;
 		for (int k = 0; k < m_grid.GetRElements(); k++) {
 			m_dataZLevels[i][j][k] =
 			m_grid.GetZtop() * m_grid.GetREtaLevel(k) +
-				(1.0 - botRate * m_grid.GetREtaLevel(k)) *
-				(std::pow(std::cos(0.5 * M_PI * m_grid.GetREtaLevel(k)), power) +
-				0.25 * m_grid.GetREtaLevel(k) *
-				std::sin(0.5 * M_PI * m_grid.GetREtaLevel(k))) *
+				(1.0 - m_grid.GetREtaLevel(k)) *
+				(std::pow(std::cos(0.5 * M_PI * m_grid.GetREtaLevel(k)), power)) *
 				m_dataTopography[i][j];
 		}
 		for (int k = 0; k <= m_grid.GetRElements(); k++) {
 			m_dataZInterfaces[i][j][k] =
 			m_grid.GetZtop() * m_grid.GetREtaInterface(k) +
-				(1.0 - botRate * m_grid.GetREtaInterface(k)) *
-				(std::pow(std::cos(0.5 * M_PI * m_grid.GetREtaInterface(k)), power) +
-				0.25 * m_grid.GetREtaInterface(k) *
-				std::sin(0.5 * M_PI * m_grid.GetREtaInterface(k))) *
+				(1.0 - m_grid.GetREtaInterface(k)) *
+				(std::pow(std::cos(0.5 * M_PI * m_grid.GetREtaInterface(k)), power)) *
 				m_dataTopography[i][j];
 		}
 //
