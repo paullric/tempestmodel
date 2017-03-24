@@ -21,6 +21,9 @@ test/nonhydro_xz/Baroclinic3DCartesianTest
 test/nonhydro_xz/DensityCurrentCartesianTest
 test/nonhydro_xz/RobertBubbleCartesianTest
 test/nonhydro_xz/Baroclinic3DCartesianRidgeTest
+test/nonhydro_xz/ShearJetMtnWave2DCartesianTest
+test/nonhydro_xz/ShearJetMtnWave3DCartesianTest
+test/nonhydro_xz/ThermalBubbleCartesian3DTest
 test/shallowwater_sphere/RossbyHaurwitzWaveTest
 test/shallowwater_sphere/BarotropicInstabilityTest
 test/shallowwater_sphere/MountainRossbyTest
