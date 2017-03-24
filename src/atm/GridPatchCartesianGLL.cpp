@@ -262,7 +262,7 @@ void GridPatchCartesianGLL::EvaluateGeometricTerms() {
 	}
 
 	double dP = 8.0;
-	doulbe dTopRate = 0.1;
+	double dTopRate = 0.1;
 	// Initialize metric and Christoffel symbols in terrain-following coords
 	for (int a = 0; a < GetElementCountA(); a++) {
 	for (int b = 0; b < GetElementCountB(); b++) {
@@ -328,7 +328,7 @@ void GridPatchCartesianGLL::EvaluateGeometricTerms() {
 						std::pow(std::cos(0.5 * M_PI * dREta), dP - 1.0) *
 						std::sin(0.5 * M_PI * dREta) +
 					dTopRate * std::sin(0.5 * M_PI * dREta) +
-					dtopRate * M_PI * dREta * std::cos(0.5 * M_PI * dREta)));
+					dTopRate * M_PI * dREta * std::cos(0.5 * M_PI * dREta)));
 //
 //printf("%.16E %.16E %.16E %.16E %.16E %.16E \n",m_dataLon[iA][iB],m_dataLat[iA][iB],dZ,dDaZ,dDbZ,dDxZ);
 
@@ -400,7 +400,7 @@ void GridPatchCartesianGLL::EvaluateGeometricTerms() {
 						std::pow(std::cos(0.5 * M_PI * dREta), dP - 1.0) *
 						std::sin(0.5 * M_PI * dREta) +
 					dTopRate * std::sin(0.5 * M_PI * dREta) +
-					dtopRate * M_PI * dREta * std::cos(0.5 * M_PI * dREta)));
+					dTopRate * M_PI * dREta * std::cos(0.5 * M_PI * dREta)));
 //
 //printf("%.16E %.16E %.16E %.16E %.16E %.16E \n",m_dataLon[iA][iB],m_dataLat[iA][iB],dZ,dDaZ,dDbZ,dDxZ);
 
