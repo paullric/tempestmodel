@@ -328,7 +328,7 @@ void GridPatchCartesianGLL::EvaluateGeometricTerms() {
 						std::pow(std::cos(0.5 * M_PI * dREta), dP - 1.0) *
 						std::sin(0.5 * M_PI * dREta) +
 					dTopRate * std::sin(0.5 * M_PI * dREta) +
-					dTopRate * M_PI * dREta * std::cos(0.5 * M_PI * dREta)));
+					0.5 * dTopRate * M_PI * dREta * std::cos(0.5 * M_PI * dREta)));
 //
 //printf("%.16E %.16E %.16E %.16E %.16E %.16E \n",m_dataLon[iA][iB],m_dataLat[iA][iB],dZ,dDaZ,dDbZ,dDxZ);
 
@@ -400,7 +400,7 @@ void GridPatchCartesianGLL::EvaluateGeometricTerms() {
 						std::pow(std::cos(0.5 * M_PI * dREta), dP - 1.0) *
 						std::sin(0.5 * M_PI * dREta) +
 					dTopRate * std::sin(0.5 * M_PI * dREta) +
-					dTopRate * M_PI * dREta * std::cos(0.5 * M_PI * dREta)));
+					0.5 * dTopRate * M_PI * dREta * std::cos(0.5 * M_PI * dREta)));
 //
 //printf("%.16E %.16E %.16E %.16E %.16E %.16E \n",m_dataLon[iA][iB],m_dataLat[iA][iB],dZ,dDaZ,dDbZ,dDxZ);
 
