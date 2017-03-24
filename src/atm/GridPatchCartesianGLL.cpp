@@ -261,6 +261,8 @@ void GridPatchCartesianGLL::EvaluateGeometricTerms() {
 	}
 	}
 
+	double dP = 8.0;
+	doulbe dTopRate = 0.1;
 	// Initialize metric and Christoffel symbols in terrain-following coords
 	for (int a = 0; a < GetElementCountA(); a++) {
 	for (int b = 0; b < GetElementCountB(); b++) {
@@ -310,22 +312,23 @@ void GridPatchCartesianGLL::EvaluateGeometricTerms() {
 				double dDxZ = (m_grid.GetZtop() - dZs);
 */
 //
-				double power = 50.0;
-				double dZ = m_grid.GetZtop() * dREta +
-					(1.0 - dREta) *
-					std::pow(std::cos(0.5 * M_PI * dREta), power) * dZs;
-
 				double dDaZ = (1.0 - dREta) *
-					std::pow(std::cos(0.5 * M_PI * dREta), power) * dDaZs;
+					(std::pow(std::cos(0.5 * M_PI * dREta), dP) +
+					dTopRate * dREta * std::sin(0.5 * M_PI * dREta)) * dZs;
 
 				double dDbZ = (1.0 - dREta) *
-					std::pow(std::cos(0.5 * M_PI * dREta), power) * dDbZs;
+					(std::pow(std::cos(0.5 * M_PI * dREta), dP) +
+					dTopRate * dREta * std::sin(0.5 * M_PI * dREta)) * dDbZs;
 
 				double dDxZ = m_grid.GetZtop() + dZs *
-					(-std::pow(std::cos(0.5 * M_PI * dREta), power)) +
-					(-0.5 * power * M_PI) * (1.0 - dREta) *
-					(std::pow(std::cos(0.5 * M_PI * dREta), power - 1.0) *
-					 std::sin(0.5 * M_PI * dREta));
+					(-std::pow(std::cos(0.5 * M_PI * dREta), dP) -
+					dTopRate * dREta * std::sin(0.5 * M_PI * dREta) +
+					(1.0 - dREta) *
+					(-0.5 * dP * M_PI *
+						std::pow(std::cos(0.5 * M_PI * dREta), dP - 1.0) *
+						std::sin(0.5 * M_PI * dREta) +
+					dTopRate * std::sin(0.5 * M_PI * dREta) +
+					dtopRate * M_PI * dREta * std::cos(0.5 * M_PI * dREta)));
 //
 //printf("%.16E %.16E %.16E %.16E %.16E %.16E \n",m_dataLon[iA][iB],m_dataLat[iA][iB],dZ,dDaZ,dDbZ,dDxZ);
 
@@ -381,22 +384,23 @@ void GridPatchCartesianGLL::EvaluateGeometricTerms() {
 				double dDxZ = (m_grid.GetZtop() - dZs);
 */
 //
-				double power = 50.0;
-				double dZ = m_grid.GetZtop() * dREta +
-					(1.0 - dREta) *
-					std::pow(std::cos(0.5 * M_PI * dREta), power) * dZs;
-
 				double dDaZ = (1.0 - dREta) *
-					std::pow(std::cos(0.5 * M_PI * dREta), power) * dDaZs;
+					(std::pow(std::cos(0.5 * M_PI * dREta), dP) +
+					dTopRate * dREta * std::sin(0.5 * M_PI * dREta)) * dZs;
 
 				double dDbZ = (1.0 - dREta) *
-					std::pow(std::cos(0.5 * M_PI * dREta), power) * dDbZs;
+					(std::pow(std::cos(0.5 * M_PI * dREta), dP) +
+					dTopRate * dREta * std::sin(0.5 * M_PI * dREta)) * dDbZs;
 
 				double dDxZ = m_grid.GetZtop() + dZs *
-					(-std::pow(std::cos(0.5 * M_PI * dREta), power)) +
-					(-0.5 * power * M_PI) * (1.0 - dREta) *
-					(std::pow(std::cos(0.5 * M_PI * dREta), power - 1.0) *
-					 std::sin(0.5 * M_PI * dREta));
+					(-std::pow(std::cos(0.5 * M_PI * dREta), dP) -
+					dTopRate * dREta * std::sin(0.5 * M_PI * dREta) +
+					(1.0 - dREta) *
+					(-0.5 * dP * M_PI *
+						std::pow(std::cos(0.5 * M_PI * dREta), dP - 1.0) *
+						std::sin(0.5 * M_PI * dREta) +
+					dTopRate * std::sin(0.5 * M_PI * dREta) +
+					dtopRate * M_PI * dREta * std::cos(0.5 * M_PI * dREta)));
 //
 //printf("%.16E %.16E %.16E %.16E %.16E %.16E \n",m_dataLon[iA][iB],m_dataLat[iA][iB],dZ,dDaZ,dDbZ,dDxZ);
 
@@ -476,6 +480,8 @@ void GridPatchCartesianGLL::EvaluateTestCase(
 	GridCartesianGLL & gridCartesianGLL =
 		dynamic_cast<GridCartesianGLL &>(m_grid);
 
+	double dP = 8.0;
+	double dTopRate = 0.1;
 	// Initialize the topography at each node
 	for (int i = 0; i < m_box.GetATotalWidth(); i++) {
 	for (int j = 0; j < m_box.GetBTotalWidth(); j++) {
@@ -504,20 +510,23 @@ void GridPatchCartesianGLL::EvaluateTestCase(
 		}
 */
 //
-		// 50th order cosine decay with finite bottom slope vertical coordinate
-		double power = 50.0;
+		// High order vertical coordinate transform by Jorge
 		for (int k = 0; k < m_grid.GetRElements(); k++) {
 			m_dataZLevels[i][j][k] =
 			m_grid.GetZtop() * m_grid.GetREtaLevel(k) +
 				(1.0 - m_grid.GetREtaLevel(k)) *
-				(std::pow(std::cos(0.5 * M_PI * m_grid.GetREtaLevel(k)), power)) *
+				(std::pow(std::cos(0.5 * M_PI * m_grid.GetREtaLevel(k)), dP) +
+				dTopRate * m_grid.GetREtaLevel(k) *
+				std::sin(0.5 * M_PI * m_grid.GetREtaLevel(k))) *
 				m_dataTopography[i][j];
 		}
 		for (int k = 0; k <= m_grid.GetRElements(); k++) {
 			m_dataZInterfaces[i][j][k] =
 			m_grid.GetZtop() * m_grid.GetREtaInterface(k) +
 				(1.0 - m_grid.GetREtaInterface(k)) *
-				(std::pow(std::cos(0.5 * M_PI * m_grid.GetREtaInterface(k)), power)) *
+				(std::pow(std::cos(0.5 * M_PI * m_grid.GetREtaInterface(k)), dP) +
+				dTopRate * m_grid.GetREtaInterface(k) *
+				std::sin(0.5 * M_PI * m_grid.GetREtaInterface(k))) *
 				m_dataTopography[i][j];
 		}
 //
