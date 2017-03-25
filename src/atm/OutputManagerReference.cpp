@@ -883,7 +883,7 @@ void OutputManagerReference::Output(
 		}
 
 		// Store Richardson number data
-		if (m_fOutputTemperature) {
+		if (m_fOutputRichardson) {
 			m_varRichardson->set_cur(m_ixOutputTime, 0, 0, 0);
 			m_varRichardson->put(
 				&(m_dataRichardson[0][0][0]),
