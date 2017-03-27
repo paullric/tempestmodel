@@ -2865,7 +2865,8 @@ void VerticalDynamicsFEM::BuildF(
 				m_dDiffCNode);
 
 			for (int k = 0; k < nRElements; k++) {
-				m_dDiffCNode[k] *= m_dResidualAuxNode[k];
+				m_dDiffCNode[k] *= m_dColumnDerivRNode[k][2] *
+							m_dResidualAuxNode[k];
 			}
 
 			pGrid->DifferentiateNodeToNode(
@@ -2874,7 +2875,8 @@ void VerticalDynamicsFEM::BuildF(
 
 			// Apply the update
 			for (int k = 0; k < nRElements; k++) {
-				dF[VecFIx(FIxFromCIx(c), k)] -= m_dResidualAuxDiffNode[k];
+				dF[VecFIx(FIxFromCIx(c), k)] -= m_dResidualAuxDiffNode[k] /
+							m_dColumnDerivRNode[k][2];
 			}
 		}
 	}
