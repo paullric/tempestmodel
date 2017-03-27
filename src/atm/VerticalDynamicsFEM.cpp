@@ -2840,7 +2840,8 @@ void VerticalDynamicsFEM::BuildF(
 				m_dDiffCREdge);
 
 			for (int k = 0; k <= nRElements; k++) {
-				m_dDiffCREdge[k] *= m_dResidualAuxREdge[k];
+				m_dDiffCREdge[k] *= m_dColumnDerivRREdge[k][2] *
+							m_dResidualAuxREdge[k];
 			}
 
 			pGrid->DifferentiateREdgeToREdge(
@@ -2849,7 +2850,8 @@ void VerticalDynamicsFEM::BuildF(
 
 			// Apply the update
 			for (int k = 0; k <= nRElements; k++) {
-				dF[VecFIx(FIxFromCIx(c), k)] -= m_dResidualAuxDiffREdge[k];
+				dF[VecFIx(FIxFromCIx(c), k)] -= m_dResidualAuxDiffREdge[k] /
+							m_dColumnDerivRREdge[k][2];
 			}
 		// Residual hyperviscosity on levels
 		} else {
