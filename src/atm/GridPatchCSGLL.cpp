@@ -208,6 +208,17 @@ void GridPatchCSGLL::InitializeCoordinateData() {
 	}
 	}
 
+	// Compute gnomonic coordinate equivalents of alpha and beta
+	m_dXNode.Allocate(m_box.GetATotalWidth());
+	for (int i = 0; i < m_box.GetATotalWidth(); i++) {
+		m_dXNode[i] = tan(m_dANode[i]);
+	}
+
+	m_dYNode.Allocate(m_box.GetBTotalWidth());
+	for (int j = 0; j < m_box.GetBTotalWidth(); j++) {
+		m_dYNode[j] = tan(m_dBNode[j]);
+	}
+
 	GridPatchGLL::InitializeCoordinateData();
 }
 
@@ -357,8 +368,8 @@ void GridPatchCSGLL::EvaluateGeometricTerms() {
 		int iB = iElementB + j;
 
 		// Gnomonic coordinates
-		double dX = tan(m_dANode[iA]);
-		double dY = tan(m_dBNode[iB]);
+		double dX = m_dXNode[iA];
+		double dY = m_dYNode[iB];
 		double dDelta2 = (1.0 + dX * dX + dY * dY);
 		double dDelta = sqrt(dDelta2);
 
@@ -724,8 +735,8 @@ void GridPatchCSGLL::EvaluateTestCase(
 		dUlat /= phys.GetEarthRadius();
 
 		CubedSphereTrans::VecTransABPFromRLL(
-			tan(m_dANode[i]),
-			tan(m_dBNode[j]),
+			m_dXNode[i],
+			m_dYNode[j],
 			m_box.GetPanel(),
 			dUlon, dUlat,
 			dataStateNode(UIx,i,j,k),
@@ -735,8 +746,8 @@ void GridPatchCSGLL::EvaluateTestCase(
 		dUlat *= phys.GetEarthRadius();
 
 		CubedSphereTrans::CoVecTransABPFromRLL(
-			tan(m_dANode[i]),
-			tan(m_dBNode[j]),
+			m_dXNode[i],
+			m_dYNode[j],
 			m_box.GetPanel(),
 			dUlon, dUlat,
 			dataStateNode(UIx,i,j,k),
@@ -775,8 +786,8 @@ void GridPatchCSGLL::EvaluateTestCase(
 			dUlat /= phys.GetEarthRadius();
 
 			CubedSphereTrans::VecTransABPFromRLL(
-				tan(m_dANode[i]),
-				tan(m_dBNode[j]),
+				m_dXNode[i],
+				m_dYNode[j],
 				m_box.GetPanel(),
 				dUlon, dUlat,
 				m_dataRefStateNode(UIx,i,j,k),
@@ -786,8 +797,8 @@ void GridPatchCSGLL::EvaluateTestCase(
 			dUlat *= phys.GetEarthRadius();
 
 			CubedSphereTrans::CoVecTransABPFromRLL(
-				tan(m_dANode[i]),
-				tan(m_dBNode[j]),
+				m_dXNode[i],
+				m_dYNode[j],
 				m_box.GetPanel(),
 				dUlon, dUlat,
 				m_dataRefStateNode(UIx,i,j,k),
@@ -839,8 +850,8 @@ void GridPatchCSGLL::EvaluateTestCase(
 		dUlat /= phys.GetEarthRadius();
 
 		CubedSphereTrans::VecTransABPFromRLL(
-			tan(m_dANode[i]),
-			tan(m_dBNode[j]),
+			m_dXNode[i],
+			m_dYNode[j],
 			m_box.GetPanel(),
 			dUlon, dUlat,
 			dataStateREdge(UIx,i,j,k),
@@ -850,8 +861,8 @@ void GridPatchCSGLL::EvaluateTestCase(
 		dUlat *= phys.GetEarthRadius();
 
 		CubedSphereTrans::CoVecTransABPFromRLL(
-			tan(m_dANode[i]),
-			tan(m_dBNode[j]),
+			m_dXNode[i],
+			m_dYNode[j],
 			m_box.GetPanel(),
 			dUlon, dUlat,
 			dataStateREdge(UIx,i,j,k),
@@ -884,8 +895,8 @@ void GridPatchCSGLL::EvaluateTestCase(
 			dUlat /= phys.GetEarthRadius();
 
 			CubedSphereTrans::VecTransABPFromRLL(
-				tan(m_dANode[i]),
-				tan(m_dBNode[j]),
+				m_dXNode[i],
+				m_dYNode[j],
 				m_box.GetPanel(),
 				dUlon, dUlat,
 				m_dataRefStateREdge(UIx,i,j,k),
@@ -895,8 +906,8 @@ void GridPatchCSGLL::EvaluateTestCase(
 			dUlat *= phys.GetEarthRadius();
 
 			CubedSphereTrans::CoVecTransABPFromRLL(
-				tan(m_dANode[i]),
-				tan(m_dBNode[j]),
+				m_dXNode[i],
+				m_dYNode[j],
 				m_box.GetPanel(),
 				dUlon, dUlat,
 				m_dataRefStateREdge(UIx,i,j,k),
@@ -1587,43 +1598,40 @@ void GridPatchCSGLL::TransformHaloVelocities(
 	}
 
 	// Panels in each coordinate direction
-	int ixRightPanel  = GetNeighborPanel(Direction_Right);
-	int ixTopPanel    = GetNeighborPanel(Direction_Top);
-	int ixLeftPanel   = GetNeighborPanel(Direction_Left);
-	int ixBottomPanel = GetNeighborPanel(Direction_Bottom);
+	const int ixRightPanel  = GetNeighborPanel(Direction_Right);
+	const int ixTopPanel    = GetNeighborPanel(Direction_Top);
+	const int ixLeftPanel   = GetNeighborPanel(Direction_Left);
+	const int ixBottomPanel = GetNeighborPanel(Direction_Bottom);
 
-	int ixTopRightPanel    = GetNeighborPanel(Direction_TopRight);
-	int ixTopLeftPanel     = GetNeighborPanel(Direction_TopLeft);
-	int ixBottomLeftPanel  = GetNeighborPanel(Direction_BottomLeft);
-	int ixBottomRightPanel = GetNeighborPanel(Direction_BottomRight);
+	const int ixTopRightPanel    = GetNeighborPanel(Direction_TopRight);
+	const int ixTopLeftPanel     = GetNeighborPanel(Direction_TopLeft);
+	const int ixBottomLeftPanel  = GetNeighborPanel(Direction_BottomLeft);
+	const int ixBottomRightPanel = GetNeighborPanel(Direction_BottomRight);
 
 	// Post-process velocities across right edge
 	if (ixRightPanel != m_box.GetPanel()) {
-		int i;
-		int j;
+		const int jBegin = m_box.GetBInteriorBegin()-1;
+		const int jEnd = m_box.GetBInteriorEnd()+1;
 
-		int jBegin = m_box.GetBInteriorBegin()-1;
-		int jEnd = m_box.GetBInteriorEnd()+1;
-
-		i = m_box.GetAInteriorEnd();
+		int i = m_box.GetAInteriorEnd();
 		for (int k = 0; k < pDataVelocity->GetSize(3); k++) {
-		for (j = jBegin; j < jEnd; j++) {
+		for (int j = jBegin; j < jEnd; j++) {
 #if defined(PROGNOSTIC_CONTRAVARIANT_MOMENTA)
 			CubedSphereTrans::VecPanelTrans(
 				ixRightPanel,
 				m_box.GetPanel(),
 				(*pDataVelocity)(UIx,i,j,k),
 				(*pDataVelocity)(VIx,i,j,k),
-				tan(m_dANode[i]),
-				tan(m_dBNode[j]));
+				m_dXNode[i],
+				m_dYNode[j]);
 #else
 			CubedSphereTrans::CoVecPanelTrans(
 				ixRightPanel,
 				m_box.GetPanel(),
 				(*pDataVelocity)(UIx,i,j,k),
 				(*pDataVelocity)(VIx,i,j,k),
-				tan(m_dANode[i]),
-				tan(m_dBNode[j]));
+				m_dXNode[i],
+				m_dYNode[j]);
 #endif
 		}
 		}
@@ -1631,31 +1639,28 @@ void GridPatchCSGLL::TransformHaloVelocities(
 
 	// Post-process velocities across top edge
 	if (ixTopPanel != m_box.GetPanel()) {
-		int i;
-		int j;
+		const int iBegin = m_box.GetAInteriorBegin()-1;
+		const int iEnd = m_box.GetAInteriorEnd()+1;
 
-		int iBegin = m_box.GetAInteriorBegin()-1;
-		int iEnd = m_box.GetAInteriorEnd()+1;
-
-		j = m_box.GetBInteriorEnd();
+		int j = m_box.GetBInteriorEnd();
 		for (int k = 0; k < pDataVelocity->GetSize(3); k++) {
-		for (i = iBegin; i < iEnd; i++) {
+		for (int i = iBegin; i < iEnd; i++) {
 #if defined(PROGNOSTIC_CONTRAVARIANT_MOMENTA)
 			CubedSphereTrans::VecPanelTrans(
 				ixTopPanel,
 				m_box.GetPanel(),
 				(*pDataVelocity)(UIx,i,j,k),
 				(*pDataVelocity)(VIx,i,j,k),
-				tan(m_dANode[i]),
-				tan(m_dBNode[j]));
+				m_dXNode[i],
+				m_dYNode[j]);
 #else
 			CubedSphereTrans::CoVecPanelTrans(
 				ixTopPanel,
 				m_box.GetPanel(),
 				(*pDataVelocity)(UIx,i,j,k),
 				(*pDataVelocity)(VIx,i,j,k),
-				tan(m_dANode[i]),
-				tan(m_dBNode[j]));
+				m_dXNode[i],
+				m_dYNode[j]);
 #endif
 		}
 		}
@@ -1663,31 +1668,28 @@ void GridPatchCSGLL::TransformHaloVelocities(
 
 	// Post-process velocities across left edge
 	if (ixLeftPanel != m_box.GetPanel()) {
-		int i;
-		int j;
+		const int jBegin = m_box.GetBInteriorBegin()-1;
+		const int jEnd = m_box.GetBInteriorEnd()+1;
 
-		int jBegin = m_box.GetBInteriorBegin()-1;
-		int jEnd = m_box.GetBInteriorEnd()+1;
-
-		i = m_box.GetAInteriorBegin()-1;
+		int i = m_box.GetAInteriorBegin()-1;
 		for (int k = 0; k < pDataVelocity->GetSize(3); k++) {
-		for (j = jBegin; j < jEnd; j++) {
+		for (int j = jBegin; j < jEnd; j++) {
 #if defined(PROGNOSTIC_CONTRAVARIANT_MOMENTA)
 			CubedSphereTrans::VecPanelTrans(
 				ixLeftPanel,
 				m_box.GetPanel(),
 				(*pDataVelocity)(UIx,i,j,k),
 				(*pDataVelocity)(VIx,i,j,k),
-				tan(m_dANode[i]),
-				tan(m_dBNode[j]));
+				m_dXNode[i],
+				m_dYNode[j]);
 #else
 			CubedSphereTrans::CoVecPanelTrans(
 				ixLeftPanel,
 				m_box.GetPanel(),
 				(*pDataVelocity)(UIx,i,j,k),
 				(*pDataVelocity)(VIx,i,j,k),
-				tan(m_dANode[i]),
-				tan(m_dBNode[j]));
+				m_dXNode[i],
+				m_dYNode[j]);
 #endif
 		}
 		}
@@ -1695,31 +1697,28 @@ void GridPatchCSGLL::TransformHaloVelocities(
 
 	// Post-process velocities across bottom edge
 	if (ixBottomPanel != m_box.GetPanel()) {
-		int i;
-		int j;
+		const int iBegin = m_box.GetAInteriorBegin()-1;
+		const int iEnd = m_box.GetAInteriorEnd()+1;
 
-		int iBegin = m_box.GetAInteriorBegin()-1;
-		int iEnd = m_box.GetAInteriorEnd()+1;
-
-		j = m_box.GetBInteriorBegin()-1;
+		int j = m_box.GetBInteriorBegin()-1;
 		for (int k = 0; k < pDataVelocity->GetSize(3); k++) {
-		for (i = iBegin; i < iEnd; i++) {
+		for (int i = iBegin; i < iEnd; i++) {
 #if defined(PROGNOSTIC_CONTRAVARIANT_MOMENTA)
 			CubedSphereTrans::VecPanelTrans(
 				ixBottomPanel,
 				m_box.GetPanel(),
 				(*pDataVelocity)(UIx,i,j,k),
 				(*pDataVelocity)(VIx,i,j,k),
-				tan(m_dANode[i]),
-				tan(m_dBNode[j]));
+				m_dXNode[i],
+				m_dYNode[j]);
 #else
 			CubedSphereTrans::CoVecPanelTrans(
 				ixBottomPanel,
 				m_box.GetPanel(),
 				(*pDataVelocity)(UIx,i,j,k),
 				(*pDataVelocity)(VIx,i,j,k),
-				tan(m_dANode[i]),
-				tan(m_dBNode[j]));
+				m_dXNode[i],
+				m_dYNode[j]);
 #endif
 		}
 		}
@@ -1731,93 +1730,81 @@ void GridPatchCSGLL::TransformHaloVelocities(
 void GridPatchCSGLL::TransformTopographyDeriv() {
 
 	// Panels in each coordinate direction
-	int ixRightPanel  = GetNeighborPanel(Direction_Right);
-	int ixTopPanel    = GetNeighborPanel(Direction_Top);
-	int ixLeftPanel   = GetNeighborPanel(Direction_Left);
-	int ixBottomPanel = GetNeighborPanel(Direction_Bottom);
+	const int ixRightPanel  = GetNeighborPanel(Direction_Right);
+	const int ixTopPanel    = GetNeighborPanel(Direction_Top);
+	const int ixLeftPanel   = GetNeighborPanel(Direction_Left);
+	const int ixBottomPanel = GetNeighborPanel(Direction_Bottom);
 
-	int ixTopRightPanel    = GetNeighborPanel(Direction_TopRight);
-	int ixTopLeftPanel     = GetNeighborPanel(Direction_TopLeft);
-	int ixBottomLeftPanel  = GetNeighborPanel(Direction_BottomLeft);
-	int ixBottomRightPanel = GetNeighborPanel(Direction_BottomRight);
+	const int ixTopRightPanel    = GetNeighborPanel(Direction_TopRight);
+	const int ixTopLeftPanel     = GetNeighborPanel(Direction_TopLeft);
+	const int ixBottomLeftPanel  = GetNeighborPanel(Direction_BottomLeft);
+	const int ixBottomRightPanel = GetNeighborPanel(Direction_BottomRight);
 
 	// Post-process velocities across right edge
 	if (ixRightPanel != m_box.GetPanel()) {
-		int i;
-		int j;
+		const int jBegin = m_box.GetBInteriorBegin()-1;
+		const int jEnd = m_box.GetBInteriorEnd()+1;
 
-		int jBegin = m_box.GetBInteriorBegin()-1;
-		int jEnd = m_box.GetBInteriorEnd()+1;
-
-		i = m_box.GetAInteriorEnd();
-		for (j = jBegin; j < jEnd; j++) {
+		const int i = m_box.GetAInteriorEnd();
+		for (int j = jBegin; j < jEnd; j++) {
 			CubedSphereTrans::CoVecPanelTrans(
 				ixRightPanel,
 				m_box.GetPanel(),
 				m_dataTopographyDeriv(i,j,0),
 				m_dataTopographyDeriv(i,j,1),
-				tan(m_dANode[i]),
-				tan(m_dBNode[j]));
+				m_dXNode[i],
+				m_dYNode[j]);
 		}
 	}
 
 	// Post-process velocities across top edge
 	if (ixTopPanel != m_box.GetPanel()) {
-		int i;
-		int j;
+		const int iBegin = m_box.GetAInteriorBegin()-1;
+		const int iEnd = m_box.GetAInteriorEnd()+1;
 
-		int iBegin = m_box.GetAInteriorBegin()-1;
-		int iEnd = m_box.GetAInteriorEnd()+1;
-
-		j = m_box.GetBInteriorEnd();
-		for (i = iBegin; i < iEnd; i++) {
+		int j = m_box.GetBInteriorEnd();
+		for (int i = iBegin; i < iEnd; i++) {
 			CubedSphereTrans::CoVecPanelTrans(
 				ixTopPanel,
 				m_box.GetPanel(),
 				m_dataTopographyDeriv(i,j,0),
 				m_dataTopographyDeriv(i,j,1),
-				tan(m_dANode[i]),
-				tan(m_dBNode[j]));
+				m_dXNode[i],
+				m_dYNode[j]);
 		}
 	}
 
 	// Post-process velocities across left edge
 	if (ixLeftPanel != m_box.GetPanel()) {
-		int i;
-		int j;
+		const int jBegin = m_box.GetBInteriorBegin()-1;
+		const int jEnd = m_box.GetBInteriorEnd()+1;
 
-		int jBegin = m_box.GetBInteriorBegin()-1;
-		int jEnd = m_box.GetBInteriorEnd()+1;
-
-		i = m_box.GetAInteriorBegin()-1;
-		for (j = jBegin; j < jEnd; j++) {
+		int i = m_box.GetAInteriorBegin()-1;
+		for (int j = jBegin; j < jEnd; j++) {
 			CubedSphereTrans::CoVecPanelTrans(
 				ixLeftPanel,
 				m_box.GetPanel(),
 				m_dataTopographyDeriv(i,j,0),
 				m_dataTopographyDeriv(i,j,1),
-				tan(m_dANode[i]),
-				tan(m_dBNode[j]));
+				m_dXNode[i],
+				m_dYNode[j]);
 		}
 	}
 
 	// Post-process velocities across bottom edge
 	if (ixBottomPanel != m_box.GetPanel()) {
-		int i;
-		int j;
+		const int iBegin = m_box.GetAInteriorBegin()-1;
+		const int iEnd = m_box.GetAInteriorEnd()+1;
 
-		int iBegin = m_box.GetAInteriorBegin()-1;
-		int iEnd = m_box.GetAInteriorEnd()+1;
-
-		j = m_box.GetBInteriorBegin()-1;
-		for (i = iBegin; i < iEnd; i++) {
+		int j = m_box.GetBInteriorBegin()-1;
+		for (int i = iBegin; i < iEnd; i++) {
 			CubedSphereTrans::CoVecPanelTrans(
 				ixBottomPanel,
 				m_box.GetPanel(),
 				m_dataTopographyDeriv(i,j,0),
 				m_dataTopographyDeriv(i,j,1),
-				tan(m_dANode[i]),
-				tan(m_dBNode[j]));
+				m_dXNode[i],
+				m_dYNode[j]);
 		}
 	}
 }
