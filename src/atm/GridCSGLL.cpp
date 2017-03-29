@@ -722,45 +722,53 @@ void GridCSGLL::ApplyDSS(
 
 			/// start of loop nest 3
 
-			// Handle patch corners that are coincident with panel corners
+			// Handle patch corners that are coincident with panel corners.
+			// These are also nodes of connectivity 3.
+			if (ixTopRightPanel == InvalidPanel) {
+				const int iA = box.GetAInteriorEnd()-1;
+				const int iB = box.GetBInteriorEnd()-1;
+
 #pragma simd
-			for (int k = 0; k < nRElements; k++) {
-
-				// Average at cubed-sphere corners (nodes of connectivity 3)
-				if (ixTopRightPanel == InvalidPanel) {
-					int iA = box.GetAInteriorEnd()-1;
-					int iB = box.GetBInteriorEnd()-1;
-
+				for (int k = 0; k < nRElements; k++) {
 					pDataUpdate(iA,iB,k) = (1.0/3.0) * (
 						+ pDataUpdate(iA  ,iB  ,k)
 						+ pDataUpdate(iA+1,iB  ,k)
 						+ pDataUpdate(iA  ,iB+1,k));
 				}
+			}
 
-				if (ixTopLeftPanel == InvalidPanel) {
-					int iA = box.GetAInteriorBegin();
-					int iB = box.GetBInteriorEnd()-1;
+			if (ixTopLeftPanel == InvalidPanel) {
+				const int iA = box.GetAInteriorBegin();
+				const int iB = box.GetBInteriorEnd()-1;
 
+#pragma simd
+				for (int k = 0; k < nRElements; k++) {
 					pDataUpdate(iA,iB,k) = (1.0/3.0) * (
 						+ pDataUpdate(iA  ,iB  ,k)
 						+ pDataUpdate(iA-1,iB  ,k)
 						+ pDataUpdate(iA  ,iB+1,k));
 				}
+			}
 
-				if (ixBottomLeftPanel == InvalidPanel) {
-					int iA = box.GetAInteriorBegin();
-					int iB = box.GetBInteriorBegin();
+			if (ixBottomLeftPanel == InvalidPanel) {
+				const int iA = box.GetAInteriorBegin();
+				const int iB = box.GetBInteriorBegin();
 
+#pragma simd
+				for (int k = 0; k < nRElements; k++) {
 					pDataUpdate(iA,iB,k) = (1.0/3.0) * (
 						+ pDataUpdate(iA  ,iB  ,k)
 						+ pDataUpdate(iA-1,iB  ,k)
 						+ pDataUpdate(iA  ,iB-1,k));
 				}
+			}
 
-				if (ixBottomRightPanel == InvalidPanel) {
-					int iA = box.GetAInteriorEnd()-1;
-					int iB = box.GetBInteriorBegin();
+			if (ixBottomRightPanel == InvalidPanel) {
+				const int iA = box.GetAInteriorEnd()-1;
+				const int iB = box.GetBInteriorBegin();
 
+#pragma simd
+				for (int k = 0; k < nRElements; k++) {
 					pDataUpdate(iA,iB,k) = (1.0/3.0) * (
 						+ pDataUpdate(iA  ,iB  ,k)
 						+ pDataUpdate(iA+1,iB  ,k)
