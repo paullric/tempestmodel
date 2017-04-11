@@ -94,8 +94,10 @@ void ExchangeBuffer::Pack(
 		if (m_fReverseDirection) {
 			for (int i = ixBoundaryBegin; i < ixBoundaryEnd; i++) {
 			for (int j = m_ixSecond-1; j >= m_ixFirst; j--) {
+#pragma simd
 			for (int k = 0; k < sRElements; k++) {
-				m_dSendBuffer[m_ixSendBuffer++] = data[i][j][k];
+				m_dSendBuffer[m_ixSendBuffer++] =
+					data(i,j,k);
 			}
 			}
 			}
@@ -103,8 +105,10 @@ void ExchangeBuffer::Pack(
 		} else {
 			for (int i = ixBoundaryBegin; i < ixBoundaryEnd; i++) {
 			for (int j = m_ixFirst; j < m_ixSecond; j++) {
+#pragma simd
 			for (int k = 0; k < sRElements; k++) {
-				m_dSendBuffer[m_ixSendBuffer++] = data[i][j][k];	
+				m_dSendBuffer[m_ixSendBuffer++] =
+					data(i,j,k);	
 			}
 			}
 			}
@@ -129,8 +133,10 @@ void ExchangeBuffer::Pack(
 		if (m_fReverseDirection) {
 			for (int j = ixBoundaryBegin; j < ixBoundaryEnd; j++) {
 			for (int i = m_ixSecond-1; i >= m_ixFirst; i--) {
+#pragma simd
 			for (int k = 0; k < sRElements; k++) {
-				m_dSendBuffer[m_ixSendBuffer++] = data[i][j][k];
+				m_dSendBuffer[m_ixSendBuffer++] =
+					data(i,j,k);
 			}
 			}
 			}
@@ -138,8 +144,10 @@ void ExchangeBuffer::Pack(
 		} else {
 			for (int j = ixBoundaryBegin; j < ixBoundaryEnd; j++) {
 			for (int i = m_ixFirst; i < m_ixSecond; i++) {
+#pragma simd
 			for (int k = 0; k < sRElements; k++) {
-				m_dSendBuffer[m_ixSendBuffer++] = data[i][j][k];
+				m_dSendBuffer[m_ixSendBuffer++] =
+					data(i,j,k);
 			}
 			}
 			}
@@ -164,8 +172,10 @@ void ExchangeBuffer::Pack(
 		if (m_fReverseDirection) {
 			for (int i = ixBoundaryEnd-1; i >= ixBoundaryBegin; i--) {
 			for (int j = m_ixSecond-1; j >= m_ixFirst; j--) {
+#pragma simd
 			for (int k = 0; k < sRElements; k++) {
-				m_dSendBuffer[m_ixSendBuffer++] = data[i][j][k];
+				m_dSendBuffer[m_ixSendBuffer++] =
+					data(i,j,k);
 			}
 			}
 			}
@@ -173,8 +183,10 @@ void ExchangeBuffer::Pack(
 		} else {
 			for (int i = ixBoundaryEnd-1; i >= ixBoundaryBegin; i--) {
 			for (int j = m_ixFirst; j < m_ixSecond; j++) {
+#pragma simd
 			for (int k = 0; k < sRElements; k++) {
-				m_dSendBuffer[m_ixSendBuffer++] = data[i][j][k];
+				m_dSendBuffer[m_ixSendBuffer++] =
+					data(i,j,k);
 			}
 			}
 			}
@@ -199,8 +211,10 @@ void ExchangeBuffer::Pack(
 		if (m_fReverseDirection) {
 			for (int j = ixBoundaryEnd-1; j >= ixBoundaryBegin; j--) {
 			for (int i = m_ixSecond-1; i >= m_ixFirst; i--) {
+#pragma simd
 			for (int k = 0; k < sRElements; k++) {
-				m_dSendBuffer[m_ixSendBuffer++] = data[i][j][k];
+				m_dSendBuffer[m_ixSendBuffer++] =
+					data(i,j,k);
 			}
 			}
 			}
@@ -208,8 +222,10 @@ void ExchangeBuffer::Pack(
 		} else {
 			for (int j = ixBoundaryEnd-1; j >= ixBoundaryBegin; j--) {
 			for (int i = m_ixFirst; i < m_ixSecond; i++) {
+#pragma simd
 			for (int k = 0; k < sRElements; k++) {
-				m_dSendBuffer[m_ixSendBuffer++] = data[i][j][k];
+				m_dSendBuffer[m_ixSendBuffer++] =
+					data(i,j,k);
 			}
 			}
 			}
@@ -236,8 +252,10 @@ void ExchangeBuffer::Pack(
 		if (m_fReverseDirection) {
 			for (int i = ixABoundaryBegin; i < ixABoundaryEnd; i++) {
 			for (int j = ixBBoundaryBegin; j < ixBBoundaryEnd; j++) {
+#pragma simd
 			for (int k = 0; k < sRElements; k++) {
-				m_dSendBuffer[m_ixSendBuffer++] = data[i][j][k];
+				m_dSendBuffer[m_ixSendBuffer++] =
+					data(i,j,k);
 			}
 			}
 			}
@@ -245,8 +263,10 @@ void ExchangeBuffer::Pack(
 		} else {
 			for (int j = ixBBoundaryBegin; j < ixBBoundaryEnd; j++) {
 			for (int i = ixABoundaryBegin; i < ixABoundaryEnd; i++) {
+#pragma simd
 			for (int k = 0; k < sRElements; k++) {
-				m_dSendBuffer[m_ixSendBuffer++] = data[i][j][k];
+				m_dSendBuffer[m_ixSendBuffer++] =
+					data(i,j,k);
 			}
 			}
 			}
@@ -273,8 +293,10 @@ void ExchangeBuffer::Pack(
 		if (m_fReverseDirection) {
 			for (int i = ixABoundaryEnd-1; i >= ixABoundaryBegin; i--) {
 			for (int j = ixBBoundaryBegin; j < ixBBoundaryEnd; j++) {
+#pragma simd
 			for (int k = 0; k < sRElements; k++) {
-				m_dSendBuffer[m_ixSendBuffer++] = data[i][j][k];
+				m_dSendBuffer[m_ixSendBuffer++] =
+					data(i,j,k);
 			}
 			}
 			}
@@ -282,8 +304,10 @@ void ExchangeBuffer::Pack(
 		} else {
 			for (int j = ixBBoundaryBegin; j < ixBBoundaryEnd; j++) {
 			for (int i = ixABoundaryEnd-1; i >= ixABoundaryBegin; i--) {
+#pragma simd
 			for (int k = 0; k < sRElements; k++) {
-				m_dSendBuffer[m_ixSendBuffer++] = data[i][j][k];
+				m_dSendBuffer[m_ixSendBuffer++] =
+					data(i,j,k);
 			}
 			}
 			}
@@ -310,8 +334,10 @@ void ExchangeBuffer::Pack(
 		if (m_fReverseDirection) {
 			for (int i = ixABoundaryEnd-1; i >= ixABoundaryBegin; i--) {
 			for (int j = ixBBoundaryEnd-1; j >= ixBBoundaryBegin; j--) {
+#pragma simd
 			for (int k = 0; k < sRElements; k++) {
-				m_dSendBuffer[m_ixSendBuffer++] = data[i][j][k];
+				m_dSendBuffer[m_ixSendBuffer++] =
+					data(i,j,k);
 			}
 			}
 			}
@@ -319,8 +345,10 @@ void ExchangeBuffer::Pack(
 		} else {
 			for (int j = ixBBoundaryEnd-1; j >= ixBBoundaryBegin; j--) {
 			for (int i = ixABoundaryEnd-1; i >= ixABoundaryBegin; i--) {
+#pragma simd
 			for (int k = 0; k < sRElements; k++) {
-				m_dSendBuffer[m_ixSendBuffer++] = data[i][j][k];
+				m_dSendBuffer[m_ixSendBuffer++] =
+					data(i,j,k);
 			}
 			}
 			}
@@ -347,8 +375,10 @@ void ExchangeBuffer::Pack(
 		if (m_fReverseDirection) {
 			for (int i = ixABoundaryBegin; i < ixABoundaryEnd; i++) {
 			for (int j = ixBBoundaryEnd-1; j >= ixBBoundaryBegin; j--) {
+#pragma simd
 			for (int k = 0; k < sRElements; k++) {
-				m_dSendBuffer[m_ixSendBuffer++] = data[i][j][k];
+				m_dSendBuffer[m_ixSendBuffer++] =
+					data(i,j,k);
 			}
 			}
 			}
@@ -356,8 +386,10 @@ void ExchangeBuffer::Pack(
 		} else {
 			for (int j = ixBBoundaryEnd-1; j >= ixBBoundaryBegin; j--) {
 			for (int i = ixABoundaryBegin; i < ixABoundaryEnd; i++) {
+#pragma simd
 			for (int k = 0; k < sRElements; k++) {
-				m_dSendBuffer[m_ixSendBuffer++] = data[i][j][k];
+				m_dSendBuffer[m_ixSendBuffer++] =
+					data(i,j,k);
 			}
 			}
 			}
@@ -393,7 +425,7 @@ void ExchangeBuffer::Pack(
 			if (grid.GetVarLocation(c) != data.GetDataLocation()) {
 				continue;
 			}
-			data3D.AttachToData(const_cast<double*>(&(data[c][0][0][0])));
+			data3D.AttachToData(const_cast<double*>(&(data(c,0,0,0))));
 			Pack(data3D);
 			data3D.Detach();
 		}
@@ -401,7 +433,7 @@ void ExchangeBuffer::Pack(
 	// Send everything
 	} else {
 		for (int c = 0; c < sComponents; c++) {
-			data3D.AttachToData(const_cast<double*>(&(data[c][0][0][0])));
+			data3D.AttachToData(const_cast<double*>(&(data(c,0,0,0))));
 			Pack(data3D);
 			data3D.Detach();
 		}
@@ -445,8 +477,10 @@ void ExchangeBuffer::Unpack(
 		// Unpack data
 		for (int i = ixBoundaryEnd-1; i >= ixBoundaryBegin; i--) {
 		for (int j = m_ixFirst; j < m_ixSecond; j++) {
+#pragma simd
 		for (int k = 0; k < sRElements; k++) {
-			data[i][j][k] = m_dRecvBuffer[m_ixRecvBuffer++];
+			data(i,j,k) =
+				m_dRecvBuffer[m_ixRecvBuffer++];
 		}
 		}
 		}
@@ -469,8 +503,10 @@ void ExchangeBuffer::Unpack(
 		// Unpack data
 		for (int j = ixBoundaryEnd-1; j >= ixBoundaryBegin; j--) {
 		for (int i = m_ixFirst; i < m_ixSecond; i++) {
+#pragma simd
 		for (int k = 0; k < sRElements; k++) {
-			data[i][j][k] = m_dRecvBuffer[m_ixRecvBuffer++];
+			data(i,j,k) =
+				m_dRecvBuffer[m_ixRecvBuffer++];
 		}
 		}
 		}
@@ -493,8 +529,10 @@ void ExchangeBuffer::Unpack(
 		// Unpack data
 		for (int i = ixBoundaryBegin; i < ixBoundaryEnd; i++) {
 		for (int j = m_ixFirst; j < m_ixSecond; j++) {
+#pragma simd
 		for (int k = 0; k < sRElements; k++) {
-			data[i][j][k] = m_dRecvBuffer[m_ixRecvBuffer++];
+			data(i,j,k) =
+				m_dRecvBuffer[m_ixRecvBuffer++];
 		}
 		}
 		}
@@ -517,8 +555,10 @@ void ExchangeBuffer::Unpack(
 		// Unpack data
 		for (int j = ixBoundaryBegin; j < ixBoundaryEnd; j++) {
 		for (int i = m_ixFirst; i < m_ixSecond; i++) {
+#pragma simd
 		for (int k = 0; k < sRElements; k++) {
-			data[i][j][k] = m_dRecvBuffer[m_ixRecvBuffer++];
+			data(i,j,k) =
+				m_dRecvBuffer[m_ixRecvBuffer++];
 		}
 		}
 		}
@@ -543,8 +583,10 @@ void ExchangeBuffer::Unpack(
 		// Unpack data
 		for (int j = ixBBoundaryEnd-1; j >= ixBBoundaryBegin; j--) {
 		for (int i = ixABoundaryEnd-1; i >= ixABoundaryBegin; i--) {
+#pragma simd
 		for (int k = 0; k < sRElements; k++) {
-			data[i][j][k] = m_dRecvBuffer[m_ixRecvBuffer++];
+			data(i,j,k) =
+				m_dRecvBuffer[m_ixRecvBuffer++];
 		}
 		}
 		}
@@ -569,8 +611,10 @@ void ExchangeBuffer::Unpack(
 		// Unpack data
 		for (int j = ixBBoundaryEnd-1; j >= ixBBoundaryBegin; j--) {
 		for (int i = ixABoundaryBegin; i < ixABoundaryEnd; i++) {
+#pragma simd
 		for (int k = 0; k < sRElements; k++) {
-			data[i][j][k] = m_dRecvBuffer[m_ixRecvBuffer++];
+			data(i,j,k) =
+				m_dRecvBuffer[m_ixRecvBuffer++];
 		}
 		}
 		}
@@ -595,8 +639,10 @@ void ExchangeBuffer::Unpack(
 		// Unpack data
 		for (int j = ixBBoundaryBegin; j < ixBBoundaryEnd; j++) {
 		for (int i = ixABoundaryBegin; i < ixABoundaryEnd; i++) {
+#pragma simd
 		for (int k = 0; k < sRElements; k++) {
-			data[i][j][k] = m_dRecvBuffer[m_ixRecvBuffer++];
+			data(i,j,k) =
+				m_dRecvBuffer[m_ixRecvBuffer++];
 		}
 		}
 		}
@@ -621,8 +667,10 @@ void ExchangeBuffer::Unpack(
 		// Unpack data
 		for (int j = ixBBoundaryBegin; j < ixBBoundaryEnd; j++) {
 		for (int i = ixABoundaryEnd-1; i >= ixABoundaryBegin; i--) {
+#pragma simd
 		for (int k = 0; k < sRElements; k++) {
-			data[i][j][k] = m_dRecvBuffer[m_ixRecvBuffer++];
+			data(i,j,k) =
+				m_dRecvBuffer[m_ixRecvBuffer++];
 		}
 		}
 		}
@@ -656,7 +704,7 @@ void ExchangeBuffer::Unpack(
 			if (grid.GetVarLocation(c) != data.GetDataLocation()) {
 				continue;
 			}
-			data3D.AttachToData(&(data[c][0][0][0]));
+			data3D.AttachToData(&(data(c,0,0,0)));
 			Unpack(data3D);
 			data3D.Detach();
 		}
@@ -664,7 +712,7 @@ void ExchangeBuffer::Unpack(
 	// Unpack all variables
 	} else {
 		for (int c = 0; c < sComponents; c++) {
-			data3D.AttachToData(&(data[c][0][0][0]));
+			data3D.AttachToData(&(data(c,0,0,0)));
 			Unpack(data3D);
 			data3D.Detach();
 		}
