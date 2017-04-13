@@ -95,10 +95,11 @@ void ExchangeBuffer::Pack(
 			for (int i = ixBoundaryBegin; i < ixBoundaryEnd; i++) {
 			for (int j = m_ixSecond-1; j >= m_ixFirst; j--) {
 #pragma simd
-			for (int k = 0; k < sRElements; k++) {
-				m_dSendBuffer[m_ixSendBuffer++] =
-					data(i,j,k);
-			}
+				for (int k = 0; k < sRElements; k++) {
+					m_dSendBuffer[m_ixSendBuffer + k] =
+						data(i,j,k);
+				}
+				m_ixSendBuffer += sRElements;
 			}
 			}
 
@@ -106,10 +107,11 @@ void ExchangeBuffer::Pack(
 			for (int i = ixBoundaryBegin; i < ixBoundaryEnd; i++) {
 			for (int j = m_ixFirst; j < m_ixSecond; j++) {
 #pragma simd
-			for (int k = 0; k < sRElements; k++) {
-				m_dSendBuffer[m_ixSendBuffer++] =
-					data(i,j,k);	
-			}
+				for (int k = 0; k < sRElements; k++) {
+					m_dSendBuffer[m_ixSendBuffer + k] =
+						data(i,j,k);	
+				}
+				m_ixSendBuffer += sRElements;
 			}
 			}
 		}
@@ -134,10 +136,11 @@ void ExchangeBuffer::Pack(
 			for (int j = ixBoundaryBegin; j < ixBoundaryEnd; j++) {
 			for (int i = m_ixSecond-1; i >= m_ixFirst; i--) {
 #pragma simd
-			for (int k = 0; k < sRElements; k++) {
-				m_dSendBuffer[m_ixSendBuffer++] =
-					data(i,j,k);
-			}
+				for (int k = 0; k < sRElements; k++) {
+					m_dSendBuffer[m_ixSendBuffer + k] =
+						data(i,j,k);
+				}
+				m_ixSendBuffer += sRElements;
 			}
 			}
 
@@ -145,10 +148,11 @@ void ExchangeBuffer::Pack(
 			for (int j = ixBoundaryBegin; j < ixBoundaryEnd; j++) {
 			for (int i = m_ixFirst; i < m_ixSecond; i++) {
 #pragma simd
-			for (int k = 0; k < sRElements; k++) {
-				m_dSendBuffer[m_ixSendBuffer++] =
-					data(i,j,k);
-			}
+				for (int k = 0; k < sRElements; k++) {
+					m_dSendBuffer[m_ixSendBuffer + k] =
+						data(i,j,k);
+				}
+				m_ixSendBuffer += sRElements;
 			}
 			}
 		}
@@ -173,10 +177,11 @@ void ExchangeBuffer::Pack(
 			for (int i = ixBoundaryEnd-1; i >= ixBoundaryBegin; i--) {
 			for (int j = m_ixSecond-1; j >= m_ixFirst; j--) {
 #pragma simd
-			for (int k = 0; k < sRElements; k++) {
-				m_dSendBuffer[m_ixSendBuffer++] =
-					data(i,j,k);
-			}
+				for (int k = 0; k < sRElements; k++) {
+					m_dSendBuffer[m_ixSendBuffer + k] =
+						data(i,j,k);
+				}
+				m_ixSendBuffer += sRElements;
 			}
 			}
 
@@ -184,10 +189,11 @@ void ExchangeBuffer::Pack(
 			for (int i = ixBoundaryEnd-1; i >= ixBoundaryBegin; i--) {
 			for (int j = m_ixFirst; j < m_ixSecond; j++) {
 #pragma simd
-			for (int k = 0; k < sRElements; k++) {
-				m_dSendBuffer[m_ixSendBuffer++] =
-					data(i,j,k);
-			}
+				for (int k = 0; k < sRElements; k++) {
+					m_dSendBuffer[m_ixSendBuffer + k] =
+						data(i,j,k);
+				}
+				m_ixSendBuffer += sRElements;
 			}
 			}
 		}
@@ -212,10 +218,11 @@ void ExchangeBuffer::Pack(
 			for (int j = ixBoundaryEnd-1; j >= ixBoundaryBegin; j--) {
 			for (int i = m_ixSecond-1; i >= m_ixFirst; i--) {
 #pragma simd
-			for (int k = 0; k < sRElements; k++) {
-				m_dSendBuffer[m_ixSendBuffer++] =
-					data(i,j,k);
-			}
+				for (int k = 0; k < sRElements; k++) {
+					m_dSendBuffer[m_ixSendBuffer + k] =
+						data(i,j,k);
+				}
+				m_ixSendBuffer += sRElements;
 			}
 			}
 
@@ -223,10 +230,11 @@ void ExchangeBuffer::Pack(
 			for (int j = ixBoundaryEnd-1; j >= ixBoundaryBegin; j--) {
 			for (int i = m_ixFirst; i < m_ixSecond; i++) {
 #pragma simd
-			for (int k = 0; k < sRElements; k++) {
-				m_dSendBuffer[m_ixSendBuffer++] =
-					data(i,j,k);
-			}
+				for (int k = 0; k < sRElements; k++) {
+					m_dSendBuffer[m_ixSendBuffer + k] =
+						data(i,j,k);
+				}
+				m_ixSendBuffer += sRElements;
 			}
 			}
 		}
@@ -253,10 +261,11 @@ void ExchangeBuffer::Pack(
 			for (int i = ixABoundaryBegin; i < ixABoundaryEnd; i++) {
 			for (int j = ixBBoundaryBegin; j < ixBBoundaryEnd; j++) {
 #pragma simd
-			for (int k = 0; k < sRElements; k++) {
-				m_dSendBuffer[m_ixSendBuffer++] =
-					data(i,j,k);
-			}
+				for (int k = 0; k < sRElements; k++) {
+					m_dSendBuffer[m_ixSendBuffer + k] =
+						data(i,j,k);
+				}
+				m_ixSendBuffer += sRElements;
 			}
 			}
 
@@ -264,10 +273,11 @@ void ExchangeBuffer::Pack(
 			for (int j = ixBBoundaryBegin; j < ixBBoundaryEnd; j++) {
 			for (int i = ixABoundaryBegin; i < ixABoundaryEnd; i++) {
 #pragma simd
-			for (int k = 0; k < sRElements; k++) {
-				m_dSendBuffer[m_ixSendBuffer++] =
-					data(i,j,k);
-			}
+				for (int k = 0; k < sRElements; k++) {
+					m_dSendBuffer[m_ixSendBuffer + k] =
+						data(i,j,k);
+				}
+				m_ixSendBuffer += sRElements;
 			}
 			}
 		}
@@ -294,10 +304,11 @@ void ExchangeBuffer::Pack(
 			for (int i = ixABoundaryEnd-1; i >= ixABoundaryBegin; i--) {
 			for (int j = ixBBoundaryBegin; j < ixBBoundaryEnd; j++) {
 #pragma simd
-			for (int k = 0; k < sRElements; k++) {
-				m_dSendBuffer[m_ixSendBuffer++] =
-					data(i,j,k);
-			}
+				for (int k = 0; k < sRElements; k++) {
+					m_dSendBuffer[m_ixSendBuffer + k] =
+						data(i,j,k);
+				}
+				m_ixSendBuffer += sRElements;
 			}
 			}
 
@@ -305,10 +316,11 @@ void ExchangeBuffer::Pack(
 			for (int j = ixBBoundaryBegin; j < ixBBoundaryEnd; j++) {
 			for (int i = ixABoundaryEnd-1; i >= ixABoundaryBegin; i--) {
 #pragma simd
-			for (int k = 0; k < sRElements; k++) {
-				m_dSendBuffer[m_ixSendBuffer++] =
-					data(i,j,k);
-			}
+				for (int k = 0; k < sRElements; k++) {
+					m_dSendBuffer[m_ixSendBuffer + k] =
+						data(i,j,k);
+				}
+				m_ixSendBuffer += sRElements;
 			}
 			}
 		}
@@ -335,10 +347,11 @@ void ExchangeBuffer::Pack(
 			for (int i = ixABoundaryEnd-1; i >= ixABoundaryBegin; i--) {
 			for (int j = ixBBoundaryEnd-1; j >= ixBBoundaryBegin; j--) {
 #pragma simd
-			for (int k = 0; k < sRElements; k++) {
-				m_dSendBuffer[m_ixSendBuffer++] =
-					data(i,j,k);
-			}
+				for (int k = 0; k < sRElements; k++) {
+					m_dSendBuffer[m_ixSendBuffer + k] =
+						data(i,j,k);
+				}
+				m_ixSendBuffer += sRElements;
 			}
 			}
 
@@ -346,10 +359,11 @@ void ExchangeBuffer::Pack(
 			for (int j = ixBBoundaryEnd-1; j >= ixBBoundaryBegin; j--) {
 			for (int i = ixABoundaryEnd-1; i >= ixABoundaryBegin; i--) {
 #pragma simd
-			for (int k = 0; k < sRElements; k++) {
-				m_dSendBuffer[m_ixSendBuffer++] =
-					data(i,j,k);
-			}
+				for (int k = 0; k < sRElements; k++) {
+					m_dSendBuffer[m_ixSendBuffer + k] =
+						data(i,j,k);
+				}
+				m_ixSendBuffer += sRElements;
 			}
 			}
 		}
@@ -376,10 +390,11 @@ void ExchangeBuffer::Pack(
 			for (int i = ixABoundaryBegin; i < ixABoundaryEnd; i++) {
 			for (int j = ixBBoundaryEnd-1; j >= ixBBoundaryBegin; j--) {
 #pragma simd
-			for (int k = 0; k < sRElements; k++) {
-				m_dSendBuffer[m_ixSendBuffer++] =
-					data(i,j,k);
-			}
+				for (int k = 0; k < sRElements; k++) {
+					m_dSendBuffer[m_ixSendBuffer + k] =
+						data(i,j,k);
+				}
+				m_ixSendBuffer += sRElements;
 			}
 			}
 
@@ -387,10 +402,11 @@ void ExchangeBuffer::Pack(
 			for (int j = ixBBoundaryEnd-1; j >= ixBBoundaryBegin; j--) {
 			for (int i = ixABoundaryBegin; i < ixABoundaryEnd; i++) {
 #pragma simd
-			for (int k = 0; k < sRElements; k++) {
-				m_dSendBuffer[m_ixSendBuffer++] =
-					data(i,j,k);
-			}
+				for (int k = 0; k < sRElements; k++) {
+					m_dSendBuffer[m_ixSendBuffer + k] =
+						data(i,j,k);
+				}
+				m_ixSendBuffer += sRElements;
 			}
 			}
 		}
@@ -478,10 +494,11 @@ void ExchangeBuffer::Unpack(
 		for (int i = ixBoundaryEnd-1; i >= ixBoundaryBegin; i--) {
 		for (int j = m_ixFirst; j < m_ixSecond; j++) {
 #pragma simd
-		for (int k = 0; k < sRElements; k++) {
-			data(i,j,k) =
-				m_dRecvBuffer[m_ixRecvBuffer++];
-		}
+			for (int k = 0; k < sRElements; k++) {
+				data(i,j,k) =
+					m_dRecvBuffer[m_ixRecvBuffer + k];
+			}
+			m_ixRecvBuffer += sRElements;
 		}
 		}
 
@@ -504,10 +521,11 @@ void ExchangeBuffer::Unpack(
 		for (int j = ixBoundaryEnd-1; j >= ixBoundaryBegin; j--) {
 		for (int i = m_ixFirst; i < m_ixSecond; i++) {
 #pragma simd
-		for (int k = 0; k < sRElements; k++) {
-			data(i,j,k) =
-				m_dRecvBuffer[m_ixRecvBuffer++];
-		}
+			for (int k = 0; k < sRElements; k++) {
+				data(i,j,k) =
+					m_dRecvBuffer[m_ixRecvBuffer + k];
+			}
+			m_ixRecvBuffer += sRElements;
 		}
 		}
 
@@ -530,10 +548,11 @@ void ExchangeBuffer::Unpack(
 		for (int i = ixBoundaryBegin; i < ixBoundaryEnd; i++) {
 		for (int j = m_ixFirst; j < m_ixSecond; j++) {
 #pragma simd
-		for (int k = 0; k < sRElements; k++) {
-			data(i,j,k) =
-				m_dRecvBuffer[m_ixRecvBuffer++];
-		}
+			for (int k = 0; k < sRElements; k++) {
+				data(i,j,k) =
+					m_dRecvBuffer[m_ixRecvBuffer + k];
+			}
+			m_ixRecvBuffer += sRElements;
 		}
 		}
 
@@ -556,10 +575,11 @@ void ExchangeBuffer::Unpack(
 		for (int j = ixBoundaryBegin; j < ixBoundaryEnd; j++) {
 		for (int i = m_ixFirst; i < m_ixSecond; i++) {
 #pragma simd
-		for (int k = 0; k < sRElements; k++) {
-			data(i,j,k) =
-				m_dRecvBuffer[m_ixRecvBuffer++];
-		}
+			for (int k = 0; k < sRElements; k++) {
+				data(i,j,k) =
+					m_dRecvBuffer[m_ixRecvBuffer + k];
+			}
+			m_ixRecvBuffer += sRElements;
 		}
 		}
 
@@ -584,10 +604,11 @@ void ExchangeBuffer::Unpack(
 		for (int j = ixBBoundaryEnd-1; j >= ixBBoundaryBegin; j--) {
 		for (int i = ixABoundaryEnd-1; i >= ixABoundaryBegin; i--) {
 #pragma simd
-		for (int k = 0; k < sRElements; k++) {
-			data(i,j,k) =
-				m_dRecvBuffer[m_ixRecvBuffer++];
-		}
+			for (int k = 0; k < sRElements; k++) {
+				data(i,j,k) =
+					m_dRecvBuffer[m_ixRecvBuffer + k];
+			}
+			m_ixRecvBuffer += sRElements;
 		}
 		}
 
@@ -612,10 +633,11 @@ void ExchangeBuffer::Unpack(
 		for (int j = ixBBoundaryEnd-1; j >= ixBBoundaryBegin; j--) {
 		for (int i = ixABoundaryBegin; i < ixABoundaryEnd; i++) {
 #pragma simd
-		for (int k = 0; k < sRElements; k++) {
-			data(i,j,k) =
-				m_dRecvBuffer[m_ixRecvBuffer++];
-		}
+			for (int k = 0; k < sRElements; k++) {
+				data(i,j,k) =
+					m_dRecvBuffer[m_ixRecvBuffer + k];
+			}
+			m_ixRecvBuffer += sRElements;
 		}
 		}
 
@@ -640,10 +662,11 @@ void ExchangeBuffer::Unpack(
 		for (int j = ixBBoundaryBegin; j < ixBBoundaryEnd; j++) {
 		for (int i = ixABoundaryBegin; i < ixABoundaryEnd; i++) {
 #pragma simd
-		for (int k = 0; k < sRElements; k++) {
-			data(i,j,k) =
-				m_dRecvBuffer[m_ixRecvBuffer++];
-		}
+			for (int k = 0; k < sRElements; k++) {
+				data(i,j,k) =
+					m_dRecvBuffer[m_ixRecvBuffer + k];
+			}
+			m_ixRecvBuffer += sRElements;
 		}
 		}
 
@@ -668,10 +691,11 @@ void ExchangeBuffer::Unpack(
 		for (int j = ixBBoundaryBegin; j < ixBBoundaryEnd; j++) {
 		for (int i = ixABoundaryEnd-1; i >= ixABoundaryBegin; i--) {
 #pragma simd
-		for (int k = 0; k < sRElements; k++) {
-			data(i,j,k) =
-				m_dRecvBuffer[m_ixRecvBuffer++];
-		}
+			for (int k = 0; k < sRElements; k++) {
+				data(i,j,k) =
+					m_dRecvBuffer[m_ixRecvBuffer + k];
+			}
+			m_ixRecvBuffer += sRElements;
 		}
 		}
 
