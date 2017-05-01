@@ -317,22 +317,22 @@ void GridPatchCartesianGLL::EvaluateGeometricTerms() {
 				double dZ = m_grid.GetZtop() * dREta +
 					(std::exp(-dP / dQ * dREta) *
 					std::pow(std::cos(0.5 * M_PI * dREta), dP) +
-					dA * dREta * (1.0 - dREta)) * dZs;
+					dA * (1.0 - dREta)) * dZs;
 
 				double dDaZ = (std::exp(-dP / dQ * dREta) *
 					std::pow(std::cos(0.5 * M_PI * dREta), dP) +
-					dA * dREta * (1.0 - dREta)) * dDaZs;
+					dA * (1.0 - dREta)) * dDaZs;
 
 				double dDbZ = (std::exp(-dP / dQ * dREta) *
 					std::pow(std::cos(0.5 * M_PI * dREta), dP) +
-					dA * dREta * (1.0 - dREta)) * dDbZs;
+					dA * (1.0 - dREta)) * dDbZs;
 
 				double dDxZ = m_grid.GetZtop() + dZs *
 					(-dP / dQ * std::exp(-dP / dQ * dREta) *
 					std::pow(std::cos(0.5 * M_PI * dREta), dP) -
 					std::exp(-dP / dQ * dREta) * dP * 0.5 * M_PI *
 					std::sin(0.5 * M_PI * dREta) *
-					std::pow(std::cos(0.5 * M_PI * dREta), dP - 1.0) - dA * (1.0 - 2.0 * dREta));
+					std::pow(std::cos(0.5 * M_PI * dREta), dP - 1.0) - dA);
 //
 //printf("%.16E %.16E %.16E %.16E %.16E %.16E \n",m_dataLon[iA][iB],m_dataLat[iA][iB],dZ,dDaZ,dDbZ,dDxZ);
 
@@ -390,23 +390,23 @@ void GridPatchCartesianGLL::EvaluateGeometricTerms() {
 //
 				double dZ = m_grid.GetZtop() * dREta +
 					(std::exp(-dP / dQ * dREta) *
-					std::pow(std::cos(0.5 * M_PI * dREta), dP) -
-					dA * dREta * (1.0 - dREta)) * dZs;
+					std::pow(std::cos(0.5 * M_PI * dREta), dP) +
+					dA * (1.0 - dREta)) * dZs;
 
 				double dDaZ = (std::exp(-dP / dQ * dREta) *
-					std::pow(std::cos(0.5 * M_PI * dREta), dP) -
-					dA * dREta * (1.0 - dREta)) * dDaZs;
+					std::pow(std::cos(0.5 * M_PI * dREta), dP) +
+					dA * (1.0 - dREta)) * dDaZs;
 
 				double dDbZ = (std::exp(-dP / dQ * dREta) *
-					std::pow(std::cos(0.5 * M_PI * dREta), dP) -
-					dA * dREta * (1.0 - dREta)) * dDbZs;
+					std::pow(std::cos(0.5 * M_PI * dREta), dP) +
+					dA * (1.0 - dREta)) * dDbZs;
 
 				double dDxZ = m_grid.GetZtop() + dZs *
 					(-dP / dQ * std::exp(-dP / dQ * dREta) *
 					std::pow(std::cos(0.5 * M_PI * dREta), dP) -
 					std::exp(-dP / dQ * dREta) * dP * 0.5 * M_PI *
 					std::sin(0.5 * M_PI * dREta) *
-					std::pow(std::cos(0.5 * M_PI * dREta), dP - 1.0) - dA * (1.0 - 2.0 * dREta));
+					std::pow(std::cos(0.5 * M_PI * dREta), dP - 1.0) - dA);
 //
 //printf("%.16E %.16E %.16E %.16E %.16E %.16E \n",m_dataLon[iA][iB],m_dataLat[iA][iB],dZ,dDaZ,dDbZ,dDxZ);
 
@@ -523,7 +523,7 @@ void GridPatchCartesianGLL::EvaluateTestCase(
 			m_grid.GetZtop() * m_grid.GetREtaLevel(k) +
 				(std::exp(-dP / dQ * m_grid.GetREtaLevel(k)) *
 				std::pow(std::cos(0.5 * M_PI * m_grid.GetREtaLevel(k)), dP) +
-				dA * m_grid.GetREtaLevel(k) * (1.0 - m_grid.GetREtaLevel(k))) *
+				dA * (1.0 - m_grid.GetREtaLevel(k))) *
 				m_dataTopography[i][j];
 		}
 		for (int k = 0; k <= m_grid.GetRElements(); k++) {
@@ -531,7 +531,7 @@ void GridPatchCartesianGLL::EvaluateTestCase(
 			m_grid.GetZtop() * m_grid.GetREtaInterface(k) +
 				(std::exp(-dP / dQ * m_grid.GetREtaInterface(k)) *
 				std::pow(std::cos(0.5 * M_PI * m_grid.GetREtaInterface(k)), dP) +
-				dA * m_grid.GetREtaInterface(k) * (1.0 - m_grid.GetREtaInterface(k))) *
+				dA * (1.0 - m_grid.GetREtaInterface(k))) *
 				m_dataTopography[i][j];
 		}
 //
