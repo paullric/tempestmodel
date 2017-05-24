@@ -2894,6 +2894,7 @@ void HorizontalDynamicsFEM::ApplyVectorHyperdiffusion(
 //#pragma message "jeguerra: Clean up this function"
 
 void HorizontalDynamicsFEM::ApplyRayleighFriction(
+	int iDataInitial,
 	int iDataUpdate,
 	double dDeltaT
 ) {
@@ -2952,8 +2953,8 @@ void HorizontalDynamicsFEM::ApplyRayleighFriction(
 	}
 
 	// Subcycle the rayleigh update
-	int nRayleighCycles = 10;
-	double dRayleighFactor = 1.0 / nRayleighCycles;
+	int nRayCycles = 10;
+	double dRayFactor = 1.0 / nRayCycles;
 
 	// Perform local update
 	for (int n = 0; n < pGrid->GetActivePatchCount(); n++) {
@@ -2963,6 +2964,12 @@ void HorizontalDynamicsFEM::ApplyRayleighFriction(
 		const PatchBox & box = pPatch->GetPatchBox();
 
 		// Grid data
+		const DataArray4D<double> & dataInitialNode =
+			pPatch->GetDataState(iDataInitial, DataLocation_Node);
+
+		const DataArray4D<double> & dataInitialREdge =
+			pPatch->GetDataState(iDataInitial, DataLocation_REdge);
+
 		DataArray4D<double> & dataUpdateNode =
 			pPatch->GetDataState(iDataUpdate, DataLocation_Node);
 
@@ -2983,6 +2990,13 @@ void HorizontalDynamicsFEM::ApplyRayleighFriction(
 		const DataArray3D<double> & dataRayleighStrengthREdge =
 			pPatch->GetRayleighStrength(DataLocation_REdge);
 
+		// PML strength
+		const DataArray3D<double> & dataPMLStrengthNode =
+			pPatch->GetPMLStrength(DataLocation_Node);
+
+		const DataArray3D<double> & dataPMLStrengthREdge =
+			pPatch->GetPMLStrength(DataLocation_REdge);
+
 		// Loop over all nodes in patch
 		for (int i = box.GetAInteriorBegin(); i < box.GetAInteriorEnd(); i++) {
 		for (int j = box.GetBInteriorBegin(); j < box.GetBInteriorEnd(); j++) {
@@ -2990,25 +3004,49 @@ void HorizontalDynamicsFEM::ApplyRayleighFriction(
 			// Rayleigh damping on nodes
 			for (int k = 0; k < nRElements; k++) {
 
-				double dNu = dataRayleighStrengthNode(i,j,k);
+				double dNuRAY = dataRayleighStrengthNode(i,j,k);
+				double dNuPML = dataPMLStrengthNode(i,j,k);
+				double dNu = 0.0;
 
 				// Backwards Euler
-				if (dNu == 0.0) {
+				if ((dNuRAY == 0.0) && (dNuPML == 0.0)) {
 					continue;
 				}
 
-				double dNuNode = 1.0 / (1.0 + dDeltaT * dNu);
+				if (dNuRAY > dNuPML) {
+					dNu = dNuRAY;
+				} else if (dNuPML > dNuRAY) {
+					dNu = dNuPML;
+				}
+
+
+				double dNuNode = 1.0 / (1.0 + dRayFactor * dDeltaT * dNu);
 
 				// Loop over all effective components
 				for (int c = 0; c < nComponents; c++) {
 					if (pGrid->GetVarLocation(nEffectiveC[c]) ==
 						DataLocation_Node) {
-						for (int si = 0; si < nRayleighCycles; si++) {
-							dNuNode = 1.0 / (1.0 + dRayleighFactor * dDeltaT * dNu);
+						// Get the PML part of the update
+						double dPhi = (1.0 / dDeltaT) *
+							(dataUpdateNode(nEffectiveC[c],i,j,k)
+							 - dataInitialNode(nEffectiveC[c],i,j,k));
+
+						double dPML = 0.0;
+						for (int si = 0; si < nRayCycles; si++) {
+							dPML = dataInitialNode(nEffectiveC[c],i,j,k)
+							- dataReferenceNode(nEffectiveC[c],i,j,k)
+							+ dRayFactor * dDeltaT * dNuPML * dPhi;
+
 							dataUpdateNode(nEffectiveC[c],i,j,k) =
+							dNuNode * dataUpdateNode(nEffectiveC[c],i,j,k)
+							+ (1.0 - dNuNode)
+							* dataReferenceNode(nEffectiveC[c],i,j,k);
+
+							if (dNuPML > dNuRAY) {
+								dataUpdateNode(nEffectiveC[c],i,j,k) =
 								dNuNode * dataUpdateNode(nEffectiveC[c],i,j,k)
-								+ (1.0 - dNuNode)
-								* dataReferenceNode(nEffectiveC[c],i,j,k);
+								- dNuNode * dRayFactor * dDeltaT * dPML;
+							}
 						}
 					}
 				}
@@ -3017,25 +3055,48 @@ void HorizontalDynamicsFEM::ApplyRayleighFriction(
 			// Rayleigh damping on interfaces
 			for (int k = 0; k <= nRElements; k++) {
 
-				double dNu = dataRayleighStrengthREdge(i,j,k);
+				double dNuRAY = dataRayleighStrengthNode(i,j,k);
+				double dNuPML = dataPMLStrengthNode(i,j,k);
+				double dNu = 0.0;
 
 				// Backwards Euler
-				if (dNu == 0.0) {
+				if ((dNuRAY == 0.0) && (dNuPML == 0.0)) {
 					continue;
 				}
 
-				double dNuREdge = 1.0 / (1.0 + dDeltaT * dNu);
+				if (dNuRAY > dNuPML) {
+					dNu = dNuRAY;
+				} else if (dNuPML > dNuRAY) {
+					dNu = dNuPML;
+				}
+
+				double dNuREdge = 1.0 / (1.0 + dRayFactor * dDeltaT * dNu);
 
 				// Loop over all effective components
 				for (int c = 0; c < nComponents; c++) {
 					if (pGrid->GetVarLocation(nEffectiveC[c]) ==
 						DataLocation_REdge) {
-						for (int si = 0; si < nRayleighCycles; si++) {
-							dNuREdge = 1.0 / (1.0 + dRayleighFactor * dDeltaT * dNu);
+						// Get the PML part of the update
+						double dPhi = (1.0 / dDeltaT) *
+							(dataUpdateREdge(nEffectiveC[c],i,j,k)
+							 - dataInitialREdge(nEffectiveC[c],i,j,k));
+
+						double dPML = 0.0;
+						for (int si = 0; si < nRayCycles; si++) {
+							dPML = dataInitialREdge(nEffectiveC[c],i,j,k)
+							- dataReferenceREdge(nEffectiveC[c],i,j,k)
+							+ dRayFactor * dDeltaT * dNuPML * dPhi;
+
 							dataUpdateREdge(nEffectiveC[c],i,j,k) =
 							dNuREdge * dataUpdateREdge(nEffectiveC[c],i,j,k)
 							+ (1.0 - dNuREdge)
 							* dataReferenceREdge(nEffectiveC[c],i,j,k);
+
+							if (dNuPML > dNuRAY) {
+								dataUpdateREdge(nEffectiveC[c],i,j,k) =
+								dNuREdge * dataUpdateREdge(nEffectiveC[c],i,j,k)
+								- dNuREdge * dRayFactor * dDeltaT * dPML;
+							}
 						}
 					}
 				}
@@ -3099,7 +3160,7 @@ int HorizontalDynamicsFEM::SubStepAfterSubCycle(
 #ifdef APPLY_RAYLEIGH_WITH_HYPERVIS
 		// Apply Rayleigh damping
 		if (pGrid->HasRayleighFriction()) {
-			ApplyRayleighFriction(iDataUpdate, dDeltaT);
+			ApplyRayleighFriction(iDataInitial, iDataUpdate, dDeltaT);
 		}
 #endif
 		return iDataUpdate;
@@ -3196,7 +3257,7 @@ void HorizontalDynamicsFEM::StepAfterSubCycle(
 #ifdef APPLY_RAYLEIGH_WITH_HYPERVIS
 		// Apply Rayleigh damping
 		if (pGrid->HasRayleighFriction()) {
-			ApplyRayleighFriction(iDataUpdate, dDeltaT);
+			ApplyRayleighFriction(iDataInitial, iDataUpdate, dDeltaT);
 		}
 #endif
 }

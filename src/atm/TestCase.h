@@ -102,6 +102,17 @@ public:
 	}
 
 	///	<summary>
+	///		Evaluate the PML strength at the given point.
+	///	</summary>
+	virtual double EvaluatePMLStrength(
+		double dZ,
+		double dLon,
+		double dLat
+	) const {
+		return 0.0;
+	}
+
+	///	<summary>
 	///		Flag indicating whether or not a reference state is available.
 	///	</summary>
 	virtual bool HasReferenceState() const {
@@ -157,4 +168,3 @@ public:
 ///////////////////////////////////////////////////////////////////////////////
 
 #endif
-

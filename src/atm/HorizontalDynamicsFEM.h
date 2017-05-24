@@ -146,6 +146,7 @@ protected:
 	///		Apply Rayleigh damping.
 	///	</summary>
 	void ApplyRayleighFriction(
+		int iDataInitial,
 		int iDataUpdate,
 		double dDeltaT
 	);

@@ -1132,6 +1132,36 @@ public:
 		}
 	}
 
+	///	<summary>
+	///		Get the PML strength.
+	///	</summary>
+	DataArray3D<double> & GetPMLStrength(
+		DataLocation loc = DataLocation_Node
+	) {
+		if (loc == DataLocation_Node) {
+			return m_dataPMLStrengthNode;
+		} else if (loc == DataLocation_REdge) {
+			return m_dataPMLStrengthREdge;
+		} else {
+			_EXCEPTIONT("Invalid location");
+		}
+	}
+
+	///	<summary>
+	///		Get the PML strength.
+	///	</summary>
+	const DataArray3D<double> & GetPMLStrength(
+		DataLocation loc = DataLocation_Node
+	) const {
+		if (loc == DataLocation_Node) {
+			return m_dataPMLStrengthNode;
+		} else if (loc == DataLocation_REdge) {
+			return m_dataPMLStrengthREdge;
+		} else {
+			_EXCEPTIONT("Invalid location");
+		}
+	}
+
 protected:
 	///	<summary>
 	///		Reference to parent grid.
@@ -1346,6 +1376,16 @@ protected:
 	///		Rayleigh friction strength on interfaces (Geometric).
 	///	</summary>
 	DataArray3D<double> m_dataRayleighStrengthREdge;
+
+	///	<summary>
+	///		PML strength on nodes (Geometric).
+	///	</summary>
+	DataArray3D<double> m_dataPMLStrengthNode;
+
+	///	<summary>
+	///		PML strength on interfaces (Geometric).
+	///	</summary>
+	DataArray3D<double> m_dataPMLStrengthREdge;
 
 public:
 	///	<summary>

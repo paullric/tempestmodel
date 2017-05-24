@@ -275,8 +275,24 @@ void GridPatch::InitializeDataLocal(
 
 	// Rayleigh friction strength
 	m_dataRayleighStrengthREdge.SetDataType(DataType_None);
-	m_dataRayleighStrengthREdge.SetDataLocation(DataLocation_Node);
+	m_dataRayleighStrengthREdge.SetDataLocation(DataLocation_REdge);
 	m_dataRayleighStrengthREdge.SetSize(
+		m_box.GetATotalWidth(),
+		m_box.GetBTotalWidth(),
+		m_grid.GetRElements()+1);
+
+	// PML sponge strength
+	m_dataPMLStrengthNode.SetDataType(DataType_None);
+	m_dataPMLStrengthNode.SetDataLocation(DataLocation_Node);
+	m_dataPMLStrengthNode.SetSize(
+		m_box.GetATotalWidth(),
+		m_box.GetBTotalWidth(),
+		m_grid.GetRElements());
+
+	// PML sponge strength
+	m_dataPMLStrengthREdge.SetDataType(DataType_None);
+	m_dataPMLStrengthREdge.SetDataLocation(DataLocation_REdge);
+	m_dataPMLStrengthREdge.SetSize(
 		m_box.GetATotalWidth(),
 		m_box.GetBTotalWidth(),
 		m_grid.GetRElements()+1);
@@ -322,6 +338,8 @@ void GridPatch::InitializeDataLocal(
 
 	m_dcGeometric.PushDataChunk(&m_dataRayleighStrengthNode);
 	m_dcGeometric.PushDataChunk(&m_dataRayleighStrengthREdge);
+	m_dcGeometric.PushDataChunk(&m_dataPMLStrengthNode);
+	m_dcGeometric.PushDataChunk(&m_dataPMLStrengthREdge);
 
 	if (fAllocateGeometric) {
 		m_dcGeometric.Allocate();
