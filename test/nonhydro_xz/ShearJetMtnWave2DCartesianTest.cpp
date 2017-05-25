@@ -363,30 +363,39 @@ public:
 		double dYp
 	) const {
 		const double dRayleighStrengthX = 1.0E-2;//8.0e-3;
+		const double dRayleighStrengthZ = 1.0E-2;//8.0e-3;
 		const double dRayleighWidth = 6000.0;
-		const double dRayleighDepth = 3000.0;
+		const double dRayleighDepth = 6000.0;
+		const double dRayDepthXi = dRayleighDepth / m_dGDim[5];
 
 		double dNuRight = 0.0;
 		double dNuLeft  = 0.0;
+		double dNuDepth = 0.0;
  		double dLayerR = m_dGDim[1] - dRayleighWidth;
  		double dLayerL = m_dGDim[0] + dRayleighWidth;
-		double dLayerT = 1.0 - dRayleighDepth / m_dGDim[5];
-
-		if ((dXp > dLayerR) && (dZ < dLayerT)) {
+		double dLayerZ = 1.0 - dRayleighDepth / m_dGDim[5];
+		/*
+		if ((dZ > dLayerZ) && (dXp < dLayerL) && (dXp > dLayerR)) {
+			double dNormZ = (1.0 - dZ) / dRayDepthXi;
+			dNuDepth = 0.5 * dRayleighStrengthZ * (1.0 + cos(M_PI * dNormZ));
+		}
+		*/
+		if (dXp > dLayerR) {
 			double dNormX = (m_dGDim[1] - dXp) / dRayleighWidth;
 			dNuRight = 0.5 * dRayleighStrengthX * (1.0 + cos(M_PI * dNormX));
 		}
-		if ((dXp < dLayerL) && (dZ < dLayerT)) {
+		if (dXp < dLayerL) {
 			double dNormX = (dXp - m_dGDim[0]) / dRayleighWidth;
 			dNuLeft = 0.5 * dRayleighStrengthX * (1.0 + cos(M_PI * dNormX));
 		}
 
+		if ((dNuDepth >= dNuRight) && (dNuDepth >= dNuLeft)) {
+			return dNuDepth;
+		}
 		if (dNuRight >= dNuLeft) {
 			return dNuRight;
-		} else {
-			return dNuLeft;
 		}
-		return 0.0;
+		return dNuLeft;
 	}
 
 	///	<summary>
@@ -398,16 +407,19 @@ public:
 		double dYp
 	) const {
 		const double dRayleighStrengthZ = 1.0E-2;//8.0e-3;
-		const double dRayleighDepth = 3000.0;
+		const double dRayleighDepth = 6000.0;
+		const double dRayleighWidth = 6000.0;
 		const double dRayDepthXi = dRayleighDepth / m_dGDim[5];
 
 		double dNuDepth = 0.0;
+ 		double dLayerR = m_dGDim[1] - dRayleighWidth;
+ 		double dLayerL = m_dGDim[0] + dRayleighWidth;
 
 		//double dLayerZ = m_dGDim[5] - dRayleighDepth;
 		double dLayerZ = 1.0 - dRayDepthXi;
 		//double dLayerZ = m_dGDim[5] - dRayleighDepth;
 
-		if (dZ > dLayerZ) {
+		if (dZ > dLayerZ) { //&& (dXp > dLayerL) && (dXp < dLayerR)) {
 			//double dNormZ = (m_dGDim[5] - dZ) / dRayleighDepth;
 			double dNormZ = (1.0 - dZ) / dRayDepthXi;
 			dNuDepth = 0.5 * dRayleighStrengthZ * (1.0 + cos(M_PI * dNormZ));

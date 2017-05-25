@@ -1135,7 +1135,7 @@ public:
 	///	<summary>
 	///		Get the PML strength.
 	///	</summary>
-	DataArray3D<double> & GetPMLStrength(
+	DataArray3D<double> & GetTopStrength(
 		DataLocation loc = DataLocation_Node
 	) {
 		if (loc == DataLocation_Node) {
@@ -1150,7 +1150,7 @@ public:
 	///	<summary>
 	///		Get the PML strength.
 	///	</summary>
-	const DataArray3D<double> & GetPMLStrength(
+	const DataArray3D<double> & GetTopStrength(
 		DataLocation loc = DataLocation_Node
 	) const {
 		if (loc == DataLocation_Node) {

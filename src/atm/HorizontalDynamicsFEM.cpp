@@ -2991,11 +2991,11 @@ void HorizontalDynamicsFEM::ApplyRayleighFriction(
 			pPatch->GetRayleighStrength(DataLocation_REdge);
 
 		// PML strength
-		const DataArray3D<double> & dataPMLStrengthNode =
-			pPatch->GetPMLStrength(DataLocation_Node);
+		const DataArray3D<double> & dataTopStrengthNode =
+			pPatch->GetTopStrength(DataLocation_Node);
 
-		const DataArray3D<double> & dataPMLStrengthREdge =
-			pPatch->GetPMLStrength(DataLocation_REdge);
+		const DataArray3D<double> & dataTopStrengthREdge =
+			pPatch->GetTopStrength(DataLocation_REdge);
 
 		// Loop over all nodes in patch
 		for (int i = box.GetAInteriorBegin(); i < box.GetAInteriorEnd(); i++) {
@@ -3005,22 +3005,14 @@ void HorizontalDynamicsFEM::ApplyRayleighFriction(
 			for (int k = 0; k < nRElements; k++) {
 
 				double dNuRAY = dataRayleighStrengthNode(i,j,k);
-				double dNuPML = dataPMLStrengthNode(i,j,k);
-				double dNu = 0.0;
+				double dNuPML = dataTopStrengthNode(i,j,k);
 
 				// Backwards Euler
 				if ((dNuRAY == 0.0) && (dNuPML == 0.0)) {
 					continue;
 				}
 
-				if (dNuRAY > dNuPML) {
-					dNu = dNuRAY;
-				} else if (dNuPML > dNuRAY) {
-					dNu = dNuPML;
-				}
-
-
-				double dNuNode = 1.0 / (1.0 + dRayFactor * dDeltaT * dNu);
+				double dNuInv = 0.0;
 
 				// Loop over all effective components
 				for (int c = 0; c < nComponents; c++) {
@@ -3033,19 +3025,25 @@ void HorizontalDynamicsFEM::ApplyRayleighFriction(
 
 						double dPML = 0.0;
 						for (int si = 0; si < nRayCycles; si++) {
-							dPML = dataInitialNode(nEffectiveC[c],i,j,k)
-							- dataReferenceNode(nEffectiveC[c],i,j,k)
-							+ dRayFactor * dDeltaT * dNuPML * dPhi;
-
+							// APPLY LATERAL LAYERS
+							dNuInv = 1.0 / (1.0 + dRayFactor * dDeltaT * dNuRAY);
 							dataUpdateNode(nEffectiveC[c],i,j,k) =
-							dNuNode * dataUpdateNode(nEffectiveC[c],i,j,k)
-							+ (1.0 - dNuNode)
+							dNuInv * dataUpdateNode(nEffectiveC[c],i,j,k)
+							+ (1.0 - dNuInv)
 							* dataReferenceNode(nEffectiveC[c],i,j,k);
 
-							if (dNuPML > dNuRAY) {
+							// APPLY PML TOP LAYER
+							if (dNuPML > 0.0) {
+								dNuInv = 1.0 / (1.0 + dRayFactor * dDeltaT * dNuPML);
+								dPML = dataInitialNode(nEffectiveC[c],i,j,k)
+								- dataReferenceNode(nEffectiveC[c],i,j,k)
+								+ dRayFactor * dDeltaT * dNuPML * dPhi;
+
 								dataUpdateNode(nEffectiveC[c],i,j,k) =
-								dNuNode * dataUpdateNode(nEffectiveC[c],i,j,k)
-								- dNuNode * dRayFactor * dDeltaT * dPML;
+								dNuInv * dataUpdateNode(nEffectiveC[c],i,j,k)
+								+ (1.0 - dNuInv)
+								* dataReferenceNode(nEffectiveC[c],i,j,k)
+								- dNuInv * dRayFactor * dDeltaT * dPML;
 							}
 						}
 					}
@@ -3055,8 +3053,8 @@ void HorizontalDynamicsFEM::ApplyRayleighFriction(
 			// Rayleigh damping on interfaces
 			for (int k = 0; k <= nRElements; k++) {
 
-				double dNuRAY = dataRayleighStrengthNode(i,j,k);
-				double dNuPML = dataPMLStrengthNode(i,j,k);
+				double dNuRAY = dataRayleighStrengthREdge(i,j,k);
+				double dNuPML = dataTopStrengthREdge(i,j,k);
 				double dNu = 0.0;
 
 				// Backwards Euler
@@ -3064,13 +3062,7 @@ void HorizontalDynamicsFEM::ApplyRayleighFriction(
 					continue;
 				}
 
-				if (dNuRAY > dNuPML) {
-					dNu = dNuRAY;
-				} else if (dNuPML > dNuRAY) {
-					dNu = dNuPML;
-				}
-
-				double dNuREdge = 1.0 / (1.0 + dRayFactor * dDeltaT * dNu);
+				double dNuInv = 0.0;
 
 				// Loop over all effective components
 				for (int c = 0; c < nComponents; c++) {
@@ -3083,19 +3075,25 @@ void HorizontalDynamicsFEM::ApplyRayleighFriction(
 
 						double dPML = 0.0;
 						for (int si = 0; si < nRayCycles; si++) {
-							dPML = dataInitialREdge(nEffectiveC[c],i,j,k)
-							- dataReferenceREdge(nEffectiveC[c],i,j,k)
-							+ dRayFactor * dDeltaT * dNuPML * dPhi;
-
+							// APPLY LATERAL LAYERS
+							dNuInv = 1.0 / (1.0 + dRayFactor * dDeltaT * dNuRAY);
 							dataUpdateREdge(nEffectiveC[c],i,j,k) =
-							dNuREdge * dataUpdateREdge(nEffectiveC[c],i,j,k)
-							+ (1.0 - dNuREdge)
+							dNuInv * dataUpdateREdge(nEffectiveC[c],i,j,k)
+							+ (1.0 - dNuInv)
 							* dataReferenceREdge(nEffectiveC[c],i,j,k);
 
-							if (dNuPML > dNuRAY) {
+							// APPLY PML TOP LAYER
+							if (dNuPML > 0.0) {
+								dNuInv = 1.0 / (1.0 + dRayFactor * dDeltaT * dNuPML);
+								dPML = dataInitialREdge(nEffectiveC[c],i,j,k)
+								- dataReferenceREdge(nEffectiveC[c],i,j,k)
+								+ dRayFactor * dDeltaT * dNuPML * dPhi;
+
 								dataUpdateREdge(nEffectiveC[c],i,j,k) =
-								dNuREdge * dataUpdateREdge(nEffectiveC[c],i,j,k)
-								- dNuREdge * dRayFactor * dDeltaT * dPML;
+								dNuInv * dataUpdateREdge(nEffectiveC[c],i,j,k)
+								+ (1.0 - dNuInv)
+								* dataReferenceREdge(nEffectiveC[c],i,j,k)
+								- dNuInv * dRayFactor * dDeltaT * dPML;
 							}
 						}
 					}
