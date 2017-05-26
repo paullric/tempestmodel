@@ -28,6 +28,9 @@
 
 #ifdef TEMPEST_MPIOMP
 #include <mpi.h>
+#else
+typedef int MPI_Status;
+typedef int MPI_Request;
 #endif
 
 #include <vector>
@@ -41,13 +44,13 @@ class Connectivity;
 
 ///////////////////////////////////////////////////////////////////////////////
 
-#ifdef TEMPEST_MPIOMP
+#if defined(TEMPEST_MPIOMP)
 typedef int ExchangeBufferId;
-#endif
-#ifdef TEMPEST_OCR
+#elif defined(TEMPEST_OCR)
 typedef int ExchangeBufferId;
-#endif
-#ifdef TEMPEST_HPX
+#elif defined(TEMPEST_HPX)
+typedef int ExchangeBufferId;
+#else
 typedef int ExchangeBufferId;
 #endif
 

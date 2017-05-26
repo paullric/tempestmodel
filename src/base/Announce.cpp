@@ -16,10 +16,30 @@
 
 #include "Announce.h"
 
+#ifdef TEMPEST_MPIOMP
 #include <mpi.h>
+#endif
+
 #include <cstdio>
 #include <cstring>
 #include <cstdarg>
+
+///////////////////////////////////////////////////////////////////////////////
+
+///	<summary>
+///		Verbosity level.
+///	</summary>
+int g_iVerbosityLevel = 0;
+
+///	<summary>
+///		Output buffer.
+///	</summary>
+FILE * g_fpAnnounceOutput = stdout;
+
+///	<summary>
+///		Only output on rank 0.
+///	</summary>
+bool g_fOnlyOutputOnRankZero = false;
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -50,6 +70,36 @@ static bool s_fBlockFlag = false;
 
 ///////////////////////////////////////////////////////////////////////////////
 
+FILE * AnnounceGetOutputBuffer() {
+	return g_fpAnnounceOutput;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void AnnounceSetOutputBuffer(FILE * fpAnnounceOutput) {
+	g_fpAnnounceOutput = fpAnnounceOutput;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void AnnounceSetVerbosityLevel(int iVerbosityLevel) {
+	g_iVerbosityLevel = iVerbosityLevel;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void AnnounceOnlyOutputOnRankZero() {
+	g_fOnlyOutputOnRankZero = true;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void AnnounceOutputOnAllRanks() {
+	g_fOnlyOutputOnRankZero = false;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
 void AnnounceStartBlock(const char * szText) {
 
 	// Do not start a block at maximum indentation level
@@ -57,34 +107,51 @@ void AnnounceStartBlock(const char * szText) {
 		return;
 	}
 
-	// Retrieve the rank of this processor
-	int nRank;
+#ifdef TEMPEST_MPIOMP
+	// Only output on rank zero
+	if (g_fOnlyOutputOnRankZero) {
+		int nRank;
 
-	MPI_Comm_rank(MPI_COMM_WORLD, &nRank);
+		MPI_Comm_rank(MPI_COMM_WORLD, &nRank);
 
-	if (nRank > 0) {
-		return;
+		if (nRank > 0) {
+			return;
+		}
 	}
+#endif
 
 	// Check the block flag
 	if (s_fBlockFlag) {
-		printf("\n");
+		fprintf(g_fpAnnounceOutput, "\n");
 	}
 
 	// Add indentation
 	int i;
 	for (i = 0; i < s_nIndentationLevel; i++) {
-		printf("..");
+		fprintf(g_fpAnnounceOutput, "..");
 	}
 
 	// Output the text
 	if (szText != NULL) {
-		printf("%s", szText);
+		fprintf(g_fpAnnounceOutput, "%s", szText);
 		s_fBlockFlag = true;
 	}
 	s_nIndentationLevel++;
 
-	fflush(NULL);
+	fflush(g_fpAnnounceOutput);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void AnnounceStartBlock(
+	int iVerbosity,
+	const char * szText
+) {
+	if (iVerbosity > g_iVerbosityLevel) {
+		return;
+	}
+
+	AnnounceStartBlock(szText);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -95,23 +162,27 @@ void AnnounceEndBlock(const char * szText) {
 		return;
 	}
 
-	// Retrieve the rank of this processor
-	int nRank;
+#ifdef TEMPEST_MPIOMP
+	// Only output on rank zero
+	if (g_fOnlyOutputOnRankZero) {
+		int nRank;
 
-	MPI_Comm_rank(MPI_COMM_WORLD, &nRank);
+		MPI_Comm_rank(MPI_COMM_WORLD, &nRank);
 
-	if (nRank > 0) {
-		return;
+		if (nRank > 0) {
+			return;
+		}
 	}
+#endif
 
 	// Check block flag
 	if (szText != NULL) {
 		if (s_fBlockFlag) {
 			s_fBlockFlag = false;
 
-			printf(".. ");
-			printf("%s", szText);
-			printf("\n");
+			fprintf(g_fpAnnounceOutput, ".. ");
+			fprintf(g_fpAnnounceOutput, "%s", szText);
+			fprintf(g_fpAnnounceOutput, "\n");
 
 		} else {
 			Announce(szText);
@@ -120,25 +191,42 @@ void AnnounceEndBlock(const char * szText) {
 
 	s_nIndentationLevel--;
 
-	fflush(NULL);
+	fflush(g_fpAnnounceOutput);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void AnnounceEndBlock(
+	int iVerbosity,
+	const char * szText
+) {
+	if (iVerbosity > g_iVerbosityLevel) {
+		return;
+	}
+
+	AnnounceEndBlock(szText);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 
 void Announce(const char * szText, ...) {
 
-	// Retrieve the rank of this processor
-	int nRank;
+#ifdef TEMPEST_MPIOMP
+	// Only output on rank zero
+	if (g_fOnlyOutputOnRankZero) {
+		int nRank;
 
-	MPI_Comm_rank(MPI_COMM_WORLD, &nRank);
+		MPI_Comm_rank(MPI_COMM_WORLD, &nRank);
 
-	if (nRank > 0) {
-		return;
+		if (nRank > 0) {
+			return;
+		}
 	}
+#endif
 
 	// Turn off the block flag
 	if (s_fBlockFlag) {
-		printf("\n");
+		fprintf(g_fpAnnounceOutput, "\n");
 		s_fBlockFlag = false;
 	}
 
@@ -164,30 +252,96 @@ void Announce(const char * szText, ...) {
 	// Output with proper indentation
 	int i;
 	for (i = 0; i < s_nIndentationLevel; i++) {
-		printf("..");
+		fprintf(g_fpAnnounceOutput, "..");
 	}
-	printf("%s", szBuffer);
-	printf("\n");
+	fprintf(g_fpAnnounceOutput, "%s", szBuffer);
+	fprintf(g_fpAnnounceOutput, "\n");
 
-	fflush(NULL);
+	fflush(g_fpAnnounceOutput);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void Announce(
+	int iVerbosity,
+	const char * szText,
+	...
+) {
+
+#ifdef TEMPEST_MPIOMP
+	// Only output on rank zero
+	if (g_fOnlyOutputOnRankZero) {
+		int nRank;
+
+		MPI_Comm_rank(MPI_COMM_WORLD, &nRank);
+
+		if (nRank > 0) {
+			return;
+		}
+	}
+#endif
+
+	// Check verbosity
+	if (iVerbosity > g_iVerbosityLevel) {
+		return;
+	}
+
+	// Turn off the block flag
+	if (s_fBlockFlag) {
+		fprintf(g_fpAnnounceOutput, "\n");
+		s_fBlockFlag = false;
+	}
+
+	// If no text, return
+	if (szText == NULL) {
+		return;
+	}
+
+	// Output buffer
+	char szBuffer[AnnouncementBufferSize];
+
+	va_list arguments;
+
+	// Initialize the argument list
+	va_start(arguments, szText);
+
+	// Write to string
+	vsprintf(szBuffer, szText, arguments);
+
+	// Cleans up the argument list
+	va_end(arguments);
+
+	// Output with proper indentation
+	int i;
+	for (i = 0; i < s_nIndentationLevel; i++) {
+		fprintf(g_fpAnnounceOutput, "..");
+	}
+	fprintf(g_fpAnnounceOutput, "%s", szBuffer);
+	fprintf(g_fpAnnounceOutput, "\n");
+
+	fflush(g_fpAnnounceOutput);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 
 void AnnounceBanner(const char * szText) {
 
-	// Retrieve the rank of this processor
-	int nRank;
+#ifdef TEMPEST_MPIOMP
+	// Only output on rank zero
+	if (g_fOnlyOutputOnRankZero) {
+		int nRank;
 
-	MPI_Comm_rank(MPI_COMM_WORLD, &nRank);
+		MPI_Comm_rank(MPI_COMM_WORLD, &nRank);
 
-	if (nRank > 0) {
-		return;
+		if (nRank > 0) {
+			return;
+		}
 	}
+#endif
 
 	// Turn off the block flag
 	if (s_fBlockFlag) {
-		printf("\n");
+		fprintf(g_fpAnnounceOutput, "\n");
 		s_fBlockFlag = false;
 	}
 
@@ -197,8 +351,8 @@ void AnnounceBanner(const char * szText) {
 		for (i = 0; i < BannerSize; i++) {
 			printf("-");
 		}
-		printf("\n");
-		fflush(NULL);
+		fprintf(g_fpAnnounceOutput, "\n");
+		fflush(g_fpAnnounceOutput);
 		return;
 	}
 
@@ -206,16 +360,16 @@ void AnnounceBanner(const char * szText) {
 	int nLen = strlen(szText) + 2;
 	printf("--");
 	if (nLen > BannerSize - 2) {
-		printf("%s", szText);
-		printf("--");
+		fprintf(g_fpAnnounceOutput, "%s", szText);
+		fprintf(g_fpAnnounceOutput, "--");
 	} else {
-		printf(" %s ", szText);
+		fprintf(g_fpAnnounceOutput, " %s ", szText);
 		for (i = 0; i < BannerSize - nLen - 2; i++) {
-			printf("-");
+			fprintf(g_fpAnnounceOutput, "-");
 		}
 	}
-	printf("\n");
-	fflush(NULL);
+	fprintf(g_fpAnnounceOutput, "\n");
+	fflush(g_fpAnnounceOutput);
 }
 
 ///////////////////////////////////////////////////////////////////////////////

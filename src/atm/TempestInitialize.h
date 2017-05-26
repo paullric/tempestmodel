@@ -50,7 +50,9 @@
 #include "CommandLine.h"
 #include "STLStringHelper.h"
 
+#ifdef TEMPEST_MPIOMP
 #include <mpi.h>
+#endif
 
 #include <string>
 
@@ -511,8 +513,10 @@ void _TempestSetupCubedSphereModel(
 		AnnounceStartBlock("Constructing grid");
 	
 		// Maximum number of patches currently equals communicator size
-		int nCommSize;
+		int nCommSize = 1;
+#ifdef TEMPEST_MPIOMP
 		MPI_Comm_size(MPI_COMM_WORLD, &nCommSize);
+#endif
 
 		if (nCommSize < 6) {
 			nCommSize = 6;
@@ -627,8 +631,10 @@ void _TempestSetupCartesianModel(
 		AnnounceStartBlock("Constructing grid");
 
 		// Maximum number of patches currently equals communicator size
-		int nCommSize;
+		int nCommSize = 1;
+#ifdef TEMPEST_MPIOMP
 		MPI_Comm_size(MPI_COMM_WORLD, &nCommSize);
+#endif
 
 		GridCartesianGLL * pGrid = new GridCartesianGLL(model);
 

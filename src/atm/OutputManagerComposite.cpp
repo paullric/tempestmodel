@@ -424,6 +424,8 @@ void OutputManagerComposite::Output(
 Time OutputManagerComposite::Input(
 	const std::string & strFileName
 ) {
+	Time timeCurrent;
+
 #ifdef TEMPEST_MPIOMP
 	// Set the flag indicating that output came from a restart file
 	m_fFromRestartFile = true;
@@ -454,7 +456,6 @@ Time OutputManagerComposite::Input(
 	}
 
 	// Read current time
-	Time timeCurrent;
 	ifsActiveInput.read((char *)(&(timeCurrent)), sizeof(Time));
 
 	// Read Grid parameters from file

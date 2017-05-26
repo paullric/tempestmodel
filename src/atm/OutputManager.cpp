@@ -23,7 +23,9 @@
 
 #include "Announce.h"
 
+#ifdef TEMPEST_MPIOMP
 #include <mpi.h>
+#endif
 
 #include <iostream>
 #include <cstdio>

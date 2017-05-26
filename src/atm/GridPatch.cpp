@@ -20,7 +20,9 @@
 #include "EquationSet.h"
 #include "Defines.h"
 
+#ifdef TEMPEST_MPIOMP
 #include <mpi.h>
+#endif
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -68,7 +70,10 @@ void GridPatch::InitializeDataLocal(
 	m_fContainsData = true;
 
 	// Set the processor
+	m_iProcessor = 0;
+#ifdef TEMPEST_MPIOMP
 	MPI_Comm_rank(MPI_COMM_WORLD, &m_iProcessor);
+#endif
 
 	// Get the model
 	const Model & model = m_grid.GetModel();

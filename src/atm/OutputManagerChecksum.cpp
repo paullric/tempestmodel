@@ -21,7 +21,9 @@
 
 #include "Announce.h"
 
+#ifdef TEMPEST_MPIOMP
 #include <mpi.h>
+#endif
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -44,8 +46,10 @@ void OutputManagerChecksum::Output(
 	const Time & time
 ) {
 	// Get processor rank
-	int nRank;
+	int nRank = 0;
+#ifdef TEMPEST_MPIOMP
 	MPI_Comm_rank(MPI_COMM_WORLD, &nRank);
+#endif
 
 	// Equation set
 	const EquationSet & eqn = m_grid.GetModel().GetEquationSet();

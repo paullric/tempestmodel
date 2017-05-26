@@ -20,7 +20,11 @@
 #include "DataType.h"
 #include "DataLocation.h"
 
+#ifdef TEMPEST_MPIOMP
 #include <mpi.h>
+#else
+typedef int MPI_Request;
+#endif
 
 #include <vector>
 #include <map>
