@@ -104,7 +104,18 @@ public:
 	///	<summary>
 	///		Evaluate the PML strength at the given point.
 	///	</summary>
-	virtual double EvaluatePMLStrength(
+	virtual double EvaluateTopPMLStrength(
+		double dZ,
+		double dLon,
+		double dLat
+	) const {
+		return 0.0;
+	}
+
+	///	<summary>
+	///		Evaluate the PML strength at the given point.
+	///	</summary>
+	virtual double EvaluateLatPMLStrength(
 		double dZ,
 		double dLon,
 		double dLat

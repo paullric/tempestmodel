@@ -266,33 +266,33 @@ void GridPatch::InitializeDataLocal(
 		m_grid.GetRElements());
 
 	// Rayleigh friction strength
-	m_dataRayleighStrengthNode.SetDataType(DataType_None);
-	m_dataRayleighStrengthNode.SetDataLocation(DataLocation_Node);
-	m_dataRayleighStrengthNode.SetSize(
+	m_dataLatPMLStrengthNode.SetDataType(DataType_None);
+	m_dataLatPMLStrengthNode.SetDataLocation(DataLocation_Node);
+	m_dataLatPMLStrengthNode.SetSize(
 		m_box.GetATotalWidth(),
 		m_box.GetBTotalWidth(),
 		m_grid.GetRElements());
 
 	// Rayleigh friction strength
-	m_dataRayleighStrengthREdge.SetDataType(DataType_None);
-	m_dataRayleighStrengthREdge.SetDataLocation(DataLocation_REdge);
-	m_dataRayleighStrengthREdge.SetSize(
+	m_dataLatPMLStrengthREdge.SetDataType(DataType_None);
+	m_dataLatPMLStrengthREdge.SetDataLocation(DataLocation_REdge);
+	m_dataLatPMLStrengthREdge.SetSize(
 		m_box.GetATotalWidth(),
 		m_box.GetBTotalWidth(),
 		m_grid.GetRElements()+1);
 
 	// PML sponge strength
-	m_dataPMLStrengthNode.SetDataType(DataType_None);
-	m_dataPMLStrengthNode.SetDataLocation(DataLocation_Node);
-	m_dataPMLStrengthNode.SetSize(
+	m_dataTopPMLStrengthNode.SetDataType(DataType_None);
+	m_dataTopPMLStrengthNode.SetDataLocation(DataLocation_Node);
+	m_dataTopPMLStrengthNode.SetSize(
 		m_box.GetATotalWidth(),
 		m_box.GetBTotalWidth(),
 		m_grid.GetRElements());
 
 	// PML sponge strength
-	m_dataPMLStrengthREdge.SetDataType(DataType_None);
-	m_dataPMLStrengthREdge.SetDataLocation(DataLocation_REdge);
-	m_dataPMLStrengthREdge.SetSize(
+	m_dataTopPMLStrengthREdge.SetDataType(DataType_None);
+	m_dataTopPMLStrengthREdge.SetDataLocation(DataLocation_REdge);
+	m_dataTopPMLStrengthREdge.SetSize(
 		m_box.GetATotalWidth(),
 		m_box.GetBTotalWidth(),
 		m_grid.GetRElements()+1);
@@ -336,10 +336,10 @@ void GridPatch::InitializeDataLocal(
 	m_dcGeometric.PushDataChunk(&m_dataRefStateREdge);
 	m_dcGeometric.PushDataChunk(&m_dataRefTracers);
 
-	m_dcGeometric.PushDataChunk(&m_dataRayleighStrengthNode);
-	m_dcGeometric.PushDataChunk(&m_dataRayleighStrengthREdge);
-	m_dcGeometric.PushDataChunk(&m_dataPMLStrengthNode);
-	m_dcGeometric.PushDataChunk(&m_dataPMLStrengthREdge);
+	m_dcGeometric.PushDataChunk(&m_dataLatPMLStrengthNode);
+	m_dcGeometric.PushDataChunk(&m_dataLatPMLStrengthREdge);
+	m_dcGeometric.PushDataChunk(&m_dataTopPMLStrengthNode);
+	m_dcGeometric.PushDataChunk(&m_dataTopPMLStrengthREdge);
 
 	if (fAllocateGeometric) {
 		m_dcGeometric.Allocate();
@@ -428,6 +428,17 @@ void GridPatch::InitializeDataLocal(
 
 	m_dcActiveResidual.PushDataChunk(&m_dataDynSGSNode);
 	m_dcActiveResidual.PushDataChunk(&m_dataDynSGSREdge);
+
+	// Initialize storage for local xi derivatives in HD update for use in
+	// PML implementation in HorizontalDynamicsFEM
+	m_dataXiDiffNode.SetDataType(DataType_None);
+	m_dataXiDiffNode.SetDataLocation(DataLocation_Node);
+	m_dataXiDiffNode.SetSize(
+		2,
+		m_box.GetATotalWidth(),
+		m_box.GetBTotalWidth(),
+		m_grid.GetRElements());
+	m_dcActiveState.PushDataChunk(&m_dataXiDiffNode);
 
 	// Initialize tracer data
 	m_datavecTracers.resize(model.GetTracerDataInstances());
@@ -603,8 +614,8 @@ void GridPatch::DeinitializeData() {
 	m_dataVorticity.Deallocate();
 	m_dataDivergence.Deallocate();
 	m_dataTemperature.Deallocate();
-	m_dataRayleighStrengthNode.Deallocate();
-	m_dataRayleighStrengthREdge.Deallocate();
+	m_dataLatPMLStrengthNode.Deallocate();
+	m_dataLatPMLStrengthREdge.Deallocate();
 */
 }
 

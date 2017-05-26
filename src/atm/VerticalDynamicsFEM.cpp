@@ -759,6 +759,13 @@ void VerticalDynamicsFEM::StepExplicit(
 		const DataArray4D<double> & dContraMetricXiREdge =
 			pPatch->GetContraMetricXiREdge();
 
+		// Lateral PML layer strength
+		const DataArray3D<double> & dataLatStrengthNode =
+			pPatch->GetLatPMLStrength(DataLocation_Node);
+
+		const DataArray3D<double> & dataLatStrengthREdge =
+			pPatch->GetLatPMLStrength(DataLocation_REdge);
+
 #if defined(EXPLICIT_VERTICAL_VELOCITY_ADVECTION) && \
     defined(VERTICAL_VELOCITY_ADVECTION_CLARK)
 		const DataArray4D<double> & dContraMetricA =
@@ -874,6 +881,21 @@ void VerticalDynamicsFEM::StepExplicit(
 							dDeltaT * m_dSoln[VecFIx(FRIx, k)];
 					}
 				}
+
+				#if defined(APPLY_RAYLEIGH_WITH_VERTICALDYN)
+					// Apply Rayleigh damping
+					if (pGrid->HasRayleighFriction()) {
+						ApplyRayleighFriction(
+							pPatch, i, j,
+							dataUpdateNode,
+							dataUpdateREdge,
+							dataRefNode,
+							dataRefREdge,
+							dataLatStrengthNode,
+							dataLatStrengthREdge,
+							dDeltaT);
+					}
+				#endif
 
 				// Update tracers in column
 				UpdateColumnTracers(
@@ -1230,6 +1252,157 @@ void VerticalDynamicsFEM::StepExplicit(
 				}
 			}
 		}
+		}
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+void VerticalDynamicsFEM::ApplyRayleighFriction(
+	GridPatch * pPatch,
+	int iA,
+	int iB,
+	DataArray4D<double> & dataUpdateNode,
+	DataArray4D<double> & dataUpdateREdge,
+	const DataArray4D<double> & dataReferenceNode,
+	const DataArray4D<double> & dataReferenceREdge,
+	const DataArray3D<double> & dataLatStrengthNode,
+	const DataArray3D<double> & dataLatStrengthREdge,
+	double dDeltaT
+) {
+	// Get a copy of the GLL grid
+	GridGLL * pGrid = dynamic_cast<GridGLL*>(m_model.GetGrid());
+
+#if defined(FIXED_HORIZONTAL_ORDER)
+	const int nHorizontalOrder = FIXED_HORIZONTAL_ORDER;
+	if (nHorizontalOrder != m_nHorizontalOrder) {
+		_EXCEPTIONT("Command line order must match FIXED_HORIZONTAL_ORDER");
+	}
+#else
+	const int nHorizontalOrder = m_nHorizontalOrder;
+#endif
+
+#if defined(FIXED_RELEMENTS)
+	const int nRElements = FIXED_RELEMENTS;
+	if (nRElements != pGrid->GetRElements()) {
+		_EXCEPTIONT("Command line levels must match FIXED_RELEMENTS");
+	}
+#else
+	const int nRElements = pGrid->GetRElements();
+#endif
+
+	// Number of components to hit with friction
+	int nComponents = m_model.GetEquationSet().GetComponents();
+
+	// Equation set being solved
+	const int nEqSet = m_model.GetEquationSet().GetType();
+
+	const bool fCartXZ = pGrid->GetIsCartesianXZ();
+
+	int nEffectiveC[nComponents];
+
+	// 3D primitive nonhydro models with no density treatment
+	if ((nEqSet == EquationSet::PrimitiveNonhydrostaticEquations) && !fCartXZ) {
+		nEffectiveC[0] = 0; nEffectiveC[1] = 1;
+		nEffectiveC[2] = 2; nEffectiveC[3] = 3;
+		nEffectiveC[nComponents - 1] = 0;
+		nComponents = nComponents - 1;
+	}
+	// 2D Cartesian XZ primitive nonhydro models with no density treatment
+	else if ((nEqSet == EquationSet::PrimitiveNonhydrostaticEquations) && fCartXZ) {
+		nEffectiveC[0] = 0;
+		nEffectiveC[1] = 2;
+		nEffectiveC[2] = 3;
+		nEffectiveC[nComponents - 2] = 0;
+		nEffectiveC[nComponents - 1] = 0;
+		nComponents = nComponents - 2;
+	}
+	// Other model types (advection, shallow water, mass coord)
+	else {
+		for (int nc = 0; nc < nComponents; nc++) {
+			nEffectiveC[nc] = nc;
+		}
+	}
+
+	// Subcycle the rayleigh update
+	int nRayCycles = 2;
+	double dRayFactor = 1.0 / nRayCycles;
+
+	// Rayleigh damping on nodes
+	for (int k = 0; k < nRElements; k++) {
+		double dNuPML = dataLatStrengthNode(iA, iB,k);
+
+		// Backwards Euler
+		if (dNuPML == 0.0) {
+			continue;
+		}
+
+		double dNuInv = 0.0;
+
+		// Loop over all effective components
+		for (int c = 0; c < nComponents; c++) {
+			if (pGrid->GetVarLocation(nEffectiveC[c]) ==
+				DataLocation_Node) {
+				// Get the PML part of the update
+				double dPhi =
+					m_dSoln[VecFIx(nEffectiveC[c], k)];
+
+				double dPML = 0.0;
+				for (int si = 0; si < nRayCycles; si++) {
+					// APPLY PML TOP LAYER
+					if (dNuPML > 0.0) {
+						dNuInv = 1.0 / (1.0 + dRayFactor * dDeltaT * dNuPML);
+						dPML = dataUpdateNode(nEffectiveC[c],iA, iB,k)
+						- dataReferenceNode(nEffectiveC[c],iA, iB,k)
+						+ dRayFactor * dDeltaT * dNuPML * dPhi;
+
+						dataUpdateNode(nEffectiveC[c],iA, iB,k) =
+						dNuInv * dataUpdateNode(nEffectiveC[c],iA, iB,k)
+						+ (1.0 - dNuInv)
+						* dataReferenceNode(nEffectiveC[c],iA, iB,k);
+						//- dNuInv * dRayFactor * dDeltaT * dPML;
+					}
+				}
+			}
+		}
+	}
+
+	// Rayleigh damping on interfaces
+	for (int k = 0; k <= nRElements; k++) {
+		double dNuPML = dataLatStrengthREdge(iA, iB,k);
+		double dNu = 0.0;
+
+		// Backwards Euler
+		if (dNuPML == 0.0) {
+			continue;
+		}
+
+		double dNuInv = 0.0;
+
+		// Loop over all effective components
+		for (int c = 0; c < nComponents; c++) {
+			if (pGrid->GetVarLocation(nEffectiveC[c]) ==
+				DataLocation_REdge) {
+				// Get the PML part of the update
+				double dPhi =
+					m_dSoln[VecFIx(nEffectiveC[c], k)];
+
+				double dPML = 0.0;
+				for (int si = 0; si < nRayCycles; si++) {
+					// APPLY PML TOP LAYER
+					if (dNuPML > 0.0) {
+						dNuInv = 1.0 / (1.0 + dRayFactor * dDeltaT * dNuPML);
+						dPML = dataUpdateREdge(nEffectiveC[c],iA, iB,k)
+						- dataReferenceREdge(nEffectiveC[c],iA, iB,k)
+						+ dRayFactor * dDeltaT * dNuPML * dPhi;
+
+						dataUpdateREdge(nEffectiveC[c],iA, iB,k) =
+						dNuInv * dataUpdateREdge(nEffectiveC[c],iA, iB,k)
+						+ (1.0 - dNuInv)
+						* dataReferenceREdge(nEffectiveC[c],iA, iB,k);
+						//- dNuInv * dRayFactor * dDeltaT * dPML;
+					}
+				}
+			}
 		}
 	}
 }

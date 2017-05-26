@@ -1005,6 +1005,38 @@ public:
 	}
 
 	///	<summary>
+	///		Get the Xi Derivative data from HorizontalDynamicsFEM.
+	///	</summary>
+	DataArray4D<double> & GetXiDiffNode(
+		DataLocation loc = DataLocation_Node
+	) {
+		if (!m_fContainsData) {
+			_EXCEPTIONT("Stub patch does not store data.");
+		}
+		if (loc == DataLocation_Node) {
+			return m_dataXiDiffNode;
+		} else {
+			_EXCEPTIONT("Invalid DataLocation");
+		}
+	}
+
+	///	<summary>
+	///		Get the Xi Derivative data from HorizontalDynamicsFEM.
+	///	</summary>
+	const DataArray4D<double> & GetXiDiffNode(
+		DataLocation loc = DataLocation_Node
+	) const {
+		if (!m_fContainsData) {
+			_EXCEPTIONT("Stub patch does not store data.");
+		}
+		if (loc == DataLocation_Node) {
+			return m_dataXiDiffNode;
+		} else {
+			_EXCEPTIONT("Invalid DataLocation");
+		}
+	}
+
+	///	<summary>
 	///		Get the 2D user data.
 	///	</summary>
 	DataArray3D<double> & GetUserData2D() {
@@ -1105,13 +1137,13 @@ public:
 	///	<summary>
 	///		Get the Rayleigh friction strength.
 	///	</summary>
-	DataArray3D<double> & GetRayleighStrength(
+	DataArray3D<double> & GetLatPMLStrength(
 		DataLocation loc = DataLocation_Node
 	) {
 		if (loc == DataLocation_Node) {
-			return m_dataRayleighStrengthNode;
+			return m_dataLatPMLStrengthNode;
 		} else if (loc == DataLocation_REdge) {
-			return m_dataRayleighStrengthREdge;
+			return m_dataLatPMLStrengthREdge;
 		} else {
 			_EXCEPTIONT("Invalid location");
 		}
@@ -1120,28 +1152,28 @@ public:
 	///	<summary>
 	///		Get the Rayleigh friction strength.
 	///	</summary>
-	const DataArray3D<double> & GetRayleighStrength(
+	const DataArray3D<double> & GetLatPMLStrength(
 		DataLocation loc = DataLocation_Node
 	) const {
 		if (loc == DataLocation_Node) {
-			return m_dataRayleighStrengthNode;
+			return m_dataLatPMLStrengthNode;
 		} else if (loc == DataLocation_REdge) {
-			return m_dataRayleighStrengthREdge;
+			return m_dataLatPMLStrengthREdge;
 		} else {
 			_EXCEPTIONT("Invalid location");
 		}
 	}
 
 	///	<summary>
-	///		Get the PML strength.
+	///		Get the top layer PML strength.
 	///	</summary>
-	DataArray3D<double> & GetTopStrength(
+	DataArray3D<double> & GetTopPMLStrength(
 		DataLocation loc = DataLocation_Node
 	) {
 		if (loc == DataLocation_Node) {
-			return m_dataPMLStrengthNode;
+			return m_dataTopPMLStrengthNode;
 		} else if (loc == DataLocation_REdge) {
-			return m_dataPMLStrengthREdge;
+			return m_dataTopPMLStrengthREdge;
 		} else {
 			_EXCEPTIONT("Invalid location");
 		}
@@ -1150,13 +1182,13 @@ public:
 	///	<summary>
 	///		Get the PML strength.
 	///	</summary>
-	const DataArray3D<double> & GetTopStrength(
+	const DataArray3D<double> & GetTopPMLStrength(
 		DataLocation loc = DataLocation_Node
 	) const {
 		if (loc == DataLocation_Node) {
-			return m_dataPMLStrengthNode;
+			return m_dataTopPMLStrengthNode;
 		} else if (loc == DataLocation_REdge) {
-			return m_dataPMLStrengthREdge;
+			return m_dataTopPMLStrengthREdge;
 		} else {
 			_EXCEPTIONT("Invalid location");
 		}
@@ -1370,22 +1402,22 @@ protected:
 	///	<summary>
 	///		Rayleigh friction strength on nodes (Geometric).
 	///	</summary>
-	DataArray3D<double> m_dataRayleighStrengthNode;
+	DataArray3D<double> m_dataLatPMLStrengthNode;
 
 	///	<summary>
 	///		Rayleigh friction strength on interfaces (Geometric).
 	///	</summary>
-	DataArray3D<double> m_dataRayleighStrengthREdge;
+	DataArray3D<double> m_dataLatPMLStrengthREdge;
 
 	///	<summary>
 	///		PML strength on nodes (Geometric).
 	///	</summary>
-	DataArray3D<double> m_dataPMLStrengthNode;
+	DataArray3D<double> m_dataTopPMLStrengthNode;
 
 	///	<summary>
 	///		PML strength on interfaces (Geometric).
 	///	</summary>
-	DataArray3D<double> m_dataPMLStrengthREdge;
+	DataArray3D<double> m_dataTopPMLStrengthREdge;
 
 public:
 	///	<summary>
@@ -1447,6 +1479,11 @@ public:
 	///		Grid data for the reference state on model levels (State).
 	///	</summary>
 	DataArray4D<double> m_dataRefTracers;
+
+	///	<summary>
+	///		Storage of Xi Derivatives from HorizontalDynamicsFEM
+	///	</summary>
+	DataArray4D<double> m_dataXiDiffNode;
 
 public:
 	///	<summary>

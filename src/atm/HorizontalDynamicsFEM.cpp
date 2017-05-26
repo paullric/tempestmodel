@@ -763,6 +763,9 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 		DataArray4D<double> & dataUpdateTracer =
 			pPatch->GetDataTracers(iDataUpdate);
 
+		DataArray4D<double> & m_dataXiDiffNode =
+			pPatch->GetXiDiffNode(DataLocation_Node);
+
 		// Number of tracers
 		const int nTracerCount = dataInitialTracer.GetSize(0);
 
@@ -987,6 +990,12 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 
 				m_dAuxDataNode(UCrossZetaXIx,i,j,k) =
 					- dConUa * dCovDaUx - dConUb * dCovDbUx;
+
+				// Store the vertical derivative bits...
+				m_dataXiDiffNode(0, iA, iB, k) =
+					- dConUx * dCovDxUa;
+				m_dataXiDiffNode(1, iA, iB, k) =
+					  dConUx * dCovDxUb;
 			}
 			}
 			}
@@ -2305,13 +2314,6 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusionResidual(
 		const DataArray4D<double> & dataRefREdge =
 			pPatch->GetReferenceState(DataLocation_REdge);
 
-		// Rayleigh friction strength
-		const DataArray3D<double> & dataRayleighStrengthNode =
-			pPatch->GetRayleighStrength(DataLocation_Node);
-
-		const DataArray3D<double> & dataRayleighStrengthREdge =
-			pPatch->GetRayleighStrength(DataLocation_REdge);
-
 		// Tracer data
 #pragma Residual diffusion on tracers NOT IMPLEMENTED yet.
 		DataArray4D<double> & dataInitialTracer =
@@ -2382,7 +2384,6 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusionResidual(
 				const DataArray4D<double> * pDataRef;
 				const DataArray3D<double> * pJacobian;
 				const DataArray4D<double> * pDerivR;
-				const DataArray3D<double> * pDataRayleigh;
 				const DataArray4D<double> * pContraMetricA;
 				const DataArray4D<double> * pContraMetricB;
 				const DataArray4D<double> * pContraMetricXi;
@@ -2396,7 +2397,6 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusionResidual(
 						nElementCountR = nRElements;
 						pJacobian = &dJacobianNode;
 						pDerivR = &dDerivRNode;
-						pDataRayleigh = &dataRayleighStrengthNode;
 						pContraMetricA = &dContraMetricA;
 						pContraMetricB = &dContraMetricB;
 						pContraMetricXi = &dContraMetricXi;
@@ -2409,7 +2409,6 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusionResidual(
 						nElementCountR = nRElements + 1;
 						pJacobian = &dJacobianREdge;
 						pDerivR = &dDerivRREdge;
-						pDataRayleigh = &dataRayleighStrengthREdge;
 						pContraMetricA = &dContraMetricAREdge;
 						pContraMetricB = &dContraMetricBREdge;
 						pContraMetricXi = &dContraMetricXiREdge;
@@ -2424,7 +2423,6 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusionResidual(
 					pDataResidual = &dataResidualTracer;
 					nElementCountR = nRElements;
 					pJacobian = &dJacobianNode;
-					pDataRayleigh = &dataRayleighStrengthNode;
 				}
 
 	// Loop over all finite elements
@@ -2890,9 +2888,6 @@ void HorizontalDynamicsFEM::ApplyVectorHyperdiffusion(
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-
-//#pragma message "jeguerra: Clean up this function"
-
 void HorizontalDynamicsFEM::ApplyRayleighFriction(
 	int iDataInitial,
 	int iDataUpdate,
@@ -2953,7 +2948,7 @@ void HorizontalDynamicsFEM::ApplyRayleighFriction(
 	}
 
 	// Subcycle the rayleigh update
-	int nRayCycles = 10;
+	int nRayCycles = 2;
 	double dRayFactor = 1.0 / nRayCycles;
 
 	// Perform local update
@@ -2983,19 +2978,15 @@ void HorizontalDynamicsFEM::ApplyRayleighFriction(
 		const DataArray4D<double> & dataReferenceREdge =
 			pPatch->GetReferenceState(DataLocation_REdge);
 
-		// Rayleigh friction strength
-		const DataArray3D<double> & dataRayleighStrengthNode =
-			pPatch->GetRayleighStrength(DataLocation_Node);
-
-		const DataArray3D<double> & dataRayleighStrengthREdge =
-			pPatch->GetRayleighStrength(DataLocation_REdge);
-
-		// PML strength
+		// Top PML layer strength
 		const DataArray3D<double> & dataTopStrengthNode =
-			pPatch->GetTopStrength(DataLocation_Node);
+			pPatch->GetTopPMLStrength(DataLocation_Node);
 
 		const DataArray3D<double> & dataTopStrengthREdge =
-			pPatch->GetTopStrength(DataLocation_REdge);
+			pPatch->GetTopPMLStrength(DataLocation_REdge);
+
+		const DataArray4D<double> & m_dataXiDiffNode =
+			pPatch->GetXiDiffNode(DataLocation_Node);
 
 		// Loop over all nodes in patch
 		for (int i = box.GetAInteriorBegin(); i < box.GetAInteriorEnd(); i++) {
@@ -3003,12 +2994,10 @@ void HorizontalDynamicsFEM::ApplyRayleighFriction(
 
 			// Rayleigh damping on nodes
 			for (int k = 0; k < nRElements; k++) {
-
-				double dNuRAY = dataRayleighStrengthNode(i,j,k);
 				double dNuPML = dataTopStrengthNode(i,j,k);
 
 				// Backwards Euler
-				if ((dNuRAY == 0.0) && (dNuPML == 0.0)) {
+				if (dNuPML == 0.0) {
 					continue;
 				}
 
@@ -3023,19 +3012,20 @@ void HorizontalDynamicsFEM::ApplyRayleighFriction(
 							(dataUpdateNode(nEffectiveC[c],i,j,k)
 							 - dataInitialNode(nEffectiveC[c],i,j,k));
 
+						if (nEffectiveC[0] == 0) {
+							dPhi -= m_dataXiDiffNode(0, i, j, k);
+						}
+
+						if (nEffectiveC[1] == 1) {
+							dPhi -= m_dataXiDiffNode(1, i, j, k);
+						}
+
 						double dPML = 0.0;
 						for (int si = 0; si < nRayCycles; si++) {
-							// APPLY LATERAL LAYERS
-							dNuInv = 1.0 / (1.0 + dRayFactor * dDeltaT * dNuRAY);
-							dataUpdateNode(nEffectiveC[c],i,j,k) =
-							dNuInv * dataUpdateNode(nEffectiveC[c],i,j,k)
-							+ (1.0 - dNuInv)
-							* dataReferenceNode(nEffectiveC[c],i,j,k);
-
 							// APPLY PML TOP LAYER
 							if (dNuPML > 0.0) {
 								dNuInv = 1.0 / (1.0 + dRayFactor * dDeltaT * dNuPML);
-								dPML = dataInitialNode(nEffectiveC[c],i,j,k)
+								dPML = dataUpdateNode(nEffectiveC[c],i,j,k)
 								- dataReferenceNode(nEffectiveC[c],i,j,k)
 								+ dRayFactor * dDeltaT * dNuPML * dPhi;
 
@@ -3052,13 +3042,11 @@ void HorizontalDynamicsFEM::ApplyRayleighFriction(
 
 			// Rayleigh damping on interfaces
 			for (int k = 0; k <= nRElements; k++) {
-
-				double dNuRAY = dataRayleighStrengthREdge(i,j,k);
 				double dNuPML = dataTopStrengthREdge(i,j,k);
 				double dNu = 0.0;
 
 				// Backwards Euler
-				if ((dNuRAY == 0.0) && (dNuPML == 0.0)) {
+				if (dNuPML == 0.0) {
 					continue;
 				}
 
@@ -3073,19 +3061,20 @@ void HorizontalDynamicsFEM::ApplyRayleighFriction(
 							(dataUpdateREdge(nEffectiveC[c],i,j,k)
 							 - dataInitialREdge(nEffectiveC[c],i,j,k));
 
+						if (nEffectiveC[0] == 0) {
+ 							dPhi -= m_dataXiDiffNode(0, i, j, k);
+ 						}
+
+ 						if (nEffectiveC[1] == 1) {
+ 							dPhi -= m_dataXiDiffNode(1, i, j, k);
+ 						}
+
 						double dPML = 0.0;
 						for (int si = 0; si < nRayCycles; si++) {
-							// APPLY LATERAL LAYERS
-							dNuInv = 1.0 / (1.0 + dRayFactor * dDeltaT * dNuRAY);
-							dataUpdateREdge(nEffectiveC[c],i,j,k) =
-							dNuInv * dataUpdateREdge(nEffectiveC[c],i,j,k)
-							+ (1.0 - dNuInv)
-							* dataReferenceREdge(nEffectiveC[c],i,j,k);
-
 							// APPLY PML TOP LAYER
 							if (dNuPML > 0.0) {
 								dNuInv = 1.0 / (1.0 + dRayFactor * dDeltaT * dNuPML);
-								dPML = dataInitialREdge(nEffectiveC[c],i,j,k)
+								dPML = dataUpdateREdge(nEffectiveC[c],i,j,k)
 								- dataReferenceREdge(nEffectiveC[c],i,j,k)
 								+ dRayFactor * dDeltaT * dNuPML * dPhi;
 
@@ -3256,7 +3245,13 @@ void HorizontalDynamicsFEM::StepAfterSubCycle(
 		// Apply Rayleigh damping
 		if (pGrid->HasRayleighFriction()) {
 			ApplyRayleighFriction(iDataInitial, iDataUpdate, dDeltaT);
+
+			// Apply Direct Stiffness Summation
+			pGrid->ApplyDSS(iDataUpdate, DataType_State);
+			pGrid->ApplyDSS(iDataUpdate, DataType_Tracers);
 		}
+
+		// Apply Direct Stiffness Summation?
 #endif
 }
 

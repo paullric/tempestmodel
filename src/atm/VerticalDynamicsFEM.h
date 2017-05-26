@@ -239,20 +239,36 @@ public:
 		double * dF
 	);
 
-	///     <summary>
-  ///             Compute the field of residual based coefficients
-  ///     </summary>
-  virtual void ComputeResidualCoefficients(
-          GridPatch * pPatch,
-          int i,
-          int j,
-        	DataArray4D<double> & dataResidualNode,
-          const DataArray4D<double> & dataInitialNode,
-          DataArray4D<double> & dataResidualREdge,
-          const DataArray4D<double> & dataInitialREdge
-  );
-
 protected:
+	///     <summary>
+	///             Compute the field of residual based coefficients
+	///     </summary>
+	void ApplyRayleighFriction(
+	  GridPatch * pPatch,
+	  int i,
+	  int j,
+	  DataArray4D<double> & dataUpdateNode,
+	  DataArray4D<double> & dataUpdateREdge,
+	  const DataArray4D<double> & dataReferenceNode,
+	  const DataArray4D<double> & dataReferenceREdge,
+	  const DataArray3D<double> & dataLatStrengthNode,
+	  const DataArray3D<double> & dataLatStrengthREdge,
+	  double dDeltaT
+	);
+
+	///     <summary>
+	///             Compute the field of residual based coefficients
+	///     </summary>
+	void ComputeResidualCoefficients(
+	  GridPatch * pPatch,
+	  int i,
+	  int j,
+		DataArray4D<double> & dataResidualNode,
+	  const DataArray4D<double> & dataInitialNode,
+	  DataArray4D<double> & dataResidualREdge,
+	  const DataArray4D<double> & dataInitialREdge
+	);
+
 	///	<summary>
 	///		Update tracers in the vertical.
 	///	</summary>

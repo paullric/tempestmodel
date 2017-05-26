@@ -1811,10 +1811,10 @@ void HorizontalDynamicsFEMV2::ApplyRayleighFriction(
 
 		// Rayleigh friction strength
 		const DataArray3D<double> & dataRayleighStrengthNode =
-			pPatch->GetRayleighStrength(DataLocation_Node);
+			pPatch->GetTopPMLStrength(DataLocation_Node);
 
 		const DataArray3D<double> & dataRayleighStrengthREdge =
-			pPatch->GetRayleighStrength(DataLocation_REdge);
+			pPatch->GetTopPMLStrength(DataLocation_REdge);
 
 		// Loop over all nodes in patch
 		for (int i = box.GetAInteriorBegin(); i < box.GetAInteriorEnd(); i++) {

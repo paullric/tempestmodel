@@ -544,28 +544,28 @@ void GridPatchCartesianGLL::EvaluateTestCase(
 		for (int j = 0; j < m_box.GetBTotalWidth(); j++) {
 			for (int k = 0; k < m_grid.GetRElements(); k++) {
 				//m_dataZLevels[i][j][k],
-				m_dataRayleighStrengthNode[i][j][k] =
-					test.EvaluateRayleighStrength(
+				m_dataLatPMLStrengthNode[i][j][k] =
+					test.EvaluateLatPMLStrength(
 						m_grid.GetREtaLevel(k),
 						m_dataLon[i][j],
 						m_dataLat[i][j]);
 				// PML for the vertical sponge layer
-				m_dataPMLStrengthNode[i][j][k] =
-					test.EvaluatePMLStrength(
+				m_dataTopPMLStrengthNode[i][j][k] =
+					test.EvaluateTopPMLStrength(
 						m_grid.GetREtaLevel(k),
 						m_dataLon[i][j],
 						m_dataLat[i][j]);
 			}
 			for (int k = 0; k <= m_grid.GetRElements(); k++) {
 				//m_dataZInterfaces[i][j][k],
-				m_dataRayleighStrengthREdge[i][j][k] =
-					test.EvaluateRayleighStrength(
+				m_dataLatPMLStrengthREdge[i][j][k] =
+					test.EvaluateLatPMLStrength(
 						m_grid.GetREtaInterface(k),
 						m_dataLon[i][j],
 						m_dataLat[i][j]);
 				// PML for the vertical sponge layer
-				m_dataPMLStrengthREdge[i][j][k] =
-					test.EvaluatePMLStrength(
+				m_dataTopPMLStrengthREdge[i][j][k] =
+					test.EvaluateTopPMLStrength(
 						m_grid.GetREtaInterface(k),
 						m_dataLon[i][j],
 						m_dataLat[i][j]);

@@ -77,7 +77,7 @@
 ///		When to apply Rayleigh damping.
 ///	</summary>
 #define APPLY_RAYLEIGH_WITH_HYPERVIS
-//#define APPLY_RAYLEIGH_WITH_VERTICALDYN
+#define APPLY_RAYLEIGH_WITH_VERTICALDYN
 
 ///	<summary>
 ///		Apply positive definite filter to tracers.

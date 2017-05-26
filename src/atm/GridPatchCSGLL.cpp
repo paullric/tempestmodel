@@ -383,7 +383,7 @@ void GridPatchCSGLL::EvaluateGeometricTerms() {
 			* phys.GetEarthRadius();
 
 		// Initialize 2D contravariant metric
-		double dContraMetricScale = 
+		double dContraMetricScale =
 			dDelta2 / (1.0 + dX * dX) / (1.0 + dY * dY)
 			/ (phys.GetEarthRadius() * phys.GetEarthRadius());
 
@@ -654,15 +654,15 @@ void GridPatchCSGLL::EvaluateTestCase(
 		for (int i = 0; i < m_box.GetATotalWidth(); i++) {
 		for (int j = 0; j < m_box.GetBTotalWidth(); j++) {
 			for (int k = 0; k < m_grid.GetRElements(); k++) {
-				m_dataRayleighStrengthNode(i,j,k) =
-					test.EvaluateRayleighStrength(
+				m_dataTopPMLStrengthNode(i,j,k) =
+					test.EvaluateTopPMLStrength(
 						m_dataZLevels(i,j,k),
 						m_dataLon(i,j),
 						m_dataLat(i,j));
 			}
 			for (int k = 0; k <= m_grid.GetRElements(); k++) {
-				m_dataRayleighStrengthREdge(i,j,k) =
-					test.EvaluateRayleighStrength(
+				m_dataTopPMLStrengthREdge(i,j,k) =
+					test.EvaluateTopPMLStrength(
 						m_dataZInterfaces(i,j,k),
 						m_dataLon(i,j),
 						m_dataLat(i,j));
@@ -1525,7 +1525,7 @@ void GridPatchCSGLL::InterpolateData(
 			}
 		}
 
-		for (int i = 0; i < dAlpha.GetRows(); i++) { 
+		for (int i = 0; i < dAlpha.GetRows(); i++) {
 			if (iPatch[i] != GetPatchIndex()) {
 				continue;
 			}
@@ -1823,4 +1823,3 @@ void GridPatchCSGLL::TransformTopographyDeriv() {
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-

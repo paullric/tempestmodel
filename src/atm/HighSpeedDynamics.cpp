@@ -200,7 +200,7 @@ void HighSpeedDynamics::Initialize() {
 		nHorizontalOrder,
 		nHorizontalOrder,
 		nRElements+1);
-	
+
 	// Initialize buffers for derivatives of Jacobian
 	m_dJGradientA.Allocate(
 		nHorizontalOrder,
@@ -775,7 +775,7 @@ void HighSpeedDynamics::StepExplicit(
 						- m_dSDotUbREdge(i,j,k  ));
 
 				// Compute vorticity term
-				const double dAbsVorticity = 
+				const double dAbsVorticity =
 					dCoriolisF(iA,iB)
 					+ dInvJacobian2D * (dDaCovUb - dDbCovUa);
 
@@ -1893,10 +1893,10 @@ void HighSpeedDynamics::ApplyRayleighFriction(
 
 		// Rayleigh friction strength
 		const DataArray3D<double> & dataRayleighStrengthNode =
-			pPatch->GetRayleighStrength(DataLocation_Node);
+			pPatch->GetTopPMLStrength(DataLocation_Node);
 
 		const DataArray3D<double> & dataRayleighStrengthREdge =
-			pPatch->GetRayleighStrength(DataLocation_REdge);
+			pPatch->GetTopPMLStrength(DataLocation_REdge);
 
 		// Loop over all nodes in patch
 		for (int i = box.GetAInteriorBegin(); i < box.GetAInteriorEnd(); i++) {

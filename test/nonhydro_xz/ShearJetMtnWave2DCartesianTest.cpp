@@ -184,12 +184,12 @@ public:
 		m_dpiC = M_PI;
 
 		// Set the dimensions of the box
-		m_dGDim[0] = -46000.0;
-		m_dGDim[1] = 46000.0;
+		m_dGDim[0] = -50000.0;
+		m_dGDim[1] = 50000.0;
 		m_dGDim[2] = -100.0;
 		m_dGDim[3] = 100.0;
 		m_dGDim[4] = 0.0;
-		m_dGDim[5] = 31000.0;
+		m_dGDim[5] = 28000.0;
 
 		// Set the center of the domain in Y
 		m_dY0 = 0.5 * (m_dGDim[3] - m_dGDim[2]);
@@ -354,18 +354,117 @@ public:
 		return dNuLeft;
 	}
 */
+/*
 	///	<summary>
 	///		Evaluate the Rayleigh friction strength at the given point.
 	///	</summary>
-	virtual double EvaluateRayleighStrength(
+	virtual double EvaluateTopPMLStrength(
+		double dZ,
+		double dXp,
+		double dYp
+	) const {
+		const double dRayleighStrengthZ = 1.0E-2;//8.0e-3;
+		const double dRayleighStrengthX = 1.0 * dRayleighStrengthZ;
+		const double dRayleighDepth = 3000.0;
+		const double dRayleighWidth = 3000.0;
+		const double dRayDepthXi = dRayleighDepth / m_dGDim[5];
+
+		double dNuDepth = 0.0;
+		double dNuRight = 0.0;
+		double dNuLeft  = 0.0;
+
+		//double dLayerZ = m_dGDim[5] - dRayleighDepth;
+		double dLayerZ = 1.0 - dRayDepthXi;
+		//double dLayerZ = m_dGDim[5] - dRayleighDepth;
+		double dLayerR = m_dGDim[1] - dRayleighWidth;
+		double dLayerL = m_dGDim[0] + dRayleighWidth;
+
+		if (dZ > dLayerZ) {
+			//double dNormZ = (m_dGDim[5] - dZ) / dRayleighDepth;
+			double dNormZ = (1.0 - dZ) / dRayDepthXi;
+			dNuDepth = 0.5 * dRayleighStrengthZ * (1.0 + cos(M_PI * dNormZ));
+		}
+
+		if (dXp > dLayerR) {
+			double dNormX = (m_dGDim[1] - dXp) / dRayleighWidth;
+			dNuRight = 0.5 * dRayleighStrengthX * (1.0 + cos(M_PI * dNormX));
+		}
+		if (dXp < dLayerL) {
+			double dNormX = (dXp - m_dGDim[0]) / dRayleighWidth;
+			dNuLeft = 0.5 * dRayleighStrengthX * (1.0 + cos(M_PI * dNormX));
+		}
+
+		//std::cout << dXp << ' ' << dZ << ' ' << dNuDepth << std::endl;
+		if ((dNuDepth >= dNuRight) && (dNuDepth >= dNuLeft)) {
+			return dNuDepth;
+		}
+		if (dNuRight >= dNuLeft) {
+			return dNuRight;
+		}
+		return dNuLeft;
+	}
+
+	///	<summary>
+	///		Evaluate the Rayleigh friction strength at the given point.
+	///	</summary>
+	virtual double EvaluateLatPMLStrength(
+		double dZ,
+		double dXp,
+		double dYp
+	) const {
+		const double dRayleighStrengthZ = 1.0E-2;//8.0e-3;
+		const double dRayleighStrengthX = 1.0 * dRayleighStrengthZ;
+		const double dRayleighDepth = 3000.0;
+		const double dRayleighWidth = 3000.0;
+		const double dRayDepthXi = dRayleighDepth / m_dGDim[5];
+
+		double dNuDepth = 0.0;
+		double dNuRight = 0.0;
+		double dNuLeft  = 0.0;
+
+		//double dLayerZ = m_dGDim[5] - dRayleighDepth;
+		double dLayerZ = 1.0 - dRayDepthXi;
+		//double dLayerZ = m_dGDim[5] - dRayleighDepth;
+ 		double dLayerR = m_dGDim[1] - dRayleighWidth;
+ 		double dLayerL = m_dGDim[0] + dRayleighWidth;
+
+		if (dZ > dLayerZ) {
+			//double dNormZ = (m_dGDim[5] - dZ) / dRayleighDepth;
+			double dNormZ = (1.0 - dZ) / dRayDepthXi;
+			dNuDepth = 0.5 * dRayleighStrengthZ * (1.0 + cos(M_PI * dNormZ));
+		}
+
+		if (dXp > dLayerR) {
+			double dNormX = (m_dGDim[1] - dXp) / dRayleighWidth;
+			dNuRight = 0.5 * dRayleighStrengthX * (1.0 + cos(M_PI * dNormX));
+		}
+		if (dXp < dLayerL) {
+			double dNormX = (dXp - m_dGDim[0]) / dRayleighWidth;
+			dNuLeft = 0.5 * dRayleighStrengthX * (1.0 + cos(M_PI * dNormX));
+		}
+
+		//std::cout << dXp << ' ' << dZ << ' ' << dNuDepth << std::endl;
+		if ((dNuDepth >= dNuRight) && (dNuDepth >= dNuLeft)) {
+			return dNuDepth;
+		}
+		if (dNuRight >= dNuLeft) {
+			return dNuRight;
+		}
+		return dNuLeft;
+	}
+*/
+	///	<summary>
+	///		Evaluate the lateral PML layers.
+	///	</summary>
+	virtual double EvaluateLatPMLStrength(
 		double dZ,
 		double dXp,
 		double dYp
 	) const {
 		const double dRayleighStrengthX = 1.0E-2;//8.0e-3;
 		const double dRayleighStrengthZ = 1.0E-2;//8.0e-3;
-		const double dRayleighWidth = 6000.0;
-		const double dRayleighDepth = 6000.0;
+		const double dRayleighWidth = 10000.0;
+		const double dRayleighDepth = 3000.0;
 		const double dRayDepthXi = dRayleighDepth / m_dGDim[5];
 
 		double dNuRight = 0.0;
@@ -399,16 +498,16 @@ public:
 	}
 
 	///	<summary>
-	///		Evaluate the PML strength at the given point.
+	///		Evaluate the top PML layer.
 	///	</summary>
-	virtual double EvaluatePMLStrength(
+	virtual double EvaluateTopPMLStrength(
 		double dZ,
 		double dXp,
 		double dYp
 	) const {
-		const double dRayleighStrengthZ = 1.0E-2;//8.0e-3;
-		const double dRayleighDepth = 6000.0;
-		const double dRayleighWidth = 6000.0;
+		const double dRayleighStrengthZ = 1.0E-8;//8.0e-3;
+		const double dRayleighDepth = 1000.0;
+		const double dRayleighWidth = 10000.0;
 		const double dRayDepthXi = dRayleighDepth / m_dGDim[5];
 
 		double dNuDepth = 0.0;
@@ -422,9 +521,9 @@ public:
 		if (dZ > dLayerZ) { //&& (dXp > dLayerL) && (dXp < dLayerR)) {
 			//double dNormZ = (m_dGDim[5] - dZ) / dRayleighDepth;
 			double dNormZ = (1.0 - dZ) / dRayDepthXi;
-			dNuDepth = 0.5 * dRayleighStrengthZ * (1.0 + cos(M_PI * dNormZ));
-			//dNuDepth = sin(M_PI * dNormZ) * sin(M_PI * dNormZ)
-			//		/ (dNormZ * dNormZ * dNormZ);
+			//dNuDepth = 0.5 * dRayleighStrengthZ * (1.0 + cos(M_PI * dNormZ));
+			dNuDepth = sin(M_PI * dNormZ) * sin(M_PI * dNormZ)
+					/ (dNormZ * dNormZ * dNormZ);
 		}
 		return dNuDepth;
 	}
