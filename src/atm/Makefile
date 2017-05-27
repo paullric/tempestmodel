@@ -23,6 +23,7 @@ FILES= CubedSphereTrans.cpp \
        TimestepSchemeARK232.cpp \
        TimestepSchemeGARK2.cpp \
        TimestepSchemeARS343.cpp \
+       TimestepSchemeARS343b.cpp \
        TimestepSchemeARS443.cpp \
        TimestepSchemeSSP3332.cpp \
        TimestepSchemeARK4.cpp \

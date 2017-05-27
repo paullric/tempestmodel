@@ -18,6 +18,7 @@
 #define _TEMPESTINITIALIZE_H_
 
 #include "Defines.h"
+#include "Announce.h"
 #include "Model.h"
 #include "TimestepSchemeStrang.h"
 #include "TimestepSchemeERK.h"
@@ -26,6 +27,7 @@
 #include "TimestepSchemeARK232.h"
 #include "TimestepSchemeGARK2.h"
 #include "TimestepSchemeARS343.h"
+#include "TimestepSchemeARS343b.h"
 #include "TimestepSchemeARS443.h"
 #include "TimestepSchemeSSP3332.h"
 #include "TimestepSchemeSplitExp.h"
@@ -130,7 +132,7 @@ struct _TempestCommandLineVariables {
 	CommandLineDouble(_tempestvars.dNuVort, "nuv", 1.0e15); \
 	CommandLineDouble(_tempestvars.dInstepNuDiv, "inud", 0.0); \
 	CommandLineBool(_tempestvars.fExplicitVertical, "explicitvertical"); \
-	CommandLineStringD(_tempestvars.strVerticalStaggering, "vstagger", "CPH", "(LEV | INT | LOR | CPH)"); \
+	CommandLineStringD(_tempestvars.strVerticalStaggering, "vstagger", "LOR", "(LEV | INT | LOR | CPH)"); \
 	CommandLineStringD(_tempestvars.strVerticalDiscretization, "vdisc", "FE", "(FE | FV)"); \
 	CommandLineBool(_tempestvars.fForceMassFluxOnLevels, "vmassfluxlevels"); \
 	CommandLineString(_tempestvars.strVerticalStretch, "vstretch", "uniform"); \
@@ -263,6 +265,10 @@ void _TempestSetupMethodOfLines(
 	} else if (vars.strTimestepScheme == "ars343") {
 		model.SetTimestepScheme(
 			new TimestepSchemeARS343(model));
+
+	} else if (vars.strTimestepScheme == "ars343b") {
+		model.SetTimestepScheme(
+			new TimestepSchemeARS343b(model));
 
 	} else if (vars.strTimestepScheme == "ars443") {
 		model.SetTimestepScheme(
@@ -715,6 +721,7 @@ void TempestInitialize(int * argc, char*** argv) {
 	MPI_Init(argc, argv);
 #endif
 
+	AnnounceOnlyOutputOnRankZero();
 }
 
 ///////////////////////////////////////////////////////////////////////////////

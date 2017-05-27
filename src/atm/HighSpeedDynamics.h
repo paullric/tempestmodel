@@ -101,9 +101,23 @@ public:
 */
 public:
 	///	<summary>
-	///		Perform one Forward Euler step.
+	///		Perform one explicit time step.
 	///	</summary>
 	virtual void StepExplicit(
+		int iDataArgument,
+		int iDataUpdate,
+		const Time & time,
+		double dDeltaT
+	) {
+		_EXCEPTIONT("Not implemented -- only accessible through StepExplicitCombine");
+	}
+
+	///	<summary>
+	///		Perform one Forward Euler step.
+	///	</summary>
+	virtual void StepExplicitCombine(
+		const DataArray1D<int> & iDataCombineInst,
+		const DataArray1D<double> & dDataCombineCoeff,
 		int iDataInitial,
 		int iDataUpdate,
 		const Time & time,
@@ -112,9 +126,23 @@ public:
 
 public:
 	///	<summary>
-	///		Perform one Backward Euler step.
+	///		Perform one explicit time step.
 	///	</summary>
 	virtual void StepImplicit(
+		int iDataArgument,
+		int iDataUpdate,
+		const Time & time,
+		double dDeltaT
+	) {
+		_EXCEPTIONT("Not implemented -- only accessible through StepImplicitCombine");
+	}
+
+	///	<summary>
+	///		Perform one Backward Euler step.
+	///	</summary>
+	virtual void StepImplicitCombine(
+		const DataArray1D<int> & iDataCombineInst,
+		const DataArray1D<double> & dDataCombineCoeff,
 		int iDataInitial,
 		int iDataUpdate,
 		const Time & time,
