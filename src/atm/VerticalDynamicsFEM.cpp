@@ -1348,7 +1348,7 @@ void VerticalDynamicsFEM::ApplyRayleighFriction(
 
 				double dPML = 0.0;
 				for (int si = 0; si < nRayCycles; si++) {
-					// APPLY PML TOP LAYER
+					// APPLY PML LATERAL LAYER
 					if (dNuPML > 0.0) {
 						dNuInv = 1.0 / (1.0 + dRayFactor * dDeltaT * dNuPML);
 						dPML = dataUpdateNode(nEffectiveC[c],iA, iB,k)
@@ -1359,7 +1359,7 @@ void VerticalDynamicsFEM::ApplyRayleighFriction(
 						dNuInv * dataUpdateNode(nEffectiveC[c],iA, iB,k)
 						+ (1.0 - dNuInv)
 						* dataReferenceNode(nEffectiveC[c],iA, iB,k);
-						//- dNuInv * dRayFactor * dDeltaT * dPML;
+						//+ dNuInv * dRayFactor * dDeltaT * dPML;
 					}
 				}
 			}
@@ -1388,7 +1388,7 @@ void VerticalDynamicsFEM::ApplyRayleighFriction(
 
 				double dPML = 0.0;
 				for (int si = 0; si < nRayCycles; si++) {
-					// APPLY PML TOP LAYER
+					// APPLY PML LATERAL LAYER
 					if (dNuPML > 0.0) {
 						dNuInv = 1.0 / (1.0 + dRayFactor * dDeltaT * dNuPML);
 						dPML = dataUpdateREdge(nEffectiveC[c],iA, iB,k)

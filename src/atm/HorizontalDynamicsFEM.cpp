@@ -3032,8 +3032,8 @@ void HorizontalDynamicsFEM::ApplyRayleighFriction(
 								dataUpdateNode(nEffectiveC[c],i,j,k) =
 								dNuInv * dataUpdateNode(nEffectiveC[c],i,j,k)
 								+ (1.0 - dNuInv)
-								* dataReferenceNode(nEffectiveC[c],i,j,k)
-								- dNuInv * dRayFactor * dDeltaT * dPML;
+								* dataReferenceNode(nEffectiveC[c],i,j,k);
+								//- dNuInv * dRayFactor * dDeltaT * dPML;
 							}
 						}
 					}
@@ -3081,8 +3081,8 @@ void HorizontalDynamicsFEM::ApplyRayleighFriction(
 								dataUpdateREdge(nEffectiveC[c],i,j,k) =
 								dNuInv * dataUpdateREdge(nEffectiveC[c],i,j,k)
 								+ (1.0 - dNuInv)
-								* dataReferenceREdge(nEffectiveC[c],i,j,k)
-								- dNuInv * dRayFactor * dDeltaT * dPML;
+								* dataReferenceREdge(nEffectiveC[c],i,j,k);
+								//- dNuInv * dRayFactor * dDeltaT * dPML;
 							}
 						}
 					}
@@ -3247,11 +3247,9 @@ void HorizontalDynamicsFEM::StepAfterSubCycle(
 			ApplyRayleighFriction(iDataInitial, iDataUpdate, dDeltaT);
 
 			// Apply Direct Stiffness Summation
-			pGrid->ApplyDSS(iDataUpdate, DataType_State);
-			pGrid->ApplyDSS(iDataUpdate, DataType_Tracers);
+			//pGrid->ApplyDSS(iDataUpdate, DataType_State);
+			//pGrid->ApplyDSS(iDataUpdate, DataType_Tracers);
 		}
-
-		// Apply Direct Stiffness Summation?
 #endif
 }
 

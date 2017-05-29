@@ -189,7 +189,7 @@ public:
 		m_dGDim[2] = -100.0;
 		m_dGDim[3] = 100.0;
 		m_dGDim[4] = 0.0;
-		m_dGDim[5] = 28000.0;
+		m_dGDim[5] = 33000.0;
 
 		// Set the center of the domain in Y
 		m_dY0 = 0.5 * (m_dGDim[3] - m_dGDim[2]);
@@ -354,7 +354,7 @@ public:
 		return dNuLeft;
 	}
 */
-/*
+
 	///	<summary>
 	///		Evaluate the Rayleigh friction strength at the given point.
 	///	</summary>
@@ -365,22 +365,18 @@ public:
 	) const {
 		const double dRayleighStrengthZ = 1.0E-2;//8.0e-3;
 		const double dRayleighStrengthX = 1.0 * dRayleighStrengthZ;
-		const double dRayleighDepth = 3000.0;
-		const double dRayleighWidth = 3000.0;
+		const double dRayleighDepth = 8000.0;
+		const double dRayleighWidth = 8000.0;
 		const double dRayDepthXi = dRayleighDepth / m_dGDim[5];
 
 		double dNuDepth = 0.0;
 		double dNuRight = 0.0;
 		double dNuLeft  = 0.0;
-
-		//double dLayerZ = m_dGDim[5] - dRayleighDepth;
 		double dLayerZ = 1.0 - dRayDepthXi;
-		//double dLayerZ = m_dGDim[5] - dRayleighDepth;
 		double dLayerR = m_dGDim[1] - dRayleighWidth;
 		double dLayerL = m_dGDim[0] + dRayleighWidth;
 
 		if (dZ > dLayerZ) {
-			//double dNormZ = (m_dGDim[5] - dZ) / dRayleighDepth;
 			double dNormZ = (1.0 - dZ) / dRayDepthXi;
 			dNuDepth = 0.5 * dRayleighStrengthZ * (1.0 + cos(M_PI * dNormZ));
 		}
@@ -394,7 +390,6 @@ public:
 			dNuLeft = 0.5 * dRayleighStrengthX * (1.0 + cos(M_PI * dNormX));
 		}
 
-		//std::cout << dXp << ' ' << dZ << ' ' << dNuDepth << std::endl;
 		if ((dNuDepth >= dNuRight) && (dNuDepth >= dNuLeft)) {
 			return dNuDepth;
 		}
@@ -414,22 +409,18 @@ public:
 	) const {
 		const double dRayleighStrengthZ = 1.0E-2;//8.0e-3;
 		const double dRayleighStrengthX = 1.0 * dRayleighStrengthZ;
-		const double dRayleighDepth = 3000.0;
-		const double dRayleighWidth = 3000.0;
+		const double dRayleighDepth = 8000.0;
+		const double dRayleighWidth = 8000.0;
 		const double dRayDepthXi = dRayleighDepth / m_dGDim[5];
 
 		double dNuDepth = 0.0;
 		double dNuRight = 0.0;
 		double dNuLeft  = 0.0;
-
-		//double dLayerZ = m_dGDim[5] - dRayleighDepth;
 		double dLayerZ = 1.0 - dRayDepthXi;
-		//double dLayerZ = m_dGDim[5] - dRayleighDepth;
  		double dLayerR = m_dGDim[1] - dRayleighWidth;
  		double dLayerL = m_dGDim[0] + dRayleighWidth;
 
 		if (dZ > dLayerZ) {
-			//double dNormZ = (m_dGDim[5] - dZ) / dRayleighDepth;
 			double dNormZ = (1.0 - dZ) / dRayDepthXi;
 			dNuDepth = 0.5 * dRayleighStrengthZ * (1.0 + cos(M_PI * dNormZ));
 		}
@@ -443,7 +434,6 @@ public:
 			dNuLeft = 0.5 * dRayleighStrengthX * (1.0 + cos(M_PI * dNormX));
 		}
 
-		//std::cout << dXp << ' ' << dZ << ' ' << dNuDepth << std::endl;
 		if ((dNuDepth >= dNuRight) && (dNuDepth >= dNuLeft)) {
 			return dNuDepth;
 		}
@@ -452,7 +442,8 @@ public:
 		}
 		return dNuLeft;
 	}
-*/
+
+/*
 	///	<summary>
 	///		Evaluate the lateral PML layers.
 	///	</summary>
@@ -462,23 +453,14 @@ public:
 		double dYp
 	) const {
 		const double dRayleighStrengthX = 1.0E-2;//8.0e-3;
-		const double dRayleighStrengthZ = 1.0E-2;//8.0e-3;
 		const double dRayleighWidth = 10000.0;
-		const double dRayleighDepth = 3000.0;
-		const double dRayDepthXi = dRayleighDepth / m_dGDim[5];
 
 		double dNuRight = 0.0;
 		double dNuLeft  = 0.0;
 		double dNuDepth = 0.0;
  		double dLayerR = m_dGDim[1] - dRayleighWidth;
  		double dLayerL = m_dGDim[0] + dRayleighWidth;
-		double dLayerZ = 1.0 - dRayleighDepth / m_dGDim[5];
-		/*
-		if ((dZ > dLayerZ) && (dXp < dLayerL) && (dXp > dLayerR)) {
-			double dNormZ = (1.0 - dZ) / dRayDepthXi;
-			dNuDepth = 0.5 * dRayleighStrengthZ * (1.0 + cos(M_PI * dNormZ));
-		}
-		*/
+
 		if (dXp > dLayerR) {
 			double dNormX = (m_dGDim[1] - dXp) / dRayleighWidth;
 			dNuRight = 0.5 * dRayleighStrengthX * (1.0 + cos(M_PI * dNormX));
@@ -488,9 +470,6 @@ public:
 			dNuLeft = 0.5 * dRayleighStrengthX * (1.0 + cos(M_PI * dNormX));
 		}
 
-		if ((dNuDepth >= dNuRight) && (dNuDepth >= dNuLeft)) {
-			return dNuDepth;
-		}
 		if (dNuRight >= dNuLeft) {
 			return dNuRight;
 		}
@@ -505,29 +484,22 @@ public:
 		double dXp,
 		double dYp
 	) const {
-		const double dRayleighStrengthZ = 1.0E-8;//8.0e-3;
-		const double dRayleighDepth = 1000.0;
-		const double dRayleighWidth = 10000.0;
+		const double dRayleighStrengthZ = 1.0E-4;//8.0e-3;
+		const double dRayleighDepth = 3000.0;
 		const double dRayDepthXi = dRayleighDepth / m_dGDim[5];
 
 		double dNuDepth = 0.0;
- 		double dLayerR = m_dGDim[1] - dRayleighWidth;
- 		double dLayerL = m_dGDim[0] + dRayleighWidth;
-
-		//double dLayerZ = m_dGDim[5] - dRayleighDepth;
 		double dLayerZ = 1.0 - dRayDepthXi;
-		//double dLayerZ = m_dGDim[5] - dRayleighDepth;
 
-		if (dZ > dLayerZ) { //&& (dXp > dLayerL) && (dXp < dLayerR)) {
-			//double dNormZ = (m_dGDim[5] - dZ) / dRayleighDepth;
+		if (dZ > dLayerZ) {
 			double dNormZ = (1.0 - dZ) / dRayDepthXi;
-			//dNuDepth = 0.5 * dRayleighStrengthZ * (1.0 + cos(M_PI * dNormZ));
-			dNuDepth = sin(M_PI * dNormZ) * sin(M_PI * dNormZ)
-					/ (dNormZ * dNormZ * dNormZ);
+			dNuDepth = 0.5 * dRayleighStrengthZ * (1.0 + cos(M_PI * dNormZ));
+			//dNuDepth = sin(M_PI * dNormZ) * sin(M_PI * dNormZ)
+			//		/ (dNormZ * dNormZ * dNormZ);
 		}
 		return dNuDepth;
 	}
-
+*/
 	///	<summary>
 	///		Evaluate the zonal velocity field perturbation.
 	///	</summary>
