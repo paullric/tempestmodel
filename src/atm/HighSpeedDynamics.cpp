@@ -1415,7 +1415,7 @@ void HighSpeedDynamics::ApplyScalarHyperdiffusion(
 	int iDataUpdate,
 	double dDeltaT,
 	double dNu,
-	bool fScaleNuLocally,
+	bool fLaplacianOnly,
 	int iComponent,
 	bool fRemoveRefState
 ) {
@@ -1513,7 +1513,7 @@ void HighSpeedDynamics::ApplyScalarHyperdiffusion(
 		// Compute new hyperviscosity coefficient
 		double dLocalNu = dNu;
 
-		if (fScaleNuLocally) {
+		if (!fLaplacianOnly) {
 			double dReferenceLength = pGrid->GetReferenceLength();
 			if (dReferenceLength != 0.0) {
 				dLocalNu *= pow(dElementDeltaA / dReferenceLength, 3.2);
@@ -1661,42 +1661,83 @@ void HighSpeedDynamics::ApplyScalarHyperdiffusion(
 					}
 					}
 
-					// Pointwise updates
-					for (int i = 0; i < nHorizontalOrder; i++) {
-					for (int j = 0; j < nHorizontalOrder; j++) {
+					// Pointwise updates (Laplacian only)
+					if (fLaplacianOnly) {
+						for (int i = 0; i < nHorizontalOrder; i++) {
+						for (int j = 0; j < nHorizontalOrder; j++) {
 #pragma simd
-					for (int k = 0; k < nElementCountR; k++) {
+						for (int k = 0; k < nElementCountR; k++) {
 
-						const int iA = iElementA + i;
-						const int iB = iElementB + j;
+							const int iA = iElementA + i;
+							const int iB = iElementB + j;
 
-						// Inverse Jacobian and Jacobian
-						const double dInvJacobian =
-							1.0 / (*pJacobian)(iA,iB,k);
+							// Inverse Jacobian and Jacobian
+							const double dInvJacobian =
+								1.0 / (*pJacobian)(iA,iB,k);
 
-						// Compute integral term
-						double dUpdateA = 0.0;
-						double dUpdateB = 0.0;
+							// Compute integral term
+							double dUpdateA = 0.0;
+							double dUpdateB = 0.0;
 
-						for (int s = 0; s < nHorizontalOrder; s++) {
-							dUpdateA +=
-								m_dJGradientA(s,j,k)
-								* dStiffness1D(i,s);
+							for (int s = 0; s < nHorizontalOrder; s++) {
+								dUpdateA +=
+									m_dJGradientA(s,j,k)
+									* dStiffness1D(i,s);
 
-							dUpdateB +=
-								m_dJGradientB(i,s,k)
-								* dStiffness1D(j,s);
+								dUpdateB +=
+									m_dJGradientB(i,s,k)
+									* dStiffness1D(j,s);
+							}
+
+							dUpdateA *= dInvElementDeltaA;
+							dUpdateB *= dInvElementDeltaB;
+
+							// Apply update
+							(*pDataUpdate)(c,iA,iB,k) =
+								- dDeltaT * dInvJacobian * dLocalNu
+									* (dUpdateA + dUpdateB);
+						}
+						}
 						}
 
-						dUpdateA *= dInvElementDeltaA;
-						dUpdateB *= dInvElementDeltaB;
+					// Pointwise updates (use Laplacian to update data)
+					} else {
+						for (int i = 0; i < nHorizontalOrder; i++) {
+						for (int j = 0; j < nHorizontalOrder; j++) {
+#pragma simd
+						for (int k = 0; k < nElementCountR; k++) {
 
-						// Apply update
-						(*pDataUpdate)(c,iA,iB,k) -=
-							dDeltaT * dInvJacobian * dLocalNu
-								* (dUpdateA + dUpdateB);
-					}
-					}
+							const int iA = iElementA + i;
+							const int iB = iElementB + j;
+
+							// Inverse Jacobian and Jacobian
+							const double dInvJacobian =
+								1.0 / (*pJacobian)(iA,iB,k);
+
+							// Compute integral term
+							double dUpdateA = 0.0;
+							double dUpdateB = 0.0;
+
+							for (int s = 0; s < nHorizontalOrder; s++) {
+								dUpdateA +=
+									m_dJGradientA(s,j,k)
+									* dStiffness1D(i,s);
+
+								dUpdateB +=
+									m_dJGradientB(i,s,k)
+									* dStiffness1D(j,s);
+							}
+
+							dUpdateA *= dInvElementDeltaA;
+							dUpdateB *= dInvElementDeltaB;
+
+							// Apply update
+							(*pDataUpdate)(c,iA,iB,k) -=
+								dDeltaT * dInvJacobian * dLocalNu
+									* (dUpdateA + dUpdateB);
+						}
+						}
+						}
 					}
 				}
 				}
@@ -1709,12 +1750,11 @@ void HighSpeedDynamics::ApplyScalarHyperdiffusion(
 
 void HighSpeedDynamics::ApplyVectorHyperdiffusion(
 	int iDataArgument,
-	int iDataWorking,
 	int iDataUpdate,
 	double dDeltaT,
 	double dNuDiv,
 	double dNuVort,
-	bool fScaleNuLocally
+	bool fLaplacianOnly
 ) {
 	// Variable indices
 	const int UIx = 0;
@@ -1774,9 +1814,6 @@ void HighSpeedDynamics::ApplyVectorHyperdiffusion(
 		DataArray4D<double> & dataArgument =
 			pPatch->GetDataState(iDataArgument, DataLocation_Node);
 
-		DataArray4D<double> & dataWorking =
-			pPatch->GetDataState(iDataWorking, DataLocation_Node);
-
 		DataArray4D<double> & dataUpdate =
 			pPatch->GetDataState(iDataUpdate, DataLocation_Node);
 
@@ -1796,15 +1833,15 @@ void HighSpeedDynamics::ApplyVectorHyperdiffusion(
 		// Compute curl and divergence of U on the grid
 		DataArray3D<double> dataUa;
 		dataUa.SetSize(
-			dataWorking.GetSize(1),
-			dataWorking.GetSize(2),
-			dataWorking.GetSize(3));
+			dataArgument.GetSize(1),
+			dataArgument.GetSize(2),
+			dataArgument.GetSize(3));
 
 		DataArray3D<double> dataUb;
 		dataUb.SetSize(
-			dataWorking.GetSize(1),
-			dataWorking.GetSize(2),
-			dataWorking.GetSize(3));
+			dataArgument.GetSize(1),
+			dataArgument.GetSize(2),
+			dataArgument.GetSize(3));
 
 		DataArray3D<double> dataRho;
 		dataRho.SetSize(
@@ -1816,10 +1853,14 @@ void HighSpeedDynamics::ApplyVectorHyperdiffusion(
 			dataUa.AttachToData(&(dataRef(UIx,0,0,0)));
 			dataUb.AttachToData(&(dataRef(VIx,0,0,0)));
 			dataRho.AttachToData(&(dataRef(RIx,0,0,0)));
-		} else {
-			dataUa.AttachToData(&(dataWorking(UIx,0,0,0)));
-			dataUb.AttachToData(&(dataWorking(VIx,0,0,0)));
+		} else if (fLaplacianOnly) {
+			dataUa.AttachToData(&(dataArgument(UIx,0,0,0)));
+			dataUb.AttachToData(&(dataArgument(VIx,0,0,0)));
 			dataRho.AttachToData(&(dataArgument(RIx,0,0,0)));
+		} else {
+			dataUa.AttachToData(&(dataArgument(UIx,0,0,0)));
+			dataUb.AttachToData(&(dataArgument(VIx,0,0,0)));
+			dataRho.AttachToData(&(dataUpdate(RIx,0,0,0)));
 		}
 
 		// Compute curl and divergence of U on the grid
@@ -1833,7 +1874,7 @@ void HighSpeedDynamics::ApplyVectorHyperdiffusion(
 		double dLocalNuDiv  = dNuDiv;
 		double dLocalNuVort = dNuVort;
 
-		if (fScaleNuLocally) {
+		if (!fLaplacianOnly) {
 			double dReferenceLength = pGrid->GetReferenceLength();
 			if (dReferenceLength != 0.0) {
 				dLocalNuDiv =
@@ -1854,76 +1895,156 @@ void HighSpeedDynamics::ApplyVectorHyperdiffusion(
 			const int iElementA = a * nHorizontalOrder + box.GetHaloElements();
 			const int iElementB = b * nHorizontalOrder + box.GetHaloElements();
 
-			// Pointwise update of horizontal velocities
-			for (int i = 0; i < nHorizontalOrder; i++) {
-			for (int j = 0; j < nHorizontalOrder; j++) {
+			// Pointwise calculation of Laplacian
+			if (fLaplacianOnly) {
+
+				// Pointwise update of horizontal velocities
+				for (int i = 0; i < nHorizontalOrder; i++) {
+				for (int j = 0; j < nHorizontalOrder; j++) {
 #pragma simd
-			for (int k = 0; k < nRElements; k++) {
+				for (int k = 0; k < nRElements; k++) {
 
-				const int iA = iElementA + i;
-				const int iB = iElementB + j;
+					const int iA = iElementA + i;
+					const int iB = iElementB + j;
 
-				// Compute hyperviscosity sums
-				double dDaDiv = 0.0;
-				double dDbDiv = 0.0;
+					// Compute hyperviscosity sums
+					double dDaDiv = 0.0;
+					double dDbDiv = 0.0;
 
-				double dDaCurl = 0.0;
-				double dDbCurl = 0.0;
+					double dDaCurl = 0.0;
+					double dDbCurl = 0.0;
 
-				for (int s = 0; s < nHorizontalOrder; s++) {
-					dDaDiv -=
-						  dStiffness1D(i,s)
-						* dataDiv(iElementA+s,iB,k);
+					for (int s = 0; s < nHorizontalOrder; s++) {
+						dDaDiv -=
+							  dStiffness1D(i,s)
+							* dataDiv(iElementA+s,iB,k);
 
-					dDbDiv -=
-						  dStiffness1D(j,s)
-						* dataDiv(iA,iElementB+s,k);
+						dDbDiv -=
+							  dStiffness1D(j,s)
+							* dataDiv(iA,iElementB+s,k);
 
-					dDaCurl -=
-						  dStiffness1D(i,s)
-						* dataCurl(iElementA+s,iB,k);
+						dDaCurl -=
+							  dStiffness1D(i,s)
+							* dataCurl(iElementA+s,iB,k);
 
-					dDbCurl -=
-						  dStiffness1D(j,s)
-						* dataCurl(iA,iElementB+s,k);
+						dDbCurl -=
+							  dStiffness1D(j,s)
+							* dataCurl(iA,iElementB+s,k);
+					}
+
+					dDaDiv *= dInvElementDeltaA;
+					dDbDiv *= dInvElementDeltaB;
+
+					dDaCurl *= dInvElementDeltaA;
+					dDbCurl *= dInvElementDeltaB;
+
+					// Covariant update
+					const double dUpdateCovUa =
+						+ dLocalNuDiv * dDaDiv
+						- dLocalNuVort * dJacobian2D(iA,iB) * (
+							  dContraMetric2DB(iA,iB,0) * dDaCurl
+							+ dContraMetric2DB(iA,iB,1) * dDbCurl);
+
+					const double dUpdateCovUb =
+						+ dLocalNuDiv * dDbDiv
+						+ dLocalNuVort * dJacobian2D(iA,iB) * (
+							  dContraMetric2DA(iA,iB,0) * dDaCurl
+							+ dContraMetric2DA(iA,iB,1) * dDbCurl);
+
+					// Contravariant update
+					double dUpdateConUa =
+						  dContraMetric2DA(iA,iB,0) * dUpdateCovUa
+						+ dContraMetric2DA(iA,iB,1) * dUpdateCovUb;
+
+					double dUpdateConUb =
+						  dContraMetric2DB(iA,iB,0) * dUpdateCovUa
+						+ dContraMetric2DB(iA,iB,1) * dUpdateCovUb;
+
+					dUpdateConUa *= dataArgument(RIx,iA,iB,k);
+					dUpdateConUb *= dataArgument(RIx,iA,iB,k);
+
+					dataUpdate(UIx,iA,iB,k) = - dDeltaT * dUpdateConUa;
+
+					dataUpdate(VIx,iA,iB,k) = - dDeltaT * dUpdateConUb;
+				}
+				}
 				}
 
-				dDaDiv *= dInvElementDeltaA;
-				dDbDiv *= dInvElementDeltaB;
+			// Pointwise updates of horizontal velocities
+			// (use Laplacian to update data)
+			} else {
 
-				dDaCurl *= dInvElementDeltaA;
-				dDbCurl *= dInvElementDeltaB;
+				// Pointwise update of horizontal velocities
+				for (int i = 0; i < nHorizontalOrder; i++) {
+				for (int j = 0; j < nHorizontalOrder; j++) {
+#pragma simd
+				for (int k = 0; k < nRElements; k++) {
 
-				// Covariant update
-				const double dUpdateCovUa =
-					+ dLocalNuDiv * dDaDiv
-					- dLocalNuVort * dJacobian2D(iA,iB) * (
-						  dContraMetric2DB(iA,iB,0) * dDaCurl
-						+ dContraMetric2DB(iA,iB,1) * dDbCurl);
+					const int iA = iElementA + i;
+					const int iB = iElementB + j;
 
-				const double dUpdateCovUb =
-					+ dLocalNuDiv * dDbDiv
-					+ dLocalNuVort * dJacobian2D(iA,iB) * (
-						  dContraMetric2DA(iA,iB,0) * dDaCurl
-						+ dContraMetric2DA(iA,iB,1) * dDbCurl);
+					// Compute hyperviscosity sums
+					double dDaDiv = 0.0;
+					double dDbDiv = 0.0;
 
-				// Contravariant update
-				double dUpdateConUa =
-					  dContraMetric2DA(iA,iB,0) * dUpdateCovUa
-					+ dContraMetric2DA(iA,iB,1) * dUpdateCovUb;
+					double dDaCurl = 0.0;
+					double dDbCurl = 0.0;
 
-				double dUpdateConUb =
-					  dContraMetric2DB(iA,iB,0) * dUpdateCovUa
-					+ dContraMetric2DB(iA,iB,1) * dUpdateCovUb;
+					for (int s = 0; s < nHorizontalOrder; s++) {
+						dDaDiv -=
+							  dStiffness1D(i,s)
+							* dataDiv(iElementA+s,iB,k);
 
-				dUpdateConUa *= dataArgument(RIx,iA,iB,k);
-				dUpdateConUb *= dataArgument(RIx,iA,iB,k);
+						dDbDiv -=
+							  dStiffness1D(j,s)
+							* dataDiv(iA,iElementB+s,k);
 
-				dataUpdate(UIx,iA,iB,k) -= dDeltaT * dUpdateConUa;
+						dDaCurl -=
+							  dStiffness1D(i,s)
+							* dataCurl(iElementA+s,iB,k);
 
-				dataUpdate(VIx,iA,iB,k) -= dDeltaT * dUpdateConUb;
-			}
-			}
+						dDbCurl -=
+							  dStiffness1D(j,s)
+							* dataCurl(iA,iElementB+s,k);
+					}
+
+					dDaDiv *= dInvElementDeltaA;
+					dDbDiv *= dInvElementDeltaB;
+
+					dDaCurl *= dInvElementDeltaA;
+					dDbCurl *= dInvElementDeltaB;
+
+					// Covariant update
+					const double dUpdateCovUa =
+						+ dLocalNuDiv * dDaDiv
+						- dLocalNuVort * dJacobian2D(iA,iB) * (
+							  dContraMetric2DB(iA,iB,0) * dDaCurl
+							+ dContraMetric2DB(iA,iB,1) * dDbCurl);
+
+					const double dUpdateCovUb =
+						+ dLocalNuDiv * dDbDiv
+						+ dLocalNuVort * dJacobian2D(iA,iB) * (
+							  dContraMetric2DA(iA,iB,0) * dDaCurl
+							+ dContraMetric2DA(iA,iB,1) * dDbCurl);
+
+					// Contravariant update
+					double dUpdateConUa =
+						  dContraMetric2DA(iA,iB,0) * dUpdateCovUa
+						+ dContraMetric2DA(iA,iB,1) * dUpdateCovUb;
+
+					double dUpdateConUb =
+						  dContraMetric2DB(iA,iB,0) * dUpdateCovUa
+						+ dContraMetric2DB(iA,iB,1) * dUpdateCovUb;
+
+					dUpdateConUa *= dataUpdate(RIx,iA,iB,k);
+					dUpdateConUb *= dataUpdate(RIx,iA,iB,k);
+
+					dataUpdate(UIx,iA,iB,k) -= dDeltaT * dUpdateConUa;
+
+					dataUpdate(VIx,iA,iB,k) -= dDeltaT * dUpdateConUb;
+				}
+				}
+				}
 			}
 		}
 		}
@@ -2087,8 +2208,7 @@ void HighSpeedDynamics::ApplyRayleighFriction(
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void HighSpeedDynamics::StepAfterSubCycle(
-	int iDataArgument,
+void HighSpeedDynamics::StepAfterSubCycleCombine(
 	int iDataUpdate,
 	int iDataWorking,
 	const Time & time,
@@ -2098,10 +2218,6 @@ void HighSpeedDynamics::StepAfterSubCycle(
 	FunctionTimer timer("StepAfterSubCycle");
 
 	// Check indices
-	if (iDataArgument == iDataWorking) {
-		_EXCEPTIONT("Invalid indices "
-			"-- initial and working data must be distinct");
-	}
 	if (iDataUpdate == iDataWorking) {
 		_EXCEPTIONT("Invalid indices "
 			"-- working and update data must be distinct");
@@ -2110,43 +2226,17 @@ void HighSpeedDynamics::StepAfterSubCycle(
 	// Get the GLL grid
 	GridGLL * pGrid = dynamic_cast<GridGLL*>(m_model.GetGrid());
 
-	// Copy initial data to updated data
-	pGrid->CopyData(iDataArgument, iDataUpdate, DataType_State);
-	pGrid->CopyData(iDataArgument, iDataUpdate, DataType_Tracers);
-
 	// No hyperdiffusion
 	if ((m_dNuScalar == 0.0) && (m_dNuDiv == 0.0) && (m_dNuVort == 0.0)) {
-
-	// Apply hyperdiffusion
-	} else if (m_nHyperviscosityOrder == 0) {
-
-	// Apply viscosity
-	} else if (m_nHyperviscosityOrder == 2) {
-
-		// Apply scalar and vector viscosity
-		ApplyScalarHyperdiffusion(
-			iDataArgument, iDataUpdate, dDeltaT, m_dNuScalar, false);
-		ApplyVectorHyperdiffusion(
-			iDataArgument, iDataArgument, iDataUpdate, -dDeltaT, m_dNuDiv, m_dNuVort, false);
-
-		// Apply positive definite filter to tracers
-		FilterNegativeTracers(iDataUpdate);
-
-		// Apply Direct Stiffness Summation
-		pGrid->ApplyDSS(iDataUpdate, DataType_State);
-		pGrid->ApplyDSS(iDataUpdate, DataType_Tracers);
 
 	// Apply hyperviscosity
 	} else if (m_nHyperviscosityOrder == 4) {
 
 		// Apply scalar and vector hyperviscosity (first application)
-		pGrid->ZeroData(iDataWorking, DataType_State);
-		pGrid->ZeroData(iDataWorking, DataType_Tracers);
-
 		ApplyScalarHyperdiffusion(
-			iDataArgument, iDataWorking, 1.0, 1.0, false);
+			iDataUpdate, iDataWorking, 1.0, 1.0, true);
 		ApplyVectorHyperdiffusion(
-			iDataArgument, iDataArgument, iDataWorking, 1.0, 1.0, 1.0, false);
+			iDataUpdate, iDataWorking, 1.0, 1.0, 1.0, true);
 
 		// Apply Direct Stiffness Summation
 		pGrid->ApplyDSS(iDataWorking, DataType_State);
@@ -2154,9 +2244,9 @@ void HighSpeedDynamics::StepAfterSubCycle(
 
 		// Apply scalar and vector hyperviscosity (second application)
 		ApplyScalarHyperdiffusion(
-			iDataWorking, iDataUpdate, -dDeltaT, m_dNuScalar, true);
+			iDataWorking, iDataUpdate, -dDeltaT, m_dNuScalar, false);
 		ApplyVectorHyperdiffusion(
-			iDataArgument, iDataWorking, iDataUpdate, -dDeltaT, m_dNuDiv, m_dNuVort, true);
+			iDataWorking, iDataUpdate, -dDeltaT, m_dNuDiv, m_dNuVort, false);
 
 		// Apply positive definite filter to tracers
 		FilterNegativeTracers(iDataUpdate);

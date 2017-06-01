@@ -118,7 +118,7 @@ public:
 	virtual void StepExplicitCombine(
 		const DataArray1D<int> & iDataCombineInst,
 		const DataArray1D<double> & dDataCombineCoeff,
-		int iDataInitial,
+		int iDataArgument,
 		int iDataUpdate,
 		const Time & time,
 		double dDeltaT
@@ -143,7 +143,7 @@ public:
 	virtual void StepImplicitCombine(
 		const DataArray1D<int> & iDataCombineInst,
 		const DataArray1D<double> & dDataCombineCoeff,
-		int iDataInitial,
+		int iDataArgument,
 		int iDataUpdate,
 		const Time & time,
 		double dDeltaT
@@ -154,7 +154,7 @@ protected:
 	///		Apply the scalar Laplacian operator.
 	///	</summary>
 	void ApplyScalarHyperdiffusion(
-		int iDataInitial,
+		int iDataArgument,
 		int iDataUpdate,
 		double dDeltaT,
 		double dNu,
@@ -167,8 +167,7 @@ protected:
 	///		Apply the vector Laplacian operator.
 	///	</summary>
 	void ApplyVectorHyperdiffusion(
-		int iDataInitial,
-		int iDataWorking,
+		int iDataArgument,
 		int iDataUpdate,
 		double dDeltaT,
 		double dNuDiff,
@@ -188,8 +187,7 @@ public:
 	///	<summary>
 	///		Apply hyperdiffusion.
 	///	</summar>
-	virtual void StepAfterSubCycle(
-		int iDataInitial,
+	virtual void StepAfterSubCycleCombine(
 		int iDataUpdate,
 		int iDataWorking,
 		const Time & time,

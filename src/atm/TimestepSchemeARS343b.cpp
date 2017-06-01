@@ -234,10 +234,8 @@ void TimestepSchemeARS343b::Step(
 	// NO IMPLICIT STEP ON THE LAST STAGE
 
 	// Apply hyperdiffusion at the end of the explicit substep
-	pGrid->CopyData(0, 1, DataType_State);
-	pGrid->CopyData(0, 1, DataType_Tracers);
-	pHorizontalDynamics->StepAfterSubCycle(
-		1, 0, 2, time, dDeltaT);
+	pHorizontalDynamics->StepAfterSubCycleCombine(
+		0, 1, time, dDeltaT);
 }
 
 ///////////////////////////////////////////////////////////////////////////////

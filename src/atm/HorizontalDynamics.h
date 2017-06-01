@@ -155,6 +155,17 @@ public:
 	) {
 	}
 
+	///	<summary>
+	///		Perform one time step after all sub-cycles are complete.
+	///	</summary>
+	virtual void StepAfterSubCycleCombine(
+		int iDataUpdate,
+		int iDataWorking,
+		const Time & time,
+		double dDeltaT
+	) {
+	}
+
 protected:
 	///	<summary>
 	///		Reference to the model.
