@@ -327,12 +327,13 @@ void GridPatchCartesianGLL::EvaluateGeometricTerms() {
 					std::pow(std::cos(0.5 * M_PI * dREta), dP) +
 					dA * dREta * (1.0 - dREta)) * dDbZs;
 
-				double dDxZ = m_grid.GetZtop() + dZs *
-					(-dP / dQ * std::exp(-dP / dQ * dREta) *
+				double dDxDhDr = (-dP / dQ * std::exp(-dP / dQ * dREta) *
 					std::pow(std::cos(0.5 * M_PI * dREta), dP) -
 					std::exp(-dP / dQ * dREta) * dP * 0.5 * M_PI *
 					std::sin(0.5 * M_PI * dREta) *
 					std::pow(std::cos(0.5 * M_PI * dREta), dP - 1.0) + dA * (1.0 - 2.0 * dREta));
+
+				double dDxZ = m_grid.GetZtop() + dZs * dDxDhDr;
 //
 //printf("%.16E %.16E %.16E %.16E %.16E %.16E \n",m_dataLon[iA][iB],m_dataLat[iA][iB],dZ,dDaZ,dDbZ,dDxZ);
 
@@ -348,31 +349,33 @@ void GridPatchCartesianGLL::EvaluateGeometricTerms() {
 					* dWNode[k];
 
 				// Contravariant metric components
-				m_dataContraMetricA[iA][iB][k][0] =
+				m_dataContraMetricA(iA,iB,k,0) =
 					m_dataContraMetric2DA[iA][iB][0];
-				m_dataContraMetricA[iA][iB][k][1] =
+				m_dataContraMetricA(iA,iB,k,1) =
 					m_dataContraMetric2DA[iA][iB][1];
-				m_dataContraMetricA[iA][iB][k][2] =
+				m_dataContraMetricA(iA,iB,k,2) =
 					- dDaZ / dDxZ;
 
-				m_dataContraMetricB[iA][iB][k][0] =
+				m_dataContraMetricB(iA,iB,k,0) =
 					m_dataContraMetric2DB[iA][iB][0];
-				m_dataContraMetricB[iA][iB][k][1] =
+				m_dataContraMetricB(iA,iB,k,1) =
 					m_dataContraMetric2DB[iA][iB][1];
-				m_dataContraMetricB[iA][iB][k][2] =
+				m_dataContraMetricB(iA,iB,k,2) =
 					- dDbZ / dDxZ;
 
-				m_dataContraMetricXi[iA][iB][k][0] =
-					m_dataContraMetricA[iA][iB][k][2];
-				m_dataContraMetricXi[iA][iB][k][1] =
-					m_dataContraMetricB[iA][iB][k][2];
-				m_dataContraMetricXi[iA][iB][k][2] =
+				m_dataContraMetricXi(iA,iB,k,0) =
+					m_dataContraMetricA(iA,iB,k,2);
+				m_dataContraMetricXi(iA,iB,k,1) =
+					m_dataContraMetricB(iA,iB,k,2);
+				m_dataContraMetricXi(iA,iB,k,2) =
 					(1.0 + dDaZ * dDaZ + dDbZ * dDbZ) / (dDxZ * dDxZ);
 
 				// Derivatives of the vertical coordinate transform
-				m_dataDerivRNode[iA][iB][k][0] = dDaZ;
-				m_dataDerivRNode[iA][iB][k][1] = dDbZ;
-				m_dataDerivRNode[iA][iB][k][2] = dDxZ;
+				m_dataDerivRNode(iA,iB,k,0) = dDaZ;
+				m_dataDerivRNode(iA,iB,k,1) = dDbZ;
+				m_dataDerivRNode(iA,iB,k,2) = dDxZ;
+				m_dataDerivRNode(iA,iB,k,3) = 1.0
+					/ (m_grid.GetZtop() + dZs * dDxDhDr);
 			}
 
 			// Metric terms at vertical interfaces
@@ -401,12 +404,13 @@ void GridPatchCartesianGLL::EvaluateGeometricTerms() {
 					std::pow(std::cos(0.5 * M_PI * dREta), dP) +
 					dA * dREta * (1.0 - dREta)) * dDbZs;
 
-				double dDxZ = m_grid.GetZtop() + dZs *
-					(-dP / dQ * std::exp(-dP / dQ * dREta) *
+				double dDxDhDr = (-dP / dQ * std::exp(-dP / dQ * dREta) *
 					std::pow(std::cos(0.5 * M_PI * dREta), dP) -
 					std::exp(-dP / dQ * dREta) * dP * 0.5 * M_PI *
 					std::sin(0.5 * M_PI * dREta) *
 					std::pow(std::cos(0.5 * M_PI * dREta), dP - 1.0) + dA * (1.0 - 2.0 * dREta));
+
+				double dDxZ = m_grid.GetZtop() + dZs * dDxDhDr;
 //
 //printf("%.16E %.16E %.16E %.16E %.16E %.16E \n",m_dataLon[iA][iB],m_dataLat[iA][iB],dZ,dDaZ,dDbZ,dDxZ);
 
@@ -422,31 +426,33 @@ void GridPatchCartesianGLL::EvaluateGeometricTerms() {
 					* dWREdge[k];
 
 				// Components of the contravariant metric
-				m_dataContraMetricAREdge[iA][iB][k][0] =
+				m_dataContraMetricAREdge(iA,iB,k,0) =
 					m_dataContraMetric2DA[iA][iB][0];
-				m_dataContraMetricAREdge[iA][iB][k][1] =
+				m_dataContraMetricAREdge(iA,iB,k,1) =
 					m_dataContraMetric2DA[iA][iB][1];
-				m_dataContraMetricAREdge[iA][iB][k][2] =
+				m_dataContraMetricAREdge(iA,iB,k,2) =
 					- dDaZ / dDxZ;
 
-				m_dataContraMetricBREdge[iA][iB][k][0] =
+				m_dataContraMetricBREdge(iA,iB,k,0) =
 					m_dataContraMetric2DB[iA][iB][0];
-				m_dataContraMetricBREdge[iA][iB][k][1] =
+				m_dataContraMetricBREdge(iA,iB,k,1) =
 					m_dataContraMetric2DB[iA][iB][1];
-				m_dataContraMetricBREdge[iA][iB][k][2] =
+				m_dataContraMetricBREdge(iA,iB,k,2) =
 					- dDbZ / dDxZ;
 
-				m_dataContraMetricXiREdge[iA][iB][k][0] =
+				m_dataContraMetricXiREdge(iA,iB,k,0) =
 					- dDaZ / dDxZ;
-				m_dataContraMetricXiREdge[iA][iB][k][1] =
+				m_dataContraMetricXiREdge(iA,iB,k,1) =
 					- dDbZ / dDxZ;
-				m_dataContraMetricXiREdge[iA][iB][k][2] =
+				m_dataContraMetricXiREdge(iA,iB,k,2) =
 					(1.0 + dDaZ * dDaZ + dDbZ * dDbZ) / (dDxZ * dDxZ);
 
 				// Derivatives of the vertical coordinate transform
-				m_dataDerivRREdge[iA][iB][k][0] = dDaZ;
-				m_dataDerivRREdge[iA][iB][k][1] = dDbZ;
-				m_dataDerivRREdge[iA][iB][k][2] = dDxZ;
+				m_dataDerivRREdge(iA,iB,k,0) = dDaZ;
+				m_dataDerivRREdge(iA,iB,k,1) = dDbZ;
+				m_dataDerivRREdge(iA,iB,k,2) = dDxZ;
+				m_dataDerivRREdge(iA,iB,k,3) = 1.0
+					/ (m_grid.GetZtop() + dZs * dDxDhDr);
 			}
 		}
 		}
@@ -1472,7 +1478,7 @@ void GridPatchCartesianGLL::InterpolateData(
 	} else if (eDataType == DataType_Richardson) {
 		nComponents = 1;
 
-	// Richardson number Data
+	// DynSGS number Data
 	} else if (eDataType == DataType_DynSGS) {
 		nComponents = 3;
 

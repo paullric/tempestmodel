@@ -173,17 +173,18 @@ void GridPatch::InitializeDataLocal(
 		3);
 
 	// Vertical coordinate transform (derivatives of the radius)
+	// include transformation from xi to z/r dxi/dr
 	m_dataDerivRNode.SetSize(
 		m_box.GetATotalWidth(),
 		m_box.GetBTotalWidth(),
 		m_grid.GetRElements(),
-		3);
+		4);
 
 	m_dataDerivRREdge.SetSize(
 		m_box.GetATotalWidth(),
 		m_box.GetBTotalWidth(),
 		m_grid.GetRElements()+1,
-		3);
+		4);
 
 	// Element area at each node
 	m_dataElementAreaNode.SetSize(

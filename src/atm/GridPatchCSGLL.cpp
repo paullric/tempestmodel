@@ -342,6 +342,10 @@ void GridPatchCSGLL::EvaluateGeometricTerms() {
 	}
 	}
 
+	// Parameters for the vertical coordinate transform (Guerra, 2017)
+	double dP = 20.0;
+	double dQ = 5.0;
+	double dA = 0.001;
 	// Initialize metric in terrain-following coords
 	for (int a = 0; a < GetElementCountA(); a++) {
 	for (int b = 0; b < GetElementCountB(); b++) {
@@ -429,11 +433,32 @@ void GridPatchCSGLL::EvaluateGeometricTerms() {
 			double dDbR = (1.0 - dREtaStretch) * dDbZs;
 			double dDxR = (m_grid.GetZtop() - dZs) * dDxREtaStretch;
 */
-
+/*
 			double dZ = dZs + (m_grid.GetZtop() - dZs) * dREta;
 			double dDaR = (1.0 - dREta) * dDaZs;
 			double dDbR = (1.0 - dREta) * dDbZs;
 			double dDxR = (m_grid.GetZtop() - dZs);
+*/
+			double dZ = m_grid.GetZtop() * dREta +
+				(std::exp(-dP / dQ * dREta) *
+				std::pow(std::cos(0.5 * M_PI * dREta), dP) +
+				dA * dREta * (1.0 - dREta)) * dZs;
+
+			double dDaR = (std::exp(-dP / dQ * dREta) *
+				std::pow(std::cos(0.5 * M_PI * dREta), dP) +
+				dA * dREta * (1.0 - dREta)) * dDaZs;
+
+			double dDbR = (std::exp(-dP / dQ * dREta) *
+				std::pow(std::cos(0.5 * M_PI * dREta), dP) +
+				dA * dREta * (1.0 - dREta)) * dDbZs;
+
+			double dDxDhDr = (-dP / dQ * std::exp(-dP / dQ * dREta) *
+				std::pow(std::cos(0.5 * M_PI * dREta), dP) -
+				std::exp(-dP / dQ * dREta) * dP * 0.5 * M_PI *
+				std::sin(0.5 * M_PI * dREta) *
+				std::pow(std::cos(0.5 * M_PI * dREta), dP - 1.0) + dA * (1.0 - 2.0 * dREta));
+
+			double dDxR = m_grid.GetZtop() + dZs * dDxDhDr;
 
 			// Calculate pointwise Jacobian
 			m_dataJacobian(iA,iB,k) =
@@ -496,10 +521,32 @@ void GridPatchCSGLL::EvaluateGeometricTerms() {
 			double dDbR = (1.0 - dREtaStretch) * dDbZs;
 			double dDxR = (m_grid.GetZtop() - dZs) * dDxREtaStretch;
 */
+/*
 			double dZ = dZs + (m_grid.GetZtop() - dZs) * dREta;
 			double dDaR = (1.0 - dREta) * dDaZs;
 			double dDbR = (1.0 - dREta) * dDbZs;
 			double dDxR = (m_grid.GetZtop() - dZs);
+*/
+			double dZ = m_grid.GetZtop() * dREta +
+				(std::exp(-dP / dQ * dREta) *
+				std::pow(std::cos(0.5 * M_PI * dREta), dP) +
+				dA * dREta * (1.0 - dREta)) * dZs;
+
+			double dDaR = (std::exp(-dP / dQ * dREta) *
+				std::pow(std::cos(0.5 * M_PI * dREta), dP) +
+				dA * dREta * (1.0 - dREta)) * dDaZs;
+
+			double dDbR = (std::exp(-dP / dQ * dREta) *
+				std::pow(std::cos(0.5 * M_PI * dREta), dP) +
+				dA * dREta * (1.0 - dREta)) * dDbZs;
+
+			double dDxDhDr = (-dP / dQ * std::exp(-dP / dQ * dREta) *
+				std::pow(std::cos(0.5 * M_PI * dREta), dP) -
+				std::exp(-dP / dQ * dREta) * dP * 0.5 * M_PI *
+				std::sin(0.5 * M_PI * dREta) *
+				std::pow(std::cos(0.5 * M_PI * dREta), dP - 1.0) + dA * (1.0 - 2.0 * dREta));
+
+			double dDxR = m_grid.GetZtop() + dZs * dDxDhDr;
 
 			// Calculate pointwise Jacobian
 			m_dataJacobianREdge(iA,iB,k) =
@@ -554,6 +601,8 @@ void GridPatchCSGLL::EvaluateGeometricTerms() {
 			m_dataDerivRREdge(iA,iB,k,0) = dDaR;
 			m_dataDerivRREdge(iA,iB,k,1) = dDbR;
 			m_dataDerivRREdge(iA,iB,k,2) = dDxR;
+			m_dataDerivRNode(iA,iB,k,3) = 1.0
+				/ (m_grid.GetZtop() + dZs * dDxDhDr);
 		}
 	}
 	}

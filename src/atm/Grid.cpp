@@ -830,7 +830,7 @@ void Grid::ComputeRichardson(
 	for (int n = 0; n < m_vecActiveGridPatches.size(); n++) {
 
 		GridPatchGLL * pGLLGrid =
-					dynamic_cast<GridPatchGLL*>(m_vecActiveGridPatches[n]);
+			dynamic_cast<GridPatchGLL*>(m_vecActiveGridPatches[n]);
 			if (pGLLGrid == NULL) {
 				_EXCEPTIONT("Logic error");
 			}

@@ -225,11 +225,15 @@ void GridPatchGLL::ComputeRichardson(
 				dDensityNode[k] = dataNode[RIx][i][j][k];
 
 				// Convert U_alpha and V_beta to X and Y (Lon, Lat)
-				dUXNode[k] = dataNode[UIx][i][j][k] -
-							dDerivRNode[i][j][k][0] * dataNode[WIx][i][j][k];
+				dUXNode[k] = dataNode[UIx][i][j][k]
+						- dDerivRNode(i,j,k,0)
+						* (dataNode[WIx][i][j][k]
+						/ dDerivRNode(i,j,k,2));
 
-				dVYNode[k] = dataNode[VIx][i][j][k] -
-							dDerivRNode[i][j][k][1] * dataNode[WIx][i][j][k];
+				dVYNode[k] = dataNode[VIx][i][j][k]
+						- dDerivRNode(i,j,k,1)
+						* (dataNode[WIx][i][j][k]
+						/ dDerivRNode(i,j,k,2));
 			}
 
 			pGLLGrid->DifferentiateNodeToNode(
@@ -246,13 +250,18 @@ void GridPatchGLL::ComputeRichardson(
 
 			for (int k = 0; k < nRElements; k++) {
 				m_dataRichardson[i][j][k] =
-					phys.GetG() / dDensityNode[k] * dDiffDensityNode[k] / (
-						(dDiffUXNode[k] * dDiffUXNode[k]) +
-						(dDiffVYNode[k] * dDiffVYNode[k]));
-
-				if (m_dataRichardson[i][j][k] >= 10.0) {
-					m_dataRichardson[i][j][k] = 10.0;
+					- phys.GetG()
+					/ (dDensityNode[k] * dDerivRNode(i,j,k,3))
+					* dDiffDensityNode[k]
+					/ ((dDiffUXNode[k] * dDiffUXNode[k]) +
+					   (dDiffVYNode[k] * dDiffVYNode[k]));
+				//
+				if (m_dataRichardson[i][j][k] >= 1.0E6) {
+					m_dataRichardson[i][j][k] = 1.0E6;
+				} else if (m_dataRichardson[i][j][k] < 0.0) {
+					m_dataRichardson[i][j][k] = 0.0;
 				}
+				//
 			}
 		}
 		}
@@ -280,11 +289,15 @@ void GridPatchGLL::ComputeRichardson(
 				dDensityREdge[k] = dataREdge[RIx][i][j][k];
 
 				// Convert U_alpha and V_beta to X and Y (Lon, Lat)
-				dUXREdge[k] = dataREdge[UIx][i][j][k] -
-							dDerivRREdge[i][j][k][0] * dataREdge[WIx][i][j][k];
+				dUXREdge[k] = dataREdge[UIx][i][j][k]
+						- dDerivRREdge(i,j,k,0)
+						* (dataREdge[WIx][i][j][k]
+						/ dDerivRREdge(i,j,k,2));
 
-				dVYREdge[k] = dataREdge[VIx][i][j][k] -
-							dDerivRREdge[i][j][k][1] * dataREdge[WIx][i][j][k];
+				dVYREdge[k] = dataREdge[VIx][i][j][k]
+						- dDerivRREdge(i,j,k,1)
+						* (dataREdge[WIx][i][j][k]
+						/ dDerivRREdge(i,j,k,2));
 			}
 
 			pGLLGrid->DifferentiateREdgeToREdge(
@@ -301,12 +314,18 @@ void GridPatchGLL::ComputeRichardson(
 
 			for (int k = 0; k <= nRElements; k++) {
 				m_dataRichardson[i][j][k] =
-					phys.GetG() * (dDiffDensityREdge[k] / dDensityREdge[k]) / (
-						(dDiffUXREdge[k] * dDiffUXREdge[k]) +
-						(dDiffVYREdge[k] * dDiffVYREdge[k]));
-				if (m_dataRichardson[i][j][k] >= 10.0) {
-					m_dataRichardson[i][j][k] = 10.0;
+					- phys.GetG()
+					/ (dDensityREdge[k] * dDerivRREdge(i,j,k,3))
+					* dDiffDensityREdge[k]
+					/ ((dDiffUXREdge[k] * dDiffUXREdge[k]) +
+					   (dDiffVYREdge[k] * dDiffVYREdge[k]));
+				//
+				if (m_dataRichardson[i][j][k] >= 1.0E6) {
+					m_dataRichardson[i][j][k] = 1.0E6;
+				} else if (m_dataRichardson[i][j][k] < 0.0) {
+					m_dataRichardson[i][j][k] = 0.0;
 				}
+				//
 			}
 		}
 		}
