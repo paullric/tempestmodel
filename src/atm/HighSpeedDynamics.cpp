@@ -28,6 +28,9 @@
 
 //#define FIX_ELEMENT_MASS_NONHYDRO
 
+//#define USE_VECTOR_TRIDIAGONAL_SOLVE
+#define USE_LAPACK_TRIDIAGONAL_SOLVE
+
 ///////////////////////////////////////////////////////////////////////////////
 
 HighSpeedDynamics::HighSpeedDynamics(
@@ -84,6 +87,32 @@ void HighSpeedDynamics::Initialize() {
 	// Number of tracers
 	const int nTracerCount = m_model.GetEquationSet().GetTracers();
 
+#if defined(USE_VECTOR_TRIDIAGONAL_SOLVE)
+	// Vertical implicit terms (A)
+	m_dA.Allocate(
+		nRElements+1,
+		nHorizontalOrder,
+		nHorizontalOrder);
+
+	// Vertical implicit terms (B)
+	m_dB.Allocate(
+		nRElements+1,
+		nHorizontalOrder,
+		nHorizontalOrder);
+
+	// Vertical implicit terms (C)
+	m_dC.Allocate(
+		nRElements+1,
+		nHorizontalOrder,
+		nHorizontalOrder);
+
+	// Vertical implicit terms (D)
+	m_dD.Allocate(
+		nRElements+1,
+		nHorizontalOrder,
+		nHorizontalOrder);
+
+#elif defined(USE_LAPACK_TRIDIAGONAL_SOLVE)
 	// Vertical implicit terms (A)
 	m_dA.Allocate(
 		nHorizontalOrder,
@@ -107,6 +136,9 @@ void HighSpeedDynamics::Initialize() {
 		nHorizontalOrder,
 		nHorizontalOrder,
 		nRElements+1);
+#else
+	_EXCEPTIONT("Invalid tridiagonal solve");
+#endif
 
 	// Initialize the diagnosed 2D kinetic energy
 	m_dK2.Allocate(
@@ -1159,6 +1191,20 @@ void HighSpeedDynamics::StepImplicitCombine(
 			}
 			}
 
+#if defined(USE_VECTOR_TRIDIAGONAL_SOLVE)
+			// Fill in vertical column arrays
+#pragma simd
+			for (int i = 0; i < nHorizontalOrder; i++) {
+			for (int j = 0; j < nHorizontalOrder; j++) {
+				m_dA(0,i,j) = 0.0;
+				m_dB(0,i,j) = 1.0;
+				m_dB(nRElements,i,j) = 1.0;
+				m_dC(0,i,j) = 0.0;
+				m_dD(0,i,j) = 0.0;
+				m_dD(nRElements,i,j) = 0.0;
+			}
+			}
+#else
 			// Fill in vertical column arrays
 			for (int i = 0; i < nHorizontalOrder; i++) {
 			for (int j = 0; j < nHorizontalOrder; j++) {
@@ -1170,6 +1216,7 @@ void HighSpeedDynamics::StepImplicitCombine(
 				m_dD(i,j,nRElements) = 0.0;
 			}
 			}
+#endif
 
 			// Timestep size squared
 			const double dDeltaT2 = dDeltaT * dDeltaT;
@@ -1195,13 +1242,23 @@ void HighSpeedDynamics::StepImplicitCombine(
 						- dataZn(iA,iB,k-1));
 
 				// Note that we have stored theta in dataArgumentREdge[PIx]
-				m_dA(i,j,k-1) = - dDeltaT2 * dInvDeltaZkm * (
+#if defined(USE_VECTOR_TRIDIAGONAL_SOLVE)
+				m_dA(k,i,j) =
+#else
+				m_dA(i,j,k-1) =
+#endif
+					- dDeltaT2 * dInvDeltaZkm * (
 					dInvDeltaZhat
 						* m_dDpDTheta(i,j,k-1)
 						* dataArgumentREdge(PIx,iA,iB,k-1)
 					- 0.5 * phys.GetG());
 
-				m_dB(i,j,k) = 1.0 + dDeltaT2 * (
+#if defined(USE_VECTOR_TRIDIAGONAL_SOLVE)
+				m_dB(k,i,j) =
+#else
+				m_dB(i,j,k) =
+#endif
+					1.0 + dDeltaT2 * (
 					dInvDeltaZhat
 						* dataArgumentREdge(PIx,iA,iB,k)
 						* (m_dDpDTheta(i,j,k) * dInvDeltaZk
@@ -1209,7 +1266,12 @@ void HighSpeedDynamics::StepImplicitCombine(
 					+ 0.5 * phys.GetG()
 						* (dInvDeltaZk - dInvDeltaZkm));
 
-				m_dC(i,j,k) = - dDeltaT2 * dInvDeltaZk * (
+#if defined(USE_VECTOR_TRIDIAGONAL_SOLVE)
+				m_dC(k,i,j) =
+#else
+				m_dC(i,j,k) =
+#endif
+					- dDeltaT2 * dInvDeltaZk * (
 					+ dInvDeltaZhat
 						* m_dDpDTheta(i,j,k)
 						* dataArgumentREdge(PIx,iA,iB,k+1)
@@ -1222,7 +1284,11 @@ void HighSpeedDynamics::StepImplicitCombine(
 				const double dIntRho =
 					phys.GetG() * dataArgumentREdge(RIx,iA,iB,k);
 
+#if defined(USE_VECTOR_TRIDIAGONAL_SOLVE)
+				m_dD(k,i,j) =
+#else
 				m_dD(i,j,k) =
+#endif
 					dataArgumentREdge(WIx,iA,iB,k)
 					- dDeltaT * (dDzPressure + dIntRho);
 /*
@@ -1250,7 +1316,42 @@ void HighSpeedDynamics::StepImplicitCombine(
 			}
 			}
 
-			// Perform a tridiagonal solve for dataUpdate
+// Perform a tridiagonal solve for dataUpdate
+#if defined(USE_VECTOR_TRIDIAGONAL_SOLVE)
+#pragma simd
+			for (int i = 0; i < nHorizontalOrder; i++) {
+#pragma simd
+			for (int j = 0; j < nHorizontalOrder; j++) {
+				m_dC(0,i,j) /= m_dB(0,i,j);
+				m_dD(0,i,j) /= m_dB(0,i,j);
+			}
+			}
+
+			for (int k = 1; k < nRElements; k++) {
+#pragma simd
+			for (int i = 0; i < nHorizontalOrder; i++) {
+#pragma simd
+			for (int j = 0; j < nHorizontalOrder; j++) {
+				m_dC(k,i,j) /= (m_dB(k,i,j) - m_dA(k,i,j) * m_dC(k-1,i,j));
+				m_dD(k,i,j) =
+					(m_dD(k,i,j) - m_dA(k,i,j) * m_dD(k-1,i,j)) 
+					/ (m_dB(k,i,j) - m_dA(k,i,j) * m_dC(k-1,i,j));
+			}
+			}
+			}
+
+			for (int k = nRElements-1; k >= 0; k--) {
+#pragma simd
+			for (int i = 0; i < nHorizontalOrder; i++) {
+#pragma simd
+			for (int j = 0; j < nHorizontalOrder; j++) {
+				m_dD(k,i,j) -= m_dC(k,i,j) * m_dD(k+1,i,j);
+			}
+			}
+			}
+
+// Using LAPACK for the tridiagonal solve
+#elif defined(USE_LAPACK_TRIDIAGONAL_SOLVE)
 			int nREdges = nRElements+1;
 			int nRHS = 1;
 			int nLDB = nREdges;
@@ -1260,6 +1361,8 @@ void HighSpeedDynamics::StepImplicitCombine(
 
 				const int iA = iElementA + i;
 				const int iB = iElementB + j;
+
+				
 
 #ifdef TEMPEST_LAPACK_ACML_INTERFACE
 				dgtsv(
@@ -1294,19 +1397,6 @@ void HighSpeedDynamics::StepImplicitCombine(
 					&nLDB,
 					&(m_nInfo(i,j)));
 #endif
-/*
-				if ((i == 0) && (j == 0)) {
-					for (int k = 0; k <= nRElements; k++) {
-						printf("0: %1.5e\n", m_dD(i,j,k));
-					}
-				}
-*/
-/*
-				// DEBUG
-				for (int k = 0; k < nREdges; k++) {
-					m_dD(i,j,k) = dDeltaT * dataUpdateREdge(WIx,iA,iB,k);
-				}
-*/
 			}
 			}
 
@@ -1319,6 +1409,9 @@ void HighSpeedDynamics::StepImplicitCombine(
 				}
 			}
 			}
+#else
+			_EXCEPTIONT("Invalid Tridiagonal solve algorithm");
+#endif
 
 			// Perform updates
 			for (int i = 0; i < nHorizontalOrder; i++) {
@@ -1359,6 +1452,26 @@ void HighSpeedDynamics::StepImplicitCombine(
 					1.0 / (dataZi(iA,iB,k+1)
 						- dataZi(iA,iB,k));
 
+#if defined(USE_VECTOR_TRIDIAGONAL_SOLVE)
+				// Store updated vertical momentum
+				dataUpdateREdge(WIx,iA,iB,k) +=
+					(m_dD(k,i,j)
+						- dataArgumentREdge(WIx,iA,iB,k));
+
+				// Updated vertical mass flux
+				const double dDzMassFlux =
+					dInvDeltaZn * (
+						m_dD(k+1,i,j)
+						- m_dD(k,i,j));
+
+				// Updated vertical pressure flux
+				const double dDzPressureFlux = dInvDeltaZn
+					* (m_dD(k+1,i,j)
+						* dataArgumentREdge(PIx,iA,iB,k+1)
+					- m_dD(k,i,j)
+						* dataArgumentREdge(PIx,iA,iB,k));
+
+#else
 				// Store updated vertical momentum
 				dataUpdateREdge(WIx,iA,iB,k) +=
 					(m_dD(i,j,k)
@@ -1370,16 +1483,17 @@ void HighSpeedDynamics::StepImplicitCombine(
 						m_dD(i,j,k+1)
 						- m_dD(i,j,k));
 
-				// Store updated density
-				dataUpdateNode(RIx,iA,iB,k) +=
-					- dDeltaT * dDzMassFlux;
-
 				// Updated vertical pressure flux
 				const double dDzPressureFlux = dInvDeltaZn
 					* (m_dD(i,j,k+1)
 						* dataArgumentREdge(PIx,iA,iB,k+1)
 					- m_dD(i,j,k)
 						* dataArgumentREdge(PIx,iA,iB,k));
+#endif
+
+				// Store updated density
+				dataUpdateNode(RIx,iA,iB,k) +=
+					- dDeltaT * dDzMassFlux;
 
 				// Store updated potential temperature density
 				dataUpdateNode(PIx,iA,iB,k) +=
