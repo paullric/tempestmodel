@@ -1478,6 +1478,10 @@ void GridPatchCartesianGLL::InterpolateData(
 	} else if (eDataType == DataType_Richardson) {
 		nComponents = 1;
 
+	// Convective stability Data
+	} else if (eDataType == DataType_Convective) {
+		nComponents = 1;
+
 	// DynSGS number Data
 	} else if (eDataType == DataType_DynSGS) {
 		nComponents = 3;
@@ -1624,6 +1628,9 @@ void GridPatchCartesianGLL::InterpolateData(
 
 		} else if (eDataType == DataType_Richardson) {
 			pData.AttachToData(&(m_dataRichardson[0][0][0]));
+
+		} else if (eDataType == DataType_Convective) {
+			pData.AttachToData(&(m_dataConvective[0][0][0]));
 
 		} else if (eDataType == DataType_DynSGS) {
 			if (c < 3) {

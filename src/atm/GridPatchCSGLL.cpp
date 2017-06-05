@@ -655,6 +655,10 @@ void GridPatchCSGLL::EvaluateTestCase(
 	DataArray4D<double> & dataTracers =
 		m_datavecTracers[iDataIndex];
 
+	// Parameters for the high order vertical coordinate transformation
+	double dP = 20.0;
+	double dQ = 5.0;
+	double dA = 0.001;
 	// Initialize the vertical height in each node
 	if (fIs2DEquationSet) {
 		for (int i = 0; i < m_box.GetATotalWidth(); i++) {
@@ -668,31 +672,50 @@ void GridPatchCSGLL::EvaluateTestCase(
 	} else {
 		for (int i = 0; i < m_box.GetATotalWidth(); i++) {
 		for (int j = 0; j < m_box.GetBTotalWidth(); j++) {
-
+/*
 			// Gal-Chen and Sommerville (1975) vertical coordinate
 			for (int k = 0; k < m_grid.GetRElements(); k++) {
 				double dREta = m_grid.GetREtaLevel(k);
-/*
+//
 				double dREtaStretch;
 				double dDxREtaStretch;
 				m_grid.EvaluateVerticalStretchF(
 					dREta, dREtaStretch, dDxREtaStretch);
-*/
+//
 				m_dataZLevels(i,j,k) =
 					m_dataTopography(i,j)
 						+ dREta * (m_grid.GetZtop() - m_dataTopography(i,j));
 			}
 			for (int k = 0; k <= m_grid.GetRElements(); k++) {
 				double dREta = m_grid.GetREtaInterface(k);
-/*
+//
 				double dREtaStretch;
 				double dDxREtaStretch;
 				m_grid.EvaluateVerticalStretchF(
 					dREta, dREtaStretch, dDxREtaStretch);
-*/
+//
 				m_dataZInterfaces(i,j,k) =
 					m_dataTopography(i,j)
 						+ dREta * (m_grid.GetZtop() - m_dataTopography(i,j));
+			}
+*/
+
+			// High order vertical coordinate transform by Jorge
+			for (int k = 0; k < m_grid.GetRElements(); k++) {
+				m_dataZLevels[i][j][k] =
+				m_grid.GetZtop() * m_grid.GetREtaLevel(k) +
+					(std::exp(-dP / dQ * m_grid.GetREtaLevel(k)) *
+					std::pow(std::cos(0.5 * M_PI * m_grid.GetREtaLevel(k)), dP) +
+					dA * m_grid.GetREtaLevel(k) * (1.0 - m_grid.GetREtaLevel(k))) *
+					m_dataTopography[i][j];
+			}
+			for (int k = 0; k <= m_grid.GetRElements(); k++) {
+				m_dataZInterfaces[i][j][k] =
+				m_grid.GetZtop() * m_grid.GetREtaInterface(k) +
+					(std::exp(-dP / dQ * m_grid.GetREtaInterface(k)) *
+					std::pow(std::cos(0.5 * M_PI * m_grid.GetREtaInterface(k)), dP) +
+					dA * m_grid.GetREtaInterface(k) * (1.0 - m_grid.GetREtaInterface(k))) *
+					m_dataTopography[i][j];
 			}
 		}
 		}

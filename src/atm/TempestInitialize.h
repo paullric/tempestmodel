@@ -78,6 +78,7 @@ struct _TempestCommandLineVariables {
 	bool fOutputTemperature;
 	bool fOutputSurfacePressure;
 	bool fOutputRichardson;
+	bool fOutputConvective;
 	bool fOutputDynSGS;
 	bool fNoReferenceState;
 	bool fNoTracers;
@@ -121,6 +122,7 @@ struct _TempestCommandLineVariables {
 	CommandLineBool(_tempestvars.fOutputSurfacePressure, "output_ps"); \
 	CommandLineBool(_tempestvars.fOutputDynSGS, "output_SGS"); \
 	CommandLineBool(_tempestvars.fOutputRichardson, "output_Ri"); \
+	CommandLineBool(_tempestvars.fOutputConvective, "output_convs"); \
 	CommandLineBool(_tempestvars.fNoReferenceState, "norefstate"); \
 	CommandLineBool(_tempestvars.fNoTracers, "notracers"); \
 	CommandLineBool(_tempestvars.fNoHyperviscosity, "nohypervis"); \
@@ -436,6 +438,9 @@ void _TempestSetupOutputManagers(
 		}
 		if (vars.fOutputRichardson) {
 			pOutmanRef->OutputRichardson();
+		}
+		if (vars.fOutputConvective) {
+			pOutmanRef->OutputConvective();
 		}
 		if (vars.fOutputDynSGS) {
 			pOutmanRef->OutputDynSGS();

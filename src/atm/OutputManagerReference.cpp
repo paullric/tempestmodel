@@ -63,6 +63,7 @@ OutputManagerReference::OutputManagerReference(
 	m_fOutputSurfacePressure(false),
 	m_fOutputDynSGS(false),
 	m_fOutputRichardson(false),
+	m_fOutputConvective(false),
 	m_fOutputAllVarsOnNodes(fOutputAllVarsOnNodes),
 	m_fRemoveReferenceProfile(fRemoveReferenceProfile)
 {
@@ -192,6 +193,18 @@ void OutputManagerReference::OutputRichardson(
 
 ///////////////////////////////////////////////////////////////////////////////
 
+void OutputManagerReference::OutputConvective(
+	bool fOutputConvective
+) {
+	m_fOutputConvective = fOutputConvective;
+
+	if (!fOutputConvective) {
+		m_dataConvective.Deallocate();
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
 void OutputManagerReference::OutputDynSGS(
 	bool fOutputDynSGS
 ) {
@@ -306,6 +319,13 @@ bool OutputManagerReference::CalculatePatchCoordinates() {
 
 	if (m_fOutputRichardson) {
 		m_dataRichardson.Allocate(
+			1,
+			m_dREtaCoord.GetRows(),
+			m_nXReference * m_nYReference);
+	}
+
+	if (m_fOutputConvective) {
+		m_dataConvective.Allocate(
 			1,
 			m_dREtaCoord.GetRows(),
 			m_nXReference * m_nYReference);
@@ -494,6 +514,13 @@ bool OutputManagerReference::OpenFile(
 			m_varRichardson =
 				m_pActiveNcOutput->add_var(
 					"Ri", ncDouble, dimTime, dimLev, dimLat, dimLon);
+		}
+
+		// Convective stability variable
+		if (m_fOutputConvective) {
+			m_varConvective =
+				m_pActiveNcOutput->add_var(
+					"T_Th_dThdR", ncDouble, dimTime, dimLev, dimLat, dimLon);
 		}
 
 		// DynSGS alpha variable
@@ -759,6 +786,19 @@ void OutputManagerReference::Output(
 			m_dataRichardson);
 	}
 
+	// Perform Interpolate / Reduction on Convective stability number
+	if (m_fOutputConvective) {
+		m_grid.ComputeConvectiveGrad(0);
+
+		m_grid.ReduceInterpolate(
+			DataType_Convective,
+			m_dREtaCoord,
+			m_dAlpha,
+			m_dBeta,
+			m_iPatch,
+			m_dataConvective);
+	}
+
 	// Perform Interpolate / Reduction on DynSGS data
 	if (m_fOutputDynSGS) {
 		// Perform Interpolate / Reduction on state data
@@ -889,6 +929,17 @@ void OutputManagerReference::Output(
 				&(m_dataRichardson[0][0][0]),
 				1,
 				m_dataRichardson.GetColumns(),
+				m_dYCoord.GetRows(),
+				m_dXCoord.GetRows());
+		}
+
+		// Store Convective stability number data
+		if (m_fOutputConvective) {
+			m_varConvective->set_cur(m_ixOutputTime, 0, 0, 0);
+			m_varConvective->put(
+				&(m_dataConvective[0][0][0]),
+				1,
+				m_dataConvective.GetColumns(),
 				m_dYCoord.GetRows(),
 				m_dXCoord.GetRows());
 		}

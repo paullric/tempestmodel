@@ -115,6 +115,14 @@ public:
 		bool fOutputRichardson = true
 	);
 
+	///	<summary>
+	///		Modify the flag which indicates whether Convective stability should be
+	///		computed and output.
+	///	</summary>
+	void OutputConvective(
+		bool fOutputConvective = true
+	);
+
 private:
 	///	<summary>
 	///		Calculate the patch coordinates of the reference points.
@@ -368,6 +376,20 @@ private:
 	///	</summary>
 	DataArray3D<double> m_dataRichardson;
 
+	///	<summary>
+	///		Flag indicating whether Convective stability should be computed and output.
+	///	</summary>
+	bool m_fOutputConvective;
+
+	///	<summary>
+	///		Convective stability output variable.
+	///	</summary>
+	NcVar * m_varConvective;
+
+	///	<summary>
+	///		Computed Convective stability on the reference grid.
+	///	</summary>
+	DataArray3D<double> m_dataConvective;
 };
 
 ///////////////////////////////////////////////////////////////////////////////

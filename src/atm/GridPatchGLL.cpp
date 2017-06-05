@@ -156,8 +156,6 @@ void GridPatchGLL::ComputeRichardson(
 	// Get metric quantities
 	const DataArray4D<double> & dDerivRNode =
 		GetDerivRNode();
-	const DataArray4D<double> & dDerivRREdge =
-		GetDerivRREdge();
 
 	// Indices of EquationSet variables
 	const int UIx = 0;
@@ -168,31 +166,19 @@ void GridPatchGLL::ComputeRichardson(
 
 	// Column array of density and density gradient
 	DataArray1D<double> dDensityNode;
-	DataArray1D<double> dDensityREdge;
 	DataArray1D<double> dDiffDensityNode;
-	DataArray1D<double> dDiffDensityREdge;
 	dDensityNode.Allocate(nRElements);
 	dDiffDensityNode.Allocate(nRElements);
-	dDensityREdge.Allocate(nRElements+1);
-	dDiffDensityREdge.Allocate(nRElements+1);
 	// Column array of U_x and shear in the zonal wind
 	DataArray1D<double> dUXNode;
-	DataArray1D<double> dUXREdge;
 	DataArray1D<double> dDiffUXNode;
-	DataArray1D<double> dDiffUXREdge;
 	dUXNode.Allocate(nRElements);
 	dDiffUXNode.Allocate(nRElements);
-	dUXREdge.Allocate(nRElements+1);
-	dDiffUXREdge.Allocate(nRElements+1);
 	// Column array of V_y and shear in the meridional wind
 	DataArray1D<double> dVYNode;
-	DataArray1D<double> dVYREdge;
 	DataArray1D<double> dDiffVYNode;
-	DataArray1D<double> dDiffVYREdge;
 	dVYNode.Allocate(nRElements);
 	dDiffVYNode.Allocate(nRElements);
-	dVYREdge.Allocate(nRElements+1);
-	dDiffVYREdge.Allocate(nRElements+1);
 
 	if (m_grid.GetModel().GetEquationSet().GetComponents() < 5) {
 		_EXCEPTIONT("Invalid EquationSet.");
@@ -225,14 +211,14 @@ void GridPatchGLL::ComputeRichardson(
 				dDensityNode[k] = dataNode[RIx][i][j][k];
 
 				// Convert U_alpha and V_beta to X and Y (Lon, Lat)
-				dUXNode[k] = dataNode[UIx][i][j][k]
+				dUXNode[k] = dataNode(UIx,i,j,k)
 						- dDerivRNode(i,j,k,0)
-						* (dataNode[WIx][i][j][k]
+						* (dataNode(WIx,i,j,k)
 						/ dDerivRNode(i,j,k,2));
 
-				dVYNode[k] = dataNode[VIx][i][j][k]
+				dVYNode[k] = dataNode(VIx,i,j,k)
 						- dDerivRNode(i,j,k,1)
-						* (dataNode[WIx][i][j][k]
+						* (dataNode(WIx,i,j,k)
 						/ dDerivRNode(i,j,k,2));
 			}
 
@@ -266,66 +252,97 @@ void GridPatchGLL::ComputeRichardson(
 		}
 		}
 	}
+}
 
-	// Calculate Richardson on interfaces
-	if (loc == DataLocation_REdge) {
+///////////////////////////////////////////////////////////////////////////////
 
-		if (m_grid.GetVarLocation(PIx) == DataLocation_Node) {
-			InterpolateNodeToREdge(PIx, iDataIndex);
-		}
-		if (m_grid.GetVarLocation(RIx) == DataLocation_Node) {
-			InterpolateNodeToREdge(RIx, iDataIndex);
-		}
-		if (m_grid.GetVarLocation(WIx) == DataLocation_Node) {
-			InterpolateNodeToREdge(WIx, iDataIndex);
+void GridPatchGLL::ComputeConvectiveGrad(
+	int iDataIndex,
+	DataLocation loc
+) {
+	const PhysicalConstants & phys = m_grid.GetModel().GetPhysicalConstants();
+
+	// Number of radial elements
+	int nRElements = m_grid.GetRElements();
+
+	// Get metric quantities
+	const DataArray4D<double> & dDerivRNode =
+		GetDerivRNode();
+
+	// Indices of EquationSet variables
+	const int UIx = 0;
+	const int VIx = 1;
+	const int PIx = 2;
+	const int WIx = 3;
+	const int RIx = 4;
+
+	// Column array of theta and theta gradient
+	DataArray1D<double> dThetaNode;
+	DataArray1D<double> dDiffThetaNode;
+	dThetaNode.Allocate(nRElements);
+	dDiffThetaNode.Allocate(nRElements);
+	DataArray1D<double> dTemperatureNode;
+	dTemperatureNode.Allocate(nRElements);
+
+	if (m_grid.GetModel().GetEquationSet().GetComponents() < 5) {
+		_EXCEPTIONT("Invalid EquationSet.");
+	}
+
+	// Parent grid, containing the vertical remapping information
+	GridGLL * pGLLGrid = dynamic_cast<GridGLL*>(&m_grid);
+	if (pGLLGrid == NULL) {
+		_EXCEPTIONT("Logic error");
+	}
+
+	// Calculate vertical derivative of potential temp. on nodes
+	if (loc == DataLocation_Node) {
+		if (m_grid.GetVarLocation(PIx) == DataLocation_REdge) {
+			InterpolateREdgeToNode(PIx, iDataIndex);
 		}
 
-		const DataArray4D<double> & dataREdge = m_datavecStateREdge[iDataIndex];
+		const DataArray4D<double> & dataNode = m_datavecStateNode[iDataIndex];
 
 		for (int i = m_box.GetAInteriorBegin(); i < m_box.GetAInteriorEnd(); i++) {
 		for (int j = m_box.GetBInteriorBegin(); j < m_box.GetBInteriorEnd(); j++) {
 
-			for (int k = 0; k <= nRElements; k++) {
-				dDensityREdge[k] = dataREdge[RIx][i][j][k];
+			for (int k = 0; k < nRElements; k++) {
+				dThetaNode[k] = 1.0;
+#ifdef FORMULATION_PRESSURE
+				const double dPressure = dataNode(PIx,i,j,k);
+				dTemperatureNode[k] =
+					dPressure / (dataNode(RIx,i,j,k) * phys.GetR());
 
-				// Convert U_alpha and V_beta to X and Y (Lon, Lat)
-				dUXREdge[k] = dataREdge[UIx][i][j][k]
-						- dDerivRREdge(i,j,k,0)
-						* (dataREdge[WIx][i][j][k]
-						/ dDerivRREdge(i,j,k,2));
+				dThetaNode[k] = dTemperature[k] * pow(phys.GetP0()
+					/ dPressure, phys.GetR / phys.GetCp);
+#endif
+#if defined(FORMULATION_RHOTHETA_PI) || defined(FORMULATION_RHOTHETA_P)
+				const double dPressure = phys.PressureFromRhoTheta(dataNode(PIx,i,j,k));
+				dTemperatureNode[k] = dPressure
+						/ (dataNode(RIx,i,j,k) * phys.GetR());
+				dThetaNode[k] = dataNode(PIx,i,j,k)
+						/ dataNode(RIx,i,j,k);
+#endif
+#if defined(FORMULATION_THETA) || defined(FORMULATION_THETA_FLUX)
+				const double dPressure =
+					phys.PressureFromRhoTheta(
+						dataNode(RIx,i,j,k)
+						* dataNode(PIx,i,j,k));
+				dTemperatureNode[k] =
+					dPressure / (dataNode(RIx,i,j,k) * phys.GetR());
 
-				dVYREdge[k] = dataREdge[VIx][i][j][k]
-						- dDerivRREdge(i,j,k,1)
-						* (dataREdge[WIx][i][j][k]
-						/ dDerivRREdge(i,j,k,2));
+				dThetaNode[k] = dataNode(PIx,i,j,k);
+#endif
 			}
 
-			pGLLGrid->DifferentiateREdgeToREdge(
-			dDensityREdge,
-			dDiffDensityREdge);
+			pGLLGrid->DifferentiateNodeToNode(
+			dThetaNode,
+			dDiffThetaNode);
 
-			pGLLGrid->DifferentiateREdgeToREdge(
-			dUXREdge,
-			dDiffUXREdge);
-
-			pGLLGrid->DifferentiateREdgeToREdge(
-			dVYREdge,
-			dDiffVYREdge);
-
-			for (int k = 0; k <= nRElements; k++) {
-				m_dataRichardson[i][j][k] =
-					- phys.GetG()
-					/ (dDensityREdge[k] * dDerivRREdge(i,j,k,3))
-					* dDiffDensityREdge[k]
-					/ ((dDiffUXREdge[k] * dDiffUXREdge[k]) +
-					   (dDiffVYREdge[k] * dDiffVYREdge[k]));
-				//
-				if (m_dataRichardson[i][j][k] >= 1.0E6) {
-					m_dataRichardson[i][j][k] = 1.0E6;
-				} else if (m_dataRichardson[i][j][k] < 0.0) {
-					m_dataRichardson[i][j][k] = 0.0;
-				}
-				//
+			for (int k = 0; k < nRElements; k++) {
+				m_dataConvective[i][j][k] =
+					(dTemperatureNode[k] / dThetaNode[k])
+					* dDiffThetaNode[k]
+					* dDerivRNode(i,j,k,3);
 			}
 		}
 		}

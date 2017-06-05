@@ -111,6 +111,14 @@ public:
 		DataLocation loc = DataLocation_Node
 	);
 
+	///	<summary>
+	///		Compute the local convective stability number (grad theta)
+	///	</summary>
+	virtual void ComputeConvectiveGrad(
+		int iDataIndex,
+		DataLocation loc = DataLocation_Node
+	);
+
 protected:
 	///	<summary>
 	///		Order of accuracy of this patch.

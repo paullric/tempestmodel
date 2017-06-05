@@ -1517,6 +1517,11 @@ public:
 	DataArray3D<double> m_dataRichardson;
 
 	///	<summary>
+	///		Computed Convective stability number (Auxiliary).
+	///	</summary>
+	DataArray3D<double> m_dataConvective;
+
+	///	<summary>
 	///		Computed surface pressure (Auxiliary).
 	///	</summary>
 	DataArray2D<double> m_dataSurfacePressure;

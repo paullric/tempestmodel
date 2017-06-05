@@ -351,6 +351,13 @@ public:
 	);
 
 	///	<summary>
+	///		Compute Convective stability number on the grid.
+	///	</summary>
+	virtual void ComputeConvectiveGrad(
+		int iDataIndex
+	);
+
+	///	<summary>
 	///		Interpolate data vertically from Nodes to REdges.
 	///	</summary>
 	void InterpolateNodeToREdge(

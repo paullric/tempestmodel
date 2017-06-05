@@ -46,6 +46,7 @@ enum DataType {
 	DataType_Temperature,
 	DataType_RayleighStrength,
 	DataType_Richardson,
+	DataType_Convective,
 	DataType_DynSGS,
 	DataType_None
 };

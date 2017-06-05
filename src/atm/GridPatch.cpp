@@ -526,6 +526,14 @@ void GridPatch::InitializeDataLocal(
 		m_box.GetBTotalWidth(),
 		m_grid.GetRElements());
 
+	// Convective stability number data
+	m_dataConvective.SetDataType(DataType_Convective);
+	m_dataConvective.SetDataLocation(DataLocation_Node);
+	m_dataConvective.SetSize(
+		m_box.GetATotalWidth(),
+		m_box.GetBTotalWidth(),
+		m_grid.GetRElements());
+
 	// Surface pressure data
 	m_dataSurfacePressure.SetDataType(DataType_SurfacePressure);
 	m_dataSurfacePressure.SetDataLocation(DataLocation_None);
@@ -540,6 +548,7 @@ void GridPatch::InitializeDataLocal(
 	m_dcAuxiliary.PushDataChunk(&m_dataDivergence);
 	m_dcAuxiliary.PushDataChunk(&m_dataTemperature);
 	m_dcAuxiliary.PushDataChunk(&m_dataRichardson);
+	m_dcAuxiliary.PushDataChunk(&m_dataConvective);
 	m_dcAuxiliary.PushDataChunk(&m_dataSurfacePressure);
 
 	// 2D User data
@@ -1415,6 +1424,10 @@ void GridPatch::PackExchangeBuffer(
 	} else if (eDataType == DataType_Richardson) {
 		exbuf.Pack(m_dataRichardson);
 
+	// Convective stability data
+	} else if (eDataType == DataType_Convective) {
+		exbuf.Pack(m_dataConvective);
+
 	// Topography derivative data
 	} else if (eDataType == DataType_TopographyDeriv) {
 		exbuf.Pack(m_dataTopographyDeriv);
@@ -1469,6 +1482,10 @@ void GridPatch::UnpackExchangeBuffer(
 	// Richardson data
 	} else if (eDataType == DataType_Richardson) {
 		exbuf.Unpack(m_dataRichardson);
+
+	// Convective stability data
+} else if (eDataType == DataType_Convective) {
+		exbuf.Unpack(m_dataConvective);
 
 	// Topographic derivatives
 	} else if (eDataType == DataType_TopographyDeriv) {
