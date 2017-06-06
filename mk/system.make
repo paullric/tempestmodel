@@ -44,6 +44,10 @@ else ifeq ($(UNAME),Linux)
     SYSTEM= YELLOWSTONE
     SYSTEM_MAKEFILE= yellowstone.make
   endif
+  ifeq ($(HOSTNAME),esgmonster)
+    SYSTEM= DF2_SIM
+    SYSTEM_MAKEFILE= df2_sim.make
+  endif
   ifeq ($(SYSTEM),)
     SYSTEM= AGRI
     SYSTEM_MAKEFILE= agri.make

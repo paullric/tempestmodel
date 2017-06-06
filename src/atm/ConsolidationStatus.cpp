@@ -27,8 +27,10 @@ ConsolidationStatus::ConsolidationStatus(
 {
 
 	// Get process id
-	int nRank;
+	int nRank = 0;
+#ifdef TEMPEST_MPIOMP
 	MPI_Comm_rank(MPI_COMM_WORLD, &nRank);
+#endif
 
 	// Built map of data types and indices
 	for (int m = 0; m < vecDataTypes.size(); m++) {

@@ -150,6 +150,16 @@ private:
 	///		ComputeCurlAndDiv().
 	///	</summary>
 	DataArray4D<double> m_dBufferConU;
+
+	///	<summary>
+	///		Gnomonic coordinate equivalent of alpha at nodes.
+	///	</summary>
+	DataArray1D<double> m_dXNode;
+
+	///	<summary>
+	///		Gnomonic coordinate equivalent of beta at nodes.
+	///	</summary>
+	DataArray1D<double> m_dYNode;
 };
 
 ///////////////////////////////////////////////////////////////////////////////

@@ -688,8 +688,10 @@ void Model::ComputeErrorNorms() {
 	}
 
 	// Local rank
-	int nRank;
+	int nRank = 0;
+#if defined(TEMPEST_MPIOMP)
 	MPI_Comm_rank(MPI_COMM_WORLD, &nRank);
+#endif
 
 	// Initialize test case reference data
 	m_pGrid->EvaluateTestCase(*m_pTestCase, m_time, 1);

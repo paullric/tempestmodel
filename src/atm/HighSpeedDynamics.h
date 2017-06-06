@@ -101,10 +101,24 @@ public:
 */
 public:
 	///	<summary>
-	///		Perform one Forward Euler step.
+	///		Perform one explicit time step.
 	///	</summary>
 	virtual void StepExplicit(
-		int iDataInitial,
+		int iDataArgument,
+		int iDataUpdate,
+		const Time & time,
+		double dDeltaT
+	) {
+		_EXCEPTIONT("Not implemented -- only accessible through StepExplicitCombine");
+	}
+
+	///	<summary>
+	///		Perform one Forward Euler step.
+	///	</summary>
+	virtual void StepExplicitCombine(
+		const DataArray1D<int> & iDataCombineInst,
+		const DataArray1D<double> & dDataCombineCoeff,
+		int iDataArgument,
 		int iDataUpdate,
 		const Time & time,
 		double dDeltaT
@@ -112,10 +126,24 @@ public:
 
 public:
 	///	<summary>
-	///		Perform one Backward Euler step.
+	///		Perform one explicit time step.
 	///	</summary>
 	virtual void StepImplicit(
-		int iDataInitial,
+		int iDataArgument,
+		int iDataUpdate,
+		const Time & time,
+		double dDeltaT
+	) {
+		_EXCEPTIONT("Not implemented -- only accessible through StepImplicitCombine");
+	}
+
+	///	<summary>
+	///		Perform one Backward Euler step.
+	///	</summary>
+	virtual void StepImplicitCombine(
+		const DataArray1D<int> & iDataCombineInst,
+		const DataArray1D<double> & dDataCombineCoeff,
+		int iDataArgument,
 		int iDataUpdate,
 		const Time & time,
 		double dDeltaT
@@ -126,7 +154,7 @@ protected:
 	///		Apply the scalar Laplacian operator.
 	///	</summary>
 	void ApplyScalarHyperdiffusion(
-		int iDataInitial,
+		int iDataArgument,
 		int iDataUpdate,
 		double dDeltaT,
 		double dNu,
@@ -139,8 +167,7 @@ protected:
 	///		Apply the vector Laplacian operator.
 	///	</summary>
 	void ApplyVectorHyperdiffusion(
-		int iDataInitial,
-		int iDataWorking,
+		int iDataArgument,
 		int iDataUpdate,
 		double dDeltaT,
 		double dNuDiff,
@@ -160,8 +187,7 @@ public:
 	///	<summary>
 	///		Apply hyperdiffusion.
 	///	</summar>
-	virtual void StepAfterSubCycle(
-		int iDataInitial,
+	virtual void StepAfterSubCycleCombine(
 		int iDataUpdate,
 		int iDataWorking,
 		const Time & time,

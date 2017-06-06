@@ -11,7 +11,7 @@ F90=               gfortran
 MPICXX=            mpic++
 MPIF90=            mpif90
 
-F90_RUNTIME=       -lgfortran
+F90_RUNTIME=       -L/usr/local/lib -lgfortran
 
 # NetCDF
 NETCDF_ROOT=       /opt/local

@@ -19,6 +19,8 @@
 
 #include "Exception.h"
 
+#include "DataArray1D.h"
+
 ///////////////////////////////////////////////////////////////////////////////
 
 class Time;
@@ -76,7 +78,20 @@ public:
 	///		Perform one explicit time step.
 	///	</summary>
 	virtual void StepExplicit(
-		int iDataInitial,
+		int iDataArgument,
+		int iDataUpdate,
+		const Time & time,
+		double dDeltaT
+	) {
+	}
+
+	///	<summary>
+	///		Perform one explicit time step.
+	///	</summary>
+	virtual void StepExplicitCombine(
+		const DataArray1D<int> & iDataCombineInst,
+		const DataArray1D<double> & dDataCombineCoeff,
+		int iDataArgument,
 		int iDataUpdate,
 		const Time & time,
 		double dDeltaT
@@ -87,7 +102,20 @@ public:
 	///		Perform one implicit time step.
 	///	</summary>
 	virtual void StepImplicit(
-		int iDataInitial,
+		int iDataArgument,
+		int iDataUpdate,
+		const Time & time,
+		double dDeltaT
+	) {
+	}
+
+	///	<summary>
+	///		Perform one explicit time step.
+	///	</summary>
+	virtual void StepImplicitCombine(
+		const DataArray1D<int> & iDataCombineInst,
+		const DataArray1D<double> & dDataCombineCoeff,
+		int iDataArgument,
 		int iDataUpdate,
 		const Time & time,
 		double dDeltaT
@@ -105,7 +133,7 @@ public:
 	///		Filters, fixers and diffusion.
 	///	</summar>
 	virtual int SubStepAfterSubCycle(
-		int iDataInitial,
+		int iDataArgument,
 		int iDataUpdate,
 		int iDataWorking,
 		const Time & time,
@@ -119,7 +147,18 @@ public:
 	///		Perform one time step after all sub-cycles are complete.
 	///	</summary>
 	virtual void StepAfterSubCycle(
-		int iDataInitial,
+		int iDataArgument,
+		int iDataUpdate,
+		int iDataWorking,
+		const Time & time,
+		double dDeltaT
+	) {
+	}
+
+	///	<summary>
+	///		Perform one time step after all sub-cycles are complete.
+	///	</summary>
+	virtual void StepAfterSubCycleCombine(
 		int iDataUpdate,
 		int iDataWorking,
 		const Time & time,

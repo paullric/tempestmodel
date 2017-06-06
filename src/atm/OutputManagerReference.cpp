@@ -23,7 +23,9 @@
 #include "TimeObj.h"
 #include "Announce.h"
 
+#ifdef TEMPEST_MPIOMP
 #include <mpi.h>
+#endif
 
 #include <iostream>
 #include <cstdio>
@@ -368,8 +370,11 @@ bool OutputManagerReference::OpenFile(
 ) {
 #ifdef TEMPEST_NETCDF
 	// Determine processor rank; only proceed if root node
-	int nRank;
+	int nRank = 0;
+
+#ifdef TEMPEST_MPIOMP
 	MPI_Comm_rank(MPI_COMM_WORLD, &nRank);
+#endif
 
 	// The active model
 	const Model & model = m_grid.GetModel();
@@ -598,8 +603,10 @@ bool OutputManagerReference::OpenFile(
 		m_fFreshOutputFile = true;
 	}
 
+#ifdef TEMPEST_MPIOMP
 	// Wait for all processes to complete
 	MPI_Barrier(MPI_COMM_WORLD);
+#endif
 #endif
 
 	return true;
@@ -629,8 +636,10 @@ void OutputManagerReference::Output(
 
 #ifdef TEMPEST_NETCDF
 	// Get processor rank
-	int nRank;
+	int nRank = 0;
+#ifdef TEMPEST_MPIOMP
 	MPI_Comm_rank(MPI_COMM_WORLD, &nRank);
+#endif
 
 	// Update reference grid
 	CalculatePatchCoordinates();
@@ -975,8 +984,10 @@ void OutputManagerReference::Output(
 	m_fFreshOutputFile = false;
 #endif
 
+#ifdef TEMPEST_MPIOMP
 	// Barrier
 	MPI_Barrier(MPI_COMM_WORLD);
+#endif
 }
 
 ///////////////////////////////////////////////////////////////////////////////

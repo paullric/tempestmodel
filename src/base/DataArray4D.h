@@ -85,7 +85,8 @@ public:
 	DataArray4D(const DataArray4D<T> & da) :
 		m_fOwnsData(true),
 		m_eDataType(DataType_Default),
-		m_eDataLocation(DataLocation_Default)
+		m_eDataLocation(DataLocation_Default),
+		m_data1D(NULL)
 	{
 		if (da.IsAttached()) {
 			m_sSize[0] = 0;

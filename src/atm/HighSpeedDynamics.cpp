@@ -28,6 +28,9 @@
 
 //#define FIX_ELEMENT_MASS_NONHYDRO
 
+//#define USE_VECTOR_TRIDIAGONAL_SOLVE
+#define USE_LAPACK_TRIDIAGONAL_SOLVE
+
 ///////////////////////////////////////////////////////////////////////////////
 
 HighSpeedDynamics::HighSpeedDynamics(
@@ -84,6 +87,32 @@ void HighSpeedDynamics::Initialize() {
 	// Number of tracers
 	const int nTracerCount = m_model.GetEquationSet().GetTracers();
 
+#if defined(USE_VECTOR_TRIDIAGONAL_SOLVE)
+	// Vertical implicit terms (A)
+	m_dA.Allocate(
+		nRElements+1,
+		nHorizontalOrder,
+		nHorizontalOrder);
+
+	// Vertical implicit terms (B)
+	m_dB.Allocate(
+		nRElements+1,
+		nHorizontalOrder,
+		nHorizontalOrder);
+
+	// Vertical implicit terms (C)
+	m_dC.Allocate(
+		nRElements+1,
+		nHorizontalOrder,
+		nHorizontalOrder);
+
+	// Vertical implicit terms (D)
+	m_dD.Allocate(
+		nRElements+1,
+		nHorizontalOrder,
+		nHorizontalOrder);
+
+#elif defined(USE_LAPACK_TRIDIAGONAL_SOLVE)
 	// Vertical implicit terms (A)
 	m_dA.Allocate(
 		nHorizontalOrder,
@@ -107,6 +136,9 @@ void HighSpeedDynamics::Initialize() {
 		nHorizontalOrder,
 		nHorizontalOrder,
 		nRElements+1);
+#else
+	_EXCEPTIONT("Invalid tridiagonal solve");
+#endif
 
 	// Initialize the diagnosed 2D kinetic energy
 	m_dK2.Allocate(
@@ -328,12 +360,30 @@ void HighSpeedDynamics::FilterNegativeTracers(
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void HighSpeedDynamics::StepExplicit(
-	int iDataInitial,
+void HighSpeedDynamics::StepExplicitCombine(
+	const DataArray1D<int> & iDataCombineInst,
+	const DataArray1D<double> & dDataCombineCoeff,
+	int iDataArgument,
 	int iDataUpdate,
 	const Time & time,
 	double dDeltaT
 ) {
+	// Number of data instances in combination
+	size_t sDataCombineInstCount = iDataCombineInst.GetRows();
+	if (dDataCombineCoeff.GetRows() != sDataCombineInstCount) {
+		_EXCEPTIONT("Vector length mismatch in dDataCombineCoeff");
+	}
+	if (sDataCombineInstCount < 1) {
+		_EXCEPTIONT("At least one state instance required in combination");
+	}
+
+	for (size_t s = 1; s < sDataCombineInstCount; s++) {
+		if (iDataCombineInst[s] == iDataUpdate) {
+			_EXCEPTIONT("If iDataCombineInst contains iDataUpdate it must be"
+				" the first index");
+		}
+	}
+
 	// Start the function timer
 	FunctionTimer timer("CalculateTendencies");
 
@@ -369,7 +419,7 @@ void HighSpeedDynamics::StepExplicit(
 	const int RIx = 4;
 
 	// Pre-calculate pressure on model levels
-	pGrid->ComputePressure(iDataInitial);
+	pGrid->ComputePressure(iDataArgument);
 
 	// Perform local update
 	for (int n = 0; n < pGrid->GetActivePatchCount(); n++) {
@@ -409,18 +459,37 @@ void HighSpeedDynamics::StepExplicit(
 			pPatch->GetCoriolisF();
 
 		// Data
-		DataArray4D<double> & dataInitialNode =
-			pPatch->GetDataState(iDataInitial, DataLocation_Node);
+		std::vector<DataArray4D<double> *> vecpdataNode;
+		std::vector<DataArray4D<double> *> vecpdataREdge;
 
+		vecpdataNode.resize(sDataCombineInstCount);
+		vecpdataREdge.resize(sDataCombineInstCount);
+
+		for (int s = 0; s < sDataCombineInstCount; s++) {
+			vecpdataNode[s] =
+				&(pPatch->GetDataState(
+					iDataCombineInst[s], DataLocation_Node));
+
+			vecpdataREdge[s] =
+				&(pPatch->GetDataState(
+					iDataCombineInst[s], DataLocation_REdge));
+		}
+
+		// Data instance for argument to flux function
+		DataArray4D<double> & dataArgumentNode =
+			pPatch->GetDataState(iDataArgument, DataLocation_Node);
+
+		DataArray4D<double> & dataArgumentREdge =
+			pPatch->GetDataState(iDataArgument, DataLocation_REdge);
+
+		// Data instance for data instance to update
 		DataArray4D<double> & dataUpdateNode =
 			pPatch->GetDataState(iDataUpdate, DataLocation_Node);
-
-		DataArray4D<double> & dataInitialREdge =
-			pPatch->GetDataState(iDataInitial, DataLocation_REdge);
 
 		DataArray4D<double> & dataUpdateREdge =
 			pPatch->GetDataState(iDataUpdate, DataLocation_REdge);
 
+		// Auxiliary 3D pressure data
 		const DataArray3D<double> & dataPressure =
 			pPatch->GetDataPressure();
 
@@ -455,33 +524,33 @@ void HighSpeedDynamics::StepExplicit(
 				const int iA = iElementA + i;
 				const int iB = iElementB + j;
 
-				dataInitialREdge(RIx,iA,iB,k) = 0.5 * (
-					  dataInitialNode(RIx,iA,iB,k-1)
-					+ dataInitialNode(RIx,iA,iB,k  ));
+				dataArgumentREdge(RIx,iA,iB,k) = 0.5 * (
+					  dataArgumentNode(RIx,iA,iB,k-1)
+					+ dataArgumentNode(RIx,iA,iB,k  ));
 
 				const double dInvRhoREdge =
-					1.0 / dataInitialREdge(RIx,iA,iB,k);
+					1.0 / dataArgumentREdge(RIx,iA,iB,k);
 
-				dataInitialREdge(UIx,iA,iB,k) = 0.5 * (
-					  dataInitialNode(UIx,iA,iB,k-1)
-					+ dataInitialNode(UIx,iA,iB,k  ));
+				dataArgumentREdge(UIx,iA,iB,k) = 0.5 * (
+					  dataArgumentNode(UIx,iA,iB,k-1)
+					+ dataArgumentNode(UIx,iA,iB,k  ));
 
-				dataInitialREdge(VIx,iA,iB,k) = 0.5 * (
-					  dataInitialNode(VIx,iA,iB,k-1)
-					+ dataInitialNode(VIx,iA,iB,k  ));
+				dataArgumentREdge(VIx,iA,iB,k) = 0.5 * (
+					  dataArgumentNode(VIx,iA,iB,k-1)
+					+ dataArgumentNode(VIx,iA,iB,k  ));
 
 				// Note that we store theta not rhotheta
-				dataInitialREdge(PIx,iA,iB,k) =
+				dataArgumentREdge(PIx,iA,iB,k) =
 					dInvRhoREdge * 0.5 *
-						(dataInitialNode(PIx,iA,iB,k-1)
-						+ dataInitialNode(PIx,iA,iB,k));
+						(dataArgumentNode(PIx,iA,iB,k-1)
+						+ dataArgumentNode(PIx,iA,iB,k));
 
 				// Vertical flux of conserved quantities
 				const double dSDotREdge =
-					dataInitialREdge(WIx,iA,iB,k)
-						- dataInitialREdge(UIx,iA,iB,k)
+					dataArgumentREdge(WIx,iA,iB,k)
+						- dataArgumentREdge(UIx,iA,iB,k)
 							* dDerivRREdge(iA,iB,k,0)
-						- dataInitialREdge(VIx,iA,iB,k)
+						- dataArgumentREdge(VIx,iA,iB,k)
 							* dDerivRREdge(iA,iB,k,1);
 
 				const double dSDotInvRhoREdge =
@@ -489,25 +558,25 @@ void HighSpeedDynamics::StepExplicit(
 
 				m_dSDotUaREdge(i,j,k) =
 					dSDotInvRhoREdge
-					* dataInitialREdge(UIx,iA,iB,k);
+					* dataArgumentREdge(UIx,iA,iB,k);
 
 				m_dSDotUbREdge(i,j,k) =
 					dSDotInvRhoREdge
-					* dataInitialREdge(VIx,iA,iB,k);
+					* dataArgumentREdge(VIx,iA,iB,k);
 
 				// Horizontal vertical momentum flux
 				const double dVerticalMomentumBaseFluxREdge =
 					dJacobianREdge(iA,iB,k)
-					* dataInitialREdge(WIx,iA,iB,k)
+					* dataArgumentREdge(WIx,iA,iB,k)
 					* dInvRhoREdge;
 
 				m_dAlphaVerticalMomentumFluxREdge(i,j,k) =
 					dVerticalMomentumBaseFluxREdge
-					* dataInitialREdge(UIx,iA,iB,k);
+					* dataArgumentREdge(UIx,iA,iB,k);
 
 				m_dBetaVerticalMomentumFluxREdge(i,j,k) =
 					dVerticalMomentumBaseFluxREdge
-					* dataInitialREdge(VIx,iA,iB,k);
+					* dataArgumentREdge(VIx,iA,iB,k);
 			}
 			}
 			}
@@ -521,11 +590,11 @@ void HighSpeedDynamics::StepExplicit(
 				const int iA = iElementA + i;
 				const int iB = iElementB + j;
 
-				const double dRhoUa = dataInitialNode(UIx,iA,iB,k);
-				const double dRhoUb = dataInitialNode(VIx,iA,iB,k);
-				const double dRhoWREdge = dataInitialREdge(WIx,iA,iB,k);
+				const double dRhoUa = dataArgumentNode(UIx,iA,iB,k);
+				const double dRhoUb = dataArgumentNode(VIx,iA,iB,k);
+				const double dRhoWREdge = dataArgumentREdge(WIx,iA,iB,k);
 
-				const double dInvRho = 1.0 / dataInitialNode(RIx,iA,iB,k);
+				const double dInvRho = 1.0 / dataArgumentNode(RIx,iA,iB,k);
 
 				// 2D contravariant and covariant velocities
 				m_d2DConUa(i,j,k) = dInvRho * dRhoUa;
@@ -553,12 +622,12 @@ void HighSpeedDynamics::StepExplicit(
 				// Horizontal pressure fluxes
 				m_dAlphaPressureFlux(i,j,k) =
 					m_dAlphaMassFlux(i,j,k)
-					* dataInitialNode(PIx,iA,iB,k)
+					* dataArgumentNode(PIx,iA,iB,k)
 					* dInvRho;
 
 				m_dBetaPressureFlux(i,j,k) =
 					m_dBetaMassFlux(i,j,k)
-					* dataInitialNode(PIx,iA,iB,k)
+					* dataArgumentNode(PIx,iA,iB,k)
 					* dInvRho;
 
 				// 2D Kinetic energy
@@ -570,12 +639,12 @@ void HighSpeedDynamics::StepExplicit(
 
 				// Vertical flux of momentum
 				m_dSDotWNode(i,j,k) =
-					0.5 * (dataInitialREdge(WIx,iA,iB,k)
-						+ dataInitialREdge(WIx,iA,iB,k+1))
+					0.5 * (dataArgumentREdge(WIx,iA,iB,k)
+						+ dataArgumentREdge(WIx,iA,iB,k+1))
 					- dDerivRNode(iA,iB,k,0)
-						* dataInitialNode(UIx,iA,iB,k)
+						* dataArgumentNode(UIx,iA,iB,k)
 					- dDerivRNode(iA,iB,k,1)
-						* dataInitialNode(VIx,iA,iB,k);
+						* dataArgumentNode(VIx,iA,iB,k);
 			}
 			}
 			}
@@ -588,6 +657,31 @@ void HighSpeedDynamics::StepExplicit(
 
 				const int iA = iElementA + i;
 				const int iB = iElementB + j;
+
+				// Initialize the state using a combination of data instances
+				dataUpdateNode(RIx,iA,iB,k) =
+					dDataCombineCoeff[0] * (*vecpdataNode[0])(RIx,iA,iB,k);
+				dataUpdateNode(UIx,iA,iB,k) =
+					dDataCombineCoeff[0] * (*vecpdataNode[0])(UIx,iA,iB,k);
+				dataUpdateNode(VIx,iA,iB,k) =
+					dDataCombineCoeff[0] * (*vecpdataNode[0])(VIx,iA,iB,k);
+				dataUpdateNode(PIx,iA,iB,k) =
+					dDataCombineCoeff[0] * (*vecpdataNode[0])(PIx,iA,iB,k);
+				dataUpdateREdge(WIx,iA,iB,k) =
+					dDataCombineCoeff[0] * (*vecpdataREdge[0])(WIx,iA,iB,k);
+
+				for (int s = 1; s < sDataCombineInstCount; s++) {
+					dataUpdateNode(RIx,iA,iB,k) +=
+						dDataCombineCoeff[s] * (*vecpdataNode[s])(RIx,iA,iB,k);
+					dataUpdateNode(UIx,iA,iB,k) +=
+						dDataCombineCoeff[s] * (*vecpdataNode[s])(UIx,iA,iB,k);
+					dataUpdateNode(VIx,iA,iB,k) +=
+						dDataCombineCoeff[s] * (*vecpdataNode[s])(VIx,iA,iB,k);
+					dataUpdateNode(PIx,iA,iB,k) +=
+						dDataCombineCoeff[s] * (*vecpdataNode[s])(PIx,iA,iB,k);
+					dataUpdateREdge(WIx,iA,iB,k) +=
+						dDataCombineCoeff[s] * (*vecpdataREdge[s])(WIx,iA,iB,k);
+				}
 
 				// Horizontal pressure derivatives
 				double dDaP = 0.0;
@@ -789,7 +883,7 @@ void HighSpeedDynamics::StepExplicit(
 				dataUpdateNode(UIx,iA,iB,k) +=
 					dDeltaT * (
 						- dConDaP
-						- dataInitialNode(RIx,iA,iB,k)
+						- dataArgumentNode(RIx,iA,iB,k)
  							* (dConDaKE + dVorticityAlpha)
 						- dTotalHorizFluxDiv * m_d2DConUa(i,j,k)
 						- dDzAlphaMomentumFluxS);
@@ -798,26 +892,26 @@ void HighSpeedDynamics::StepExplicit(
 				printf("%1.5e %1.5e %1.5e %1.5e %1.5e %1.5e : %1.5e\n",
 					- dDaP,
 					- dConDaP,
-					- dataInitialNode(RIx,iA,iB,k) * dConDaKE,
+					- dataArgumentNode(RIx,iA,iB,k) * dConDaKE,
 					- dTotalHorizFluxDiv * m_d2DConUa(i,j,k),
 					- dDsAlphaMomentumFluxS,
-					- dataInitialNode(RIx,iA,iB,k) * dVorticityAlpha,
+					- dataArgumentNode(RIx,iA,iB,k) * dVorticityAlpha,
 					dataUpdateNode(UIx,iA,iB,k));
 */
 
 				dataUpdateNode(VIx,iA,iB,k) +=
 					dDeltaT * (
 						- dConDbP
-						- dataInitialNode(RIx,iA,iB,k)
+						- dataArgumentNode(RIx,iA,iB,k)
  							* (dConDbKE + dVorticityBeta)
 						- dTotalHorizFluxDiv * m_d2DConUb(i,j,k)
 						- dDzBetaMomentumFluxS);
 
 /*
-				if (fabs(dataInitialNode(RIx,iA,iB,k) * dConDbKE) < 0.1 * fabs(dConDbP)) {
+				if (fabs(dataArgumentNode(RIx,iA,iB,k) * dConDbKE) < 0.1 * fabs(dConDbP)) {
 					printf("%1.5e %1.5e %1.5e %1.5e %1.5e %1.5e : %1.5e\n",
 						- dConDbP,
-						- dataInitialNode(RIx,iA,iB,k) * dConDbKE,
+						- dataArgumentNode(RIx,iA,iB,k) * dConDbKE,
 						- dTotalHorizFluxDiv * m_d2DConUb(i,j,k),
 						- dDsBetaMomentumFluxS,
 						- dCoriolisF(iA,iB] * dInvJacobian2D * m_d2DCovUa[i,j,k),
@@ -884,7 +978,7 @@ void HighSpeedDynamics::StepExplicit(
 /*
 				printf("%1.10e %1.10e %1.10e %1.10e\n",
 					dDzPressure,
-					dataInitialREdge(RIx,iA,iB,k) * phys.GetG(),
+					dataArgumentREdge(RIx,iA,iB,k) * phys.GetG(),
 					dInvJacobianREdge * (
 						  dDaVerticalMomentumFluxAlpha
 						+ dDbVerticalMomentumFluxBeta),
@@ -910,12 +1004,30 @@ void HighSpeedDynamics::StepExplicit(
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void HighSpeedDynamics::StepImplicit(
-	int iDataInitial,
+void HighSpeedDynamics::StepImplicitCombine(
+	const DataArray1D<int> & iDataCombineInst,
+	const DataArray1D<double> & dDataCombineCoeff,
+	int iDataArgument,
 	int iDataUpdate,
 	const Time & time,
 	double dDeltaT
 ) {
+	// Number of data instances in combination
+	size_t sDataCombineInstCount = iDataCombineInst.GetRows();
+	if (dDataCombineCoeff.GetRows() != sDataCombineInstCount) {
+		_EXCEPTIONT("Vector length mismatch in dDataCombineCoeff");
+	}
+	if (sDataCombineInstCount < 1) {
+		_EXCEPTIONT("At least one state instance required in combination");
+	}
+
+	for (size_t s = 1; s < sDataCombineInstCount; s++) {
+		if (iDataCombineInst[s] == iDataUpdate) {
+			_EXCEPTIONT("If iDataCombineInst contains iDataUpdate it must be"
+				" the first index");
+		}
+	}
+
 	// Start the function timer
 	FunctionTimer timer("AcousticLoop");
 
@@ -979,18 +1091,37 @@ void HighSpeedDynamics::StepImplicit(
 			pPatch->GetZInterfaces();
 
 		// Data
-		DataArray4D<double> & dataInitialNode =
-			pPatch->GetDataState(iDataInitial, DataLocation_Node);
+		std::vector<DataArray4D<double> *> vecpdataNode;
+		std::vector<DataArray4D<double> *> vecpdataREdge;
 
-		DataArray4D<double> & dataInitialREdge =
-			pPatch->GetDataState(iDataInitial, DataLocation_REdge);
+		vecpdataNode.resize(sDataCombineInstCount);
+		vecpdataREdge.resize(sDataCombineInstCount);
 
+		for (int s = 0; s < sDataCombineInstCount; s++) {
+			vecpdataNode[s] =
+				&(pPatch->GetDataState(
+					iDataCombineInst[s], DataLocation_Node));
+
+			vecpdataREdge[s] =
+				&(pPatch->GetDataState(
+					iDataCombineInst[s], DataLocation_REdge));
+		}
+
+		// Data instance for argument to flux function
+		DataArray4D<double> & dataArgumentNode =
+			pPatch->GetDataState(iDataArgument, DataLocation_Node);
+
+		DataArray4D<double> & dataArgumentREdge =
+			pPatch->GetDataState(iDataArgument, DataLocation_REdge);
+
+		// Data instance for data instance to update
 		DataArray4D<double> & dataUpdateNode =
 			pPatch->GetDataState(iDataUpdate, DataLocation_Node);
 
 		DataArray4D<double> & dataUpdateREdge =
 			pPatch->GetDataState(iDataUpdate, DataLocation_REdge);
 
+		// Auxiliary 3D pressure data
 		DataArray3D<double> & dataPressure =
 			pPatch->GetDataPressure();
 
@@ -1026,12 +1157,12 @@ void HighSpeedDynamics::StepImplicit(
 
 				dataPressure[iA][iB][k] =
 					phys.PressureFromRhoTheta(
-						dataInitialNode(PIx,iA,iB,k));
+						dataArgumentNode(PIx,iA,iB,k));
 
 				m_dDpDTheta(i,j,k) =
 					dataPressure(iA,iB,k)
 					* phys.GetGamma()
-					/ dataInitialNode(PIx,iA,iB,k);
+					/ dataArgumentNode(PIx,iA,iB,k);
 			}
 			}
 			}
@@ -1045,21 +1176,35 @@ void HighSpeedDynamics::StepImplicit(
 				const int iA = iElementA + i;
 				const int iB = iElementB + j;
 
-				dataInitialREdge(RIx,iA,iB,k) = 0.5 * (
-					dataInitialNode(RIx,iA,iB,k)
-					+ dataInitialNode(RIx,iA,iB,k-1));
+				dataArgumentREdge(RIx,iA,iB,k) = 0.5 * (
+					dataArgumentNode(RIx,iA,iB,k)
+					+ dataArgumentNode(RIx,iA,iB,k-1));
 
 				const double dInvRhoREdge =
-					1.0 / dataInitialREdge(RIx,iA,iB,k);
+					1.0 / dataArgumentREdge(RIx,iA,iB,k);
 
-				dataInitialREdge(PIx,iA,iB,k) =
+				dataArgumentREdge(PIx,iA,iB,k) =
 					0.5 * dInvRhoREdge * (
-						dataInitialNode(PIx,iA,iB,k)
-						+ dataInitialNode(PIx,iA,iB,k-1));
+						dataArgumentNode(PIx,iA,iB,k)
+						+ dataArgumentNode(PIx,iA,iB,k-1));
 			}
 			}
 			}
 
+#if defined(USE_VECTOR_TRIDIAGONAL_SOLVE)
+			// Fill in vertical column arrays
+#pragma simd
+			for (int i = 0; i < nHorizontalOrder; i++) {
+			for (int j = 0; j < nHorizontalOrder; j++) {
+				m_dA(0,i,j) = 0.0;
+				m_dB(0,i,j) = 1.0;
+				m_dB(nRElements,i,j) = 1.0;
+				m_dC(0,i,j) = 0.0;
+				m_dD(0,i,j) = 0.0;
+				m_dD(nRElements,i,j) = 0.0;
+			}
+			}
+#else
 			// Fill in vertical column arrays
 			for (int i = 0; i < nHorizontalOrder; i++) {
 			for (int j = 0; j < nHorizontalOrder; j++) {
@@ -1071,6 +1216,7 @@ void HighSpeedDynamics::StepImplicit(
 				m_dD(i,j,nRElements) = 0.0;
 			}
 			}
+#endif
 
 			// Timestep size squared
 			const double dDeltaT2 = dDeltaT * dDeltaT;
@@ -1095,25 +1241,40 @@ void HighSpeedDynamics::StepImplicit(
 					1.0 / (dataZn(iA,iB,k)
 						- dataZn(iA,iB,k-1));
 
-				// Note that we have stored theta in dataInitialREdge[PIx]
-				m_dA(i,j,k-1) = - dDeltaT2 * dInvDeltaZkm * (
+				// Note that we have stored theta in dataArgumentREdge[PIx]
+#if defined(USE_VECTOR_TRIDIAGONAL_SOLVE)
+				m_dA(k,i,j) =
+#else
+				m_dA(i,j,k-1) =
+#endif
+					- dDeltaT2 * dInvDeltaZkm * (
 					dInvDeltaZhat
 						* m_dDpDTheta(i,j,k-1)
-						* dataInitialREdge(PIx,iA,iB,k-1)
+						* dataArgumentREdge(PIx,iA,iB,k-1)
 					- 0.5 * phys.GetG());
 
-				m_dB(i,j,k) = 1.0 + dDeltaT2 * (
+#if defined(USE_VECTOR_TRIDIAGONAL_SOLVE)
+				m_dB(k,i,j) =
+#else
+				m_dB(i,j,k) =
+#endif
+					1.0 + dDeltaT2 * (
 					dInvDeltaZhat
-						* dataInitialREdge(PIx,iA,iB,k)
+						* dataArgumentREdge(PIx,iA,iB,k)
 						* (m_dDpDTheta(i,j,k) * dInvDeltaZk
 							+ m_dDpDTheta(i,j,k-1) * dInvDeltaZkm)
 					+ 0.5 * phys.GetG()
 						* (dInvDeltaZk - dInvDeltaZkm));
 
-				m_dC(i,j,k) = - dDeltaT2 * dInvDeltaZk * (
+#if defined(USE_VECTOR_TRIDIAGONAL_SOLVE)
+				m_dC(k,i,j) =
+#else
+				m_dC(i,j,k) =
+#endif
+					- dDeltaT2 * dInvDeltaZk * (
 					+ dInvDeltaZhat
 						* m_dDpDTheta(i,j,k)
-						* dataInitialREdge(PIx,iA,iB,k+1)
+						* dataArgumentREdge(PIx,iA,iB,k+1)
 					+ 0.5 * phys.GetG());
 
 				const double dDzPressure = dInvDeltaZhat
@@ -1121,23 +1282,27 @@ void HighSpeedDynamics::StepImplicit(
 					- dataPressure(iA,iB,k-1));
 
 				const double dIntRho =
-					phys.GetG() * dataInitialREdge(RIx,iA,iB,k);
+					phys.GetG() * dataArgumentREdge(RIx,iA,iB,k);
 
+#if defined(USE_VECTOR_TRIDIAGONAL_SOLVE)
+				m_dD(k,i,j) =
+#else
 				m_dD(i,j,k) =
-					dataInitialREdge(WIx,iA,iB,k)
+#endif
+					dataArgumentREdge(WIx,iA,iB,k)
 					- dDeltaT * (dDzPressure + dIntRho);
 /*
 				if ((i == 0) && (j == 0)) {
 					printf("%1.5e %1.5e %1.5e %1.5e %1.5e %1.5e\n",
 						dInvDeltaZhat
 							* m_dDpDTheta(i,j,k-1)
-							* dataInitialREdge(PIx,iA,iB,k-1),
+							* dataArgumentREdge(PIx,iA,iB,k-1),
 						- 0.5 * phys.GetG(),
 						+ dInvDeltaZhat
 							* m_dDpDTheta(i,j,k)
-							* dataInitialREdge(PIx,iA,iB,k+1),
+							* dataArgumentREdge(PIx,iA,iB,k+1),
 						+ 0.5 * phys.GetG(),
-						dataInitialREdge(PIx,iA,iB,k)
+						dataArgumentREdge(PIx,iA,iB,k)
 							* (m_dDpDTheta(i,j,k) * dInvDeltaZk
 							+ m_dDpDTheta(i,j,k-1) * dInvDeltaZkm),
 						0.5 * phys.GetG()
@@ -1151,7 +1316,42 @@ void HighSpeedDynamics::StepImplicit(
 			}
 			}
 
-			// Perform a tridiagonal solve for dataUpdate
+// Perform a tridiagonal solve for dataUpdate
+#if defined(USE_VECTOR_TRIDIAGONAL_SOLVE)
+#pragma simd
+			for (int i = 0; i < nHorizontalOrder; i++) {
+#pragma simd
+			for (int j = 0; j < nHorizontalOrder; j++) {
+				m_dC(0,i,j) /= m_dB(0,i,j);
+				m_dD(0,i,j) /= m_dB(0,i,j);
+			}
+			}
+
+			for (int k = 1; k < nRElements; k++) {
+#pragma simd
+			for (int i = 0; i < nHorizontalOrder; i++) {
+#pragma simd
+			for (int j = 0; j < nHorizontalOrder; j++) {
+				m_dC(k,i,j) /= (m_dB(k,i,j) - m_dA(k,i,j) * m_dC(k-1,i,j));
+				m_dD(k,i,j) =
+					(m_dD(k,i,j) - m_dA(k,i,j) * m_dD(k-1,i,j)) 
+					/ (m_dB(k,i,j) - m_dA(k,i,j) * m_dC(k-1,i,j));
+			}
+			}
+			}
+
+			for (int k = nRElements-1; k >= 0; k--) {
+#pragma simd
+			for (int i = 0; i < nHorizontalOrder; i++) {
+#pragma simd
+			for (int j = 0; j < nHorizontalOrder; j++) {
+				m_dD(k,i,j) -= m_dC(k,i,j) * m_dD(k+1,i,j);
+			}
+			}
+			}
+
+// Using LAPACK for the tridiagonal solve
+#elif defined(USE_LAPACK_TRIDIAGONAL_SOLVE)
 			int nREdges = nRElements+1;
 			int nRHS = 1;
 			int nLDB = nREdges;
@@ -1161,6 +1361,8 @@ void HighSpeedDynamics::StepImplicit(
 
 				const int iA = iElementA + i;
 				const int iB = iElementB + j;
+
+				
 
 #ifdef TEMPEST_LAPACK_ACML_INTERFACE
 				dgtsv(
@@ -1195,19 +1397,6 @@ void HighSpeedDynamics::StepImplicit(
 					&nLDB,
 					&(m_nInfo(i,j)));
 #endif
-/*
-				if ((i == 0) && (j == 0)) {
-					for (int k = 0; k <= nRElements; k++) {
-						printf("0: %1.5e\n", m_dD(i,j,k));
-					}
-				}
-*/
-/*
-				// DEBUG
-				for (int k = 0; k < nREdges; k++) {
-					m_dD(i,j,k) = dDeltaT * dataUpdateREdge(WIx,iA,iB,k);
-				}
-*/
 			}
 			}
 
@@ -1220,8 +1409,11 @@ void HighSpeedDynamics::StepImplicit(
 				}
 			}
 			}
+#else
+			_EXCEPTIONT("Invalid Tridiagonal solve algorithm");
+#endif
 
-			// Perform update to mass and potential temperature
+			// Perform updates
 			for (int i = 0; i < nHorizontalOrder; i++) {
 			for (int j = 0; j < nHorizontalOrder; j++) {
 #pragma simd
@@ -1230,14 +1422,60 @@ void HighSpeedDynamics::StepImplicit(
 				const int iA = iElementA + i;
 				const int iB = iElementB + j;
 
+				// Initialize the state using a combination of data instances
+				dataUpdateNode(RIx,iA,iB,k) =
+					dDataCombineCoeff[0] * (*vecpdataNode[0])(RIx,iA,iB,k);
+				dataUpdateNode(UIx,iA,iB,k) =
+					dDataCombineCoeff[0] * (*vecpdataNode[0])(UIx,iA,iB,k);
+				dataUpdateNode(VIx,iA,iB,k) =
+					dDataCombineCoeff[0] * (*vecpdataNode[0])(VIx,iA,iB,k);
+				dataUpdateNode(PIx,iA,iB,k) =
+					dDataCombineCoeff[0] * (*vecpdataNode[0])(PIx,iA,iB,k);
+				dataUpdateREdge(WIx,iA,iB,k) =
+					dDataCombineCoeff[0] * (*vecpdataREdge[0])(WIx,iA,iB,k);
+
+				for (int s = 1; s < sDataCombineInstCount; s++) {
+					dataUpdateNode(RIx,iA,iB,k) +=
+						dDataCombineCoeff[s] * (*vecpdataNode[s])(RIx,iA,iB,k);
+					dataUpdateNode(UIx,iA,iB,k) +=
+						dDataCombineCoeff[s] * (*vecpdataNode[s])(UIx,iA,iB,k);
+					dataUpdateNode(VIx,iA,iB,k) +=
+						dDataCombineCoeff[s] * (*vecpdataNode[s])(VIx,iA,iB,k);
+					dataUpdateNode(PIx,iA,iB,k) +=
+						dDataCombineCoeff[s] * (*vecpdataNode[s])(PIx,iA,iB,k);
+					dataUpdateREdge(WIx,iA,iB,k) +=
+						dDataCombineCoeff[s] * (*vecpdataREdge[s])(WIx,iA,iB,k);
+				}
+
+				// Inverse layer thickness
 				const double dInvDeltaZn =
 					1.0 / (dataZi(iA,iB,k+1)
 						- dataZi(iA,iB,k));
 
+#if defined(USE_VECTOR_TRIDIAGONAL_SOLVE)
+				// Store updated vertical momentum
+				dataUpdateREdge(WIx,iA,iB,k) +=
+					(m_dD(k,i,j)
+						- dataArgumentREdge(WIx,iA,iB,k));
+
+				// Updated vertical mass flux
+				const double dDzMassFlux =
+					dInvDeltaZn * (
+						m_dD(k+1,i,j)
+						- m_dD(k,i,j));
+
+				// Updated vertical pressure flux
+				const double dDzPressureFlux = dInvDeltaZn
+					* (m_dD(k+1,i,j)
+						* dataArgumentREdge(PIx,iA,iB,k+1)
+					- m_dD(k,i,j)
+						* dataArgumentREdge(PIx,iA,iB,k));
+
+#else
 				// Store updated vertical momentum
 				dataUpdateREdge(WIx,iA,iB,k) +=
 					(m_dD(i,j,k)
-						- dataInitialREdge(WIx,iA,iB,k));
+						- dataArgumentREdge(WIx,iA,iB,k));
 
 				// Updated vertical mass flux
 				const double dDzMassFlux =
@@ -1245,25 +1483,26 @@ void HighSpeedDynamics::StepImplicit(
 						m_dD(i,j,k+1)
 						- m_dD(i,j,k));
 
+				// Updated vertical pressure flux
+				const double dDzPressureFlux = dInvDeltaZn
+					* (m_dD(i,j,k+1)
+						* dataArgumentREdge(PIx,iA,iB,k+1)
+					- m_dD(i,j,k)
+						* dataArgumentREdge(PIx,iA,iB,k));
+#endif
+
 				// Store updated density
 				dataUpdateNode(RIx,iA,iB,k) +=
 					- dDeltaT * dDzMassFlux;
 
-				// Updated vertical pressure flux
-				const double dDzPressureFlux = dInvDeltaZn
-					* (m_dD(i,j,k+1)
-						* dataInitialREdge(PIx,iA,iB,k+1)
-					- m_dD(i,j,k)
-						* dataInitialREdge(PIx,iA,iB,k));
-
 				// Store updated potential temperature density
 				dataUpdateNode(PIx,iA,iB,k) +=
 					- dDeltaT * dDzPressureFlux;
+
 			}
 			}
 			}
 
-#pragma message "Fix"
 			// Apply boundary condition to W
 			for (int i = 0; i < nHorizontalOrder; i++) {
 			for (int j = 0; j < nHorizontalOrder; j++) {
@@ -1286,11 +1525,11 @@ void HighSpeedDynamics::StepImplicit(
 ///////////////////////////////////////////////////////////////////////////////
 
 void HighSpeedDynamics::ApplyScalarHyperdiffusion(
-	int iDataInitial,
+	int iDataArgument,
 	int iDataUpdate,
 	double dDeltaT,
 	double dNu,
-	bool fScaleNuLocally,
+	bool fLaplacianOnly,
 	int iComponent,
 	bool fRemoveRefState
 ) {
@@ -1346,11 +1585,11 @@ void HighSpeedDynamics::ApplyScalarHyperdiffusion(
 			pPatch->GetContraMetric2DB();
 
 		// Grid data
-		DataArray4D<double> & dataInitialNode =
-			pPatch->GetDataState(iDataInitial, DataLocation_Node);
+		DataArray4D<double> & dataArgumentNode =
+			pPatch->GetDataState(iDataArgument, DataLocation_Node);
 
-		DataArray4D<double> & dataInitialREdge =
-			pPatch->GetDataState(iDataInitial, DataLocation_REdge);
+		DataArray4D<double> & dataArgumentREdge =
+			pPatch->GetDataState(iDataArgument, DataLocation_REdge);
 
 		DataArray4D<double> & dataUpdateNode =
 			pPatch->GetDataState(iDataUpdate, DataLocation_Node);
@@ -1365,8 +1604,8 @@ void HighSpeedDynamics::ApplyScalarHyperdiffusion(
 			pPatch->GetReferenceState(DataLocation_REdge);
 
 		// Tracer data
-		DataArray4D<double> & dataInitialTracer =
-			pPatch->GetDataTracers(iDataInitial);
+		DataArray4D<double> & dataArgumentTracer =
+			pPatch->GetDataTracers(iDataArgument);
 
 		DataArray4D<double> & dataUpdateTracer =
 			pPatch->GetDataTracers(iDataUpdate);
@@ -1388,7 +1627,7 @@ void HighSpeedDynamics::ApplyScalarHyperdiffusion(
 		// Compute new hyperviscosity coefficient
 		double dLocalNu = dNu;
 
-		if (fScaleNuLocally) {
+		if (!fLaplacianOnly) {
 			double dReferenceLength = pGrid->GetReferenceLength();
 			if (dReferenceLength != 0.0) {
 				dLocalNu *= pow(dElementDeltaA / dReferenceLength, 3.2);
@@ -1428,21 +1667,21 @@ void HighSpeedDynamics::ApplyScalarHyperdiffusion(
 
 				int nElementCountR;
 
-				const DataArray4D<double> * pDataInitial;
+				const DataArray4D<double> * pDataArgument;
 				DataArray4D<double> * pDataUpdate;
 				const DataArray4D<double> * pDataRef;
 				const DataArray3D<double> * pJacobian;
 
 				if (iType == 0) {
 					if (pGrid->GetVarLocation(c) == DataLocation_Node) {
-						pDataInitial = &dataInitialNode;
+						pDataArgument = &dataArgumentNode;
 						pDataUpdate  = &dataUpdateNode;
 						pDataRef = &dataRefNode;
 						nElementCountR = nRElements;
 						pJacobian = &dJacobianNode;
 
 					} else if (pGrid->GetVarLocation(c) == DataLocation_REdge) {
-						pDataInitial = &dataInitialREdge;
+						pDataArgument = &dataArgumentREdge;
 						pDataUpdate  = &dataUpdateREdge;
 						pDataRef = &dataRefREdge;
 						nElementCountR = nRElements + 1;
@@ -1453,7 +1692,7 @@ void HighSpeedDynamics::ApplyScalarHyperdiffusion(
 					}
 
 				} else {
-					pDataInitial = &dataInitialTracer;
+					pDataArgument = &dataArgumentTracer;
 					pDataUpdate = &dataUpdateTracer;
 					nElementCountR = nRElements;
 					pJacobian = &dJacobianNode;
@@ -1477,7 +1716,7 @@ void HighSpeedDynamics::ApplyScalarHyperdiffusion(
 						const int iB = iElementB + j;
 
 						m_dBufferState(i,j,k) =
-							(*pDataInitial)(c,iA,iB,k);
+							(*pDataArgument)(c,iA,iB,k);
 					}
 					}
 					}
@@ -1536,42 +1775,83 @@ void HighSpeedDynamics::ApplyScalarHyperdiffusion(
 					}
 					}
 
-					// Pointwise updates
-					for (int i = 0; i < nHorizontalOrder; i++) {
-					for (int j = 0; j < nHorizontalOrder; j++) {
+					// Pointwise updates (Laplacian only)
+					if (fLaplacianOnly) {
+						for (int i = 0; i < nHorizontalOrder; i++) {
+						for (int j = 0; j < nHorizontalOrder; j++) {
 #pragma simd
-					for (int k = 0; k < nElementCountR; k++) {
+						for (int k = 0; k < nElementCountR; k++) {
 
-						const int iA = iElementA + i;
-						const int iB = iElementB + j;
+							const int iA = iElementA + i;
+							const int iB = iElementB + j;
 
-						// Inverse Jacobian and Jacobian
-						const double dInvJacobian =
-							1.0 / (*pJacobian)(iA,iB,k);
+							// Inverse Jacobian and Jacobian
+							const double dInvJacobian =
+								1.0 / (*pJacobian)(iA,iB,k);
 
-						// Compute integral term
-						double dUpdateA = 0.0;
-						double dUpdateB = 0.0;
+							// Compute integral term
+							double dUpdateA = 0.0;
+							double dUpdateB = 0.0;
 
-						for (int s = 0; s < nHorizontalOrder; s++) {
-							dUpdateA +=
-								m_dJGradientA(s,j,k)
-								* dStiffness1D(i,s);
+							for (int s = 0; s < nHorizontalOrder; s++) {
+								dUpdateA +=
+									m_dJGradientA(s,j,k)
+									* dStiffness1D(i,s);
 
-							dUpdateB +=
-								m_dJGradientB(i,s,k)
-								* dStiffness1D(j,s);
+								dUpdateB +=
+									m_dJGradientB(i,s,k)
+									* dStiffness1D(j,s);
+							}
+
+							dUpdateA *= dInvElementDeltaA;
+							dUpdateB *= dInvElementDeltaB;
+
+							// Apply update
+							(*pDataUpdate)(c,iA,iB,k) =
+								- dDeltaT * dInvJacobian * dLocalNu
+									* (dUpdateA + dUpdateB);
+						}
+						}
 						}
 
-						dUpdateA *= dInvElementDeltaA;
-						dUpdateB *= dInvElementDeltaB;
+					// Pointwise updates (use Laplacian to update data)
+					} else {
+						for (int i = 0; i < nHorizontalOrder; i++) {
+						for (int j = 0; j < nHorizontalOrder; j++) {
+#pragma simd
+						for (int k = 0; k < nElementCountR; k++) {
 
-						// Apply update
-						(*pDataUpdate)(c,iA,iB,k) -=
-							dDeltaT * dInvJacobian * dLocalNu
-								* (dUpdateA + dUpdateB);
-					}
-					}
+							const int iA = iElementA + i;
+							const int iB = iElementB + j;
+
+							// Inverse Jacobian and Jacobian
+							const double dInvJacobian =
+								1.0 / (*pJacobian)(iA,iB,k);
+
+							// Compute integral term
+							double dUpdateA = 0.0;
+							double dUpdateB = 0.0;
+
+							for (int s = 0; s < nHorizontalOrder; s++) {
+								dUpdateA +=
+									m_dJGradientA(s,j,k)
+									* dStiffness1D(i,s);
+
+								dUpdateB +=
+									m_dJGradientB(i,s,k)
+									* dStiffness1D(j,s);
+							}
+
+							dUpdateA *= dInvElementDeltaA;
+							dUpdateB *= dInvElementDeltaB;
+
+							// Apply update
+							(*pDataUpdate)(c,iA,iB,k) -=
+								dDeltaT * dInvJacobian * dLocalNu
+									* (dUpdateA + dUpdateB);
+						}
+						}
+						}
 					}
 				}
 				}
@@ -1583,13 +1863,12 @@ void HighSpeedDynamics::ApplyScalarHyperdiffusion(
 ///////////////////////////////////////////////////////////////////////////////
 
 void HighSpeedDynamics::ApplyVectorHyperdiffusion(
-	int iDataInitial,
-	int iDataWorking,
+	int iDataArgument,
 	int iDataUpdate,
 	double dDeltaT,
 	double dNuDiv,
 	double dNuVort,
-	bool fScaleNuLocally
+	bool fLaplacianOnly
 ) {
 	// Variable indices
 	const int UIx = 0;
@@ -1627,8 +1906,8 @@ void HighSpeedDynamics::ApplyVectorHyperdiffusion(
 
 	// Apply viscosity to reference state
 	bool fApplyToRefState = false;
-	if (iDataInitial == DATA_INDEX_REFERENCE) {
-		iDataInitial = 0;
+	if (iDataArgument == DATA_INDEX_REFERENCE) {
+		iDataArgument = 0;
 		fApplyToRefState = true;
 	}
 
@@ -1646,11 +1925,8 @@ void HighSpeedDynamics::ApplyVectorHyperdiffusion(
 		const DataArray3D<double> & dContraMetric2DB =
 			pPatch->GetContraMetric2DB();
 
-		DataArray4D<double> & dataInitial =
-			pPatch->GetDataState(iDataInitial, DataLocation_Node);
-
-		DataArray4D<double> & dataWorking =
-			pPatch->GetDataState(iDataWorking, DataLocation_Node);
+		DataArray4D<double> & dataArgument =
+			pPatch->GetDataState(iDataArgument, DataLocation_Node);
 
 		DataArray4D<double> & dataUpdate =
 			pPatch->GetDataState(iDataUpdate, DataLocation_Node);
@@ -1671,30 +1947,34 @@ void HighSpeedDynamics::ApplyVectorHyperdiffusion(
 		// Compute curl and divergence of U on the grid
 		DataArray3D<double> dataUa;
 		dataUa.SetSize(
-			dataWorking.GetSize(1),
-			dataWorking.GetSize(2),
-			dataWorking.GetSize(3));
+			dataArgument.GetSize(1),
+			dataArgument.GetSize(2),
+			dataArgument.GetSize(3));
 
 		DataArray3D<double> dataUb;
 		dataUb.SetSize(
-			dataWorking.GetSize(1),
-			dataWorking.GetSize(2),
-			dataWorking.GetSize(3));
+			dataArgument.GetSize(1),
+			dataArgument.GetSize(2),
+			dataArgument.GetSize(3));
 
 		DataArray3D<double> dataRho;
 		dataRho.SetSize(
-			dataInitial.GetSize(1),
-			dataInitial.GetSize(2),
-			dataInitial.GetSize(3));
+			dataArgument.GetSize(1),
+			dataArgument.GetSize(2),
+			dataArgument.GetSize(3));
 
 		if (fApplyToRefState) {
 			dataUa.AttachToData(&(dataRef(UIx,0,0,0)));
 			dataUb.AttachToData(&(dataRef(VIx,0,0,0)));
 			dataRho.AttachToData(&(dataRef(RIx,0,0,0)));
+		} else if (fLaplacianOnly) {
+			dataUa.AttachToData(&(dataArgument(UIx,0,0,0)));
+			dataUb.AttachToData(&(dataArgument(VIx,0,0,0)));
+			dataRho.AttachToData(&(dataArgument(RIx,0,0,0)));
 		} else {
-			dataUa.AttachToData(&(dataWorking(UIx,0,0,0)));
-			dataUb.AttachToData(&(dataWorking(VIx,0,0,0)));
-			dataRho.AttachToData(&(dataInitial(RIx,0,0,0)));
+			dataUa.AttachToData(&(dataArgument(UIx,0,0,0)));
+			dataUb.AttachToData(&(dataArgument(VIx,0,0,0)));
+			dataRho.AttachToData(&(dataUpdate(RIx,0,0,0)));
 		}
 
 		// Compute curl and divergence of U on the grid
@@ -1708,7 +1988,7 @@ void HighSpeedDynamics::ApplyVectorHyperdiffusion(
 		double dLocalNuDiv  = dNuDiv;
 		double dLocalNuVort = dNuVort;
 
-		if (fScaleNuLocally) {
+		if (!fLaplacianOnly) {
 			double dReferenceLength = pGrid->GetReferenceLength();
 			if (dReferenceLength != 0.0) {
 				dLocalNuDiv =
@@ -1729,76 +2009,156 @@ void HighSpeedDynamics::ApplyVectorHyperdiffusion(
 			const int iElementA = a * nHorizontalOrder + box.GetHaloElements();
 			const int iElementB = b * nHorizontalOrder + box.GetHaloElements();
 
-			// Pointwise update of horizontal velocities
-			for (int i = 0; i < nHorizontalOrder; i++) {
-			for (int j = 0; j < nHorizontalOrder; j++) {
+			// Pointwise calculation of Laplacian
+			if (fLaplacianOnly) {
+
+				// Pointwise update of horizontal velocities
+				for (int i = 0; i < nHorizontalOrder; i++) {
+				for (int j = 0; j < nHorizontalOrder; j++) {
 #pragma simd
-			for (int k = 0; k < nRElements; k++) {
+				for (int k = 0; k < nRElements; k++) {
 
-				const int iA = iElementA + i;
-				const int iB = iElementB + j;
+					const int iA = iElementA + i;
+					const int iB = iElementB + j;
 
-				// Compute hyperviscosity sums
-				double dDaDiv = 0.0;
-				double dDbDiv = 0.0;
+					// Compute hyperviscosity sums
+					double dDaDiv = 0.0;
+					double dDbDiv = 0.0;
 
-				double dDaCurl = 0.0;
-				double dDbCurl = 0.0;
+					double dDaCurl = 0.0;
+					double dDbCurl = 0.0;
 
-				for (int s = 0; s < nHorizontalOrder; s++) {
-					dDaDiv -=
-						  dStiffness1D(i,s)
-						* dataDiv(iElementA+s,iB,k);
+					for (int s = 0; s < nHorizontalOrder; s++) {
+						dDaDiv -=
+							  dStiffness1D(i,s)
+							* dataDiv(iElementA+s,iB,k);
 
-					dDbDiv -=
-						  dStiffness1D(j,s)
-						* dataDiv(iA,iElementB+s,k);
+						dDbDiv -=
+							  dStiffness1D(j,s)
+							* dataDiv(iA,iElementB+s,k);
 
-					dDaCurl -=
-						  dStiffness1D(i,s)
-						* dataCurl(iElementA+s,iB,k);
+						dDaCurl -=
+							  dStiffness1D(i,s)
+							* dataCurl(iElementA+s,iB,k);
 
-					dDbCurl -=
-						  dStiffness1D(j,s)
-						* dataCurl(iA,iElementB+s,k);
+						dDbCurl -=
+							  dStiffness1D(j,s)
+							* dataCurl(iA,iElementB+s,k);
+					}
+
+					dDaDiv *= dInvElementDeltaA;
+					dDbDiv *= dInvElementDeltaB;
+
+					dDaCurl *= dInvElementDeltaA;
+					dDbCurl *= dInvElementDeltaB;
+
+					// Covariant update
+					const double dUpdateCovUa =
+						+ dLocalNuDiv * dDaDiv
+						- dLocalNuVort * dJacobian2D(iA,iB) * (
+							  dContraMetric2DB(iA,iB,0) * dDaCurl
+							+ dContraMetric2DB(iA,iB,1) * dDbCurl);
+
+					const double dUpdateCovUb =
+						+ dLocalNuDiv * dDbDiv
+						+ dLocalNuVort * dJacobian2D(iA,iB) * (
+							  dContraMetric2DA(iA,iB,0) * dDaCurl
+							+ dContraMetric2DA(iA,iB,1) * dDbCurl);
+
+					// Contravariant update
+					double dUpdateConUa =
+						  dContraMetric2DA(iA,iB,0) * dUpdateCovUa
+						+ dContraMetric2DA(iA,iB,1) * dUpdateCovUb;
+
+					double dUpdateConUb =
+						  dContraMetric2DB(iA,iB,0) * dUpdateCovUa
+						+ dContraMetric2DB(iA,iB,1) * dUpdateCovUb;
+
+					dUpdateConUa *= dataArgument(RIx,iA,iB,k);
+					dUpdateConUb *= dataArgument(RIx,iA,iB,k);
+
+					dataUpdate(UIx,iA,iB,k) = - dDeltaT * dUpdateConUa;
+
+					dataUpdate(VIx,iA,iB,k) = - dDeltaT * dUpdateConUb;
+				}
+				}
 				}
 
-				dDaDiv *= dInvElementDeltaA;
-				dDbDiv *= dInvElementDeltaB;
+			// Pointwise updates of horizontal velocities
+			// (use Laplacian to update data)
+			} else {
 
-				dDaCurl *= dInvElementDeltaA;
-				dDbCurl *= dInvElementDeltaB;
+				// Pointwise update of horizontal velocities
+				for (int i = 0; i < nHorizontalOrder; i++) {
+				for (int j = 0; j < nHorizontalOrder; j++) {
+#pragma simd
+				for (int k = 0; k < nRElements; k++) {
 
-				// Covariant update
-				const double dUpdateCovUa =
-					+ dLocalNuDiv * dDaDiv
-					- dLocalNuVort * dJacobian2D(iA,iB) * (
-						  dContraMetric2DB(iA,iB,0) * dDaCurl
-						+ dContraMetric2DB(iA,iB,1) * dDbCurl);
+					const int iA = iElementA + i;
+					const int iB = iElementB + j;
 
-				const double dUpdateCovUb =
-					+ dLocalNuDiv * dDbDiv
-					+ dLocalNuVort * dJacobian2D(iA,iB) * (
-						  dContraMetric2DA(iA,iB,0) * dDaCurl
-						+ dContraMetric2DA(iA,iB,1) * dDbCurl);
+					// Compute hyperviscosity sums
+					double dDaDiv = 0.0;
+					double dDbDiv = 0.0;
 
-				// Contravariant update
-				double dUpdateConUa =
-					  dContraMetric2DA(iA,iB,0) * dUpdateCovUa
-					+ dContraMetric2DA(iA,iB,1) * dUpdateCovUb;
+					double dDaCurl = 0.0;
+					double dDbCurl = 0.0;
 
-				double dUpdateConUb =
-					  dContraMetric2DB(iA,iB,0) * dUpdateCovUa
-					+ dContraMetric2DB(iA,iB,1) * dUpdateCovUb;
+					for (int s = 0; s < nHorizontalOrder; s++) {
+						dDaDiv -=
+							  dStiffness1D(i,s)
+							* dataDiv(iElementA+s,iB,k);
 
-				dUpdateConUa *= dataInitial(RIx,iA,iB,k);
-				dUpdateConUb *= dataInitial(RIx,iA,iB,k);
+						dDbDiv -=
+							  dStiffness1D(j,s)
+							* dataDiv(iA,iElementB+s,k);
 
-				dataUpdate(UIx,iA,iB,k) -= dDeltaT * dUpdateConUa;
+						dDaCurl -=
+							  dStiffness1D(i,s)
+							* dataCurl(iElementA+s,iB,k);
 
-				dataUpdate(VIx,iA,iB,k) -= dDeltaT * dUpdateConUb;
-			}
-			}
+						dDbCurl -=
+							  dStiffness1D(j,s)
+							* dataCurl(iA,iElementB+s,k);
+					}
+
+					dDaDiv *= dInvElementDeltaA;
+					dDbDiv *= dInvElementDeltaB;
+
+					dDaCurl *= dInvElementDeltaA;
+					dDbCurl *= dInvElementDeltaB;
+
+					// Covariant update
+					const double dUpdateCovUa =
+						+ dLocalNuDiv * dDaDiv
+						- dLocalNuVort * dJacobian2D(iA,iB) * (
+							  dContraMetric2DB(iA,iB,0) * dDaCurl
+							+ dContraMetric2DB(iA,iB,1) * dDbCurl);
+
+					const double dUpdateCovUb =
+						+ dLocalNuDiv * dDbDiv
+						+ dLocalNuVort * dJacobian2D(iA,iB) * (
+							  dContraMetric2DA(iA,iB,0) * dDaCurl
+							+ dContraMetric2DA(iA,iB,1) * dDbCurl);
+
+					// Contravariant update
+					double dUpdateConUa =
+						  dContraMetric2DA(iA,iB,0) * dUpdateCovUa
+						+ dContraMetric2DA(iA,iB,1) * dUpdateCovUb;
+
+					double dUpdateConUb =
+						  dContraMetric2DB(iA,iB,0) * dUpdateCovUa
+						+ dContraMetric2DB(iA,iB,1) * dUpdateCovUb;
+
+					dUpdateConUa *= dataUpdate(RIx,iA,iB,k);
+					dUpdateConUb *= dataUpdate(RIx,iA,iB,k);
+
+					dataUpdate(UIx,iA,iB,k) -= dDeltaT * dUpdateConUa;
+
+					dataUpdate(VIx,iA,iB,k) -= dDeltaT * dUpdateConUb;
+				}
+				}
+				}
 			}
 		}
 		}
@@ -1962,8 +2322,7 @@ void HighSpeedDynamics::ApplyRayleighFriction(
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void HighSpeedDynamics::StepAfterSubCycle(
-	int iDataInitial,
+void HighSpeedDynamics::StepAfterSubCycleCombine(
 	int iDataUpdate,
 	int iDataWorking,
 	const Time & time,
@@ -1973,10 +2332,6 @@ void HighSpeedDynamics::StepAfterSubCycle(
 	FunctionTimer timer("StepAfterSubCycle");
 
 	// Check indices
-	if (iDataInitial == iDataWorking) {
-		_EXCEPTIONT("Invalid indices "
-			"-- initial and working data must be distinct");
-	}
 	if (iDataUpdate == iDataWorking) {
 		_EXCEPTIONT("Invalid indices "
 			"-- working and update data must be distinct");
@@ -1985,43 +2340,17 @@ void HighSpeedDynamics::StepAfterSubCycle(
 	// Get the GLL grid
 	GridGLL * pGrid = dynamic_cast<GridGLL*>(m_model.GetGrid());
 
-	// Copy initial data to updated data
-	pGrid->CopyData(iDataInitial, iDataUpdate, DataType_State);
-	pGrid->CopyData(iDataInitial, iDataUpdate, DataType_Tracers);
-
 	// No hyperdiffusion
 	if ((m_dNuScalar == 0.0) && (m_dNuDiv == 0.0) && (m_dNuVort == 0.0)) {
-
-	// Apply hyperdiffusion
-	} else if (m_nHyperviscosityOrder == 0) {
-
-	// Apply viscosity
-	} else if (m_nHyperviscosityOrder == 2) {
-
-		// Apply scalar and vector viscosity
-		ApplyScalarHyperdiffusion(
-			iDataInitial, iDataUpdate, dDeltaT, m_dNuScalar, false);
-		ApplyVectorHyperdiffusion(
-			iDataInitial, iDataInitial, iDataUpdate, -dDeltaT, m_dNuDiv, m_dNuVort, false);
-
-		// Apply positive definite filter to tracers
-		FilterNegativeTracers(iDataUpdate);
-
-		// Apply Direct Stiffness Summation
-		pGrid->ApplyDSS(iDataUpdate, DataType_State);
-		pGrid->ApplyDSS(iDataUpdate, DataType_Tracers);
 
 	// Apply hyperviscosity
 	} else if (m_nHyperviscosityOrder == 4) {
 
 		// Apply scalar and vector hyperviscosity (first application)
-		pGrid->ZeroData(iDataWorking, DataType_State);
-		pGrid->ZeroData(iDataWorking, DataType_Tracers);
-
 		ApplyScalarHyperdiffusion(
-			iDataInitial, iDataWorking, 1.0, 1.0, false);
+			iDataUpdate, iDataWorking, 1.0, 1.0, true);
 		ApplyVectorHyperdiffusion(
-			iDataInitial, iDataInitial, iDataWorking, 1.0, 1.0, 1.0, false);
+			iDataUpdate, iDataWorking, 1.0, 1.0, 1.0, true);
 
 		// Apply Direct Stiffness Summation
 		pGrid->ApplyDSS(iDataWorking, DataType_State);
@@ -2029,9 +2358,9 @@ void HighSpeedDynamics::StepAfterSubCycle(
 
 		// Apply scalar and vector hyperviscosity (second application)
 		ApplyScalarHyperdiffusion(
-			iDataWorking, iDataUpdate, -dDeltaT, m_dNuScalar, true);
+			iDataWorking, iDataUpdate, -dDeltaT, m_dNuScalar, false);
 		ApplyVectorHyperdiffusion(
-			iDataInitial, iDataWorking, iDataUpdate, -dDeltaT, m_dNuDiv, m_dNuVort, true);
+			iDataWorking, iDataUpdate, -dDeltaT, m_dNuDiv, m_dNuVort, false);
 
 		// Apply positive definite filter to tracers
 		FilterNegativeTracers(iDataUpdate);

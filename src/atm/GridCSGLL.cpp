@@ -446,11 +446,11 @@ void GridCSGLL::ApplyDSS(
 			dynamic_cast<GridPatchCSGLL*>(GetActivePatch(n));
 
 		const PatchBox & box = pPatch->GetPatchBox();
-        
-        // Patch-specific quantities
-		int nElementCountA = pPatch->GetElementCountA();
-		int nElementCountB = pPatch->GetElementCountB();
-        
+	
+	// Patch-specific quantities
+		const int nElementCountA = pPatch->GetElementCountA();
+		const int nElementCountB = pPatch->GetElementCountB();
+	
 		// Apply panel transforms to velocity data
 		if (eDataType == DataType_State) {
 			pPatch->TransformHaloVelocities(iDataUpdate);
@@ -463,22 +463,22 @@ void GridCSGLL::ApplyDSS(
 		}
 
 		// Panels in each coordinate direction
-		int ixRightPanel =
+		const int ixRightPanel =
 			pPatch->GetNeighborPanel(Direction_Right);
-		int ixTopPanel =
+		const int ixTopPanel =
 			pPatch->GetNeighborPanel(Direction_Top);
-		int ixLeftPanel =
+		const int ixLeftPanel =
 			pPatch->GetNeighborPanel(Direction_Left);
-		int ixBottomPanel =
+		const int ixBottomPanel =
 			pPatch->GetNeighborPanel(Direction_Bottom);
 
-		int ixTopRightPanel =
+		const int ixTopRightPanel =
 			pPatch->GetNeighborPanel(Direction_TopRight);
-		int ixTopLeftPanel =
+		const int ixTopLeftPanel =
 			pPatch->GetNeighborPanel(Direction_TopLeft);
-		int ixBottomLeftPanel =
+		const int ixBottomLeftPanel =
 			pPatch->GetNeighborPanel(Direction_BottomLeft);
-		int ixBottomRightPanel =
+		const int ixBottomRightPanel =
 			pPatch->GetNeighborPanel(Direction_BottomRight);
 
 		// Loop through all components associated with this DataType
@@ -555,116 +555,227 @@ void GridCSGLL::ApplyDSS(
 				pDataUpdate.AttachToData(&(dTopographyDeriv(0,0,0)));
 			}
 
-			for (int k = 0; k < nRElements; k++) {
+			/// start of loop nest 1
 
-				// Average in the alpha direction
-				for (int a = 0; a <= nElementCountA; a++) {
-					int iA = a * m_nHorizontalOrder + box.GetHaloElements();
+			// Average in the alpha direction (patch interior)
+			{
+				const int jBegin = box.GetBInteriorBegin()-1;
+				const int jEnd = box.GetBInteriorEnd()+1;
 
-					// Do not average across cubed-sphere corners
-					int jBegin = box.GetBInteriorBegin()-1;
-					int jEnd = box.GetBInteriorEnd()+1;
+				// Perform averaging across edge
+				for (int a = 1; a < nElementCountA; a++) {
+					const int iA = a * m_nHorizontalOrder + box.GetHaloElements();
+				    for (int j = jBegin; j < jEnd; j++) {
+#pragma simd
+						for (int k = 0; k < nRElements; k++) {
+						    pDataUpdate(iA,j,k) = 0.5 * (
+								pDataUpdate(iA,j,k)
+								+ pDataUpdate(iA-1,j,k));
 
-					if (((a == 0) &&
-							(ixTopLeftPanel == InvalidPanel)) ||
-						((a == nElementCountA) &&
-							(ixTopRightPanel == InvalidPanel))
-					) {
-						jEnd -= 2;
-					}
-					if (((a == 0) &&
-							(ixBottomLeftPanel == InvalidPanel)) ||
-						((a == nElementCountA) &&
-							(ixBottomRightPanel == InvalidPanel))
-					) {
-						jBegin += 2;
-					}
+						    pDataUpdate(iA-1,j,k) =
+								pDataUpdate(iA,j,k);
+						}
+				    }
+				}
+			}
 
-					// Perform averaging across edge
-					for (int j = jBegin; j < jEnd; j++) {
+			// Average in the alpha direction (left edge of patch)
+			{
+				const int iA = box.GetHaloElements();
+
+				// Do not average across cubed-sphere corners
+				int jBegin = box.GetBInteriorBegin()-1;
+				int jEnd = box.GetBInteriorEnd()+1;
+
+				if (ixTopLeftPanel  == InvalidPanel) {
+					jEnd -= 2;
+				}
+				if (ixBottomLeftPanel == InvalidPanel) {
+					jBegin += 2;
+				}
+
+				// Perform averaging across edge
+				for (int j = jBegin; j < jEnd; j++) {
+#pragma simd
+				    for (int k = 0; k < nRElements; k++) {
 						pDataUpdate(iA,j,k) = 0.5 * (
-							+ pDataUpdate(iA  ,j,k)
+							pDataUpdate(iA,j,k)
 							+ pDataUpdate(iA-1,j,k));
 
 						pDataUpdate(iA-1,j,k) =
 							pDataUpdate(iA,j,k);
 					}
 				}
+			}
 
-				// Average in the beta direction
-				for (int b = 0; b <= nElementCountB; b++) {
+			// Average in the alpha direction (right edge of patch)
+			{
+				const int iA =
+					nElementCountA * m_nHorizontalOrder
+					+ box.GetHaloElements();
+
+				// Do not average across cubed-sphere corners
+				int jBegin = box.GetBInteriorBegin()-1;
+				int jEnd = box.GetBInteriorEnd()+1;
+
+				if (ixTopRightPanel == InvalidPanel) {
+					jEnd -= 2;
+				}
+				if (ixBottomRightPanel == InvalidPanel) {
+					jBegin += 2;
+				}
+
+			    // Perform averaging across edge
+				for (int j = jBegin; j < jEnd; j++) {
+#pragma simd
+				    for (int k = 0; k < nRElements; k++) {
+						pDataUpdate(iA,j,k) = 0.5 * (
+							pDataUpdate(iA,j,k)
+							+ pDataUpdate(iA-1,j,k));
+
+						pDataUpdate(iA-1,j,k) =
+							pDataUpdate(iA,j,k);
+					}
+				}
+			}
+			/// end of loop 1
+
+			/// start of loop nest 2
+
+			// Average in the beta direction (patch interior)
+			{
+				const int iBegin = box.GetAInteriorBegin()-1;
+				const int iEnd = box.GetAInteriorEnd()+1;
+				for (int b = 1; b < nElementCountB; b++) {
 					int iB = b * m_nHorizontalOrder + box.GetHaloElements();
 
-					// Do not average across cubed-sphere corners
-					int iBegin = box.GetAInteriorBegin()-1;
-					int iEnd = box.GetAInteriorEnd()+1;
-
-					if (((b == 0) &&
-							(ixBottomLeftPanel == InvalidPanel)) ||
-						((b == nElementCountA) &&
-							(ixTopLeftPanel == InvalidPanel))
-					) {
-						iBegin += 2;
-					}
-					if (((b == 0) &&
-							(ixBottomRightPanel == InvalidPanel)) ||
-						((b == nElementCountA) &&
-							(ixTopRightPanel == InvalidPanel))
-					) {
-						iEnd -= 2;
-					}
-
 					for (int i = iBegin; i < iEnd; i++) {
+#pragma simd
+						for (int k = 0; k < nRElements; k++) {
+							pDataUpdate(i,iB,k) = 0.5 * (
+								pDataUpdate(i,iB,k)
+								+ pDataUpdate(i,iB-1,k));
+
+							pDataUpdate(i,iB-1,k) =
+								pDataUpdate(i,iB,k);
+						}
+					}
+				}
+			}
+
+			// Average in the beta direction (bottom edge of patch)
+			{
+				const int iB = box.GetHaloElements();
+
+				int iBegin = box.GetAInteriorBegin()-1;
+				int iEnd = box.GetAInteriorEnd()+1;
+
+				if (ixBottomLeftPanel == InvalidPanel) {
+					iBegin += 2;
+				}
+				if (ixBottomRightPanel == InvalidPanel) {
+					iEnd -= 2;
+				}
+
+				for (int i = iBegin; i < iEnd; i++) {
+#pragma simd
+					for (int k = 0; k < nRElements; k++) {
 						pDataUpdate(i,iB,k) = 0.5 * (
-							+ pDataUpdate(i,iB  ,k)
+							pDataUpdate(i,iB,k)
+							+ pDataUpdate(i,iB-1,k));
+						pDataUpdate(i,iB-1,k) =
+							pDataUpdate(i,iB,k);
+					}
+				}
+			}
+
+			// Average in the beta direction (top edge of patch)
+			{
+				const int iB =
+					nElementCountB * m_nHorizontalOrder
+					+ box.GetHaloElements();
+
+				int iBegin = box.GetAInteriorBegin()-1;
+				int iEnd = box.GetAInteriorEnd()+1;
+
+				if (ixTopLeftPanel == InvalidPanel) {
+					iBegin += 2;
+				}
+				if (ixTopRightPanel == InvalidPanel) {
+					iEnd -= 2;
+				}
+
+				for (int i = iBegin; i < iEnd; i++) {
+#pragma simd
+					for (int k = 0; k < nRElements; k++) {
+						pDataUpdate(i,iB,k) = 0.5 * (
+							pDataUpdate(i,iB,k)
 							+ pDataUpdate(i,iB-1,k));
 
 						pDataUpdate(i,iB-1,k) =
 							pDataUpdate(i,iB,k);
 					}
 				}
+			}
 
-				// Average at cubed-sphere corners (nodes of connectivity 3)
-				if (ixTopRightPanel == InvalidPanel) {
-					int iA = box.GetAInteriorEnd()-1;
-					int iB = box.GetBInteriorEnd()-1;
+			/// end of loop 2
 
+			/// start of loop nest 3
+
+			// Handle patch corners that are coincident with panel corners.
+			// These are also nodes of connectivity 3.
+			if (ixTopRightPanel == InvalidPanel) {
+				const int iA = box.GetAInteriorEnd()-1;
+				const int iB = box.GetBInteriorEnd()-1;
+
+#pragma simd
+				for (int k = 0; k < nRElements; k++) {
 					pDataUpdate(iA,iB,k) = (1.0/3.0) * (
 						+ pDataUpdate(iA  ,iB  ,k)
 						+ pDataUpdate(iA+1,iB  ,k)
 						+ pDataUpdate(iA  ,iB+1,k));
 				}
+			}
 
-				if (ixTopLeftPanel == InvalidPanel) {
-					int iA = box.GetAInteriorBegin();
-					int iB = box.GetBInteriorEnd()-1;
+			if (ixTopLeftPanel == InvalidPanel) {
+				const int iA = box.GetAInteriorBegin();
+				const int iB = box.GetBInteriorEnd()-1;
 
+#pragma simd
+				for (int k = 0; k < nRElements; k++) {
 					pDataUpdate(iA,iB,k) = (1.0/3.0) * (
 						+ pDataUpdate(iA  ,iB  ,k)
 						+ pDataUpdate(iA-1,iB  ,k)
 						+ pDataUpdate(iA  ,iB+1,k));
 				}
+			}
 
-				if (ixBottomLeftPanel == InvalidPanel) {
-					int iA = box.GetAInteriorBegin();
-					int iB = box.GetBInteriorBegin();
+			if (ixBottomLeftPanel == InvalidPanel) {
+				const int iA = box.GetAInteriorBegin();
+				const int iB = box.GetBInteriorBegin();
 
+#pragma simd
+				for (int k = 0; k < nRElements; k++) {
 					pDataUpdate(iA,iB,k) = (1.0/3.0) * (
 						+ pDataUpdate(iA  ,iB  ,k)
 						+ pDataUpdate(iA-1,iB  ,k)
 						+ pDataUpdate(iA  ,iB-1,k));
 				}
+			}
 
-				if (ixBottomRightPanel == InvalidPanel) {
-					int iA = box.GetAInteriorEnd()-1;
-					int iB = box.GetBInteriorBegin();
+			if (ixBottomRightPanel == InvalidPanel) {
+				const int iA = box.GetAInteriorEnd()-1;
+				const int iB = box.GetBInteriorBegin();
 
+#pragma simd
+				for (int k = 0; k < nRElements; k++) {
 					pDataUpdate(iA,iB,k) = (1.0/3.0) * (
 						+ pDataUpdate(iA  ,iB  ,k)
 						+ pDataUpdate(iA+1,iB  ,k)
 						+ pDataUpdate(iA  ,iB-1,k));
 				}
 			}
+			/// end of loop 3
 		}
 	}
 }
