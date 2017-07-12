@@ -363,6 +363,15 @@ void VerticalDynamicsFEM::Initialize() {
 		m_model.GetEquationSet().GetComponents(),
 		nRElements+1);
 
+	// Data for OGWD parameterization
+	m_dLogPressureNode.Allocate(nRElements);
+	m_dLogPressureREdge.Allocate(nRElements + 1);
+	m_dDiffLogPressure.Allocate(nRElements);
+	m_dColumnMetricFactor.Allocate(nRElements);
+	m_dMomentumFluxNode.Allocate(nRElements);
+	m_dDiffMomentumFluxNode.Allocate(nRElements);
+	m_dMomentumFluxNode.Allocate(nRElements);
+
 	m_dDiffCNode.Allocate(nRElements);
 	m_dDiffCREdge.Allocate(nRElements + 1);
 
@@ -3025,6 +3034,16 @@ void VerticalDynamicsFEM::BuildF(
 			for (int k = 0; k <= nRElements; k++) {
 				dF[VecFIx(FIxFromCIx(c), k)] -= m_dResidualAuxDiffREdge[k] /
 							m_dColumnDerivRREdge[k][2];
+				// Check the upper bound for coefficients
+				if (fabs(dF[VecFIx(FIxFromCIx(c), k)]) >=
+				m_dHypervisCoeff
+				* fabs(m_dXiDotREdge[k])
+				* m_dDiffDiffStateHypervis[c][k]) {
+					dF[VecFIx(FIxFromCIx(c), k)] -=
+					m_dHypervisCoeff
+					* fabs(m_dXiDotREdge[k])
+					* m_dDiffDiffStateHypervis[c][k];
+				}
 			}
 		// Residual hyperviscosity on levels
 		} else {
@@ -3050,6 +3069,16 @@ void VerticalDynamicsFEM::BuildF(
 			for (int k = 0; k < nRElements; k++) {
 				dF[VecFIx(FIxFromCIx(c), k)] -= m_dResidualAuxDiffNode[k] /
 							m_dColumnDerivRNode[k][2];
+				// Check the upper bound for coefficients
+				if (fabs(dF[VecFIx(FIxFromCIx(c), k)]) >=
+				m_dHypervisCoeff
+				* fabs(m_dXiDotNode[k])
+				* m_dDiffDiffStateHypervis[c][k]) {
+					dF[VecFIx(FIxFromCIx(c), k)] -=
+					m_dHypervisCoeff
+					* fabs(m_dXiDotNode[k])
+					* m_dDiffDiffStateHypervis[c][k];
+				}
 			}
 		}
 	}
@@ -4658,6 +4687,116 @@ void VerticalDynamicsFEM::FilterNegativeTracers(
 
 ///////////////////////////////////////////////////////////////////////////////
 
+void VerticalDynamicsFEM::ColumnGradMomentumFlux(
+	GridPatch * pPatch,
+	int iA,
+	int iB,
+	const DataArray4D<double> & dataReferenceNode,
+	const DataArray4D<double> & dataReferenceREdge,
+	const DataArray4D<double> & dataInitialNode,
+	const DataArray4D<double> & dataInitialREdge,
+	DataArray4D<double> & dataUpdateNode
+) {
+	// Get a copy of the grid
+	GridGLL * pGrid = dynamic_cast<GridGLL *>(m_model.GetGrid());
+
+	// Physical constants
+	const PhysicalConstants & phys = m_model.GetPhysicalConstants();
+
+	// Indices of EquationSet variables
+	const int UIx = 0;
+	const int VIx = 1;
+	const int PIx = 2;
+	const int WIx = 3;
+	const int RIx = 4;
+
+	// Number of elements
+	const int nRElements = pGrid->GetRElements();
+
+	double dZtop = pGrid->GetZtop();
+	double dResidualDiffusionCoeff = m_dResdiffCoeff;
+
+	// Number of finite elements in the vertical
+	int nFiniteElements = nRElements / m_nVerticalOrder;
+	int nNodesPerFiniteElement = m_nVerticalOrder;
+
+	if (pGrid->GetVerticalDiscretization() ==
+	  Grid::VerticalDiscretization_FiniteVolume
+	) {
+	  nFiniteElements = nRElements;
+	  nNodesPerFiniteElement = 1;
+	}
+
+	// Compute vertical derivative of ln(\bar{p}) reference log pressure
+	if (pGrid->GetVarLocation(PIx) == DataLocation_Node) {
+		for (int k = 0; k < nRElements; k++) {
+#if defined(FORMULATION_PRESSURE)
+			m_dLogPressureNode[k] = std::log(dataInitialNode(PIx,iA,iB,k));
+#endif
+#if defined(FORMULATION_THETA) || defined(FORMULATION_THETA_FLUX)
+			double dRhoTheta = phys.PressureFromRhoTheta(
+				dataInitialNode(PIx,iA,iB,k)
+				* dataInitialNode(RIx,iA,iB,k));
+			m_dLogPressureNode[k] = std::log(dRhoTheta);
+#endif
+#if defined(FORMULATION_RHOTHETA_P) || defined(FORMULATION_RHOTHETA_PI)
+			double dRhoTheta = phys.PressureFromRhoTheta(
+				dataInitialNode(PIx,iA,iB,k)
+				* dataInitialNode(RIx,iA,iB,k));
+			m_dLogPressureNode[k] = std::log(dRhoTheta);
+#endif
+		}
+		// Differentiate (Lorenz case)
+		pGrid->DifferentiateNodeToNode(
+			m_dLogPressureNode,
+			m_dDiffLogPressure);
+	} else {
+		for (int k = 0; k <= nRElements; k++) {
+#if defined(FORMULATION_PRESSURE)
+			m_dLogPressureREdge[k] = std::log(dataInitialREdge(PIx,iA,iB,k));
+#endif
+#if defined(FORMULATION_THETA) || defined(FORMULATION_THETA_FLUX)
+			double dRhoTheta = phys.PressureFromRhoTheta(
+				dataInitialRedge(PIx,iA,iB,k)
+				* dataInitialRedge(RIx,iA,iB,k));
+			m_dLogPressureREdge[k] = std::log(dRhoTheta);
+#endif
+#if defined(FORMULATION_RHOTHETA_P) || defined(FORMULATION_RHOTHETA_PI)
+			double dRhoTheta = phys.PressureFromRhoTheta(
+				dataInitialREdge(PIx,iA,iB,k)
+				* dataInitialREdge(RIx,iA,iB,k));
+			m_dLogPressureREdge[k] = std::log(dRhoTheta);
+#endif
+		}
+		// Differentiate (Charney-Phillips case)
+		pGrid->DifferentiateREdgeToNode(
+			m_dLogPressureREdge,
+			m_dDiffLogPressure);
+	}
+
+	// Compute the alpha and beta updates
+	for (int k = 0; k < nRElements; k++) {
+		// Compute total horizontal wind
+		double dUbar = std::sqrt(dataInitialNode(UIx,iA,iB,k)
+					* dataInitialNode(UIx,iA,iB,k)
+					+ dataInitialNode(VIx,iA,iB,k)
+					* dataInitialNode(VIx,iA,iB,k)
+				+ 2.0 * dataInitialNode(WIx,iA,iB,k)
+				* (m_dColumnContraMetricXi(k,0) * dataInitialNode(UIx,iA,iB,k)
+				 + m_dColumnContraMetricXi(k,1) * dataInitialNode(VIx,iA,iB,k))
+			 	+ dataInitialNode(WIx,iA,iB,k) * dataInitialNode(WIx,iA,iB,k)
+				* (m_dColumnContraMetricXi(k,0) * m_dColumnContraMetricXi(k,0)
+				 + m_dColumnContraMetricXi(k,1) * m_dColumnContraMetricXi(k,1)));
+
+		// Compute the metric factor
+		m_dColumnMetricFactor[k] =
+			1.0 / (dataInitialNode(RIx,iA,iB,k) * dUbar)
+			* m_dDiffLogPressure[k];
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
 void VerticalDynamicsFEM::ComputeResidualCoefficients(
 	GridPatch * pPatch,
 	int iA,
@@ -4826,8 +4965,7 @@ void VerticalDynamicsFEM::ComputeResidualCoefficients(
 		dResCoeff *= dResidualDiffusionCoeff;
 
 		// Upwind coefficient
-		dNuMax = m_dHypervisCoeff * fabs(m_dXiDotREdge[k])
-			/ m_dColumnDerivRREdge[k][2];
+		dNuMax = m_dHypervisCoeff * fabs(m_dXiDotREdge[k]);
 		if (fabs(dResCoeff) >= dNuMax) {
 			dResCoeff = dNuMax;
 		}

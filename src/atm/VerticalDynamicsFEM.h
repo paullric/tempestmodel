@@ -263,10 +263,24 @@ protected:
 	  GridPatch * pPatch,
 	  int i,
 	  int j,
-		DataArray4D<double> & dataResidualNode,
+	  DataArray4D<double> & dataResidualNode,
 	  const DataArray4D<double> & dataInitialNode,
 	  DataArray4D<double> & dataResidualREdge,
 	  const DataArray4D<double> & dataInitialREdge
+	);
+
+	///     <summary>
+	///             Compute the column momentum flux gradient
+	///     </summary>
+	void ColumnGradMomentumFlux(
+	  GridPatch * pPatch,
+	  int i,
+	  int j,
+	  const DataArray4D<double> & dataReferenceNode,
+	  const DataArray4D<double> & dataReferenceREdge,
+	  const DataArray4D<double> & dataInitialNode,
+	  const DataArray4D<double> & dataInitialREdge,
+	  DataArray4D<double> & dataUpdateNode
 	);
 
 	///	<summary>
@@ -684,6 +698,36 @@ protected:
 	///		Solution vector from the implicit solve.
 	///	</summary>
 	DataArray1D<double> m_dSoln;
+
+	///	<summary>
+	///		Log pressure in a column on Nodes.
+	///	</summary>
+	DataArray1D<double> m_dLogPressureNode;
+
+	///	<summary>
+	///		Log pressure in a column on Edges.
+	///	</summary>
+	DataArray1D<double> m_dLogPressureREdge;
+
+	///	<summary>
+	///		Vertical derivative of log pressure in a column.
+	///	</summary>
+	DataArray1D<double> m_dDiffLogPressure;
+
+	///	<summary>
+	///		Column metric factor A(xi) (see notes JEG).
+	///	</summary>
+	DataArray1D<double> m_dColumnMetricFactor;
+
+	///	<summary>
+	///		Column momentum flux on nodes (rho_0 u w).
+	///	</summary>
+	DataArray1D<double> m_dMomentumFluxNode;
+
+	///	<summary>
+	///		Column gradient momentum flux on nodes (rho_0 u w).
+	///	</summary>
+	DataArray1D<double> m_dDiffMomentumFluxNode;
 
 private:
 	///	<summary>
