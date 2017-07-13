@@ -3038,7 +3038,8 @@ void VerticalDynamicsFEM::BuildF(
 					m_dColumnDerivRREdge[k][2];
 				dUpdateHypVis = m_dHypervisCoeff
 					* fabs(m_dXiDotREdge[k])
-					* m_dDiffDiffStateHypervis[c][k];
+					* m_dDiffDiffStateHypervis[c][k]
+					/ m_dColumnDerivRREdge[k][2];
 				dF[VecFIx(FIxFromCIx(c), k)] -= dUpdateDynSGS;
 				// Check the upper bound for coefficients
 				if (fabs(dUpdateDynSGS) >= fabs(dUpdateHypVis)) {
@@ -3074,7 +3075,8 @@ void VerticalDynamicsFEM::BuildF(
 					m_dColumnDerivRNode[k][2];
 				dUpdateHypVis = m_dHypervisCoeff
 					* fabs(m_dXiDotNode[k])
-					* m_dDiffDiffStateHypervis[c][k];
+					* m_dDiffDiffStateHypervis[c][k]
+					/ m_dColumnDerivRNode[k][2];
 
 				dF[VecFIx(FIxFromCIx(c), k)] -= dUpdateDynSGS;
 				// Check the upper bound for coefficients
@@ -4955,7 +4957,7 @@ void VerticalDynamicsFEM::ComputeResidualCoefficients(
 		dResR = fabs(m_dResidualREdge[RIx][k]) / fabs(
                                dataInitialREdge[RIx][iA][iB][k] - dColAvgR);
 		//
-		
+
 		// Select the maximum residual
 		dResMax = std::max(dResU, dResV);
 		dResMax = std::max(dResMax, dResW);
