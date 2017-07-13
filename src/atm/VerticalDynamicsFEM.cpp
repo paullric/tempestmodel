@@ -4963,15 +4963,15 @@ void VerticalDynamicsFEM::ComputeResidualCoefficients(
                                dataInitialREdge[RIx][iA][iB][k] - dColAvgR);
 		*/
 		dResU = fabs(m_dResidualREdge[UIx][k])  / fabs(
-                                dataInitialREdge[UIx][iA][iB][k]);
+                        m_dStateRefREdge[UIx][k]);
 		dResV = fabs(m_dResidualREdge[VIx][k])  / fabs(
-                                dataInitialREdge[VIx][iA][iB][k]);
+                        m_dStateRefREdge[VIx][k]);
 		dResW = fabs(m_dResidualREdge[WIx][k])  / fabs(
-                                dataInitialREdge[WIx][iA][iB][k]);
+                        m_dStateRefREdge[WIx][k]);
 		dResP = fabs(m_dResidualREdge[PIx][k]) / fabs(
-                                dataInitialREdge[PIx][iA][iB][k]);
+                        m_dStateRefREdge[PIx][k]);
 		dResR = fabs(m_dResidualREdge[RIx][k]) / fabs(
-                               dataInitialREdge[RIx][iA][iB][k]);
+                        m_dStateRefREdge[RIx][k]);
 		//
 
 		// Select the maximum residual
