@@ -3040,11 +3040,14 @@ void VerticalDynamicsFEM::BuildF(
 					* fabs(m_dXiDotREdge[k])
 					* m_dDiffDiffStateHypervis[c][k]
 					/ m_dColumnDerivRREdge[k][2];
-				dF[VecFIx(FIxFromCIx(c), k)] -= dUpdateDynSGS;
+
 				// Check the upper bound for coefficients
 				if (fabs(dUpdateDynSGS) >= fabs(dUpdateHypVis)) {
 					dF[VecFIx(FIxFromCIx(c), k)] -=
 					dUpdateHypVis;
+				} else {
+					dF[VecFIx(FIxFromCIx(c), k)] -=
+					dUpdateDynSGS;
 				}
 			}
 		// Residual hyperviscosity on levels
@@ -3078,11 +3081,13 @@ void VerticalDynamicsFEM::BuildF(
 					* m_dDiffDiffStateHypervis[c][k]
 					/ m_dColumnDerivRNode[k][2];
 
-				dF[VecFIx(FIxFromCIx(c), k)] -= dUpdateDynSGS;
 				// Check the upper bound for coefficients
 				if (fabs(dUpdateDynSGS) >= fabs(dUpdateHypVis)) {
 					dF[VecFIx(FIxFromCIx(c), k)] -=
 					dUpdateHypVis;
+				} else {
+					dF[VecFIx(FIxFromCIx(c), k)] -=
+					dUpdateDynSGS;
 				}
 			}
 		}
