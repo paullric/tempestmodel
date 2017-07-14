@@ -2577,19 +2577,20 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusionResidual(
 			}
 
 			// Scale to the average element length
-			dResNu[i][j] = dGridLength * dGridLength * fabs(dResCoeff);
+			double dABLength = dGridLength / pGrid->GetReferenceLength();
+			dResNu[i][j] = dABLength * dABLength * fabs(dResCoeff);
 
 			// Get the maximum possible coefficient (upwind)
 			dNuMax = m_dAuxDataNode(KIx,i,j,k)
 				/ pGrid->GetReferenceLength();
 
 			// Limit the coefficients to the upwind value
-			if (fabs(dResNu[i][j]) > dNuMax) {
-				dResNu[i][j] = fabs(dNuMax);
+			if (dResNu[i][j] >= dNuMax) {
+				dResNu[i][j] = dNuMax;
 			}
 			// Check for Inf or NaN and adjust
 			if (!std::isfinite(dResNu[i][j])) {
-				dResNu[i][j] = fabs(dNuMax);
+				dResNu[i][j] = dNuMax;
 			}
 		}
 		}

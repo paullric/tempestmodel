@@ -4991,8 +4991,8 @@ void VerticalDynamicsFEM::ComputeResidualCoefficients(
 		dResCoeff *= dResidualDiffusionCoeff;
 
 		// Upwind coefficient
-		dNuMax = 0.1 * fabs(m_dXiDotREdge[k]);// / m_dColumnDerivRREdge[k][2];
-		if (fabs(dResCoeff) >= dNuMax) {
+		dNuMax = fabs(m_dXiDotREdge[k]) / pGrid->GetZtop();
+		if (dResCoeff >= dNuMax) {
 			dResCoeff = dNuMax;
 		}
 
