@@ -3032,10 +3032,13 @@ void VerticalDynamicsFEM::BuildF(
 
 			// Apply the update
 			double dUpdateDynSGS = 0.0;
-			double dUpdateHypVis = 0.0;
+			//double dUpdateHypVis = 0.0;
 			for (int k = 0; k <= nRElements; k++) {
 				dUpdateDynSGS = m_dResidualAuxDiffREdge[k] /
 					m_dColumnDerivRREdge[k][2];
+				dF[VecFIx(FIxFromCIx(c), k)] -=
+					dUpdateDynSGS;
+				/*
 				dUpdateHypVis = m_dHypervisCoeff
 					* fabs(m_dXiDotREdge[k])
 					* m_dDiffDiffStateHypervis[c][k]
@@ -3049,6 +3052,7 @@ void VerticalDynamicsFEM::BuildF(
 					dF[VecFIx(FIxFromCIx(c), k)] -=
 					dUpdateDynSGS;
 				}
+				*/
 			}
 		// Residual hyperviscosity on levels
 		} else {
@@ -3076,6 +3080,9 @@ void VerticalDynamicsFEM::BuildF(
 			for (int k = 0; k < nRElements; k++) {
 				dUpdateDynSGS = m_dResidualAuxDiffNode[k] /
 					m_dColumnDerivRNode[k][2];
+				dF[VecFIx(FIxFromCIx(c), k)] -=
+					dUpdateDynSGS;
+				/*
 				dUpdateHypVis = m_dHypervisCoeff
 					* fabs(m_dXiDotNode[k])
 					* m_dDiffDiffStateHypervis[c][k]
@@ -3089,6 +3096,7 @@ void VerticalDynamicsFEM::BuildF(
 					dF[VecFIx(FIxFromCIx(c), k)] -=
 					dUpdateDynSGS;
 				}
+				*/
 			}
 		}
 	}
@@ -4962,16 +4970,11 @@ void VerticalDynamicsFEM::ComputeResidualCoefficients(
 		dResR = fabs(m_dResidualREdge[RIx][k]) / fabs(
                                dataInitialREdge[RIx][iA][iB][k] - dColAvgR);
 		*/
-		dResU = fabs(m_dResidualREdge[UIx][k])  / fabs(
-                        50.0);
-		dResV = fabs(m_dResidualREdge[VIx][k])  / fabs(
-                        50.0);
-		dResW = fabs(m_dResidualREdge[WIx][k])  / fabs(
-                        5.0);
-		dResP = fabs(m_dResidualREdge[PIx][k]) / fabs(
-                        1.0E-6);
-		dResR = fabs(m_dResidualREdge[RIx][k]) / fabs(
-                        0.1);
+		dResU = fabs(m_dResidualREdge[UIx][k])  / fabs(50.0);
+		dResV = fabs(m_dResidualREdge[VIx][k])  / fabs(50.0);
+		dResW = fabs(m_dResidualREdge[WIx][k])  / fabs(5.0);
+		dResP = fabs(m_dResidualREdge[PIx][k]) / fabs(0.1);
+		dResR = fabs(m_dResidualREdge[RIx][k]) / fabs(0.1);
 		//
 
 		// Select the maximum residual
@@ -4986,6 +4989,12 @@ void VerticalDynamicsFEM::ComputeResidualCoefficients(
 		}
 
 		dResCoeff *= dResidualDiffusionCoeff;
+
+		// Upwind coefficient
+		dNuMax = 0.1 * fabs(m_dXiDotREdge[k]);// / m_dColumnDerivRREdge[k][2];
+		if (fabs(dResCoeff) >= dNuMax) {
+			dResCoeff = dNuMax;
+		}
 
 		// Store the column coefficients in residual data
 		m_dResidualAuxREdge[k] = dResCoeff;
