@@ -37,7 +37,7 @@
 //#define HYPERVISC_VERTICAL_VELOCITY
 
 #define RESIDUAL_DIFFUSION_THERMO
-//#define RESIDUAL_DIFFUSION_VERTICAL_VELOCITY
+#define RESIDUAL_DIFFUSION_RHO
 
 #define UPWIND_HORIZONTAL_VELOCITIES
 #define UPWIND_THERMO
@@ -88,7 +88,7 @@ VerticalDynamicsFEM::VerticalDynamicsFEM(
 			_EXCEPTIONT("Vertical hyperdiffusion order 2 must be specified.");
 		}
 	#endif
-	#if defined(RESIDUAL_DIFFUSION_VERTICAL_VELOCITY)
+	#if defined(RESIDUAL_DIFFUSION_RHO)
 		if (nHypervisOrder != 2) {
 			_EXCEPTIONT("Vertical hyperdiffusion order 2 must be specified.");
 		}
@@ -304,9 +304,9 @@ void VerticalDynamicsFEM::Initialize() {
 	Announce("Residual diffusion on thermodynamic variable");
 	m_fResdiffVar[PIx] = true;
 #endif
-#if defined(RESIDUAL_DIFFUSION_VERTICAL_VELOCITY)
+#if defined(RESIDUAL_DIFFUSION_RHO)
 	Announce("Residual diffusion on vertical velocity");
-	m_fResdiffVar[WIx] = true;
+	m_fResdiffVar[RIx] = true;
 #endif
 
 #if defined(EXPLICIT_VERTICAL_VELOCITY_ADVECTION)
@@ -3003,7 +3003,7 @@ void VerticalDynamicsFEM::BuildF(
 	}
 
 	// Apply residual hyperviscosity
-	for (int c = 2; c < 4; c++) {
+	for (int c = 2; c <= 4; c++) {
 
 		// Only diffuse select variables
 		if (!m_fResdiffVar[c]) {

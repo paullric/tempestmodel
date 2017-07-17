@@ -36,7 +36,7 @@
 #define FIX_ELEMENT_MASS_NONHYDRO
 
 #define RESIDUAL_DIFFUSION_THERMO
-//#define RESIDUAL_DIFFUSION_VERTICAL_VELOCITY
+#define RESIDUAL_DIFFUSION_RHO
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -1832,15 +1832,15 @@ void HorizontalDynamicsFEM::StepExplicit(
 				2,
 				true);
 #endif
-#if defined(RESIDUAL_DIFFUSION_VERTICAL_VELOCITY)
-			// Residual diffusion of W with residual based diffusion coeff
+#if defined(RESIDUAL_DIFFUSION_RHO)
+			// Residual diffusion of Rho with residual based diffusion coeff
 			ApplyScalarHyperdiffusionResidual(
 				iDataInitial,
 				iDataUpdate,
 				2,
-				pGrid->GetVectorUniformDiffusionCoeff(),
+				pGrid->GetScalarUniformDiffusionCoeff(),
 				dDeltaT,
-				3,
+				4,
 				true);
 #endif
 
