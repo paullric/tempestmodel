@@ -3022,8 +3022,15 @@ void VerticalDynamicsFEM::BuildF(
 				m_dDiffCREdge);
 
 			for (int k = 0; k <= nRElements; k++) {
-				m_dDiffCREdge[k] *= m_dColumnDerivRREdge[k][2] *
-							m_dResidualAuxREdge[k];
+				if (c == PIx) {
+					m_dDiffCREdge[k] *= 1.75
+					* m_dColumnDerivRREdge[k][2]
+					* m_dResidualAuxREdge[k];
+				} else {
+					m_dDiffCREdge[k] *=
+					m_dColumnDerivRREdge[k][2]
+					* m_dResidualAuxREdge[k];
+				}
 			}
 
 			pGrid->DifferentiateREdgeToREdge(
@@ -3038,21 +3045,6 @@ void VerticalDynamicsFEM::BuildF(
 					m_dColumnDerivRREdge[k][2];
 				dF[VecFIx(FIxFromCIx(c), k)] -=
 					dUpdateDynSGS;
-				/*
-				dUpdateHypVis = m_dHypervisCoeff
-					* fabs(m_dXiDotREdge[k])
-					* m_dDiffDiffStateHypervis[c][k]
-					/ m_dColumnDerivRREdge[k][2];
-
-				// Check the upper bound for coefficients
-				if (fabs(dUpdateDynSGS) >= fabs(dUpdateHypVis)) {
-					dF[VecFIx(FIxFromCIx(c), k)] -=
-					dUpdateHypVis;
-				} else {
-					dF[VecFIx(FIxFromCIx(c), k)] -=
-					dUpdateDynSGS;
-				}
-				*/
 			}
 		// Residual hyperviscosity on levels
 		} else {
@@ -3066,8 +3058,15 @@ void VerticalDynamicsFEM::BuildF(
 				m_dDiffCNode);
 
 			for (int k = 0; k < nRElements; k++) {
-				m_dDiffCNode[k] *= m_dColumnDerivRNode[k][2] *
-							m_dResidualAuxNode[k];
+				if (c == PIx) {
+					m_dDiffCNode[k] *= 1.75
+					* m_dColumnDerivRNode[k][2]
+					* m_dResidualAuxNode[k];
+				} else {
+					m_dDiffCNode[k] *=
+					m_dColumnDerivRNode[k][2]
+					* m_dResidualAuxNode[k];
+				}
 			}
 
 			pGrid->DifferentiateNodeToNode(
@@ -3082,21 +3081,6 @@ void VerticalDynamicsFEM::BuildF(
 					m_dColumnDerivRNode[k][2];
 				dF[VecFIx(FIxFromCIx(c), k)] -=
 					dUpdateDynSGS;
-				/*
-				dUpdateHypVis = m_dHypervisCoeff
-					* fabs(m_dXiDotNode[k])
-					* m_dDiffDiffStateHypervis[c][k]
-					/ m_dColumnDerivRNode[k][2];
-
-				// Check the upper bound for coefficients
-				if (fabs(dUpdateDynSGS) >= fabs(dUpdateHypVis)) {
-					dF[VecFIx(FIxFromCIx(c), k)] -=
-					dUpdateHypVis;
-				} else {
-					dF[VecFIx(FIxFromCIx(c), k)] -=
-					dUpdateDynSGS;
-				}
-				*/
 			}
 		}
 	}

@@ -2586,6 +2586,11 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusionResidual(
 			double dABLength = dGridLength / pGrid->GetReferenceLength();
 			dResNu[i][j] = dABLength * dABLength * fabs(dResCoeff);
 
+			// Apply Pr number of 0.7 to thermodynamic stress
+			if (c == PIx) {
+				dResNu[i][j] *= 1.75;
+			}
+
 			// Get the maximum possible coefficient (upwind)
 			dNuMax = m_dAuxDataNode(KIx,i,j,k)
 				/ pGrid->GetReferenceLength();
