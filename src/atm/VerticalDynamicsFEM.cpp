@@ -4886,7 +4886,7 @@ void VerticalDynamicsFEM::ComputeResidualCoefficients(
 			m_dResidualNode[WIx][k] = dataResidualNode[WIx][iA][iB][k];
 
 			// Sum W over the column
-			dColAvgW += dataResidualNode[WIx][iA][iB][k];
+			dColAvgW += dataInitialNode[WIx][iA][iB][k];
 		}
 
 		dColAvgW /= nRElements;
