@@ -184,12 +184,12 @@ public:
 		m_dpiC = M_PI;
 
 		// Set the dimensions of the box
-		m_dGDim[0] = -50000.0;
-		m_dGDim[1] = 50000.0;
+		m_dGDim[0] = -80000.0;
+		m_dGDim[1] = 80000.0;
 		m_dGDim[2] = -100.0;
 		m_dGDim[3] = 100.0;
 		m_dGDim[4] = 0.0;
-		m_dGDim[5] = 33000.0;
+		m_dGDim[5] = 35000.0;
 
 		// Set the center of the domain in Y
 		m_dY0 = 0.5 * (m_dGDim[3] - m_dGDim[2]);
@@ -365,8 +365,8 @@ public:
 	) const {
 		const double dRayleighStrengthZ = 1.0E-2;//8.0e-3;
 		const double dRayleighStrengthX = 1.0 * dRayleighStrengthZ;
-		const double dRayleighDepth = 8000.0;
-		const double dRayleighWidth = 8000.0;
+		const double dRayleighDepth = 10000.0;
+		const double dRayleighWidth = 30000.0;
 		const double dRayDepthXi = dRayleighDepth / m_dGDim[5];
 
 		double dNuDepth = 0.0;
