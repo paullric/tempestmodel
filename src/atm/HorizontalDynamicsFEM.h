@@ -139,8 +139,7 @@ protected:
 		double dDeltaT,
 		double dNuDiff,
 		double dNuVort,
-		bool fScaleNuLocally,
-		bool fFlowDepend = false
+		bool fScaleNuLocally
 	);
 
 	///	<summary>
@@ -190,12 +189,12 @@ protected:
 	///	<summary>
 	///		Flow dependent coefficient Alpha
 	///	</summary>
-	double m_dHypervisCoeffA;
+	double m_dHypervisCoeff;
 
 	///	<summary>
-	///		Flow dependent coefficient Beta
+	///		Flow dependent flag
 	///	</summary>
-	double m_dHypervisCoeffB;
+	bool m_fFlowDepend;
 
 	///	<summary>
 	///		Nodal alpha mass fluxes.

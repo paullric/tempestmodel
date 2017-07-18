@@ -1826,40 +1826,16 @@ void HorizontalDynamicsFEM::StepExplicit(
 #endif
 
 #if defined(HYPERVISC_HORIZONTAL_VELOCITIES)
+m_fFlowDepend = true;
 // Apply hyperviscosity
-if (m_nHyperviscosityOrder == 4) {
+if (m_nHyperviscosityOrder == 2) {
 	// Compute the coefficients
-	m_dHypervisCoeffA = 1.0 / 6.0;
-	m_dHypervisCoeffB = 1.0 / 6.0;
-
-	//int iDataWorking = iDataUpdate + 1;
-
-	// Apply scalar and vector hyperviscosity (first application)
-	//pGrid->ZeroData(iDataWorking, DataType_State);
-	//pGrid->ZeroData(iDataWorking, DataType_Tracers);
-
-	ApplyVectorHyperdiffusion(
-		iDataInitial, iDataUpdate, 1.0, 1.0, 1.0, false, false);
-
-	// Apply Direct Stiffness Summation
-	pGrid->ApplyDSS(iDataUpdate, DataType_State);
-	pGrid->ApplyDSS(iDataUpdate, DataType_Tracers);
-
-	pGrid->CopyData(iDataUpdate, iDataInitial, DataType_State);
-	pGrid->CopyData(iDataUpdate, iDataInitial, DataType_Tracers);
-
-	// Apply scalar and vector hyperviscosity (second application)
-	ApplyVectorHyperdiffusion(
-		iDataInitial, iDataUpdate, -dDeltaT, m_dHypervisCoeffA, m_dHypervisCoeffB, false, true);
-
-	// Apply positive definite filter to tracers
-	FilterNegativeTracers(iDataUpdate);
-
-	// Apply Direct Stiffness Summation
-	pGrid->ApplyDSS(iDataUpdate, DataType_State);
-	pGrid->ApplyDSS(iDataUpdate, DataType_Tracers);
+	m_dHypervisCoeff = 1.0 / 2.0;
+} else if (m_nHyperviscosityOrder == 4) {
+	// Compute the coefficients
+	m_dHypervisCoeff = - 1.0 / 6.0;
 } else {
-	_EXCEPTIONT("Horizontal Flow Dependent Hypervis at 4th order ONLY!");
+	_EXCEPTIONT("Horizontal Flow Dependent Hypervis at 2nd order ONLY!");
 }
 #endif
 
@@ -2738,8 +2714,7 @@ void HorizontalDynamicsFEM::ApplyVectorHyperdiffusion(
 	double dDeltaT,
 	double dNuDiv,
 	double dNuVort,
-	bool fScaleNuLocally,
-	bool fFlowDepend
+	bool fScaleNuLocally
 ) {
 	// Indices of auxiliary data variables
 	const int ConUaIx = 0;
@@ -2867,18 +2842,20 @@ void HorizontalDynamicsFEM::ApplyVectorHyperdiffusion(
 				dLocalNuVort =
 					dLocalNuVort * pow(dElementDeltaA / dReferenceLength, 3.2);
 			}
-		}
-
-		// Get an average grid spacing and apply to the coefficient
-		if (fFlowDepend) {
+		} else if (m_fFlowDepend) {
 			double dDA = pPatch->GetElementDeltaA()
 				/ (m_nHorizontalOrder - 1);
 			double dDB = pPatch->GetElementDeltaB()
 				/ (m_nHorizontalOrder - 1);
 
 			double dDAB = fabs(0.5 * (dDA + dDB));
-			dLocalNuDiv *= pow(dDAB, 3.0);
-			dLocalNuVort *= pow(dDAB, 3.0);
+			if (m_nHyperviscosityOrder == 2) {
+				dLocalNuDiv = m_dHypervisCoeff * pow(dDAB, 1.0);
+				dLocalNuVort = m_dHypervisCoeff * pow(dDAB, 1.0);
+			} else if (m_nHyperviscosityOrder == 4) {
+				dLocalNuDiv = m_dHypervisCoeff * pow(dDAB, 3.0);
+				dLocalNuVort = m_dHypervisCoeff * pow(dDAB, 3.0);
+			}
 		}
 
 		// Number of finite elements
@@ -2932,7 +2909,7 @@ void HorizontalDynamicsFEM::ApplyVectorHyperdiffusion(
 				dDaCurl *= dInvElementDeltaA;
 				dDbCurl *= dInvElementDeltaB;
 
-				if (fFlowDepend) {
+				if (m_fFlowDepend) {
 					double dFlowSpeed =
 						sqrt(m_dAuxDataNode(ConUaIx,i,j,k)
 						* m_dAuxDataNode(ConUaIx,i,j,k)
