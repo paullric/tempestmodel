@@ -294,7 +294,7 @@ void VerticalDynamicsFEM::Initialize() {
 	m_fResdiffVar[PIx] = true;
 #endif
 #if defined(RESIDUAL_DIFFUSION_RHO)
-	Announce("Residual diffusion on vertical velocity");
+	Announce("Residual diffusion on density");
 	m_fResdiffVar[RIx] = true;
 #endif
 

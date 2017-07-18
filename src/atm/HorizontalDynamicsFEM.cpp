@@ -1829,10 +1829,10 @@ void HorizontalDynamicsFEM::StepExplicit(
 // Apply hyperviscosity
 if (m_nHyperviscosityOrder == 4) {
 	// Compute the coefficients
-	m_dHypervisCoeffA = - (1.0 / 6.0);
-	m_dHypervisCoeffB = - (1.0 / 6.0);
+	m_dHypervisCoeffA = 1.0 / 6.0;
+	m_dHypervisCoeffB = 1.0 / 6.0;
 
-	int iDataWorking = iDataUpdate + 1;
+	//int iDataWorking = iDataUpdate + 1;
 
 	// Apply scalar and vector hyperviscosity (first application)
 	//pGrid->ZeroData(iDataWorking, DataType_State);
