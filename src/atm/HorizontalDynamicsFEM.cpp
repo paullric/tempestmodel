@@ -1835,19 +1835,22 @@ if (m_nHyperviscosityOrder == 4) {
 	int iDataWorking = iDataUpdate + 1;
 
 	// Apply scalar and vector hyperviscosity (first application)
-	pGrid->ZeroData(iDataWorking, DataType_State);
-	pGrid->ZeroData(iDataWorking, DataType_Tracers);
+	//pGrid->ZeroData(iDataWorking, DataType_State);
+	//pGrid->ZeroData(iDataWorking, DataType_Tracers);
 
 	ApplyVectorHyperdiffusion(
-		iDataInitial, iDataWorking, 1.0, 1.0, 1.0, false, false);
+		iDataInitial, iDataUpdate, 1.0, 1.0, 1.0, false, false);
 
 	// Apply Direct Stiffness Summation
-	pGrid->ApplyDSS(iDataWorking, DataType_State);
-	pGrid->ApplyDSS(iDataWorking, DataType_Tracers);
+	pGrid->ApplyDSS(iDataUpdate, DataType_State);
+	pGrid->ApplyDSS(iDataUpdate, DataType_Tracers);
+
+	pGrid->CopyData(iDataUpdate, iDataInitial, DataType_State);
+	pGrid->CopyData(iDataUpdate, iDataInitial, DataType_Tracers);
 
 	// Apply scalar and vector hyperviscosity (second application)
 	ApplyVectorHyperdiffusion(
-		iDataWorking, iDataUpdate, -dDeltaT, m_dHypervisCoeffA, m_dHypervisCoeffB, false, true);
+		iDataInitial, iDataUpdate, -dDeltaT, m_dHypervisCoeffA, m_dHypervisCoeffB, false, true);
 
 	// Apply positive definite filter to tracers
 	FilterNegativeTracers(iDataUpdate);
