@@ -139,7 +139,8 @@ protected:
 		double dDeltaT,
 		double dNuDiff,
 		double dNuVort,
-		bool fScaleNuLocally
+		bool fScaleNuLocally,
+		bool fFlowDepend = false
 	);
 
 	///	<summary>
@@ -185,6 +186,16 @@ protected:
 	///		Spatial order of accuracy.
 	///	</summary>
 	int m_nHorizontalOrder;
+
+	///	<summary>
+	///		Flow dependent coefficient Alpha
+	///	</summary>
+	double m_dHypervisCoeffA;
+
+	///	<summary>
+	///		Flow dependent coefficient Beta
+	///	</summary>
+	double m_dHypervisCoeffB;
 
 	///	<summary>
 	///		Nodal alpha mass fluxes.

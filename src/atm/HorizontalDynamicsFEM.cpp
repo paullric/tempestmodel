@@ -1821,6 +1821,41 @@ void HorizontalDynamicsFEM::StepExplicit(
 	}
 #endif
 
+#if defined(HYPERVISC_HORIZONTAL_VELOCITIES)
+// Apply hyperviscosity
+if (m_nHyperviscosityOrder == 4) {
+	// Compute the coefficients
+	m_dHypervisCoeffA = - (1.0 / 6.0)
+		* pow(pPatch->GetElementDeltaA(), 3.0);
+	m_dHypervisCoeffB = - (1.0 / 6.0)
+		* pow(pPatch->GetElementDeltaB(), 3.0);
+
+	// Apply scalar and vector hyperviscosity (first application)
+	pGrid->ZeroData(iDataWorking, DataType_State);
+	pGrid->ZeroData(iDataWorking, DataType_Tracers);
+
+	ApplyVectorHyperdiffusion(
+		iDataInitial, iDataWorking, 1.0, 1.0, 1.0, false, false);
+
+	// Apply Direct Stiffness Summation
+	pGrid->ApplyDSS(iDataWorking, DataType_State);
+	pGrid->ApplyDSS(iDataWorking, DataType_Tracers);
+
+	// Apply scalar and vector hyperviscosity (second application)
+	ApplyVectorHyperdiffusion(
+		iDataWorking, iDataUpdate, -dDeltaT, m_dHypervisCoeffA, m_dHypervisCoeffB, false, true);
+
+	// Apply positive definite filter to tracers
+	FilterNegativeTracers(iDataUpdate);
+
+	// Apply Direct Stiffness Summation
+	pGrid->ApplyDSS(iDataUpdate, DataType_State);
+	pGrid->ApplyDSS(iDataUpdate, DataType_Tracers);
+} else {
+	_EXCEPTIONT("Horizontal Flow Dependent Hypervis at 4th order ONLY!");
+}
+#endif
+
 #if defined(RESIDUAL_DIFFUSION_THERMO)
 			// Residual diffusion of Theta with residual based diffusion coeff
 			ApplyScalarHyperdiffusionResidual(
@@ -2696,8 +2731,13 @@ void HorizontalDynamicsFEM::ApplyVectorHyperdiffusion(
 	double dDeltaT,
 	double dNuDiv,
 	double dNuVort,
-	bool fScaleNuLocally
+	bool fScaleNuLocally,
+	bool fFlowDepend
 ) {
+	// Indices of auxiliary data variables
+	const int ConUaIx = 0;
+	const int ConUbIx = 1;
+
 	// Variable indices
 	const int UIx = 0;
 	const int VIx = 1;
@@ -2872,6 +2912,16 @@ void HorizontalDynamicsFEM::ApplyVectorHyperdiffusion(
 
 				dDaCurl *= dInvElementDeltaA;
 				dDbCurl *= dInvElementDeltaB;
+
+				if (fFlowDepend) {
+					double dFlowSpeed =
+						sqrt(m_dAuxDataNode(ConUaIx,i,j,k)
+						* m_dAuxDataNode(ConUaIx,i,j,k)
+						+ m_dAuxDataNode(ConUbIx,i,j,k)
+						* m_dAuxDataNode(ConUbIx,i,j,k));
+					dLocalNuDiv *= fabs(dFlowSpeed);
+					dLocalNuVort *= fabs(dFlowSpeed);
+				}
 
 				// Apply update
 				double dUpdateUa =

@@ -32,17 +32,17 @@
 
 ///////////////////////////////////////////////////////////////////////////////
 
-//#define HYPERVISC_HORIZONTAL_VELOCITIES
+#define HYPERVISC_HORIZONTAL_VELOCITIES
 //#define HYPERVISC_THERMO
-//#define HYPERVISC_VERTICAL_VELOCITY
+#define HYPERVISC_VERTICAL_VELOCITY
 
 #define RESIDUAL_DIFFUSION_THERMO
 #define RESIDUAL_DIFFUSION_RHO
 
-#define UPWIND_HORIZONTAL_VELOCITIES
-#define UPWIND_THERMO
-#define UPWIND_VERTICAL_VELOCITY
-#define UPWIND_RHO_AND_TRACERS
+//#define UPWIND_HORIZONTAL_VELOCITIES
+//#define UPWIND_THERMO
+//#define UPWIND_VERTICAL_VELOCITY
+//#define UPWIND_RHO_AND_TRACERS
 
 //#define UNIFORM_DIFFUSION_HORIZONTAL_VELOCITIES
 //#define UNIFORM_DIFFUSION_THERMO
@@ -82,17 +82,6 @@ VerticalDynamicsFEM::VerticalDynamicsFEM(
 	if (nHypervisOrder < 0) {
 		_EXCEPTIONT("Vertical hyperdiffusion order must be nonnegative.");
 	}
-
-	#if defined(RESIDUAL_DIFFUSION_THERMO)
-		if (nHypervisOrder != 2) {
-			_EXCEPTIONT("Vertical hyperdiffusion order 2 must be specified.");
-		}
-	#endif
-	#if defined(RESIDUAL_DIFFUSION_RHO)
-		if (nHypervisOrder != 2) {
-			_EXCEPTIONT("Vertical hyperdiffusion order 2 must be specified.");
-		}
-	#endif
 }
 
 ///////////////////////////////////////////////////////////////////////////////
