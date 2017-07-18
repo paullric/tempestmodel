@@ -194,7 +194,7 @@ protected:
 	///	<summary>
 	///		Flow dependent flag
 	///	</summary>
-	bool m_fFlowDepend;
+	bool m_fFlowDepend = false;
 
 	///	<summary>
 	///		Nodal alpha mass fluxes.
