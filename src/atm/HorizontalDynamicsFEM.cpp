@@ -35,6 +35,10 @@
 
 #define FIX_ELEMENT_MASS_NONHYDRO
 
+#define HYPERVISC_HORIZONTAL_VELOCITIES
+//#define HYPERVISC_THERMO
+//#define HYPERVISC_VERTICAL_VELOCITY
+
 #define RESIDUAL_DIFFUSION_THERMO
 #define RESIDUAL_DIFFUSION_RHO
 
@@ -1825,10 +1829,10 @@ void HorizontalDynamicsFEM::StepExplicit(
 // Apply hyperviscosity
 if (m_nHyperviscosityOrder == 4) {
 	// Compute the coefficients
-	m_dHypervisCoeffA = - (1.0 / 6.0)
-		* pow(pPatch->GetElementDeltaA(), 3.0);
-	m_dHypervisCoeffB = - (1.0 / 6.0)
-		* pow(pPatch->GetElementDeltaB(), 3.0);
+	m_dHypervisCoeffA = - (1.0 / 6.0);
+	m_dHypervisCoeffB = - (1.0 / 6.0);
+
+	int iDataWorking = iDataUpdate + 1;
 
 	// Apply scalar and vector hyperviscosity (first application)
 	pGrid->ZeroData(iDataWorking, DataType_State);
@@ -1857,26 +1861,26 @@ if (m_nHyperviscosityOrder == 4) {
 #endif
 
 #if defined(RESIDUAL_DIFFUSION_THERMO)
-			// Residual diffusion of Theta with residual based diffusion coeff
-			ApplyScalarHyperdiffusionResidual(
-				iDataInitial,
-				iDataUpdate,
-				2,
-				pGrid->GetScalarUniformDiffusionCoeff(),
-				dDeltaT,
-				2,
-				true);
+	// Residual diffusion of Theta with residual based diffusion coeff
+	ApplyScalarHyperdiffusionResidual(
+		iDataInitial,
+		iDataUpdate,
+		2,
+		pGrid->GetScalarUniformDiffusionCoeff(),
+		dDeltaT,
+		2,
+		true);
 #endif
 #if defined(RESIDUAL_DIFFUSION_RHO)
-			// Residual diffusion of Rho with residual based diffusion coeff
-			ApplyScalarHyperdiffusionResidual(
-				iDataInitial,
-				iDataUpdate,
-				2,
-				pGrid->GetScalarUniformDiffusionCoeff(),
-				dDeltaT,
-				4,
-				true);
+	// Residual diffusion of Rho with residual based diffusion coeff
+	ApplyScalarHyperdiffusionResidual(
+		iDataInitial,
+		iDataUpdate,
+		2,
+		pGrid->GetScalarUniformDiffusionCoeff(),
+		dDeltaT,
+		4,
+		true);
 #endif
 
 	// Apply positive definite filter to tracers
@@ -2860,6 +2864,18 @@ void HorizontalDynamicsFEM::ApplyVectorHyperdiffusion(
 				dLocalNuVort =
 					dLocalNuVort * pow(dElementDeltaA / dReferenceLength, 3.2);
 			}
+		}
+
+		// Get an average grid spacing and apply to the coefficient
+		if (fFlowDepend) {
+			double dDA = pPatch->GetElementDeltaA()
+				/ (m_nHorizontalOrder - 1);
+			double dDB = pPatch->GetElementDeltaB()
+				/ (m_nHorizontalOrder - 1);
+
+			double dDAB = fabs(0.5 * (dDA + dDB));
+			dLocalNuDiv *= pow(dDAB, 3.0);
+			dLocalNuVort *= pow(dDAB, 3.0);
 		}
 
 		// Number of finite elements
