@@ -316,7 +316,8 @@ public:
 		const double dRayleighStrengthZ = 1.0E-2;//8.0e-3;
 		const double dRayleighStrengthX = 1.0 * dRayleighStrengthZ;
 		const double dRayleighDepth = 10000.0;
-		const double dRayleighWidth = 20000.0;
+		const double dRayleighWidthR = 20000.0;
+		const double dRayleighWidthL = 10000.0;
 		const double dRayDepthXi = dRayleighDepth / m_dGDim[5];
 
 		double dNuDepth = 0.0;
@@ -325,8 +326,8 @@ public:
 
 		double dLayerZ = 1.0 - dRayDepthXi;
 		//double dLayerZ = m_dGDim[5] - dRayleighDepth;
- 		double dLayerR = m_dGDim[1] - dRayleighWidth;
- 		double dLayerL = m_dGDim[0] + dRayleighWidth;
+ 		double dLayerR = m_dGDim[1] - dRayleighWidthR;
+ 		double dLayerL = m_dGDim[0] + dRayleighWidthL;
 
 		if (dZ > dLayerZ) {
 			//double dNormZ = (m_dGDim[5] - dZ) / dRayleighDepth;
