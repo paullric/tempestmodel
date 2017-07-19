@@ -1327,10 +1327,10 @@ void VerticalDynamicsFEM::ApplyRayleighFriction(
 
 	// Rayleigh damping on nodes
 	for (int k = 0; k < nRElements; k++) {
-		double dNuPML = dataRayStrengthNode(iA, iB, k);
+		double dNu = dataRayStrengthNode(iA, iB, k);
 
 		// Backwards Euler
-		if (dNuPML == 0.0) {
+		if (dNu == 0.0) {
 			continue;
 		}
 
@@ -1346,19 +1346,16 @@ void VerticalDynamicsFEM::ApplyRayleighFriction(
 
 				double dPML = 0.0;
 				for (int si = 0; si < nRayCycles; si++) {
-					// APPLY PML LATERAL LAYER
-					if (dNuPML > 0.0) {
-						dNuInv = 1.0 / (1.0 + dRayFactor * dDeltaT * dNuPML);
-						dPML = dataUpdateNode(nEffectiveC[c],iA, iB,k)
-						- dataReferenceNode(nEffectiveC[c],iA, iB,k)
-						+ dRayFactor * dDeltaT * dNuPML * dPhi;
+					dNuInv = 1.0 / (1.0 + dRayFactor * dDeltaT * dNu);
+					dPML = dataUpdateNode(nEffectiveC[c],iA, iB,k)
+					- dataReferenceNode(nEffectiveC[c],iA, iB,k)
+					+ dRayFactor * dDeltaT * dNu * dPhi;
 
-						dataUpdateNode(nEffectiveC[c],iA, iB,k) =
-						dNuInv * dataUpdateNode(nEffectiveC[c],iA, iB,k)
-						+ (1.0 - dNuInv)
-						* dataReferenceNode(nEffectiveC[c],iA, iB,k);
-						//+ dNuInv * dRayFactor * dDeltaT * dPML;
-					}
+					dataUpdateNode(nEffectiveC[c],iA, iB,k) =
+					dNuInv * dataUpdateNode(nEffectiveC[c],iA,iB,k)
+					+ (1.0 - dNuInv)
+					* dataReferenceNode(nEffectiveC[c],iA,iB,k);
+					//+ dNuInv * dRayFactor * dDeltaT * dPML;
 				}
 			}
 		}
@@ -1366,11 +1363,9 @@ void VerticalDynamicsFEM::ApplyRayleighFriction(
 
 	// Rayleigh damping on interfaces
 	for (int k = 0; k <= nRElements; k++) {
-		double dNuPML = dataRayStrengthREdge(iA, iB,k);
-		double dNu = 0.0;
-
+		double dNu = dataRayStrengthREdge(iA,iB,k);
 		// Backwards Euler
-		if (dNuPML == 0.0) {
+		if (dNu == 0.0) {
 			continue;
 		}
 
@@ -1386,19 +1381,16 @@ void VerticalDynamicsFEM::ApplyRayleighFriction(
 
 				double dPML = 0.0;
 				for (int si = 0; si < nRayCycles; si++) {
-					// APPLY PML LATERAL LAYER
-					if (dNuPML > 0.0) {
-						dNuInv = 1.0 / (1.0 + dRayFactor * dDeltaT * dNuPML);
-						dPML = dataUpdateREdge(nEffectiveC[c],iA, iB,k)
-						- dataReferenceREdge(nEffectiveC[c],iA, iB,k)
-						+ dRayFactor * dDeltaT * dNuPML * dPhi;
+					dNuInv = 1.0 / (1.0 + dRayFactor * dDeltaT * dNu);
+					dPML = dataUpdateREdge(nEffectiveC[c],iA,iB,k)
+					- dataReferenceREdge(nEffectiveC[c],iA,iB,k)
+					+ dRayFactor * dDeltaT * dNu * dPhi;
 
-						dataUpdateREdge(nEffectiveC[c],iA, iB,k) =
-						dNuInv * dataUpdateREdge(nEffectiveC[c],iA, iB,k)
-						+ (1.0 - dNuInv)
-						* dataReferenceREdge(nEffectiveC[c],iA, iB,k);
-						//- dNuInv * dRayFactor * dDeltaT * dPML;
-					}
+					dataUpdateREdge(nEffectiveC[c],iA,iB,k) =
+					dNuInv * dataUpdateREdge(nEffectiveC[c],iA,iB,k)
+					+ (1.0 - dNuInv)
+					* dataReferenceREdge(nEffectiveC[c],iA, iB,k);
+					//- dNuInv * dRayFactor * dDeltaT * dPML;
 				}
 			}
 		}
