@@ -2564,11 +2564,11 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusionResidual(
 			dResR = fabs((*pDataResidual)(RIx,iA,iB,k)) / fabs(
 				     (*pDataInitial)(RIx,iA,iB,k) - dEAvgR);
 			/*
-			dResU = fabs((*pDataResidual)(UIx,iA,iB,k))  / fabs(500.0);
-			dResV = fabs((*pDataResidual)(VIx,iA,iB,k))  / fabs(500.0);
-			dResW = fabs((*pDataResidual)(WIx,iA,iB,k))  / fabs(40.0);
-			dResP = fabs((*pDataResidual)(PIx,iA,iB,k)) / fabs(4.0);
-			dResR = fabs((*pDataResidual)(RIx,iA,iB,k)) / fabs(1.0);
+			dResU = fabs((*pDataResidual)(UIx,iA,iB,k))  / fabs(50.0);
+			dResV = fabs((*pDataResidual)(VIx,iA,iB,k))  / fabs(50.0);
+			dResW = fabs((*pDataResidual)(WIx,iA,iB,k))  / fabs(4.0);
+			dResP = fabs((*pDataResidual)(PIx,iA,iB,k)) / fabs(0.1);
+			dResR = fabs((*pDataResidual)(RIx,iA,iB,k)) / fabs(0.1);
 			*/
 			// Select the maximum residual
 			dResMax = std::max(dResU, dResV);
