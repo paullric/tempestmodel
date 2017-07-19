@@ -336,11 +336,11 @@ public:
 		}
 
 		if (dXp > dLayerR) {
-			double dNormX = (m_dGDim[1] - dXp) / dRayleighWidth;
+			double dNormX = (m_dGDim[1] - dXp) / dRayleighWidthR;
 			dNuRight = 0.5 * dRayleighStrengthX * (1.0 + cos(M_PI * dNormX));
 		}
 		if (dXp < dLayerL) {
-			double dNormX = (dXp - m_dGDim[0]) / dRayleighWidth;
+			double dNormX = (dXp - m_dGDim[0]) / dRayleighWidthL;
 			dNuLeft = 0.5 * dRayleighStrengthX * (1.0 + cos(M_PI * dNormX));
 		}
 
