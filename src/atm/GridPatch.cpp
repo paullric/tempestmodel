@@ -272,33 +272,17 @@ void GridPatch::InitializeDataLocal(
 		m_grid.GetRElements());
 
 	// Rayleigh friction strength
-	m_dataLatPMLStrengthNode.SetDataType(DataType_None);
-	m_dataLatPMLStrengthNode.SetDataLocation(DataLocation_Node);
-	m_dataLatPMLStrengthNode.SetSize(
+	m_dataRayleighStrengthNode.SetDataType(DataType_None);
+	m_dataRayleighStrengthNode.SetDataLocation(DataLocation_Node);
+	m_dataRayleighStrengthNode.SetSize(
 		m_box.GetATotalWidth(),
 		m_box.GetBTotalWidth(),
 		m_grid.GetRElements());
 
 	// Rayleigh friction strength
-	m_dataLatPMLStrengthREdge.SetDataType(DataType_None);
-	m_dataLatPMLStrengthREdge.SetDataLocation(DataLocation_REdge);
-	m_dataLatPMLStrengthREdge.SetSize(
-		m_box.GetATotalWidth(),
-		m_box.GetBTotalWidth(),
-		m_grid.GetRElements()+1);
-
-	// PML sponge strength
-	m_dataTopPMLStrengthNode.SetDataType(DataType_None);
-	m_dataTopPMLStrengthNode.SetDataLocation(DataLocation_Node);
-	m_dataTopPMLStrengthNode.SetSize(
-		m_box.GetATotalWidth(),
-		m_box.GetBTotalWidth(),
-		m_grid.GetRElements());
-
-	// PML sponge strength
-	m_dataTopPMLStrengthREdge.SetDataType(DataType_None);
-	m_dataTopPMLStrengthREdge.SetDataLocation(DataLocation_REdge);
-	m_dataTopPMLStrengthREdge.SetSize(
+	m_dataRayleighStrengthREdge.SetDataType(DataType_None);
+	m_dataRayleighStrengthREdge.SetDataLocation(DataLocation_REdge);
+	m_dataRayleighStrengthREdge.SetSize(
 		m_box.GetATotalWidth(),
 		m_box.GetBTotalWidth(),
 		m_grid.GetRElements()+1);
@@ -342,10 +326,8 @@ void GridPatch::InitializeDataLocal(
 	m_dcGeometric.PushDataChunk(&m_dataRefStateREdge);
 	m_dcGeometric.PushDataChunk(&m_dataRefTracers);
 
-	m_dcGeometric.PushDataChunk(&m_dataLatPMLStrengthNode);
-	m_dcGeometric.PushDataChunk(&m_dataLatPMLStrengthREdge);
-	m_dcGeometric.PushDataChunk(&m_dataTopPMLStrengthNode);
-	m_dcGeometric.PushDataChunk(&m_dataTopPMLStrengthREdge);
+	m_dcGeometric.PushDataChunk(&m_dataRayleighStrengthNode);
+	m_dcGeometric.PushDataChunk(&m_dataRayleighStrengthREdge);
 
 	if (fAllocateGeometric) {
 		m_dcGeometric.Allocate();
@@ -629,8 +611,8 @@ void GridPatch::DeinitializeData() {
 	m_dataVorticity.Deallocate();
 	m_dataDivergence.Deallocate();
 	m_dataTemperature.Deallocate();
-	m_dataLatPMLStrengthNode.Deallocate();
-	m_dataLatPMLStrengthREdge.Deallocate();
+	m_dataRayleighStrengthNode.Deallocate();
+	m_dataRayleighStrengthREdge.Deallocate();
 */
 }
 

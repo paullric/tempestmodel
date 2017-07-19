@@ -525,20 +525,20 @@ void GridPatchCartesianGLL::EvaluateTestCase(
 //
 		// High order vertical coordinate transform by Jorge
 		for (int k = 0; k < m_grid.GetRElements(); k++) {
-			m_dataZLevels[i][j][k] =
+			m_dataZLevels(i,j,k) =
 			m_grid.GetZtop() * m_grid.GetREtaLevel(k) +
 				(std::exp(-dP / dQ * m_grid.GetREtaLevel(k)) *
 				std::pow(std::cos(0.5 * M_PI * m_grid.GetREtaLevel(k)), dP) +
 				dA * m_grid.GetREtaLevel(k) * (1.0 - m_grid.GetREtaLevel(k))) *
-				m_dataTopography[i][j];
+				m_dataTopography(i,j);
 		}
 		for (int k = 0; k <= m_grid.GetRElements(); k++) {
-			m_dataZInterfaces[i][j][k] =
+			m_dataZInterfaces(i,j,k) =
 			m_grid.GetZtop() * m_grid.GetREtaInterface(k) +
 				(std::exp(-dP / dQ * m_grid.GetREtaInterface(k)) *
 				std::pow(std::cos(0.5 * M_PI * m_grid.GetREtaInterface(k)), dP) +
 				dA * m_grid.GetREtaInterface(k) * (1.0 - m_grid.GetREtaInterface(k))) *
-				m_dataTopography[i][j];
+				m_dataTopography(i,j);
 		}
 //
 	}
@@ -550,31 +550,21 @@ void GridPatchCartesianGLL::EvaluateTestCase(
 		for (int j = 0; j < m_box.GetBTotalWidth(); j++) {
 			for (int k = 0; k < m_grid.GetRElements(); k++) {
 				//m_dataZLevels[i][j][k],
-				m_dataLatPMLStrengthNode[i][j][k] =
-					test.EvaluateLatPMLStrength(
+				// vertical sponge layer
+				m_dataRayleighStrengthNode(i,j,k) =
+					test.EvaluateRayleighStrength(
 						m_grid.GetREtaLevel(k),
-						m_dataLon[i][j],
-						m_dataLat[i][j]);
-				// PML for the vertical sponge layer
-				m_dataTopPMLStrengthNode[i][j][k] =
-					test.EvaluateTopPMLStrength(
-						m_grid.GetREtaLevel(k),
-						m_dataLon[i][j],
-						m_dataLat[i][j]);
+						m_dataLon(i,j),
+						m_dataLat(i,j));
 			}
 			for (int k = 0; k <= m_grid.GetRElements(); k++) {
 				//m_dataZInterfaces[i][j][k],
-				m_dataLatPMLStrengthREdge[i][j][k] =
-					test.EvaluateLatPMLStrength(
+				// vertical sponge layer
+				m_dataRayleighStrengthREdge(i,j,k) =
+					test.EvaluateRayleighStrength(
 						m_grid.GetREtaInterface(k),
-						m_dataLon[i][j],
-						m_dataLat[i][j]);
-				// PML for the vertical sponge layer
-				m_dataTopPMLStrengthREdge[i][j][k] =
-					test.EvaluateTopPMLStrength(
-						m_grid.GetREtaInterface(k),
-						m_dataLon[i][j],
-						m_dataLat[i][j]);
+						m_dataLon(i,j),
+						m_dataLat(i,j));
 			}
 		}
 		}
@@ -607,6 +597,7 @@ void GridPatchCartesianGLL::EvaluateTestCase(
 		test.EvaluatePointwiseState(
 			m_grid.GetModel().GetPhysicalConstants(),
 			time,
+			m_grid.GetREtaLevel(k),
 			m_dataZLevels[i][j][k],
 			m_dataLon[i][j],
 			m_dataLat[i][j],
@@ -624,6 +615,7 @@ void GridPatchCartesianGLL::EvaluateTestCase(
 		if (m_grid.HasReferenceState()) {
 			test.EvaluateReferenceState(
 				m_grid.GetModel().GetPhysicalConstants(),
+				m_grid.GetREtaLevel(k),
 				m_dataZLevels[i][j][k],
 				m_dataLon[i][j],
 				m_dataLat[i][j],
@@ -658,6 +650,7 @@ void GridPatchCartesianGLL::EvaluateTestCase(
 		test.EvaluatePointwiseState(
 			phys,
 			time,
+			m_grid.GetREtaInterface(k),
 			m_dataZInterfaces[i][j][k],
 			m_dataLon[i][j],
 			m_dataLat[i][j],
@@ -673,6 +666,7 @@ void GridPatchCartesianGLL::EvaluateTestCase(
 		if (m_grid.HasReferenceState()) {
 			test.EvaluateReferenceState(
 				phys,
+				m_grid.GetREtaInterface(k),
 				m_dataZInterfaces[i][j][k],
 				m_dataLon[i][j],
 				m_dataLat[i][j],

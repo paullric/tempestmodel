@@ -304,7 +304,7 @@ public:
 	virtual bool HasRayleighFriction() const {
 		return !m_fNoRayleighFriction;
 	}
-/*
+
 	///	<summary>
 	///		Evaluate the Rayleigh friction strength at the given point.
 	///	</summary>
@@ -315,15 +315,14 @@ public:
 	) const {
 		const double dRayleighStrengthZ = 1.0E-2;//8.0e-3;
 		const double dRayleighStrengthX = 1.0 * dRayleighStrengthZ;
-		const double dRayleighDepth = 3000.0;
-		const double dRayleighWidth = 3000.0;
+		const double dRayleighDepth = 10000.0;
+		const double dRayleighWidth = 30000.0;
 		const double dRayDepthXi = dRayleighDepth / m_dGDim[5];
 
 		double dNuDepth = 0.0;
 		double dNuRight = 0.0;
 		double dNuLeft  = 0.0;
 
-		//double dLayerZ = m_dGDim[5] - dRayleighDepth;
 		double dLayerZ = 1.0 - dRayDepthXi;
 		//double dLayerZ = m_dGDim[5] - dRayleighDepth;
  		double dLayerR = m_dGDim[1] - dRayleighWidth;
@@ -353,153 +352,7 @@ public:
 		}
 		return dNuLeft;
 	}
-*/
 
-	///	<summary>
-	///		Evaluate the Rayleigh friction strength at the given point.
-	///	</summary>
-	virtual double EvaluateTopPMLStrength(
-		double dZ,
-		double dXp,
-		double dYp
-	) const {
-		const double dRayleighStrengthZ = 1.0E-2;//8.0e-3;
-		const double dRayleighStrengthX = 1.0 * dRayleighStrengthZ;
-		const double dRayleighDepth = 10000.0;
-		const double dRayleighWidth = 30000.0;
-		const double dRayDepthXi = dRayleighDepth / m_dGDim[5];
-
-		double dNuDepth = 0.0;
-		double dNuRight = 0.0;
-		double dNuLeft  = 0.0;
-		double dLayerZ = 1.0 - dRayDepthXi;
-		double dLayerR = m_dGDim[1] - dRayleighWidth;
-		double dLayerL = m_dGDim[0] + dRayleighWidth;
-
-		if (dZ > dLayerZ) {
-			double dNormZ = (1.0 - dZ) / dRayDepthXi;
-			dNuDepth = 0.5 * dRayleighStrengthZ * (1.0 + cos(M_PI * dNormZ));
-		}
-
-		if (dXp > dLayerR) {
-			double dNormX = (m_dGDim[1] - dXp) / dRayleighWidth;
-			dNuRight = 0.5 * dRayleighStrengthX * (1.0 + cos(M_PI * dNormX));
-		}
-		if (dXp < dLayerL) {
-			double dNormX = (dXp - m_dGDim[0]) / dRayleighWidth;
-			dNuLeft = 0.5 * dRayleighStrengthX * (1.0 + cos(M_PI * dNormX));
-		}
-
-		if ((dNuDepth >= dNuRight) && (dNuDepth >= dNuLeft)) {
-			return dNuDepth;
-		}
-		if (dNuRight >= dNuLeft) {
-			return dNuRight;
-		}
-		return dNuLeft;
-	}
-
-	///	<summary>
-	///		Evaluate the Rayleigh friction strength at the given point.
-	///	</summary>
-	virtual double EvaluateLatPMLStrength(
-		double dZ,
-		double dXp,
-		double dYp
-	) const {
-		const double dRayleighStrengthZ = 1.0E-2;//8.0e-3;
-		const double dRayleighStrengthX = 1.0 * dRayleighStrengthZ;
-		const double dRayleighDepth = 8000.0;
-		const double dRayleighWidth = 8000.0;
-		const double dRayDepthXi = dRayleighDepth / m_dGDim[5];
-
-		double dNuDepth = 0.0;
-		double dNuRight = 0.0;
-		double dNuLeft  = 0.0;
-		double dLayerZ = 1.0 - dRayDepthXi;
- 		double dLayerR = m_dGDim[1] - dRayleighWidth;
- 		double dLayerL = m_dGDim[0] + dRayleighWidth;
-
-		if (dZ > dLayerZ) {
-			double dNormZ = (1.0 - dZ) / dRayDepthXi;
-			dNuDepth = 0.5 * dRayleighStrengthZ * (1.0 + cos(M_PI * dNormZ));
-		}
-
-		if (dXp > dLayerR) {
-			double dNormX = (m_dGDim[1] - dXp) / dRayleighWidth;
-			dNuRight = 0.5 * dRayleighStrengthX * (1.0 + cos(M_PI * dNormX));
-		}
-		if (dXp < dLayerL) {
-			double dNormX = (dXp - m_dGDim[0]) / dRayleighWidth;
-			dNuLeft = 0.5 * dRayleighStrengthX * (1.0 + cos(M_PI * dNormX));
-		}
-
-		if ((dNuDepth >= dNuRight) && (dNuDepth >= dNuLeft)) {
-			return dNuDepth;
-		}
-		if (dNuRight >= dNuLeft) {
-			return dNuRight;
-		}
-		return dNuLeft;
-	}
-
-/*
-	///	<summary>
-	///		Evaluate the lateral PML layers.
-	///	</summary>
-	virtual double EvaluateLatPMLStrength(
-		double dZ,
-		double dXp,
-		double dYp
-	) const {
-		const double dRayleighStrengthX = 1.0E-2;//8.0e-3;
-		const double dRayleighWidth = 10000.0;
-
-		double dNuRight = 0.0;
-		double dNuLeft  = 0.0;
-		double dNuDepth = 0.0;
- 		double dLayerR = m_dGDim[1] - dRayleighWidth;
- 		double dLayerL = m_dGDim[0] + dRayleighWidth;
-
-		if (dXp > dLayerR) {
-			double dNormX = (m_dGDim[1] - dXp) / dRayleighWidth;
-			dNuRight = 0.5 * dRayleighStrengthX * (1.0 + cos(M_PI * dNormX));
-		}
-		if (dXp < dLayerL) {
-			double dNormX = (dXp - m_dGDim[0]) / dRayleighWidth;
-			dNuLeft = 0.5 * dRayleighStrengthX * (1.0 + cos(M_PI * dNormX));
-		}
-
-		if (dNuRight >= dNuLeft) {
-			return dNuRight;
-		}
-		return dNuLeft;
-	}
-
-	///	<summary>
-	///		Evaluate the top PML layer.
-	///	</summary>
-	virtual double EvaluateTopPMLStrength(
-		double dZ,
-		double dXp,
-		double dYp
-	) const {
-		const double dRayleighStrengthZ = 1.0E-4;//8.0e-3;
-		const double dRayleighDepth = 3000.0;
-		const double dRayDepthXi = dRayleighDepth / m_dGDim[5];
-
-		double dNuDepth = 0.0;
-		double dLayerZ = 1.0 - dRayDepthXi;
-
-		if (dZ > dLayerZ) {
-			double dNormZ = (1.0 - dZ) / dRayDepthXi;
-			dNuDepth = 0.5 * dRayleighStrengthZ * (1.0 + cos(M_PI * dNormZ));
-			//dNuDepth = sin(M_PI * dNormZ) * sin(M_PI * dNormZ)
-			//		/ (dNormZ * dNormZ * dNormZ);
-		}
-		return dNuDepth;
-	}
-*/
 	///	<summary>
 	///		Evaluate the zonal velocity field perturbation.
 	///	</summary>
@@ -634,6 +487,7 @@ public:
 	///	</summary>
 	virtual void EvaluateReferenceState(
 		const PhysicalConstants & phys,
+		double dXi,
 		double dZp,
 		double dXp,
 		double dYp,
@@ -645,19 +499,22 @@ public:
 		double dGeopotential;
 		double dTemperature;
 
-		double dEta = EtaFromRLL(
+		double dEtaPhys = EtaFromRLL(
 			phys, dZp, dXp, dYp, dGeopotential, dTemperature);
 
+		double dEtaComp = EtaFromRLL(
+			phys, dXi * m_dGDim[5], dXp, dYp, dGeopotential, dTemperature);
+
 		// Calculate zonal velocity and set other velocity components
-		double dExpDecay = exp(-(log(dEta) / m_dbC) * (log(dEta) / m_dbC));
-		double dUlon = -m_dUj * log(dEta) * dExpDecay;
+		double dExpDecay = exp(-(log(dEtaComp) / m_dbC) * (log(dEtaComp) / m_dbC));
+		double dUlon = -m_dUj * log(dEtaComp) * dExpDecay;
 
 		dState[0] = dUlon + m_dU0;
 		dState[1] = 0.0;
 		dState[3] = 0.0;
 
 		// Calculate rho and theta
-		double dPressure = phys.GetP0() * dEta;
+		double dPressure = phys.GetP0() * dEtaPhys;
 		//std::cout << std::setprecision(16) << "Z = " << dZp << " Eta = " << dEta << "\n";
 
 		double dRho = dPressure / (phys.GetR() * dTemperature);
@@ -674,6 +531,7 @@ public:
 	virtual void EvaluatePointwiseState(
 		const PhysicalConstants & phys,
 		const Time & time,
+		double dXi,
 		double dZp,
 		double dXp,
 		double dYp,
@@ -682,7 +540,7 @@ public:
 	) const {
 
 		// Evaluate the reference state at this point
-		EvaluateReferenceState(phys, dZp, dXp, dYp, dState);
+		EvaluateReferenceState(phys, dXi, dZp, dXp, dYp, dState);
 
 		// Add perturbation in zonal velocity
 		dState[0] += 0.0;

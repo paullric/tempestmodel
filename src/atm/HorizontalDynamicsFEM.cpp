@@ -35,10 +35,6 @@
 
 #define FIX_ELEMENT_MASS_NONHYDRO
 
-//#define HYPERVISC_HORIZONTAL_VELOCITIES
-//#define HYPERVISC_THERMO
-//#define HYPERVISC_VERTICAL_VELOCITY
-
 #define RESIDUAL_DIFFUSION_THERMO
 //#define RESIDUAL_DIFFUSION_RHO
 
@@ -1825,20 +1821,6 @@ void HorizontalDynamicsFEM::StepExplicit(
 	}
 #endif
 
-#if defined(HYPERVISC_HORIZONTAL_VELOCITIES)
-m_fFlowDepend = true;
-// Apply hyperviscosity
-if (m_nHyperviscosityOrder == 2) {
-	// Compute the coefficients
-	m_dHypervisCoeff = 1.0 / 2.0;
-} else if (m_nHyperviscosityOrder == 4) {
-	// Compute the coefficients
-	m_dHypervisCoeff = - 1.0 / 6.0;
-} else {
-	_EXCEPTIONT("Horizontal Flow Dependent Hypervis at 2nd order ONLY!");
-}
-#endif
-
 #if defined(RESIDUAL_DIFFUSION_THERMO)
 	// Residual diffusion of Theta with residual based diffusion coeff
 	ApplyScalarHyperdiffusionResidual(
@@ -2842,20 +2824,6 @@ void HorizontalDynamicsFEM::ApplyVectorHyperdiffusion(
 				dLocalNuVort =
 					dLocalNuVort * pow(dElementDeltaA / dReferenceLength, 3.2);
 			}
-		} else if (m_fFlowDepend) {
-			double dDA = pPatch->GetElementDeltaA()
-				/ (m_nHorizontalOrder - 1);
-			double dDB = pPatch->GetElementDeltaB()
-				/ (m_nHorizontalOrder - 1);
-
-			double dDAB = fabs(0.5 * (dDA + dDB));
-			if (m_nHyperviscosityOrder == 2) {
-				dLocalNuDiv = m_dHypervisCoeff * pow(dDAB, 1.0);
-				dLocalNuVort = m_dHypervisCoeff * pow(dDAB, 1.0);
-			} else if (m_nHyperviscosityOrder == 4) {
-				dLocalNuDiv = m_dHypervisCoeff * pow(dDAB, 3.0);
-				dLocalNuVort = m_dHypervisCoeff * pow(dDAB, 3.0);
-			}
 		}
 
 		// Number of finite elements
@@ -2908,16 +2876,6 @@ void HorizontalDynamicsFEM::ApplyVectorHyperdiffusion(
 
 				dDaCurl *= dInvElementDeltaA;
 				dDbCurl *= dInvElementDeltaB;
-
-				if (m_fFlowDepend) {
-					double dFlowSpeed =
-						sqrt(m_dAuxDataNode(ConUaIx,i,j,k)
-						* m_dAuxDataNode(ConUaIx,i,j,k)
-						+ m_dAuxDataNode(ConUbIx,i,j,k)
-						* m_dAuxDataNode(ConUbIx,i,j,k));
-					dLocalNuDiv *= fabs(dFlowSpeed);
-					dLocalNuVort *= fabs(dFlowSpeed);
-				}
 
 				// Apply update
 				double dUpdateUa =
@@ -3037,11 +2995,11 @@ void HorizontalDynamicsFEM::ApplyRayleighFriction(
 			pPatch->GetReferenceState(DataLocation_REdge);
 
 		// Top PML layer strength
-		const DataArray3D<double> & dataTopStrengthNode =
-			pPatch->GetTopPMLStrength(DataLocation_Node);
+		const DataArray3D<double> & dataRayStrengthNode =
+			pPatch->GetRayleighStrength(DataLocation_Node);
 
-		const DataArray3D<double> & dataTopStrengthREdge =
-			pPatch->GetTopPMLStrength(DataLocation_REdge);
+		const DataArray3D<double> & dataRayStrengthREdge =
+			pPatch->GetRayleighStrength(DataLocation_REdge);
 
 		const DataArray4D<double> & m_dataXiDiffNode =
 			pPatch->GetXiDiffNode(DataLocation_Node);
@@ -3052,7 +3010,7 @@ void HorizontalDynamicsFEM::ApplyRayleighFriction(
 
 			// Rayleigh damping on nodes
 			for (int k = 0; k < nRElements; k++) {
-				double dNuPML = dataTopStrengthNode(i,j,k);
+				double dNuPML = dataRayStrengthNode(i,j,k);
 
 				// Backwards Euler
 				if (dNuPML == 0.0) {
@@ -3100,7 +3058,7 @@ void HorizontalDynamicsFEM::ApplyRayleighFriction(
 
 			// Rayleigh damping on interfaces
 			for (int k = 0; k <= nRElements; k++) {
-				double dNuPML = dataTopStrengthREdge(i,j,k);
+				double dNuPML = dataRayStrengthREdge(i,j,k);
 				double dNu = 0.0;
 
 				// Backwards Euler

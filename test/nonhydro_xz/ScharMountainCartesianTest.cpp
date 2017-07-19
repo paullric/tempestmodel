@@ -217,7 +217,7 @@ public:
 			double dNormX = (dXp - m_dGDim[0]) / dRayleighWidth;
 			dNuLeft = 0.5 * dRayleighStrengthX * (1.0 + cos(M_PI * dNormX));
 		}
-		
+
 		//std::cout << dXp << ' ' << dZ << ' ' << dNuDepth << std::endl;
 		if ((dNuDepth >= dNuRight) && (dNuDepth >= dNuLeft)) {
 			return dNuDepth;
@@ -281,6 +281,7 @@ public:
 	virtual void EvaluatePointwiseState(
 		const PhysicalConstants & phys,
 		const Time & time,
+		double dXi,
 		double dZp,
 		double dXp,
 		double dYp,
@@ -394,7 +395,7 @@ try {
 	Model model(EquationSet::PrimitiveNonhydrostaticEquations);
 
 	// Setup the cartesian model with dimensions and reference latitude
-	TempestSetupCartesianModel(model, test->m_dGDim, 0.0, 
+	TempestSetupCartesianModel(model, test->m_dGDim, 0.0,
 								test->m_iLatBC, true);
 
 	// Set the reference length to reduce diffusion relative to global scale
@@ -430,4 +431,3 @@ try {
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-

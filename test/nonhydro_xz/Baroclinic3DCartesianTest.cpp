@@ -63,7 +63,7 @@ private:
 	///		Assumed lapse rate of absolute temperature
 	///	</summary>
 	double m_ddTdz;
-	
+
 	///	<summary>
 	///		Reference constant surface absolute temperature
 	///	</summary>
@@ -260,7 +260,7 @@ public:
 		double yL2 = (dYp - m_dYC) * (dYp - m_dYC);
 
 		double dUpert = m_dUp * exp(-(xL2 + yL2) / (m_dLpC * m_dLpC));
- 
+
 		return dUpert;
 	}
 
@@ -294,15 +294,15 @@ public:
 
 		// Horizontally averaged geopotential
 		double dAvgGeopotential =
-			m_dT0 * dG / m_ddTdz * 
+			m_dT0 * dG / m_ddTdz *
 			(1.0 - pow(dEta, dRd * m_ddTdz / dG));
 
 		// Horizontal variation geopotential function
-		double dXYGeopotential = 0.5 * m_dU0 * 
-			((df0 - dbeta0 * m_dY0) * (dYp - m_dY0 - 
-			m_dY0 / m_dpiC * sin(2 * m_dpiC * dYp / dLy)) + 
-			0.5 * dbeta0 * 
-			(dYp * dYp - dLy * dYp / m_dpiC * sin(2 * m_dpiC * dYp / dLy) - 
+		double dXYGeopotential = 0.5 * m_dU0 *
+			((df0 - dbeta0 * m_dY0) * (dYp - m_dY0 -
+			m_dY0 / m_dpiC * sin(2 * m_dpiC * dYp / dLy)) +
+			0.5 * dbeta0 *
+			(dYp * dYp - dLy * dYp / m_dpiC * sin(2 * m_dpiC * dYp / dLy) -
 			0.5 * dLy * dLy / (m_dpiC * m_dpiC) * cos(2 * m_dpiC * dYp / dLy) -
 			dLy * dLy / 3 - 0.5 * dLy * dLy / (m_dpiC * m_dpiC)));
 
@@ -313,7 +313,7 @@ public:
 		// Total geopotential distribution
 		dGeopotential = dAvgGeopotential + dXYGeopotential*
 			dRefProfile1 * dExpDecay;
-		
+
 		// Total temperature distribution
 		dTemperature = dAvgTemperature + dXYGeopotential / dRd *
 			dRefProfile2 * dExpDecay;
@@ -421,6 +421,7 @@ public:
 	virtual void EvaluatePointwiseState(
 		const PhysicalConstants & phys,
 		const Time & time,
+		double dXi,
 		double dZp,
 		double dXp,
 		double dYp,
@@ -447,7 +448,7 @@ int main(int argc, char** argv) {
 try {
 	// Nondimensional vertical width parameter
 	double dbC;
-	
+
 	// Uniform zonal velocity
 	double dU0;
 
@@ -512,9 +513,9 @@ try {
 	AnnounceBanner("MODEL SETUP");
 
 	Model model(EquationSet::PrimitiveNonhydrostaticEquations);
-	
+
 	// Setup the cartesian model with dimensions and reference latitude
-	TempestSetupCartesianModel(model, test->m_dGDim, test->m_dRefLat, 
+	TempestSetupCartesianModel(model, test->m_dGDim, test->m_dRefLat,
 								test->m_iLatBC, false);
 
 	// Set the reference length to reduce diffusion relative to global scale
@@ -551,4 +552,3 @@ try {
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-

@@ -280,6 +280,7 @@ public:
 	virtual void EvaluatePointwiseState(
 		const PhysicalConstants & phys,
 		const Time & time,
+		double dXi,
 		double dZp,
 		double dXp,
 		double dYp,
@@ -392,7 +393,7 @@ try {
 	Model model(EquationSet::PrimitiveNonhydrostaticEquations);
 
 	// Setup the cartesian model with dimensions and reference latitude
-	TempestSetupCartesianModel(model, test->m_dGDim, 0.0, 
+	TempestSetupCartesianModel(model, test->m_dGDim, 0.0,
 								test->m_iLatBC, true);
 
 	// Set the reference length to reduce diffusion relative to global scale
@@ -428,4 +429,3 @@ try {
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-

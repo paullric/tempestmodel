@@ -157,6 +157,7 @@ public:
 	///	</summary>
 	virtual void EvaluateReferenceState(
 		const PhysicalConstants & phys,
+		double dXi,
 		double dZ,
 		double dLon,
 		double dLat,
@@ -179,7 +180,7 @@ public:
 
 		// Surface pressure
 		double dPsTempScaling = pow(dTs / m_dTeq, 1.0 / phys.GetKappa());
-		
+
 		double dPsExpTerm =
 			m_dU0 / (4.0 * dG * phys.GetR())
 				* (m_dU0 + 2.0 * phys.GetOmega() * phys.GetEarthRadius())
@@ -215,6 +216,7 @@ public:
 	virtual void EvaluatePointwiseState(
 		const PhysicalConstants & phys,
 		const Time & time,
+		double dXi,
 		double dZ,
 		double dLon,
 		double dLat,
@@ -223,7 +225,7 @@ public:
 	) const {
 
 		// Calculate the reference state
-		EvaluateReferenceState(phys, dZ, dLon, dLat, dState);
+		EvaluateReferenceState(phys, dXi, dZ, dLon, dLat, dState);
 
 		// Add in the potential temperature perturbation
 		double dR = phys.GetEarthRadius() * acos(
@@ -349,4 +351,3 @@ try {
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-

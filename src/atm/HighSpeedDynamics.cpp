@@ -1334,7 +1334,7 @@ void HighSpeedDynamics::StepImplicitCombine(
 			for (int j = 0; j < nHorizontalOrder; j++) {
 				m_dC(k,i,j) /= (m_dB(k,i,j) - m_dA(k,i,j) * m_dC(k-1,i,j));
 				m_dD(k,i,j) =
-					(m_dD(k,i,j) - m_dA(k,i,j) * m_dD(k-1,i,j)) 
+					(m_dD(k,i,j) - m_dA(k,i,j) * m_dD(k-1,i,j))
 					/ (m_dB(k,i,j) - m_dA(k,i,j) * m_dC(k-1,i,j));
 			}
 			}
@@ -1362,7 +1362,7 @@ void HighSpeedDynamics::StepImplicitCombine(
 				const int iA = iElementA + i;
 				const int iB = iElementB + j;
 
-				
+
 
 #ifdef TEMPEST_LAPACK_ACML_INTERFACE
 				dgtsv(
@@ -2253,10 +2253,10 @@ void HighSpeedDynamics::ApplyRayleighFriction(
 
 		// Rayleigh friction strength
 		const DataArray3D<double> & dataRayleighStrengthNode =
-			pPatch->GetTopPMLStrength(DataLocation_Node);
+			pPatch->GetRayleighStrength(DataLocation_Node);
 
 		const DataArray3D<double> & dataRayleighStrengthREdge =
-			pPatch->GetTopPMLStrength(DataLocation_REdge);
+			pPatch->GetRayleighStrength(DataLocation_REdge);
 
 		// Loop over all nodes in patch
 		for (int i = box.GetAInteriorBegin(); i < box.GetAInteriorEnd(); i++) {

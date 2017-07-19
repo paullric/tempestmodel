@@ -758,11 +758,11 @@ void VerticalDynamicsFEM::StepExplicit(
 			pPatch->GetContraMetricXiREdge();
 
 		// Lateral PML layer strength
-		const DataArray3D<double> & dataLatStrengthNode =
-			pPatch->GetLatPMLStrength(DataLocation_Node);
+		const DataArray3D<double> & dataRayStrengthNode =
+			pPatch->GetRayleighStrength(DataLocation_Node);
 
-		const DataArray3D<double> & dataLatStrengthREdge =
-			pPatch->GetLatPMLStrength(DataLocation_REdge);
+		const DataArray3D<double> & dataRayStrengthREdge =
+			pPatch->GetRayleighStrength(DataLocation_REdge);
 
 #if defined(EXPLICIT_VERTICAL_VELOCITY_ADVECTION) && \
     defined(VERTICAL_VELOCITY_ADVECTION_CLARK)
@@ -889,8 +889,8 @@ void VerticalDynamicsFEM::StepExplicit(
 							dataUpdateREdge,
 							dataRefNode,
 							dataRefREdge,
-							dataLatStrengthNode,
-							dataLatStrengthREdge,
+							dataRayStrengthNode,
+							dataRayStrengthREdge,
 							dDeltaT);
 					}
 				#endif
@@ -1263,8 +1263,8 @@ void VerticalDynamicsFEM::ApplyRayleighFriction(
 	DataArray4D<double> & dataUpdateREdge,
 	const DataArray4D<double> & dataReferenceNode,
 	const DataArray4D<double> & dataReferenceREdge,
-	const DataArray3D<double> & dataLatStrengthNode,
-	const DataArray3D<double> & dataLatStrengthREdge,
+	const DataArray3D<double> & dataRayStrengthNode,
+	const DataArray3D<double> & dataRayStrengthREdge,
 	double dDeltaT
 ) {
 	// Get a copy of the GLL grid
@@ -1327,7 +1327,7 @@ void VerticalDynamicsFEM::ApplyRayleighFriction(
 
 	// Rayleigh damping on nodes
 	for (int k = 0; k < nRElements; k++) {
-		double dNuPML = dataLatStrengthNode(iA, iB,k);
+		double dNuPML = dataRayStrengthNode(iA, iB, k);
 
 		// Backwards Euler
 		if (dNuPML == 0.0) {
@@ -1366,7 +1366,7 @@ void VerticalDynamicsFEM::ApplyRayleighFriction(
 
 	// Rayleigh damping on interfaces
 	for (int k = 0; k <= nRElements; k++) {
-		double dNuPML = dataLatStrengthREdge(iA, iB,k);
+		double dNuPML = dataRayStrengthREdge(iA, iB,k);
 		double dNu = 0.0;
 
 		// Backwards Euler

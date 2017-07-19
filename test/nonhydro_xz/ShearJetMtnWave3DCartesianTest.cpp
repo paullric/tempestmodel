@@ -558,6 +558,7 @@ public:
 	virtual void EvaluatePointwiseState(
 		const PhysicalConstants & phys,
 		const Time & time,
+		double dXi,
 		double dZp,
 		double dXp,
 		double dYp,

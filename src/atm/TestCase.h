@@ -102,28 +102,6 @@ public:
 	}
 
 	///	<summary>
-	///		Evaluate the PML strength at the given point.
-	///	</summary>
-	virtual double EvaluateTopPMLStrength(
-		double dZ,
-		double dLon,
-		double dLat
-	) const {
-		return 0.0;
-	}
-
-	///	<summary>
-	///		Evaluate the PML strength at the given point.
-	///	</summary>
-	virtual double EvaluateLatPMLStrength(
-		double dZ,
-		double dLon,
-		double dLat
-	) const {
-		return 0.0;
-	}
-
-	///	<summary>
 	///		Flag indicating whether or not a reference state is available.
 	///	</summary>
 	virtual bool HasReferenceState() const {
@@ -135,6 +113,7 @@ public:
 	///	</summary>
 	virtual void EvaluateReferenceState(
 		const PhysicalConstants & phys,
+		double dXi,
 		double dZ,
 		double dLon,
 		double dLat,
@@ -143,6 +122,7 @@ public:
 	) const {
 		EvaluateReferenceState(
 			phys,
+			dXi,
 			dZ,
 			dLon,
 			dLat,
@@ -154,6 +134,7 @@ public:
 	///	</summary>
 	virtual void EvaluateReferenceState(
 		const PhysicalConstants & phys,
+		double dXi,
 		double dZ,
 		double dLon,
 		double dLat,
@@ -168,6 +149,7 @@ public:
 	virtual void EvaluatePointwiseState(
 		const PhysicalConstants & phys,
 		const Time & time,
+		double dXi,
 		double dZ,
 		double dLon,
 		double dLat,

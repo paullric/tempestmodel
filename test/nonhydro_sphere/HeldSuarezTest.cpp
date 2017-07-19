@@ -112,6 +112,7 @@ public:
 	///	</summary>
 	virtual void EvaluateReferenceState(
 		const PhysicalConstants & phys,
+		double dXi,
 		double dZ,
 		double dLon,
 		double dLat,
@@ -137,6 +138,7 @@ public:
 	virtual void EvaluatePointwiseState(
 		const PhysicalConstants & phys,
 		const Time & time,
+		double dXi,
 		double dZ,
 		double dLon,
 		double dLat,
@@ -222,4 +224,3 @@ try {
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-

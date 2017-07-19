@@ -216,7 +216,7 @@ public:
 			double dNormZ = (m_dZtop - dZ) / dRayleighDepth;
 			dNuDepth = 0.5 * dRayleighStrengthZ * (1.0 + cos(M_PI * dNormZ));
 		}
-		
+
 		return dNuDepth;
 	}
 
@@ -357,6 +357,7 @@ public:
 	///	</summary>
 	virtual void EvaluateReferenceState(
 		const PhysicalConstants & phys,
+		double dXi,
 		double dZ,
 		double dLon,
 		double dLat,
@@ -457,6 +458,7 @@ public:
 	virtual void EvaluatePointwiseState(
 		const PhysicalConstants & phys,
 		const Time & time,
+		double dXi,
 		double dZ,
 		double dLon,
 		double dLat,
@@ -669,4 +671,3 @@ try {
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-

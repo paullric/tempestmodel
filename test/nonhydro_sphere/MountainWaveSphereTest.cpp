@@ -169,6 +169,7 @@ public:
 	///	</summary>
 	virtual void EvaluateReferenceState(
 		const PhysicalConstants & phys,
+		double dXi,
 		double dZ,
 		double dLon,
 		double dLat,
@@ -207,13 +208,14 @@ public:
 	virtual void EvaluatePointwiseState(
 		const PhysicalConstants & phys,
 		const Time & time,
+		double dXi,
 		double dZ,
 		double dLon,
 		double dLat,
 		double * dState,
 		double * dTracer
 	) const {
-		return EvaluateReferenceState(phys, dZ, dLon, dLat, dState);
+		return EvaluateReferenceState(phys, dXi, dZ, dLon, dLat, dState);
 	}
 };
 
@@ -314,4 +316,3 @@ try {
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-

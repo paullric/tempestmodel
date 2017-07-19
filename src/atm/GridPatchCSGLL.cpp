@@ -737,15 +737,15 @@ void GridPatchCSGLL::EvaluateTestCase(
 		for (int i = 0; i < m_box.GetATotalWidth(); i++) {
 		for (int j = 0; j < m_box.GetBTotalWidth(); j++) {
 			for (int k = 0; k < m_grid.GetRElements(); k++) {
-				m_dataTopPMLStrengthNode(i,j,k) =
-					test.EvaluateTopPMLStrength(
+				m_dataRayleighStrengthNode(i,j,k) =
+					test.EvaluateRayleighStrength(
 						m_dataZLevels(i,j,k),
 						m_dataLon(i,j),
 						m_dataLat(i,j));
 			}
 			for (int k = 0; k <= m_grid.GetRElements(); k++) {
-				m_dataTopPMLStrengthREdge(i,j,k) =
-					test.EvaluateTopPMLStrength(
+				m_dataRayleighStrengthREdge(i,j,k) =
+					test.EvaluateRayleighStrength(
 						m_dataZInterfaces(i,j,k),
 						m_dataLon(i,j),
 						m_dataLat(i,j));
@@ -781,6 +781,7 @@ void GridPatchCSGLL::EvaluateTestCase(
 		test.EvaluatePointwiseState(
 			phys,
 			time,
+			m_grid.GetREtaLevel(k),
 			m_dataZLevels(i,j,k),
 			m_dataLon(i,j),
 			m_dataLat(i,j),
@@ -830,6 +831,7 @@ void GridPatchCSGLL::EvaluateTestCase(
 		if (m_grid.HasReferenceState()) {
 			test.EvaluateReferenceState(
 				m_grid.GetModel().GetPhysicalConstants(),
+				m_grid.GetREtaLevel(k),
 				m_dataZLevels(i,j,k),
 				m_dataLon(i,j),
 				m_dataLat(i,j),
@@ -896,6 +898,7 @@ void GridPatchCSGLL::EvaluateTestCase(
 		test.EvaluatePointwiseState(
 			m_grid.GetModel().GetPhysicalConstants(),
 			time,
+			m_grid.GetREtaInterface(k),
 			m_dataZInterfaces(i,j,k),
 			m_dataLon(i,j),
 			m_dataLat(i,j),
@@ -944,6 +947,7 @@ void GridPatchCSGLL::EvaluateTestCase(
 		if (m_grid.HasReferenceState()) {
 			test.EvaluateReferenceState(
 				m_grid.GetModel().GetPhysicalConstants(),
+				m_grid.GetREtaInterface(k),
 				m_dataZInterfaces(i,j,k),
 				m_dataLon(i,j),
 				m_dataLat(i,j),

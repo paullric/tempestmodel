@@ -1137,13 +1137,13 @@ public:
 	///	<summary>
 	///		Get the Rayleigh friction strength.
 	///	</summary>
-	DataArray3D<double> & GetLatPMLStrength(
+	DataArray3D<double> & GetRayleighStrength(
 		DataLocation loc = DataLocation_Node
 	) {
 		if (loc == DataLocation_Node) {
-			return m_dataLatPMLStrengthNode;
+			return m_dataRayleighStrengthNode;
 		} else if (loc == DataLocation_REdge) {
-			return m_dataLatPMLStrengthREdge;
+			return m_dataRayleighStrengthREdge;
 		} else {
 			_EXCEPTIONT("Invalid location");
 		}
@@ -1152,43 +1152,13 @@ public:
 	///	<summary>
 	///		Get the Rayleigh friction strength.
 	///	</summary>
-	const DataArray3D<double> & GetLatPMLStrength(
+	const DataArray3D<double> & GetRayleighStrength(
 		DataLocation loc = DataLocation_Node
 	) const {
 		if (loc == DataLocation_Node) {
-			return m_dataLatPMLStrengthNode;
+			return m_dataRayleighStrengthNode;
 		} else if (loc == DataLocation_REdge) {
-			return m_dataLatPMLStrengthREdge;
-		} else {
-			_EXCEPTIONT("Invalid location");
-		}
-	}
-
-	///	<summary>
-	///		Get the top layer PML strength.
-	///	</summary>
-	DataArray3D<double> & GetTopPMLStrength(
-		DataLocation loc = DataLocation_Node
-	) {
-		if (loc == DataLocation_Node) {
-			return m_dataTopPMLStrengthNode;
-		} else if (loc == DataLocation_REdge) {
-			return m_dataTopPMLStrengthREdge;
-		} else {
-			_EXCEPTIONT("Invalid location");
-		}
-	}
-
-	///	<summary>
-	///		Get the PML strength.
-	///	</summary>
-	const DataArray3D<double> & GetTopPMLStrength(
-		DataLocation loc = DataLocation_Node
-	) const {
-		if (loc == DataLocation_Node) {
-			return m_dataTopPMLStrengthNode;
-		} else if (loc == DataLocation_REdge) {
-			return m_dataTopPMLStrengthREdge;
+			return m_dataRayleighStrengthREdge;
 		} else {
 			_EXCEPTIONT("Invalid location");
 		}
@@ -1402,22 +1372,12 @@ protected:
 	///	<summary>
 	///		Rayleigh friction strength on nodes (Geometric).
 	///	</summary>
-	DataArray3D<double> m_dataLatPMLStrengthNode;
+	DataArray3D<double> m_dataRayleighStrengthNode;
 
 	///	<summary>
 	///		Rayleigh friction strength on interfaces (Geometric).
 	///	</summary>
-	DataArray3D<double> m_dataLatPMLStrengthREdge;
-
-	///	<summary>
-	///		PML strength on nodes (Geometric).
-	///	</summary>
-	DataArray3D<double> m_dataTopPMLStrengthNode;
-
-	///	<summary>
-	///		PML strength on interfaces (Geometric).
-	///	</summary>
-	DataArray3D<double> m_dataTopPMLStrengthREdge;
+	DataArray3D<double> m_dataRayleighStrengthREdge;
 
 public:
 	///	<summary>
