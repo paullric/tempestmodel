@@ -36,7 +36,7 @@
 #define FIX_ELEMENT_MASS_NONHYDRO
 
 #define RESIDUAL_DIFFUSION_THERMO
-#define RESIDUAL_DIFFUSION_RHO
+//#define RESIDUAL_DIFFUSION_RHO
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -2553,12 +2553,14 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusionResidual(
 			int iB = iElementB + j;
 
 			// Compute the local diffusion coefficient
+			/*
 			dResU = fabs((*pDataResidual)(UIx,iA,iB,k))  / fabs(
 	                             (*pDataInitial)(UIx,iA,iB,k) - dEAvgU);
 			dResV = fabs((*pDataResidual)(VIx,iA,iB,k))  / fabs(
 	                             (*pDataInitial)(VIx,iA,iB,k) - dEAvgV);
 			dResW = fabs((*pDataResidual)(WIx,iA,iB,k))  / fabs(
 	                             (*pDataInitial)(WIx,iA,iB,k) - dEAvgW);
+			*/
 			dResP = fabs((*pDataResidual)(PIx,iA,iB,k)) / fabs(
 				     (*pDataInitial)(PIx,iA,iB,k) - dEAvgP);
 			dResR = fabs((*pDataResidual)(RIx,iA,iB,k)) / fabs(
@@ -2583,7 +2585,7 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusionResidual(
 			}
 
 			// Scale to the average element length
-			double dABLength = dGridLength / pGrid->GetReferenceLength();
+			double dABLength = dGridLength;// / pGrid->GetReferenceLength();
 			dResNu[i][j] = dABLength * dABLength * fabs(dResCoeff);
 
 			// Apply Pr number of 0.7 to thermodynamic stress
@@ -2592,8 +2594,7 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusionResidual(
 			}
 
 			// Get the maximum possible coefficient (upwind)
-			dNuMax = m_dAuxDataNode(KIx,i,j,k)
-				/ pGrid->GetReferenceLength();
+			dNuMax = m_dAuxDataNode(KIx,i,j,k);// / pGrid->GetReferenceLength();
 
 			// Limit the coefficients to the upwind value
 			if (dResNu[i][j] >= dNuMax) {
@@ -2616,12 +2617,16 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusionResidual(
 			double dDbPsi = 0.0;
 			for (int s = 0; s < nHorizontalOrder; s++) {
 				dDaPsi +=
-					m_dBufferState(s,j)
+					(*pDataInitial)(c,s,iB,k)
 					* dDxBasis1D(s,i);
+					//m_dBufferState(s,j)
+					//* dDxBasis1D(s,i);
 
 				dDbPsi +=
-					m_dBufferState(i,s)
+					(*pDataInitial)(c,iA,s,k)
 					* dDxBasis1D(s,j);
+					//m_dBufferState(i,s)
+					//* dDxBasis1D(s,j);
 			}
 
 				dDaPsi *= dInvElementDeltaA;

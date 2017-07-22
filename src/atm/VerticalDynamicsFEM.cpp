@@ -37,7 +37,7 @@
 //#define HYPERVISC_VERTICAL_VELOCITY
 
 #define RESIDUAL_DIFFUSION_THERMO
-#define RESIDUAL_DIFFUSION_RHO
+//#define RESIDUAL_DIFFUSION_RHO
 
 #define UPWIND_HORIZONTAL_VELOCITIES
 #define UPWIND_THERMO
@@ -2994,8 +2994,9 @@ void VerticalDynamicsFEM::BuildF(
 		// Residual hyperviscosity on interfaces
 		if (pGrid->GetVarLocation(c) == DataLocation_REdge) {
 			for (int k = 0; k <= nRElements; k++) {
-				m_dStateAux[k] = m_dStateREdge[c][k] -
-						m_dStateRefREdge[c][k];
+				m_dStateAux[k] = m_dStateREdge[c][k];
+				//m_dStateAux[k] = m_dStateREdge[c][k] -
+				//		m_dStateRefREdge[c][k];
 			}
 
 			pGrid->DifferentiateREdgeToREdge(
@@ -3030,8 +3031,9 @@ void VerticalDynamicsFEM::BuildF(
 		// Residual hyperviscosity on levels
 		} else {
 			for (int k = 0; k < nRElements; k++) {
-				m_dStateAux[k] = m_dStateNode[c][k] -
-						m_dStateRefNode[c][k];
+				m_dStateAux[k] = m_dStateNode[c][k];
+				//m_dStateAux[k] = m_dStateNode[c][k] -
+				//		m_dStateRefNode[c][k];
 			}
 
 			pGrid->DifferentiateNodeToNode(
@@ -4923,13 +4925,14 @@ void VerticalDynamicsFEM::ComputeResidualCoefficients(
 
 	// Compute the local diffusion coefficient
 	for (int k = 0; k <= nRElements; k++) {
-		//
+		/*
 		dResU = fabs(m_dResidualREdge[UIx][k])  / fabs(
                                 dataInitialREdge[UIx][iA][iB][k] - dColAvgU);
 		dResV = fabs(m_dResidualREdge[VIx][k])  / fabs(
                                 dataInitialREdge[VIx][iA][iB][k] - dColAvgV);
 		dResW = fabs(m_dResidualREdge[WIx][k])  / fabs(
                                 dataInitialREdge[WIx][iA][iB][k] - dColAvgW);
+		*/
 		dResP = fabs(m_dResidualREdge[PIx][k]) / fabs(
                                 dataInitialREdge[PIx][iA][iB][k] - dColAvgP);
 		dResR = fabs(m_dResidualREdge[RIx][k]) / fabs(
@@ -4956,7 +4959,7 @@ void VerticalDynamicsFEM::ComputeResidualCoefficients(
 		dResCoeff *= dResidualDiffusionCoeff;
 
 		// Upwind coefficient
-		dNuMax = fabs(m_dXiDotREdge[k]) / pGrid->GetZtop();
+		dNuMax = fabs(m_dXiDotREdge[k]);// / pGrid->GetZtop();
 		if (dResCoeff >= dNuMax) {
 			dResCoeff = dNuMax;
 		}
