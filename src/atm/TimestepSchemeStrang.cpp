@@ -377,9 +377,9 @@ void TimestepSchemeStrang::Step(
 		pGrid->PostProcessSubstage(2, DataType_Tracers);
 
 		// Apply hyperdiffusion and Rayleigh
-		pGrid->CopyData(2, 1, DataType_State);
-		pGrid->CopyData(2, 1, DataType_Tracers);
-		pHorizontalDynamics->StepAfterSubCycle(1, 2, 4, time, dDeltaT / 5.0);
+		//pGrid->CopyData(2, 1, DataType_State);
+		//pGrid->CopyData(2, 1, DataType_Tracers);
+		//pHorizontalDynamics->StepAfterSubCycle(1, 2, 4, time, dDeltaT / 5.0);
 
 		pGrid->CopyData(0, 3, DataType_State);
 		pGrid->CopyData(0, 3, DataType_Tracers);
@@ -389,9 +389,9 @@ void TimestepSchemeStrang::Step(
 		pGrid->PostProcessSubstage(3, DataType_Tracers);
 
 		// Apply hyperdiffusion and Rayleigh
-		pGrid->CopyData(3, 2, DataType_State);
-		pGrid->CopyData(3, 2, DataType_Tracers);
-		pHorizontalDynamics->StepAfterSubCycle(2, 3, 4, time, dDeltaT / 3.0);
+		//pGrid->CopyData(3, 2, DataType_State);
+		//pGrid->CopyData(3, 2, DataType_Tracers);
+		//pHorizontalDynamics->StepAfterSubCycle(2, 3, 4, time, dDeltaT / 3.0);
 
 		pGrid->CopyData(0, 2, DataType_State);
 		pGrid->CopyData(0, 2, DataType_Tracers);
@@ -410,9 +410,9 @@ void TimestepSchemeStrang::Step(
 		pGrid->PostProcessSubstage(4, DataType_Tracers);
 
 		// Apply hyperdiffusion and Rayleigh
-		pGrid->CopyData(4, 1, DataType_State);
-		pGrid->CopyData(4, 1, DataType_Tracers);
-		pHorizontalDynamics->StepAfterSubCycle(1, 4, 2, time, 3.0 * dDeltaT / 4.0);
+		//pGrid->CopyData(4, 1, DataType_State);
+		//pGrid->CopyData(4, 1, DataType_Tracers);
+		//pHorizontalDynamics->StepAfterSubCycle(1, 4, 2, time, 3.0 * dDeltaT / 4.0);
 
 #if defined(RESIDUAL_DIFFUSION)
 		// Send the function F (explicit stuff) to index 1 in residual storage
@@ -512,9 +512,9 @@ void TimestepSchemeStrang::Step(
 #endif
 
 	// Apply hyperdiffusion and Rayleigh
-	//pGrid->CopyData(4, 1, DataType_State);
-	//pGrid->CopyData(4, 1, DataType_Tracers);
-	//pHorizontalDynamics->StepAfterSubCycle(4, 1, 2, time, dDeltaT);
+	pGrid->CopyData(4, 1, DataType_State);
+	pGrid->CopyData(4, 1, DataType_Tracers);
+	pHorizontalDynamics->StepAfterSubCycle(4, 1, 2, time, dDeltaT);
 
 	// Vertical timestep
 	double dOffCenterDeltaT = 0.5 * (1.0 + m_dOffCentering) * dDeltaT;
