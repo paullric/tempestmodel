@@ -517,9 +517,9 @@ void TimestepSchemeStrang::Step(
 		pGrid->LinearCombineData(m_dCarryoverFinal, 1, DataType_Tracers);
 	}
 
-	pGrid->CopyData(0, 1, DataType_State);
-	pVerticalDynamics->StepExplicit(0, 1, time, dDeltaT);
-	pVerticalDynamics->StepImplicit(0, 0, time, dDeltaT);
+	//pGrid->CopyData(0, 1, DataType_State);
+	//pVerticalDynamics->StepExplicit(0, 1, time, dDeltaT);
+	//pVerticalDynamics->StepImplicit(0, 0, time, dDeltaT);
 /*
 	if (0) {
 	//if (fLastStep) {

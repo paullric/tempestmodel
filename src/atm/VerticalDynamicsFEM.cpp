@@ -823,7 +823,7 @@ void VerticalDynamicsFEM::StepExplicit(
 					dataRefREdge,
 					dataInitialREdge);
 
-#if defined(RESIDUAL_DIFFUSION)
+#if defined(RESIDUAL_DIFFUSION_THERMO) || (RESIDUAL_DIFFUSION_RHO)
 				// Compute residual diffusion coefficients for the column
 				ComputeResidualCoefficients(
 					pPatch, i, j,
