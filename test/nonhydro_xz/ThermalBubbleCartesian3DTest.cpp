@@ -214,9 +214,7 @@ public:
 		dState[3] = 0.0;
 
 		// Set the initial potential temperature field
-#if defined(FORMULATION_THETA) || defined(FORMULATION_THETA_FLUX)
 		dState[2] = m_dThetaBar;
-#endif
 
 		// Set the initial density based on the Exner pressure
 		double dExnerP =
@@ -224,9 +222,7 @@ public:
 		double dRho =
 			dP0 / (dRd * m_dThetaBar) *
 			  pow(dExnerP, (dCv / dRd));
-#if defined(FORMULATION_RHOTHETA_P) || defined(FORMULATION_RHOTHETA_PI)
-		dState[2] = m_dThetaBar * dRho;
-#endif
+
 		dState[4] = dRho;
 	}
 
@@ -254,9 +250,7 @@ public:
 		dState[3] = 0.0;
 
 		// Set the initial potential temperature field
-#if defined(FORMULATION_THETA) || defined(FORMULATION_THETA_FLUX)
 		dState[2] = m_dThetaBar + EvaluateTPrime(phys, dXp, dYp, dZp);
-#endif
 
 		// Set the initial density based on the Exner pressure
 		double dExnerP =
@@ -264,10 +258,7 @@ public:
 		double dRho =
 			dP0 / (dRd * m_dThetaBar) *
 			  pow(dExnerP, (dCv / dRd));
-#if defined(FORMULATION_RHOTHETA_P) || defined(FORMULATION_RHOTHETA_PI)
-		dState[2] = (m_dThetaBar + EvaluateTPrime(phys, dXp, dYp, dZp))
-		 		* dRho;
-#endif
+
 		dState[4] = dRho;
 	}
 };
