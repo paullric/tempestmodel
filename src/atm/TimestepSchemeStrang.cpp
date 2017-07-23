@@ -376,22 +376,12 @@ void TimestepSchemeStrang::Step(
 		pGrid->PostProcessSubstage(2, DataType_State);
 		pGrid->PostProcessSubstage(2, DataType_Tracers);
 
-		// Apply hyperdiffusion and Rayleigh
-		//pGrid->CopyData(2, 1, DataType_State);
-		//pGrid->CopyData(2, 1, DataType_Tracers);
-		//pHorizontalDynamics->StepAfterSubCycle(1, 2, 4, time, dDeltaT / 5.0);
-
 		pGrid->CopyData(0, 3, DataType_State);
 		pGrid->CopyData(0, 3, DataType_Tracers);
 		pHorizontalDynamics->StepExplicit(2, 3, time, dDeltaT / 3.0);
 		pVerticalDynamics->StepExplicit(2, 3, time, dDeltaT / 3.0);
 		pGrid->PostProcessSubstage(3, DataType_State);
 		pGrid->PostProcessSubstage(3, DataType_Tracers);
-
-		// Apply hyperdiffusion and Rayleigh
-		//pGrid->CopyData(3, 2, DataType_State);
-		//pGrid->CopyData(3, 2, DataType_Tracers);
-		//pHorizontalDynamics->StepAfterSubCycle(2, 3, 4, time, dDeltaT / 3.0);
 
 		pGrid->CopyData(0, 2, DataType_State);
 		pGrid->CopyData(0, 2, DataType_Tracers);
@@ -408,11 +398,6 @@ void TimestepSchemeStrang::Step(
 		pVerticalDynamics->StepExplicit(2, 4, time, 3.0 * dDeltaT / 4.0);
 		pGrid->PostProcessSubstage(4, DataType_State);
 		pGrid->PostProcessSubstage(4, DataType_Tracers);
-
-		// Apply hyperdiffusion and Rayleigh
-		//pGrid->CopyData(4, 1, DataType_State);
-		//pGrid->CopyData(4, 1, DataType_Tracers);
-		//pHorizontalDynamics->StepAfterSubCycle(1, 4, 2, time, 3.0 * dDeltaT / 4.0);
 
 #if defined(RESIDUAL_DIFFUSION)
 		// Send the function F (explicit stuff) to index 1 in residual storage
@@ -532,9 +517,9 @@ void TimestepSchemeStrang::Step(
 		pGrid->LinearCombineData(m_dCarryoverFinal, 1, DataType_Tracers);
 	}
 
-	//pGrid->CopyData(0, 1, DataType_State);
-	//pVerticalDynamics->StepExplicit(0, 1, time, dDeltaT);
-	//pVerticalDynamics->StepImplicit(0, 0, time, dDeltaT);
+	pGrid->CopyData(0, 1, DataType_State);
+	pVerticalDynamics->StepExplicit(0, 1, time, dDeltaT);
+	pVerticalDynamics->StepImplicit(0, 0, time, dDeltaT);
 /*
 	if (0) {
 	//if (fLastStep) {

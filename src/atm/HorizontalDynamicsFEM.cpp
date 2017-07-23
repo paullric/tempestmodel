@@ -35,7 +35,7 @@
 
 #define FIX_ELEMENT_MASS_NONHYDRO
 
-#define RESIDUAL_DIFFUSION_THERMO
+//#define RESIDUAL_DIFFUSION_THERMO
 //#define RESIDUAL_DIFFUSION_RHO
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1830,7 +1830,7 @@ void HorizontalDynamicsFEM::StepExplicit(
 		pGrid->GetScalarUniformDiffusionCoeff(),
 		dDeltaT,
 		2,
-		true);
+		false);
 #endif
 #if defined(RESIDUAL_DIFFUSION_RHO)
 	// Residual diffusion of Rho with residual based diffusion coeff
@@ -1841,7 +1841,7 @@ void HorizontalDynamicsFEM::StepExplicit(
 		pGrid->GetScalarUniformDiffusionCoeff(),
 		dDeltaT,
 		4,
-		true);
+		false);
 #endif
 
 	// Apply positive definite filter to tracers
@@ -2617,16 +2617,16 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusionResidual(
 			double dDbPsi = 0.0;
 			for (int s = 0; s < nHorizontalOrder; s++) {
 				dDaPsi +=
-					(*pDataInitial)(c,s,iB,k)
-					* dDxBasis1D(s,i);
-					//m_dBufferState(s,j)
+					//(*pDataInitial)(c,s,iB,k)
 					//* dDxBasis1D(s,i);
+					m_dBufferState(s,j)
+					* dDxBasis1D(s,i);
 
 				dDbPsi +=
-					(*pDataInitial)(c,iA,s,k)
-					* dDxBasis1D(s,j);
-					//m_dBufferState(i,s)
+					//(*pDataInitial)(c,iA,s,k)
 					//* dDxBasis1D(s,j);
+					m_dBufferState(i,s)
+					* dDxBasis1D(s,j);
 			}
 
 				dDaPsi *= dInvElementDeltaA;
