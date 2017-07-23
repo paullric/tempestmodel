@@ -35,6 +35,7 @@
 #define HYPERVISC_HORIZONTAL_VELOCITIES
 #define HYPERVISC_THERMO
 #define HYPERVISC_VERTICAL_VELOCITY
+#define HYPERVISC_DENSITY
 
 //#define RESIDUAL_DIFFUSION_THERMO
 //#define RESIDUAL_DIFFUSION_RHO
@@ -42,7 +43,7 @@
 //#define UPWIND_HORIZONTAL_VELOCITIES
 //#define UPWIND_THERMO
 //#define UPWIND_VERTICAL_VELOCITY
-#define UPWIND_RHO_AND_TRACERS
+//#define UPWIND_RHO_AND_TRACERS
 
 //#define UNIFORM_DIFFUSION_HORIZONTAL_VELOCITIES
 //#define UNIFORM_DIFFUSION_THERMO
@@ -238,6 +239,10 @@ void VerticalDynamicsFEM::Initialize() {
 #if defined(HYPERVISC_THERMO)
 	Announce("Hyperviscosity on thermodynamic variable");
 	m_fHypervisVar[PIx] = true;
+#endif
+#if defined(HYPERVISC_DENSITY)
+	Announce("Hyperviscosity on density variable");
+	m_fHypervisVar[RIx] = true;
 #endif
 #if defined(HYPERVISC_VERTICAL_VELOCITY)
 	Announce("Hyperviscosity on vertical velocity");
@@ -2984,7 +2989,7 @@ void VerticalDynamicsFEM::BuildF(
 	}
 
 	// Apply residual hyperviscosity
-	for (int c = 2; c <= 4; c++) {
+	for (int c = 2; c < 5; c++) {
 
 		// Only diffuse select variables
 		if (!m_fResdiffVar[c]) {

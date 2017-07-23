@@ -46,7 +46,7 @@
 ///	<summary>
 ///		Compute residuals in TimestepScheme classes.
 ///	</summary>
-#define RESIDUAL_DIFFUSION
+//#define RESIDUAL_DIFFUSION
 
 ///	<summary>
 ///		Hardcoded horizontal order.
