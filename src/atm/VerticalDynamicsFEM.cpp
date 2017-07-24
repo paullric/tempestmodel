@@ -32,13 +32,13 @@
 
 ///////////////////////////////////////////////////////////////////////////////
 
-#define HYPERVISC_HORIZONTAL_VELOCITIES
-#define HYPERVISC_THERMO
-#define HYPERVISC_VERTICAL_VELOCITY
-#define HYPERVISC_DENSITY
+//#define HYPERVISC_HORIZONTAL_VELOCITIES
+//#define HYPERVISC_THERMO
+//#define HYPERVISC_VERTICAL_VELOCITY
+//#define HYPERVISC_RHO
 
-//#define RESIDUAL_DIFFUSION_THERMO
-//#define RESIDUAL_DIFFUSION_RHO
+#define RESIDUAL_DIFFUSION_THERMO
+#define RESIDUAL_DIFFUSION_RHO
 
 //#define UPWIND_HORIZONTAL_VELOCITIES
 //#define UPWIND_THERMO
@@ -240,7 +240,7 @@ void VerticalDynamicsFEM::Initialize() {
 	Announce("Hyperviscosity on thermodynamic variable");
 	m_fHypervisVar[PIx] = true;
 #endif
-#if defined(HYPERVISC_DENSITY)
+#if defined(HYPERVISC_RHO)
 	Announce("Hyperviscosity on density variable");
 	m_fHypervisVar[RIx] = true;
 #endif
@@ -828,7 +828,7 @@ void VerticalDynamicsFEM::StepExplicit(
 					dataRefREdge,
 					dataInitialREdge);
 
-#if defined(RESIDUAL_DIFFUSION_THERMO) || (RESIDUAL_DIFFUSION_RHO)
+#if defined(RESIDUAL_DIFFUSION_THERMO) || defined(RESIDUAL_DIFFUSION_RHO)
 				// Compute residual diffusion coefficients for the column
 				ComputeResidualCoefficients(
 					pPatch, i, j,
