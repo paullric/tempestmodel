@@ -1830,7 +1830,7 @@ void HorizontalDynamicsFEM::StepExplicit(
 		pGrid->GetScalarUniformDiffusionCoeff(),
 		dDeltaT,
 		2,
-		false);
+		true);
 #endif
 #if defined(RESIDUAL_DIFFUSION_RHO)
 	// Residual diffusion of Rho with residual based diffusion coeff
@@ -1841,7 +1841,7 @@ void HorizontalDynamicsFEM::StepExplicit(
 		pGrid->GetScalarUniformDiffusionCoeff(),
 		dDeltaT,
 		4,
-		false);
+		true);
 #endif
 
 	// Apply positive definite filter to tracers
