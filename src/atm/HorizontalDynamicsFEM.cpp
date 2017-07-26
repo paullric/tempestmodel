@@ -2594,7 +2594,8 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusionResidual(
 			}
 
 			// Get the maximum possible coefficient (upwind)
-			dNuMax = m_dAuxDataNode(KIx,i,j,k);// / pGrid->GetReferenceLength();
+			dNuMax = m_dAuxDataNode(KIx,i,j,k) /
+				pGrid->GetReferenceLength();
 
 			// Limit the coefficients to the upwind value
 			if (dResNu[i][j] >= dNuMax) {
