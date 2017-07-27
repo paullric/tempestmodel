@@ -2661,7 +2661,7 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusionResidual(
 
 			// Inverse Jacobian and Jacobian
 			const double dInvJacobian = 1.0 / (*pJacobian)(iA,iB,k);
-			const double dInvRho = 1.0 / (*pDataInitial)(iA,iB,k);
+			const double dInvRho = 1.0 / (*pDataInitial)(RIx,iA,iB,k);
 
 			// Compute integral term
 			double dUpdateA = 0.0;
