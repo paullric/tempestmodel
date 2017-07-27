@@ -32,18 +32,18 @@
 
 ///////////////////////////////////////////////////////////////////////////////
 
-#define HYPERVISC_HORIZONTAL_VELOCITIES
+//#define HYPERVISC_HORIZONTAL_VELOCITIES
 //#define HYPERVISC_THERMO
-#define HYPERVISC_VERTICAL_VELOCITY
-#define HYPERVISC_RHO
+//#define HYPERVISC_VERTICAL_VELOCITY
+//#define HYPERVISC_RHO
 
 #define RESIDUAL_DIFFUSION_THERMO
 //#define RESIDUAL_DIFFUSION_RHO
 
-//#define UPWIND_HORIZONTAL_VELOCITIES
+#define UPWIND_HORIZONTAL_VELOCITIES
 //#define UPWIND_THERMO
-//#define UPWIND_VERTICAL_VELOCITY
-//#define UPWIND_RHO_AND_TRACERS
+#define UPWIND_VERTICAL_VELOCITY
+#define UPWIND_RHO_AND_TRACERS
 
 //#define UNIFORM_DIFFUSION_HORIZONTAL_VELOCITIES
 //#define UNIFORM_DIFFUSION_THERMO
@@ -4964,7 +4964,7 @@ void VerticalDynamicsFEM::ComputeResidualCoefficients(
 		dResCoeff *= dResidualDiffusionCoeff;
 
 		// Upwind coefficient
-		dNuMax = fabs(m_dXiDotREdge[k]) / pGrid->GetZtop();
+		dNuMax = 0.5 * fabs(m_dXiDotREdge[k]); // / pGrid->GetZtop();
 		if (dResCoeff >= dNuMax) {
 			dResCoeff = dNuMax;
 		}
