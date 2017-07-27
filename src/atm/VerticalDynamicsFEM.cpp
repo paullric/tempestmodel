@@ -4731,8 +4731,7 @@ void VerticalDynamicsFEM::ColumnGradMomentumFlux(
 #endif
 #if defined(FORMULATION_RHOTHETA_P) || defined(FORMULATION_RHOTHETA_PI)
 			double dRhoTheta = phys.PressureFromRhoTheta(
-				dataInitialNode(PIx,iA,iB,k)
-				* dataInitialNode(RIx,iA,iB,k));
+				dataInitialNode(PIx,iA,iB,k));
 			m_dLogPressureNode[k] = std::log(dRhoTheta);
 #endif
 		}
@@ -4747,14 +4746,13 @@ void VerticalDynamicsFEM::ColumnGradMomentumFlux(
 #endif
 #if defined(FORMULATION_THETA) || defined(FORMULATION_THETA_FLUX)
 			double dRhoTheta = phys.PressureFromRhoTheta(
-				dataInitialRedge(PIx,iA,iB,k)
-				* dataInitialRedge(RIx,iA,iB,k));
+				dataInitialREdge(PIx,iA,iB,k)
+				* dataInitialREdge(RIx,iA,iB,k));
 			m_dLogPressureREdge[k] = std::log(dRhoTheta);
 #endif
 #if defined(FORMULATION_RHOTHETA_P) || defined(FORMULATION_RHOTHETA_PI)
 			double dRhoTheta = phys.PressureFromRhoTheta(
-				dataInitialREdge(PIx,iA,iB,k)
-				* dataInitialREdge(RIx,iA,iB,k));
+				dataInitialREdge(PIx,iA,iB,k));
 			m_dLogPressureREdge[k] = std::log(dRhoTheta);
 #endif
 		}
