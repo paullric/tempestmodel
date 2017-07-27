@@ -2585,7 +2585,8 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusionResidual(
 			}
 
 			// Scale to the average element length
-			double dABLength = dGridLength;// / pGrid->GetReferenceLength();
+			double dABLength = dGridLength
+				/ pGrid->GetReferenceLength();
 			dResNu[i][j] = dABLength * dABLength * fabs(dResCoeff);
 
 			// Apply Pr number of 0.7 to thermodynamic stress
