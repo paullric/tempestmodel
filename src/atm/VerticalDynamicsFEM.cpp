@@ -3031,7 +3031,7 @@ void VerticalDynamicsFEM::BuildF(
 				dUpdateDynSGS = m_dResidualAuxDiffREdge[k] /
 					m_dColumnDerivRREdge[k][2];
 				dF[VecFIx(FIxFromCIx(c), k)] -=
-					dUpdateDynSGS;
+					dUpdateDynSGS / m_dStateREdge[RIx][k];
 			}
 		// Residual hyperviscosity on levels
 		} else {
@@ -3068,7 +3068,7 @@ void VerticalDynamicsFEM::BuildF(
 				dUpdateDynSGS = m_dResidualAuxDiffNode[k] /
 					m_dColumnDerivRNode[k][2];
 				dF[VecFIx(FIxFromCIx(c), k)] -=
-					dUpdateDynSGS;
+					dUpdateDynSGS  / m_dStateNode[RIx][k];
 			}
 		}
 	}
