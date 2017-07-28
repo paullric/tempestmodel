@@ -2599,9 +2599,9 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusionResidual(
 				//pGrid->GetReferenceLength();
 
 			// Limit the coefficients to the upwind value
-			if (dResNu[i][j] >= dNuMax) {
-				dResNu[i][j] = dNuMax;
-			}
+			//if (dResNu[i][j] >= dNuMax) {
+			//	dResNu[i][j] = dNuMax;
+			//}
 			// Check for Inf or NaN and adjust
 			if (!std::isfinite(dResNu[i][j])) {
 				dResNu[i][j] = dNuMax;
