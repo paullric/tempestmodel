@@ -36,7 +36,7 @@
 #define FIX_ELEMENT_MASS_NONHYDRO
 
 #define RESIDUAL_DIFFUSION_THERMO
-//#define RESIDUAL_DIFFUSION_RHO
+#define RESIDUAL_DIFFUSION_RHO
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -2563,8 +2563,8 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusionResidual(
 			*/
 			dResP = fabs((*pDataResidual)(PIx,iA,iB,k)) / fabs(
 				     (*pDataInitial)(PIx,iA,iB,k) - dEAvgP);
-			//dResR = fabs((*pDataResidual)(RIx,iA,iB,k)) / fabs(
-			//	     (*pDataInitial)(RIx,iA,iB,k) - dEAvgR);
+			dResR = fabs((*pDataResidual)(RIx,iA,iB,k)) / fabs(
+				     (*pDataInitial)(RIx,iA,iB,k) - dEAvgR);
 			/*
 			dResU = fabs((*pDataResidual)(UIx,iA,iB,k))  / fabs(50.0);
 			dResV = fabs((*pDataResidual)(VIx,iA,iB,k))  / fabs(50.0);

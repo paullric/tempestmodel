@@ -38,7 +38,7 @@
 //#define HYPERVISC_RHO
 
 #define RESIDUAL_DIFFUSION_THERMO
-//#define RESIDUAL_DIFFUSION_RHO
+#define RESIDUAL_DIFFUSION_RHO
 
 //#define UPWIND_HORIZONTAL_VELOCITIES
 //#define UPWIND_THERMO
@@ -4938,8 +4938,8 @@ void VerticalDynamicsFEM::ComputeResidualCoefficients(
 		*/
 		dResP = fabs(m_dResidualREdge[PIx][k]) / fabs(
                                 dataInitialREdge[PIx][iA][iB][k] - dColAvgP);
-		//dResR = fabs(m_dResidualREdge[RIx][k]) / fabs(
-                //               dataInitialREdge[RIx][iA][iB][k] - dColAvgR);
+		dResR = fabs(m_dResidualREdge[RIx][k]) / fabs(
+                               dataInitialREdge[RIx][iA][iB][k] - dColAvgR);
 		/*
 		dResU = fabs(m_dResidualREdge[UIx][k])  / fabs(50.0);
 		dResV = fabs(m_dResidualREdge[VIx][k])  / fabs(50.0);
