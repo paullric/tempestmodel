@@ -2563,8 +2563,8 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusionResidual(
 			*/
 			dResP = fabs((*pDataResidual)(PIx,iA,iB,k)) / fabs(
 				     (*pDataInitial)(PIx,iA,iB,k) - dEAvgP);
-			dResR = fabs((*pDataResidual)(RIx,iA,iB,k)) / fabs(
-				     (*pDataInitial)(RIx,iA,iB,k) - dEAvgR);
+			//dResR = fabs((*pDataResidual)(RIx,iA,iB,k)) / fabs(
+			//	     (*pDataInitial)(RIx,iA,iB,k) - dEAvgR);
 			/*
 			dResU = fabs((*pDataResidual)(UIx,iA,iB,k))  / fabs(50.0);
 			dResV = fabs((*pDataResidual)(VIx,iA,iB,k))  / fabs(50.0);
