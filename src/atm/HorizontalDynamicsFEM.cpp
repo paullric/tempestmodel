@@ -2553,18 +2553,17 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusionResidual(
 			int iB = iElementB + j;
 
 			// Compute the local diffusion coefficient
-			/*
-			dResU = fabs((*pDataResidual)(UIx,iA,iB,k))  / fabs(
-	                             (*pDataInitial)(UIx,iA,iB,k) - dEAvgU);
-			dResV = fabs((*pDataResidual)(VIx,iA,iB,k))  / fabs(
-	                             (*pDataInitial)(VIx,iA,iB,k) - dEAvgV);
-			dResW = fabs((*pDataResidual)(WIx,iA,iB,k))  / fabs(
-	                             (*pDataInitial)(WIx,iA,iB,k) - dEAvgW);
-			*/
+			//
+			dResU = fabs((*pDataResidual)(UIx,iA,iB,k));//  / fabs(
+	                             //(*pDataInitial)(UIx,iA,iB,k) - dEAvgU);
+			dResV = fabs((*pDataResidual)(VIx,iA,iB,k));//  / fabs(
+	                             //(*pDataInitial)(VIx,iA,iB,k) - dEAvgV);
+			dResW = fabs((*pDataResidual)(WIx,iA,iB,k));//  / fabs(
+	                             //(*pDataInitial)(WIx,iA,iB,k) - dEAvgW);
 			dResP = fabs((*pDataResidual)(PIx,iA,iB,k));// / fabs(
 				     //(*pDataInitial)(PIx,iA,iB,k) - dEAvgP);
-			//dResR = fabs((*pDataResidual)(RIx,iA,iB,k)) / fabs(
-			//	     (*pDataInitial)(RIx,iA,iB,k) - dEAvgR);
+			dResR = fabs((*pDataResidual)(RIx,iA,iB,k));// / fabs(
+				     //(*pDataInitial)(RIx,iA,iB,k) - dEAvgR);
 			/*
 			dResU = fabs((*pDataResidual)(UIx,iA,iB,k))  / fabs(50.0);
 			dResV = fabs((*pDataResidual)(VIx,iA,iB,k))  / fabs(50.0);

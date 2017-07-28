@@ -4928,18 +4928,17 @@ void VerticalDynamicsFEM::ComputeResidualCoefficients(
 
 	// Compute the local diffusion coefficient
 	for (int k = 0; k <= nRElements; k++) {
-		/*
-		dResU = fabs(m_dResidualREdge[UIx][k])  / fabs(
-                                dataInitialREdge[UIx][iA][iB][k] - dColAvgU);
-		dResV = fabs(m_dResidualREdge[VIx][k])  / fabs(
-                                dataInitialREdge[VIx][iA][iB][k] - dColAvgV);
-		dResW = fabs(m_dResidualREdge[WIx][k])  / fabs(
-                                dataInitialREdge[WIx][iA][iB][k] - dColAvgW);
-		*/
+		//
+		dResU = fabs(m_dResidualREdge[UIx][k]);//  / fabs(
+                                //dataInitialREdge[UIx][iA][iB][k] - dColAvgU);
+		dResV = fabs(m_dResidualREdge[VIx][k]);//  / fabs(
+                                //dataInitialREdge[VIx][iA][iB][k] - dColAvgV);
+		dResW = fabs(m_dResidualREdge[WIx][k]);//  / fabs(
+                                //dataInitialREdge[WIx][iA][iB][k] - dColAvgW);
 		dResP = fabs(m_dResidualREdge[PIx][k]);// / fabs(
                                 //dataInitialREdge[PIx][iA][iB][k] - dColAvgP);
-		//dResR = fabs(m_dResidualREdge[RIx][k]) / fabs(
-                //               dataInitialREdge[RIx][iA][iB][k] - dColAvgR);
+		dResR = fabs(m_dResidualREdge[RIx][k]);// / fabs(
+                                //dataInitialREdge[RIx][iA][iB][k] - dColAvgR);
 		/*
 		dResU = fabs(m_dResidualREdge[UIx][k])  / fabs(50.0);
 		dResV = fabs(m_dResidualREdge[VIx][k])  / fabs(50.0);
