@@ -3030,7 +3030,7 @@ void VerticalDynamicsFEM::BuildF(
 			for (int k = 0; k <= nRElements; k++) {
 				dUpdateDynSGS = m_dResidualAuxDiffREdge[k] /
 					m_dColumnInvJacobianREdge[k];
-				dF[VecFIx(FIxFromCIx(c), k)] +=
+				dF[VecFIx(FIxFromCIx(c), k)] -=
 					dUpdateDynSGS
 					/ (m_dStateREdge[RIx][k]
 					- m_dStateRefREdge[RIx][k]);
@@ -3069,7 +3069,7 @@ void VerticalDynamicsFEM::BuildF(
 			for (int k = 0; k < nRElements; k++) {
 				dUpdateDynSGS = m_dResidualAuxDiffNode[k]
 					* m_dColumnInvJacobianNode[k];
-				dF[VecFIx(FIxFromCIx(c), k)] +=
+				dF[VecFIx(FIxFromCIx(c), k)] -=
 					dUpdateDynSGS
 					/ (m_dStateNode[RIx][k]
 					- m_dStateRefNode[RIx][k]);
@@ -4962,7 +4962,7 @@ void VerticalDynamicsFEM::ComputeResidualCoefficients(
 			dResCoeff = 0.0;
 		}
 
-		dResCoeff *= dResidualDiffusionCoeff;
+		dResCoeff *= (dResidualDiffusionCoeff / pGrid->GetZtop());
 
 		// Upwind coefficient
 		//dNuMax = 0.5 * fabs(m_dXiDotREdge[k]); // / pGrid->GetZtop();
