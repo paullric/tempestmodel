@@ -3030,7 +3030,7 @@ void VerticalDynamicsFEM::BuildF(
 			for (int k = 0; k <= nRElements; k++) {
 				dUpdateDynSGS = m_dResidualAuxDiffREdge[k] /
 					m_dColumnInvJacobianREdge[k];
-				dF[VecFIx(FIxFromCIx(c), k)] -=
+				dF[VecFIx(FIxFromCIx(c), k)] +=
 					dUpdateDynSGS
 					/ (m_dStateREdge[RIx][k]
 					- m_dStateRefREdge[RIx][k]);
@@ -3069,7 +3069,7 @@ void VerticalDynamicsFEM::BuildF(
 			for (int k = 0; k < nRElements; k++) {
 				dUpdateDynSGS = m_dResidualAuxDiffNode[k]
 					* m_dColumnInvJacobianNode[k];
-				dF[VecFIx(FIxFromCIx(c), k)] -=
+				dF[VecFIx(FIxFromCIx(c), k)] +=
 					dUpdateDynSGS
 					/ (m_dStateNode[RIx][k]
 					- m_dStateRefNode[RIx][k]);
