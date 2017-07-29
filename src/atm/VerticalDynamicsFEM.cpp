@@ -37,7 +37,7 @@
 //#define HYPERVISC_VERTICAL_VELOCITY
 //#define HYPERVISC_RHO
 
-//#define RESIDUAL_DIFFUSION_THERMO
+#define RESIDUAL_DIFFUSION_THERMO
 //#define RESIDUAL_DIFFUSION_RHO
 
 //#define UPWIND_HORIZONTAL_VELOCITIES
@@ -3010,13 +3010,13 @@ void VerticalDynamicsFEM::BuildF(
 
 			for (int k = 0; k <= nRElements; k++) {
 				if (c == PIx) {
-					m_dDiffCREdge[k] *= 1.75
-					* m_dColumnDerivRREdge[k][2]
-					* m_dResidualAuxREdge[k];
+					m_dDiffCREdge[k] *= (1.75
+					* m_dColumnJacobianREdge[k]
+					* m_dResidualAuxREdge[k]);
 				} else {
 					m_dDiffCREdge[k] *=
-					m_dColumnDerivRREdge[k][2]
-					* m_dResidualAuxREdge[k];
+					(m_dColumnJacobianREdge[k]
+					* m_dResidualAuxREdge[k]);
 				}
 			}
 
@@ -3029,7 +3029,7 @@ void VerticalDynamicsFEM::BuildF(
 			//double dUpdateHypVis = 0.0;
 			for (int k = 0; k <= nRElements; k++) {
 				dUpdateDynSGS = m_dResidualAuxDiffREdge[k] /
-					m_dColumnDerivRREdge[k][2];
+					m_dColumnInvJacobianREdge[k];
 				dF[VecFIx(FIxFromCIx(c), k)] -=
 					dUpdateDynSGS / m_dStateREdge[RIx][k];
 			}
@@ -3047,13 +3047,13 @@ void VerticalDynamicsFEM::BuildF(
 
 			for (int k = 0; k < nRElements; k++) {
 				if (c == PIx) {
-					m_dDiffCNode[k] *= 1.75
-					* m_dColumnDerivRNode[k][2]
-					* m_dResidualAuxNode[k];
+					m_dDiffCNode[k] *= (1.75
+					* m_dColumnJacobianNode[k]
+					* m_dResidualAuxNode[k]);
 				} else {
 					m_dDiffCNode[k] *=
-					m_dColumnDerivRNode[k][2]
-					* m_dResidualAuxNode[k];
+					(m_dColumnJacobianNode[k]
+					* m_dResidualAuxNode[k]);
 				}
 			}
 
@@ -3065,8 +3065,8 @@ void VerticalDynamicsFEM::BuildF(
 			double dUpdateDynSGS = 0.0;
 			double dUpdateHypVis = 0.0;
 			for (int k = 0; k < nRElements; k++) {
-				dUpdateDynSGS = m_dResidualAuxDiffNode[k] /
-					m_dColumnDerivRNode[k][2];
+				dUpdateDynSGS = m_dResidualAuxDiffNode[k]
+					* m_dColumnInvJacobianNode[k];
 				dF[VecFIx(FIxFromCIx(c), k)] -=
 					dUpdateDynSGS  / m_dStateNode[RIx][k];
 			}
