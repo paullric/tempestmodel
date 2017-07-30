@@ -742,10 +742,10 @@ void VerticalDynamicsFEM::StepExplicit(
 			pPatch->GetDataTracers(iDataUpdate);
 
 		// Get state residual from index 2
-		DataArray4D<double> & dataResidualNode =
+		const DataArray4D<double> & dataResidualNode =
 			pPatch->GetDataResidual(2, DataLocation_Node);
 
-		DataArray4D<double> & dataResidualREdge =
+		const DataArray4D<double> & dataResidualREdge =
 			pPatch->GetDataResidual(2, DataLocation_REdge);
 
 		// Get the residual storage to update for output_SGS
@@ -4793,9 +4793,9 @@ void VerticalDynamicsFEM::ComputeResidualCoefficients(
 	GridPatch * pPatch,
 	int iA,
 	int iB,
-	DataArray4D<double> & dataResidualNode,
+	const DataArray4D<double> & dataResidualNode,
   	const DataArray4D<double> & dataInitialNode,
-  	DataArray4D<double> & dataResidualREdge,
+  	const DataArray4D<double> & dataResidualREdge,
   	const DataArray4D<double> & dataInitialREdge
 ) {
 	// Get a copy of the grid
@@ -4858,18 +4858,6 @@ void VerticalDynamicsFEM::ComputeResidualCoefficients(
 	dColAvgV /= nRElements;
 	dColAvgR /= nRElements;
 
-	pGrid->InterpolateNodeToREdge(
-		m_dResidualNode[UIx],
-		m_dResidualREdge[UIx]);
-
-	pGrid->InterpolateNodeToREdge(
-		m_dResidualNode[VIx],
-		m_dResidualREdge[VIx]);
-
-	pGrid->InterpolateNodeToREdge(
-		m_dResidualNode[RIx],
-		m_dResidualREdge[RIx]);
-
 	// Store residual for W and compute column averages
 	if (pGrid->GetVarLocation(WIx) == DataLocation_Node) {
 		for (int k = 0; k < nRElements; k++) {
@@ -4880,11 +4868,6 @@ void VerticalDynamicsFEM::ComputeResidualCoefficients(
 		}
 
 		dColAvgW /= nRElements;
-
-		pGrid->InterpolateNodeToREdge(
-			m_dResidualNode[WIx],
-			m_dResidualREdge[WIx]);
-
 	} else {
 		for (int k = 0; k <= nRElements; k++) {
 			m_dResidualREdge[WIx][k] = dataResidualREdge[WIx][iA][iB][k];
@@ -4894,10 +4877,6 @@ void VerticalDynamicsFEM::ComputeResidualCoefficients(
 		}
 
 		dColAvgW /= (nRElements + 1);
-
-		pGrid->InterpolateREdgeToNode(
-			m_dResidualREdge[WIx],
-			m_dResidualNode[WIx]);
 	}
 
 	// Store residual for theta
@@ -4911,10 +4890,6 @@ void VerticalDynamicsFEM::ComputeResidualCoefficients(
 
 		dColAvgP /= nRElements;
 
-		pGrid->InterpolateNodeToREdge(
-			m_dResidualNode[PIx],
-			m_dResidualREdge[PIx]);
-
 	} else {
 		for (int k = 0; k <= nRElements; k++) {
 			m_dResidualREdge[PIx][k] = dataResidualREdge[PIx][iA][iB][k];
@@ -4924,13 +4899,56 @@ void VerticalDynamicsFEM::ComputeResidualCoefficients(
 		}
 
 		dColAvgP /= nRElements + 1;
-
-		pGrid->InterpolateREdgeToNode(
-			m_dResidualREdge[PIx],
-			m_dResidualNode[PIx]);
 	}
 
 	// Compute the local diffusion coefficient
+	for (int k = 0; k < nRElements; k++) {
+		//
+		dResU = fabs(m_dResidualNode[UIx][k]);//  / fabs(
+                                //dataInitialREdge[UIx][iA][iB][k] - dColAvgU);
+		dResV = fabs(m_dResidualNode[VIx][k]);//  / fabs(
+                                //dataInitialREdge[VIx][iA][iB][k] - dColAvgV);
+		dResW = fabs(m_dResidualNode[WIx][k]);//  / fabs(
+                                //dataInitialREdge[WIx][iA][iB][k] - dColAvgW);
+		dResP = fabs(m_dResidualNode[PIx][k]);// / fabs(
+                                //dataInitialREdge[PIx][iA][iB][k] - dColAvgP);
+		dResR = fabs(m_dResidualNode[RIx][k]);// / fabs(
+                                //dataInitialREdge[RIx][iA][iB][k] - dColAvgR);
+		/*
+		dResU = fabs(m_dResidualREdge[UIx][k])  / fabs(50.0);
+		dResV = fabs(m_dResidualREdge[VIx][k])  / fabs(50.0);
+		dResW = fabs(m_dResidualREdge[WIx][k])  / fabs(4.0);
+		dResP = fabs(m_dResidualREdge[PIx][k]) / fabs(0.1);
+		dResR = fabs(m_dResidualREdge[RIx][k]) / fabs(0.1);
+		*/
+
+		// Select the maximum residual
+		dResMax = std::max(dResU, dResV);
+		dResMax = std::max(dResMax, dResW);
+		dResMax = std::max(dResMax, dResP);
+		dResMax = std::max(dResMax, dResR);
+		if (dResMax > 0.0) {
+			dResCoeff = dResMax;
+		} else {
+			dResCoeff = 0.0;
+		}
+
+		dResCoeff *= dResidualDiffusionCoeff;
+
+		// Upwind coefficient
+		//dNuMax = 0.5 * fabs(m_dXiDotREdge[k]); // / pGrid->GetZtop();
+		//if (dResCoeff >= dNuMax) {
+		//	dResCoeff = dNuMax;
+		//}
+
+		// Store the column coefficients in residual data
+		m_dResidualAuxNode[k] = dResCoeff;
+		dResCoeff = 0.0;
+		dResMax = 0.0;
+		//Announce("%1.10e", dResidualDiffusionCoeff);
+		//Announce("%1.10e %1.10e %1.10e %1.10e %1.10e", dResU, dResV, dResW, dResP, dResR);
+	}
+
 	for (int k = 0; k <= nRElements; k++) {
 		//
 		dResU = fabs(m_dResidualREdge[UIx][k]);//  / fabs(
@@ -4962,7 +4980,7 @@ void VerticalDynamicsFEM::ComputeResidualCoefficients(
 			dResCoeff = 0.0;
 		}
 
-		dResCoeff *= (dResidualDiffusionCoeff / pGrid->GetZtop());
+		dResCoeff *= dResidualDiffusionCoeff;
 
 		// Upwind coefficient
 		//dNuMax = 0.5 * fabs(m_dXiDotREdge[k]); // / pGrid->GetZtop();
@@ -4977,14 +4995,8 @@ void VerticalDynamicsFEM::ComputeResidualCoefficients(
 		//Announce("%1.10e", dResidualDiffusionCoeff);
 		//Announce("%1.10e %1.10e %1.10e %1.10e %1.10e", dResU, dResV, dResW, dResP, dResR);
 	}
-
 	m_dResidualAuxREdge[0] = 0.0;
 	m_dResidualAuxREdge[nRElements] = 0.0;
-
-	// Interpolate the coefficients to nodes for this column
-	pGrid->InterpolateREdgeToNode(
-			m_dResidualAuxREdge,
-			m_dResidualAuxNode);
 }
 
 ///////////////////////////////////////////////////////////////////////////////

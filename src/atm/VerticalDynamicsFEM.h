@@ -263,9 +263,9 @@ protected:
 	  GridPatch * pPatch,
 	  int i,
 	  int j,
-	  DataArray4D<double> & dataResidualNode,
+	  const DataArray4D<double> & dataResidualNode,
 	  const DataArray4D<double> & dataInitialNode,
-	  DataArray4D<double> & dataResidualREdge,
+	  const DataArray4D<double> & dataResidualREdge,
 	  const DataArray4D<double> & dataInitialREdge
 	);
 
