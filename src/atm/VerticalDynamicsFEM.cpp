@@ -4903,7 +4903,7 @@ void VerticalDynamicsFEM::ComputeResidualCoefficients(
 
 	// Compute the local diffusion coefficient
 	for (int k = 0; k < nRElements; k++) {
-		/*
+		//
 		dResU = fabs(m_dResidualNode[UIx][k]);//  / fabs(
                                 //dataInitialREdge[UIx][iA][iB][k] - dColAvgU);
 		dResV = fabs(m_dResidualNode[VIx][k]);//  / fabs(
@@ -4914,7 +4914,7 @@ void VerticalDynamicsFEM::ComputeResidualCoefficients(
                                 //dataInitialREdge[PIx][iA][iB][k] - dColAvgP);
 		dResR = fabs(m_dResidualNode[RIx][k]);// / fabs(
                                 //dataInitialREdge[RIx][iA][iB][k] - dColAvgR);
-		*/
+		//
 		// Select the maximum residual
 		dResMax = std::max(dResU, dResV);
 		dResMax = std::max(dResMax, dResW);
