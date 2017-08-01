@@ -4708,8 +4708,7 @@ void VerticalDynamicsFEM::ColumnGradMomentumFlux(
 	const int nRElements = pGrid->GetRElements();
 
 	double dZtop = pGrid->GetZtop();
-	double dResidualDiffusionCoeff = m_dResdiffCoeff
-		* (dZtop * dZtop);
+	double dResidualDiffusionCoeff = m_dResdiffCoeff;
 
 	// Number of finite elements in the vertical
 	int nFiniteElements = nRElements / m_nVerticalOrder;
@@ -4816,7 +4815,8 @@ void VerticalDynamicsFEM::ComputeResidualCoefficients(
 	const int nRElements = pGrid->GetRElements();
 
 	double dZtop = pGrid->GetZtop();
-	double dResidualDiffusionCoeff = m_dResdiffCoeff;
+	double dResidualDiffusionCoeff = m_dResdiffCoeff
+		/ (dZtop * dZtop);
 
 	// Number of finite elements in the vertical
 	int nFiniteElements = nRElements / m_nVerticalOrder;
