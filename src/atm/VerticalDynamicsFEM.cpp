@@ -2999,9 +2999,9 @@ void VerticalDynamicsFEM::BuildF(
 		// Residual hyperviscosity on interfaces
 		if (pGrid->GetVarLocation(c) == DataLocation_REdge) {
 			for (int k = 0; k <= nRElements; k++) {
-				//m_dStateAux[k] = m_dStateREdge[c][k];
-				m_dStateAux[k] = m_dStateREdge[c][k] -
-						m_dStateRefREdge[c][k];
+				m_dStateAux[k] = m_dStateREdge[c][k];
+				//m_dStateAux[k] = m_dStateREdge[c][k] -
+				//		m_dStateRefREdge[c][k];
 			}
 
 			pGrid->DifferentiateREdgeToREdge(
@@ -3030,7 +3030,7 @@ void VerticalDynamicsFEM::BuildF(
 			for (int k = 0; k <= nRElements; k++) {
 				dUpdateDynSGS = m_dResidualAuxDiffREdge[k] /
 					m_dColumnInvJacobianREdge[k];
-				dF[VecFIx(FIxFromCIx(c), k)] +=
+				dF[VecFIx(FIxFromCIx(c), k)] -=
 					dUpdateDynSGS
 					/ (m_dStateREdge[RIx][k]);
 					//- m_dStateRefREdge[RIx][k]);
@@ -3038,9 +3038,9 @@ void VerticalDynamicsFEM::BuildF(
 		// Residual hyperviscosity on levels
 		} else {
 			for (int k = 0; k < nRElements; k++) {
-				//m_dStateAux[k] = m_dStateNode[c][k];
-				m_dStateAux[k] = m_dStateNode[c][k] -
-						m_dStateRefNode[c][k];
+				m_dStateAux[k] = m_dStateNode[c][k];
+				//m_dStateAux[k] = m_dStateNode[c][k] -
+				//		m_dStateRefNode[c][k];
 			}
 
 			pGrid->DifferentiateNodeToNode(
@@ -3069,7 +3069,7 @@ void VerticalDynamicsFEM::BuildF(
 			for (int k = 0; k < nRElements; k++) {
 				dUpdateDynSGS = m_dResidualAuxDiffNode[k]
 					* m_dColumnInvJacobianNode[k];
-				dF[VecFIx(FIxFromCIx(c), k)] +=
+				dF[VecFIx(FIxFromCIx(c), k)] -=
 					dUpdateDynSGS
 					/ (m_dStateNode[RIx][k]);
 					//- m_dStateRefNode[RIx][k]);
