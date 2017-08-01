@@ -4908,7 +4908,8 @@ void VerticalDynamicsFEM::ComputeResidualCoefficients(
                                 //dataInitialREdge[UIx][iA][iB][k] - dColAvgU);
 		dResV = fabs(m_dResidualNode[VIx][k]);//  / fabs(
                                 //dataInitialREdge[VIx][iA][iB][k] - dColAvgV);
-		dResW = fabs(m_dResidualNode[WIx][k]);//  / fabs(
+		dResW = 0.0;
+		//dResW = fabs(m_dResidualNode[WIx][k]);//  / fabs(
                                 //dataInitialREdge[WIx][iA][iB][k] - dColAvgW);
 		dResP = fabs(m_dResidualNode[PIx][k]);// / fabs(
                                 //dataInitialREdge[PIx][iA][iB][k] - dColAvgP);
@@ -4943,6 +4944,11 @@ void VerticalDynamicsFEM::ComputeResidualCoefficients(
 	}
 
 	for (int k = 0; k <= nRElements; k++) {
+		dResU = 0.0;
+		dResV = 0.0;
+		dResW = fabs(m_dResidualREdge[WIx][k]);
+		dResP = 0.0;
+		dResR = 0.0;
 		/*
 		dResU = fabs(m_dResidualREdge[UIx][k]);//  / fabs(
                                 //dataInitialREdge[UIx][iA][iB][k] - dColAvgU);
