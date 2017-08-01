@@ -2996,6 +2996,44 @@ void VerticalDynamicsFEM::BuildF(
 			continue;
 		}
 
+		// Partial DynSGS on interfaces
+		if (pGrid->GetVarLocation(c) == DataLocation_REdge) {
+			for (int k = 0; k <= nRElements; k++) {
+				m_dStateAux[k] = m_dStateREdge[c][k];
+					//- m_dStateRefREdge[c][k];
+			}
+
+			pGrid->DiffDiffREdgeToREdge(
+				m_dStateAux,
+				m_dDiffDiffStateHypervis[c]
+			);
+
+			for (int k = 0; k <= nRElements; k++) {
+				dF[VecFIx(FIxFromCIx(c), k)] -=
+					m_dResidualAuxREdge[k]
+					* m_dDiffDiffStateHypervis[c][k];
+			}
+
+		// Partial DynSGS on levels
+		} else {
+			for (int k = 0; k < nRElements; k++) {
+				m_dStateAux[k] = m_dStateNode[c][k];
+					//- m_dStateRefNode[c][k];
+			}
+
+			pGrid->DiffDiffNodeToNode(
+				m_dStateAux,
+				m_dDiffDiffStateHypervis[c]
+			);
+
+			for (int k = 0; k < nRElements; k++) {
+				dF[VecFIx(FIxFromCIx(c), k)] -=
+					m_dResidualAuxNode[k]
+					* m_dDiffDiffStateHypervis[c][k];
+			}
+		}
+
+/*
 		// Residual hyperviscosity on interfaces
 		if (pGrid->GetVarLocation(c) == DataLocation_REdge) {
 			for (int k = 0; k <= nRElements; k++) {
@@ -3075,6 +3113,7 @@ void VerticalDynamicsFEM::BuildF(
 					//- m_dStateRefNode[RIx][k]);
 			}
 		}
+*/
 	}
 
 	if (dF[VecFIx(FWIx, 0)] != 0.0) {
@@ -4815,8 +4854,7 @@ void VerticalDynamicsFEM::ComputeResidualCoefficients(
 	const int nRElements = pGrid->GetRElements();
 
 	double dZtop = pGrid->GetZtop();
-	double dResidualDiffusionCoeff = m_dResdiffCoeff
-		/ (dZtop * dZtop);
+	double dResidualDiffusionCoeff = m_dResdiffCoeff;
 
 	// Number of finite elements in the vertical
 	int nFiniteElements = nRElements / m_nVerticalOrder;
