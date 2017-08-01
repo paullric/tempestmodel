@@ -4906,7 +4906,8 @@ void VerticalDynamicsFEM::ComputeResidualCoefficients(
 		//
 		dResU = fabs(m_dResidualNode[UIx][k]);//  / fabs(
                                 //dataInitialREdge[UIx][iA][iB][k] - dColAvgU);
-		dResV = fabs(m_dResidualNode[VIx][k]);//  / fabs(
+		dResV = 0.0;
+		//dResV = fabs(m_dResidualNode[VIx][k]);//  / fabs(
                                 //dataInitialREdge[VIx][iA][iB][k] - dColAvgV);
 		dResW = 0.0;
 		//dResW = fabs(m_dResidualNode[WIx][k]);//  / fabs(
