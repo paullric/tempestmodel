@@ -5011,7 +5011,7 @@ void VerticalDynamicsFEM::ComputeResidualCoefficients(
 	for (int k = 0; k <= nRElements; k++) {
 		dResU = 0.0;
 		dResV = 0.0;
-		dResW = 0.0
+		dResW = 0.0;
 		//dResW = fabs(m_dResidualREdge[WIx][k]);
 		dResP = 1.0;
 		dResR = 0.0;
