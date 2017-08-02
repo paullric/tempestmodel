@@ -2680,7 +2680,7 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusionResidual(
 			dUpdateB *= dInvElementDeltaB;
 
 			// Apply update
-			(*pDataUpdate)(c,iA,iB,k) -=
+			(*pDataUpdate)(c,iA,iB,k) +=
 				dDeltaT * dInvRho
 					* dInvJacobian
 					* (dUpdateA + dUpdateB);
