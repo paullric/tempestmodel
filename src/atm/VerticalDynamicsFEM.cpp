@@ -2999,8 +2999,7 @@ void VerticalDynamicsFEM::BuildF(
 		// Partial DynSGS on interfaces
 		if (pGrid->GetVarLocation(c) == DataLocation_REdge) {
 			for (int k = 0; k <= nRElements; k++) {
-				m_dStateAux[k] = m_dStateREdge[c][k]
-					- m_dStateRefREdge[c][k];
+				m_dStateAux[k] = m_dStateREdge[c][k];
 			}
 
 			pGrid->DiffDiffREdgeToREdge(
@@ -3009,18 +3008,27 @@ void VerticalDynamicsFEM::BuildF(
 			);
 
 			for (int k = 0; k <= nRElements; k++) {
-				dF[VecFIx(FIxFromCIx(c), k)] +=
+				m_dStateAux[k] = m_dStateRefREdge[c][k];
+			}
+
+			pGrid->DiffDiffREdgeToREdge(
+				m_dStateAux,
+				m_dDiffDiffStateUniform[c]
+			);
+
+			for (int k = 0; k <= nRElements; k++) {
+				dF[VecFIx(FIxFromCIx(c), k)] -=
 					m_dResidualAuxREdge[k]
 					/ pGrid->GetZtop()
 					/ pGrid->GetZtop()
-					* m_dDiffDiffStateHypervis[c][k];
+					* (m_dDiffDiffStateHypervis[c][k]
+						- m_dDiffDiffStateUniform[c][k]);
 			}
 
 		// Partial DynSGS on levels
 		} else {
 			for (int k = 0; k < nRElements; k++) {
-				m_dStateAux[k] = m_dStateNode[c][k]
-					- m_dStateRefNode[c][k];
+				m_dStateAux[k] = m_dStateNode[c][k];
 			}
 
 			pGrid->DiffDiffNodeToNode(
@@ -3029,11 +3037,21 @@ void VerticalDynamicsFEM::BuildF(
 			);
 
 			for (int k = 0; k < nRElements; k++) {
-				dF[VecFIx(FIxFromCIx(c), k)] +=
+				m_dStateAux[k] = m_dStateRefNode[c][k];
+			}
+
+			pGrid->DiffDiffNodeToNode(
+				m_dStateAux,
+				m_dDiffDiffStateUniform[c]
+			);
+
+			for (int k = 0; k < nRElements; k++) {
+				dF[VecFIx(FIxFromCIx(c), k)] -=
 					m_dResidualAuxNode[k]
 					/ pGrid->GetZtop()
 					/ pGrid->GetZtop()
-					* m_dDiffDiffStateHypervis[c][k];
+					* (m_dDiffDiffStateHypervis[c][k]
+						- m_dDiffDiffStateUniform[c][k]);
 			}
 		}
 
