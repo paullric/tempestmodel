@@ -3017,7 +3017,7 @@ void VerticalDynamicsFEM::BuildF(
 			);
 
 			for (int k = 0; k <= nRElements; k++) {
-				dF[VecFIx(FIxFromCIx(c), k)] -=
+				dF[VecFIx(FIxFromCIx(c), k)] +=
 					m_dResidualAuxREdge[k]
 					/ pGrid->GetZtop()
 					/ pGrid->GetZtop()
@@ -3046,7 +3046,7 @@ void VerticalDynamicsFEM::BuildF(
 			);
 
 			for (int k = 0; k < nRElements; k++) {
-				dF[VecFIx(FIxFromCIx(c), k)] -=
+				dF[VecFIx(FIxFromCIx(c), k)] +=
 					m_dResidualAuxNode[k]
 					/ pGrid->GetZtop()
 					/ pGrid->GetZtop()
