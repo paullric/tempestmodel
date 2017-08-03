@@ -403,11 +403,19 @@ void TimestepSchemeStrang::Step(
 		// Send the function F (explicit stuff) to index 1 in residual storage
 		//DataArray1D<double> m_dResCombine;
 		//m_dResCombine.Initialize(5);
+		/*
 		m_dResCombine[0] = +1.0 / (3.0 * dDeltaT);
 		m_dResCombine[1] = -5.0 / (3.0 * dDeltaT);
 		m_dResCombine[2] = 0.0;
 		m_dResCombine[3] = 0.0;
 		m_dResCombine[4] = +4.0 / (3.0 * dDeltaT);
+		pGrid->LinearCombineData2Residual(m_dResCombine, 1, DataType_Residual);
+		*/
+		m_dResCombine[0] = -5.0 / (dDeltaT);
+		m_dResCombine[1] = 5.0 / (dDeltaT);
+		m_dResCombine[2] = 0.0;
+		m_dResCombine[3] = 0.0;
+		m_dResCombine[4] = 0.0;
 		pGrid->LinearCombineData2Residual(m_dResCombine, 1, DataType_Residual);
 #endif
 
@@ -488,8 +496,8 @@ void TimestepSchemeStrang::Step(
 		// Estimate the residual and send to index 2 of residual storage
 		//DataArray1D<double> m_dResCombine;
 		//m_dResCombine.Initialize(3);
-		m_dResCombine[0] = -1.0;
-		m_dResCombine[1] = -1.0;
+		m_dResCombine[0] = +1.0;
+		m_dResCombine[1] = +1.0;
 		m_dResCombine[2] = +1.0;
 		m_dResCombine[3] = 0.0;
 		m_dResCombine[4] = 0.0;
