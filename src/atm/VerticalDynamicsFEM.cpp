@@ -35,10 +35,10 @@
 //#define HYPERVISC_HORIZONTAL_VELOCITIES
 //#define HYPERVISC_THERMO
 //#define HYPERVISC_VERTICAL_VELOCITY
-//#define HYPERVISC_RHO
+#define HYPERVISC_RHO
 
 #define RESIDUAL_DIFFUSION_THERMO
-#define RESIDUAL_DIFFUSION_RHO
+//#define RESIDUAL_DIFFUSION_RHO
 
 //#define UPWIND_HORIZONTAL_VELOCITIES
 //#define UPWIND_THERMO
@@ -847,14 +847,18 @@ void VerticalDynamicsFEM::StepExplicit(
 						dataUpdateREdge[PIx][i][j][k] -=
 							dDeltaT * m_dSoln[VecFIx(FPIx, k)];
 
-						dataDynSGSREdge(2, i, j, k) = m_dDiffCREdge[k];
+						//dataDynSGSREdge(2, i, j, k) = m_dDiffCREdge[k];
+						dataDynSGSREdge(2, i, j, k) =
+							dataResidualREdge(2, i, j, k);
 					}
 				} else {
 					for (int k = 0; k < nRElements; k++) {
 						dataUpdateNode[PIx][i][j][k] -=
 							dDeltaT * m_dSoln[VecFIx(FPIx, k)];
 
-						dataDynSGSNode(2, i, j, k) = m_dDiffCNode[k];
+						//dataDynSGSNode(2, i, j, k) = m_dDiffCNode[k];
+						dataDynSGSNode(2, i, j, k) =
+							dataResidualNode(2, i, j, k);
 					}
 				}
 
@@ -4973,8 +4977,8 @@ void VerticalDynamicsFEM::ComputeResidualCoefficients(
 		//dResP = 1.0;
 		dResP = fabs(m_dResidualNode[PIx][k]);// / fabs(
                                 //dataInitialREdge[PIx][iA][iB][k] - dColAvgP);
-		//dResR = 0.0;
-		dResR = fabs(m_dResidualNode[RIx][k]);// / fabs(
+		dResR = 0.0;
+		//dResR = fabs(m_dResidualNode[RIx][k]);// / fabs(
                                 //dataInitialREdge[RIx][iA][iB][k] - dColAvgR);
 		//
 		// Select the maximum residual
