@@ -411,11 +411,11 @@ void TimestepSchemeStrang::Step(
 		m_dResCombine[4] = +4.0 / (3.0 * dDeltaT);
 		pGrid->LinearCombineData2Residual(m_dResCombine, 1, DataType_Residual);
 		*/
-		m_dResCombine[0] = -5.0 / (dDeltaT);
-		m_dResCombine[1] = 5.0 / (dDeltaT);
-		m_dResCombine[2] = 0.0;
+		m_dResCombine[0] = 0.0;
+		m_dResCombine[1] = 0.0;
+		m_dResCombine[2] = -4.0 / (3.0 * dDeltaT);;
 		m_dResCombine[3] = 0.0;
-		m_dResCombine[4] = 0.0;
+		m_dResCombine[4] = 4.0 / (3.0 * dDeltaT);
 		pGrid->LinearCombineData2Residual(m_dResCombine, 1, DataType_Residual);
 #endif
 
