@@ -2995,7 +2995,7 @@ void VerticalDynamicsFEM::BuildF(
 		if (!m_fResdiffVar[c]) {
 			continue;
 		}
-/*
+//
 		// Partial DynSGS on interfaces
 		if (pGrid->GetVarLocation(c) == DataLocation_REdge) {
 			for (int k = 0; k <= nRElements; k++) {
@@ -3054,8 +3054,8 @@ void VerticalDynamicsFEM::BuildF(
 						- m_dDiffDiffStateUniform[c][k]);
 			}
 		}
-*/
 //
+/*
 		// Residual hyperviscosity on interfaces
 		if (pGrid->GetVarLocation(c) == DataLocation_REdge) {
 			for (int k = 0; k <= nRElements; k++) {
@@ -3135,7 +3135,7 @@ void VerticalDynamicsFEM::BuildF(
 					//- m_dStateRefNode[RIx][k]);
 			}
 		}
-//
+*/
 	}
 
 	if (dF[VecFIx(FWIx, 0)] != 0.0) {
