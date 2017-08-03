@@ -488,8 +488,8 @@ void TimestepSchemeStrang::Step(
 		// Estimate the residual and send to index 2 of residual storage
 		//DataArray1D<double> m_dResCombine;
 		//m_dResCombine.Initialize(3);
-		m_dResCombine[0] = +1.0;
-		m_dResCombine[1] = +1.0;
+		m_dResCombine[0] = -1.0;
+		m_dResCombine[1] = -1.0;
 		m_dResCombine[2] = +1.0;
 		m_dResCombine[3] = 0.0;
 		m_dResCombine[4] = 0.0;
