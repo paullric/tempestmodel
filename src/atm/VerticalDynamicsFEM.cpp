@@ -4973,8 +4973,8 @@ void VerticalDynamicsFEM::ComputeResidualCoefficients(
 		//dResP = 1.0;
 		dResP = fabs(m_dResidualNode[PIx][k]);// / fabs(
                                 //dataInitialREdge[PIx][iA][iB][k] - dColAvgP);
-		dResR = 0.0;
-		//dResR = fabs(m_dResidualNode[RIx][k]);// / fabs(
+		//dResR = 0.0;
+		dResR = fabs(m_dResidualNode[RIx][k]);// / fabs(
                                 //dataInitialREdge[RIx][iA][iB][k] - dColAvgR);
 		//
 		// Select the maximum residual
