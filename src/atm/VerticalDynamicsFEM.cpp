@@ -32,9 +32,9 @@
 
 ///////////////////////////////////////////////////////////////////////////////
 
-#define HYPERVISC_HORIZONTAL_VELOCITIES
+//#define HYPERVISC_HORIZONTAL_VELOCITIES
 #define HYPERVISC_THERMO
-#define HYPERVISC_VERTICAL_VELOCITY
+//#define HYPERVISC_VERTICAL_VELOCITY
 #define HYPERVISC_RHO
 
 //#define RESIDUAL_DIFFUSION_THERMO
