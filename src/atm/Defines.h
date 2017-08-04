@@ -38,15 +38,15 @@
 ///		Thermodynamic closure to use.
 ///	</summary>
 //#define FORMULATION_PRESSURE
-//#define FORMULATION_RHOTHETA_PI
+#define FORMULATION_RHOTHETA_PI
 //#define FORMULATION_RHOTHETA_P
-#define FORMULATION_THETA
+//#define FORMULATION_THETA
 //#define FORMULATION_THETA_FLUX
 
 ///	<summary>
 ///		Compute residuals in TimestepScheme classes.
 ///	</summary>
-#define RESIDUAL_DIFFUSION
+//#define RESIDUAL_DIFFUSION
 
 ///	<summary>
 ///		Hardcoded horizontal order.
