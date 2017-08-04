@@ -32,9 +32,9 @@
 
 ///////////////////////////////////////////////////////////////////////////////
 
-//#define HYPERVISC_HORIZONTAL_VELOCITIES
+#define HYPERVISC_HORIZONTAL_VELOCITIES
 #define HYPERVISC_THERMO
-//#define HYPERVISC_VERTICAL_VELOCITY
+#define HYPERVISC_VERTICAL_VELOCITY
 #define HYPERVISC_RHO
 
 //#define RESIDUAL_DIFFUSION_THERMO
@@ -454,7 +454,7 @@ void VerticalDynamicsFEM::Initialize() {
 			* pow(1.0 / static_cast<double>(nRElements), 1.0);
 
 	} else if (m_nHypervisOrder == 4) {
-		m_dHypervisCoeff = - (1.0 / 6.0) //(1.0 / 12.0)
+		m_dHypervisCoeff = - (1.0 / 12.0) //(1.0 / 6.0)
 			* pow(1.0 / static_cast<double>(nRElements), 3.0);
 
 	} else if (m_nHypervisOrder == 6) {
