@@ -184,6 +184,7 @@ public:
 	///	</summary>
 	virtual void EvaluateReferenceState(
 		const PhysicalConstants & phys,
+		double dXi,
 		double dZp,
 		double dXp,
 		double dYp,
