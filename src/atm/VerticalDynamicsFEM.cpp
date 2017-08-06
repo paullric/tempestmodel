@@ -33,9 +33,9 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 #define HYPERVISC_HORIZONTAL_VELOCITIES
-#define HYPERVISC_THERMO
-#define HYPERVISC_VERTICAL_VELOCITY
-#define HYPERVISC_RHO
+//#define HYPERVISC_THERMO
+//#define HYPERVISC_VERTICAL_VELOCITY
+//#define HYPERVISC_RHO
 
 //#define RESIDUAL_DIFFUSION_THERMO
 //#define RESIDUAL_DIFFUSION_RHO
@@ -1218,6 +1218,13 @@ void VerticalDynamicsFEM::StepExplicit(
 						continue;
 					}
 
+					for (int k = 0; k < nRElements; k++) {
+						m_dStateRefNode[UIx][k] =
+							dataRefNode[UIx][i][j][k];
+						m_dStateRefNode[VIx][k] =
+							dataRefNode[VIx][i][j][k];
+					}
+
 					// Compute higher derivatives of U and V used for
 					// hyperviscosity
 					for (int h = 2; h < m_nHypervisOrder; h += 2) {
@@ -1238,8 +1245,26 @@ void VerticalDynamicsFEM::StepExplicit(
 
 						pGrid->DiffDiffNodeToNode(
 							m_dStateAux,
-							m_dDiffDiffStateHypervis[VIx]
+							m_dDiffDiffStateUniform[VIx]
 						);
+
+						memcpy(
+							m_dStateRefNode[UIx],
+							m_dDiffDiffStateUniform[UIx],
+							nRElements * sizeof(double));
+
+						pGrid->DiffDiffNodeToNode(
+							m_dStateRefNode[UIx],
+							m_dDiffDiffStateUniform[UIx]);
+
+						memcpy(
+							m_dStateRefNode[VIx],
+							m_dDiffDiffStateUniform[VIx],
+							nRElements * sizeof(double));
+
+						pGrid->DiffDiffNodeToNode(
+							m_dStateRefNode[VIx],
+							m_dDiffDiffStateUniform[VIx]);
 					}
 
 					// Apply hyperviscosity
@@ -1248,13 +1273,15 @@ void VerticalDynamicsFEM::StepExplicit(
 							dDeltaT
 							* m_dHypervisCoeff
 							* fabs(m_dXiDotNode[k])
-							* m_dDiffDiffStateHypervis[UIx][k];
+							* (m_dDiffDiffStateHypervis[UIx][k]
+								- m_dDiffDiffStateUniform[UIx][k]);
 
 						dataUpdateNode[VIx][i][j][k] +=
 							dDeltaT
 							* m_dHypervisCoeff
 							* fabs(m_dXiDotNode[k])
-							* m_dDiffDiffStateHypervis[VIx][k];
+							* (m_dDiffDiffStateHypervis[VIx][k]
+								- m_dDiffDiffStateUniform[VIx][k]);
 					}
 				}
 			}
@@ -2378,6 +2405,15 @@ void VerticalDynamicsFEM::PrepareColumn(
 			if (m_fHypervisVar[c]) {
 				for (int h = 2; h < m_nHypervisOrder; h += 2) {
 					memcpy(
+						m_dStateRefREdge[c],
+						m_dDiffDiffStateUniform[c],
+						(nRElements+1) * sizeof(double));
+
+					pGrid->DiffDiffREdgeToREdge(
+						m_dStateRefREdge[c],
+						m_dDiffDiffStateUniform[c]);
+
+					memcpy(
 						m_dStateAux,
 						m_dDiffDiffStateHypervis[c],
 						(nRElements+1) * sizeof(double));
@@ -2386,6 +2422,12 @@ void VerticalDynamicsFEM::PrepareColumn(
 						m_dStateAux,
 						m_dDiffDiffStateHypervis[c]
 					);
+				}
+
+				for (int k = 0; k <= nRElements; k++) {
+					m_dDiffDiffStateHypervis[c][k] =
+						m_dDiffDiffStateHypervis[c][k]
+						- m_dDiffDiffStateUniform[c][k];
 				}
 			}
 
@@ -2412,6 +2454,15 @@ void VerticalDynamicsFEM::PrepareColumn(
 			if (m_fHypervisVar[c]) {
 				for (int h = 2; h < m_nHypervisOrder; h += 2) {
 					memcpy(
+						m_dStateRefNode[c],
+						m_dDiffDiffStateUniform[c],
+						(nRElements) * sizeof(double));
+
+					pGrid->DiffDiffNodeToNode(
+						m_dStateRefNode[c],
+						m_dDiffDiffStateUniform[c]);
+
+					memcpy(
 						m_dStateAux,
 						m_dDiffDiffStateHypervis[c],
 						nRElements * sizeof(double));
@@ -2420,6 +2471,12 @@ void VerticalDynamicsFEM::PrepareColumn(
 						m_dStateAux,
 						m_dDiffDiffStateHypervis[c]
 					);
+				}
+
+				for (int k = 0; k < nRElements; k++) {
+					m_dDiffDiffStateHypervis[c][k] =
+						m_dDiffDiffStateHypervis[c][k]
+						- m_dDiffDiffStateUniform[c][k];
 				}
 			}
 		}
@@ -2967,6 +3024,12 @@ void VerticalDynamicsFEM::BuildF(
 			// Only upwind select variables
 			if (!m_fHypervisVar[c]) {
 				continue;
+			}
+
+			// Do not diffusion vertical velocity on boundaries
+			if (c == WIx) {
+				m_dDiffDiffStateHypervis[c][0] = 0.0;
+				m_dDiffDiffStateHypervis[c][nRElements] = 0.0;
 			}
 
 			// Flow-dependent hyperviscosity on interfaces
