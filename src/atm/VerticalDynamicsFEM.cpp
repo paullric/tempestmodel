@@ -34,7 +34,7 @@
 
 #define HYPERVISC_HORIZONTAL_VELOCITIES
 //#define HYPERVISC_THERMO
-//#define HYPERVISC_VERTICAL_VELOCITY
+#define HYPERVISC_VERTICAL_VELOCITY
 //#define HYPERVISC_RHO
 
 //#define RESIDUAL_DIFFUSION_THERMO
@@ -2403,16 +2403,26 @@ void VerticalDynamicsFEM::PrepareColumn(
 
 			// Calculate higher-order derivatives for hyperviscosity
 			if (m_fHypervisVar[c]) {
+				memcpy(
+					m_dStateAux,
+					m_dStateRefREdge[c],
+					(nRElements+1) * sizeof(double));
 				for (int h = 2; h < m_nHypervisOrder; h += 2) {
 					memcpy(
-						m_dStateRefREdge[c],
+						m_dStateAux,
 						m_dDiffDiffStateUniform[c],
 						(nRElements+1) * sizeof(double));
 
 					pGrid->DiffDiffREdgeToREdge(
-						m_dStateRefREdge[c],
+						m_dStateAux,
 						m_dDiffDiffStateUniform[c]);
+				}
 
+				memcpy(
+					m_dStateAux,
+					m_dStateREdge[c],
+					(nRElements+1) * sizeof(double));
+				for (int h = 2; h < m_nHypervisOrder; h += 2) {
 					memcpy(
 						m_dStateAux,
 						m_dDiffDiffStateHypervis[c],
@@ -2452,16 +2462,25 @@ void VerticalDynamicsFEM::PrepareColumn(
 
 			// Calculate higher-order derivatives for hyperviscosity
 			if (m_fHypervisVar[c]) {
+				memcpy(
+					m_dStateAux,
+					m_dStateRefNode[c],
+					(nRElements) * sizeof(double));
 				for (int h = 2; h < m_nHypervisOrder; h += 2) {
 					memcpy(
-						m_dStateRefNode[c],
+						m_dStateAux,
 						m_dDiffDiffStateUniform[c],
 						(nRElements) * sizeof(double));
 
 					pGrid->DiffDiffNodeToNode(
-						m_dStateRefNode[c],
+						m_dStateAux,
 						m_dDiffDiffStateUniform[c]);
-
+				}
+				memcpy(
+					m_dStateAux,
+					m_dStateNode[c],
+					(nRElements) * sizeof(double));
+				for (int h = 2; h < m_nHypervisOrder; h += 2) {
 					memcpy(
 						m_dStateAux,
 						m_dDiffDiffStateHypervis[c],
