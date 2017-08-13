@@ -75,6 +75,11 @@ private:
 	double m_dT0;
 
 	///	<summary>
+	///		Constant Brunt-Vaisala Frequency (uniform stratification)
+	///	</summary>
+	double m_dNbar;
+
+	///	<summary>
 	///		Parameter reference length a for temperature disturbance
 	///	</summary>
 	double m_daC;
@@ -161,6 +166,7 @@ public:
 		double ddTdz,
 		double ddTdzSTR,
 		double dT0,
+		double dNbar,
 		double dhC,
 		double daC,
 		double dlC,
@@ -174,6 +180,7 @@ public:
 		m_ddTdz(ddTdz),
 		m_ddTdzSTR(ddTdzSTR),
 		m_dT0(dT0),
+		m_dNbar(dNbar),
 		m_dhC(dhC),
 		m_daC(daC),
 		m_dlC(dlC),
@@ -367,6 +374,65 @@ public:
 
 	///	<summary>
 	///		Calculate the geopotential and temperature at the given point.
+	///		Uniform stratification constant BVF.
+	///	</summary>
+	void CalculateGeopotentialTemperature(
+		const PhysicalConstants & phys,
+		double dEta,
+		double dZp,
+		double dXp,
+		double dYp,
+		double & dGeopotential,
+		double & dTemperature
+	) const {
+		// Get some constants
+		const double dG = phys.GetG();
+		const double dCv = phys.GetCv();
+		const double dCp = phys.GetCp();
+		const double dRd = phys.GetR();
+		const double dP0 = phys.GetP0();
+		const double dae = phys.GetEarthRadius();
+		const double df0 = 0.0;
+		const double dbeta0 = 0.0;
+		const double dLy = m_dGDim[3] - m_dGDim[2];
+
+		// Get the background fields at the given height
+		double dThetaBar = m_dT0 * exp(m_dNbar * m_dNbar / dG * dZp);
+		double dExnerP = (dG * dG) / (dCp * m_dT0 * m_dNbar * m_dNbar);
+		dExnerP *= (exp(-m_dNbar * m_dNbar / dG * dZp) - 1.0);
+		dExnerP += 1.0;
+		double dRho = dP0 / (dRd * dThetaBar) * pow(dExnerP,(dCv / dRd));
+
+		// Horizontally averaged temperature profile
+		// Horizontally averaged geopotential
+		double dAvgGeopotential = 0.0;
+		double dAvgTemperature = 0.0;
+
+		dAvgTemperature = dThetaBar
+			+ (dG * dG) / (dCp * m_dT0 * m_dNbar * m_dNbar)
+			* (1.0 - dThetaBar / m_dT0);
+		dAvgGeopotential = - dRd * dAvgTemperature
+			* pow(dRd * dRho * dThetaBar / dP0, dCp / dCv);
+
+		// Horizontal variation geopotential function
+		double dXYGeopotential = 0.0;
+
+		double dExpDecay = exp(-(log(dEta) / m_dbC) * (log(dEta) / m_dbC));
+		double dRefProfile1 = log(dEta);
+		double dRefProfile2 = 2 / (m_dbC * m_dbC) * log(dEta) * log(dEta) - 1.0;
+
+		// Total geopotential distribution
+		dGeopotential = dAvgGeopotential + dXYGeopotential*
+			dRefProfile1 * dExpDecay;
+
+		// Total temperature distribution
+		dTemperature = dAvgTemperature + dXYGeopotential / dRd *
+			dRefProfile2 * dExpDecay;
+	}
+/*
+	///	<summary>
+	///		Calculate the geopotential and temperature at the given point.
+	///		Piecewise linear background temperature.
 	///	</summary>
 	void CalculateGeopotentialTemperature(
 		const PhysicalConstants & phys,
@@ -427,7 +493,7 @@ public:
 		dTemperature = dAvgTemperature + dXYGeopotential / dRd *
 			dRefProfile2 * dExpDecay;
 	}
-
+*/
 	///	<summary>
 	///		Calculate eta at the given point via Newton iteration.  The
 	///		geopotential and temperature at this point are also returned via
@@ -575,6 +641,9 @@ try {
 	// Reference absolute temperature
 	double dT0;
 
+	// Constant Brunt-Vaisala frequency
+	double dNbar;
+
 	// Parameter reference height for temperature disturbance
 	double dhC;
 
@@ -610,6 +679,7 @@ try {
 		CommandLineDouble(ddTdz, "gamma", 0.0065);
 		CommandLineDouble(ddTdzSTR, "gamma_str", -0.002);
 		CommandLineDouble(dT0, "T0", 280.0);
+		CommandLineDouble(dNbar, "Nbar", 0.01);
 		CommandLineDouble(dhC, "hC", 250.0);
 		CommandLineDouble(daC, "aC", 5000.0);
 		CommandLineDouble(dlC, "lC", 4000.0);
@@ -636,6 +706,7 @@ try {
 				ddTdz,
 				ddTdzSTR,
 				dT0,
+				dNbar,
 				dhC,
 				daC,
 				dlC,
