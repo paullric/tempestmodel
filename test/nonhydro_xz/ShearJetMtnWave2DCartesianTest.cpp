@@ -412,7 +412,7 @@ public:
 
 		dAvgTemperature = dThetaBar
 			+ (dG * dG) / (dCp * m_dT0 * m_dNbar * m_dNbar)
-			* (1.0 - dThetaBar / m_dT0);
+			* (m_dT0 - dThetaBar);
 		dAvgGeopotential = - dRd * dAvgTemperature
 			* pow(dRd * dRho * dThetaBar / dP0, dCp / dCv);
 
@@ -432,7 +432,7 @@ public:
 			dRefProfile2 * dExpDecay;
 
 		// Total pressure distribution
-		dPressure = dRho * dRd * dAvgTemperature;
+		dPressure = dRho * dRd * dTemperature;
 	}
 /*
 	///	<summary>
