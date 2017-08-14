@@ -108,12 +108,12 @@ public:
 		m_fNoRayleighFriction(fNoRayleighFriction)
 	{
 		// Set the dimensions of the box
-		m_dGDim[0] = -25000.0;
-		m_dGDim[1] = 25000.0;
-		m_dGDim[2] = -200.0;
-		m_dGDim[3] = 200.0;
+		m_dGDim[0] = -40000.0;
+		m_dGDim[1] = 40000.0;
+		m_dGDim[2] = -100.0;
+		m_dGDim[3] = 100.0;
 		m_dGDim[4] = 0.0;
-		m_dGDim[5] = 21000.0;
+		m_dGDim[5] = 25000.0;
 
 		// Set the boundary conditions for this test (no-flux in Y)
 		m_iLatBC[0] = Grid::BoundaryCondition_Periodic;
@@ -196,10 +196,10 @@ public:
 		double dXp,
 		double dYp
 	) const {
-		const double dRayleighStrengthZ = 5.0E-3;//8.0e-3;
+		const double dRayleighStrengthZ = 1.0E-2;//8.0e-3;
 		const double dRayleighStrengthX = 1.0 * dRayleighStrengthZ;
-		const double dRayleighDepth = 5000.0;
-		const double dRayleighWidth = 5000.0;
+		const double dRayleighDepth = 10000.0;
+		const double dRayleighWidth = 10000.0;
 
 		double dNuDepth = 0.0;
 		double dNuRight = 0.0;
