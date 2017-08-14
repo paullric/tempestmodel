@@ -208,10 +208,11 @@ public:
 		// Find and set the tropopause temperature here before initializing the test
 		double dGeopotential;
 		double dTemperature;
+		double dPressure;
 
 		// Get the temperature at the tropopause
 		double dEta = EtaFromRLL(
-			phys, m_dTPHeight, 0.0, 0.0, dGeopotential, dTemperature);
+			phys, m_dTPHeight, 0.0, 0.0, dGeopotential, dTemperature, dPressure);
 		m_dTPTemp1 = dTemperature;
 		m_dTPEta1 = dEta;
 		m_dTPPhi1 = dGeopotential;
@@ -219,7 +220,7 @@ public:
 		// Get the pressure level at the top of the mixed layer
 		dEta = EtaFromRLL(
 			phys, m_dTPHeight + m_dTPMixedLayerH, 0.0, 0.0,
-			dGeopotential, dTemperature);
+			dGeopotential, dTemperature, dPressure);
 		m_dTPTemp2 = dTemperature;
 		m_dTPEta2 = dEta;
 		m_dTPPhi2 = dGeopotential;
@@ -383,7 +384,8 @@ public:
 		double dXp,
 		double dYp,
 		double & dGeopotential,
-		double & dTemperature
+		double & dTemperature,
+		double & dPressure
 	) const {
 		// Get some constants
 		const double dG = phys.GetG();
@@ -428,6 +430,9 @@ public:
 		// Total temperature distribution
 		dTemperature = dAvgTemperature + dXYGeopotential / dRd *
 			dRefProfile2 * dExpDecay;
+
+		// Total pressure distribution
+		dPressure = dRho * dRd * dAvgTemperature;
 	}
 /*
 	///	<summary>
@@ -505,7 +510,8 @@ public:
 		double dXp,
 		double dYp,
 		double & dGeopotential,
-		double & dTemperature
+		double & dTemperature,
+		double & dPressure
 	) const {
 		const int MaxIterations  = 200;
 		const double InitialEta  = 1.0e-5;
@@ -517,13 +523,13 @@ public:
 
 		double dF;
 		double dDiffF;
-
+		/*
 		// Iterate until convergence is achieved
 		int i = 0;
 		for (; i < MaxIterations; i++) {
 
 			CalculateGeopotentialTemperature(
-				phys, dEta, dZp, dXp, dYp, dGeopotential, dTemperature);
+				phys, dEta, dZp, dXp, dYp, dGeopotential, dTemperature, dPressure);
 
 			dF     = - phys.GetG() * dZp + dGeopotential;
 			dDiffF = - phys.GetR() / dEta * dTemperature;
@@ -545,6 +551,11 @@ public:
 		if ((dEta > 1.0) || (dEta < 0.0)) {
 			_EXCEPTIONT("Invalid Eta value");
 		}
+		*/
+
+		CalculateGeopotentialTemperature(
+			phys, dEta, dZp, dXp, dYp, dGeopotential, dTemperature, dPressure);
+		dEta = dPressure / phys.GetP0();
 		return dEta;
 	}
 
@@ -565,12 +576,13 @@ public:
 		// Pressure coordinate
 		double dGeopotential;
 		double dTemperature;
+		double dPressure;
 
 		double dEtaPhys = EtaFromRLL(
-			phys, dZp, dXp, dYp, dGeopotential, dTemperature);
+			phys, dZp, dXp, dYp, dGeopotential, dTemperature, dPressure);
 
 		double dEtaComp = EtaFromRLL(
-			phys, dXi * m_dGDim[5], dXp, dYp, dGeopotential, dTemperature);
+			phys, dXi * m_dGDim[5], dXp, dYp, dGeopotential, dTemperature, dPressure);
 
 		// Calculate zonal velocity and set other velocity components
 		double dExpDecay = exp(-(log(dEtaComp) / m_dbC) * (log(dEtaComp) / m_dbC));
@@ -581,7 +593,7 @@ public:
 		dState[3] = 0.0;
 
 		// Calculate rho and theta
-		double dPressure = phys.GetP0() * dEtaPhys;
+		//dPressure = phys.GetP0() * dEtaPhys;
 		//std::cout << std::setprecision(16) << "Z = " << dZp << " Eta = " << dEta << "\n";
 
 		double dRho = dPressure / (phys.GetR() * dTemperature);
