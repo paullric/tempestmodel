@@ -108,12 +108,12 @@ public:
 		m_fNoRayleighFriction(fNoRayleighFriction)
 	{
 		// Set the dimensions of the box
-		m_dGDim[0] = -25000.0;
-		m_dGDim[1] = 25000.0;
+		m_dGDim[0] = -50000.0;
+		m_dGDim[1] = 50000.0;
 		m_dGDim[2] = -100.0;
 		m_dGDim[3] = 100.0;
 		m_dGDim[4] = 0.0;
-		m_dGDim[5] = 25000.0;
+		m_dGDim[5] = 30000.0;
 
 		// Set the boundary conditions for this test (no-flux in Y)
 		m_iLatBC[0] = Grid::BoundaryCondition_Periodic;
@@ -199,22 +199,31 @@ public:
 		const double dRayleighStrengthZ = 1.0E-2;//8.0e-3;
 		const double dRayleighStrengthX = 1.0 * dRayleighStrengthZ;
 		const double dRayleighDepth = 10000.0;
-		const double dRayleighWidth = 10000.0;
+		const double dRayleighWidthR = 10000.0;
+		const double dRayleighWidthL = 10000.0;
+		const double dRayDepthXi = dRayleighDepth / m_dGDim[5];
 
 		double dNuDepth = 0.0;
 		double dNuRight = 0.0;
 		double dNuLeft  = 0.0;
 
-		if (dZ > m_dGDim[5] - dRayleighDepth) {
-			double dNormZ = (m_dGDim[5] - dZ) / dRayleighDepth;
+		double dLayerZ = 1.0 - dRayDepthXi;
+		//double dLayerZ = m_dGDim[5] - dRayleighDepth;
+ 		double dLayerR = m_dGDim[1] - dRayleighWidthR;
+ 		double dLayerL = m_dGDim[0] + dRayleighWidthL;
+
+		if (dZ > dLayerZ) {
+			//double dNormZ = (m_dGDim[5] - dZ) / dRayleighDepth;
+			double dNormZ = (1.0 - dZ) / dRayDepthXi;
 			dNuDepth = 0.5 * dRayleighStrengthZ * (1.0 + cos(M_PI * dNormZ));
 		}
-		if (dXp > m_dGDim[1] - dRayleighWidth) {
-			double dNormX = (m_dGDim[1] - dXp) / dRayleighWidth;
+
+		if (dXp > dLayerR) {
+			double dNormX = (m_dGDim[1] - dXp) / dRayleighWidthR;
 			dNuRight = 0.5 * dRayleighStrengthX * (1.0 + cos(M_PI * dNormX));
 		}
-		if (dXp < m_dGDim[0] + dRayleighWidth) {
-			double dNormX = (dXp - m_dGDim[0]) / dRayleighWidth;
+		if (dXp < dLayerL) {
+			double dNormX = (dXp - m_dGDim[0]) / dRayleighWidthL;
 			dNuLeft = 0.5 * dRayleighStrengthX * (1.0 + cos(M_PI * dNormX));
 		}
 
