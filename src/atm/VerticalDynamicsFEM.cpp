@@ -1357,7 +1357,7 @@ void VerticalDynamicsFEM::ApplyRayleighFriction(
 	}
 
 	// Subcycle the rayleigh update
-	int nRayCycles = 2;
+	int nRayCycles = 10;
 	double dRayFactor = 1.0 / nRayCycles;
 
 	// Rayleigh damping on nodes
@@ -1382,8 +1382,8 @@ void VerticalDynamicsFEM::ApplyRayleighFriction(
 				double dPML = 0.0;
 				for (int si = 0; si < nRayCycles; si++) {
 					dNuInv = 1.0 / (1.0 + dRayFactor * dDeltaT * dNu);
-					dPML = dataUpdateNode(nEffectiveC[c],iA, iB,k)
-					- dataReferenceNode(nEffectiveC[c],iA, iB,k)
+					dPML = dataUpdateNode(nEffectiveC[c],iA,iB,k)
+					- dataReferenceNode(nEffectiveC[c],iA,iB,k)
 					+ dRayFactor * dDeltaT * dNu * dPhi;
 
 					dataUpdateNode(nEffectiveC[c],iA, iB,k) =
@@ -1424,7 +1424,7 @@ void VerticalDynamicsFEM::ApplyRayleighFriction(
 					dataUpdateREdge(nEffectiveC[c],iA,iB,k) =
 					dNuInv * dataUpdateREdge(nEffectiveC[c],iA,iB,k)
 					+ (1.0 - dNuInv)
-					* dataReferenceREdge(nEffectiveC[c],iA, iB,k);
+					* dataReferenceREdge(nEffectiveC[c],iA,iB,k);
 					//- dNuInv * dRayFactor * dDeltaT * dPML;
 				}
 			}

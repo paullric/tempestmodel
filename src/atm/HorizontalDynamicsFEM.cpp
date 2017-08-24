@@ -2977,7 +2977,7 @@ void HorizontalDynamicsFEM::ApplyRayleighFriction(
 	}
 
 	// Subcycle the rayleigh update
-	int nRayCycles = 2;
+	int nRayCycles = 10;
 	double dRayFactor = 1.0 / nRayCycles;
 
 	// Perform local update
@@ -3269,8 +3269,8 @@ void HorizontalDynamicsFEM::StepAfterSubCycle(
 			ApplyRayleighFriction(iDataInitial, iDataUpdate, dDeltaT);
 
 			// Apply Direct Stiffness Summation
-			//pGrid->ApplyDSS(iDataUpdate, DataType_State);
-			//pGrid->ApplyDSS(iDataUpdate, DataType_Tracers);
+			pGrid->ApplyDSS(iDataUpdate, DataType_State);
+			pGrid->ApplyDSS(iDataUpdate, DataType_Tracers);
 		}
 #endif
 }
