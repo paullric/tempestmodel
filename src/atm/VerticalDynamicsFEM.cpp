@@ -1357,7 +1357,7 @@ void VerticalDynamicsFEM::ApplyRayleighFriction(
 	}
 
 	// Subcycle the rayleigh update
-	int nRayCycles = 10;
+	int nRayCycles = 5;
 	double dRayFactor = 1.0 / nRayCycles;
 
 	// Rayleigh damping on nodes
