@@ -2957,19 +2957,21 @@ void HorizontalDynamicsFEM::ApplyRayleighFriction(
 	if ((nEqSet == EquationSet::PrimitiveNonhydrostaticEquations) && !fCartXZ) {
 		nEffectiveC[0] = 0; nEffectiveC[1] = 1;
 		nEffectiveC[2] = 2; nEffectiveC[3] = 3;
-		//nEffectiveC[4] = 4;
-		nEffectiveC[nComponents - 1] = 0;
-		nComponents = nComponents - 1;
+		nEffectiveC[4] = 4;
+		//nEffectiveC[nComponents - 1] = 0;
+		//nComponents = nComponents - 1;
 	}
 	// 2D Cartesian XZ primitive nonhydro models with no density treatment
 	else if ((nEqSet == EquationSet::PrimitiveNonhydrostaticEquations) && fCartXZ) {
 		nEffectiveC[0] = 0;
 		nEffectiveC[1] = 2;
 		nEffectiveC[2] = 3;
-		//nEffectiveC[3] = 4;
-		nEffectiveC[nComponents - 2] = 0;
+		nEffectiveC[3] = 4;
 		nEffectiveC[nComponents - 1] = 0;
-		nComponents = nComponents - 2;
+		nComponents = nComponents - 1;
+		//nEffectiveC[nComponents - 2] = 0;
+		//nEffectiveC[nComponents - 1] = 0;
+		//nComponents = nComponents - 2;
 	}
 	// Other model types (advection, shallow water, mass coord)
 	else {
