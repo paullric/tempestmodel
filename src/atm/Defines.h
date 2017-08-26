@@ -38,9 +38,9 @@
 ///		Thermodynamic closure to use.
 ///	</summary>
 //#define FORMULATION_PRESSURE
-#define FORMULATION_RHOTHETA_PI
+//#define FORMULATION_RHOTHETA_PI
 //#define FORMULATION_RHOTHETA_P
-//#define FORMULATION_THETA
+#define FORMULATION_THETA
 //#define FORMULATION_THETA_FLUX
 
 ///	<summary>
@@ -77,7 +77,7 @@
 ///		When to apply Rayleigh damping.
 ///	</summary>
 #define APPLY_RAYLEIGH_WITH_HYPERVIS
-#define APPLY_RAYLEIGH_WITH_VERTICALDYN
+//#define APPLY_RAYLEIGH_WITH_VERTICALDYN
 
 ///	<summary>
 ///		Apply positive definite filter to tracers.
