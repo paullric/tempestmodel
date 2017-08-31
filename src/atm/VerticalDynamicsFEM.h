@@ -247,6 +247,8 @@ protected:
 	  GridPatch * pPatch,
 	  int i,
 	  int j,
+	  const DataArray4D<double> & dataInitialNode,
+	  const DataArray4D<double> & dataInitialREdge,
 	  DataArray4D<double> & dataUpdateNode,
 	  DataArray4D<double> & dataUpdateREdge,
 	  const DataArray4D<double> & dataReferenceNode,

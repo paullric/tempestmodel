@@ -32,9 +32,9 @@
 
 ///////////////////////////////////////////////////////////////////////////////
 
-#define HYPERVISC_HORIZONTAL_VELOCITIES
-#define HYPERVISC_THERMO
-#define HYPERVISC_VERTICAL_VELOCITY
+//#define HYPERVISC_HORIZONTAL_VELOCITIES
+//#define HYPERVISC_THERMO
+//#define HYPERVISC_VERTICAL_VELOCITY
 //#define HYPERVISC_RHO
 
 //#define RESIDUAL_DIFFUSION_THERMO
@@ -894,6 +894,8 @@ void VerticalDynamicsFEM::StepExplicit(
 					if (pGrid->HasRayleighFriction()) {
 						ApplyRayleighFriction(
 							pPatch, i, j,
+							dataInitialNode,
+							dataInitialREdge,
 							dataUpdateNode,
 							dataUpdateREdge,
 							dataRefNode,
@@ -1295,6 +1297,8 @@ void VerticalDynamicsFEM::ApplyRayleighFriction(
 	GridPatch * pPatch,
 	int iA,
 	int iB,
+	const DataArray4D<double> & dataInitialNode,
+	const DataArray4D<double> & dataInitialREdge,
 	DataArray4D<double> & dataUpdateNode,
 	DataArray4D<double> & dataUpdateREdge,
 	const DataArray4D<double> & dataReferenceNode,
@@ -1338,21 +1342,21 @@ void VerticalDynamicsFEM::ApplyRayleighFriction(
 	if ((nEqSet == EquationSet::PrimitiveNonhydrostaticEquations) && !fCartXZ) {
 		nEffectiveC[0] = 0; nEffectiveC[1] = 1;
 		nEffectiveC[2] = 2; nEffectiveC[3] = 3;
-		//nEffectiveC[4] = 4;
-		nEffectiveC[nComponents - 1] = 0;
-		nComponents = nComponents - 1;
+		nEffectiveC[4] = 4;
+		//nEffectiveC[nComponents - 1] = 0;
+		//nComponents = nComponents - 1;
 	}
 	// 2D Cartesian XZ primitive nonhydro models with no density treatment
 	else if ((nEqSet == EquationSet::PrimitiveNonhydrostaticEquations) && fCartXZ) {
 		nEffectiveC[0] = 0;
 		nEffectiveC[1] = 2;
 		nEffectiveC[2] = 3;
-		//nEffectiveC[3] = 4;
-		//nEffectiveC[nComponents - 1] = 0;
-		//nComponents = nComponents - 1;
-		nEffectiveC[nComponents - 2] = 0;
+		nEffectiveC[3] = 4;
 		nEffectiveC[nComponents - 1] = 0;
-		nComponents = nComponents - 2;
+		nComponents = nComponents - 1;
+		//nEffectiveC[nComponents - 2] = 0;
+		//nEffectiveC[nComponents - 1] = 0;
+		//nComponents = nComponents - 2;
 	}
 	// Other model types (advection, shallow water, mass coord)
 	else {
@@ -1390,12 +1394,21 @@ void VerticalDynamicsFEM::ApplyRayleighFriction(
 					dPML = dataUpdateNode(nEffectiveC[c],iA,iB,k)
 					- dataReferenceNode(nEffectiveC[c],iA,iB,k)
 					+ dRayFactor * dDeltaT * dNu * dPhi;
-
-					dataUpdateNode(nEffectiveC[c],iA, iB,k) =
+/*
+					/dataUpdateNode(nEffectiveC[c],iA, iB,k) =
 					dNuInv * dataUpdateNode(nEffectiveC[c],iA,iB,k)
 					+ (1.0 - dNuInv)
 					* dataReferenceNode(nEffectiveC[c],iA,iB,k);
 					//+ dNuInv * dRayFactor * dDeltaT * dPML;
+*/
+					// Exact integration of Rayleigh update
+					dNuInv = exp(dRayFactor * dDeltaT * dNu
+						* (1.0
+						- dataReferenceNode(nEffectiveC[c],iA,iB,k)));
+					dataUpdateNode(nEffectiveC[c],iA, iB,k) =
+						dNuInv
+						 * dataInitialNode(nEffectiveC[c],iA, iB,k);
+
 				}
 			}
 		}
@@ -1425,12 +1438,20 @@ void VerticalDynamicsFEM::ApplyRayleighFriction(
 					dPML = dataUpdateREdge(nEffectiveC[c],iA,iB,k)
 					- dataReferenceREdge(nEffectiveC[c],iA,iB,k)
 					+ dRayFactor * dDeltaT * dNu * dPhi;
-
+/*
 					dataUpdateREdge(nEffectiveC[c],iA,iB,k) =
 					dNuInv * dataUpdateREdge(nEffectiveC[c],iA,iB,k)
 					+ (1.0 - dNuInv)
 					* dataReferenceREdge(nEffectiveC[c],iA,iB,k);
 					//- dNuInv * dRayFactor * dDeltaT * dPML;
+*/
+					// Exact integration of Rayleigh update
+					dNuInv = exp(dRayFactor * dDeltaT * dNu
+						* (1.0
+						- dataReferenceREdge(nEffectiveC[c],iA,iB,k)));
+					dataUpdateREdge(nEffectiveC[c],iA, iB,k) =
+						dNuInv
+						 * dataInitialREdge(nEffectiveC[c],iA, iB,k);
 				}
 			}
 		}
