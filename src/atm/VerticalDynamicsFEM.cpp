@@ -1402,12 +1402,12 @@ void VerticalDynamicsFEM::ApplyRayleighFriction(
 					//+ dNuInv * dRayFactor * dDeltaT * dPML;
 */
 					// Exact integration of Rayleigh update
-					dNuInv = exp(dRayFactor * dDeltaT * dNu
-						* (1.0
-						- dataReferenceNode(nEffectiveC[c],iA,iB,k)));
+					dNuInv = exp(-dRayFactor * dDeltaT * dNu);
 					dataUpdateNode(nEffectiveC[c],iA, iB,k) =
-						dNuInv
-						 * dataUpdateNode(nEffectiveC[c],iA, iB,k);
+						dataReferenceNode(nEffectiveC[c],iA,iB,k)
+						 + (dataUpdateNode(nEffectiveC[c],iA, iB,k)
+						 - dataReferenceNode(nEffectiveC[c],iA,iB,k))
+						 * dNuInv;
 
 				}
 			}
@@ -1446,12 +1446,12 @@ void VerticalDynamicsFEM::ApplyRayleighFriction(
 					//- dNuInv * dRayFactor * dDeltaT * dPML;
 */
 					// Exact integration of Rayleigh update
-					dNuInv = exp(dRayFactor * dDeltaT * dNu
-						* (1.0
-						- dataReferenceREdge(nEffectiveC[c],iA,iB,k)));
+					dNuInv = exp(-dRayFactor * dDeltaT * dNu);
 					dataUpdateREdge(nEffectiveC[c],iA, iB,k) =
-						dNuInv
-						 * dataUpdateREdge(nEffectiveC[c],iA, iB,k);
+						dataReferenceREdge(nEffectiveC[c],iA,iB,k)
+						 + (dataUpdateREdge(nEffectiveC[c],iA, iB,k)
+						 - dataReferenceREdge(nEffectiveC[c],iA,iB,k))
+						 * dNuInv;
 				}
 			}
 		}
