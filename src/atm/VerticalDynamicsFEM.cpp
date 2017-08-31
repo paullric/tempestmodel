@@ -1407,7 +1407,7 @@ void VerticalDynamicsFEM::ApplyRayleighFriction(
 						- dataReferenceNode(nEffectiveC[c],iA,iB,k)));
 					dataUpdateNode(nEffectiveC[c],iA, iB,k) =
 						dNuInv
-						 * dataInitialNode(nEffectiveC[c],iA, iB,k);
+						 * dataUpdateNode(nEffectiveC[c],iA, iB,k);
 
 				}
 			}
@@ -1451,7 +1451,7 @@ void VerticalDynamicsFEM::ApplyRayleighFriction(
 						- dataReferenceREdge(nEffectiveC[c],iA,iB,k)));
 					dataUpdateREdge(nEffectiveC[c],iA, iB,k) =
 						dNuInv
-						 * dataInitialREdge(nEffectiveC[c],iA, iB,k);
+						 * dataUpdateREdge(nEffectiveC[c],iA, iB,k);
 				}
 			}
 		}
