@@ -15,6 +15,7 @@ FILES= InertialGravityCartesianXZTest.cpp \
        ThermalBubbleCartesian3DTest.cpp \
        ScharMountainCartesianTest.cpp \
        ShearJetMtnWave2DCartesianTest.cpp \
+       ShearJetMtnWaveXZReadTopoTest.cpp \
        ShearJetMtnWave2DCartesianTestCBVF.cpp \
        ShearJetMtnWave3DCartesianTest.cpp \
        HydrostaticMountainCartesianTest.cpp \
