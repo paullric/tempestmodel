@@ -1395,7 +1395,7 @@ void VerticalDynamicsFEM::ApplyRayleighFriction(
 					- dataReferenceNode(nEffectiveC[c],iA,iB,k)
 					+ dRayFactor * dDeltaT * dNu * dPhi;
 //
-					/dataUpdateNode(nEffectiveC[c],iA, iB,k) =
+					dataUpdateNode(nEffectiveC[c],iA, iB,k) =
 					dNuInv * dataUpdateNode(nEffectiveC[c],iA,iB,k)
 					+ (1.0 - dNuInv)
 					* dataReferenceNode(nEffectiveC[c],iA,iB,k);
