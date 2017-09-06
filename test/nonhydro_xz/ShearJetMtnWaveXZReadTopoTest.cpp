@@ -452,8 +452,8 @@ public:
 		const double dRayleighStrengthZ = 1.0E-2;//8.0e-3;
 		const double dRayleighStrengthX = 1.0 * dRayleighStrengthZ;
 		const double dRayleighDepth = 10000.0;
-		const double dRayleighWidthR = 15000.0;
-		const double dRayleighWidthL = 15000.0;
+		const double dRayleighWidthR = 30000.0;
+		const double dRayleighWidthL = 30000.0;
 		const double dRayDepthXi = dRayleighDepth / m_dGDim[5];
 
 		double dNuDepth = 0.0;
@@ -469,18 +469,18 @@ public:
 			//double dNormZ = (m_dGDim[5] - dZ) / dRayleighDepth;
 			double dNormZ = (1.0 - dZ) / dRayDepthXi;
 			//dNuDepth = 0.5 * dRayleighStrengthZ * (1.0 + cos(M_PI * dNormZ));
-			dNuDepth = dRayleighStrengthZ * pow(cos(0.5 * M_PI * dNormZ),4);
+			dNuDepth = dRayleighStrengthZ * pow(cos(0.5 * M_PI * dNormZ),2);
 		}
 
 		if (dXp > dLayerR) {
 			double dNormX = (m_dGDim[1] - dXp) / dRayleighWidthR;
 			//dNuRight = 0.5 * dRayleighStrengthX * (1.0 + cos(M_PI * dNormX));
-			dNuRight = dRayleighStrengthX * pow(cos(0.5 * M_PI * dNormX),4);
+			dNuRight = dRayleighStrengthX * pow(cos(0.5 * M_PI * dNormX),2);
 		}
 		if (dXp < dLayerL) {
 			double dNormX = (dXp - m_dGDim[0]) / dRayleighWidthL;
 			//dNuLeft = 0.5 * dRayleighStrengthX * (1.0 + cos(M_PI * dNormX));
-			dNuLeft = dRayleighStrengthX * pow(cos(0.5 * M_PI * dNormX),4);
+			dNuLeft = dRayleighStrengthX * pow(cos(0.5 * M_PI * dNormX),2);
 		}
 
 		//std::cout << dXp << ' ' << dZ << ' ' << dNuDepth << std::endl;

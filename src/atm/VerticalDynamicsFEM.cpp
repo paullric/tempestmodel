@@ -32,9 +32,9 @@
 
 ///////////////////////////////////////////////////////////////////////////////
 
-//#define HYPERVISC_HORIZONTAL_VELOCITIES
-//#define HYPERVISC_THERMO
-//#define HYPERVISC_VERTICAL_VELOCITY
+#define HYPERVISC_HORIZONTAL_VELOCITIES
+#define HYPERVISC_THERMO
+#define HYPERVISC_VERTICAL_VELOCITY
 //#define HYPERVISC_RHO
 
 //#define RESIDUAL_DIFFUSION_THERMO
@@ -1394,13 +1394,14 @@ void VerticalDynamicsFEM::ApplyRayleighFriction(
 					dPML = dataUpdateNode(nEffectiveC[c],iA,iB,k)
 					- dataReferenceNode(nEffectiveC[c],iA,iB,k)
 					+ dRayFactor * dDeltaT * dNu * dPhi;
-/*
+//
 					/dataUpdateNode(nEffectiveC[c],iA, iB,k) =
 					dNuInv * dataUpdateNode(nEffectiveC[c],iA,iB,k)
 					+ (1.0 - dNuInv)
 					* dataReferenceNode(nEffectiveC[c],iA,iB,k);
 					//+ dNuInv * dRayFactor * dDeltaT * dPML;
-*/
+//
+/*
 					// Exact integration of Rayleigh update
 					dNuInv = exp(-dRayFactor * dDeltaT * dNu);
 					dataUpdateNode(nEffectiveC[c],iA, iB,k) =
@@ -1408,7 +1409,7 @@ void VerticalDynamicsFEM::ApplyRayleighFriction(
 						 + (dataUpdateNode(nEffectiveC[c],iA, iB,k)
 						 - dataReferenceNode(nEffectiveC[c],iA,iB,k))
 						 * dNuInv;
-
+*/
 				}
 			}
 		}
@@ -1438,13 +1439,14 @@ void VerticalDynamicsFEM::ApplyRayleighFriction(
 					dPML = dataUpdateREdge(nEffectiveC[c],iA,iB,k)
 					- dataReferenceREdge(nEffectiveC[c],iA,iB,k)
 					+ dRayFactor * dDeltaT * dNu * dPhi;
-/*
+//
 					dataUpdateREdge(nEffectiveC[c],iA,iB,k) =
 					dNuInv * dataUpdateREdge(nEffectiveC[c],iA,iB,k)
 					+ (1.0 - dNuInv)
 					* dataReferenceREdge(nEffectiveC[c],iA,iB,k);
 					//- dNuInv * dRayFactor * dDeltaT * dPML;
-*/
+//
+/*
 					// Exact integration of Rayleigh update
 					dNuInv = exp(-dRayFactor * dDeltaT * dNu);
 					dataUpdateREdge(nEffectiveC[c],iA, iB,k) =
@@ -1452,6 +1454,7 @@ void VerticalDynamicsFEM::ApplyRayleighFriction(
 						 + (dataUpdateREdge(nEffectiveC[c],iA, iB,k)
 						 - dataReferenceREdge(nEffectiveC[c],iA,iB,k))
 						 * dNuInv;
+*/
 				}
 			}
 		}
