@@ -415,7 +415,7 @@ public:
 				* (dXp - m_dInputTopoData(nSorted[0], 0))
 				* (dYp - m_dInputTopoData(nSorted[0], 1)));
 
-		return hsm;
+		return m_dhC * hsm;
 	}
 //
 /*
