@@ -251,6 +251,10 @@ public:
 		std::ifstream fileToRead(m_sTopoDataFilename);
 		std::string sLine;
 
+		if (!fileToRead.good()) {
+			_EXCEPTIONT("Unable to open the terrain input file! Check command line arguments.");
+		}
+
 		// Header is an int specifying the length of the data
 		std::getline(fileToRead, sLine);
 		std::stringstream sHeadStream(sLine);
@@ -264,6 +268,10 @@ public:
 			m_dTopoDY = dDY;
 		} else {
 			_EXCEPTIONT("Unable to read terrain data file! Failed at header...");
+		}
+
+		if (nTlength > 100000) {
+			_EXCEPTIONT("Maximum nTlength value exceeded! Check data input file.");
 		}
 
 		int iTdex = 0;
