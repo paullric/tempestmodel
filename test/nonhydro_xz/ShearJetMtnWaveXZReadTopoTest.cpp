@@ -354,13 +354,14 @@ public:
 		double dDX = m_dTopoDX;
 		double dDY = m_dTopoDY;
 		double dBlinSum = 0.0;
-		int nBoxPointIndices[4];
-/*
-		printf("%.16E %.16E\n",dXp,dYp);
-		printf("%.16E %.16E\n",m_dInputTopoData(0, 0),m_dInputTopoData(0, 1));
-		printf("%.16E %.16E\n",m_dInputTopoData(m_nTlength-1, 0),m_dInputTopoData(m_nTlength-1, 1));
-*/
+		int nBoxPointIndices[4] = {0};
+
+		//Announce("%.16E %.16E\n",dXp,dYp);
+		//printf("%.16E %.16E\n",m_dInputTopoData(0, 0),m_dInputTopoData(0, 1));
+		//printf("%.16E %.16E\n",m_dInputTopoData(m_nTlength-1, 0),m_dInputTopoData(m_nTlength-1, 1));
+
 		// Search for bounding points on the sample
+		// TO DO: Add check for case where sample point is on the data!
 		int kk = 0;
 		for (int pp = 0; pp < m_nTlength; pp++) {
 			dTdiff1 = m_dInputTopoData(pp, 0) - dXp;
@@ -368,23 +369,35 @@ public:
 
 			//printf("%.16E %.16E %u\n",dTdiff1,dTdiff2,pp);
 
-			if ((std::abs(dTdiff1) < dDX) && (std::abs(dTdiff2) < dDY)) {
+			if ((std::abs(dTdiff1) < dDX)
+				&& (std::abs(dTdiff2) < dDY)) {
+
 				nBoxPointIndices[kk] = pp;
 				kk++;
-				//printf("%u %.16E %.16E\n",pp,
-				//m_dInputTopoData(pp, 0),
-				//m_dInputTopoData(pp, 1));
-			}
 
-			if (kk > 4) {
-				_EXCEPTIONT("Sampling error in terrain data!");
+				// Check for coincident query and data points
+				if ((std::abs(dTdiff1) <= 1.0E-15)
+					|| (std::abs(dTdiff2) <= 1.0E-15)) {
+
+					nBoxPointIndices[kk] =
+						nBoxPointIndices[kk-1];
+					kk++;
+				}
+
+				//Announce("%.16E %.16E %u\n",dTdiff1,dTdiff2,pp);
 			}
+		}
+
+		if (kk > 4) {
+			_EXCEPTIONT("Found more than 4 bounding points! Redundant input data points!");
+		} else if (kk < 3) {
+			_EXCEPTIONT("Sampling search failed! Query not bounded by data.");
 		}
 
 		//printf("%u %u %u %u\n",nBoxPointIndices[0],nBoxPointIndices[1],nBoxPointIndices[2],nBoxPointIndices[3]);
 
 		// Sort the 4 points ascending X in ascending Y
-		int nSorted[4];
+		int nSorted[4] = {0};
 		for (int ii = 0; ii < kk; ii++) {
 			for (int jj = 0; jj < kk; jj++) {
 				if (jj != ii) {
@@ -425,23 +438,7 @@ public:
 
 		return m_dhC * hsm;
 	}
-//
-/*
-	///	<summary>
-	///		Evaluate the topography at the given point. (cartesian version)
-	///	</summary>
-	virtual double EvaluateTopography(
-		const PhysicalConstants & phys,
-		double dXp,
-		double dYp
-	) const {
-		// Specify the Linear Mountain (case 6 from Giraldo et al. 2008)
-		double hsm = m_dhC / (1.0 + ((dXp - 0.0)/m_daC) * ((dXp - 0.0)/m_daC) *
-									((dXp - 0.0)/m_daC) * ((dXp - 0.0)/m_daC));
-		//std::cout << hsm << "\n";
-		return hsm;
-	}
-*/
+	
 	///	<summary>
 	///		Flag indicating whether or not Rayleigh friction strength is given.
 	///	</summary>
