@@ -171,6 +171,11 @@ private:
 	double m_dTopoDX;
 	double m_dTopoDY;
 
+	/// <summary>
+	///		Input Terrain data dimensions
+	///	</summary>
+	double m_dTDim[4];
+
 public:
 	///	<summary>
 	///		Constructor. (with physical constants defined privately here)
@@ -208,8 +213,8 @@ public:
 		m_dpiC = M_PI;
 
 		// Set the dimensions of the box
-		m_dGDim[0] = -100000.0;
-		m_dGDim[1] = 200000.0;
+		m_dGDim[0] = -500000.0;
+		m_dGDim[1] = 750000.0;
 		m_dGDim[2] = -100.0;
 		m_dGDim[3] = 100.0;
 		m_dGDim[4] = 0.0;
@@ -261,11 +266,20 @@ public:
 		int nTlength;
 		double dDX;
 		double dDY;
-		if (sHeadStream >> dDX >> dDY >> nTlength) {
+		double dTMinLon;
+		double dTMaxLon;
+		double dTMinLat;
+		double dTMaxLat;
+		if (sHeadStream >> dDX >> dDY >> nTlength
+			>> dTMinLon >> dTMaxLon >> dTMinLat >> dTMaxLat) {
 			m_dInputTopoData.Allocate(nTlength,3);
 			m_nTlength = nTlength;
 			m_dTopoDX = dDX;
 			m_dTopoDY = dDY;
+			m_dTDim[0] = dTMinLon;
+			m_dTDim[1] = dTMaxLon;
+			m_dTDim[2] = dTMinLat;
+			m_dTDim[3] = dTMaxLat;
 		} else {
 			_EXCEPTIONT("Unable to read terrain data file! Failed at header...");
 		}
@@ -356,12 +370,18 @@ public:
 		double dBlinSum = 0.0;
 		int nBoxPointIndices[4] = {0};
 
-		//Announce("%.16E %.16E\n",dXp,dYp);
-		//printf("%.16E %.16E\n",m_dInputTopoData(0, 0),m_dInputTopoData(0, 1));
-		//printf("%.16E %.16E\n",m_dInputTopoData(m_nTlength-1, 0),m_dInputTopoData(m_nTlength-1, 1));
+		// If the query point is outside the data domain set height to zero
+		if ((dXp < m_dTDim[0]) || (dXp > m_dTDim[1])) {
+			hsm = 0.0;
+			return hsm;
+		}
+
+		if ((dYp < m_dTDim[2]) || (dYp > m_dTDim[3])) {
+			hsm = 0.0;
+			return hsm;
+		}
 
 		// Search for bounding points on the sample
-		// TO DO: Add check for case where sample point is on the data!
 		int kk = 0;
 		for (int pp = 0; pp < m_nTlength; pp++) {
 			dTdiff1 = m_dInputTopoData(pp, 0) - dXp;
@@ -438,7 +458,7 @@ public:
 
 		return m_dhC * hsm;
 	}
-	
+
 	///	<summary>
 	///		Flag indicating whether or not Rayleigh friction strength is given.
 	///	</summary>
