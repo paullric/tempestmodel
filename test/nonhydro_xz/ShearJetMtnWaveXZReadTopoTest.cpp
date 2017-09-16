@@ -213,12 +213,12 @@ public:
 		m_dpiC = M_PI;
 
 		// Set the dimensions of the box
-		m_dGDim[0] = -60000.0;
-		m_dGDim[1] = 100000.0;
+		m_dGDim[0] = -120000.0;
+		m_dGDim[1] = 220000.0;
 		m_dGDim[2] = -100.0;
 		m_dGDim[3] = 100.0;
 		m_dGDim[4] = 0.0;
-		m_dGDim[5] = 35000.0;
+		m_dGDim[5] = 40000.0;
 
 		// Set the center of the domain in Y
 		m_dY0 = 0.5 * (m_dGDim[3] - m_dGDim[2]);
@@ -476,9 +476,9 @@ public:
 	) const {
 		const double dRayleighStrengthZ = 1.0E-2;//8.0e-3;
 		const double dRayleighStrengthX = 1.0 * dRayleighStrengthZ;
-		const double dRayleighDepth = 10000.0;
-		const double dRayleighWidthR = 10000.0;
-		const double dRayleighWidthL = 10000.0;
+		const double dRayleighDepth = 15000.0;
+		const double dRayleighWidthR = 20000.0;
+		const double dRayleighWidthL = 20000.0;
 		const double dRayDepthXi = dRayleighDepth / m_dGDim[5];
 
 		double dNuDepth = 0.0;
@@ -494,18 +494,18 @@ public:
 			//double dNormZ = (m_dGDim[5] - dZ) / dRayleighDepth;
 			double dNormZ = (1.0 - dZ) / dRayDepthXi;
 			//dNuDepth = 0.5 * dRayleighStrengthZ * (1.0 + cos(M_PI * dNormZ));
-			dNuDepth = dRayleighStrengthZ * pow(cos(0.5 * M_PI * dNormZ),2);
+			dNuDepth = dRayleighStrengthZ * pow(cos(0.5 * M_PI * dNormZ),4);
 		}
 
 		if (dXp > dLayerR) {
 			double dNormX = (m_dGDim[1] - dXp) / dRayleighWidthR;
 			//dNuRight = 0.5 * dRayleighStrengthX * (1.0 + cos(M_PI * dNormX));
-			dNuRight = dRayleighStrengthX * pow(cos(0.5 * M_PI * dNormX),2);
+			dNuRight = dRayleighStrengthX * pow(cos(0.5 * M_PI * dNormX),4);
 		}
 		if (dXp < dLayerL) {
 			double dNormX = (dXp - m_dGDim[0]) / dRayleighWidthL;
 			//dNuLeft = 0.5 * dRayleighStrengthX * (1.0 + cos(M_PI * dNormX));
-			dNuLeft = dRayleighStrengthX * pow(cos(0.5 * M_PI * dNormX),2);
+			dNuLeft = dRayleighStrengthX * pow(cos(0.5 * M_PI * dNormX),4);
 		}
 
 		//std::cout << dXp << ' ' << dZ << ' ' << dNuDepth << std::endl;
