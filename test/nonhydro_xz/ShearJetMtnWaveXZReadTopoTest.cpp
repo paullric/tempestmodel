@@ -214,7 +214,7 @@ public:
 
 		// Set the dimensions of the box
 		m_dGDim[0] = -120000.0;
-		m_dGDim[1] = 220000.0;
+		m_dGDim[1] = 240000.0;
 		m_dGDim[2] = -100.0;
 		m_dGDim[3] = 100.0;
 		m_dGDim[4] = 0.0;
@@ -477,7 +477,7 @@ public:
 		const double dRayleighStrengthZ = 1.0E-2;//8.0e-3;
 		const double dRayleighStrengthX = 1.0 * dRayleighStrengthZ;
 		const double dRayleighDepth = 15000.0;
-		const double dRayleighWidthR = 20000.0;
+		const double dRayleighWidthR = 40000.0;
 		const double dRayleighWidthL = 20000.0;
 		const double dRayDepthXi = dRayleighDepth / m_dGDim[5];
 
@@ -671,8 +671,11 @@ public:
 			phys, dXi * m_dGDim[5], dXp, dYp, dGeopotential, dTemperature);
 
 		// Calculate zonal velocity and set other velocity components
-		double dExpDecay = exp(-(log(dEtaComp) / m_dbC) * (log(dEtaComp) / m_dbC));
-		double dUlon = -m_dUj * log(dEtaComp) * dExpDecay;
+		//double dExpDecay = exp(-(log(dEtaComp) / m_dbC) * (log(dEtaComp) / m_dbC));
+		//double dUlon = -m_dUj * log(dEtaComp) * dExpDecay;
+		// Use physical elevation to specify the initial wind field
+		double dExpDecay = exp(-(log(dEtaPhys) / m_dbC) * (log(dEtaPhys) / m_dbC));
+		double dUlon = -m_dUj * log(dEtaPhys) * dExpDecay;
 
 		dState[0] = dUlon + m_dU0;
 		dState[1] = 0.0;
