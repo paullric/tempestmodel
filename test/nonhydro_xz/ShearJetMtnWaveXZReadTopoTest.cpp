@@ -213,7 +213,7 @@ public:
 		m_dpiC = M_PI;
 
 		// Set the dimensions of the box
-		m_dGDim[0] = -120000.0;
+		m_dGDim[0] = -140000.0;
 		m_dGDim[1] = 240000.0;
 		m_dGDim[2] = -100.0;
 		m_dGDim[3] = 100.0;
