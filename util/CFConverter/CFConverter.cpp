@@ -469,7 +469,7 @@ try {
 	for (int k = 0; k < nILev; k++) {
 		dILev[k] *= dZtop;
 	}
-/*
+
 	// Load topography
 	Announce("Topography");
 	NcVar * varZs = ncdf_in.get_var("Zs");
@@ -483,7 +483,7 @@ try {
 	varZs->get(&(dZs[0][0]), nLat, nLon);
 
 	AnnounceEndBlock("Done");
-*/
+
 	// Load density
 	Announce("Density");
 	bool fHasDensity = false;
@@ -537,8 +537,27 @@ try {
 		bool fOnLevels = false;
 		bool fOnInterfaces = false;
 
+		// Layer thickness
+		if (vecVariableStrings[v] == "DeltaZ") {
+			data.Allocate(nTime * nLev * nLat * nLon);
+
+			int data_ix = 0;
+			for (int t = 0; t < nTime; t++) {
+			for (int k = 0; k < nLev; k++) {
+			for (int j = 0; j < nLat; j++) {
+			for (int i = 0; i < nLon; i++) {
+				 double dLevTop = dZs[j][i] + (dILev[k+1] / dZtop) * (dZtop - dZs[j][i]);
+				 double dLevBot = dZs[j][i] + (dILev[k] / dZtop) * (dZtop - dZs[j][i]);
+				 data[data_ix++] = dLevTop - dLevBot;
+			}
+			}
+			}
+			}
+
+			fOnLevels = true;
+
 		// Tracers
-		if (vecVariableStrings[v][0] == 'Q') {
+		} else if (vecVariableStrings[v][0] == 'Q') {
 			std::string strQ = vecVariableStrings[v];
 			if (strQ == "Q") {
 				strQ = "Qv";
@@ -607,10 +626,6 @@ try {
 				data.Allocate(nTime * nILev * nLat * nLon);
 				varIn->get(&(data[0]), nTime, nILev, nLat, nLon);
 			}
-		}
-
-		if (varIn == NULL) {
-			_EXCEPTIONT("Logic error");
 		}
 
 		// Open output file
@@ -803,6 +818,10 @@ try {
 		} else if (vecVariableStrings[v] == "PS") {
 			varOut->add_att("units", "Pa");
 			varOut->add_att("long_name", "surface_pressure");
+
+		} else if (vecVariableStrings[v] == "DeltaZ") {
+			varOut->add_att("units", "m");
+			varOut->add_att("long_name", "layer_thickness");
 
 		} else {
 			printf("WARNING: No CF-Compliant version of variable \"%s\" known",
