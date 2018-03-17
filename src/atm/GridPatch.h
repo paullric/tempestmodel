@@ -130,16 +130,14 @@ public:
 	) = 0;
 
 	///	<summary>
-	///		Initialize state and tracer data from a TestCase.
+	///		Initialize state and tracer perturbation from a TestCase upon restart.
 	///	</summary>
-	virtual void EvaluateTestCase_StateOnly(
+	virtual void EvaluateTestCase_Perturbation(
 		const TestCase & test,
 		const Time & time,
 		int iDataIndex = 0
-	) {
-		_EXCEPTIONT("Unimplemented.");
-	}
-
+	) = 0;
+    
 	///	<summary>
 	///		Apply boundary conditions to the state.
 	///	</summary>

@@ -199,9 +199,9 @@ protected:
 	);
 
 	///	<summary>
-	///		Initialize state and tracer data from a TestCase.
+	///		Initialize state and tracer perturbatin from a TestCase upon restart.
 	///	</summary>
-	void EvaluateTestCase_StateOnly(
+	void EvaluateTestCase_Perturbation(
 		const TestCase & test,
 		const Time & time,
 		int iDataIndex = 0
