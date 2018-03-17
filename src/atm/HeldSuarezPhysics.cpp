@@ -1,8 +1,8 @@
 ///////////////////////////////////////////////////////////////////////////////
 ///
 ///	\file    HeldSuarezPhysics.cpp
-///	\author  Paul Ullrich
-///	\version December 15, 2011
+///	\author  Paul Ullrich, Jorge Guerra
+///	\version February 9, 2018
 ///
 ///	<remarks>
 ///		Copyright 2000-2010 Paul Ullrich
@@ -142,13 +142,19 @@ void HeldSuarezPhysics::Perform(
 			// Theta on model levels
 			if (pGrid->GetVarLocation(TIx) == DataLocation_Node) {
 				for (int k = 0; k < nRElements; k++) {
-
-					// Calculate pressure
+/*
+					// Calculate pressure THETA FORMULATION
 					double dPressure =
 						phys.PressureFromRhoTheta(
 							dataNode[RIx][i][j][k]
 							* dataNode[TIx][i][j][k]);
-
+*/
+//
+					// Calculate pressure RHO-THETA FORMULATION
+					double dPressure =
+						phys.PressureFromRhoTheta(
+							dataNode[TIx][i][j][k]);
+//
 					double dSigma = dPressure / dSurfacePressure;
 
 					double dBoundaryScale =
@@ -186,33 +192,42 @@ void HeldSuarezPhysics::Perform(
 						dTeq = ParamMinimumT;
 					}
 /*
-					// Apply temperature diffusion via backward Euler
+					// Apply Theta diffusion via backward Euler
 					double dTnew =
 						(dT + dDeltaT * dKT * dTeq) / (1.0 + dDeltaT * dKT);
 
 					dataNode[TIx][i][j][k] =
 						dTnew * pow(phys.GetP0() / dPressure, phys.GetKappa());
 */
+//
+                    // Apply RhoTheta diffusion with Ullrich update...
 					double dDH = - dKT / phys.GetGamma()
 						* (1.0 + (phys.GetGamma() - 1.0) * dTeq / dT);
 
 					double dH = - dKT / phys.GetGamma() * (1.0 - dTeq / dT);
 
-					dataNode[TIx][i][j][k] *=
+					dataNode[TIx][i][j][k] *= 
 						1.0 + dDeltaT / (1.0 - dDeltaT * dDH) * dH;
+//
 				}
 			}
 
 			// Theta on model interfaces
 			if (pGrid->GetVarLocation(TIx) == DataLocation_REdge) {
 				for (int k = 0; k <= nRElements; k++) {
-
-					// Calculate pressure
+/*
+					// Calculate pressure THETA FORMULATION
 					double dPressure =
 						phys.PressureFromRhoTheta(
 							dataREdge[RIx][i][j][k]
 							* dataREdge[TIx][i][j][k]);
-
+*/
+//
+					// Calculate pressure RHO-THETA FORMULATION
+					double dPressure =
+						phys.PressureFromRhoTheta(
+							dataREdge[TIx][i][j][k]);
+//
 					double dSigma = dPressure / dSurfacePressure;
 
 					double dBoundaryScale =
@@ -250,13 +265,15 @@ void HeldSuarezPhysics::Perform(
 						dTeq = ParamMinimumT;
 					}
 /*
-					// Apply temperature diffusion via backward Euler
+					// Apply Theta diffusion via backward Euler
 					double dTnew =
 						(dT + dDeltaT * dKT * dTeq) / (1.0 + dDeltaT * dKT);
 
 					dataREdge[TIx][i][j][k] =
 						dTnew * pow(phys.GetP0() / dPressure, phys.GetKappa());
 */
+//
+                    // Apply RhoTheta diffusion with Ullrich update...
 					double dDH = - dKT / phys.GetGamma()
 						* (1.0 + (phys.GetGamma() - 1.0) * dTeq / dT);
 
@@ -264,6 +281,7 @@ void HeldSuarezPhysics::Perform(
 
 					dataREdge[TIx][i][j][k] *=
 						1.0 + dDeltaT / (1.0 - dDeltaT * dDH) * dH;
+//
 				}
 			}
 /*

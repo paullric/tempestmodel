@@ -921,12 +921,210 @@ void GridPatchCSGLL::EvaluateTestCase(
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void GridPatchCSGLL::EvaluateTestCase_StateOnly(
+void GridPatchCSGLL::EvaluateTestCase_Perturbation(
 	const TestCase & test,
 	const Time & time,
 	int iDataIndex
 ) {
-	_EXCEPTIONT("Unmaintained function");
+	static const int UIx = 0;
+	static const int VIx = 1;
+
+	// Initialize the data at each node
+	if (m_datavecStateNode.size() == 0) {
+		_EXCEPTIONT("InitializeData must be called before InitialConditions");
+	}
+	if (iDataIndex >= m_datavecStateNode.size()) {
+		_EXCEPTIONT("Invalid iDataIndex (out of range)");
+	}
+
+	// 2D equation set
+	bool fIs2DEquationSet = false;
+	if (m_grid.GetModel().GetEquationSet().GetDimensionality() == 2) {
+		fIs2DEquationSet = true;
+	}
+
+	// Check dimensionality
+	if (fIs2DEquationSet && (m_nVerticalOrder != 1)) {
+		_EXCEPTIONT("VerticalOrder / Dimensionality mismatch:\n"
+			"For 2D problems vertical order must be 1.");
+	}
+
+	// Physical constants
+	const PhysicalConstants & phys = m_grid.GetModel().GetPhysicalConstants();
+
+	// Data state
+	DataArray4D<double> & dataStateNode =
+		m_datavecStateNode[iDataIndex];
+	DataArray4D<double> & dataStateREdge =
+		m_datavecStateREdge[iDataIndex];
+	DataArray4D<double> & dataTracers =
+		m_datavecTracers[iDataIndex];
+
+	// Buffer vector for storing pointwise states
+	const EquationSet & eqns = m_grid.GetModel().GetEquationSet();
+
+	int nComponents = m_grid.GetModel().GetEquationSet().GetComponents();
+	int nTracers = m_grid.GetModel().GetEquationSet().GetTracers();
+
+	DataArray1D<double> dPointwiseState(nComponents);
+	DataArray1D<double> dPointwiseTracers;
+
+	if (m_datavecTracers.size() > 0) {
+		if (nTracers > 0) {
+			dPointwiseTracers.Allocate(nTracers);
+		}
+	}
+
+	// Evaluate the state on model levels
+	for (int i = 0; i < m_box.GetATotalWidth(); i++) {
+	for (int j = 0; j < m_box.GetBTotalWidth(); j++) {
+	for (int k = 0; k < m_grid.GetRElements(); k++) {
+
+		// Evaluate pointwise state perturbations
+		test.EvaluatePointwisePerturbation(
+			phys,
+			time,
+			m_dataZLevels(i,j,k),
+			m_dataLon(i,j),
+			m_dataLat(i,j),
+			dPointwiseState,
+			dPointwiseTracers);
+        
+		for (int c = 0; c < dPointwiseState.GetRows(); c++) {
+#if defined(FORMULATION_RHOTHETA_PI) || defined(FORMULATION_RHOTHETA_P)
+            if (c == 2) {
+                dataStateNode(c,i,j,k) +=
+                    dataStateNode(4,i,j,k) * dPointwiseState[c];
+                //std::cout << dataStateNode(c,i,j,k) << ' ' << dPointwiseState[c] << std::endl;
+             } else {
+                dataStateNode(c,i,j,k) +=
+                    dPointwiseState[c];
+            }
+#endif
+
+#if defined(FORMULATION_THETA) || defined(FORMULATION_THETA_FLUX)
+            if (c == 2) {
+                dataStateNode(c,i,j,k) +=
+                    dPointwiseState[c];
+            } else {
+                dataStateNode(c,i,j,k) +=
+                    dPointwiseState[c];
+            }
+#endif
+		}
+/*
+		// Transform state velocities
+		double dUlon;
+		double dUlat;
+
+		dUlon = dataStateNode(UIx,i,j,k);
+		dUlat = dataStateNode(VIx,i,j,k);
+
+#if defined(PROGNOSTIC_CONTRAVARIANT_MOMENTA)
+		dUlon /= phys.GetEarthRadius();
+		dUlat /= phys.GetEarthRadius();
+
+		CubedSphereTrans::VecTransABPFromRLL(
+			m_dXNode[i],
+			m_dYNode[j],
+			m_box.GetPanel(),
+			dUlon, dUlat,
+			dataStateNode(UIx,i,j,k),
+			dataStateNode(VIx,i,j,k));
+#else
+		dUlon *= phys.GetEarthRadius();
+		dUlat *= phys.GetEarthRadius();
+
+		CubedSphereTrans::CoVecTransABPFromRLL(
+			m_dXNode[i],
+			m_dYNode[j],
+			m_box.GetPanel(),
+			dUlon, dUlat,
+			dataStateNode(UIx,i,j,k),
+			dataStateNode(VIx,i,j,k));
+#endif
+*/
+		// Evaluate tracer perturbations if any
+		for (int c = 0; c < dPointwiseTracers.GetRows(); c++) {
+			dataTracers(c,i,j,k) +=
+				dPointwiseTracers[c];
+		}
+	}
+	}
+	}
+
+	// Evaluate the state on model interfaces
+	for (int i = 0; i < m_box.GetATotalWidth(); i++) {
+	for (int j = 0; j < m_box.GetBTotalWidth(); j++) {
+	for (int k = 0; k <= m_grid.GetRElements(); k++) {
+
+		// Evaluate pointwise state perturbations
+		test.EvaluatePointwisePerturbation(
+			m_grid.GetModel().GetPhysicalConstants(),
+			time,
+			m_dataZInterfaces(i,j,k),
+			m_dataLon(i,j),
+			m_dataLat(i,j),
+			dPointwiseState,
+			dPointwiseTracers);
+
+		for (int c = 0; c < dPointwiseState.GetRows(); c++) {
+#if defined(FORMULATION_RHOTHETA_PI) || defined(FORMULATION_RHOTHETA_P)
+            if (c == 2) {
+                dataStateREdge(c,i,j,k) +=
+                    dataStateREdge(4,i,j,k) * dPointwiseState[c];
+                //std::cout << dataStateNode(c,i,j,k) << ' ' << dPointwiseState[c] << std::endl;
+             } else {
+                dataStateREdge(c,i,j,k) +=
+                    dPointwiseState[c];
+            }
+#endif
+
+#if defined(FORMULATION_THETA) || defined(FORMULATION_THETA_FLUX)
+            if (c == 2) {
+                dataStateREdge(c,i,j,k) +=
+                    dPointwiseState[c];
+            } else {
+                dataStateREdge(c,i,j,k) +=
+                    dPointwiseState[c];
+            }
+#endif
+        }
+/*
+		// Transform state velocities
+		double dUlon;
+		double dUlat;
+
+		dUlon = dataStateREdge(UIx,i,j,k);
+		dUlat = dataStateREdge(VIx,i,j,k);
+
+#if defined(PROGNOSTIC_CONTRAVARIANT_MOMENTA)
+		dUlon /= phys.GetEarthRadius();
+		dUlat /= phys.GetEarthRadius();
+
+		CubedSphereTrans::VecTransABPFromRLL(
+			m_dXNode[i],
+			m_dYNode[j],
+			m_box.GetPanel(),
+			dUlon, dUlat,
+			dataStateREdge(UIx,i,j,k),
+			dataStateREdge(VIx,i,j,k));
+#else
+		dUlon *= phys.GetEarthRadius();
+		dUlat *= phys.GetEarthRadius();
+
+		CubedSphereTrans::CoVecTransABPFromRLL(
+			m_dXNode[i],
+			m_dYNode[j],
+			m_box.GetPanel(),
+			dUlon, dUlat,
+			dataStateREdge(UIx,i,j,k),
+			dataStateREdge(VIx,i,j,k));
+#endif
+*/
+	}
+	}
+	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////

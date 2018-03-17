@@ -423,7 +423,7 @@ void Grid::EvaluateTestCase(
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void Grid::EvaluateTestCase_StateOnly(
+void Grid::EvaluateTestCase_Perturbation(
 	const TestCase & test,
 	const Time & time,
 	int iDataIndex
@@ -431,7 +431,7 @@ void Grid::EvaluateTestCase_StateOnly(
 	// Evaluate the pointwise values of the test
 	for (int n = 0; n < m_vecActiveGridPatches.size(); n++) {
 		m_vecActiveGridPatches[n]->
-			EvaluateTestCase_StateOnly(test, time, iDataIndex);
+			EvaluateTestCase_Perturbation(test, time, iDataIndex);
 	}
 }
 

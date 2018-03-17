@@ -76,7 +76,8 @@ public:
 	///	</summary>
 	void SetGridFromRestartFile(
 		Grid * pGrid,
-		const std::string & strRestartFile
+		const std::string & strRestartFile,
+        const bool & fRestartPerturbation
 	);
 
 	///	<summary>
@@ -327,6 +328,11 @@ protected:
 	///		Flag indicating the Grid has been initialized from a restart file.
 	///	</summary>
 	bool m_fGridFromRestartFile;
+    
+    ///	<summary>
+	///		Flag indicating the restart has a perturbation applied.
+	///	</summary>
+	bool m_fRestartPerturbation;
 
 protected:
 	///	<summary>

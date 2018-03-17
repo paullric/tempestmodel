@@ -61,7 +61,7 @@ public:
 		double dZtop
 	) :
 		ParamEarthRadiusScaling(1.0),
-		ParamT0(300.0),
+		ParamT0(280.0),
 
 		m_dZtop(dZtop)
 	{ }
@@ -155,6 +155,46 @@ public:
 		dState[2] = phys.RhoThetaFromPressure(dP) / dRho;
 		dState[3] = 0.0;
 		dState[4] = dRho;
+        
+        // Random perturbation on U and V to induce asymmetry
+        dState[0] += 1.0E-3 * static_cast<double>(rand()) / 
+                        static_cast<double>(RAND_MAX);
+        dState[1] += 1.0E-3 * static_cast<double>(rand()) / 
+                        static_cast<double>(RAND_MAX);
+	}
+	
+    ///	<summary>
+	///		Evaluate the perturbed state vector at the given point upon restart.
+	///	</summary>
+	virtual void EvaluatePointwisePerturbation(
+		const PhysicalConstants & phys,
+		const Time & time,
+		double dZ,
+		double dLon,
+		double dLat,
+		double * dState,
+		double * dTracer
+	) const {
+		double dH = phys.GetR() * ParamT0 / phys.GetG();
+
+		double dP = phys.GetP0() * exp(- dZ / dH);
+
+		double dRho = dP / phys.GetG() / dH;
+
+		// Store the state perturbation heating magnitude and scale parameters
+        double dPert = 1.0;
+        double dXLS = 1.2E6;
+        double dYLS = 5.0E6;
+        double dZLS = 5.0E3;
+        
+        dState[0] = 0.0;
+		dState[1] = 0.0;
+		dState[2] = dPert * std::sin(M_PI * dZ / dZLS) * 
+                    std::exp(-0.5 * dLon * dLon / (dXLS * dXLS)
+                             -0.5 * dLat * dLat / (dYLS * dYLS));
+        dState[3] = 0.0;
+		dState[4] = 0.0;
+        //std::cout << dState[2] << std::endl;
 	}
 };
 
