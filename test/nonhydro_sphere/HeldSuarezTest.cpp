@@ -180,17 +180,30 @@ public:
 		double dP = phys.GetP0() * exp(- dZ / dH);
 
 		double dRho = dP / phys.GetG() / dH;
+        
+        double dAE = phys.GetEarthRadius();
 
 		// Store the state perturbation heating magnitude and scale parameters
         double dPert = 1.0;
-        double dXLS = 1.2E6;
-        double dYLS = 5.0E6;
+        double dXLS = 5.0E6 / dAE;
+        double dYLS = 1.2E6 / dAE;
         double dZLS = 5.0E3;
+        double dLonShift = 0.0;
         
+        if (dLon > M_PI) {
+            dLonShift = dLon - 2.0 * M_PI;
+        } else {
+            dLonShift = dLon;
+        }
+        
+        double dZHeat = 0.2;
+        double dPow = 1.0 / dZHeat - 1.0;
+        double dAp = 1.0 / dZHeat * std::pow(dZHeat - 1.0, -dPow);
+        double dXi = dZ / m_dZtop;
         dState[0] = 0.0;
 		dState[1] = 0.0;
-		dState[2] = dPert * std::sin(M_PI * dZ / dZLS) * 
-                    std::exp(-0.5 * dLon * dLon / (dXLS * dXLS)
+		dState[2] = dPert * dAp * std::pow(dXi - 1.0, dPow) * dXi * 
+                    std::exp(-0.5 * dLonShift * dLonShift / (dXLS * dXLS)
                              -0.5 * dLat * dLat / (dYLS * dYLS));
         dState[3] = 0.0;
 		dState[4] = 0.0;
