@@ -190,19 +190,22 @@ public:
         double dZLS = 5.0E3;
         double dLonShift = 0.0;
         
+        // Apply a periodic shift so as to specify the perturbation function
         if (dLon > M_PI) {
             dLonShift = dLon - 2.0 * M_PI;
         } else {
             dLonShift = dLon;
         }
         
+        // Create Gaussian perturbation in Theta
         double dZHeat = 0.2;
         double dPow = 1.0 / dZHeat - 1.0;
         double dAp = 1.0 / dZHeat * std::pow(dZHeat - 1.0, -dPow);
         double dXi = dZ / m_dZtop;
         dState[0] = 0.0;
 		dState[1] = 0.0;
-		dState[2] = dPert * dAp * std::pow(dXi - 1.0, dPow) * dXi * 
+		dState[2] = - dPert * dAp * std::pow(dXi - 1.0, dPow) * dXi *
+                    std::pow(std::exp(1.0), 0.5) * dLonShift *
                     std::exp(-0.5 * dLonShift * dLonShift / (dXLS * dXLS)
                              -0.5 * dLat * dLat / (dYLS * dYLS));
         dState[3] = 0.0;
