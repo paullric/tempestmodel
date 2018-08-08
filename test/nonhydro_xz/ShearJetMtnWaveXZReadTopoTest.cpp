@@ -213,12 +213,14 @@ public:
 		m_dpiC = M_PI;
 
 		// Set the dimensions of the box
-		m_dGDim[0] = -140000.0;
-		m_dGDim[1] = 240000.0;
+		//m_dGDim[0] = -140000.0;
+		//m_dGDim[1] = 240000.0;
+		m_dGDim[0] = -300000.0;
+                m_dGDim[1] = 400000.0;
 		m_dGDim[2] = -100.0;
 		m_dGDim[3] = 100.0;
 		m_dGDim[4] = 0.0;
-		m_dGDim[5] = 40000.0;
+		m_dGDim[5] = 45000.0;
 
 		// Set the center of the domain in Y
 		m_dY0 = 0.5 * (m_dGDim[3] - m_dGDim[2]);
@@ -396,8 +398,8 @@ public:
 				kk++;
 
 				// Check for coincident query and data points
-				if ((std::abs(dTdiff1) <= 1.0E-15)
-					|| (std::abs(dTdiff2) <= 1.0E-15)) {
+				if ((std::abs(dTdiff1) <= 1.0E-16)
+					|| (std::abs(dTdiff2) <= 1.0E-16)) {
 
 					nBoxPointIndices[kk] =
 						nBoxPointIndices[kk-1];
@@ -477,8 +479,10 @@ public:
 		const double dRayleighStrengthZ = 1.0E-2;//8.0e-3;
 		const double dRayleighStrengthX = 1.0 * dRayleighStrengthZ;
 		const double dRayleighDepth = 15000.0;
-		const double dRayleighWidthR = 40000.0;
-		const double dRayleighWidthL = 20000.0;
+		//const double dRayleighWidthR = 40000.0;
+		//const double dRayleighWidthL = 20000.0;
+		const double dRayleighWidthR = 2.5 * M_PI * 10000.0;
+                const double dRayleighWidthL = 2.0 * M_PI * 10000.0;
 		const double dRayDepthXi = dRayleighDepth / m_dGDim[5];
 
 		double dNuDepth = 0.0;
@@ -671,11 +675,11 @@ public:
 			phys, dXi * m_dGDim[5], dXp, dYp, dGeopotential, dTemperature);
 
 		// Calculate zonal velocity and set other velocity components
-		//double dExpDecay = exp(-(log(dEtaComp) / m_dbC) * (log(dEtaComp) / m_dbC));
-		//double dUlon = -m_dUj * log(dEtaComp) * dExpDecay;
+		double dExpDecay = exp(-(log(dEtaComp) / m_dbC) * (log(dEtaComp) / m_dbC));
+		double dUlon = -m_dUj * log(dEtaComp) * dExpDecay;
 		// Use physical elevation to specify the initial wind field
-		double dExpDecay = exp(-(log(dEtaPhys) / m_dbC) * (log(dEtaPhys) / m_dbC));
-		double dUlon = -m_dUj * log(dEtaPhys) * dExpDecay;
+		//double dExpDecay = exp(-(log(dEtaPhys) / m_dbC) * (log(dEtaPhys) / m_dbC));
+		//double dUlon = -m_dUj * log(dEtaPhys) * dExpDecay;
 
 		dState[0] = dUlon + m_dU0;
 		dState[1] = 0.0;

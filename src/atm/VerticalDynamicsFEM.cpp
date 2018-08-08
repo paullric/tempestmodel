@@ -454,7 +454,7 @@ void VerticalDynamicsFEM::Initialize() {
 			* pow(1.0 / static_cast<double>(nRElements), 1.0);
 
 	} else if (m_nHypervisOrder == 4) {
-		m_dHypervisCoeff = - (1.0 / 12.0) //(1.0 / 6.0)
+		m_dHypervisCoeff = - (1.0 / 6.0) //(1.0 / 12.0)
 			* pow(1.0 / static_cast<double>(nRElements), 3.0);
 
 	} else if (m_nHypervisOrder == 6) {
@@ -1342,21 +1342,21 @@ void VerticalDynamicsFEM::ApplyRayleighFriction(
 	if ((nEqSet == EquationSet::PrimitiveNonhydrostaticEquations) && !fCartXZ) {
 		nEffectiveC[0] = 0; nEffectiveC[1] = 1;
 		nEffectiveC[2] = 2; nEffectiveC[3] = 3;
-		//nEffectiveC[4] = 4;
-		nEffectiveC[nComponents - 1] = 0;
-		nComponents = nComponents - 1;
+		nEffectiveC[4] = 4;
+		//nEffectiveC[nComponents - 1] = 0;
+		//nComponents = nComponents - 1;
 	}
 	// 2D Cartesian XZ primitive nonhydro models with no density treatment
 	else if ((nEqSet == EquationSet::PrimitiveNonhydrostaticEquations) && fCartXZ) {
 		nEffectiveC[0] = 0;
 		nEffectiveC[1] = 2;
 		nEffectiveC[2] = 3;
-		//nEffectiveC[3] = 4;
-		//nEffectiveC[nComponents - 1] = 0;
-		//nComponents = nComponents - 1;
-		nEffectiveC[nComponents - 2] = 0;
+		nEffectiveC[3] = 4;
 		nEffectiveC[nComponents - 1] = 0;
-		nComponents = nComponents - 2;
+		nComponents = nComponents - 1;
+		//nEffectiveC[nComponents - 2] = 0;
+		//nEffectiveC[nComponents - 1] = 0;
+		//nComponents = nComponents - 2;
 	}
 	// Other model types (advection, shallow water, mass coord)
 	else {

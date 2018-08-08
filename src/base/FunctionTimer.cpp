@@ -163,7 +163,7 @@ void FunctionTimer::ResetGroupTimeRecord(const char *szName) {
 
 	// Group record does not exist
 	} else {
-		_EXCEPTION1("Group time record %s does not exist.", szName);
+		//_EXCEPTION1("Group time record %s does not exist.", szName);
 	}
 }
 

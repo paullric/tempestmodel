@@ -17,6 +17,7 @@ FILES= InertialGravityCartesianXZTest.cpp \
        ShearJetMtnWave2DCartesianTest.cpp \
        ShearJetMtnWaveXZReadTopoTest.cpp \
        ShearJetMtnWave2DCartesianTestCBVF.cpp \
+       ShearJetMtnWaveXZReadTopoTestCBVF.cpp \
        ShearJetMtnWave3DCartesianTest.cpp \
        HydrostaticMountainCartesianTest.cpp \
        NonHydroMountainCartesianTest.cpp \
