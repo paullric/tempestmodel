@@ -53,16 +53,30 @@ protected:
 	///	</summary>
 	double m_dZtop;
 
+	///     <summary>
+        ///             Height of the Rayleigh damped layer.
+        ///     </summary>
+        double m_dZh;
+
+	///     <summary>
+        ///             Rayleigh friction time scale.
+        ///     </summary>
+        double m_dTau0;
+
 public:
 	///	<summary>
 	///		Constructor.
 	///	</summary>
 	HeldSuarezTest(
+		double dZh,
+		double dTau0,
 		double dZtop
 	) :
 		ParamEarthRadiusScaling(1.0),
 		ParamT0(280.0),
 
+		m_dZh(dZh),
+		m_dTau0(dTau0),
 		m_dZtop(dZtop)
 	{ }
 
@@ -156,14 +170,14 @@ public:
 		dState[3] = 0.0;
 		dState[4] = dRho;
         
-        // Random perturbation on U and V to induce asymmetry
-        dState[0] += 1.0E-3 * static_cast<double>(rand()) / 
+        	// Random perturbation on U and V to induce asymmetry
+        	dState[0] += 1.0E-3 * static_cast<double>(rand()) / 
                         static_cast<double>(RAND_MAX);
-        dState[1] += 1.0E-3 * static_cast<double>(rand()) / 
+        	dState[1] += 1.0E-3 * static_cast<double>(rand()) / 
                         static_cast<double>(RAND_MAX);
 	}
 	
-    ///	<summary>
+    	///	<summary>
 	///		Evaluate the perturbed state vector at the given point upon restart.
 	///	</summary>
 	virtual void EvaluatePointwisePerturbation(
@@ -175,43 +189,132 @@ public:
 		double * dState,
 		double * dTracer
 	) const {
+		const int fMode = 2;
+
 		double dH = phys.GetR() * ParamT0 / phys.GetG();
 
 		double dP = phys.GetP0() * exp(- dZ / dH);
 
 		double dRho = dP / phys.GetG() / dH;
         
-        double dAE = phys.GetEarthRadius();
+        	double dAE = phys.GetEarthRadius();
 
 		// Store the state perturbation heating magnitude and scale parameters
-        double dPert = 1.0;
-        double dXLS = 5.0E6 / dAE;
-        double dYLS = 1.2E6 / dAE;
-        double dZLS = 5.0E3;
-        double dLonShift = 0.0;
+        	double dPert = 1.0;
+        	double dXLS = 5.0E6;
+        	double dYLS = 1.2E6;
+        	double dZLS = 5.0E3;
+        	double dLonShift = 0.0;
         
-        // Apply a periodic shift so as to specify the perturbation function
-        if (dLon > M_PI) {
-            dLonShift = dLon - 2.0 * M_PI;
-        } else {
-            dLonShift = dLon;
-        }
+        	// Apply a periodic shift so as to specify the perturbation function
+        	if (dLon > M_PI) {
+            		dLonShift = dLon - 2.0 * M_PI;
+        	} else {
+            		dLonShift = dLon;
+       	 	}
+
+		double dXL = dLonShift * dAE * std::cos(dLat) / dXLS;
+		double dYL = dLat * dAE / dYLS;
         
-        // Create Gaussian perturbation in Theta
-        double dZHeat = 0.2;
-        double dPow = 1.0 / dZHeat - 1.0;
-        double dAp = 1.0 / dZHeat * std::pow(dZHeat - 1.0, -dPow);
-        double dXi = dZ / m_dZtop;
-        dState[0] = 0.0;
+        	// Create zero mean double Gaussian perturbation in U-Theta
+        	double dZHeat = 0.2;
+        	double dPow = 1.0 / dZHeat - 1.0;
+        	double dAp = 1.0 / dZHeat * std::pow(1.0 - dZHeat, -dPow);
+        	double dXi = dZ / m_dZtop;
+
+		double dkC = 0.0;
+		double dFX_m1 = 0.0;
+		double dFX_m2 = 0.0;
+		double dDFXDX_m1 = 0.0;
+		double dDFXDX_m2 = 0.0;
+		
+		double dGX = std::exp(-0.5 * dXL * dXL);
+		double dGY = std::exp(-0.5 * dYL * dYL);
+		
+		double dVxi = dAp * std::pow(1.0 - dXi, dPow) * dXi;
+		
+		double dIntVxi = dAp / 30.0 * (1.0 - std::pow((1.0 - dXi), 5.0) * 
+			(1.0 + 5.0 * dXi));
+
+		double dInt2Vxi = dAp / 30.0 * (2.0 / 7.0 * dXi + std::pow(1.0 - dXi, 6.0) - 
+				5.0 / 7.0 * std::pow(1.0 - dXi, 7.0) - 2.0 / 7.0);
+
+		// Assuming c = 50 m/s for shallow waver gravity wave speed
+		double dbetap = 2.0 * phys.GetOmega() * std::cos(dLat);
+		
+		double dUscale = dAE * phys.GetG() * m_dZtop * (dPert / ParamT0) * 
+				(1.0 / dYLS) * (1.0 / dbetap);
+		
+		double dWscale = dUscale * m_dZtop * (1.0 / dXLS);
+
+		//if (dLat <= 1.0E-6) {
+		//	printf("%.16E %.16E \n",dUscale, dWscale);
+		//}
+		
+		if (fMode == 1) {
+			// SPECIFIES MODE 1 - with average removed where dkC is a 
+                	// constant that approximates the Gaussian
+                	dkC = 0.5 / (dXLS * dXLS) * std::sqrt(2.25);
+                	dFX_m1 = 1.0 - std::tanh(dkC * dLonShift) *
+                       		std::tanh(dkC * dLonShift) -
+                        	1.0 / (M_PI * dkC) * std::tanh(M_PI * dkC);
+
+			dState[0] = dUscale * dIntVxi * dFX_m1 * dGY;
+                        dState[2] = dPert * dVxi * dFX_m1 * dGY;
+			
+			dState[3] = 0.0;
+		} else if (fMode == 2) {
+			// SPECIFIES MODE 2
+	                dFX_m2 = std::pow(std::exp(1.0), 0.5) * dXL *
+        	                std::exp(-0.5 * dXL * dXL);
+
+			dState[0] = dUscale * dIntVxi * dFX_m2 * dGY;
+			dState[2] = dPert * dVxi * dFX_m2 * dGY;
+			//if (dLat <= 1.0E-6) {
+			//	printf("%.16E %.16E \n",dState[0], dState[2]);
+			//}
+
+			dDFXDX_m2 = dGX * (1.0 - (dXL * dXL));
+			dState[3] = 0.0; //dWscale * dInt2Vxi * dDFXDX_m2 * dGY;
+		} else {
+			AnnounceBanner("PERTURBATION ASSUMED ZONALLY CONSTANT...");
+			dState[0] = 0.0;
+                        dState[2] = 0.0;
+			dState[3] = 0.0;
+		}
+      
 		dState[1] = 0.0;
-		dState[2] = - dPert * dAp * std::pow(dXi - 1.0, dPow) * dXi *
-                    std::pow(std::exp(1.0), 0.5) * dLonShift *
-                    std::exp(-0.5 * dLonShift * dLonShift / (dXLS * dXLS)
-                             -0.5 * dLat * dLat / (dYLS * dYLS));
-        dState[3] = 0.0;
 		dState[4] = 0.0;
-        //std::cout << dState[2] << std::endl;
+        	//std::cout << dState[2] << std::endl;
 	}
+
+	///     <summary>
+        ///             Flag indicating whether or not Rayleigh friction strength is given.
+        ///     </summary>
+        virtual bool HasRayleighFriction() const {
+                return true;
+        }
+
+        ///     <summary>
+        ///             Evaluate the Rayleigh friction strength at the given point.
+        ///     </summary>
+        virtual double EvaluateRayleighStrength(
+                double dZ,
+                double dXp,
+                double dYp
+        ) const {
+                double dNuDepth = 0.0;
+
+                if (dZ > m_dZh) {
+                        double dNormZ = (dZ - m_dZh) / (m_dZtop - m_dZh);
+
+                        dNuDepth = sin(M_PI / 2.0 * dNormZ);
+
+                        dNuDepth = dNuDepth * dNuDepth;
+                }
+
+                return (0.0 * dNuDepth / m_dTau0);
+        }
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -224,6 +327,13 @@ int main(int argc, char** argv) {
 try {
 	// Model height cap
 	double dZtop;
+	
+	// Height of the Rayleigh damped layer.
+        double dZh;
+
+        // Rayleigh friction time scale.
+        double dTau0;
+	
 
 	// Parse the command line
 	BeginTempestCommandLine("HeldSuarezTest");
@@ -235,7 +345,9 @@ try {
 		SetDefaultHorizontalOrder(4);
 		SetDefaultVerticalOrder(1);
 
-		CommandLineDouble(dZtop, "ztop", 30000.0);
+		CommandLineDouble(dZtop, "ztop", 35000.0);
+		CommandLineDouble(dZh, "zh", 30000.0);
+                CommandLineDouble(dTau0, "tau0", 25.0);
 
 		ParseCommandLine(argc, argv);
 	EndTempestCommandLine(argv)
@@ -250,7 +362,7 @@ try {
 	// Set the test case for the model
 	AnnounceStartBlock("Initializing test case");
 
-	model.SetTestCase(new HeldSuarezTest(dZtop));
+	model.SetTestCase(new HeldSuarezTest(dZh, dTau0, dZtop));
 
 	AnnounceEndBlock("Done");
 
