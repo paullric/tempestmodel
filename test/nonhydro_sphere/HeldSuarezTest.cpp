@@ -197,10 +197,10 @@ public:
 
 		double dRho = dP / phys.GetG() / dH;
         
-        	double dAE = phys.GetEarthRadius();
+        double dAE = phys.GetEarthRadius();
 
 		// Store the state perturbation heating magnitude and scale parameters
-        	double dPert = 1.0;
+        	double dPert = 0.1;
         	double dXLS = 5.0E6;
         	double dYLS = 1.2E6;
         	double dZLS = 5.0E3;
@@ -216,11 +216,11 @@ public:
 		double dXL = dLonShift * dAE * std::cos(dLat) / dXLS;
 		double dYL = dLat * dAE / dYLS;
         
-        	// Create zero mean double Gaussian perturbation in U-Theta
-        	double dZHeat = 0.2;
-        	double dPow = 1.0 / dZHeat - 1.0;
-        	double dAp = 1.0 / dZHeat * std::pow(1.0 - dZHeat, -dPow);
-        	double dXi = dZ / m_dZtop;
+        // Create zero mean double Gaussian perturbation in U-Theta
+        double dZHeat = 0.2;
+        double dPow = 1.0 / dZHeat - 1.0;
+        double dAp = 1.0 / dZHeat * std::pow(1.0 - dZHeat, -dPow);
+        double dXi = dZ / m_dZtop;
 
 		double dkC = 0.0;
 		double dFX_m1 = 0.0;
@@ -241,11 +241,14 @@ public:
 
 		// Assuming c = 50 m/s for shallow waver gravity wave speed
 		double dbetap = 2.0 * phys.GetOmega() * std::cos(dLat);
+        
+        double dRTscale = - dPert / ParamT0 *
+                        (1.0 - phys.GetKappa()) / phys.GetR();
 		
-		double dUscale = dAE * phys.GetG() * m_dZtop * (dPert / ParamT0) * 
-				(1.0 / dYLS) * (1.0 / dbetap);
+		double dUscale = dAE * phys.GetG() * 
+                        (dPert / ParamT0) * (1.0 / dbetap);
 		
-		double dWscale = dUscale * m_dZtop * (1.0 / dXLS);
+		double dWscale = dUscale;
 
 		//if (dLat <= 1.0E-6) {
 		//	printf("%.16E %.16E \n",dUscale, dWscale);
@@ -253,23 +256,23 @@ public:
 		
 		if (fMode == 1) {
 			// SPECIFIES MODE 1 - with average removed where dkC is a 
-                	// constant that approximates the Gaussian
-                	dkC = 0.5 / (dXLS * dXLS) * std::sqrt(2.25);
-                	dFX_m1 = 1.0 - std::tanh(dkC * dLonShift) *
-                       		std::tanh(dkC * dLonShift) -
-                        	1.0 / (M_PI * dkC) * std::tanh(M_PI * dkC);
+            // constant that approximates the Gaussian
+            dkC = 0.5 / (dXLS * dXLS) * std::sqrt(2.25);
+            dFX_m1 = 1.0 - std::tanh(dkC * dLonShift) *
+                    std::tanh(dkC * dLonShift) -
+                    1.0 / (M_PI * dkC) * std::tanh(M_PI * dkC);
 
 			dState[0] = dUscale * dIntVxi * dFX_m1 * dGY;
-                        dState[2] = dPert * dVxi * dFX_m1 * dGY;
+            dState[2] = dPert * dVxi * dFX_m1 * dGY;
 			
 			dState[3] = 0.0;
 		} else if (fMode == 2) {
 			// SPECIFIES MODE 2
-	                dFX_m2 = std::pow(std::exp(1.0), 0.5) * dXL *
+            dFX_m2 = std::pow(std::exp(1.0), 0.5) * dXL *
         	                std::exp(-0.5 * dXL * dXL);
 
 			dState[0] = dUscale * dIntVxi * dFX_m2 * dGY;
-			dState[2] = dPert * dVxi * dFX_m2 * dGY;
+			dState[2] = dRTscale * dP * dVxi * dFX_m2 * dGY;
 			//if (dLat <= 1.0E-6) {
 			//	printf("%.16E %.16E \n",dState[0], dState[2]);
 			//}
