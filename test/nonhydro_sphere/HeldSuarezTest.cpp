@@ -200,7 +200,7 @@ public:
         double dAE = phys.GetEarthRadius();
 
 		// Store the state perturbation heating magnitude and scale parameters
-        	double dPert = 0.1;
+        	double dPert = 1.0;
         	double dXLS = 5.0E6;
         	double dYLS = 1.2E6;
         	double dZLS = 5.0E3;
@@ -242,13 +242,13 @@ public:
 		// Assuming c = 50 m/s for shallow waver gravity wave speed
 		double dbetap = 2.0 * phys.GetOmega() * std::cos(dLat);
         
-        double dRTscale = - dPert / ParamT0 *
+	        double dRTscale = dPert / ParamT0 *
                         (1.0 - phys.GetKappa()) / phys.GetR();
 		
-		double dUscale = dAE * phys.GetG() * 
+		double dUscale = dAE * (m_dZtop / dYLS) * phys.GetG() * 
                         (dPert / ParamT0) * (1.0 / dbetap);
 		
-		double dWscale = dUscale;
+		double dWscale = (m_dZtop / dXLS) * dUscale;
 
 		//if (dLat <= 1.0E-6) {
 		//	printf("%.16E %.16E \n",dUscale, dWscale);
@@ -268,7 +268,7 @@ public:
 			dState[3] = 0.0;
 		} else if (fMode == 2) {
 			// SPECIFIES MODE 2
-            dFX_m2 = std::pow(std::exp(1.0), 0.5) * dXL *
+            dFX_m2 = - std::pow(std::exp(1.0), 0.5) * dXL *
         	                std::exp(-0.5 * dXL * dXL);
 
 			dState[0] = dUscale * dIntVxi * dFX_m2 * dGY;
