@@ -628,6 +628,16 @@ void VerticalDynamicsFEMV2::StepImplicitTermsExplicitly(
 
 ///////////////////////////////////////////////////////////////////////////////
 
+void VerticalDynamicsFEMV2::StepHypervisExplicit(
+        int iDataInitial,
+        int iDataUpdate,
+        const Time & time,
+        double dDeltaT
+) {
+	Announce("This does NOTHING. Not implemented.");
+}
+///////////////////////////////////////////////////////////////////////////////
+
 void VerticalDynamicsFEMV2::StepExplicit(
 	int iDataInitial,
 	int iDataUpdate,

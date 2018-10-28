@@ -462,6 +462,8 @@ void TimestepSchemeStrang::Step(
 		pGrid->LinearCombineData(m_dSSPRK53CombinationC, 4, DataType_Tracers);
 		pHorizontalDynamics->StepExplicit(0, 4, time, dStepFive * dDeltaT);
 		pVerticalDynamics->StepExplicit(0, 4, time, dStepFive * dDeltaT);
+		// Call the vertical hypervis only at the end of the full timestep
+		pVerticalDynamics->StepHypervisExplicit(0, 4, time, dStepFive * dDeltaT);
 		pGrid->PostProcessSubstage(4, DataType_State);
 		pGrid->PostProcessSubstage(4, DataType_Tracers);
 

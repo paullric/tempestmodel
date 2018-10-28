@@ -651,6 +651,17 @@ void VerticalDynamicsSchur::StepImplicitTermsExplicitly(
 
 ///////////////////////////////////////////////////////////////////////////////
 
+void VerticalDynamicsSchur::StepHypervisExplicit(
+        int iDataInitial,
+        int iDataUpdate,
+        const Time & time,
+        double dDeltaT
+) {
+        Announce("This does NOTHING. Not implemented.");
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
 void VerticalDynamicsSchur::StepExplicit(
 	int iDataInitial,
 	int iDataUpdate,

@@ -147,6 +147,17 @@ public:
 		double dDeltaT
 	);
 
+	///     <summary>
+        ///             Advance explicit hypervis terms outside of StepExplicit on substep.
+        ///             ONLY WORKS FOR FULLY EXPLICIT RUNS! JEG 10/28/2018
+        ///     </summary>
+        virtual void StepHypervisExplicit(
+                int iDataInitial,
+                int iDataUpdate,
+                const Time & time,
+                double dDeltaT
+        );
+
 	///	<summary>
 	///		Advance an explicit update of implicit terms one time
 	///	</summary>

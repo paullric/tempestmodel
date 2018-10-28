@@ -1160,6 +1160,271 @@ void VerticalDynamicsFEM::StepExplicit(
 				}
 #endif
 			}
+/*
+			//////////////////////////////////////////////////////////////
+			// Apply hyperviscosity or uniform diffusion to U and V
+			if ((m_fHypervisVar[UIx]) ||
+			    (m_fUniformDiffusionVar[UIx])
+			) {
+
+				// Second derivatives of horizontal velocity on model levels
+				pGrid->DiffDiffNodeToNode(
+					m_dStateNode[UIx],
+					m_dDiffDiffStateHypervis[UIx]);
+
+				pGrid->DiffDiffNodeToNode(
+					m_dStateNode[VIx],
+					m_dDiffDiffStateHypervis[VIx]);
+
+				// Apply uniform diffusion in the vertical
+				if (m_fUniformDiffusionVar[UIx]) {
+					double dZtop = pGrid->GetZtop();
+
+					double dUniformDiffusionCoeff =
+						pGrid->GetVectorUniformDiffusionCoeff()
+						/ (dZtop * dZtop);
+
+					for (int k = 0; k < nRElements; k++) {
+						m_dStateRefNode[UIx][k] = dataRefNode[UIx][i][j][k];
+						m_dStateRefNode[VIx][k] = dataRefNode[VIx][i][j][k];
+					}
+
+					pGrid->DiffDiffNodeToNode(
+						m_dStateRefNode[UIx],
+						m_dDiffDiffStateUniform[UIx]);
+
+					pGrid->DiffDiffNodeToNode(
+						m_dStateRefNode[VIx],
+						m_dDiffDiffStateUniform[VIx]);
+
+					for (int k = 0; k < nRElements; k++) {
+						dataUpdateNode[UIx][i][j][k] +=
+							dDeltaT
+							* dUniformDiffusionCoeff
+							* (m_dDiffDiffStateHypervis[UIx][k]
+								- m_dDiffDiffStateUniform[UIx][k]);
+
+						dataUpdateNode[VIx][i][j][k] +=
+							dDeltaT
+							* dUniformDiffusionCoeff
+							* (m_dDiffDiffStateHypervis[VIx][k]
+								- m_dDiffDiffStateUniform[VIx][k]);
+					}
+				}
+
+				// Apply hyperviscosity in the vertical
+				if (m_fHypervisVar[UIx]) {
+
+					// No hyperviscosity from command line
+					if (m_nHypervisOrder == 0) {
+						continue;
+					}
+
+					for (int k = 0; k < nRElements; k++) {
+						m_dStateRefNode[UIx][k] =
+							dataRefNode[UIx][i][j][k];
+						m_dStateRefNode[VIx][k] =
+							dataRefNode[VIx][i][j][k];
+					}
+
+					// Compute higher derivatives of U and V used for
+					// hyperviscosity
+					for (int h = 2; h < m_nHypervisOrder; h += 2) {
+						memcpy(
+							m_dStateAux,
+							m_dDiffDiffStateHypervis[UIx],
+							nRElements * sizeof(double));
+
+						pGrid->DiffDiffNodeToNode(
+							m_dStateAux,
+							m_dDiffDiffStateHypervis[UIx]
+						);
+
+						memcpy(
+							m_dStateAux,
+							m_dDiffDiffStateHypervis[VIx],
+							nRElements * sizeof(double));
+
+						pGrid->DiffDiffNodeToNode(
+							m_dStateAux,
+							m_dDiffDiffStateUniform[VIx]
+						);
+
+						memcpy(
+							m_dStateRefNode[UIx],
+							m_dDiffDiffStateUniform[UIx],
+							nRElements * sizeof(double));
+
+						pGrid->DiffDiffNodeToNode(
+							m_dStateRefNode[UIx],
+							m_dDiffDiffStateUniform[UIx]);
+
+						memcpy(
+							m_dStateRefNode[VIx],
+							m_dDiffDiffStateUniform[VIx],
+							nRElements * sizeof(double));
+
+						pGrid->DiffDiffNodeToNode(
+							m_dStateRefNode[VIx],
+							m_dDiffDiffStateUniform[VIx]);
+					}
+
+					// Apply hyperviscosity
+					for (int k = 0; k < nRElements; k++) {
+						dataUpdateNode[UIx][i][j][k] +=
+							dDeltaT
+							* m_dHypervisCoeff
+							* fabs(m_dXiDotNode[k])
+							* (m_dDiffDiffStateHypervis[UIx][k]
+								- m_dDiffDiffStateUniform[UIx][k]);
+
+						dataUpdateNode[VIx][i][j][k] +=
+							dDeltaT
+							* m_dHypervisCoeff
+							* fabs(m_dXiDotNode[k])
+							* (m_dDiffDiffStateHypervis[VIx][k]
+								- m_dDiffDiffStateUniform[VIx][k]);
+					}
+				}
+			}
+		*/
+		}
+		}
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void VerticalDynamicsFEM::StepHypervisExplicit(
+        int iDataInitial,
+        int iDataUpdate,
+        const Time & time,
+        double dDeltaT
+) {
+        // Indices of EquationSet variables
+        const int UIx = 0;
+        const int VIx = 1;
+        const int PIx = 2;
+        const int WIx = 3;
+        const int RIx = 4;
+
+        // Start the function timer
+        FunctionTimer timer("VerticalStepExplicit");
+
+        // Get a copy of the grid
+        GridGLL * pGrid = dynamic_cast<GridGLL *>(m_model.GetGrid());
+
+        // Physical constants
+        const PhysicalConstants & phys = m_model.GetPhysicalConstants();
+
+        // Number of elements
+        const int nRElements = pGrid->GetRElements();
+
+        // Number of finite elements in the vertical
+        int nFiniteElements = nRElements / m_nVerticalOrder;
+        int nNodesPerFiniteElement = m_nVerticalOrder;
+
+        if (pGrid->GetVerticalDiscretization() ==
+            Grid::VerticalDiscretization_FiniteVolume
+        ) {
+                nFiniteElements = nRElements;
+                nNodesPerFiniteElement = 1;
+        }
+
+        // Store timestep size
+        m_dDeltaT = dDeltaT;
+
+        // Reset the reference state
+        memset(m_dStateRefNode[WIx],  0,  nRElements   *sizeof(double));
+        memset(m_dStateRefREdge[WIx], 0, (nRElements+1)*sizeof(double));
+
+        // Perform local update
+        for (int n = 0; n < pGrid->GetActivePatchCount(); n++) {
+                GridPatch * pPatch = pGrid->GetActivePatch(n);
+
+                const PatchBox & box = pPatch->GetPatchBox();
+
+                // State Data
+                const DataArray4D<double> & dataRefNode =
+                        pPatch->GetReferenceState(DataLocation_Node);
+
+                const DataArray4D<double> & dataInitialNode =
+                        pPatch->GetDataState(iDataInitial, DataLocation_Node);
+
+                DataArray4D<double> & dataUpdateNode =
+                        pPatch->GetDataState(iDataUpdate, DataLocation_Node);
+
+                const DataArray4D<double> & dataRefREdge =
+                        pPatch->GetReferenceState(DataLocation_REdge);
+
+                const DataArray4D<double> & dataInitialREdge =
+                        pPatch->GetDataState(iDataInitial, DataLocation_REdge);
+
+                DataArray4D<double> & dataUpdateREdge =
+                        pPatch->GetDataState(iDataUpdate, DataLocation_REdge);
+
+                DataArray4D<double> & dataReferenceTracer =
+                        pPatch->GetReferenceTracers();
+
+                DataArray4D<double> & dataInitialTracer =
+                        pPatch->GetDataTracers(iDataInitial);
+
+                DataArray4D<double> & dataUpdateTracer =
+                        pPatch->GetDataTracers(iDataUpdate);
+
+                // Get state residual from index 2
+                const DataArray4D<double> & dataResidualNode =
+                        pPatch->GetDataResidual(2, DataLocation_Node);
+
+                const DataArray4D<double> & dataResidualREdge =
+                        pPatch->GetDataResidual(2, DataLocation_REdge);
+
+                // Get the residual storage to update for output_SGS
+                DataArray4D<double> & dataDynSGSNode =
+                        pPatch->GetDataResidualSGS(DataLocation_Node);
+
+                DataArray4D<double> & dataDynSGSREdge =
+                        pPatch->GetDataResidualSGS(DataLocation_REdge);
+
+                // Metric quantities
+                const DataArray4D<double> & dContraMetricXi =
+                        pPatch->GetContraMetricXi();
+
+                const DataArray4D<double> & dContraMetricXiREdge =
+                        pPatch->GetContraMetricXiREdge();
+
+                // Lateral PML layer strength
+                const DataArray3D<double> & dataRayStrengthNode =
+                        pPatch->GetRayleighStrength(DataLocation_Node);
+
+                const DataArray3D<double> & dataRayStrengthREdge =
+                        pPatch->GetRayleighStrength(DataLocation_REdge);
+
+#if defined(EXPLICIT_VERTICAL_VELOCITY_ADVECTION) && \
+    defined(VERTICAL_VELOCITY_ADVECTION_CLARK)
+                const DataArray4D<double> & dContraMetricA =
+                        pPatch->GetContraMetricA();
+
+                const DataArray4D<double> & dContraMetricB =
+                        pPatch->GetContraMetricB();
+
+                const DataArray4D<double> & dContraMetricAREdge =
+                        pPatch->GetContraMetricAREdge();
+
+                const DataArray4D<double> & dContraMetricBREdge =
+                        pPatch->GetContraMetricBREdge();
+#endif
+/*
+#if defined(VERTICAL_UPWINDING) \
+ || defined(EXPLICIT_VERTICAL_VELOCITY_ADVECTION)
+                // Interpolate U and V to interfaces
+                pPatch->InterpolateNodeToREdge(UIx, iDataInitial);
+                pPatch->InterpolateNodeToREdge(VIx, iDataInitial);
+#endif
+*/
+                // Loop over all nodes
+                for (int i = box.GetAInteriorBegin(); i < box.GetAInteriorEnd(); i++) {
+                for (int j = box.GetBInteriorBegin(); j < box.GetBInteriorEnd(); j++) {
 
 			//////////////////////////////////////////////////////////////
 			// Apply hyperviscosity or uniform diffusion to U and V
@@ -1287,6 +1552,45 @@ void VerticalDynamicsFEM::StepExplicit(
 					}
 				}
 			}
+
+		        // Apply flow-dependent hyperviscosity
+       			if (m_nHypervisOrder > 0) {
+               			for (int c = 2; c < 5; c++) {
+		                        // Only upwind select variables
+               		        	if (!m_fHypervisVar[c]) {
+                               			continue;
+	        	                }
+			
+       	        		        // Do not diffusion vertical velocity on boundaries
+		                        if (c == WIx) {
+               		        	        m_dDiffDiffStateHypervis[c][0] = 0.0;
+                              			m_dDiffDiffStateHypervis[c][nRElements] = 0.0;
+	        	                }
+	
+               			        // Flow-dependent hyperviscosity on interfaces
+		                        if (pGrid->GetVarLocation(c) == DataLocation_REdge) {
+			
+                		                for (int k = 0; k <= nRElements; k++) {
+                               			        dataUpdateREdge[c][i][j][k] +=
+								dDeltaT
+	                	                                * m_dHypervisCoeff
+               			                                * fabs(m_dXiDotREdge[k])
+               	                		                * m_dDiffDiffStateHypervis[c][k];
+		                        	}
+	
+               			        // Flow-dependent hyperviscosity on levels
+		                        } else {
+	
+               		        		for (int k = 0; k < nRElements; k++) {
+                               		        	dataUpdateNode[c][i][j][k] +=
+								dDeltaT
+                      	                        		* m_dHypervisCoeff
+		                                                * fabs(m_dXiDotNode[k]) 
+								* m_dDiffDiffStateHypervis[c][k];
+                                		}
+	                        	}
+                		}
+			}		
 		}
 		}
 	}
@@ -3063,7 +3367,7 @@ void VerticalDynamicsFEM::BuildF(
 			}
 		}
 	}
-
+	/*
 	// Apply flow-dependent hyperviscosity
 	if (m_nHypervisOrder > 0) {
 		for (int c = 2; c < 5; c++) {
@@ -3101,7 +3405,7 @@ void VerticalDynamicsFEM::BuildF(
 			}
 		}
 	}
-
+	*/
 	// Apply residual hyperviscosity
 	for (int c = 2; c < 5; c++) {
 
