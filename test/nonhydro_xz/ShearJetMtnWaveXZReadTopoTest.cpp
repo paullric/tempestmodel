@@ -215,7 +215,7 @@ public:
 		// Set the dimensions of the box
 		//m_dGDim[0] = -140000.0;
 		//m_dGDim[1] = 240000.0;
-		m_dGDim[0] = -300000.0;
+		m_dGDim[0] = -400000.0;
                 m_dGDim[1] = 400000.0;
 		m_dGDim[2] = -100.0;
 		m_dGDim[3] = 100.0;
@@ -398,22 +398,28 @@ public:
 				kk++;
 
 				// Check for coincident query and data points
-				if ((std::abs(dTdiff1) <= 1.0E-16)
-					|| (std::abs(dTdiff2) <= 1.0E-16)) {
+				if ((std::abs(dTdiff1) <= 1.0E-15)
+					&& (std::abs(dTdiff2) <= 1.0E-15)) {
 
-					nBoxPointIndices[kk] =
-						nBoxPointIndices[kk-1];
-					kk++;
+					hsm = m_dInputTopoData(pp, 2);
+					return m_dhC * hsm;
+					//nBoxPointIndices[kk] =
+					//	nBoxPointIndices[kk-1];
+					//kk++;
 				}
 
 				//Announce("%.16E %.16E %u\n",dTdiff1,dTdiff2,pp);
 			}
 		}
 
-		if (kk > 4) {
-			_EXCEPTIONT("Found more than 4 bounding points! Redundant input data points!");
-		} else if (kk < 3) {
-			_EXCEPTIONT("Sampling search failed! Query not bounded by data.");
+		if (kk < 3) {
+			Announce("Sampling search failed! Query not bounded by 4 points in the data!");
+			nBoxPointIndices[3] = nBoxPointIndices[2];
+		}
+
+		if (kk >= 4) {
+			Announce("Found some redundant points from the data.");
+			kk = 4;
 		}
 
 		//printf("%u %u %u %u\n",nBoxPointIndices[0],nBoxPointIndices[1],nBoxPointIndices[2],nBoxPointIndices[3]);
@@ -458,6 +464,12 @@ public:
 				* (dXp - m_dInputTopoData(nSorted[0], 0))
 				* (dYp - m_dInputTopoData(nSorted[0], 1)));
 
+		// Add a check for negative values
+		if (m_dhC * hsm < 0.0) {
+			Announce("%.16E\n",hsm);
+			hsm = 0.0;
+		}
+
 		return m_dhC * hsm;
 	}
 
@@ -482,7 +494,7 @@ public:
 		//const double dRayleighWidthR = 40000.0;
 		//const double dRayleighWidthL = 20000.0;
 		const double dRayleighWidthR = 2.5 * M_PI * 10000.0;
-                const double dRayleighWidthL = 2.0 * M_PI * 10000.0;
+                const double dRayleighWidthL = 2.5 * M_PI * 10000.0;
 		const double dRayDepthXi = dRayleighDepth / m_dGDim[5];
 
 		double dNuDepth = 0.0;
