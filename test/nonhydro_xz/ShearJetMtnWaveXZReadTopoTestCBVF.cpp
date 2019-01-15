@@ -1,0 +1,695 @@
+///////////////////////////////////////////////////////////////////////////////
+///
+///	\file    ShearJetMtnWaveXZReadTopoTestCBVF.cpp
+///	\author  Paul Ullrich, Jorge Guerra
+///	\version September 5, 2017
+///
+///	<remarks>
+///		Copyright 2000-2010 Paul Ullrich
+///
+///		This file is distributed as part of the Tempest source code package.
+///		Permission is granted to use, copy, modify and distribute this
+///		source code and its documentation under the terms of the GNU General
+///		Public License.  This software is provided "as is" without express
+///		or implied warranty.
+///	</remarks>
+
+#include "Tempest.h"
+#include "iomanip"
+#include "algorithm"
+
+///////////////////////////////////////////////////////////////////////////////
+
+///	<summary>
+///		Giraldo et al. (2007)
+///
+///		Thermal rising bubble test case.
+///	</summary>
+class ShearJetMtnWaveXZReadTopoTestCBVF : public TestCase {
+
+public:
+	/// <summary>
+	///		Lateral BC array (FOR CARTESIAN GRIDS).
+	///	</summary>
+	int m_iLatBC[4];
+
+	/// <summary>
+	///		Grid dimension array (FOR CARTESIAN GRIDS).
+	///	</summary>
+	double m_dGDim[6];
+
+	///	<summary>
+	///		Parameter reference height for topography disturbance
+	///	</summary>
+	double m_dhC;
+
+private:
+
+	///	<summary>
+	///		Nondimensional vertical width parameter
+	///	</summary>
+	double m_dbC;
+
+	///	<summary>
+	///		Reference zonal U velocity (balanced jet).
+	///	</summary>
+	double m_dU0;
+
+	///	<summary>
+	///		Reference zonal wind perturbation.
+	///	</summary>
+	double m_dUj;
+
+	///	<summary>
+	///		Reference constant surface potential temperature
+	///	</summary>
+	double m_dTheta0;
+
+	///	<summary>
+	///		Constant Brunt-Vaisala frequency
+	///	</summary>
+	double m_dNbar;
+	
+	///	<summary>
+	///		Parameter reference length a for temperature disturbance
+	///	</summary>
+	double m_daC;
+
+	///	<summary>
+	///		Parameter reference length for mountain profile
+	///	</summary>
+	double m_dlC;
+
+	///	<summary>
+	///		Parameter for the center of the y domain
+	///	</summary>
+	double m_dY0;
+
+	///	<summary>
+	///		Parameter Archimede's Constant (essentially Pi but to some digits)
+	///	</summary>
+	double m_dpiC;
+
+	///	<summary>
+	///		Flag indicating that Rayleigh friction is inactive.
+	///	</summary>
+	bool m_fNoRayleighFriction;
+
+	///<summary>
+	///		Uniform diffusion coefficient for scalars.
+	///</summary>
+	double m_dUCoeffS;
+
+	///<summary>
+	///		Uniform diffusion coefficient for vectors.
+	///	</summary>
+	double m_dUCoeffV;
+
+	///<summary>
+	///		Input topography data (lon, lat, height (m)).
+	///</summary>
+	DataArray2D<double> m_dInputTopoData;
+
+	///<summary>
+	///		Input topography data file length.
+	///</summary>
+	int m_nTlength;
+
+	///<summary>
+	///		Input topography data file name string.
+	///</summary>
+	std::string m_sTopoDataFilename;
+
+	///<summary>
+	///		Input topography grid spacings (UNIFORM GRIDS ONLY).
+	///</summary>
+	double m_dTopoDX;
+	double m_dTopoDY;
+
+	/// <summary>
+	///		Input Terrain data dimensions
+	///	</summary>
+	double m_dTDim[4];
+
+public:
+	///	<summary>
+	///		Constructor. (with physical constants defined privately here)
+	///	</summary>
+	ShearJetMtnWaveXZReadTopoTestCBVF(
+		const PhysicalConstants & phys,
+		double dbC,
+		double dU0,
+		double dUj,
+		double dT0,
+		double dNbar,
+		double dhC,
+		double daC,
+		double dlC,
+		double dUCoeffS,
+		double dUCoeffV,
+		std::string sTopoDataFilename,
+		bool fNoRayleighFriction
+	) :
+		m_dbC(dbC),
+		m_dU0(dU0),
+		m_dUj(dUj),
+		m_dTheta0(dT0),
+		m_dNbar(dNbar),
+		m_dhC(dhC),
+		m_daC(daC),
+		m_dlC(dlC),
+		m_dUCoeffS(dUCoeffS),
+		m_dUCoeffV(dUCoeffV),
+		m_sTopoDataFilename(sTopoDataFilename),
+		m_fNoRayleighFriction(fNoRayleighFriction)
+	{
+		m_dpiC = M_PI;
+
+		// Set the dimensions of the box
+		//m_dGDim[0] = -140000.0;
+		//m_dGDim[1] = 240000.0;
+		m_dGDim[0] = -200000.0;
+                m_dGDim[1] = 300000.0;
+		m_dGDim[2] = -100.0;
+		m_dGDim[3] = 100.0;
+		m_dGDim[4] = 0.0;
+		m_dGDim[5] = 35000.0;
+
+		// Set the center of the domain in Y
+		m_dY0 = 0.5 * (m_dGDim[3] - m_dGDim[2]);
+
+		// Set the boundary conditions for this test
+		m_iLatBC[0] = Grid::BoundaryCondition_Periodic;
+		m_iLatBC[1] = Grid::BoundaryCondition_Periodic;
+		m_iLatBC[2] = Grid::BoundaryCondition_Periodic;
+		m_iLatBC[3] = Grid::BoundaryCondition_Periodic;
+
+		// Bring in data from a terrain file
+		std::ifstream fileToRead(m_sTopoDataFilename);
+		std::string sLine;
+
+		if (!fileToRead.good()) {
+			_EXCEPTIONT("Unable to open the terrain input file! Check command line arguments.");
+		}
+
+		// Header is an int specifying the length of the data
+		std::getline(fileToRead, sLine);
+		std::stringstream sHeadStream(sLine);
+		int nTlength;
+		double dDX;
+		double dDY;
+		double dTMinLon;
+		double dTMaxLon;
+		double dTMinLat;
+		double dTMaxLat;
+		if (sHeadStream >> dDX >> dDY >> nTlength
+			>> dTMinLon >> dTMaxLon >> dTMinLat >> dTMaxLat) {
+			m_dInputTopoData.Allocate(nTlength,3);
+			m_nTlength = nTlength;
+			m_dTopoDX = dDX;
+			m_dTopoDY = dDY;
+			m_dTDim[0] = dTMinLon;
+			m_dTDim[1] = dTMaxLon;
+			m_dTDim[2] = dTMinLat;
+			m_dTDim[3] = dTMaxLat;
+		} else {
+			_EXCEPTIONT("Unable to read terrain data file! Failed at header...");
+		}
+
+		if (nTlength > 100000) {
+			_EXCEPTIONT("Maximum nTlength value exceeded! Check data input file.");
+		}
+
+		int iTdex = 0;
+		int iFdex = 0;
+		while(std::getline(fileToRead, sLine)) {
+			std::stringstream sTopoStream(sLine);
+			double dInputLon = 0.0;
+			double dInputLat = 0.0;
+			double dInputHeight = 0.0;
+
+			while (sTopoStream >> dInputLon >> dInputLat >> dInputHeight) {
+				m_dInputTopoData(iTdex, 0) = dInputLon;
+				m_dInputTopoData(iTdex, 1) = dInputLat;
+				m_dInputTopoData(iTdex, 2) = dInputHeight;
+			}
+			iTdex++;
+		}
+		// Simple check that the file was parsed completely
+		if (iTdex != nTlength) {
+			Announce("%u", iTdex);
+			Announce("%u", nTlength);
+			_EXCEPTIONT("Terrain data not read correctly!");
+		}
+	}
+
+public:
+	///	<summary>
+	///		Number of tracers used in this test.
+	///	</summary>
+	virtual int GetTracerCount() const {
+		return 0;
+	}
+
+	///	<summary>
+	///		Get the altitude of the model cap.
+	///	</summary>
+	virtual double GetZtop() const {
+		return m_dGDim[5];
+	}
+
+	///	<summary>
+	///		Flag indicating that a reference state is available.
+	///	</summary>
+	virtual bool HasReferenceState() const {
+		return true;
+	}
+
+	///	<summary>
+	///		Obtain test case specific physical constants.
+	///	</summary>
+	virtual void EvaluatePhysicalConstants(
+		PhysicalConstants & phys
+	) const {
+		// Do nothing to the PhysicalConstants for global simulations
+	}
+
+	///	<summary>
+	///		Strength of the uniform diffusion (m^2/s)
+	///	</summary>
+	virtual void GetUniformDiffusionCoeffs(
+		double & dScalarUniformDiffusionCoeff,
+		double & dVectorUniformDiffusionCoeff
+	) const {
+		dScalarUniformDiffusionCoeff = m_dUCoeffS;
+		dVectorUniformDiffusionCoeff = m_dUCoeffV;
+	}
+//
+	///	<summary>
+	///		Evaluate the topography at the given point. (cartesian version)
+	///	</summary>
+	virtual double EvaluateTopography(
+		const PhysicalConstants & phys,
+		double dXp,
+		double dYp
+	) const {
+		// Use the topography file input data to sample (Bilinear Interpolation)
+		double hsm = 0.0;
+		double dTdiff1 = 0.0;
+		double dTdiff2 = 0.0;
+		double dDX = m_dTopoDX;
+		double dDY = m_dTopoDY;
+		double dBlinSum = 0.0;
+		int nBoxPointIndices[4] = {0};
+
+		// If the query point is outside the data domain set height to zero
+		if ((dXp < m_dTDim[0]) || (dXp > m_dTDim[1])) {
+			hsm = 0.0;
+			return hsm;
+		}
+
+		if ((dYp < m_dTDim[2]) || (dYp > m_dTDim[3])) {
+			hsm = 0.0;
+			return hsm;
+		}
+
+		// Search for bounding points on the sample
+		int kk = 0;
+		for (int pp = 0; pp < m_nTlength; pp++) {
+			dTdiff1 = m_dInputTopoData(pp, 0) - dXp;
+			dTdiff2 = m_dInputTopoData(pp, 1) - dYp;
+
+			//printf("%.16E %.16E %u\n",dTdiff1,dTdiff2,pp);
+
+			if ((std::abs(dTdiff1) < dDX)
+				&& (std::abs(dTdiff2) < dDY)) {
+
+				nBoxPointIndices[kk] = pp;
+				kk++;
+
+				// Check for coincident query and data points
+				if ((std::abs(dTdiff1) <= 1.0E-15)
+					|| (std::abs(dTdiff2) <= 1.0E-15)) {
+
+					nBoxPointIndices[kk] =
+						nBoxPointIndices[kk-1];
+					kk++;
+				}
+
+				//Announce("%.16E %.16E %u\n",dTdiff1,dTdiff2,pp);
+			}
+		}
+
+		if (kk > 4) {
+			_EXCEPTIONT("Found more than 4 bounding points! Redundant input data points!");
+		} else if (kk < 3) {
+			_EXCEPTIONT("Sampling search failed! Query not bounded by data.");
+		}
+
+		//printf("%u %u %u %u\n",nBoxPointIndices[0],nBoxPointIndices[1],nBoxPointIndices[2],nBoxPointIndices[3]);
+
+		// Sort the 4 points ascending X in ascending Y
+		int nSorted[4] = {0};
+		for (int ii = 0; ii < kk; ii++) {
+			for (int jj = 0; jj < kk; jj++) {
+				if (jj != ii) {
+					dTdiff1 = m_dInputTopoData(nBoxPointIndices[ii], 0)
+						- m_dInputTopoData(nBoxPointIndices[jj], 0);
+					dTdiff2 = m_dInputTopoData(nBoxPointIndices[ii], 1)
+						- m_dInputTopoData(nBoxPointIndices[jj], 1);
+
+					if ((dTdiff1 < 0.0) && (dTdiff2 < 0.0)) {
+						nSorted[0] = nBoxPointIndices[ii];
+						nSorted[3] = nBoxPointIndices[jj];
+					} else if ((dTdiff1 > 0.0) && (dTdiff2 < 0.0)) {
+						nSorted[1] = nBoxPointIndices[ii];
+					} else if ((dTdiff1 < 0.0) && (dTdiff2 > 0.0)) {
+						nSorted[2] = nBoxPointIndices[ii];
+					}
+				}
+			}
+		}
+
+		//printf("%u %u %u %u\n",nSorted[0],nSorted[1],nSorted[2],nSorted[3]);
+
+		// Now use the indices from the search to make the Bilinear interpolation of h
+		double scale = 1.0 / (dDX * dDY);
+		hsm = scale
+			* (m_dInputTopoData(nSorted[0], 2)
+				* (m_dInputTopoData(nSorted[3], 0) - dXp)
+				* (m_dInputTopoData(nSorted[3], 1) - dYp)
+			+  m_dInputTopoData(nSorted[1], 2)
+				* (dXp - m_dInputTopoData(nSorted[2], 0))
+				* (m_dInputTopoData(nSorted[2], 1) - dYp)
+			+  m_dInputTopoData(nSorted[2], 2)
+				* (m_dInputTopoData(nSorted[1], 0) - dXp)
+				* (dYp - m_dInputTopoData(nSorted[1], 1))
+			+  m_dInputTopoData(nSorted[3], 2)
+				* (dXp - m_dInputTopoData(nSorted[0], 0))
+				* (dYp - m_dInputTopoData(nSorted[0], 1)));
+
+		return m_dhC * hsm;
+	}
+
+	///	<summary>
+	///		Flag indicating whether or not Rayleigh friction strength is given.
+	///	</summary>
+	virtual bool HasRayleighFriction() const {
+		return !m_fNoRayleighFriction;
+	}
+
+	///	<summary>
+	///		Evaluate the Rayleigh friction strength at the given point.
+	///	</summary>
+	virtual double EvaluateRayleighStrength(
+		double dZ,
+		double dXp,
+		double dYp
+	) const {
+		const double dRayleighStrengthZ = 1.0E-2;//8.0e-3;
+		const double dRayleighStrengthX = 1.0 * dRayleighStrengthZ;
+		const double dRayleighDepth = 15000.0;
+		//const double dRayleighWidthR = 40000.0;
+		//const double dRayleighWidthL = 20000.0;
+		const double dRayleighWidthR = 80000.0;
+                const double dRayleighWidthL = 40000.0;
+		const double dRayDepthXi = dRayleighDepth / m_dGDim[5];
+
+		double dNuDepth = 0.0;
+		double dNuRight = 0.0;
+		double dNuLeft  = 0.0;
+
+		double dLayerZ = 1.0 - dRayDepthXi;
+		//double dLayerZ = m_dGDim[5] - dRayleighDepth;
+ 		double dLayerR = m_dGDim[1] - dRayleighWidthR;
+ 		double dLayerL = m_dGDim[0] + dRayleighWidthL;
+
+		if (dZ > dLayerZ) {
+			//double dNormZ = (m_dGDim[5] - dZ) / dRayleighDepth;
+			double dNormZ = (1.0 - dZ) / dRayDepthXi;
+			//dNuDepth = 0.5 * dRayleighStrengthZ * (1.0 + cos(M_PI * dNormZ));
+			dNuDepth = dRayleighStrengthZ * pow(cos(0.5 * M_PI * dNormZ),4);
+		}
+
+		if (dXp > dLayerR) {
+			double dNormX = (m_dGDim[1] - dXp) / dRayleighWidthR;
+			//dNuRight = 0.5 * dRayleighStrengthX * (1.0 + cos(M_PI * dNormX));
+			dNuRight = dRayleighStrengthX * pow(cos(0.5 * M_PI * dNormX),4);
+		}
+		if (dXp < dLayerL) {
+			double dNormX = (dXp - m_dGDim[0]) / dRayleighWidthL;
+			//dNuLeft = 0.5 * dRayleighStrengthX * (1.0 + cos(M_PI * dNormX));
+			dNuLeft = dRayleighStrengthX * pow(cos(0.5 * M_PI * dNormX),4);
+		}
+
+		//std::cout << dXp << ' ' << dZ << ' ' << dNuDepth << std::endl;
+		if ((dNuDepth >= dNuRight) && (dNuDepth >= dNuLeft)) {
+			return dNuDepth;
+		}
+		if (dNuRight >= dNuLeft) {
+			return dNuRight;
+		}
+		return dNuLeft;
+	}
+
+	///	<summary>
+	///		Evaluate the zonal velocity field perturbation.
+	///	</summary>
+	double EvaluateUPrime(
+		const PhysicalConstants & phys,
+		double dXp,
+		double dYp
+	) const {
+		return 0.0;
+	}
+
+	///	<summary>
+	///		Evaluate the reference state at the given point.
+	///	</summary>
+	virtual void EvaluateReferenceState(
+		const PhysicalConstants & phys,
+		double dXi,
+		double dZp,
+		double dXp,
+		double dYp,
+		double * dState
+	) const {
+		const double dG = phys.GetG();
+		const double dCv = phys.GetCv();
+		const double dCp = phys.GetCp();
+		const double dRd = phys.GetR();
+		const double dP0 = phys.GetP0();
+		const double dLy = m_dGDim[3] - m_dGDim[2];
+
+		double dExnerP = 0.0;
+		double dRho = 0.0;
+		double dThetaBar = m_dTheta0 * exp(m_dNbar * m_dNbar / dG * dZp);
+		// Zero gravity case
+		if (dG == 0.0) {
+			static double dT0 = 300.0;
+
+			dState[2] = dT0 * pow(dP0, (dRd / dCp));
+			dState[4] = dP0 / (dRd * dT0);
+
+		// Stratification with gravity
+		} else {
+			// Set the initial density based on the Exner pressure
+			dExnerP = (dG * dG) / (dCp * m_dTheta0 * m_dNbar * m_dNbar);
+			dExnerP *= (exp(-m_dNbar * m_dNbar / dG * dZp) - 1.0);
+			dExnerP += 1.0;
+			dRho = dP0 / (dRd * dThetaBar) * pow(dExnerP,(dCv / dRd));
+			dState[4] = dRho;
+
+			// Set the initial potential temperature field
+			dState[2] = dThetaBar;
+		}
+
+		// Compute parameters for the jet (on terrain following grid)
+		double dZcomp = m_dGDim[5] * dXi;
+		dThetaBar = m_dTheta0 * exp(m_dNbar * m_dNbar / dG * dZcomp);
+		// Zero gravity case
+		if (dG == 0.0) {
+			static double dT0 = 300.0;
+
+			dThetaBar = dT0 * pow(dP0, (dRd / dCp));
+			dRho = dP0 / (dRd * dT0);
+
+		// Stratification with gravity
+		} else {
+			// Set the initial density based on the Exner pressure
+			dExnerP = (dG * dG) / (dCp * m_dTheta0 * m_dNbar * m_dNbar);
+			dExnerP *= (exp(-m_dNbar * m_dNbar / dG * dZcomp) - 1.0);
+			dExnerP += 1.0;
+			dRho = dP0 / (dRd * dThetaBar) * pow(dExnerP,(dCv / dRd));
+		}
+
+		// Calculate zonal velocity and set other velocity components
+		double dEtaComp = phys.PressureFromRhoTheta(dThetaBar * dRho)
+					/ dP0;
+		double dExpDecay = exp(-(log(dEtaComp) / m_dbC) * (log(dEtaComp) / m_dbC));
+		double dUlon = -m_dUj * log(dEtaComp) * dExpDecay;
+
+		dState[0] = dUlon + m_dU0;
+		dState[1] = 0.0;
+		dState[3] = 0.0;
+
+		//if (dXi > 0.85) {
+		//	Announce("%.16E %.16E %.16E %.16E\n",dXi,dEtaComp,dUlon,dRho);
+		//}
+	}
+
+	///	<summary>
+	///		Evaluate the state vector at the given point.
+	///	</summary>
+	virtual void EvaluatePointwiseState(
+		const PhysicalConstants & phys,
+		const Time & time,
+		double dXi,
+		double dZp,
+		double dXp,
+		double dYp,
+		double * dState,
+		double * dTracer
+	) const {
+
+		// Evaluate the reference state at this point
+		EvaluateReferenceState(phys, dXi, dZp, dXp, dYp, dState);
+
+		// Add perturbation in zonal velocity
+		dState[0] += 0.0;
+		//dState[0] += EvaluateUPrime(phys, dXp, dYp);
+	}
+};
+
+///////////////////////////////////////////////////////////////////////////////
+
+int main(int argc, char** argv) {
+
+	// Initialize Tempest
+	TempestInitialize(&argc, &argv);
+
+try {
+	// Nondimensional vertical width parameter
+	double dbC;
+
+	// Uniform zonal velocity
+	double dU0;
+
+	// Magnitude of the zonal wind jet
+	double dUj;
+
+	// Reference absolute temperature
+	double dT0;
+
+	// Constant Brunt-Vaisala frequency
+	double dNbar;
+
+	// Parameter reference height for temperature disturbance
+	double dhC;
+
+	// Parameter reference length a for temperature disturbance
+	double daC;
+
+	// Parameter reference length for mountain profile
+	double dlC;
+
+	// Uniform diffusion coefficient scalars
+	double dUCoeffS;
+
+	// Uniform diffusion coefficient vectors
+	double dUCoeffV;
+
+	// Terrain data input file
+	std::string sTopoDataFilename;
+
+	// No Rayleigh friction
+	bool fNoRayleighFriction;
+
+	// Parse the command line
+	BeginTempestCommandLine("ShearJetMtnWaveXZReadTopoTestCBVF");
+		SetDefaultResolutionX(288);
+		SetDefaultResolutionY(48);
+		SetDefaultLevels(32);
+		SetDefaultOutputDeltaT("3h");
+		SetDefaultDeltaT("300s");
+		SetDefaultEndTime("12d");
+		SetDefaultHorizontalOrder(4);
+		SetDefaultVerticalOrder(1);
+
+		CommandLineDouble(dbC, "b", 2.0);
+		CommandLineDouble(dU0, "u0", 10.0);
+		CommandLineDouble(dUj, "uj", 5.0);
+		CommandLineDouble(dNbar, "N0", 0.01);
+		CommandLineDouble(dT0, "T0", 300.0);
+		CommandLineDouble(dhC, "hC", 250.0);
+		CommandLineDouble(daC, "aC", 5000.0);
+		CommandLineDouble(dlC, "lC", 4000.0);
+		CommandLineDouble(dUCoeffS, "nuDiffS", 0.0);
+		CommandLineDouble(dUCoeffV, "nuDiffV", 0.0);
+		CommandLineString(sTopoDataFilename, "hfname", "TerrainData.txt")
+		CommandLineBool(fNoRayleighFriction, "norayleigh");
+
+		ParseCommandLine(argc, argv);
+	EndCommandLine(argv)
+
+	// Setup the Model
+	AnnounceBanner("MODEL SETUP");
+
+	Model model(EquationSet::PrimitiveNonhydrostaticEquations);
+
+	// Physical constants
+	const PhysicalConstants & phys = model.GetPhysicalConstants();
+
+	// Create a new instance of the test
+	ShearJetMtnWaveXZReadTopoTestCBVF * test =
+		new ShearJetMtnWaveXZReadTopoTestCBVF(phys, dbC,
+				dU0,
+				dUj,
+				dT0,
+				dNbar,
+				dhC,
+				daC,
+				dlC,
+				dUCoeffS,
+				dUCoeffV,
+				sTopoDataFilename,
+				fNoRayleighFriction);
+
+	// Setup the cartesian model with dimensions and reference latitude
+	TempestSetupCartesianModel(model, test->m_dGDim, 0.0,
+								test->m_iLatBC, true);
+
+	// Set the reference length to reduce diffusion relative to global scale
+	const double XL = std::abs(test->m_dGDim[1] - test->m_dGDim[0]);
+	const double oneDegScale = 110000.0;
+	if (XL < oneDegScale) {
+		model.GetGrid()->SetReferenceLength(XL);
+	}
+	else {
+		model.GetGrid()->SetReferenceLength(oneDegScale);
+	}
+
+	// Set the test case for the model
+	AnnounceStartBlock("Initializing test case");
+	model.SetTestCase(test);
+	AnnounceEndBlock("Done");
+
+	// Begin execution
+	AnnounceBanner("SIMULATION");
+	model.Go();
+
+	// Compute error norms
+	AnnounceBanner("RESULTS");
+	model.ComputeErrorNorms();
+	AnnounceBanner();
+
+} catch(Exception & e) {
+	std::cout << e.ToString() << std::endl;
+	std::cout << "Try/catch block in the main program!" << std::endl;
+}
+
+	// Deinitialize Tempest
+	TempestDeinitialize();
+}
+
+///////////////////////////////////////////////////////////////////////////////
