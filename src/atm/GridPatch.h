@@ -100,7 +100,6 @@ public:
 	virtual void InitializeDataLocal(
 		bool fAllocateGeometric = true,
 		bool fAllocateActiveState = true,
-		bool fAllocateActiveResidual = true,
 		bool fAllocateBufferState = true,
 		bool fAllocateAuxiliary = true
 	);
@@ -193,15 +192,14 @@ public:
 	virtual void ComputeSurfacePressure(
 		int iDataIndex
 	);
-/*
-	///	<summary>
-	///		Compute Richardson number on the GridPatch.
-	///	</summary>
-	virtual void ComputeRichardson(
-		int iDataIndex,
-		DataLocation loc = DataLocation_Node
-	);
-*/
+
+	///     <summary>
+        ///             Compute the zonal force (for drag evaluation)
+        ///     </summary>
+        virtual void ComputeZonalForce(
+                int iDataIndex,
+                DataLocation loc = DataLocation_Node
+        );
 public:
 	///	<summary>
 	///		Add local masses to checksum total.
@@ -270,15 +268,6 @@ public:
 		const DataArray1D<double> & dCoeff,
 		int ixDest,
 		DataType eDataType
-	);
-
-	///	<summary>
-	///		Compute a linear combination of data and store at residual array.
-	///	</summary>
-	void LinearCombineData2Residual(
-		const DataArray1D<double> & dCoeff,
-		int ixDest,
-		DataType eDataType = DataType_Residual
 	);
 
 	///	<summary>
@@ -387,13 +376,6 @@ public:
 		return m_dcBufferState;
 	}
 
-		///	<summary>
-	///		Get the DataContainer for storing active residual data.
-	///	</summary>
-	DataContainer & GetDataContainerActiveResidual() {
-		return m_dcActiveResidual;
-	}
-
 	///	<summary>
 	///		Get the DataContainer for storing auxiliary data.
 	///	</summary>
@@ -421,13 +403,6 @@ public:
 	///	</summary>
 	const DataContainer & GetDataContainerBufferState() const {
 		return m_dcBufferState;
-	}
-
-	///	<summary>
-	///		Get the DataContainer for storing active residual data.
-	///	</summary>
-	const DataContainer & GetDataContainerActiveResidual() const {
-		return m_dcActiveResidual;
 	}
 
 	///	<summary>
@@ -834,51 +809,6 @@ public:
 	}
 
 	///	<summary>
-	///		Get the DynSGS data for output.
-	///	</summary>
-	DataArray4D<double> & GetDataResidualSGS(
-		DataLocation loc = DataLocation_Node
-	) {
-		if (!m_fContainsData) {
-			_EXCEPTIONT("Stub patch does not store data.");
-		}
-		if (loc == DataLocation_Node) {
-			return m_dataDynSGSNode;
-		} else if (loc == DataLocation_REdge) {
-			return m_dataDynSGSREdge;
-		} else {
-			_EXCEPTIONT("Invalid DataLocation");
-		}
-	}
-
-	///	<summary>
-	///		Get the residual data matrix with the specified index.
-	///	</summary>
-	DataArray4D<double> & GetDataResidual(
-		int ix,
-		DataLocation loc = DataLocation_Node
-	) {
-		if (!m_fContainsData) {
-			_EXCEPTIONT("Stub patch does not store data.");
-		}
-		if (loc == DataLocation_Node) {
-			if ((ix < 0) || (ix > 2)) {
-				_EXCEPTIONT("Invalid index in ResidualData vector.");
-			}
-			return m_datavecResidualNode[ix];
-
-		} else if (loc == DataLocation_REdge) {
-			if ((ix < 0) || (ix > 2)) {
-				_EXCEPTIONT("Invalid index in ResidualData vector.");
-			}
-			return m_datavecResidualREdge[ix];
-
-		} else {
-			_EXCEPTIONT("Invalid DataLocation");
-		}
-	}
-
-	///	<summary>
 	///		Get the state data matrix with the specified index.
 	///	</summary>
 	const DataArray4D<double> & GetDataState(
@@ -1120,6 +1050,20 @@ public:
 		return m_dataTemperature;
 	}
 
+	///     <summary>
+        ///             Get the zonal force data.
+        ///     </summary>
+        DataArray3D<double> & GetDataZonalForce() {
+                return m_dataZonalForce;
+        }
+
+        ///     <summary>
+        ///             Get the zonal force data.
+        ///     </summary>
+        const DataArray3D<double> & GetDataZonalForce() const {
+                return m_dataZonalForce;
+        }
+
 	///	<summary>
 	///		Get the surface pressure data.
 	///	</summary>
@@ -1205,11 +1149,6 @@ protected:
 	///		DataContainer for storing buffer state data.
 	///	</summary>
 	DataContainer m_dcBufferState;
-
-	///	<summary>
-	///		DataContainer for storing active residual data.
-	///	</summary>
-	DataContainer m_dcActiveResidual;
 
 	///	<summary>
 	///		DataContainer for storing auxiliary data.
@@ -1386,11 +1325,6 @@ public:
 	DataArray1D<size_t> m_iActiveStatePatchIx;
 
 	///	<summary>
-	///		Active Residual patch index.
-	///	</summary>
-	DataArray1D<size_t> m_iActiveResidualPatchIx;
-
-	///	<summary>
 	///		Grid data for the reference state on model levels (State).
 	///	</summary>
 	DataArray4D<double> m_dataRefStateNode;
@@ -1401,16 +1335,6 @@ public:
 	DataArray4D<double> m_dataRefStateREdge;
 
 	///	<summary>
-	///		Grid data  on model levels for the DynSGS output (Residual).
-	///	</summary>
-	DataArray4D<double> m_dataDynSGSNode;
-
-	///	<summary>
-	///		Grid data on model interfaces for the DynSGS output (Residual).
-	///	</summary>
-	DataArray4D<double> m_dataDynSGSREdge;
-
-	///	<summary>
 	///		Grid data for state variables on model levels (State).
 	///	</summary>
 	DataArray4DVector m_datavecStateNode;
@@ -1419,16 +1343,6 @@ public:
 	///		Grid data on model interfaces for state variables (State).
 	///	</summary>
 	DataArray4DVector m_datavecStateREdge;
-
-	///	<summary>
-	///		Grid data for the residual state on model levels (State).
-	///	</summary>
-	DataArray4DVector m_datavecResidualNode;
-
-	///	<summary>
-	///		Grid data on model interfaces for the residual state (State).
-	///	</summary>
-	DataArray4DVector m_datavecResidualREdge;
 
 	///	<summary>
 	///		Grid data for tracer variables (State).
@@ -1480,6 +1394,11 @@ public:
 	///		Computed Convective stability number (Auxiliary).
 	///	</summary>
 	DataArray3D<double> m_dataConvective;
+
+	///     <summary>
+        ///             Computed Zonal force (Auxiliary).
+        ///     </summary>
+        DataArray3D<double> m_dataZonalForce;
 
 	///	<summary>
 	///		Computed surface pressure (Auxiliary).

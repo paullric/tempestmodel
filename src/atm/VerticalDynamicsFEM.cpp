@@ -454,7 +454,7 @@ void VerticalDynamicsFEM::Initialize() {
 			* pow(1.0 / static_cast<double>(nRElements), 1.0);
 
 	} else if (m_nHypervisOrder == 4) {
-		m_dHypervisCoeff = - (1.0 / 6.0) //(1.0 / 12.0)
+		m_dHypervisCoeff = - (2.0 / 3.0) //(1.0 / 6.0)
 			* pow(1.0 / static_cast<double>(nRElements), 3.0);
 
 	} else if (m_nHypervisOrder == 6) {
@@ -741,20 +741,6 @@ void VerticalDynamicsFEM::StepExplicit(
 		DataArray4D<double> & dataUpdateTracer =
 			pPatch->GetDataTracers(iDataUpdate);
 
-		// Get state residual from index 2
-		const DataArray4D<double> & dataResidualNode =
-			pPatch->GetDataResidual(2, DataLocation_Node);
-
-		const DataArray4D<double> & dataResidualREdge =
-			pPatch->GetDataResidual(2, DataLocation_REdge);
-
-		// Get the residual storage to update for output_SGS
-		DataArray4D<double> & dataDynSGSNode =
-			pPatch->GetDataResidualSGS(DataLocation_Node);
-
-		DataArray4D<double> & dataDynSGSREdge =
-			pPatch->GetDataResidualSGS(DataLocation_REdge);
-
 		// Metric quantities
 		const DataArray4D<double> & dContraMetricXi =
 			pPatch->GetContraMetricXi();
@@ -846,19 +832,11 @@ void VerticalDynamicsFEM::StepExplicit(
 					for (int k = 0; k <= nRElements; k++) {
 						dataUpdateREdge[PIx][i][j][k] -=
 							dDeltaT * m_dSoln[VecFIx(FPIx, k)];
-
-						//dataDynSGSREdge(2, i, j, k) = m_dDiffCREdge[k];
-						dataDynSGSREdge(2, i, j, k) =
-							dataResidualREdge(2, i, j, k);
 					}
 				} else {
 					for (int k = 0; k < nRElements; k++) {
 						dataUpdateNode[PIx][i][j][k] -=
 							dDeltaT * m_dSoln[VecFIx(FPIx, k)];
-
-						//dataDynSGSNode(2, i, j, k) = m_dDiffCNode[k];
-						dataDynSGSNode(2, i, j, k) =
-							dataResidualNode(2, i, j, k);
 					}
 				}
 
@@ -1372,20 +1350,6 @@ void VerticalDynamicsFEM::StepHypervisExplicit(
                 DataArray4D<double> & dataUpdateTracer =
                         pPatch->GetDataTracers(iDataUpdate);
 
-                // Get state residual from index 2
-                const DataArray4D<double> & dataResidualNode =
-                        pPatch->GetDataResidual(2, DataLocation_Node);
-
-                const DataArray4D<double> & dataResidualREdge =
-                        pPatch->GetDataResidual(2, DataLocation_REdge);
-
-                // Get the residual storage to update for output_SGS
-                DataArray4D<double> & dataDynSGSNode =
-                        pPatch->GetDataResidualSGS(DataLocation_Node);
-
-                DataArray4D<double> & dataDynSGSREdge =
-                        pPatch->GetDataResidualSGS(DataLocation_REdge);
-
                 // Metric quantities
                 const DataArray4D<double> & dContraMetricXi =
                         pPatch->GetContraMetricXi();
@@ -1426,6 +1390,16 @@ void VerticalDynamicsFEM::StepHypervisExplicit(
                 for (int i = box.GetAInteriorBegin(); i < box.GetAInteriorEnd(); i++) {
                 for (int j = box.GetBInteriorBegin(); j < box.GetBInteriorEnd(); j++) {
 
+			SetupReferenceColumn(
+                                pPatch, i, j,
+                                dataRefNode,
+                                dataInitialNode,
+                                dataRefREdge,
+                                dataInitialREdge);
+			
+			// Prepare the column
+                	PrepareColumn(m_dColumnState);
+			
 			//////////////////////////////////////////////////////////////
 			// Apply hyperviscosity or uniform diffusion to U and V
 			if ((m_fHypervisVar[UIx]) ||
@@ -1540,15 +1514,15 @@ void VerticalDynamicsFEM::StepHypervisExplicit(
 							dDeltaT
 							* m_dHypervisCoeff
 							* fabs(m_dXiDotNode[k])
-							* (m_dDiffDiffStateHypervis[UIx][k]
-								- m_dDiffDiffStateUniform[UIx][k]);
+							* m_dDiffDiffStateHypervis[UIx][k];
+								//- m_dDiffDiffStateUniform[UIx][k]);
 
 						dataUpdateNode[VIx][i][j][k] +=
 							dDeltaT
 							* m_dHypervisCoeff
 							* fabs(m_dXiDotNode[k])
-							* (m_dDiffDiffStateHypervis[VIx][k]
-								- m_dDiffDiffStateUniform[VIx][k]);
+							* m_dDiffDiffStateHypervis[VIx][k];
+								//- m_dDiffDiffStateUniform[VIx][k]);
 					}
 				}
 			}
@@ -1561,23 +1535,18 @@ void VerticalDynamicsFEM::StepHypervisExplicit(
                                			continue;
 	        	                }
 			
-       	        		        // Do not diffusion vertical velocity on boundaries
-		                        if (c == WIx) {
-               		        	        m_dDiffDiffStateHypervis[c][0] = 0.0;
-                              			m_dDiffDiffStateHypervis[c][nRElements] = 0.0;
-	        	                }
-	
                			        // Flow-dependent hyperviscosity on interfaces
 		                        if (pGrid->GetVarLocation(c) == DataLocation_REdge) {
-			
-                		                for (int k = 0; k <= nRElements; k++) {
+						// DO NOT DIFFUSE ON BOUNDARY!	
+                		                for (int k = 1; k < nRElements; k++) {
                                			        dataUpdateREdge[c][i][j][k] +=
 								dDeltaT
 	                	                                * m_dHypervisCoeff
                			                                * fabs(m_dXiDotREdge[k])
                	                		                * m_dDiffDiffStateHypervis[c][k];
+									//- m_dDiffDiffStateUniform[c][k]);
 		                        	}
-	
+						//
                			        // Flow-dependent hyperviscosity on levels
 		                        } else {
 	
@@ -1587,10 +1556,11 @@ void VerticalDynamicsFEM::StepHypervisExplicit(
                       	                        		* m_dHypervisCoeff
 		                                                * fabs(m_dXiDotNode[k]) 
 								* m_dDiffDiffStateHypervis[c][k];
+									//- m_dDiffDiffStateHypervis[c][k]);
                                 		}
 	                        	}
                 		}
-			}		
+			}
 		}
 		}
 	}
@@ -3405,7 +3375,7 @@ void VerticalDynamicsFEM::BuildF(
 			}
 		}
 	}
-	*/
+
 	// Apply residual hyperviscosity
 	for (int c = 2; c < 5; c++) {
 
@@ -3413,7 +3383,7 @@ void VerticalDynamicsFEM::BuildF(
 		if (!m_fResdiffVar[c]) {
 			continue;
 		}
-//
+
 		// Partial DynSGS on interfaces
 		if (pGrid->GetVarLocation(c) == DataLocation_REdge) {
 			for (int k = 0; k <= nRElements; k++) {
@@ -3468,8 +3438,7 @@ void VerticalDynamicsFEM::BuildF(
 						- m_dDiffDiffStateUniform[c][k]);
 			}
 		}
-//
-/*
+
 		// Residual hyperviscosity on interfaces
 		if (pGrid->GetVarLocation(c) == DataLocation_REdge) {
 			for (int k = 0; k <= nRElements; k++) {
@@ -3549,9 +3518,8 @@ void VerticalDynamicsFEM::BuildF(
 					//- m_dStateRefNode[RIx][k]);
 			}
 		}
-*/
 	}
-
+*/
 	if (dF[VecFIx(FWIx, 0)] != 0.0) {
 		dF[VecFIx(FWIx, 0)] = 0.0;
 	}

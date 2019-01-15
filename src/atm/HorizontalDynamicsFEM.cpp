@@ -1821,29 +1821,6 @@ void HorizontalDynamicsFEM::StepExplicit(
 	}
 #endif
 
-#if defined(RESIDUAL_DIFFUSION_THERMO)
-	// Residual diffusion of Theta with residual based diffusion coeff
-	ApplyScalarHyperdiffusionResidual(
-		iDataInitial,
-		iDataUpdate,
-		2,
-		pGrid->GetScalarUniformDiffusionCoeff(),
-		dDeltaT,
-		2,
-		true);
-#endif
-#if defined(RESIDUAL_DIFFUSION_RHO)
-	// Residual diffusion of Rho with residual based diffusion coeff
-	ApplyScalarHyperdiffusionResidual(
-		iDataInitial,
-		iDataUpdate,
-		2,
-		pGrid->GetScalarUniformDiffusionCoeff(),
-		dDeltaT,
-		4,
-		true);
-#endif
-
 	// Apply positive definite filter to tracers
 	FilterNegativeTracers(iDataUpdate);
 }
@@ -1865,6 +1842,13 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusion(
 	const int PIx = 2;
 	const int WIx = 3;
 	const int RIx = 4;
+
+	// Indices of auxiliary data variables
+        const int ConUaIx = 0;
+        const int ConUbIx = 1;
+        const int ConUxIx = 2;
+        const int CovUxIx = 3;
+	const int KIx = 4;
 
 	// Get a copy of the GLL grid
 	GridGLL * pGrid = dynamic_cast<GridGLL*>(m_model.GetGrid());
@@ -1891,6 +1875,9 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusion(
 	if (iComponent < (-1)) {
 		_EXCEPTIONT("Invalid component index");
 	}
+
+	// Physical constants
+        const PhysicalConstants & phys = m_model.GetPhysicalConstants();
 
 	// Perform local update
 	for (int n = 0; n < pGrid->GetActivePatchCount(); n++) {
@@ -1951,8 +1938,9 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusion(
 		int nElementCountB = pPatch->GetElementCountB();
 
 		// Compute new hyperviscosity coefficient
+		double dLocalNuWind = dNu;
 		double dLocalNu = dNu;
-
+		//
 		if (fScaleNuLocally) {
 			double dReferenceLength = pGrid->GetReferenceLength();
 			if (dReferenceLength != 0.0) {
@@ -1960,6 +1948,8 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusion(
 			}
 		}
 
+		double dElScale = std::pow(dElementDeltaA / nHorizontalOrder, 3.0);
+		//
 		// State variables and tracers
 		for (int iType = 0; iType < 2; iType++) {
 
@@ -2057,7 +2047,55 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusion(
 						}
 						}
 					}
+					//
+					if (fScaleNuLocally) {
+						double dKMax = 0.0;
+						double dRhoTheta = 0.0;
+						// Compute maximum local wave speed in an element
+						for (int i = 0; i < nHorizontalOrder; i++) {
+						for (int j = 0; j < nHorizontalOrder; j++) {
+							int iA = iElementA + i;
+							int iB = iElementB + j;
 
+							// Contravariant velocities
+							double dCovUa = (*pDataInitial)(UIx,iA,iB,k);
+							double dCovUb = (*pDataInitial)(VIx,iA,iB,k);
+
+							// Contravariant velocities
+							m_dAuxDataNode(ConUaIx,i,j,k) =
+								dContraMetricA(iA,iB,0) * dCovUa
+							      + dContraMetricA(iA,iB,1) * dCovUb;
+
+							m_dAuxDataNode(ConUbIx,i,j,k) =
+								dContraMetricB(iA,iB,0) * dCovUa
+							      + dContraMetricB(iA,iB,1) * dCovUb;
+
+							// Maximum wave speed in this element
+#if defined(FORMULATION_THETA)
+				                        dRhoTheta = (*pDataInitial)(PIx,iA,iB,k) *
+                                			  (*pDataInitial)(RIx,iA,iB,k);
+#endif
+
+#if defined(FORMULATION_RHOTHETA_P) || defined(FORMULATION_RHOTHETA_PI)
+				                        dRhoTheta = (*pDataInitial)(PIx,iA,iB,k);
+#endif
+
+							// Maximum wave speed in this element
+							m_dAuxDataNode(KIx,i,j,k) = sqrt(
+							      m_dAuxDataNode(ConUaIx,i,j,k) * dCovUa
+							    + m_dAuxDataNode(ConUbIx,i,j,k) * dCovUb);
+											
+							if (m_dAuxDataNode(KIx,i,j,k) > dKMax) {
+								dKMax = m_dAuxDataNode(KIx,i,j,k);
+							}
+						}	
+						}
+						// Scaled by 4 from Reynold's stress factor and 2 from Prandtl number
+						dLocalNuWind = 8.0 * dElScale * dKMax;
+					}
+					// Revert to default uniform hypervis
+					dLocalNuWind = dLocalNu;
+					//
 					// Calculate the pointwise gradient of the scalar field
 					for (int i = 0; i < nHorizontalOrder; i++) {
 					for (int j = 0; j < nHorizontalOrder; j++) {
@@ -2069,11 +2107,11 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusion(
 
 #pragma unroll
 						for (int s = 0; s < nHorizontalOrder; s++) {
-							dDaPsi +=
+							dDaPsi += 1.0 *
 								m_dBufferState(s,j)
 								* dDxBasis1D(s,i);
 
-							dDbPsi +=
+							dDbPsi += 1.0 *
 								m_dBufferState(i,s)
 								* dDxBasis1D(s,j);
 						}
@@ -2081,12 +2119,12 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusion(
 						dDaPsi *= dInvElementDeltaA;
 						dDbPsi *= dInvElementDeltaB;
 
-						m_dJGradientA(i,j) =
+						m_dJGradientA(i,j) = 1.0 * 
 							(*pJacobian)(iA,iB,k) * (
 								+ dContraMetricA(iA,iB,0) * dDaPsi
 								+ dContraMetricA(iA,iB,1) * dDbPsi);
 
-						m_dJGradientB(i,j) =
+						m_dJGradientB(i,j) = 1.0 * 
 							(*pJacobian)(iA,iB,k) * (
 								+ dContraMetricB(iA,iB,0) * dDaPsi
 								+ dContraMetricB(iA,iB,1) * dDbPsi);
@@ -2113,11 +2151,11 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusion(
 
 #pragma unroll
 						for (int s = 0; s < nHorizontalOrder; s++) {
-							dUpdateA +=
+							dUpdateA += 1.0 *
 								m_dJGradientA(s,j)
 								* dStiffness1D(i,s);
 
-							dUpdateB +=
+							dUpdateB += 1.0 *
 								m_dJGradientB(i,s)
 								* dStiffness1D(j,s);
 						}
@@ -2126,28 +2164,27 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusion(
 						dUpdateB *= dInvElementDeltaB;
 
 #ifdef FIX_ELEMENT_MASS_NONHYDRO
-							if (c == RIx) {
-		 						double dInvJacobian = 1.0 / (*pJacobian)(iA,iB,k);
-								// Integrate element mass fluxes
-								dElementMassFluxA += dInvJacobian *
-									dUpdateA * dElementAreaNode(iA,iB,k);
-								dElementMassFluxB += dInvJacobian *
-									dUpdateB * dElementAreaNode(iA,iB,k);
-								dElTotalArea += dElementAreaNode(iA,iB,k);
+						if (c == RIx) {
+							double dInvJacobian = 1.0 / (*pJacobian)(iA,iB,k);
+							// Integrate element mass fluxes
+							dElementMassFluxA += dInvJacobian *
+								dUpdateA * dElementAreaNode(iA,iB,k);
+							dElementMassFluxB += dInvJacobian *
+								dUpdateB * dElementAreaNode(iA,iB,k);
+							dElTotalArea += dElementAreaNode(iA,iB,k);
 
-								// Store the local element fluxes
-								m_dAlphaElMassFlux(i,j,k) = dUpdateA;
-								m_dBetaElMassFlux(i,j,k) = dUpdateB;
-							} else {
-								// Apply update
-								(*pDataUpdate)(c,iA,iB,k) -=
-									dDeltaT * dInvJacobian * dLocalNu
-										* (dUpdateA + dUpdateB);
-							}
+							// Store the local element fluxes
+							m_dAlphaElMassFlux(i,j,k) = dUpdateA;
+							m_dBetaElMassFlux(i,j,k) = dUpdateB;
+						} else {
+							// Apply update
+							(*pDataUpdate)(c,iA,iB,k) -=
+								dDeltaT * dInvJacobian * dLocalNuWind
+									* (dUpdateA + dUpdateB);
+						}
 #else
-						// Apply update
 						(*pDataUpdate)(c,iA,iB,k) -=
-							dDeltaT * dInvJacobian * dLocalNu
+							dDeltaT * dInvJacobian * dLocalNuWind
 								* (dUpdateA + dUpdateB);
 #endif
 					}
@@ -2170,10 +2207,10 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusion(
 
 							m_dAlphaElMassFlux(i,j,k) -= dJacobian * dMassFluxPerNodeA;
 							m_dBetaElMassFlux(i,j,k) -= dJacobian * dMassFluxPerNodeB;
-
+							
 							// Update fixed density on model levels
 							(*pDataUpdate)(c,iA,iB,k) -=
-								dDeltaT * dInvJacobian * dLocalNu *
+								dDeltaT * dInvJacobian * dLocalNuWind *
 									(m_dAlphaElMassFlux(i,j,k)
 									+ m_dBetaElMassFlux(i,j,k));
 						}
@@ -2190,519 +2227,6 @@ void HorizontalDynamicsFEM::ApplyScalarHyperdiffusion(
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void HorizontalDynamicsFEM::ApplyScalarHyperdiffusionResidual(
-	int iDataInitial,
-	int iDataUpdate,
-	int iDataResidual,
-	double dNuRayleigh,
-	double dDeltaT,
-	int iComponent,
-	bool fRemoveRefState
-) {
-	// Indices of EquationSet variables
-	const int UIx = 0;
-	const int VIx = 1;
-	const int PIx = 2;
-	const int WIx = 3;
-	const int RIx = 4;
-
-	// Indices of auxiliary data variables
-	const int ConUaIx = 0;
-	const int ConUbIx = 1;
-	const int ConUxIx = 2;
-	const int CovUxIx = 3;
-	const int KIx = 4;
-	const int UCrossZetaAIx = 5;
-	const int UCrossZetaBIx = 6;
-	const int UCrossZetaXIx = 7;
-	const int ExnerIx = 8;
-
-	// Get a copy of the GLL grid
-	GridGLL * pGrid = dynamic_cast<GridGLL*>(m_model.GetGrid());
-
-#if defined(FIXED_HORIZONTAL_ORDER)
-	const int nHorizontalOrder = FIXED_HORIZONTAL_ORDER;
-	if (nHorizontalOrder != m_nHorizontalOrder) {
-		_EXCEPTIONT("Command line order must match FIXED_HORIZONTAL_ORDER");
-	}
-#else
-	const int nHorizontalOrder = m_nHorizontalOrder;
-#endif
-
-#if defined(FIXED_RELEMENTS)
-	const int nRElements = FIXED_RELEMENTS;
-	if (nRElements != pGrid->GetRElements()) {
-		_EXCEPTIONT("Command line levels must match FIXED_RELEMENTS");
-	}
-#else
-	const int nRElements = pGrid->GetRElements();
-#endif
-
-	// Physical constants
-	const PhysicalConstants & phys = m_model.GetPhysicalConstants();
-
-	// Check argument
-	if (iComponent < (-1)) {
-		_EXCEPTIONT("Invalid component index");
-	}
-
-	// Perform local update
-	for (int n = 0; n < pGrid->GetActivePatchCount(); n++) {
-		GridPatchGLL * pPatch =
-			dynamic_cast<GridPatchGLL*>(pGrid->GetActivePatch(n));
-
-		const PatchBox & box = pPatch->GetPatchBox();
-
-		const DataArray3D<double> & dElementAreaNode =
-			pPatch->GetElementAreaNode();
-		const DataArray3D<double> & dJacobianNode =
-			pPatch->GetJacobian();
-		const DataArray3D<double> & dJacobianREdge =
-			pPatch->GetJacobianREdge();
-		const DataArray3D<double> & dContraMetric2DA =
-			pPatch->GetContraMetric2DA();
-		const DataArray3D<double> & dContraMetric2DB =
-			pPatch->GetContraMetric2DB();
-
-		const DataArray4D<double> & dDerivRNode =
-			pPatch->GetDerivRNode();
-		const DataArray4D<double> & dDerivRREdge =
-			pPatch->GetDerivRREdge();
-
-		const DataArray4D<double> & dContraMetricA =
-			pPatch->GetContraMetricA();
-		const DataArray4D<double> & dContraMetricB =
-			pPatch->GetContraMetricB();
-		const DataArray4D<double> & dContraMetricXi =
-			pPatch->GetContraMetricXi();
-		const DataArray4D<double> & dContraMetricAREdge =
-			pPatch->GetContraMetricAREdge();
-		const DataArray4D<double> & dContraMetricBREdge =
-			pPatch->GetContraMetricBREdge();
-		const DataArray4D<double> & dContraMetricXiREdge =
-			pPatch->GetContraMetricXiREdge();
-
-		// Grid data
-		DataArray4D<double> & dataInitialNode =
-			pPatch->GetDataState(iDataInitial, DataLocation_Node);
-
-		DataArray4D<double> & dataInitialREdge =
-			pPatch->GetDataState(iDataInitial, DataLocation_REdge);
-
-		DataArray4D<double> & dataResidualNode =
-			pPatch->GetDataResidual(iDataResidual, DataLocation_Node);
-
-		DataArray4D<double> & dataResidualREdge =
-			pPatch->GetDataResidual(iDataResidual, DataLocation_REdge);
-
-		// Get the residual storage to update for output_SGS
-		DataArray4D<double> & dataDynSGSNode =
-			pPatch->GetDataResidualSGS(DataLocation_Node);
-
-		DataArray4D<double> & dataDynSGSREdge =
-			pPatch->GetDataResidualSGS(DataLocation_REdge);
-
-		DataArray4D<double> & dataUpdateNode =
-			pPatch->GetDataState(iDataUpdate, DataLocation_Node);
-
-		DataArray4D<double> & dataUpdateREdge =
-			pPatch->GetDataState(iDataUpdate, DataLocation_REdge);
-
-		const DataArray4D<double> & dataRefNode =
-			pPatch->GetReferenceState(DataLocation_Node);
-
-		const DataArray4D<double> & dataRefREdge =
-			pPatch->GetReferenceState(DataLocation_REdge);
-
-		// Tracer data
-#pragma Residual diffusion on tracers NOT IMPLEMENTED yet.
-		DataArray4D<double> & dataInitialTracer =
-			pPatch->GetDataTracers(iDataInitial);
-
-		DataArray4D<double> & dataUpdateTracer =
-			pPatch->GetDataTracers(iDataUpdate);
-
-		DataArray4D<double> & dataResidualTracer =
-			pPatch->GetDataTracers(iDataResidual);
-
-		// Element grid spacing and derivative coefficients
-		const double dElementDeltaA = pPatch->GetElementDeltaA();
-		const double dElementDeltaB = pPatch->GetElementDeltaB();
-
-		const double dElementLength = 0.5 *
-			(dElementDeltaA + dElementDeltaB);
-
-		const double dInvElementDeltaA = 1.0 / dElementDeltaA;
-		const double dInvElementDeltaB = 1.0 / dElementDeltaB;
-
-		const DataArray2D<double> & dDxBasis1D = pGrid->GetDxBasis1D();
-		const DataArray2D<double> & dStiffness1D = pGrid->GetStiffness1D();
-
-		// Number of finite elements
-		int nElementCountA = pPatch->GetElementCountA();
-		int nElementCountB = pPatch->GetElementCountB();
-
-		// Initialize new hyperviscosity coefficient
-		double dResNu[nHorizontalOrder][nHorizontalOrder];
-
-		// State variables and tracers
-		for (int iType = 0; iType < 2; iType++) {
-
-			int nComponentStart;
-			int nComponentEnd;
-
-			if (iType == 0) {
-				nComponentStart = 2;
-				nComponentEnd = m_model.GetEquationSet().GetComponents();
-
-				if (iComponent != (-1)) {
-					if (iComponent >= nComponentEnd) {
-						_EXCEPTIONT("Invalid component index");
-					}
-
-					nComponentStart = iComponent;
-					nComponentEnd = iComponent+1;
-				}
-
-			} else {
-				nComponentStart = 0;
-				nComponentEnd = m_model.GetEquationSet().GetTracers();
-
-				if (iComponent != (-1)) {
-					continue;
-				}
-			}
-
-			// Loop over all components
-			for (int c = nComponentStart; c < nComponentEnd; c++) {
-
-				int nElementCountR;
-
-				const DataArray4D<double> * pDataInitial;
-				DataArray4D<double> * pDataUpdate;
-			 	const DataArray4D<double> * pDataResidual;
-				const DataArray4D<double> * pDataRef;
-				const DataArray3D<double> * pJacobian;
-				const DataArray4D<double> * pDerivR;
-				const DataArray4D<double> * pContraMetricA;
-				const DataArray4D<double> * pContraMetricB;
-				const DataArray4D<double> * pContraMetricXi;
-
-				if (iType == 0) {
-					if (pGrid->GetVarLocation(c) == DataLocation_Node) {
-						pDataInitial = &dataInitialNode;
-						pDataUpdate  = &dataUpdateNode;
-						pDataResidual = &dataResidualNode;
-						pDataRef = &dataRefNode;
-						nElementCountR = nRElements;
-						pJacobian = &dJacobianNode;
-						pDerivR = &dDerivRNode;
-						pContraMetricA = &dContraMetricA;
-						pContraMetricB = &dContraMetricB;
-						pContraMetricXi = &dContraMetricXi;
-
-					} else if (pGrid->GetVarLocation(c) == DataLocation_REdge) {
-						pDataInitial = &dataInitialREdge;
-						pDataUpdate  = &dataUpdateREdge;
-						pDataResidual = &dataResidualREdge;
-						pDataRef = &dataRefREdge;
-						nElementCountR = nRElements + 1;
-						pJacobian = &dJacobianREdge;
-						pDerivR = &dDerivRREdge;
-						pContraMetricA = &dContraMetricAREdge;
-						pContraMetricB = &dContraMetricBREdge;
-						pContraMetricXi = &dContraMetricXiREdge;
-
-					} else {
-						_EXCEPTIONT("UNIMPLEMENTED");
-					}
-
-				} else {
-					pDataInitial = &dataInitialTracer;
-					pDataUpdate = &dataUpdateTracer;
-					pDataResidual = &dataResidualTracer;
-					nElementCountR = nRElements;
-					pJacobian = &dJacobianNode;
-				}
-
-	// Loop over all finite elements
-	for (int a = 0; a < nElementCountA; a++) {
-	for (int b = 0; b < nElementCountB; b++) {
-	for (int k = 0; k < nElementCountR; k++) {
-
-		int iElementA =
-			a * nHorizontalOrder + box.GetHaloElements();
-		int iElementB =
-			b * nHorizontalOrder + box.GetHaloElements();
-
-		// Store the buffer state
-		for (int i = 0; i < nHorizontalOrder; i++) {
-		for (int j = 0; j < nHorizontalOrder; j++) {
-			int iA = iElementA + i;
-			int iB = iElementB + j;
-
-			m_dBufferState(i,j) =
-				(*pDataInitial)(c,iA,iB,k);
-		}
-		}
-
-		// Remove the reference state from the buffer state
-		if (fRemoveRefState) {
-			for (int i = 0; i < nHorizontalOrder; i++) {
-			for (int j = 0; j < nHorizontalOrder; j++) {
-				int iA = iElementA + i;
-				int iB = iElementB + j;
-
-				m_dBufferState(i,j) -=
-					(*pDataRef)(c,iA,iB,k);
-			}
-			}
-		}
-
-		// Compute maximum local wave speed in an element
-		for (int i = 0; i < nHorizontalOrder; i++) {
-		for (int j = 0; j < nHorizontalOrder; j++) {
-			int iA = iElementA + i;
-			int iB = iElementB + j;
-
-			// Contravariant velocities
-			double dCovUa = (*pDataInitial)(UIx,iA,iB,k);
-			double dCovUb = (*pDataInitial)(VIx,iA,iB,k);
-
-			// Contravariant velocities
-			m_dAuxDataNode(ConUaIx,i,j,k) =
-				dContraMetric2DA(iA,iB,0) * dCovUa
-			      + dContraMetric2DA(iA,iB,1) * dCovUb;
-
-			m_dAuxDataNode(ConUbIx,i,j,k) =
-				dContraMetric2DB(iA,iB,0) * dCovUa
-			      + dContraMetric2DB(iA,iB,1) * dCovUb;
-
-			double dRhoTheta = 0.0;
-#if defined(FORMULATION_THETA)
-			dRhoTheta = (*pDataInitial)(PIx,iA,iB,k) *
-				  (*pDataInitial)(RIx,iA,iB,k);
-#endif
-
-#if defined(FORMULATION_RHOTHETA_P) || defined(FORMULATION_RHOTHETA_PI)
-			dRhoTheta = (*pDataInitial)(PIx,iA,iB,k);
-#endif
-
-			// Maximum wave speed in this element
-			m_dAuxDataNode(KIx,i,j,k) = sqrt(
-			      m_dAuxDataNode(ConUaIx,i,j,k) * dCovUa
-			    + m_dAuxDataNode(ConUbIx,i,j,k) * dCovUb)
-			    + sqrt(phys.GetGamma() *
-				       phys.PressureFromRhoTheta(dRhoTheta) /
-				       (*pDataInitial)(RIx,iA,iB,k));
-		}
-		}
-
-		double dAvgA = 0.0;
-		double dAvgB = 0.0;
-		double dEAvgU = 0.0;
-		double dEAvgV = 0.0;
-		double dEAvgW = 0.0;
-		double dEAvgP = 0.0;
-		double dEAvgR = 0.0;
-		// Calculate the element average of the scalar field
-		for (int i = 0; i < nHorizontalOrder; i++) {
-		for (int j = 0; j < nHorizontalOrder; j++) {
-			int iA = iElementA + i;
-			int iB = iElementB + j;
-
-			for (int o = 0; o < m_model.GetEquationSet().GetComponents(); o++) {
-				for (int s = 0; s < nHorizontalOrder; s++) {
-					dAvgA +=
-					  (*pDataInitial)(o,s,iB,k)
-					  * dStiffness1D(i,s);
-
-					dAvgB +=
-					  (*pDataInitial)(o,iA,s,k)
-					  * dStiffness1D(j,s);
-				}
-
-				dAvgA *= dInvElementDeltaA;
-				dAvgB *= dInvElementDeltaB;
-
-				switch (o) {
-				  case 0: dEAvgU = 0.5 * (dAvgA + dAvgB); break;
-				  case 1: dEAvgV = 0.5 * (dAvgA + dAvgB); break;
-				  case 2: dEAvgW = 0.5 * (dAvgA + dAvgB); break;
-				  case 3: dEAvgP = 0.5 * (dAvgA + dAvgB); break;
-				  case 4: dEAvgR = 0.5 * (dAvgA + dAvgB); break;
-				}
-			}
-		}
-		}
-
-		double dResU = 0.0;
-		double dResV = 0.0;
-		double dResW = 0.0;
-		double dResP = 0.0;
-		double dResR = 0.0;
-		double dResMax = 0.0;
-		double dResCoeff = 0.0;
-		double dNuMax = 0.0;
-		double dGridLength = dElementLength / (nHorizontalOrder - 1);
-
-		// Compute the local diffusion coefficient
-		for (int i = 0; i < nHorizontalOrder; i++) {
-		for (int j = 0; j < nHorizontalOrder; j++) {
-			int iA = iElementA + i;
-			int iB = iElementB + j;
-
-			// Compute the local diffusion coefficient
-			//
-			dResU = 0.0;
-			//dResU = fabs((*pDataResidual)(UIx,iA,iB,k));//  / fabs(
-	                             //(*pDataInitial)(UIx,iA,iB,k) - dEAvgU);
-			dResV = 0.0;
-			//dResV = fabs((*pDataResidual)(VIx,iA,iB,k));//  / fabs(
-	                             //(*pDataInitial)(VIx,iA,iB,k) - dEAvgV);
-			dResW = 0.0;
-			//dResW = fabs((*pDataResidual)(WIx,iA,iB,k));//  / fabs(
-	                             //(*pDataInitial)(WIx,iA,iB,k) - dEAvgW);
-			//dResP = 1.0;
-			dResP = fabs((*pDataResidual)(PIx,iA,iB,k));// / fabs(
-				     //(*pDataInitial)(PIx,iA,iB,k) - dEAvgP);
-			dResR = 0.0;
-			//dResR = fabs((*pDataResidual)(RIx,iA,iB,k));// / fabs(
-				     //(*pDataInitial)(RIx,iA,iB,k) - dEAvgR);
-			/*
-			dResU = fabs((*pDataResidual)(UIx,iA,iB,k))  / fabs(50.0);
-			dResV = fabs((*pDataResidual)(VIx,iA,iB,k))  / fabs(50.0);
-			dResW = fabs((*pDataResidual)(WIx,iA,iB,k))  / fabs(4.0);
-			dResP = fabs((*pDataResidual)(PIx,iA,iB,k)) / fabs(0.1);
-			dResR = fabs((*pDataResidual)(RIx,iA,iB,k)) / fabs(0.1);
-			*/
-			// Select the maximum residual
-			dResMax = std::max(dResU, dResV);
-			dResMax = std::max(dResMax, dResW);
-			dResMax = std::max(dResMax, dResP);
-			dResMax = std::max(dResMax, dResR);
-
-			if (dResMax > 0.0) {
-			    dResCoeff = dResMax;
-			} else {
-			    dResCoeff = 0.0;
-			}
-
-			// Scale to the average element length
-			double dABLength = dGridLength
-				/ pGrid->GetReferenceLength();
-			dResNu[i][j] = dABLength * dABLength * fabs(dResCoeff);
-
-			// Apply Pr number of 0.7 to thermodynamic stress
-			if (c == PIx) {
-				dResNu[i][j] *= 1.75;
-			}
-
-			// Get the maximum possible coefficient (upwind)
-			//dNuMax = 0.5 * m_dAuxDataNode(KIx,i,j,k); // /
-				//pGrid->GetReferenceLength();
-
-			// Limit the coefficients to the upwind value
-			//if (dResNu[i][j] >= dNuMax) {
-			//	dResNu[i][j] = dNuMax;
-			//}
-			// Check for Inf or NaN and adjust
-			if (!std::isfinite(dResNu[i][j])) {
-				dResNu[i][j] = dNuMax;
-			}
-		}
-		}
-
-		// Calculate the pointwise gradient of the scalar field
-		for (int i = 0; i < nHorizontalOrder; i++) {
-		for (int j = 0; j < nHorizontalOrder; j++) {
-			int iA = iElementA + i;
-			int iB = iElementB + j;
-
-			double dDaPsi = 0.0;
-			double dDbPsi = 0.0;
-			for (int s = 0; s < nHorizontalOrder; s++) {
-				dDaPsi +=
-					//(*pDataInitial)(c,s,iB,k)
-					//* dDxBasis1D(s,i);
-					m_dBufferState(s,j)
-					* dDxBasis1D(s,i);
-
-				dDbPsi +=
-					//(*pDataInitial)(c,iA,s,k)
-					//* dDxBasis1D(s,j);
-					m_dBufferState(i,s)
-					* dDxBasis1D(s,j);
-			}
-
-				dDaPsi *= dInvElementDeltaA;
-				dDbPsi *= dInvElementDeltaB;
-
-				dDaPsi *= dResNu[i][j];
-				dDbPsi *= dResNu[i][j];
-
-				m_dJGradientA(i,j) =
-					(*pJacobian)(iA,iB,k) * (
-						+ dContraMetric2DA(iA,iB,0) * dDaPsi
-						+ dContraMetric2DA(iA,iB,1) * dDbPsi);
-
-				m_dJGradientB(i,j) =
-					(*pJacobian)(iA,iB,k) * (
-						+ dContraMetric2DB(iA,iB,0) * dDaPsi
-						+ dContraMetric2DB(iA,iB,1) * dDbPsi);
-
-				// Update the DynSGS stress field for output
-				dataDynSGSNode(0,iA,iB,k) = m_dJGradientA(i,j);
-				dataDynSGSNode(1,iA,iB,k) = m_dJGradientB(i,j);
-		}
-		}
-
-		// Pointwise updates
-		for (int i = 0; i < nHorizontalOrder; i++) {
-		for (int j = 0; j < nHorizontalOrder; j++) {
-			int iA = iElementA + i;
-			int iB = iElementB + j;
-
-			// Inverse Jacobian and Jacobian
-			const double dInvJacobian = 1.0 / (*pJacobian)(iA,iB,k);
-			const double dInvRho = 1.0 / (*pDataInitial)(RIx,iA,iB,k);
-
-			// Compute integral term
-			double dUpdateA = 0.0;
-			double dUpdateB = 0.0;
-
-			for (int s = 0; s < nHorizontalOrder; s++) {
-				dUpdateA +=
-					m_dJGradientA(s,j)
-					* dStiffness1D(i,s);
-
-				dUpdateB +=
-					m_dJGradientB(i,s)
-					* dStiffness1D(j,s);
-			}
-
-			dUpdateA *= dInvElementDeltaA;
-			dUpdateB *= dInvElementDeltaB;
-
-			// Apply update
-			(*pDataUpdate)(c,iA,iB,k) -=
-				dDeltaT * dInvRho
-					* dInvJacobian
-					* (dUpdateA + dUpdateB);
-
-			//Announce("%1.10e %1.10e %1.10e %1.10e", dResNu[i][j], dUpdateA, dUpdateB, (*pDataUpdate)(c,iA,iB,k));
-		}
-		}
-	}
-	}
-	}
-	}
-	}
-}
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
 void HorizontalDynamicsFEM::ApplyVectorHyperdiffusion(
 	int iDataInitial,
 	int iDataUpdate,
@@ -2714,10 +2238,12 @@ void HorizontalDynamicsFEM::ApplyVectorHyperdiffusion(
 	// Indices of auxiliary data variables
 	const int ConUaIx = 0;
 	const int ConUbIx = 1;
+	const int KIx = 4;
 
 	// Variable indices
 	const int UIx = 0;
 	const int VIx = 1;
+	const int PIx = 2;
 	const int WIx = 3;
 
 	// Density or height index
@@ -2756,6 +2282,9 @@ void HorizontalDynamicsFEM::ApplyVectorHyperdiffusion(
 		fApplyToRefState = true;
 	}
 
+	// Physical constants
+        const PhysicalConstants & phys = m_model.GetPhysicalConstants();
+	
 	// Loop over all patches
 	for (int n = 0; n < pGrid->GetActivePatchCount(); n++) {
 		GridPatchGLL * pPatch =
@@ -2828,7 +2357,8 @@ void HorizontalDynamicsFEM::ApplyVectorHyperdiffusion(
 		// Compute new hyperviscosity coefficient
 		double dLocalNuDiv  = dNuDiv;
 		double dLocalNuVort = dNuVort;
-
+		double dLocalNuWind = 0.5 * (dNuDiv + dNuVort);
+		//
 		if (fScaleNuLocally) {
 			double dReferenceLength = pGrid->GetReferenceLength();
 			if (dReferenceLength != 0.0) {
@@ -2838,7 +2368,8 @@ void HorizontalDynamicsFEM::ApplyVectorHyperdiffusion(
 					dLocalNuVort * pow(dElementDeltaA / dReferenceLength, 3.2);
 			}
 		}
-
+		double dElScale = std::pow(dElementDeltaA, 3.0);
+		//
 		// Number of finite elements
 		int nElementCountA = pPatch->GetElementCountA();
 		int nElementCountB = pPatch->GetElementCountB();
@@ -2850,6 +2381,53 @@ void HorizontalDynamicsFEM::ApplyVectorHyperdiffusion(
 
 			const int iElementA = a * nHorizontalOrder + box.GetHaloElements();
 			const int iElementB = b * nHorizontalOrder + box.GetHaloElements();
+			
+			if (fScaleNuLocally) {
+				double dKMax = 0.0;
+				double dRhoTheta = 0.0;
+				// Compute maximum local wave speed in an element
+				for (int i = 0; i < nHorizontalOrder; i++) {
+				for (int j = 0; j < nHorizontalOrder; j++) {
+					int iA = iElementA + i;
+					int iB = iElementB + j;
+
+					// Contravariant velocities
+					double dCovUa = dataInitial(UIx,iA,iB,k);
+					double dCovUb = dataInitial(VIx,iA,iB,k);
+
+					// Contravariant velocities
+					m_dAuxDataNode(ConUaIx,i,j,k) =
+						dContraMetric2DA(iA,iB,0) * dCovUa
+					      + dContraMetric2DA(iA,iB,1) * dCovUb;
+
+					m_dAuxDataNode(ConUbIx,i,j,k) =
+						dContraMetric2DB(iA,iB,0) * dCovUa
+					      + dContraMetric2DB(iA,iB,1) * dCovUb;
+
+					// Maximum wave speed in this element
+#if defined(FORMULATION_THETA)
+					dRhoTheta = dataInitial(PIx,iA,iB,k) *
+						  dataInitial(RIx,iA,iB,k);
+#endif
+
+#if defined(FORMULATION_RHOTHETA_P) || defined(FORMULATION_RHOTHETA_PI)
+					dRhoTheta = dataInitial(PIx,iA,iB,k);
+#endif
+
+					m_dAuxDataNode(KIx,i,j,k) = sqrt(
+					      m_dAuxDataNode(ConUaIx,i,j,k) * dCovUa
+					    + m_dAuxDataNode(ConUbIx,i,j,k) * dCovUb);
+
+					if (m_dAuxDataNode(KIx,i,j,k) > dKMax) {
+						dKMax = m_dAuxDataNode(KIx,i,j,k);
+					}
+				}
+				}
+				dLocalNuWind = 4.0 * dElScale * dKMax;
+				// Comment out to revert back to default uniform hypervis
+				//dLocalNuVort = dLocalNuWind;
+				//dLocalNuDiv = dLocalNuWind;
+			}
 
 			// Pointwise update of horizontal velocities
 			for (int i = 0; i < nHorizontalOrder; i++) {
@@ -2867,19 +2445,19 @@ void HorizontalDynamicsFEM::ApplyVectorHyperdiffusion(
 
 #pragma unroll
 				for (int s = 0; s < nHorizontalOrder; s++) {
-					dDaDiv -=
+					dDaDiv -= 1.0 * 
 						  dStiffness1D(i,s)
 						* dataDiv(iElementA+s,iB,k);
 
-					dDbDiv -=
+					dDbDiv -= 1.0 * 
 						  dStiffness1D(j,s)
 						* dataDiv(iA,iElementB+s,k);
 
-					dDaCurl -=
+					dDaCurl -= 1.0 * 
 						  dStiffness1D(i,s)
 						* dataCurl(iElementA+s,iB,k);
 
-					dDbCurl -=
+					dDbCurl -= 1.0 *
 						  dStiffness1D(j,s)
 						* dataCurl(iA,iElementB+s,k);
 				}
@@ -2889,7 +2467,7 @@ void HorizontalDynamicsFEM::ApplyVectorHyperdiffusion(
 
 				dDaCurl *= dInvElementDeltaA;
 				dDbCurl *= dInvElementDeltaB;
-
+				
 				// Apply update
 				double dUpdateUa =
 					+ dLocalNuDiv * dDaDiv
@@ -3208,8 +2786,8 @@ void HorizontalDynamicsFEM::StepAfterSubCycle(
 	GridGLL * pGrid = dynamic_cast<GridGLL*>(m_model.GetGrid());
 
 	// Copy initial data to updated data
-	pGrid->CopyData(iDataInitial, iDataUpdate, DataType_State);
-	pGrid->CopyData(iDataInitial, iDataUpdate, DataType_Tracers);
+	//pGrid->CopyData(iDataInitial, iDataUpdate, DataType_State);
+	//pGrid->CopyData(iDataInitial, iDataUpdate, DataType_Tracers);
 
 	// No hyperdiffusion
 	if ((m_dNuScalar == 0.0) && (m_dNuDiv == 0.0) && (m_dNuVort == 0.0)) {
@@ -3230,8 +2808,8 @@ void HorizontalDynamicsFEM::StepAfterSubCycle(
 		FilterNegativeTracers(iDataUpdate);
 
 		// Apply Direct Stiffness Summation
-		pGrid->ApplyDSS(iDataUpdate, DataType_State);
-		pGrid->ApplyDSS(iDataUpdate, DataType_Tracers);
+		//pGrid->ApplyDSS(iDataUpdate, DataType_State);
+		//pGrid->ApplyDSS(iDataUpdate, DataType_Tracers);
 
 	// Apply hyperviscosity
 	} else if (m_nHyperviscosityOrder == 4) {
@@ -3246,8 +2824,8 @@ void HorizontalDynamicsFEM::StepAfterSubCycle(
 			iDataInitial, iDataWorking, 1.0, 1.0, 1.0, false);
 
 		// Apply Direct Stiffness Summation
-		pGrid->ApplyDSS(iDataWorking, DataType_State);
-		pGrid->ApplyDSS(iDataWorking, DataType_Tracers);
+		//pGrid->ApplyDSS(iDataWorking, DataType_State);
+		//pGrid->ApplyDSS(iDataWorking, DataType_Tracers);
 
 		// Apply scalar and vector hyperviscosity (second application)
 		ApplyScalarHyperdiffusion(
@@ -3259,8 +2837,8 @@ void HorizontalDynamicsFEM::StepAfterSubCycle(
 		FilterNegativeTracers(iDataUpdate);
 
 		// Apply Direct Stiffness Summation
-		pGrid->ApplyDSS(iDataUpdate, DataType_State);
-		pGrid->ApplyDSS(iDataUpdate, DataType_Tracers);
+		//pGrid->ApplyDSS(iDataUpdate, DataType_State);
+		//pGrid->ApplyDSS(iDataUpdate, DataType_Tracers);
 
 	// Invalid viscosity order
 	} else {
@@ -3273,8 +2851,8 @@ void HorizontalDynamicsFEM::StepAfterSubCycle(
 			ApplyRayleighFriction(iDataInitial, iDataUpdate, dDeltaT);
 
 			// Apply Direct Stiffness Summation
-			pGrid->ApplyDSS(iDataUpdate, DataType_State);
-			pGrid->ApplyDSS(iDataUpdate, DataType_Tracers);
+			//pGrid->ApplyDSS(iDataUpdate, DataType_State);
+			//pGrid->ApplyDSS(iDataUpdate, DataType_Tracers);
 		}
 #endif
 }

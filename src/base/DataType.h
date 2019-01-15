@@ -26,7 +26,6 @@ enum DataType {
 	DataType_All = (-1),
 	DataType_Default = (0),
 	DataType_State = DataType_Default,
-	DataType_Residual,
 	DataType_RefState,
 	DataType_Tracers,
 	DataType_Auxiliary2D,
@@ -47,6 +46,7 @@ enum DataType {
 	DataType_RayleighStrength,
 	DataType_Richardson,
 	DataType_Convective,
+	DataType_ZonalForce,
 	DataType_DynSGS,
 	DataType_None
 };

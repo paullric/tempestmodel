@@ -58,7 +58,6 @@ GridPatchCartesianGLL::GridPatchCartesianGLL(
 void GridPatchCartesianGLL::InitializeDataLocal(
 	bool fAllocateGeometric,
 	bool fAllocateActiveState,
-	bool fAllocateActiveResidual,
 	bool fAllocateBufferState,
 	bool fAllocateAuxiliary
 ) {
@@ -66,7 +65,6 @@ void GridPatchCartesianGLL::InitializeDataLocal(
 	GridPatch::InitializeDataLocal(
 		fAllocateGeometric,
 		fAllocateActiveState,
-		fAllocateActiveResidual,
 		fAllocateBufferState,
 		fAllocateAuxiliary
 	);
@@ -1476,9 +1474,9 @@ void GridPatchCartesianGLL::InterpolateData(
 	} else if (eDataType == DataType_Convective) {
 		nComponents = 1;
 
-	// DynSGS number Data
-	} else if (eDataType == DataType_DynSGS) {
-		nComponents = 3;
+	// Zonal Drag Data
+        } else if (eDataType == DataType_ZonalForce) {
+                nComponents = 1;
 
 	// 2D User Data
 	} else if (eDataType == DataType_Auxiliary2D) {
@@ -1626,17 +1624,9 @@ void GridPatchCartesianGLL::InterpolateData(
 		} else if (eDataType == DataType_Convective) {
 			pData.AttachToData(&(m_dataConvective[0][0][0]));
 
-		} else if (eDataType == DataType_DynSGS) {
-			if (c < 3) {
-				if (eDataLocation == DataLocation_Node) {
-					pData.AttachToData(&(m_dataDynSGSNode[c][0][0][0]));
-				} else if (eDataLocation == DataLocation_REdge) {
-					pData.AttachToData(&(m_dataDynSGSREdge[c][0][0][0]));
-				} else {
-					_EXCEPTIONT("Invalid DataLocation");
-				}
-			}
-
+		} else if (eDataType == DataType_ZonalForce) {
+                        pData.AttachToData(&(m_dataZonalForce[0][0][0]));
+		
 		} else if (eDataType == DataType_Auxiliary2D) {
 			pData.AttachToData(&(m_dataUserData2D[c][0][0]));
 

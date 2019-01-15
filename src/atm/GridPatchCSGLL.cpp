@@ -1300,7 +1300,11 @@ void GridPatchCSGLL::InterpolateData(
 	// Temperature Data
 	} else if (eDataType == DataType_Temperature) {
 		nComponents = 1;
-
+	
+	// Zonal Drag Data
+        } else if (eDataType == DataType_ZonalForce) {
+                nComponents = 1;
+	
 	// Surface Pressure Data
 	} else if (eDataType == DataType_SurfacePressure) {
 		nComponents = 1;
@@ -1453,6 +1457,9 @@ void GridPatchCSGLL::InterpolateData(
 
 		} else if (eDataType == DataType_Temperature) {
 			pData.AttachToData(&(m_dataTemperature(0,0,0)));
+
+		} else if (eDataType == DataType_ZonalForce) {
+                        pData.AttachToData(&(m_dataZonalForce(0,0,0)));
 
 		} else if (eDataType == DataType_SurfacePressure) {
 			pData.AttachToData(&(m_dataSurfacePressure(0,0)));
@@ -1661,7 +1668,7 @@ void GridPatchCSGLL::InterpolateData(
 void GridPatchCSGLL::TransformHaloVelocities(
 	int iDataUpdate
 ) {
-	// Indices of velocities
+	// Indices of velocitie
 	static const int UIx = 0;
 	static const int VIx = 1;
 

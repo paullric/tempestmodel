@@ -58,7 +58,6 @@ void GridPatch::InitializeDataRemote(
 void GridPatch::InitializeDataLocal(
 	bool fAllocateGeometric,
 	bool fAllocateActiveState,
-	bool fAllocateActiveResidual,
 	bool fAllocateBufferState,
 	bool fAllocateAuxiliary
 ) {
@@ -244,7 +243,6 @@ void GridPatch::InitializeDataLocal(
 
 	// Active State Patch Index
 	m_iActiveStatePatchIx.SetSize(1);
-	m_iActiveResidualPatchIx.SetSize(3);
 
 	// Initialize reference state
 	m_dataRefStateNode.SetDataType(DataType_State);
@@ -368,57 +366,6 @@ void GridPatch::InitializeDataLocal(
     		m_dcBufferState.PushDataChunk(&m_datavecStateREdge[m]);
   	}
 
-	// Initialize component residual data
-	m_datavecResidualNode .resize(3);
-	m_datavecResidualREdge.resize(3);
-
-	for (int m = 0; m < 3; m++) {
-
-		m_datavecResidualNode[m].SetDataType(DataType_Residual);
-		m_datavecResidualNode[m].SetDataLocation(DataLocation_Node);
-		m_datavecResidualNode[m].SetSize(
-			eqn.GetComponents(),
-			m_box.GetATotalWidth(),
-			m_box.GetBTotalWidth(),
-			m_grid.GetRElements());
-
-		m_datavecResidualREdge[m].SetDataType(DataType_Residual);
-		m_datavecResidualREdge[m].SetDataLocation(DataLocation_REdge);
-		m_datavecResidualREdge[m].SetSize(
-			eqn.GetComponents(),
-			m_box.GetATotalWidth(),
-			m_box.GetBTotalWidth(),
-			m_grid.GetRElements()+1);
-	}
-
-	m_dcActiveResidual.PushDataChunk(&m_iActiveResidualPatchIx);
-	for (int m = 0; m < 3; m++) {
-		m_dcActiveResidual.PushDataChunk(&m_datavecResidualNode[m]);
-		m_dcActiveResidual.PushDataChunk(&m_datavecResidualREdge[m]);
-	}
-
-	// Initialize DynSGS data for output with 3 components
-	m_dataDynSGSNode.SetDataType(DataType_DynSGS);
-	m_dataDynSGSNode.SetDataLocation(DataLocation_Node);
-	m_dataDynSGSNode.SetSize(
-		3,
-		m_box.GetATotalWidth(),
-		m_box.GetBTotalWidth(),
-		m_grid.GetRElements());
-
-	m_dataDynSGSREdge.SetDataType(DataType_DynSGS);
-	m_dataDynSGSREdge.SetDataLocation(DataLocation_REdge);
-	m_dataDynSGSREdge.SetSize(
-		3,
-		m_box.GetATotalWidth(),
-		m_box.GetBTotalWidth(),
-		m_grid.GetRElements()+1);
-
-	m_dcActiveResidual.PushDataChunk(&m_dataDynSGSNode);
-	m_dcActiveResidual.PushDataChunk(&m_dataDynSGSREdge);
-
-	// Initialize storage for local xi derivatives in HD update for use in
-	// PML implementation in HorizontalDynamicsFEM
 	m_dataXiDiffNode.SetDataType(DataType_None);
 	m_dataXiDiffNode.SetDataLocation(DataLocation_Node);
 	m_dataXiDiffNode.SetSize(
@@ -460,10 +407,6 @@ void GridPatch::InitializeDataLocal(
 	}
 	if (fAllocateBufferState) {
 		m_dcBufferState.Allocate();
-	}
-
-	if (fAllocateActiveResidual) {
-		m_dcActiveResidual.Allocate();
 	}
 
 	// Pressure data
@@ -521,6 +464,14 @@ void GridPatch::InitializeDataLocal(
 		m_box.GetBTotalWidth(),
 		m_grid.GetRElements());
 
+	// Zonal contravariant momentum tendencty data
+        m_dataZonalForce.SetDataType(DataType_ZonalForce);
+        m_dataZonalForce.SetDataLocation(DataLocation_Node);
+        m_dataZonalForce.SetSize(
+                m_box.GetATotalWidth(),
+                m_box.GetBTotalWidth(),
+                m_grid.GetRElements());
+	
 	// Surface pressure data
 	m_dataSurfacePressure.SetDataType(DataType_SurfacePressure);
 	m_dataSurfacePressure.SetDataLocation(DataLocation_None);
@@ -536,6 +487,7 @@ void GridPatch::InitializeDataLocal(
 	m_dcAuxiliary.PushDataChunk(&m_dataTemperature);
 	m_dcAuxiliary.PushDataChunk(&m_dataRichardson);
 	m_dcAuxiliary.PushDataChunk(&m_dataConvective);
+	m_dcAuxiliary.PushDataChunk(&m_dataZonalForce);
 	m_dcAuxiliary.PushDataChunk(&m_dataSurfacePressure);
 
 	// 2D User data
@@ -559,9 +511,6 @@ void GridPatch::InitializeDataLocal(
 	// Mark Patch index
 	m_iGeometricPatchIx[0] = m_ixPatch;
 	m_iActiveStatePatchIx[0] = m_ixPatch;
-	m_iActiveResidualPatchIx[0] = m_ixPatch;
-	m_iActiveResidualPatchIx[1] = m_ixPatch;
-	m_iActiveResidualPatchIx[2] = m_ixPatch;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -816,6 +765,91 @@ void GridPatch::ComputeTemperature(
 		}
 		}
 	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void GridPatch::ComputeZonalForce(
+        int iDataIndex,
+        DataLocation loc
+) {
+	const PhysicalConstants & phys = m_grid.GetModel().GetPhysicalConstants();
+
+#if defined(FIXED_RELEMENTS)
+        const int nRElements = FIXED_RELEMENTS;
+        if (nRElements != m_grid.GetRElements()) {
+                _EXCEPTIONT("Command line levels must match FIXED_RELEMENTS");
+        }
+#else
+        const int nRElements = m_grid.GetRElements();
+#endif
+
+        // Indices of EquationSet variables
+        const int UIx = 0;
+        const int VIx = 1;
+        const int PIx = 2;
+        const int WIx = 3;
+        const int RIx = 4;
+
+        if (m_grid.GetModel().GetEquationSet().GetComponents() < 5) {
+                _EXCEPTIONT("Invalid EquationSet.");
+        }
+
+	// Calculate zonal force on nodes
+        if (loc == DataLocation_Node) {
+                if (m_grid.GetVarLocation(UIx) == DataLocation_REdge) {
+                        InterpolateREdgeToNode(UIx, iDataIndex);
+                }
+		if (m_grid.GetVarLocation(WIx) == DataLocation_REdge) {
+                        InterpolateREdgeToNode(WIx, iDataIndex);
+                }
+                if (m_grid.GetVarLocation(RIx) == DataLocation_REdge) {
+                        InterpolateREdgeToNode(RIx, iDataIndex);
+                }
+
+		// LHS tendency data is at the back instance of state vector
+		const int iLHSdex = m_grid.GetModel().GetComponentDataInstances() - 1; 
+                const DataArray4D<double> & dataNode = m_datavecStateNode[iDataIndex];
+		const DataArray4D<double> & dataTendency = m_datavecStateNode[iLHSdex];
+
+                double dConUa = 0.0;
+		double dConUadt = 0.0;
+		for (int i = m_box.GetAInteriorBegin(); i < m_box.GetAInteriorEnd(); i++) {
+                for (int j = m_box.GetBInteriorBegin(); j < m_box.GetBInteriorEnd(); j++) {
+                for (int k = 0; k < nRElements; k++) {
+			// Contravariant zonal velocity
+			const double dCovUa = dataNode(UIx,i,j,k);
+                        const double dCovUb = dataNode(VIx,i,j,k);
+                        const double dCovUx = dataNode(WIx,i,j,k);
+
+                        const double dConUa =
+                                  m_dataContraMetricA(i,j,k,0) * dCovUa
+                                + m_dataContraMetricA(i,j,k,1) * dCovUb
+                                + m_dataContraMetricA(i,j,k,2) * dCovUx;
+
+			// Contravariant zonal velocity tendency
+			const double dCovUadt = dataTendency(UIx,i,j,k);
+                        const double dCovUbdt = dataTendency(VIx,i,j,k);
+                        const double dCovUxdt = dataTendency(WIx,i,j,k);
+
+                        dConUadt =
+                                  m_dataContraMetricA(i,j,k,0) * dCovUadt
+                                + m_dataContraMetricA(i,j,k,1) * dCovUbdt
+                                + m_dataContraMetricA(i,j,k,2) * dCovUxdt;
+
+			// Compute the zonal momentum tendency by product rule
+			m_dataZonalForce(i,j,k) = dataNode(RIx,i,j,k) * 
+				dConUadt + dConUa * dataTendency(RIx,i,j,k);
+
+                }
+                }
+                }
+        }
+
+	// Calculate zonal force on interfaces
+        if (loc == DataLocation_REdge) {
+                _EXCEPTIONT("Zonal force not implemented on interfaces");
+        }
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1394,7 +1428,7 @@ void GridPatch::PackExchangeBuffer(
 		}
 
 		exbuf.Pack(m_grid, m_datavecTracers[iDataIndex]);
-
+	
 	// Vorticity data
 	} else if (eDataType == DataType_Vorticity) {
 		exbuf.Pack(m_dataVorticity);
@@ -1406,6 +1440,10 @@ void GridPatch::PackExchangeBuffer(
 	// Temperature data
 	} else if (eDataType == DataType_Temperature) {
 		exbuf.Pack(m_dataTemperature);
+
+	// Zonal drag data
+	} else if (eDataType == DataType_ZonalForce) {
+		exbuf.Pack(m_dataZonalForce);
 
 	// Richardson data
 	} else if (eDataType == DataType_Richardson) {
@@ -1466,12 +1504,16 @@ void GridPatch::UnpackExchangeBuffer(
 	} else if (eDataType == DataType_Temperature) {
 		exbuf.Unpack(m_dataTemperature);
 
+	// Zonal drag data
+        } else if (eDataType == DataType_ZonalForce) {
+                exbuf.Unpack(m_dataZonalForce);
+
 	// Richardson data
 	} else if (eDataType == DataType_Richardson) {
 		exbuf.Unpack(m_dataRichardson);
 
 	// Convective stability data
-} else if (eDataType == DataType_Convective) {
+	} else if (eDataType == DataType_Convective) {
 		exbuf.Unpack(m_dataConvective);
 
 	// Topographic derivatives
@@ -1600,73 +1642,8 @@ void GridPatch::LinearCombineData(
 				m_datavecTracers[m], dCoeff[m]);
 		}
 
-	// Check bounds on ixDest for Residual data
-	} else if (eDataType == DataType_Residual) {
-			if ((ixDest < 0) || (ixDest >= 3)) {
-				_EXCEPTIONT("Invalid ixDest index in LinearCombineData.");
-			}
-			if (dCoeff.GetRows() > m_datavecStateNode.size()) {
-				_EXCEPTIONT("Too many elements in coefficient vector.");
-			}
-
-			// Premultiply
-			if (dCoeff[ixDest] == 0.0) {
-				m_datavecResidualNode [ixDest].Zero();
-				m_datavecResidualREdge[ixDest].Zero();
-			} else {
-				m_datavecResidualNode [ixDest].Scale(dCoeff[ixDest]);
-				m_datavecResidualREdge[ixDest].Scale(dCoeff[ixDest]);
-			}
-
-			// Consider all other terms
-			for (int m = 0; m < dCoeff.GetRows(); m++) {
-				if (m == ixDest) {
-					continue;
-				}
-				if (dCoeff[m] == 0.0) {
-					continue;
-				}
-
-				m_datavecResidualNode[ixDest].AddProduct(
-					m_datavecResidualNode[m], dCoeff[m]);
-				m_datavecResidualREdge[ixDest].AddProduct(
-					m_datavecResidualREdge[m], dCoeff[m]);
-			}
-		} else {
-		_EXCEPTIONT("Invalid DataType specified for LinearCombineData.");
-	}
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
-void GridPatch::LinearCombineData2Residual(
-	const DataArray1D<double> & dCoeff,
-	int ixDest,
-	DataType eDataType
-) {
-	// Check bounds on ixDest for State data
-	if (eDataType == DataType_Residual) {
-		if ((ixDest < 0) || (ixDest >= 3)) {
-			_EXCEPTIONT("Invalid ixDest index in LinearCombineData2Residual.");
-		}
-		if (dCoeff.GetRows() > m_datavecStateNode.size()) {
-			_EXCEPTIONT("Too many elements in coefficient vector.");
-		}
-
-		// Consider all terms
-		for (int m = 0; m < dCoeff.GetRows(); m++) {
-			if (dCoeff[m] == 0.0) {
-				continue;
-			}
-
-			m_datavecResidualNode[ixDest].AddProduct(
-				m_datavecStateNode[m], dCoeff[m]);
-			m_datavecResidualREdge[ixDest].AddProduct(
-				m_datavecStateREdge[m], dCoeff[m]);
-		}
-	// Invalid datatype; only State or Tracers expected
 	} else {
-		_EXCEPTIONT("Invalid DataType specified for LinearCombineData2Residual.");
+		_EXCEPTIONT("Invalid DataType specified for LinearCombineData.");
 	}
 }
 
@@ -1684,15 +1661,6 @@ void GridPatch::ZeroData(
 
 		m_datavecStateNode [ixData].Zero();
 		m_datavecStateREdge[ixData].Zero();
-
-	// Check the bounds of ixDest for Residual data
-	} else if (eDataType == DataType_Residual) {
-		if ((ixData < 0) || (ixData > 2)) {
-			_EXCEPTIONT("Invalid ixData index in ZeroData.");
-		}
-
-		m_datavecResidualNode [ixData].Zero();
-		m_datavecResidualREdge[ixData].Zero();
 
 	// Check bounds on ixDest for Tracers data
 	} else if (eDataType == DataType_Tracers) {

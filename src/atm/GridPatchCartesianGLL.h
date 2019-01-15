@@ -54,7 +54,6 @@ public:
 	virtual void InitializeDataLocal(
 		bool fAllocateGeometric = true,
 		bool fAllocateActiveState = true,
-		bool fAllocateActiveResidual = true,
 		bool fAllocateBufferState = true,
 		bool fAllocateAuxiliary = true
 	);

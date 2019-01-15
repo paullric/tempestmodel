@@ -357,6 +357,13 @@ public:
 		int iDataIndex
 	);
 
+	///     <summary>
+        ///             Compute Zonal Force (for drag evaluation).
+        ///     </summary>
+        virtual void ComputeZonalForce(
+                int iDataIndex
+        );
+
 	///	<summary>
 	///		Interpolate data vertically from Nodes to REdges.
 	///	</summary>
@@ -565,15 +572,6 @@ public:
 		const DataArray1D<double> & dCoeff,
 		int ixDest,
 		DataType eDataType
-	);
-
-	///	<summary>
-	///		Compute a linear combination of data and store to residual array.
-	///	</summary>
-	void LinearCombineData2Residual(
-		const DataArray1D<double> & dCoeff,
-		int ixDest,
-		DataType eDataType = DataType_Residual
 	);
 
 	///	<summary>

@@ -835,7 +835,6 @@ void Grid::ComputeRichardson(
 				_EXCEPTIONT("Logic error");
 			}
 		pGLLGrid->ComputeRichardson(iDataIndex);
-		//m_vecActiveGridPatches[n]->ComputeRichardson(iDataIndex);
 	}
 }
 
@@ -853,8 +852,18 @@ void Grid::ComputeConvectiveGrad(
 				_EXCEPTIONT("Logic error");
 			}
 		pGLLGrid->ComputeConvectiveGrad(iDataIndex);
-		//m_vecActiveGridPatches[n]->ComputeRichardson(iDataIndex);
 	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void Grid::ComputeZonalForce(
+        int iDataIndex
+) {
+        // Loop over all grid patches
+        for (int n = 0; n < m_vecActiveGridPatches.size(); n++) {
+                m_vecActiveGridPatches[n]->ComputeZonalForce(iDataIndex);
+        }
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -958,6 +967,18 @@ void Grid::ReduceInterpolate(
 	) {
 		_EXCEPTIONT("InterpData dimension mismatch (0)");
 	}
+
+	if ((eDataType == DataType_Convective) &&
+                (dInterpData.GetRows() != 1)
+        ) {
+                _EXCEPTIONT("InterpData dimension mismatch (0)");
+        }
+
+	if ((eDataType == DataType_ZonalForce) &&
+                (dInterpData.GetRows() != 1)
+        ) {
+                _EXCEPTIONT("InterpData dimension mismatch (0)");
+        }
 
 	if (dInterpData.GetColumns() != dREta.GetRows()) {
 		_EXCEPTIONT("InterpData dimension mismatch (1)");
@@ -1630,20 +1651,6 @@ void Grid::LinearCombineData(
 	for (int n = 0; n < m_vecActiveGridPatches.size(); n++) {
 		m_vecActiveGridPatches[n]->
 			LinearCombineData(dCoeff, ixDest, eDataType);
-	}
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
-void Grid::LinearCombineData2Residual(
-	const DataArray1D<double> & dCoeff,
-	int ixDest,
-	DataType eDataType
-) {
-	// Loop over all grid patches
-	for (int n = 0; n < m_vecActiveGridPatches.size(); n++) {
-		m_vecActiveGridPatches[n]->
-			LinearCombineData2Residual(dCoeff, eDataType);
 	}
 }
 

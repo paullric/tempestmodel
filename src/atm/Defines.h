@@ -44,11 +44,6 @@
 //#define FORMULATION_THETA_FLUX
 
 ///	<summary>
-///		Compute residuals in TimestepScheme classes.
-///	</summary>
-//#define RESIDUAL_DIFFUSION
-
-///	<summary>
 ///		Hardcoded horizontal order.
 ///	</summary>
 //#define FIXED_HORIZONTAL_ORDER 4

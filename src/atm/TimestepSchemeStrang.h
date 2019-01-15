@@ -58,16 +58,17 @@ public:
 public:
 	///	<summary>
 	///		Get the number of component data instances.
+	//		Added 1 for LHS tendency storage
 	///	</summary>
 	virtual int GetComponentDataInstances() const {
-		return 5;
+		return 6;
 	}
 
 	///	<summary>
 	///		Get the number of tracer data instances.
 	///	</summary>
 	virtual int GetTracerDataInstances() const {
-		return 5;
+		return 6;
 	}
 /*
 	///	<summary>

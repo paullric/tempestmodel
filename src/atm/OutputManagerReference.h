@@ -123,6 +123,14 @@ public:
 		bool fOutputConvective = true
 	);
 
+	///     <summary>
+        ///             Modify the flag which indicates whether Zonal force should be
+        ///             computed and output.
+        ///     </summary>
+        void OutputZonalForce(
+                bool fOutputZonalForce = true
+        );
+
 private:
 	///	<summary>
 	///		Calculate the patch coordinates of the reference points.
@@ -390,6 +398,21 @@ private:
 	///		Computed Convective stability on the reference grid.
 	///	</summary>
 	DataArray3D<double> m_dataConvective;
+
+	///     <summary>
+        ///             Flag indicating whether Zonal force should be computed and output.
+        ///     </summary>
+        bool m_fOutputZonalForce;
+
+        ///     <summary>
+        ///             Zonal force output variable.
+        ///     </summary>
+        NcVar * m_varZonalForce;
+
+        ///     <summary>
+        ///             Computed Zonal force on the reference grid.
+        ///     </summary>
+        DataArray3D<double> m_dataZonalForce;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
