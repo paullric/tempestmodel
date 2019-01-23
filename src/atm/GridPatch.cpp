@@ -812,34 +812,29 @@ void GridPatch::ComputeZonalForce(
                 const DataArray4D<double> & dataNode = m_datavecStateNode[iDataIndex];
 		const DataArray4D<double> & dataTendency = m_datavecStateNode[iLHSdex];
 
-                double dConUa = 0.0;
-		double dConUadt = 0.0;
+                double dUX = 0.0;
+		double dUXdt = 0.0;
 		for (int i = m_box.GetAInteriorBegin(); i < m_box.GetAInteriorEnd(); i++) {
                 for (int j = m_box.GetBInteriorBegin(); j < m_box.GetBInteriorEnd(); j++) {
                 for (int k = 0; k < nRElements; k++) {
+			const double dZda = m_dataDerivRNode(i,j,k,0);
+                        const double dZdxi = m_dataDerivRNode(i,j,k,2);
+
 			// Contravariant zonal velocity
 			const double dCovUa = dataNode(UIx,i,j,k);
-                        const double dCovUb = dataNode(VIx,i,j,k);
-                        const double dCovUx = dataNode(WIx,i,j,k);
+			const double dCovUx = dataNode(WIx,i,j,k);
 
-                        const double dConUa =
-                                  m_dataContraMetricA(i,j,k,0) * dCovUa
-                                + m_dataContraMetricA(i,j,k,1) * dCovUb
-                                + m_dataContraMetricA(i,j,k,2) * dCovUx;
+			dUX - dCovUa - (dZda / dZdxi) * dCovUx;
 
 			// Contravariant zonal velocity tendency
 			const double dCovUadt = dataTendency(UIx,i,j,k);
-                        const double dCovUbdt = dataTendency(VIx,i,j,k);
                         const double dCovUxdt = dataTendency(WIx,i,j,k);
 
-                        dConUadt =
-                                  m_dataContraMetricA(i,j,k,0) * dCovUadt
-                                + m_dataContraMetricA(i,j,k,1) * dCovUbdt
-                                + m_dataContraMetricA(i,j,k,2) * dCovUxdt;
+                        dUXdt = dCovUadt - (dZda / dZdxi) * dCovUxdt;
 
 			// Compute the zonal momentum tendency by product rule
 			m_dataZonalForce(i,j,k) = dataNode(RIx,i,j,k) * 
-				dConUadt + dConUa * dataTendency(RIx,i,j,k);
+				dUXdt + dUX * dataTendency(RIx,i,j,k);
 
                 }
                 }

@@ -348,6 +348,12 @@ void TimestepSchemeStrang::Step(
 		pGrid->CopyData(0, 1, DataType_Tracers);
 		pHorizontalDynamics->StepExplicit(0, 1, time, dStepOne * dDeltaT);
 		pVerticalDynamics->StepExplicit(0, 1, time, dStepOne * dDeltaT);
+		// Apply hyperdiffusion
+		pHorizontalDynamics->StepAfterSubCycle(0, 1, 4, time, dStepOne * dDeltaT);
+		pVerticalDynamics->StepHypervisExplicit(0, 1, time, dStepOne * dDeltaT);
+		pGrid->PostProcessSubstage(1, DataType_State);
+                pGrid->PostProcessSubstage(1, DataType_Tracers);
+
 		// Get the time tendency of the LHS from here
                 const int iLHSdex = m_model.GetComponentDataInstances() - 1;
                 m_dResCombine[0] = -1.0 / (dStepOne * dDeltaT);
@@ -356,24 +362,8 @@ void TimestepSchemeStrang::Step(
                 m_dResCombine[3] = 0.0;
                 m_dResCombine[4] = 0.0;
                 m_dResCombine[5] = 0.0;
-		pGrid->LinearCombineData(m_dResCombine, iLHSdex, DataType_State);
-		// Apply hyperdiffusion
-		pHorizontalDynamics->StepAfterSubCycle(0, 1, 4, time, dStepOne * dDeltaT);
-		pVerticalDynamics->StepHypervisExplicit(0, 1, time, dStepOne * dDeltaT);
-		pGrid->PostProcessSubstage(1, DataType_State);
-                pGrid->PostProcessSubstage(1, DataType_Tracers);
-
-		// Get the time tendency of the LHS from here
-		/*
-		const int iLHSdex = m_model.GetComponentDataInstances() - 1;
-		m_dResCombine[0] = -1.0 / (dStepOne * dDeltaT);
-                m_dResCombine[1] = +1.0 / (dStepOne * dDeltaT);
-		m_dResCombine[2] = 0.0;
-		m_dResCombine[3] = 0.0;
-		m_dResCombine[4] = 0.0;
-		m_dResCombine[5] = 0.0;
-		pGrid->LinearCombineData(m_dResCombine, iLHSdex, DataType_State);
-		*/
+                pGrid->LinearCombineData(m_dResCombine, iLHSdex, DataType_State);
+		
 		pGrid->CopyData(1, 2, DataType_State);
 		pGrid->CopyData(1, 2, DataType_Tracers);
 		pHorizontalDynamics->StepExplicit(1, 2, time, dStepOne * dDeltaT);
