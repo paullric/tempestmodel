@@ -86,6 +86,15 @@ public:
 		const Time & time,
 		int iDataInstance = 0
 	);
+    
+	///	<summary>
+	///		Initialize state and tracer pertubation from a TestCase upon restart.
+	///	</summary>
+	virtual void EvaluateTestCase_Perturbation(
+		const TestCase & test,
+		const Time & time,
+		int iDataInstance = 0
+	);
 
 public:
 	///	<summary>

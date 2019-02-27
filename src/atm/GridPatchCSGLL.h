@@ -86,9 +86,9 @@ protected:
 	);
 
 	///	<summary>
-	///		Initialize state and tracer data from a TestCase.
+	///		Initialize state and tracer pertubation from a TestCase upon restart.
 	///	</summary>
-	virtual void EvaluateTestCase_StateOnly(
+	virtual void EvaluateTestCase_Perturbation(
 		const TestCase & test,
 		const Time & time,
 		int iDataInstance = 0

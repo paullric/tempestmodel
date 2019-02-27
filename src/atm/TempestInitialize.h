@@ -69,6 +69,7 @@ struct _TempestCommandLineVariables {
 	std::string strOutputDir;
 	std::string strOutputPrefix;
 	std::string strRestartFile;
+    bool fRestartPerturbation;
 	int nOutputsPerFile;
 	Time timeOutputDeltaT;
 	Time timeOutputRestartDeltaT;
@@ -113,6 +114,7 @@ struct _TempestCommandLineVariables {
 	CommandLineString(_tempestvars.strOutputDir, "output_dir", "out" TestCaseName); \
 	CommandLineString(_tempestvars.strOutputPrefix, "output_prefix", "out"); \
 	CommandLineString(_tempestvars.strRestartFile, "restart_file", ""); \
+	CommandLineBool(_tempestvars.fRestartPerturbation, "perturb_restart"); \
 	CommandLineInt(_tempestvars.nOutputsPerFile, "output_perfile", -1); \
 	CommandLineDeltaTime(_tempestvars.timeOutputRestartDeltaT, "output_restart_dt", ""); \
 	CommandLineInt(_tempestvars.nOutputResX, "output_x", 360); \
@@ -574,7 +576,7 @@ void _TempestSetupCubedSphereModel(
 
 		pGrid->DefineParameters();
 
-		model.SetGridFromRestartFile(pGrid, vars.strRestartFile);
+		model.SetGridFromRestartFile(pGrid, vars.strRestartFile, vars.fRestartPerturbation);
 	}
 
 	AnnounceEndBlock("Done");
@@ -691,7 +693,7 @@ void _TempestSetupCartesianModel(
 
 		pGrid->DefineParameters();
 
-		model.SetGridFromRestartFile(pGrid, vars.strRestartFile);
+		model.SetGridFromRestartFile(pGrid, vars.strRestartFile, vars.fRestartPerturbation);
 	}
 
 	AnnounceEndBlock("Done");

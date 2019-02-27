@@ -152,6 +152,21 @@ public:
 		double * dState,
 		double * dTracer
 	) const = 0;
+    
+    ///	<summary>
+	///		Evaluate the state vector at the given point when restart is perturbed.
+	///	</summary>
+	virtual void EvaluatePointwisePerturbation(
+		const PhysicalConstants & phys,
+		const Time & time,
+		double dZ,
+		double dLon,
+		double dLat,
+		double * dState,
+		double * dTracer
+	) const {
+        // DO NOTHING...
+    }
 };
 
 ///////////////////////////////////////////////////////////////////////////////

@@ -678,6 +678,109 @@ void GridPatchCartesianGLL::EvaluateTestCase(
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+
+void GridPatchCartesianGLL::EvaluateTestCase_Perturbation(
+	const TestCase & test,
+	const Time & time,
+	int iDataIndex
+) {
+	// Initialize the data at each node
+	if (m_datavecStateNode.size() == 0) {
+		_EXCEPTIONT("InitializeData must be called before InitialConditions");
+	}
+	if (iDataIndex >= m_datavecStateNode.size()) {
+		_EXCEPTIONT("Invalid iDataIndex (out of range)");
+	}
+
+	// Check dimensionality
+	if ((m_grid.GetModel().GetEquationSet().GetDimensionality() == 2) &&
+		(m_nVerticalOrder != 1)
+	) {
+		_EXCEPTIONT("VerticalOrder / Dimensionality mismatch:\n"
+			"For 2D problems vertical order must be 1.");
+	}
+
+	// Physical constants
+	const PhysicalConstants & phys = m_grid.GetModel().GetPhysicalConstants();
+
+	GridCartesianGLL & gridCartesianGLL =
+		dynamic_cast<GridCartesianGLL &>(m_grid);
+
+	// Buffer vector for storing pointwise states
+	const EquationSet & eqns = m_grid.GetModel().GetEquationSet();
+
+	int nComponents = eqns.GetComponents();
+	int nTracers = eqns.GetTracers();
+
+	DataArray1D<double> dPointwiseState(nComponents);
+	DataArray1D<double> dPointwiseRefState(nComponents);
+
+	DataArray1D<double> dPointwiseTracers;
+	DataArray1D<double> dPointwiseRefTracers;
+
+	if (m_datavecTracers.size() > 0) {
+		if (nTracers > 0) {
+			dPointwiseTracers.Allocate(nTracers);
+			dPointwiseRefTracers.Allocate(nTracers);
+		}
+	}
+
+	// Evaluate the state on model levels
+	for (int i = 0; i < m_box.GetATotalWidth(); i++) {
+	for (int j = 0; j < m_box.GetBTotalWidth(); j++) {
+	for (int k = 0; k < m_grid.GetRElements(); k++) {
+
+		// Evaluate pointwise state
+		test.EvaluatePointwisePerturbation(
+			m_grid.GetModel().GetPhysicalConstants(),
+			time,
+			m_dataZLevels[i][j][k],
+			m_dataLon[i][j],
+			m_dataLat[i][j],
+			dPointwiseState,
+			dPointwiseTracers);
+
+		eqns.ConvertComponents(
+			phys, dPointwiseState, dPointwiseTracers);
+
+		for (int c = 0; c < dPointwiseState.GetRows(); c++) {
+			m_datavecStateNode[iDataIndex][c][i][j][k] = dPointwiseState[c];
+		}
+
+		// Evaluate tracers
+		for (int c = 0; c < dPointwiseTracers.GetRows(); c++) {
+			m_datavecTracers[iDataIndex][c][i][j][k] = dPointwiseTracers[c];
+		}
+	}
+	}
+	}
+	// Evaluate the state on model interfaces
+	for (int k = 0; k <= m_grid.GetRElements(); k++) {
+	for (int i = 0; i < m_box.GetATotalWidth(); i++) {
+	for (int j = 0; j < m_box.GetBTotalWidth(); j++) {
+
+		// Evaluate pointwise state
+		test.EvaluatePointwisePerturbation(
+			phys,
+			time,
+			m_dataZInterfaces[i][j][k],
+			m_dataLon[i][j],
+			m_dataLat[i][j],
+			dPointwiseState,
+			dPointwiseTracers);
+
+		eqns.ConvertComponents(phys, dPointwiseState, dPointwiseTracers);
+
+		for (int c = 0; c < dPointwiseState.GetRows(); c++) {
+			m_datavecStateREdge[iDataIndex][c][i][j][k] = dPointwiseState[c];
+		}
+	}
+	}
+	}
+//std::cout << "\n" << "End of EvaluateTestCase_Perturbation" << "\n";
+}
+
+///////////////////////////////////////////////////////////////////////////////
 #pragma message "TO DO test non-periodic BC on global alpha and beta boundaries"
 void GridPatchCartesianGLL::ApplyBoundaryConditions(
 	int iDataIndex,
