@@ -147,7 +147,8 @@ void Model::SetGrid(
 
 void Model::SetGridFromRestartFile(
 	Grid * pGrid,
-	const std::string & strRestartFile
+	const std::string & strRestartFile,
+	const bool & fRestartPerturbation
 ) {
 	if (pGrid == NULL) {
 		_EXCEPTIONT("Invalid Grid (NULL)");
@@ -175,6 +176,9 @@ void Model::SetGridFromRestartFile(
 
 	// Set flag indicating Grid was initialized from restart file
 	m_fGridFromRestartFile = true;
+    
+    // Set flag indicating that a perturbation is made upon restart
+    m_fRestartPerturbation = fRestartPerturbation;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -240,6 +244,16 @@ void Model::SetTestCase(
 
 		// Initialize the topography and data
 		m_pGrid->EvaluateTestCase(*pTestCase, m_timeStart);
+	}
+	
+	// Evaluate physical constants and data from TestCase if pertubation is needed on restart
+	if ((m_fRestartPerturbation) && (m_fGridFromRestartFile)) {
+
+		// Evaluate physical constants
+		m_pTestCase->EvaluatePhysicalConstants(m_phys);
+
+		// Initialize the topography and data
+		m_pGrid->EvaluateTestCase_Perturbation(*pTestCase, m_timeStart);
 	}
 }
 

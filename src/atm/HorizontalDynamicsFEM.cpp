@@ -389,6 +389,15 @@ void HorizontalDynamicsFEM::StepShallowWater(
 		DataArray4D<double> & dataUpdateNode =
 			pPatch->GetDataState(iDataUpdate, DataLocation_Node);
 
+		const DataArray4D<double> & dataInitialTracer =
+			pPatch->GetDataTracers(iDataInitial);
+
+		DataArray4D<double> & dataUpdateTracer =
+			pPatch->GetDataTracers(iDataUpdate);
+
+		// Number of tracers
+		const int nTracerCount = dataInitialTracer.GetSize(0);
+
 		// Element grid spacing and derivative coefficients
 		const double dElementDeltaA = pPatch->GetElementDeltaA();
 		const double dElementDeltaB = pPatch->GetElementDeltaB();
@@ -452,19 +461,36 @@ void HorizontalDynamicsFEM::StepShallowWater(
 					const int iA = iElementA + i;
 					const int iB = iElementB + j;
 
-					// Height flux
-					m_dAlphaMassFlux(i,j,k) =
+					// Base fluxes (area times velocity)
+					const double dAlphaBaseFlux =
 						dJacobian2D(iA,iB)
-						* (dataInitialNode(HIx,iA,iB,k)
-							- dTopography(iA,iB))
 						* m_dAuxDataNode(ConUaIx,i,j,k);
 
-					m_dBetaMassFlux(i,j,k) =
+					const double dBetaBaseFlux =
 						dJacobian2D(iA,iB)
-						* (dataInitialNode(HIx,iA,iB,k)
-							- dTopography(iA,iB))
 						* m_dAuxDataNode(ConUbIx,i,j,k);
 
+					// Height flux
+					m_dAlphaMassFlux(i,j,k) =
+						dAlphaBaseFlux
+						* (dataInitialNode(HIx,iA,iB,k)
+							- dTopography(iA,iB));
+
+					m_dBetaMassFlux(i,j,k) =
+						dBetaBaseFlux
+						* (dataInitialNode(HIx,iA,iB,k)
+							- dTopography(iA,iB));
+
+					// Tracer flux
+					for (int c = 0; c < nTracerCount; c++) {
+						m_dAlphaTracerFlux(c,i,j,k) =
+							dAlphaBaseFlux
+							* dataInitialTracer(c,iA,iB,k);
+
+						m_dBetaTracerFlux(c,i,j,k) =
+							dBetaBaseFlux
+							* dataInitialTracer(c,iA,iB,k);
+					}
 				}
 				}
 
@@ -591,6 +617,30 @@ void HorizontalDynamicsFEM::StepShallowWater(
 						dDeltaT * dInvJacobian2D * (
 							  dDaMassFluxA
 							+ dDbMassFluxB);
+
+					// Update tracers
+					for (int c = 0; c < nTracerCount; c++) {
+						double dDaTracerFluxA = 0.0;
+						double dDbTracerFluxB = 0.0;
+
+						for (int s = 0; s < nHorizontalOrder; s++) {
+							dDaTracerFluxA -=
+								m_dAlphaTracerFlux(c,s,j,k)
+								* dStiffness1D(i,s);
+
+							dDbTracerFluxB -=
+								m_dBetaTracerFlux(c,i,s,k)
+								* dStiffness1D(j,s);
+						}
+
+						dDaTracerFluxA *= dInvElementDeltaA;
+						dDbTracerFluxB *= dInvElementDeltaB;
+
+						dataUpdateTracer(c,iA,iB,k) -=
+							dDeltaT * dInvJacobian2D * (
+								  dDaTracerFluxA
+								+ dDbTracerFluxB);
+					}
 				}
 				}
 			}
@@ -1049,7 +1099,7 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 					  dBetaBaseFlux
 					* dataInitialNode(PIx,iA,iB,k);
 #endif
-/*
+
 #pragma unroll
 				for (int c = 0; c < nTracerCount; c++) {
 					m_dAlphaTracerFlux(c,i,j,k) =
@@ -1060,7 +1110,7 @@ void HorizontalDynamicsFEM::StepNonhydrostaticPrimitive(
 						dBetaBaseFlux
 						* dataInitialTracer(c,iA,iB,k);
 				}
-*/
+
 #if !defined(DISABLE_UNIFORM_DIFFUSION_CHECKS)
 				////////////////////////////////////////////////////////
 				// Apply uniform diffusion to tracers

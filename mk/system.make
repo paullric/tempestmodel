@@ -51,6 +51,10 @@ else ifeq ($(UNAME),Linux)
   ifeq ($(SYSTEM),)
     SYSTEM= AGRI
     SYSTEM_MAKEFILE= agri.make
+  endif
+  ifeq ($(HOSTNAME),VisualBeast)
+    SYSTEM= LIKEAGRI
+    SYSTEM_MAKEFILE= agri.make
   endif   
 endif
 
