@@ -22,7 +22,9 @@ FILES= Preferences.cpp \
        MemoryTools.cpp \
        GaussQuadrature.cpp \
        GaussLobattoQuadrature.cpp \
-       TimeObj.cpp
+       TimeObj.cpp \
+	   netcdf.cpp \
+	   ncvalues.cpp
 
 LIBNAME= libtempestbase
 

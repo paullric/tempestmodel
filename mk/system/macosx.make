@@ -6,17 +6,18 @@
 
 # Mac OS X (Paul's Laptop)
 
-CXX=               g++
+CXX=               clang
 F90=               gfortran
-MPICXX=            mpic++
+MPICXX=            mpicxx
 MPIF90=            mpif90
 
 F90_RUNTIME=       -L/usr/local/lib -lgfortran
 
-# NetCDF
+
+# NetCDF C library arguments
 NETCDF_ROOT=       /opt/local
 NETCDF_CXXFLAGS=   -I$(NETCDF_ROOT)/include
-NETCDF_LIBRARIES=  -lnetcdf -lnetcdf_c++
+NETCDF_LIBRARIES=  -lnetcdf
 NETCDF_LDFLAGS=    -L$(NETCDF_ROOT)/lib
 
 # PetSc
